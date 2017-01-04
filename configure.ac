@@ -1145,6 +1145,13 @@ if test "x$use_zmq" = xyes; then
   BITCOIN_QT_CHECK(AC_CHECK_LIB([protobuf] ,[main],[PROTOBUF_LIBS=-lprotobuf], BITCOIN_QT_FAIL(libprotobuf not found)))
 fi
 
+save_CXXFLAGS="${CXXFLAGS}"
+CXXFLAGS="${CXXFLAGS} ${CRYPTO_CFLAGS} ${SSL_CFLAGS}"
+AC_CHECK_DECLS([EVP_MD_CTX_new],,,[AC_INCLUDES_DEFAULT
+#include <openssl/x509_vfy.h>
+])
+CXXFLAGS="${save_CXXFLAGS}"
+
 dnl univalue check
 
 need_bundled_univalue=yes
