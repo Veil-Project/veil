@@ -818,11 +818,11 @@ static std::string TrimString(const std::string& str, const std::string& pattern
     return str.substr(front, end - front + 1);
 }
 
-static bool GetConfigOptions(std::istream& stream, std::string& error, std::vector<std::pair<std::string, std::string>> &options)
+static std::vector<std::pair<std::string, std::string>> GetConfigOptions(std::istream& stream)
 {
+    std::vector<std::pair<std::string, std::string>> options;
     std::string str, prefix;
     std::string::size_type pos;
-    int linenr = 1;
     while (std::getline(stream, str)) {
         if ((pos = str.find('#')) != std::string::npos) {
             str = str.substr(0, pos);
@@ -832,34 +832,26 @@ static bool GetConfigOptions(std::istream& stream, std::string& error, std::vect
         if (!str.empty()) {
             if (*str.begin() == '[' && *str.rbegin() == ']') {
                 prefix = str.substr(1, str.size() - 2) + '.';
-            } else if (*str.begin() == '-') {
-                error = strprintf("parse error on line %i: %s, options in configuration file must be specified without leading -", linenr, str);
-                return false;
             } else if ((pos = str.find('=')) != std::string::npos) {
                 std::string name = prefix + TrimString(str.substr(0, pos), pattern);
                 std::string value = TrimString(str.substr(pos + 1), pattern);
                 options.emplace_back(name, value);
-            } else {
-                error = strprintf("parse error on line %i: %s", linenr, str);
-                if (str.size() >= 2 && str.substr(0, 2) == "no") {
-                    error += strprintf(", if you intended to specify a negated option, use %s=1 instead", str);
-                }
-                return false;
             }
         }
-        ++linenr;
     }
-    return true;
+    return options;
 }
 
 bool ArgsManager::ReadConfigStream(std::istream& stream, std::string& error, bool ignore_invalid_keys)
 {
-    LOCK(cs_args);
-    std::vector<std::pair<std::string, std::string>> options;
-    if (!GetConfigOptions(stream, error, options)) {
-        return false;
+    std::string::size_type front = str.find_first_not_of(pattern);
+    if (front == std::string::npos) {
+        return std::string();
     }
-    for (const std::pair<std::string, std::string>& option : options) {
+    std::string::size_type end = str.find_last_not_of(pattern);
+    return str.substr(front, end - front + 1);
+
+    for (const std::pair<std::string, std::string>& option : GetConfigOptions(stream)) {
         std::string strKey = std::string("-") + option.first;
         std::string strValue = option.second;
 
@@ -870,13 +862,9 @@ bool ArgsManager::ReadConfigStream(std::istream& stream, std::string& error, boo
         }
 
         // Check that the arg is known
-        if (!IsArgKnown(strKey)) {
-            if (!ignore_invalid_keys) {
-                error = strprintf("Invalid configuration value %s", option.first.c_str());
-                return false;
-            } else {
-                LogPrintf("Ignoring unknown configuration value %s\n", option.first);
-            }
+        if (!IsArgKnown(strKey, error) && !ignore_invalid_keys) {
+            error = strprintf("Invalid configuration value %s", option.first.c_str());
+            return false;
         }
     }
     return true;
