@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <hash.h>
+#include <crypto/Lyra2RE/Lyra2RE.h>
 #include <utilstrencodings.h>
 #include <test/test_bitcoin.h>
 
@@ -145,6 +146,18 @@ BOOST_AUTO_TEST_CASE(siphash)
         BOOST_CHECK_EQUAL(SipHashUint256(k1, k2, x), sip256.Finalize());
         BOOST_CHECK_EQUAL(SipHashUint256Extra(k1, k2, x, n), sip288.Finalize());
     }
+}
+
+BOOST_AUTO_TEST_CASE(lyra2re2)
+{
+    CBlock block;
+    auto header = block.GetBlockHeader();
+    header.nBits -= 1;
+
+    uint256 lhash;
+    lyra2re2_hash(BEGIN(header.nVersion), BEGIN(lhash));
+
+    BOOST_CHECK_EQUAL(lhash.GetHex(), "745b575ac1a4d16ea1a44234a8cb32baad024baa208f797d592356aef79dfe48");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
