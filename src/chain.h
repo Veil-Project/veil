@@ -182,6 +182,9 @@ public:
     //! height of the entry in the chain. The genesis block has height 0
     int nHeight;
 
+    //! money supply tracking
+    int64_t nMoneySupply;
+
     //! Which # file this block is stored in (blk?????.dat)
     int nFile;
 
@@ -225,6 +228,7 @@ public:
         pprev = nullptr;
         pskip = nullptr;
         nHeight = 0;
+        nMoneySupply = 0;
         nFile = 0;
         nDataPos = 0;
         nUndoPos = 0;
@@ -389,6 +393,7 @@ public:
             READWRITE(VARINT(_nVersion, VarIntMode::NONNEGATIVE_SIGNED));
 
         READWRITE(VARINT(nHeight, VarIntMode::NONNEGATIVE_SIGNED));
+        READWRITE(nMoneySupply);
         READWRITE(VARINT(nStatus));
         READWRITE(VARINT(nTx));
         if (nStatus & (BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO))
