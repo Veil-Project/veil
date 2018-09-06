@@ -91,6 +91,7 @@ UniValue blockheaderToJSON(const CBlockIndex* blockindex)
         confirmations = chainActive.Height() - blockindex->nHeight + 1;
     result.pushKV("confirmations", confirmations);
     result.pushKV("height", blockindex->nHeight);
+    result.pushKV("moneysupply", blockindex->nMoneySupply);
     result.pushKV("version", blockindex->nVersion);
     result.pushKV("versionHex", strprintf("%08x", blockindex->nVersion));
     result.pushKV("merkleroot", blockindex->hashMerkleRoot.GetHex());
