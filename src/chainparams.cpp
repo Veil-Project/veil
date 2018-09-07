@@ -152,14 +152,7 @@ public:
         assert(consensus.hashGenesisBlock == uint256S("0xba6f30ca5df0aedd04ed0890e557ec13483cba006f36ac2478af6f6ae57d1b7c"));
         assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
 
-        //TODO: Set up dedicated DNS seeders for public Veil
-        vSeeds.emplace_back("192.169.7.223");   // Tom's node
-        vSeeds.emplace_back("23.152.0.21");     // Tom's node
-        vSeeds.emplace_back("185.243.112.246"); // Tom's node
-        vSeeds.emplace_back("96.44.135.87");    // Tom's node
-        vSeeds.emplace_back("10.1.10.146");     // Tyler's node (local network only)
-        vSeeds.emplace_back("192.169.7.141");   // Anthony's node
-        vSeeds.emplace_back("23.163.0.144");    // Ben's node
+        vSeeds.emplace_back("veilseed.presstab.pw");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -168,8 +161,6 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
 
         bech32_hrp = "bc";
-
-        vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_main, pnSeed6_main + ARRAYLEN(pnSeed6_main));
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
@@ -260,13 +251,7 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
 
-        vSeeds.emplace_back("192.169.7.223");   // Tom's node
-        vSeeds.emplace_back("23.152.0.21");     // Tom's node
-        vSeeds.emplace_back("185.243.112.246"); // Tom's node
-        vSeeds.emplace_back("96.44.135.87");    // Tom's node
-        vSeeds.emplace_back("10.1.10.146");     // Tyler's node (local network only)
-        vSeeds.emplace_back("192.169.7.141");   // Anthony's node
-        vSeeds.emplace_back("23.163.0.144");    // Ben's node
+        vSeeds.emplace_back("veilseedtestnet.presstab.pw");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -275,8 +260,6 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
         bech32_hrp = "tb";
-
-        vFixedSeeds = std::vector<SeedSpec6>(pnSeed6_test, pnSeed6_test + ARRAYLEN(pnSeed6_test));
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
