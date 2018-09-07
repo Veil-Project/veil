@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
+#include <config/veil-config.h>
 #endif
 
 #include <net.h>
@@ -1524,7 +1524,7 @@ static void ThreadMapPort()
             }
         }
 
-        std::string strDesc = "Bitcoin " + FormatFullVersion();
+        std::string strDesc = "Veil " + FormatFullVersion();
 
         do {
 #ifndef UPNPDISCOVER_SUCCESS

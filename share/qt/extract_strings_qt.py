@@ -11,7 +11,7 @@ import operator
 import os
 import sys
 
-OUT_CPP="qt/bitcoinstrings.cpp"
+OUT_CPP="qt/veilstrings.cpp"
 EMPTY=['""']
 
 def parse_po(text):
@@ -75,14 +75,14 @@ f.write("""
 #define UNUSED
 #endif
 """)
-f.write('static const char UNUSED *bitcoin_strings[] = {\n')
-f.write('QT_TRANSLATE_NOOP("bitcoin-core", "%s"),\n' % (os.getenv('PACKAGE_NAME'),))
-f.write('QT_TRANSLATE_NOOP("bitcoin-core", "%s"),\n' % (os.getenv('COPYRIGHT_HOLDERS'),))
+f.write('static const char UNUSED *veil_strings[] = {\n')
+f.write('QT_TRANSLATE_NOOP("veil-core", "%s"),\n' % (os.getenv('PACKAGE_NAME'),))
+f.write('QT_TRANSLATE_NOOP("veil-core", "%s"),\n' % (os.getenv('COPYRIGHT_HOLDERS'),))
 if os.getenv('COPYRIGHT_HOLDERS_SUBSTITUTION') != os.getenv('PACKAGE_NAME'):
-    f.write('QT_TRANSLATE_NOOP("bitcoin-core", "%s"),\n' % (os.getenv('COPYRIGHT_HOLDERS_SUBSTITUTION'),))
+    f.write('QT_TRANSLATE_NOOP("veil-core", "%s"),\n' % (os.getenv('COPYRIGHT_HOLDERS_SUBSTITUTION'),))
 messages.sort(key=operator.itemgetter(0))
 for (msgid, msgstr) in messages:
     if msgid != EMPTY:
-        f.write('QT_TRANSLATE_NOOP("bitcoin-core", %s),\n' % ('\n'.join(msgid)))
+        f.write('QT_TRANSLATE_NOOP("veil-core", %s),\n' % ('\n'.join(msgid)))
 f.write('};\n')
 f.close()
