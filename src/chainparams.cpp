@@ -14,6 +14,8 @@
 
 #include <chainparamsseeds.h>
 #include "arith_uint256.h"
+#include "key.h"
+#include "key_io.h"
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward)
 {
@@ -206,6 +208,8 @@ public:
 
         /* disable fallback fee on mainnet */
         m_fallback_fee_enabled = false;
+
+        budgetAddress = "MAINNET BUDGET ADDRESS";
     }
 };
 
@@ -299,6 +303,9 @@ public:
 
         /* enable fallback fee on testnet */
         m_fallback_fee_enabled = true;
+
+        // Key ID of budget public key
+        budgetAddress = "8bf9de7aa440c87e9e3352fe3e74d579e3aa8049";
     }
 };
 
