@@ -3136,9 +3136,16 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     // First transaction must be coinbase, the rest must not be
     if (block.vtx.empty() || !block.vtx[0]->IsCoinBase())
         return state.DoS(100, false, REJECT_INVALID, "bad-cb-missing", false, "first tx is not coinbase");
-    for (unsigned int i = 1; i < block.vtx.size(); i++)
+    for (unsigned int i = 1; i < block.vtx.size(); i++) {
         if (block.vtx[i]->IsCoinBase())
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
+    }
+
+    // Verify that the budget output is valid
+    if (block.GetHash() != consensusParams.hashGenesisBlock
+            && (block.vtx[0]->vout.size() < 2 || !CheckBudgetTransaction(*block.vtx[0], state))) {
+        return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(), strprintf("Budget transaction check failed"));
+    }
 
     // Check transactions
     for (const auto& tx : block.vtx)
