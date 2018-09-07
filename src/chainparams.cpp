@@ -140,11 +140,11 @@ public:
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
          * a large 32-bit integer with any alignment.
          */
-        pchMessageStart[0] = 0xf9;
-        pchMessageStart[1] = 0xbe;
-        pchMessageStart[2] = 0xb4;
-        pchMessageStart[3] = 0xd9;
-        nDefaultPort = 8333;
+        pchMessageStart[0] = 0xb6;
+        pchMessageStart[1] = 0xcf;
+        pchMessageStart[2] = 0xd0;
+        pchMessageStart[3] = 0xa3;
+        nDefaultPort = 58810;
         nPruneAfterHeight = 100000;
 
         genesis = CreateGenesisBlock(1536258109, 2083399231, 0x1e0ffff0, 1, 50 * COIN);
@@ -152,18 +152,14 @@ public:
         assert(consensus.hashGenesisBlock == uint256S("0xba6f30ca5df0aedd04ed0890e557ec13483cba006f36ac2478af6f6ae57d1b7c"));
         assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
 
-        // Note that of those which support the service bits prefix, most only support a subset of
-        // possible options.
-        // This is fine at runtime as we'll fall back to using them as a oneshot if they don't support the
-        // service bits we want, but we should get them updated to support all service bits wanted by any
-        // release ASAP to avoid it where possible.
-        vSeeds.emplace_back("seed.bitcoin.sipa.be"); // Pieter Wuille, only supports x1, x5, x9, and xd
-        vSeeds.emplace_back("dnsseed.bluematt.me"); // Matt Corallo, only supports x9
-        vSeeds.emplace_back("dnsseed.bitcoin.dashjr.org"); // Luke Dashjr
-        vSeeds.emplace_back("seed.bitcoinstats.com"); // Christian Decker, supports x1 - xf
-        vSeeds.emplace_back("seed.bitcoin.jonasschnelli.ch"); // Jonas Schnelli, only supports x1, x5, x9, and xd
-        vSeeds.emplace_back("seed.btc.petertodd.org"); // Peter Todd, only supports x1, x5, x9, and xd
-        vSeeds.emplace_back("seed.bitcoin.sprovoost.nl"); // Sjors Provoost
+        //TODO: Set up dedicated DNS seeders for public Veil
+        vSeeds.emplace_back("192.169.7.223");   // Tom's node
+        vSeeds.emplace_back("23.152.0.21");     // Tom's node
+        vSeeds.emplace_back("185.243.112.246"); // Tom's node
+        vSeeds.emplace_back("96.44.135.87");    // Tom's node
+        vSeeds.emplace_back("10.1.10.146");     // Tyler's node (local network only)
+        vSeeds.emplace_back("192.169.7.141");   // Anthony's node
+        vSeeds.emplace_back("23.163.0.144");    // Ben's node
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -249,11 +245,11 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x0000000000000037a8cd3e06cd5edbfe9dd1dbcc5dacab279376ef7cfc2b4c75"); //1354312
 
-        pchMessageStart[0] = 0x0b;
-        pchMessageStart[1] = 0x11;
-        pchMessageStart[2] = 0x09;
-        pchMessageStart[3] = 0x07;
-        nDefaultPort = 18333;
+        pchMessageStart[0] = 0xa8;
+        pchMessageStart[1] = 0xd1;
+        pchMessageStart[2] = 0xa7;
+        pchMessageStart[3] = 0xc4;
+        nDefaultPort = 58811;
         nPruneAfterHeight = 1000;
 
         genesis = CreateGenesisBlock(1536258109, 416166731, 0x1e0ffff0, 1, 50 * COIN);
@@ -263,11 +259,14 @@ public:
 
         vFixedSeeds.clear();
         vSeeds.clear();
-        // nodes with support for servicebits filtering should be at the top
-        vSeeds.emplace_back("testnet-seed.bitcoin.jonasschnelli.ch");
-        vSeeds.emplace_back("seed.tbtc.petertodd.org");
-        vSeeds.emplace_back("seed.testnet.bitcoin.sprovoost.nl");
-        vSeeds.emplace_back("testnet-seed.bluematt.me"); // Just a static list of stable node(s), only supports x9
+
+        vSeeds.emplace_back("192.169.7.223");   // Tom's node
+        vSeeds.emplace_back("23.152.0.21");     // Tom's node
+        vSeeds.emplace_back("185.243.112.246"); // Tom's node
+        vSeeds.emplace_back("96.44.135.87");    // Tom's node
+        vSeeds.emplace_back("10.1.10.146");     // Tyler's node (local network only)
+        vSeeds.emplace_back("192.169.7.141");   // Anthony's node
+        vSeeds.emplace_back("23.163.0.144");    // Ben's node
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -342,7 +341,7 @@ public:
         pchMessageStart[1] = 0xbf;
         pchMessageStart[2] = 0xb5;
         pchMessageStart[3] = 0xda;
-        nDefaultPort = 18444;
+        nDefaultPort = 58821;
         nPruneAfterHeight = 1000;
 
         genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
