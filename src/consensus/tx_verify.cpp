@@ -13,6 +13,10 @@
 #include <chain.h>
 #include <coins.h>
 #include <utilmoneystr.h>
+#include <chainparams.h>
+#include <pubkey.h>
+#include <script/standard.h>
+#include <key_io.h>
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
@@ -154,6 +158,20 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
         nSigOps += CountWitnessSigOps(tx.vin[i].scriptSig, prevout.scriptPubKey, &tx.vin[i].scriptWitness, flags);
     }
     return nSigOps;
+}
+
+bool CheckBudgetTransaction(const CTransaction& tx, CValidationState &state)
+{
+    // Verify that the second output of the coinbase transaction goes to the budget address
+    std::string strBudgetAddress = Params().GetBudgetAddress(); // KeyID for now
+    CTxDestination dest = DecodeDestination(strBudgetAddress);
+    auto budgetScript = GetScriptForDestination(dest);
+
+    if (tx.vout[1].scriptPubKey != budgetScript) {
+        return state.DoS(10, false, REJECT_INVALID, "bad-budget-output");
+    }
+
+    return true;
 }
 
 bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fCheckDuplicateInputs)
