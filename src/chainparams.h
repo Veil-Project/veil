@@ -81,6 +81,7 @@ public:
     const CCheckpointData& Checkpoints() const { return checkpointData; }
     const ChainTxData& TxData() const { return chainTxData; }
     const std::string GetBudgetAddress() const { return budgetAddress; }
+    const uint64_t GetBudgetAmount() const { return nBudgetAmount; };
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
 protected:
     CChainParams() {}
@@ -102,6 +103,7 @@ protected:
     ChainTxData chainTxData;
     bool m_fallback_fee_enabled;
     std::string budgetAddress;
+    uint64_t nBudgetAmount;
 };
 
 /**
