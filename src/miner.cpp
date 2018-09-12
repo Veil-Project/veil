@@ -24,10 +24,12 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <validationinterface.h>
+#include <key_io.h>
 
 #include <algorithm>
 #include <queue>
 #include <utility>
+#include <boost/thread.hpp>
 
 // Unconfirmed transactions in the memory pool often depend on other
 // transactions in the memory pool. When we select transactions from the
@@ -155,10 +157,17 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     CMutableTransaction coinbaseTx;
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
-    coinbaseTx.vout.resize(1);
+    coinbaseTx.vout.resize(2);
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+
+    std::string strBudgetAddress = Params().GetBudgetAddress(); // KeyID for now
+    CTxDestination dest = DecodeDestination(strBudgetAddress);
+    auto budgetScript = GetScriptForDestination(dest);
+    coinbaseTx.vout[1].scriptPubKey = budgetScript;
+    coinbaseTx.vout[1].nValue = Params().GetBudgetAmount();
+
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
     pblocktemplate->vTxFees[0] = -nFees;
@@ -450,4 +459,83 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
 
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+}
+
+bool fGenerateBitcoins = false;
+bool fMintableCoins = false;
+int nMintableLastCheck = 0;
+
+void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript) {
+    LogPrintf("PIVXMiner started\n");
+
+    unsigned int nExtraNonce = 0;
+    static const int nInnerLoopCount = 0x10000;
+
+    while (fGenerateBitcoins)
+    {
+        boost::this_thread::interruption_point();
+
+        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript));
+        if (!pblocktemplate.get())
+            return;
+
+        CBlock *pblock = &pblocktemplate->block;
+        {
+            LOCK(cs_main);
+            IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
+        }
+
+        while (!CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
+            ++pblock->nNonce;
+        }
+
+        if (pblock->nNonce == nInnerLoopCount) {
+            continue;
+        }
+
+        std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
+        if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr))
+            return;
+
+        coinbaseScript->KeepScript();
+    }
+}
+
+void static ThreadBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript)
+{
+    boost::this_thread::interruption_point();
+    try {
+        BitcoinMiner(coinbaseScript);
+        boost::this_thread::interruption_point();
+    } catch (std::exception& e) {
+        LogPrintf("ThreadBitcoinMiner() exception");
+    } catch (...) {
+        LogPrintf("ThreadBitcoinMiner() exception");
+    }
+
+    LogPrintf("ThreadBitcoinMiner exiting\n");
+}
+
+void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScript> coinbaseScript)
+{
+    static boost::thread_group* minerThreads = NULL;
+    fGenerateBitcoins = fGenerate;
+
+    if (nThreads < 0) {
+        // In regtest threads defaults to 1
+        nThreads = 1;
+    }
+
+    if (minerThreads != NULL) {
+        minerThreads->interrupt_all();
+        delete minerThreads;
+        minerThreads = NULL;
+    }
+
+    if (nThreads == 0 || !fGenerate)
+        return;
+
+    minerThreads = new boost::thread_group();
+    for (int i = 0; i < nThreads; i++)
+        minerThreads->create_thread(boost::bind(&ThreadBitcoinMiner, coinbaseScript));
 }

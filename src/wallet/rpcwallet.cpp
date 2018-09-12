@@ -3926,6 +3926,47 @@ UniValue generate(const JSONRPCRequest& request)
     return generateBlocks(coinbase_script, num_generate, max_tries, true);
 }
 
+UniValue generatecontinuous(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() != 1) {
+        throw std::runtime_error(
+                "generatecontinuous (true|false)\n"
+                "\nMine blocks continuously while the request is running.\n"
+                "\nExamples:\n"
+                + HelpExampleCli("generatecontinuous", "1")
+        );
+    }
+
+    if (!request.params[0].isBool()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Error: argument must be boolean");
+    }
+
+    bool fGenerate = request.params[0].get_bool();
+
+    std::shared_ptr<CReserveScript> coinbase_script;
+    pwallet->GetScriptForMining(coinbase_script);
+
+    // If the keypool is exhausted, no script is returned at all.  Catch this.
+    if (!coinbase_script) {
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+    }
+
+    //throw an error if no script was provided
+    if (coinbase_script->reserveScript.empty()) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
+    }
+
+    return generateBlocks(fGenerate, -1, coinbase_script);
+}
+
 UniValue rescanblockchain(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -4838,6 +4879,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "setlabel",                         &setlabel,                      {"address","label"} },
 
     { "generating",         "generate",                         &generate,                      {"nblocks","maxtries"} },
+    { "generating",         "generatecontinuous",               &generatecontinuous,            {"fGenerate"} },
 };
 
 void RegisterWalletRPCCommands(CRPCTable &t)

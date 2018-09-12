@@ -151,6 +151,12 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
     return blockHashes;
 }
 
+UniValue generateBlocks(bool fGenerate, int nThreads, std::shared_ptr<CReserveScript> coinbaseScript)
+{
+    GenerateBitcoins(fGenerate, nThreads, coinbaseScript);
+    return UniValue(UniValue::VNULL);
+}
+
 static UniValue generatetoaddress(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 3)
