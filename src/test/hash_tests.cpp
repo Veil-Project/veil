@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <hash.h>
-#include <crypto/Lyra2RE/Lyra2RE.h>
 #include <utilstrencodings.h>
 #include <test/test_veil.h>
 
@@ -148,7 +147,7 @@ BOOST_AUTO_TEST_CASE(siphash)
     }
 }
 
-BOOST_AUTO_TEST_CASE(lyra2re2)
+BOOST_AUTO_TEST_CASE(x16r)
 {
     CBlock block;
     block.nBits -= 1;

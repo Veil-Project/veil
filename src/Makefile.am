@@ -310,24 +310,42 @@ crypto_libbitcoin_crypto_base_a_SOURCES = \
   crypto/sha256.h \
   crypto/sha512.cpp \
   crypto/sha512.h \
-  crypto/Lyra2RE/Lyra2RE.c \
-  crypto/Lyra2RE/Lyra2RE.h \
-  crypto/Lyra2RE/Lyra2.c \
-  crypto/Lyra2RE/Lyra2.h \
-  crypto/Lyra2RE/Sponge.c \
-  crypto/Lyra2RE/Sponge.h \
-  crypto/Lyra2RE/blake.c \
-  crypto/Lyra2RE/blake.h \
-  crypto/Lyra2RE/groestl.c \
-  crypto/Lyra2RE/groestl.h \
-  crypto/Lyra2RE/keccak.c \
-  crypto/Lyra2RE/keccak.h \
-  crypto/Lyra2RE/skein.c \
-  crypto/Lyra2RE/skein.h \
-  crypto/Lyra2RE/cubehash.c \
-  crypto/Lyra2RE/cubehash.h \
-  crypto/Lyra2RE/bmw.c \
-  crypto/Lyra2RE/bmw.h
+  crypto/x16r/aes_helper.c \
+  crypto/x16r/blake.c \
+  crypto/x16r/bmw.c \
+  crypto/x16r/cubehash.c \
+  crypto/x16r/echo.c \
+  crypto/x16r/groestl.c \
+  crypto/x16r/jh.c \
+  crypto/x16r/keccak.c \
+  crypto/x16r/luffa.c \
+  crypto/x16r/shavite.c \
+  crypto/x16r/simd.c \
+  crypto/x16r/skein.c \
+  crypto/x16r/sph_hamsi.c \
+  crypto/x16r/sph_hamsi_helper.c \
+  crypto/x16r/sph_fugue.c \
+  crypto/x16r/sph_shabal.c \
+  crypto/x16r/sph_whirlpool.c \
+  crypto/x16r/sph_sha2.c \
+  crypto/x16r/sph_sha512.c \
+  crypto/x16r/sph_blake.h \
+  crypto/x16r/sph_bmw.h \
+  crypto/x16r/sph_cubehash.h \
+  crypto/x16r/sph_echo.h \
+  crypto/x16r/sph_groestl.h \
+  crypto/x16r/sph_jh.h \
+  crypto/x16r/sph_keccak.h \
+  crypto/x16r/sph_luffa.h \
+  crypto/x16r/sph_shavite.h \
+  crypto/x16r/sph_simd.h \
+  crypto/x16r/sph_skein.h \
+  crypto/x16r/sph_hamsi.h \
+  crypto/x16r/sph_fugue.h \
+  crypto/x16r/sph_shabal.h \
+  crypto/x16r/sph_whirlpool.h \
+  crypto/x16r/sph_sha2.h \
+  crypto/x16r/sph_types.h
 
 if USE_ASM
 crypto_libbitcoin_crypto_base_a_SOURCES += crypto/sha256_sse4.cpp

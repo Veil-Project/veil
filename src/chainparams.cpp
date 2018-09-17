@@ -37,7 +37,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
 
     // Use this to mine new genesis block
-    /*printf("Searching for genesis block...\n");
+    printf("Searching for genesis block...\n");
     arith_uint256 hashTarget = arith_uint256().SetCompact(genesis.nBits);
     uint256 thash;
     while (true)
@@ -60,7 +60,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     printf("genesis.nNonce = %u \n", genesis.nNonce);
     printf("genesis.nVersion = %u \n", genesis.nVersion);
     printf("genesis.GetHash = %s\n", genesis.GetHash().GetHex().c_str()); //first this, then comment this line out and uncomment the one under.
-    printf("genesis.hashMerkleRoot = %s \n", genesis.hashMerkleRoot.ToString().c_str()); //improvised. worked for me, to find merkle root/*/
+    printf("genesis.hashMerkleRoot = %s \n", genesis.hashMerkleRoot.ToString().c_str()); //improvised. worked for me, to find merkle root/
 
     return genesis;
 }
@@ -149,9 +149,9 @@ public:
         nDefaultPort = 58810;
         nPruneAfterHeight = 100000;
 
-        genesis = CreateGenesisBlock(1536258109, 2083399231, 0x1e0ffff0, 1, 50 * COIN);
+        genesis = CreateGenesisBlock(1536258109, 2084279062, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0xba6f30ca5df0aedd04ed0890e557ec13483cba006f36ac2478af6f6ae57d1b7c"));
+        assert(consensus.hashGenesisBlock == uint256S("0x3be262d64c5a27000960e33fb267ac054d9ce54e077b71fb094a711ff7365a39"));
         assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
 
         vSeeds.emplace_back("veilseed.presstab.pw");
@@ -248,9 +248,9 @@ public:
         nDefaultPort = 58811;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1536258109, 416166731, 0x1e0ffff0, 1, 50 * COIN);
+        genesis = CreateGenesisBlock(1536258109, 416208649, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x7b7ffe9a6b356137086f8e7c94487bb279d99df83fb656e3eeae05169d049929"));
+        assert(consensus.hashGenesisBlock == uint256S("0x2b832bc2f038ff9093489349fe021944aa2c60deadcd4e00057970fce5b20cd7"));
         assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
 
         vFixedSeeds.clear();
