@@ -186,6 +186,9 @@ BITCOIN_CORE_H = \
   validation.h \
   validationinterface.h \
   versionbits.h \
+  veil/arrayslice.h \
+  veil/dictionary.h \
+  veil/mnemonic.h \
   walletinitinterface.h \
   wallet/coincontrol.h \
   wallet/crypter.h \
@@ -253,6 +256,9 @@ libbitcoin_server_a_SOURCES = \
   txdb.cpp \
   txmempool.cpp \
   ui_interface.cpp \
+  veil/arrayslice.cpp \
+  veil/dictionary.cpp \
+  veil/mnemonic.cpp \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
@@ -345,7 +351,19 @@ crypto_libbitcoin_crypto_base_a_SOURCES = \
   crypto/x16r/sph_shabal.h \
   crypto/x16r/sph_whirlpool.h \
   crypto/x16r/sph_sha2.h \
-  crypto/x16r/sph_types.h
+  crypto/x16r/sph_types.h \
+  crypto/external/hmac_sha256.c \
+  crypto/external/hmac_sha256.h \
+  crypto/external/hmac_sha512.c \
+  crypto/external/hmac_sha512.h \
+  crypto/external/pkcs5_pbkdf2.c \
+  crypto/external/pkcs5_pbkdf2.h \
+  crypto/external/sha256.c \
+  crypto/external/sha256.h \
+  crypto/external/sha512.c \
+  crypto/external/sha512.h \
+  crypto/external/zeroize.c \
+  crypto/external/zeroize.h
 
 if USE_ASM
 crypto_libbitcoin_crypto_base_a_SOURCES += crypto/sha256_sse4.cpp

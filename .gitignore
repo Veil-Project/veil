@@ -1,7 +1,6 @@
 *.tar.gz
 
 *.exe
-src/veil
 src/veild
 src/veil-cli
 src/veil-tx
