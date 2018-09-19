@@ -8,6 +8,7 @@ src/bench/bench_veil
 src/test/test_veil
 src/test/test_veil_fuzzy
 src/qt/test/test_veil-qt
+src/veil
 
 # autoreconf
 Makefile.in
@@ -81,7 +82,7 @@ src/qt/veil-qt.includes
 *.qm
 Makefile
 veil-qt
-veil-Qt.app
+Veil-Qt.app
 background.tiff*
 
 # Unit-tests
@@ -120,3 +121,8 @@ CMakeLists.txt
 
 libbitcoinconsensus.pc
 contrib/devtools/split-debug.sh
+
+# files from editor
+.idea
+CMakeLists.txt
+cmake-build-debug

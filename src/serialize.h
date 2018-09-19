@@ -20,6 +20,8 @@
 #include <string.h>
 #include <utility>
 #include <vector>
+#include "libzerocoin/Denominations.h"
+#include "libzerocoin/SpendType.h"
 
 #include <prevector.h>
 #include <span.h>
@@ -229,7 +231,37 @@ template<typename Stream> inline void Unserialize(Stream& s, bool& a) { char f=s
 
 
 
+// Serialization for libzerocoin::CoinDenomination
+inline unsigned int GetSerializeSize(libzerocoin::CoinDenomination a, int, int = 0) { return sizeof(libzerocoin::CoinDenomination); }
+template <typename Stream>
+inline void Serialize(Stream& s, libzerocoin::CoinDenomination a)
+{
+    int64_t f = libzerocoin::ZerocoinDenominationToInt(a);
+    ser_writedata64(s, f);
+}
 
+template <typename Stream>
+inline void Unserialize(Stream& s, libzerocoin::CoinDenomination& a)
+{
+    int64_t f = ser_readdata64(s);
+    a = libzerocoin::IntToZerocoinDenomination(f);
+}
+
+// Serialization for libzerocoin::SpendType
+inline unsigned int GetSerializedSize(libzerocoin::SpendType a, int, int = 0) { return sizeof(libzerocoin::SpendType); }
+template <typename Stream>
+inline void Serialize(Stream& s, libzerocoin::SpendType a)
+{
+    uint8_t f = static_cast<uint8_t>(a);
+    ser_writedata8(s, f);
+}
+
+template <typename Stream>
+inline void Unserialize(Stream& s, libzerocoin::SpendType & a)
+{
+    uint8_t f = ser_readdata8(s);
+    a = static_cast<libzerocoin::SpendType>(f);
+}
 
 
 /**
