@@ -8,6 +8,7 @@
 
 #include <crypto/ripemd160.h>
 #include <crypto/sha256.h>
+#include <crypto/sha512.h>
 #include "crypto/x16r/sph_blake.h"
 #include "crypto/x16r/sph_bmw.h"
 #include "crypto/x16r/sph_groestl.h"
@@ -157,6 +158,81 @@ public:
 
     template<typename T>
     CHashWriter& operator<<(const T& obj) {
+        // Serialize to this stream
+        ::Serialize(*this, obj);
+        return (*this);
+    }
+};
+
+/** A hasher class for zPIV-Bulletproofs Protocol */
+/** given buffer x returns 1024 bits where the first (left-most) 512 bits
+ ** are SHA512(x) and the second (right-most) 512 bits are SHA512(SHA512(x))
+ **/
+class CHash1024
+{
+private:
+    CSHA512 sha_l, sha_r;
+
+public:
+    static const size_t OUTPUT_SIZE = CSHA512::OUTPUT_SIZE;
+
+    void Finalize(unsigned char hash_l[OUTPUT_SIZE], unsigned char hash_r[OUTPUT_SIZE])
+    {
+        sha_l.Finalize(hash_l);
+        sha_l.Reset();
+        sha_r.Reset().Write(hash_l, CSHA512::OUTPUT_SIZE).Finalize(hash_r);
+    }
+
+    CHash1024& Write(const unsigned char* data, size_t len)
+    {
+        sha_l.Write(data, len);
+        return *this;
+    }
+
+    CHash1024& Reset()
+    {
+        sha_l.Reset();
+        sha_r.Reset();
+        return *this;
+    }
+};
+
+
+/** A writer stream (for serialization) for the 1024-bit hash. **/
+class CHashWriter1024
+{
+private:
+    CHash1024 ctx;
+
+public:
+    int nType;
+    int nVersion;
+
+    CHashWriter1024(int nTypeIn, int nVersionIn) : nType(nTypeIn), nVersion(nVersionIn) {}
+
+    CHashWriter1024& write(const char* pch, size_t size)
+    {
+        ctx.Write((const unsigned char*)pch, size);
+        return (*this);
+    }
+
+    // invalidates the object
+    std::vector<unsigned char> GetHash()
+    {
+        unsigned char buf_l[ctx.OUTPUT_SIZE];
+        unsigned char buf_r[ctx.OUTPUT_SIZE];
+        std::vector<unsigned char> buf(2*ctx.OUTPUT_SIZE);
+        ctx.Finalize(buf_l, buf_r);
+        for(unsigned int i=0; i<ctx.OUTPUT_SIZE; i++)
+            buf[i] = buf_l[i];
+        for(unsigned int i=ctx.OUTPUT_SIZE; i<2*ctx.OUTPUT_SIZE; i++)
+            buf[i] = buf_r[i-ctx.OUTPUT_SIZE];
+        return buf;
+    }
+
+    template <typename T>
+    CHashWriter1024& operator<<(const T& obj)
+    {
         // Serialize to this stream
         ::Serialize(*this, obj);
         return (*this);
