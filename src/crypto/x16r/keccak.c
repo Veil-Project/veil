@@ -33,7 +33,7 @@
 #include <stddef.h>
 #include <string.h>
 
-#include "sph_keccak.h"
+#include "crypto/x16r/sph_keccak.h"
 
 #ifdef __cplusplus
 extern "C"{

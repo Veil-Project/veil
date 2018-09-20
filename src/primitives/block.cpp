@@ -6,7 +6,6 @@
 #include <primitives/block.h>
 
 #include <hash.h>
-#include <crypto/Lyra2RE/Lyra2RE.h>
 #include <tinyformat.h>
 #include <utilstrencodings.h>
 #include <crypto/common.h>
@@ -18,10 +17,7 @@ uint256 CBlockHeader::GetHash() const
 
 uint256 CBlockHeader::GetPoWHash() const
 {
-    uint256 thash;
-    lyra2re2_hash(BEGIN(nVersion), BEGIN(thash));
-
-    return thash;
+    return HashX16R(BEGIN(nVersion), END(nNonce), hashPrevBlock);
 }
 
 std::string CBlock::ToString() const
