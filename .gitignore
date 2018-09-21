@@ -8,7 +8,6 @@ src/bench/bench_veil
 src/test/test_veil
 src/test/test_veil_fuzzy
 src/qt/test/test_veil-qt
-src/veil
 
 # autoreconf
 Makefile.in

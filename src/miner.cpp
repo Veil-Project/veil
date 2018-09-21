@@ -26,6 +26,8 @@
 #include <validationinterface.h>
 #include <key_io.h>
 
+#include <veil/budget.h>
+
 #include <algorithm>
 #include <queue>
 #include <utility>
@@ -162,11 +164,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
 
-    std::string strBudgetAddress = Params().GetBudgetAddress(); // KeyID for now
+    std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
     coinbaseTx.vout[1].scriptPubKey = budgetScript;
-    coinbaseTx.vout[1].nValue = Params().GetBudgetAmount();
+    coinbaseTx.vout[1].nValue = veil::Budget().GetBudgetAmount();
 
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
