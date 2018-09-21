@@ -229,6 +229,21 @@ bool CScript::IsWitnessProgram(int& version, std::vector<unsigned char>& program
     return false;
 }
 
+bool CScript::IsZerocoinMint() const
+{
+    //fast test for Zerocoin Mint CScripts
+    return (this->size() > 0 &&
+            (*this)[0] == OP_ZEROCOINMINT);
+}
+
+bool CScript::IsZerocoinSpend() const
+{
+    if (this->empty())
+        return false;
+
+    return ((*this)[0] == OP_ZEROCOINSPEND);
+}
+
 bool CScript::IsPushOnly(const_iterator pc) const
 {
     while (pc < end())

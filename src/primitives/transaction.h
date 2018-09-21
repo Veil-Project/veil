@@ -11,6 +11,7 @@
 #include <script/script.h>
 #include <serialize.h>
 #include <uint256.h>
+#include <arith_uint256.h>
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
@@ -158,6 +159,17 @@ public:
     bool IsNull() const
     {
         return (nValue == -1);
+    }
+
+    void SetEmpty()
+    {
+        nValue = 0;
+        scriptPubKey.clear();
+    }
+
+    bool IsEmpty() const
+    {
+        return (nValue == 0 && scriptPubKey.empty());
     }
 
     friend bool operator==(const CTxOut& a, const CTxOut& b)
@@ -312,6 +324,31 @@ public:
     bool IsNull() const {
         return vin.empty() && vout.empty();
     }
+
+    bool IsCoinStake() const;
+
+    bool IsZerocoinSpend() const
+    {
+        return (vin.size() > 0 && UintToArith256(vin[0].prevout.hash) == 0 && vin[0].scriptSig[0] == OP_ZEROCOINSPEND);
+    }
+
+    bool IsZerocoinMint() const
+    {
+        for(const CTxOut& txout : vout) {
+            if (txout.scriptPubKey.IsZerocoinMint())
+                return true;
+        }
+        return false;
+    }
+
+    bool ContainsZerocoins() const
+    {
+        return IsZerocoinSpend() || IsZerocoinMint();
+    }
+
+    CAmount GetZerocoinMinted() const;
+    CAmount GetZerocoinSpent() const;
+    int GetZerocoinMintCount() const;
 
     const uint256& GetHash() const { return hash; }
     const uint256& GetWitnessHash() const { return m_witness_hash; };

@@ -113,3 +113,15 @@ std::string CTransaction::ToString() const
         str += "    " + tx_out.ToString() + "\n";
     return str;
 }
+
+bool CTransaction::IsCoinStake() const
+{
+    if (vin.empty())
+        return false;
+
+    if (vin.size() != 1 || !vin[0].scriptSig.IsZerocoinSpend())
+        return false;
+
+    // the coin stake transaction is marked with the first output empty
+    return (vout.size() > 1 && vout[0].IsEmpty());
+}
