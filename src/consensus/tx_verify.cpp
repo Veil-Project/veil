@@ -160,25 +160,6 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     return nSigOps;
 }
 
-bool CheckBudgetTransaction(const CTransaction& tx, CValidationState &state)
-{
-    // Verify that the amount paid to the budget address is correct
-    if (tx.vout[1].nValue != Params().GetBudgetAmount()) {
-        return state.DoS(10, false, REJECT_INVALID, "bad-budget-amount");
-    }
-
-    // Verify that the second output of the coinbase transaction goes to the budget address
-    std::string strBudgetAddress = Params().GetBudgetAddress(); // KeyID for now
-    CTxDestination dest = DecodeDestination(strBudgetAddress);
-    auto budgetScript = GetScriptForDestination(dest);
-
-    if (tx.vout[1].scriptPubKey != budgetScript) {
-        return state.DoS(10, false, REJECT_INVALID, "bad-budget-output");
-    }
-
-    return true;
-}
-
 bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fCheckDuplicateInputs)
 {
     // Basic checks that don't depend on any context

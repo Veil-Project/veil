@@ -189,6 +189,7 @@ BITCOIN_CORE_H = \
   validationinterface.h \
   versionbits.h \
   veil/arrayslice.h \
+  veil/budget.h \
   veil/dictionary.h \
   veil/mnemonic.h \
   walletinitinterface.h \
@@ -264,6 +265,7 @@ libbitcoin_server_a_SOURCES = \
   veil/mnemonic.cpp \
   validation.cpp \
   validationinterface.cpp \
+  veil/budget.cpp \
   versionbits.cpp \
   zerocoindb.cpp \
   $(BITCOIN_CORE_H)

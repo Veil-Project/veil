@@ -41,6 +41,8 @@
 #include <validationinterface.h>
 #include <warnings.h>
 
+#include <veil/budget.h>
+
 #include <future>
 #include <sstream>
 
@@ -2062,7 +2064,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     pindex->nMoneySupply = (pindex->pprev ? pindex->pprev->nMoneySupply : 0) + nValueOut - nValueIn;
 
     CAmount blockReward = GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
-    CAmount nBudgetAmount = Params().GetBudgetAmount();
+    CAmount nBudgetAmount = veil::Budget().GetBudgetAmount();
     if (block.vtx[0]->GetValueOut() > blockReward + nBudgetAmount)
         return state.DoS(100,
                          error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",
@@ -3144,7 +3146,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 
     // Verify that the budget output is valid
     if (block.GetHash() != consensusParams.hashGenesisBlock
-            && (block.vtx[0]->vout.size() < 2 || !CheckBudgetTransaction(*block.vtx[0], state))) {
+            && (block.vtx[0]->vout.size() < 2 || !veil::CheckBudgetTransaction(*block.vtx[0], state))) {
         return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(), strprintf("Budget transaction check failed"));
     }
 

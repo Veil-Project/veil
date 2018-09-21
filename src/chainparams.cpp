@@ -195,9 +195,6 @@ public:
 
         /* disable fallback fee on mainnet */
         m_fallback_fee_enabled = false;
-
-        budgetAddress = "MAINNET BUDGET ADDRESS";
-        nBudgetAmount = 100;
     }
 };
 
@@ -286,10 +283,6 @@ public:
 
         /* enable fallback fee on testnet */
         m_fallback_fee_enabled = true;
-
-        // Key ID of budget public key
-        budgetAddress = "8bf9de7aa440c87e9e3352fe3e74d579e3aa8049";
-        nBudgetAmount = 100;
     }
 };
 
