@@ -41,7 +41,7 @@ public:
     const CBigNum& getRandomness() const { return this->randomness; }
     CBigNum sumWiresDotWs(const int i);    // Evaluate the sums in Equation (1) of the paper
     CBigNum AiDotBiYDash(const int i);     // Evaluate dotProduct(A[i], hadamard(B[i], YDash)
-    void check();                          // perform tests on circuit assignment
+    bool check();                          // perform tests on circuit assignment
     void set_Kconst(CBN_vector& YPowers, const CBigNum serial);
 private:
     const ZerocoinParams* params;

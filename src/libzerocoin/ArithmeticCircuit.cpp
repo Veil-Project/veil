@@ -300,7 +300,7 @@ void ArithmeticCircuit::set_Kconst(CBN_vector& YPowers, const CBigNum serial)
 }
 
 // verifies correct assignment
-void ArithmeticCircuit::check()
+bool ArithmeticCircuit::check()
 {
     const CBigNum a = params->coinCommitmentGroup.g;
     const CBigNum b = params->coinCommitmentGroup.h;
@@ -309,18 +309,20 @@ void ArithmeticCircuit::check()
     for(unsigned int i=0; i<ZKP_M; i++)
         for(unsigned int j=0; j<ZKP_N; j++)
             if (A[i][j].mul_mod(B[i][j], q) != C[i][j])
-                throw std::runtime_error("ArithmeticCircuit::check() error: code 1");
+                return error("ArithmeticCircuit::check() error: code 1");
 ;
     CBigNum logarithm = (a.pow_mod(serialNumber,q)).mul_mod(b.pow_mod(randomness,q),q);
     if (C[ZKP_M-1][0] != logarithm)
-        throw std::runtime_error("ArithmeticCircuit::check() error: code 2");
+        return error("ArithmeticCircuit::check() error: code 2");
 
     for(unsigned int i=0; i<4*ZKP_SERIALSIZE-2; i++)
         if(K[i] != sumWiresDotWs(i)) {
-            throw std::runtime_error("ArithmeticCircuit::check() error: code 3");
+            return error("ArithmeticCircuit::check() error: code 3");
         }
 
     //if (sumWiresDotWPoly() != Kconst)
-    //    throw std::runtime_error("ArithmeticCircuit::check() error: code 4");
+    //    return error("ArithmeticCircuit::check() error: code 4");
+
+    return true;
 }
 

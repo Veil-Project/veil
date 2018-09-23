@@ -454,48 +454,48 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
 
         // Assert inputs in correct groups
         if( S < CBigNum(0) || S > CBigNum(2).pow(256))
-            throw std::runtime_error("wrong value for S");
+            return error("wrong value for S");
 
         if( ComD < CBigNum(0) || ComD > p )
-            throw std::runtime_error("wrong value for ComD");
+            return error("wrong value for ComD");
 
         for(int i=0; i<m; i++) {
             if( ComA[i] < CBigNum(0) || ComA[i] > p )
-                throw std::runtime_error("wrong value for ComA at " + to_string(i));
+                return error("wrong value for ComA at %d", i);
             if( ComB[i] < CBigNum(0) || ComB[i] > p )
-                throw std::runtime_error("wrong value for ComB at " + to_string(i));
+                return error("wrong value for ComB at %d", i);
             if( ComC_[i] < CBigNum(0) || ComC_[i] > p )
-                throw std::runtime_error("wrong value for ComC at " + to_string(i));
+                return error("wrong value for ComC at %d", i);
         }
 
         if( comRdash < CBigNum(0) || comRdash > p )
-            throw std::runtime_error("wrong value for comRdash");
+            return error("wrong value for comRdash");
 
         for(int i=0; i<m1dash; i++)
             if( polyComm->Tf[i] < CBigNum(0) || polyComm->Tf[i] > p )
-                throw std::runtime_error("wrong value for Tf at " + to_string(i));
+                return error("wrong value for Tf at %d", i);
 
         for(int i=0; i<m2dash; i++)
             if( polyComm->Trho[i] < CBigNum(0) || polyComm->Trho[i] > p )
-                throw std::runtime_error("wrong value for Trho at " + to_string(i));
+                return error("wrong value for Trho at %d", i);
 
         if( polyComm->U < CBigNum(0) || polyComm->U > p )
-            throw std::runtime_error("wrong value for U");
+            return error("wrong value for U");
 
         for(int i=0; i<ndash; i++)
             if( polyComm->tbar[i] < CBigNum(0) || polyComm->tbar[i] > q )
-                throw std::runtime_error("wrong value for tbar at " + to_string(i));
+                return error("wrong value for tbar at %d", i);
 
         if( polyComm->taubar < CBigNum(0) || polyComm->taubar > q )
-            throw std::runtime_error("wrong value for taubar");
+            return error("wrong value for taubar");
 
         for(int j=0; j<(int)innerProduct->pi[0].size(); j++)
             if( innerProduct->pi[0][j] < CBigNum(0) || innerProduct->pi[0][j] > p )
-                throw std::runtime_error("wrong value for pi[0] at j=" + to_string(j));
+                return error("wrong value for pi[0] at j=%d", j);
 
         for(int j=0; j<(int)innerProduct->pi[1].size(); j++)
             if( innerProduct->pi[1][j] < CBigNum(0) || innerProduct->pi[1][j] > p )
-                throw std::runtime_error("wrong value for pi[1] at j=" + to_string(j));
+                return error("wrong value for pi[1] at j=%d", j);
 
         const int M1 = innerProduct->final_a.size();
         const int N1 = innerProduct->final_a[0].size();
@@ -503,9 +503,9 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
         for(int i=0; i<M1; i++)
             for(int j=0; j<N1; j++) {
                 if( innerProduct->final_a[i][j] < CBigNum(0) || innerProduct->final_a[i][j] > q )
-                    throw std::runtime_error("wrong value for final_a at " + to_string(i) + " " + to_string(j));
+                    return error("wrong value for final_a at [%d, %d]", i, j);
                 if( innerProduct->final_b[i][j] < CBigNum(0) || innerProduct->final_b[i][j] > q )
-                    throw std::runtime_error("wrong value for final_b at " + to_string(i) + " " + to_string(j));
+                    return error("wrong value for final_b at [%d, %d]", i, j);
             }
 
 
