@@ -90,12 +90,19 @@ SerialNumberSoK_small::SerialNumberSoK_small(const ZerocoinParams* ZCp, const Pr
     ArithmeticCircuit circuit(params);
     circuit.setWireValues(coin);
 
-    // Commit to the assignment of the circuit
-    for(unsigned int i=0; i<m; i++) {
-        ComA[i] = pedersenCommitment(params, circuit.A[i], f_alpha[i]);
-        ComB[i] = pedersenCommitment(params, circuit.B[i], f_beta[i]);
-        ComC[i] = pedersenCommitment(params, circuit.C[i], f_gamma[i]);
-    }
+    // Commit to the assignment of the circuit: ComA[i] = pedersenCommitment(params, A[i], f_alpha[i]);
+    transform(circuit.A.begin(), circuit.A.end(), f_alpha.begin(), ComA.begin(),
+            [=] (CBN_vector A, CBigNum alpha) {
+        return pedersenCommitment(params, A, alpha);} );
+
+    transform(circuit.B.begin(), circuit.B.end(), f_beta.begin(), ComB.begin(),
+            [=] (CBN_vector B, CBigNum beta) {
+        return pedersenCommitment(params, B, beta);} );
+
+    transform(circuit.C.begin(), circuit.C.end(), f_gamma.begin(), ComC.begin(),
+            [=] (CBN_vector C, CBigNum gamma) {
+        return pedersenCommitment(params, C, gamma);} );
+
     ComD = pedersenCommitment(params, D, f_delta);
 
     // replace commitment y1 and blind value r
@@ -354,22 +361,20 @@ SerialNumberSoK_small::SerialNumberSoK_small(const ZerocoinParams* ZCp, const Pr
     // ********************** STEP 6: Inner Product Argument **********************
     // ****************************************************************************
 
-    CBN_vector temp_vec = hadamard(circuit.YDash, r_vec, q);
+    CBN_vector temp_vec;
+    hadamard(temp_vec, circuit.YDash, r_vec, q);
     CBN_vector temp_vec2;
     for(unsigned j=0; j<s_vec.size(); j++)
         temp_vec2.push_back(s_vec[j].mul_mod(CBigNum(2), q));
 
-    CBN_vector rdash_vec1(n+pads);
-    for(unsigned int j=0; j<n+pads; j++)
-        rdash_vec1[j] = (temp_vec[j] + temp_vec2[j]) % q;
-
+    CBN_vector rdash_vec1;
+    addVectors_mod(rdash_vec1, temp_vec, temp_vec2, q);
 
     temp_vec.clear();
-    temp_vec = hadamard(circuit.y_vec_neg, s_vec, q);
+    hadamard(temp_vec, circuit.y_vec_neg, s_vec, q);
 
-    CBN_vector rdash_vec2(n+pads);
-    for(unsigned int j=0; j<n+pads; j++)
-        rdash_vec2[j] = (r_vec[j] + temp_vec[j]) % q;
+    CBN_vector rdash_vec2;
+    addVectors_mod(rdash_vec2, r_vec, temp_vec, q);
 
 
     // Inner-product PROVE
@@ -737,7 +742,7 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
             temp_v.push_back(gamma.mul_mod(proofs2[w].s_vec_2[i],q).mul_mod(proofs2[w].ymPowers[i+1],q));
         }
 
-        test_vec = addVectors_mod(test_vec, temp_v, q);
+        addVectors_mod(test_vec, temp_v, test_vec, q);
 
         comTest = comTest.mul_mod(
                         ((ComR.pow_mod(-1,p)).mul_mod(comRdash,p)).pow_mod(gamma,p),p);
