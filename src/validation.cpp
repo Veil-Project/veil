@@ -17,6 +17,7 @@
 #include <cuckoocache.h>
 #include <hash.h>
 #include <index/txindex.h>
+#include <key_io.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
 #include <policy/rbf.h>
@@ -1994,11 +1995,23 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
+
+    pindex->nNetworkRewardReserve = pindex->pprev ? pindex->pprev->nNetworkRewardReserve : 0;
+    std::string strRewardAddress = Params().NetworkRewardAddress();
+    CTxDestination dest = DecodeDestination(strRewardAddress);
+    CScript rewardScript = GetScriptForDestination(dest);
+
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
 
         nInputs += tx.vin.size();
+
+        for (auto txOut : tx.vout) {
+            if (txOut.scriptPubKey == rewardScript) {
+                pindex->nNetworkRewardReserve += txOut.nValue;
+            }
+        }
 
         if (tx.IsCoinBase()) {
             nValueOut += tx.GetValueOut();
@@ -2064,6 +2077,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     pindex->nMoneySupply = (pindex->pprev ? pindex->pprev->nMoneySupply : 0) + nValueOut - nValueIn;
 
     CAmount blockReward = GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
+
+    CAmount networkReward = pindex->nNetworkRewardReserve < Params().MaxNetworkReward() ? pindex->nNetworkRewardReserve : Params().MaxNetworkReward();
+    pindex->nNetworkRewardReserve -= networkReward;
+    blockReward += networkReward;
+
     CAmount nBudgetAmount = veil::Budget().GetBudgetAmount();
     if (block.vtx[0]->GetValueOut() > blockReward + nBudgetAmount)
         return state.DoS(100,

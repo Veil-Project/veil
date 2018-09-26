@@ -209,6 +209,9 @@ public:
     //! Verification status of this block. See enum BlockStatus
     uint32_t nStatus;
 
+    //! Funds sent into the network to serve as an additional reward to stakers and miners
+    CAmount nNetworkRewardReserve;
+
     //! block header
     int32_t nVersion;
     uint256 hashMerkleRoot;
@@ -238,6 +241,7 @@ public:
         nStatus = 0;
         nSequenceId = 0;
         nTimeMax = 0;
+        nNetworkRewardReserve = 0;
 
         nVersion       = 0;
         hashMerkleRoot = uint256();
@@ -407,6 +411,7 @@ public:
             READWRITE(VARINT(nDataPos));
         if (nStatus & BLOCK_HAVE_UNDO)
             READWRITE(VARINT(nUndoPos));
+        READWRITE(nNetworkRewardReserve);
 
         // block header
         READWRITE(this->nVersion);

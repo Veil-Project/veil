@@ -66,6 +66,10 @@ public:
     bool DefaultConsistencyChecks() const { return fDefaultConsistencyChecks; }
     /** Policy: Filter transactions that do not match well-defined patterns */
     bool RequireStandard() const { return fRequireStandard; }
+    /** The max amount added to a block reward from funds sent to the network reward address **/
+    CAmount MaxNetworkReward() const { return nMaxNetworkReward; }
+    /** The address to send funds to to increase block rewards **/
+    std::string NetworkRewardAddress() const { return strNetworkRewardAddress; }
     uint64_t PruneAfterHeight() const { return nPruneAfterHeight; }
     /** Make miner stop after a block is found. In RPC, don't return until nGenProcLimit blocks are generated */
     bool MineBlocksOnDemand() const { return fMineBlocksOnDemand; }
@@ -87,6 +91,8 @@ protected:
     Consensus::Params consensus;
     CMessageHeader::MessageStartChars pchMessageStart;
     int nDefaultPort;
+    CAmount nMaxNetworkReward;
+    std::string strNetworkRewardAddress;
     uint64_t nPruneAfterHeight;
     std::vector<std::string> vSeeds;
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
