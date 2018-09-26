@@ -155,13 +155,28 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     nLastBlockTx = nBlockTx;
     nLastBlockWeight = nBlockWeight;
 
+    CAmount nNetworkReward = pindexPrev ? pindexPrev->nNetworkRewardReserve : 0;
+    std::string strRewardAddress = Params().NetworkRewardAddress();
+    CTxDestination rewardDest = DecodeDestination(strRewardAddress);
+    CScript rewardScript = GetScriptForDestination(rewardDest);
+
+    for (unsigned int i = 0; i < pblock->vtx.size(); i++) {
+        const CTransaction &tx = *(pblock->vtx[i]);
+
+        for (auto txOut : tx.vout) {
+            if (txOut.scriptPubKey == rewardScript) {
+                nNetworkReward += txOut.nValue;
+            }
+        }
+    }
+
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
     coinbaseTx.vout.resize(2);
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    coinbaseTx.vout[0].nValue = nFees + nNetworkReward + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
 
     std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
