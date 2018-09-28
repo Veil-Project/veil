@@ -2007,9 +2007,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
         nInputs += tx.vin.size();
 
-        for (auto txOut : tx.vout) {
-            if (txOut.scriptPubKey == rewardScript) {
-                pindex->nNetworkRewardReserve += txOut.nValue;
+        if (block.vtx[i] != nullptr) {
+            for (auto& txOut : tx.vout) {
+                if (txOut.scriptPubKey == rewardScript) {
+                    pindex->nNetworkRewardReserve += txOut.nValue;
+                }
             }
         }
 
