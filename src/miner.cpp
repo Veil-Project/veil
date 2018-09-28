@@ -161,9 +161,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     CScript rewardScript = GetScriptForDestination(rewardDest);
 
     for (unsigned int i = 0; i < pblock->vtx.size(); i++) {
+        if (pblock->vtx[i] == nullptr)
+            continue;
+
         const CTransaction &tx = *(pblock->vtx[i]);
 
-        for (auto txOut : tx.vout) {
+        for (auto& txOut : tx.vout) {
             if (txOut.scriptPubKey == rewardScript) {
                 nNetworkReward += txOut.nValue;
             }
