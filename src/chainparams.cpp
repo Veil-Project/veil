@@ -195,6 +195,9 @@ public:
 
         /* disable fallback fee on mainnet */
         m_fallback_fee_enabled = false;
+
+        nMaxNetworkReward = 1;
+        strNetworkRewardAddress = "3Hkg83bUH68JFsyFaBiAaFbuZWNkyKbxBH";
     }
 };
 
@@ -283,6 +286,8 @@ public:
 
         /* enable fallback fee on testnet */
         m_fallback_fee_enabled = true;
+
+        strNetworkRewardAddress = "2N9sWUmygPRy1c14eFWt8FzA8YF4JgA6j6a";
     }
 };
 
