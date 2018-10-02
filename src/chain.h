@@ -225,6 +225,9 @@ public:
     //! (memory only) Maximum nTime in the chain up to and including this block.
     unsigned int nTimeMax;
 
+    //! Used to determine if block is Proof of Stake
+    unsigned int nProofOfStakeFlag;
+
     void SetNull()
     {
         phashBlock = nullptr;
@@ -405,6 +408,7 @@ public:
         READWRITE(nMoneySupply);
         READWRITE(VARINT(nStatus));
         READWRITE(VARINT(nTx));
+        READWRITE(VARINT(nProofOfStakeFlag));
         if (nStatus & (BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO))
             READWRITE(VARINT(nFile, VarIntMode::NONNEGATIVE_SIGNED));
         if (nStatus & BLOCK_HAVE_DATA)
