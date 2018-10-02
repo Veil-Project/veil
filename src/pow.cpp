@@ -10,7 +10,8 @@
 #include <primitives/block.h>
 #include <uint256.h>
 
-unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params& params)
+unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock,
+                                    const Consensus::Params& params, bool fProofOfStake)
 {
     assert(pindexLast != nullptr);
 
@@ -23,51 +24,50 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
         // Special difficulty rule for testnet:
         // If the new block's timestamp is more than 10 minutes
         // then allow mining of a min-difficulty block.
-        if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing * 10)
+        if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing * 5)
             return nProofOfWorkLimit;
         else {
             // Return the last non-special-min-difficulty-rules-block
             const CBlockIndex *pindex = pindexLast;
-            while (pindex->pprev && pindex->nBits == nProofOfWorkLimit)
+            while (pindex->pprev && (pindex->nBits == nProofOfWorkLimit || pindex->nProofOfStakeFlag != fProofOfStake))
                 pindex = pindex->pprev;
             return pindex->nBits;
         }
     }
 
     // Retarget every block with DarkGravityWave
-    return DarkGravityWave(pindexLast, params);
+    return DarkGravityWave(pindexLast, params, fProofOfStake);
 }
 
-unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params) {
+unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake) {
     /* current difficulty formula, veil - DarkGravity v3, written by Evan Duffield - evan@dash.org */
     const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
 
-    // Make sure we have enough blocks to calculate bn PastTargetAvg
-    if (pindexLast->nHeight < params.nDgwPastBlocks)
-        return bnPowLimit.GetCompact();
-
     const CBlockIndex *pindex = pindexLast;
-    arith_uint256 bnPastTargetAvg;
+    arith_uint256 bnPastTargetAvg = 0;
 
-    for (unsigned int nCountBlocks = 1; nCountBlocks <= params.nDgwPastBlocks; nCountBlocks++) {
-        arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
-        if (nCountBlocks == 1) {
-            bnPastTargetAvg = bnTarget;
-        } else {
-            // NOTE: that's not an average really...
-            bnPastTargetAvg = (bnPastTargetAvg * nCountBlocks + bnTarget) / (nCountBlocks + 1);
-        }
+    unsigned int nCountBlocks = 0;
+    while (nCountBlocks < params.nDgwPastBlocks) {
+        // Ran out of blocks, return pow limit
+        if (!pindex)
+            return bnPowLimit.GetCompact();
 
-        if(nCountBlocks != params.nDgwPastBlocks) {
-            assert(pindex->pprev); // should never fail
+        // Only consider PoW or PoS blocks but not both
+        if (pindex->nProofOfStakeFlag != fProofOfStake) {
             pindex = pindex->pprev;
+            continue;
         }
+
+        arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
+        bnPastTargetAvg = (bnPastTargetAvg * nCountBlocks + bnTarget) / (nCountBlocks + 1);
+
+        if (++nCountBlocks != params.nDgwPastBlocks)
+            pindex = pindex->pprev;
     }
 
     arith_uint256 bnNew(bnPastTargetAvg);
 
     int64_t nActualTimespan = pindexLast->GetBlockTime() - pindex->GetBlockTime();
-    // NOTE: is this accurate? nActualTimespan counts it for (nPastBlocks - 1) blocks only...
     int64_t nTargetTimespan = params.nDgwPastBlocks * params.nPowTargetSpacing;
 
     if (nActualTimespan < nTargetTimespan/3)

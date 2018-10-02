@@ -67,6 +67,8 @@ public:
     {
         return (int64_t)nTime;
     }
+
+    virtual ~CBlockHeader(){};
 };
 
 
