@@ -2078,9 +2078,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // Track the overall money supply
     pindex->nMoneySupply = (pindex->pprev ? pindex->pprev->nMoneySupply : 0) + nValueOut - nValueIn;
 
-    CAmount blockReward = GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
+    CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, chainparams.GetConsensus());
 
-    CAmount networkReward = pindex->nNetworkRewardReserve < Params().MaxNetworkReward() ? pindex->nNetworkRewardReserve : Params().MaxNetworkReward();
+    CAmount networkReward = pindex->nNetworkRewardReserve > Params().MaxNetworkReward() ? Params().MaxNetworkReward() : pindex->nNetworkRewardReserve;
     pindex->nNetworkRewardReserve -= networkReward;
     blockReward += networkReward;
 

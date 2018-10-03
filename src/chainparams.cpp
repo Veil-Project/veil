@@ -37,7 +37,6 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
 
     // Use this to mine new genesis block
-    printf("Searching for genesis block...\n");
     arith_uint256 hashTarget = arith_uint256().SetCompact(genesis.nBits);
     uint256 thash;
     while (true)
@@ -55,12 +54,6 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
             ++genesis.nTime;
         }
     }
-
-    printf("genesis.nTime = %u \n", genesis.nTime);
-    printf("genesis.nNonce = %u \n", genesis.nNonce);
-    printf("genesis.nVersion = %u \n", genesis.nVersion);
-    printf("genesis.GetHash = %s\n", genesis.GetHash().GetHex().c_str()); //first this, then comment this line out and uncomment the one under.
-    printf("genesis.hashMerkleRoot = %s \n", genesis.hashMerkleRoot.ToString().c_str()); //improvised. worked for me, to find merkle root/
 
     return genesis;
 }
@@ -110,7 +103,8 @@ public:
         consensus.BIP34Hash = uint256S("0x000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8");
         consensus.BIP65Height = 388381; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.BIP66Height = 363725; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
-        consensus.powLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        // TODO: Find PoW limit to use - VEIL-55
+        consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = false;
@@ -368,6 +362,8 @@ public:
 
         /* enable fallback fee on regtest */
         m_fallback_fee_enabled = true;
+
+        strNetworkRewardAddress = "2N9sWUmygPRy1c14eFWt8FzA8YF4JgA6j6a";
     }
 };
 

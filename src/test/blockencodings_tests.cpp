@@ -9,6 +9,9 @@
 #include <random.h>
 
 #include <test/test_veil.h>
+#include <veil/budget.h>
+#include <script/standard.h>
+#include <key_io.h>
 
 #include <boost/test/unit_test.hpp>
 
@@ -25,8 +28,13 @@ static CBlock BuildBlockTestCase() {
     CMutableTransaction tx;
     tx.vin.resize(1);
     tx.vin[0].scriptSig.resize(10);
-    tx.vout.resize(1);
+    tx.vout.resize(2);
     tx.vout[0].nValue = 42;
+    std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
+    CTxDestination dest = DecodeDestination(strBudgetAddress);
+    auto budgetScript = GetScriptForDestination(dest);
+    tx.vout[1].scriptPubKey = budgetScript;
+    tx.vout[1].nValue = veil::Budget().GetBudgetAmount();
 
     block.vtx.resize(3);
     block.vtx[0] = MakeTransactionRef(tx);
@@ -283,8 +291,13 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     CMutableTransaction coinbase;
     coinbase.vin.resize(1);
     coinbase.vin[0].scriptSig.resize(10);
-    coinbase.vout.resize(1);
+    coinbase.vout.resize(2);
     coinbase.vout[0].nValue = 42;
+    std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
+    CTxDestination dest = DecodeDestination(strBudgetAddress);
+    auto budgetScript = GetScriptForDestination(dest);
+    coinbase.vout[1].scriptPubKey = budgetScript;
+    coinbase.vout[1].nValue = veil::Budget().GetBudgetAmount();
 
     CBlock block;
     block.vtx.resize(1);
