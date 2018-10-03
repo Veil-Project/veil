@@ -155,7 +155,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     nLastBlockTx = nBlockTx;
     nLastBlockWeight = nBlockWeight;
 
-    CAmount nNetworkReward = pindexPrev ? pindexPrev->nNetworkRewardReserve : 0;
+    CAmount nNetworkRewardReserve = pindexPrev ? pindexPrev->nNetworkRewardReserve : 0;
     std::string strRewardAddress = Params().NetworkRewardAddress();
     CTxDestination rewardDest = DecodeDestination(strRewardAddress);
     CScript rewardScript = GetScriptForDestination(rewardDest);
@@ -168,10 +168,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
         for (auto& txOut : tx.vout) {
             if (txOut.scriptPubKey == rewardScript) {
-                nNetworkReward += txOut.nValue;
+                nNetworkRewardReserve += txOut.nValue;
             }
         }
     }
+
+    CAmount nNetworkReward = nNetworkRewardReserve > Params().MaxNetworkReward() ? Params().MaxNetworkReward() : nNetworkRewardReserve;
 
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;

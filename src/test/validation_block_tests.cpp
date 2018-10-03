@@ -13,6 +13,9 @@
 #include <test/test_veil.h>
 #include <validation.h>
 #include <validationinterface.h>
+#include <veil/budget.h>
+#include <script/standard.h>
+#include <key_io.h>
 
 struct RegtestingSetup : public TestingSetup {
     RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
@@ -58,11 +61,6 @@ std::shared_ptr<CBlock> Block(const uint256& prev_hash)
     auto pblock = std::make_shared<CBlock>(ptemplate->block);
     pblock->hashPrevBlock = prev_hash;
     pblock->nTime = ++time;
-
-    CMutableTransaction txCoinbase(*pblock->vtx[0]);
-    txCoinbase.vout.resize(1);
-    txCoinbase.vin[0].scriptWitness.SetNull();
-    pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
 
     return pblock;
 }

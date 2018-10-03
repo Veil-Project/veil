@@ -17,6 +17,7 @@
 #include <uint256.h>
 #include <util.h>
 #include <utilstrencodings.h>
+#include <pow.h>
 
 #include <test/test_veil.h>
 
@@ -52,34 +53,34 @@ struct {
     unsigned char extranonce;
     unsigned int nonce;
 } blockinfo[] = {
-    {4, 0xa4a3e223}, {2, 0x15c32f9e}, {1, 0x0375b547}, {1, 0x7004a8a5},
-    {2, 0xce440296}, {2, 0x52cfe198}, {1, 0x77a72cd0}, {2, 0xbb5d6f84},
-    {2, 0x83f30c2c}, {1, 0x48a73d5b}, {1, 0xef7dcd01}, {2, 0x6809c6c4},
-    {2, 0x0883ab3c}, {1, 0x087bbbe2}, {2, 0x2104a814}, {2, 0xdffb6daa},
-    {1, 0xee8a0a08}, {2, 0xba4237c1}, {1, 0xa70349dc}, {1, 0x344722bb},
-    {3, 0xd6294733}, {2, 0xec9f5c94}, {2, 0xca2fbc28}, {1, 0x6ba4f406},
-    {2, 0x015d4532}, {1, 0x6e119b7c}, {2, 0x43e8f314}, {2, 0x27962f38},
-    {2, 0xb571b51b}, {2, 0xb36bee23}, {2, 0xd17924a8}, {2, 0x6bc212d9},
-    {1, 0x630d4948}, {2, 0x9a4c4ebb}, {2, 0x554be537}, {1, 0xd63ddfc7},
-    {2, 0xa10acc11}, {1, 0x759a8363}, {2, 0xfb73090d}, {1, 0xe82c6a34},
-    {1, 0xe33e92d7}, {3, 0x658ef5cb}, {2, 0xba32ff22}, {5, 0x0227a10c},
-    {1, 0xa9a70155}, {5, 0xd096d809}, {1, 0x37176174}, {1, 0x830b8d0f},
-    {1, 0xc6e3910e}, {2, 0x823f3ca8}, {1, 0x99850849}, {1, 0x7521fb81},
-    {1, 0xaacaabab}, {1, 0xd645a2eb}, {5, 0x7aea1781}, {5, 0x9d6e4b78},
-    {1, 0x4ce90fd8}, {1, 0xabdc832d}, {6, 0x4a34f32a}, {2, 0xf2524c1c},
-    {2, 0x1bbeb08a}, {1, 0xad47f480}, {1, 0x9f026aeb}, {1, 0x15a95049},
-    {2, 0xd1cb95b2}, {2, 0xf84bbda5}, {1, 0x0fa62cd1}, {1, 0xe05f9169},
-    {1, 0x78d194a9}, {5, 0x3e38147b}, {5, 0x737ba0d4}, {1, 0x63378e10},
-    {1, 0x6d5f91cf}, {2, 0x88612eb8}, {2, 0xe9639484}, {1, 0xb7fabc9d},
-    {2, 0x19b01592}, {1, 0x5a90dd31}, {2, 0x5bd7e028}, {2, 0x94d00323},
-    {1, 0xa9b9c01a}, {1, 0x3a40de61}, {1, 0x56e7eec7}, {5, 0x859f7ef6},
-    {1, 0xfd8e5630}, {1, 0x2b0c9f7f}, {1, 0xba700e26}, {1, 0x7170a408},
-    {1, 0x70de86a8}, {1, 0x74d64cd5}, {1, 0x49e738a1}, {2, 0x6910b602},
-    {0, 0x643c565f}, {1, 0x54264b3f}, {2, 0x97ea6396}, {2, 0x55174459},
-    {2, 0x03e8779a}, {1, 0x98f34d8f}, {1, 0xc07b2b07}, {1, 0xdfe29668},
-    {1, 0x3141c7c1}, {1, 0xb3b595f4}, {1, 0x735abf08}, {5, 0x623bfbce},
-    {2, 0xd351e722}, {1, 0xf4ca48c9}, {1, 0x5b19c670}, {1, 0xa164bf0e},
-    {2, 0xbbbeb305}, {2, 0xfe1c810a},
+    {4, 2762203683}, {2, 365113247}, {1, 58045770}, {1, 1879353509},
+    {2, 3460563608}, {2, 1389355416}, {1, 2007444688}, {2, 3143462788},
+    {2, 2213743661}, {1, 1218919775}, {1, 4017999106}, {2, 1745471175},
+    {2, 142846781}, {1, 142326757}, {2, 553953300}, {2, 3757796778},
+    {1, 4002023944}, {2, 3124901826}, {1, 2802010588}, {1, 877077179},
+    {3, 3593029427}, {2, 3969866900}, {2, 3392125992}, {1, 1805972488},
+    {2, 22889778}, {1, 1846647676}, {2, 1139340052}, {2, 664153912},
+    {2, 3044128027}, {2, 3010194983}, {2, 3514377385}, {2, 1807880927},
+    {1, 1661815113}, {2, 2588692158}, {2, 1431037239}, {1, 3594379207},
+    {2, 2701839377}, {1, 1973060451}, {2, 4218620173}, {1, 3895224885},
+    {1, 3812528855}, {3, 1703867853}, {2, 3123904292}, {5, 36151566},
+    {1, 2846294357}, {5, 3499546633}, {1, 924279156}, {1, 2198572305},
+    {1, 3336802574}, {2, 2185182377}, {1, 2575632457}, {1, 1965161345},
+    {1, 2865408939}, {1, 3594887916}, {5, 2062161794}, {5, 2641251195},
+    {1, 1290342360}, {1, 2883355437}, {6, 1244984106}, {2, 4065479708},
+    {2, 465482400}, {1, 2907174250}, {1, 2668119617}, {1, 363418432},
+    {2, 3520059103}, {2, 4165715942}, {1, 262701229}, {1, 3764360746},
+    {1, 2027337848}, {5, 1043870112}, {5, 1937510025}, {1, 1664600435},
+    {1, 1835070335}, {2, 2288073289}, {2, 3915808407}, {1, 3086668046},
+    {2, 431164525}, {1, 1519443927}, {2, 1540918490}, {2, 2496662638},
+    {1, 2847536504}, {1, 977330052}, {1, 1458105173}, {5, 2241824422},
+    {1, 4254010326}, {1, 722249656}, {1, 3127968622}, {1, 1903212114},
+    {1, 1240076798}, {1, 1762708584}, {1, 1681745075}, {2, 1411797252},
+    {0, 2548738154}, {1, 1427604842}, {2, 65602055}, {2, 2566089199},
+    {2, 3229392033}, {1, 3756169963}, {1, 826496712}, {1, 3015031264},
+    {1, 1935361125}, {1, 1648108884}, {1, 3545375322}, {5, 4106905061},
+    {2, 4107039329}, {1, 1528565221}, {1, 2707745393}, {1, 3149881008},
+    {2, 4263295470}, {2, 4263284471},
 };
 
 static CBlockIndex CreateBlockIndex(int nHeight)
@@ -237,7 +238,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
             txCoinbase.vin[0].scriptSig = CScript();
             txCoinbase.vin[0].scriptSig.push_back(blockinfo[i].extranonce);
             txCoinbase.vin[0].scriptSig.push_back(chainActive.Height());
-            txCoinbase.vout.resize(1); // Ignore the (optional) segwit commitment added by CreateNewBlock (as the hardcoded nonces don't account for this)
+            txCoinbase.vout.resize(2); // Ignore the (optional) segwit commitment added by CreateNewBlock (as the hardcoded nonces don't account for this)
             txCoinbase.vout[0].scriptPubKey = CScript();
             pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
             if (txFirst.size() == 0)
@@ -246,6 +247,12 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
                 txFirst.push_back(pblock->vtx[0]);
             pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
             pblock->nNonce = blockinfo[i].nonce;
+            pblock->nBits = GetNextWorkRequired(chainActive.Tip(), pblock, chainparams.GetConsensus());
+            if (pblock->IsProofOfWork()) {
+                while (!CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, chainparams.GetConsensus())) {
+                    pblock->nNonce++;
+                }
+            }
         }
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         BOOST_CHECK(ProcessNewBlock(chainparams, shared_pblock, true, nullptr));
