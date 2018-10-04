@@ -16,6 +16,7 @@ CoinDenomination IntToZerocoinDenomination(int64_t amount)
     case 10:	denomination = CoinDenomination::ZQ_TEN; break;
     case 100: denomination = CoinDenomination::ZQ_ONE_HUNDRED; break;
     case 1000: denomination = CoinDenomination::ZQ_ONE_THOUSAND; break;
+    case 10000: denomination = CoinDenomination ::ZQ_TEN_THOUSAND; break;
     default:
         //not a valid denomination
         denomination = CoinDenomination::ZQ_ERROR; break;
@@ -31,6 +32,7 @@ int64_t ZerocoinDenominationToInt(const CoinDenomination& denomination)
     case CoinDenomination::ZQ_TEN: Value = 10; break;
     case CoinDenomination::ZQ_ONE_HUNDRED: Value = 100; break;
     case CoinDenomination::ZQ_ONE_THOUSAND: Value = 1000; break;
+    case CoinDenomination::ZQ_TEN_THOUSAND: Value = 10000; break;
     default:
         // Error Case
         Value = 0; break;
