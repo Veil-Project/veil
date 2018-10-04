@@ -2072,7 +2072,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
     }
+
+
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
+
+
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
 
     // Track the overall money supply
@@ -2082,9 +2086,17 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     CAmount networkReward = pindex->nNetworkRewardReserve > Params().MaxNetworkReward() ? Params().MaxNetworkReward() : pindex->nNetworkRewardReserve;
     pindex->nNetworkRewardReserve -= networkReward;
-    blockReward += networkReward;
+
+    /*
+     * Adding block rewards as specified in VEIL-36. The block rewards are stratified based upon the height of the block.
+     */
+    CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment = 0;
+    veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    blockReward += networkReward + nBlockReward + nFounderPayment + nBudgetPayment + nLabPayment;
 
     CAmount nBudgetAmount = veil::Budget().GetBudgetAmount();
+
     if (block.vtx[0]->GetValueOut() > blockReward + nBudgetAmount)
         return state.DoS(100,
                          error("ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)",

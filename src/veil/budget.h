@@ -14,15 +14,29 @@ bool CheckBudgetTransaction(const CTransaction& tx, CValidationState& state);
 
 class BudgetParams
 {
+
 private:
     explicit BudgetParams(std::string strNetwork);
-
     std::string budgetAddress;
     CAmount nBudgetAmount;
+
+
+
+
+
 public:
     static BudgetParams* Get();
+
+    static void GetBlockRewards(int nBlockHeight,
+                                CAmount& nBlockReward,
+                                CAmount& nFounderPayment,
+                                CAmount& nLabPayment,
+                                CAmount& nBudgetPayment);
+
     std::string GetBudgetAddress() const { return budgetAddress; }
+
     CAmount GetBudgetAmount() const { return nBudgetAmount; }
+
 };
 
 BudgetParams& Budget();
