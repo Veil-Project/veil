@@ -55,7 +55,7 @@ CoinDenomination AmountToZerocoinDenomination(CAmount amount)
 // use case: converting PIV to zPIV without user worrying about denomination math themselves
 CoinDenomination AmountToClosestDenomination(CAmount nAmount, CAmount& nRemaining)
 {
-    if (nAmount < 1 * COIN)
+    if (nAmount < 10 * COIN)
         return ZQ_ERROR;
 
     CAmount nConvert = nAmount / COIN;
