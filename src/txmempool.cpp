@@ -343,6 +343,15 @@ bool CTxMemPool::isSpent(const COutPoint& outpoint) const
     return mapNextTx.count(outpoint);
 }
 
+void CTxMemPool::GetTransactions(std::set<uint256>& setTxids)
+{
+    setTxids.clear();
+
+    LOCK(cs);
+    for (indexed_transaction_set::iterator mi = mapTx.begin(); mi != mapTx.end(); ++mi)
+        setTxids.insert(mi->GetTx().GetHash());
+}
+
 unsigned int CTxMemPool::GetTransactionsUpdated() const
 {
     LOCK(cs);

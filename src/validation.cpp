@@ -299,6 +299,7 @@ CBlockIndex* FindForkInGlobalIndex(const CChain& chain, const CBlockLocator& loc
 std::unique_ptr<CCoinsViewDB> pcoinsdbview;
 std::unique_ptr<CCoinsViewCache> pcoinsTip;
 std::unique_ptr<CBlockTreeDB> pblocktree;
+std::unique_ptr<CZerocoinDB> pzerocoinDB;
 
 enum class FlushStateMode {
     NONE,
@@ -1045,7 +1046,32 @@ bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus
     return false;
 }
 
+bool IsBlockHashInChain(const uint256& hashBlock)
+{
+    if (hashBlock == uint256() || !mapBlockIndex.count(hashBlock))
+        return false;
 
+    return chainActive.Contains(mapBlockIndex[hashBlock]);
+}
+
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransaction& tx, const Consensus::Params& params)
+{
+    CTransactionRef txRef = std::shared_ptr<CTransaction>(&tx);
+    uint256 hashBlock;
+    if (!GetTransaction(txId, txRef, params, hashBlock, true))
+        return false;
+    if (!IsBlockHashInChain(hashBlock))
+        return false;
+
+    nHeightTx = mapBlockIndex.at(hashBlock)->nHeight;
+    return true;
+}
+
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, const Consensus::Params& params)
+{
+    CTransaction tx;
+    return IsTransactionInChain(txId, nHeightTx, tx, params);
+}
 
 
 

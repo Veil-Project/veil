@@ -187,9 +187,10 @@ QString Intro::getDefaultDataDirectory()
     return GUIUtil::boostPathToQString(GetDefaultDataDir());
 }
 
-bool Intro::pickDataDirectory(interfaces::Node& node)
+bool Intro::pickDataDirectory(interfaces::Node& node, bool& fCreateNew)
 {
     QSettings settings;
+    fCreateNew = false;
     /* If data directory provided on command line, no need to look at settings
        or show a picking dialog */
     if(!gArgs.GetArg("-datadir", "").empty())
@@ -205,6 +206,9 @@ bool Intro::pickDataDirectory(interfaces::Node& node)
         Intro intro;
         intro.setDataDirectory(dataDir);
         intro.setWindowIcon(QIcon(":icons/bitcoin"));
+
+        // notify the caller that a new data directory was created
+        fCreateNew = true;
 
         while(true)
         {

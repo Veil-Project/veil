@@ -185,6 +185,9 @@ public:
     //! money supply tracking
     int64_t nMoneySupply;
 
+    //! zerocoin mint supply tracking
+    int64_t nMint;
+
     //! Which # file this block is stored in (blk?????.dat)
     int nFile;
 
@@ -218,9 +221,14 @@ public:
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
+    uint256 hashAccumulatorCheckpoint;
 
     //! (memory only) Sequential id assigned to distinguish order in which blocks are received.
     int32_t nSequenceId;
+
+    //! zerocoin specific fields
+    std::map<libzerocoin::CoinDenomination, int64_t> mapZerocoinSupply;
+    std::vector<libzerocoin::CoinDenomination> vMintDenominationsInBlock;
 
     //! (memory only) Maximum nTime in the chain up to and including this block.
     unsigned int nTimeMax;
@@ -235,6 +243,7 @@ public:
         pskip = nullptr;
         nHeight = 0;
         nMoneySupply = 0;
+        nMint = 0;
         nFile = 0;
         nDataPos = 0;
         nUndoPos = 0;
@@ -245,6 +254,14 @@ public:
         nSequenceId = 0;
         nTimeMax = 0;
         nNetworkRewardReserve = 0;
+        hashAccumulatorCheckpoint = uint256();
+
+        // Start supply of each denomination with 0s
+        for (auto& denom : libzerocoin::zerocoinDenomList) {
+            mapZerocoinSupply.insert(std::make_pair(denom, 0));
+        }
+
+        vMintDenominationsInBlock.clear();
 
         nVersion       = 0;
         hashMerkleRoot = uint256();
@@ -267,6 +284,8 @@ public:
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
+        nMint          = 0;
+        hashAccumulatorCheckpoint = block.hashAccumulatorCheckpoint;
     }
 
     CDiskBlockPos GetBlockPos() const {
@@ -297,6 +316,7 @@ public:
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
+        block.hashAccumulatorCheckpoint = hashAccumulatorCheckpoint;
         return block;
     }
 
@@ -334,6 +354,22 @@ public:
 
         std::sort(pbegin, pend);
         return pbegin[(pend - pbegin)/2];
+    }
+
+    int64_t GetZerocoinSupply() const
+    {
+        int64_t nTotal = 0;
+        for (auto& denom : libzerocoin::zerocoinDenomList) {
+            nTotal += libzerocoin::ZerocoinDenominationToAmount(denom) * mapZerocoinSupply.at(denom);
+        }
+
+        return nTotal;
+    }
+
+    bool MintedDenomination(libzerocoin::CoinDenomination denom) const
+    {
+        return std::find(vMintDenominationsInBlock.begin(), vMintDenominationsInBlock.end(), denom)
+                        != vMintDenominationsInBlock.end();
     }
 
     std::string ToString() const

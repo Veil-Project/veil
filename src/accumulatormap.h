@@ -18,11 +18,11 @@ private:
     std::map<libzerocoin::CoinDenomination, std::unique_ptr<libzerocoin::Accumulator> > mapAccumulators;
 public:
     explicit AccumulatorMap(libzerocoin::ZerocoinParams* params);
-    bool Load(arith_uint256 nCheckpoint);
+    bool Load(uint256 nCheckpoint);
     void Load(const AccumulatorCheckpoints::Checkpoint& checkpoint);
     bool Accumulate(const libzerocoin::PublicCoin& pubCoin, bool fSkipValidation = false);
     CBigNum GetValue(libzerocoin::CoinDenomination denom);
-    arith_uint256 GetCheckpoint();
+    uint256 GetCheckpoint();
     void Reset();
     void Reset(libzerocoin::ZerocoinParams* params2);
 };
