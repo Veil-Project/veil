@@ -153,6 +153,7 @@ inline uint256 uint256S(const char *str)
     rv.SetHex(str);
     return rv;
 }
+
 /* uint256 from std::string.
  * This is a separate function because the constructor uint256(const std::string &str) can result
  * in dangerously catching uint256(0) via std::string(const char*).
@@ -160,6 +161,22 @@ inline uint256 uint256S(const char *str)
 inline uint256 uint256S(const std::string& str)
 {
     uint256 rv;
+    rv.SetHex(str);
+    return rv;
+}
+
+template<unsigned int BITS>
+inline base_blob<BITS> uintS(const char *str)
+{
+    base_blob<BITS> rv;
+    rv.SetHex(str);
+    return rv;
+}
+
+template<unsigned int BITS>
+inline base_blob<BITS> uintS(const std::string& str)
+{
+    base_blob<BITS> rv;
     rv.SetHex(str);
     return rv;
 }

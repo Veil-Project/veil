@@ -27,6 +27,7 @@ public:
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
+    uint256 hashAccumulatorCheckpoint;
 
     CBlockHeader()
     {
@@ -43,6 +44,7 @@ public:
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
+        READWRITE(hashAccumulatorCheckpoint);
     }
 
     void SetNull()
@@ -50,6 +52,7 @@ public:
         nVersion = 0;
         hashPrevBlock.SetNull();
         hashMerkleRoot.SetNull();
+        hashAccumulatorCheckpoint.SetNull();
         nTime = 0;
         nBits = 0;
         nNonce = 0;
@@ -122,6 +125,7 @@ public:
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
+        block.hashAccumulatorCheckpoint = hashAccumulatorCheckpoint;
         return block;
     }
 

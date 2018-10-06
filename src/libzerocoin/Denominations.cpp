@@ -81,7 +81,7 @@ CoinDenomination AmountToClosestDenomination(CAmount nAmount, CAmount& nRemainin
     return denomination;
 }
 
-CAmount ZerocoinDenominationToAmount(const CoinDenomination& denomination)
+int64_t ZerocoinDenominationToAmount(const CoinDenomination& denomination)
 {
     CAmount nValue = COIN * ZerocoinDenominationToInt(denomination);
     return nValue;

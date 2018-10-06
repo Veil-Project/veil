@@ -45,7 +45,7 @@ public:
      * @note do NOT call global GetDataDir() before calling this function, this
      * will cause the wrong path to be cached.
      */
-    static bool pickDataDirectory(interfaces::Node& node);
+    static bool pickDataDirectory(interfaces::Node& node, bool& fCreateNew);
 
     /**
      * Determine default data directory for operating system.

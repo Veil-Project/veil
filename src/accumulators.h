@@ -17,16 +17,16 @@ class CBlockIndex;
 
 std::map<libzerocoin::CoinDenomination, int> GetMintMaturityHeight();
 bool GenerateAccumulatorWitness(const libzerocoin::PublicCoin &coin, libzerocoin::Accumulator& accumulator, libzerocoin::AccumulatorWitness& witness, int nSecurityLevel, int& nMintsAdded, std::string& strError, CBlockIndex* pindexCheckpoint = nullptr);
-bool GetAccumulatorValueFromDB(arith_uint256 nCheckpoint, libzerocoin::CoinDenomination denom, CBigNum& bnAccValue);
-bool GetAccumulatorValueFromChecksum(arith_uint256 nChecksum, bool fMemoryOnly, CBigNum& bnAccValue);
-void AddAccumulatorChecksum(const arith_uint256 nChecksum, const CBigNum &bnValue, bool fMemoryOnly);
-bool CalculateAccumulatorCheckpoint(int nHeight, arith_uint256& nCheckpoint, AccumulatorMap& mapAccumulators);
+bool GetAccumulatorValueFromDB(uint256 nCheckpoint, libzerocoin::CoinDenomination denom, CBigNum& bnAccValue);
+bool GetAccumulatorValueFromChecksum(uint32_t nChecksum, bool fMemoryOnly, CBigNum& bnAccValue);
+void AddAccumulatorChecksum(const uint256 nChecksum, const CBigNum &bnValue, bool fMemoryOnly);
+bool CalculateAccumulatorCheckpoint(int nHeight, uint256& nCheckpoint, AccumulatorMap& mapAccumulators);
 void DatabaseChecksums(AccumulatorMap& mapAccumulators);
-bool LoadAccumulatorValuesFromDB(const arith_uint256 nCheckpoint);
-bool EraseAccumulatorValues(const arith_uint256& nCheckpointErase, const arith_uint256& nCheckpointPrevious);
-arith_uint256 ParseChecksum(arith_uint256 nChecksum, libzerocoin::CoinDenomination denomination);
-arith_uint256 GetChecksum(const CBigNum &bnValue);
-int GetChecksumHeight(arith_uint256 nChecksum, libzerocoin::CoinDenomination denomination);
+bool LoadAccumulatorValuesFromDB(const uint256 nCheckpoint);
+bool EraseAccumulatorValues(const uint256& nCheckpointErase, const uint256& nCheckpointPrevious);
+uint32_t ParseChecksum(uint256 nChecksum, libzerocoin::CoinDenomination denomination);
+uint32_t GetChecksum(const CBigNum &bnValue);
+int GetChecksumHeight(uint32_t nChecksum, libzerocoin::CoinDenomination denomination);
 bool InvalidCheckpointRange(int nHeight);
 bool ValidateAccumulatorCheckpoint(const CBlock& block, CBlockIndex* pindex, AccumulatorMap& mapAccumulators);
 

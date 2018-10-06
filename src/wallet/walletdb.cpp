@@ -15,6 +15,7 @@
 #include <util.h>
 #include <utiltime.h>
 #include <wallet/wallet.h>
+#include <primitives/deterministicmint.h>
 
 #include <atomic>
 
@@ -869,4 +870,478 @@ bool WalletBatch::ReadVersion(int& nVersion)
 bool WalletBatch::WriteVersion(int nVersion)
 {
     return m_batch.WriteVersion(nVersion);
+}
+
+bool WalletBatch::WriteZerocoinSpendSerialEntry(const CZerocoinSpend& zerocoinSpend)
+{
+    return WriteIC(std::make_pair(std::string("zcserial"), zerocoinSpend.GetSerial()), zerocoinSpend, true);
+}
+
+bool WalletBatch::EraseZerocoinSpendSerialEntry(const CBigNum& serialEntry)
+{
+    return EraseIC(std::make_pair(std::string("zcserial"), serialEntry));
+}
+
+bool WalletBatch::ReadZerocoinSpendSerialEntry(const CBigNum& bnSerial)
+{
+    CZerocoinSpend spend;
+    return m_batch.Read(std::make_pair(std::string("zcserial"), bnSerial), spend);
+}
+
+bool WalletBatch::WriteDeterministicMint(const CDeterministicMint& dMint)
+{
+    uint256 hash = dMint.GetPubcoinHash();
+    return WriteIC(std::make_pair(std::string("dzpiv"), hash), dMint, true);
+}
+
+bool WalletBatch::ReadDeterministicMint(const uint256& hashPubcoin, CDeterministicMint& dMint)
+{
+    return m_batch.Read(std::make_pair(std::string("dzpiv"), hashPubcoin), dMint);
+}
+
+bool WalletBatch::EraseDeterministicMint(const uint256& hashPubcoin)
+{
+    return EraseIC(std::make_pair(std::string("dzpiv"), hashPubcoin));
+}
+
+bool WalletBatch::WriteZerocoinMint(const CZerocoinMint& zerocoinMint)
+{
+    CDataStream ss(SER_GETHASH, 0);
+    ss << zerocoinMint.GetValue();
+    uint256 hash = Hash(ss.begin(), ss.end());
+
+    EraseIC(std::make_pair(std::string("zerocoin"), hash));
+    return WriteIC(std::make_pair(std::string("zerocoin"), hash), zerocoinMint, true);
+}
+
+bool WalletBatch::ReadZerocoinMint(const CBigNum &bnPubCoinValue, CZerocoinMint& zerocoinMint)
+{
+    CDataStream ss(SER_GETHASH, 0);
+    ss << bnPubCoinValue;
+    uint256 hash = Hash(ss.begin(), ss.end());
+
+    return ReadZerocoinMint(hash, zerocoinMint);
+}
+
+bool WalletBatch::ReadZerocoinMint(const uint256& hashPubcoin, CZerocoinMint& mint)
+{
+    return m_batch.Read(std::make_pair(std::string("zerocoin"), hashPubcoin), mint);
+}
+
+bool WalletBatch::EraseZerocoinMint(const CZerocoinMint& zerocoinMint)
+{
+    CDataStream ss(SER_GETHASH, 0);
+    ss << zerocoinMint.GetValue();
+    uint256 hash = Hash(ss.begin(), ss.end());
+
+    return EraseIC(std::make_pair(std::string("zerocoin"), hash));
+}
+
+bool WalletBatch::ArchiveMintOrphan(const CZerocoinMint& zerocoinMint)
+{
+    CDataStream ss(SER_GETHASH, 0);
+    ss << zerocoinMint.GetValue();
+    uint256 hash = Hash(ss.begin(), ss.end());;
+
+    if (!WriteIC(std::make_pair(std::string("zco"), hash), zerocoinMint)) {
+        LogPrintf("%s : failed to database orphaned zerocoin mint\n", __func__);
+        return false;
+    }
+
+    if (!EraseIC(std::make_pair(std::string("zerocoin"), hash))) {
+        LogPrintf("%s : failed to erase orphaned zerocoin mint\n", __func__);
+        return false;
+    }
+
+    return true;
+}
+
+bool WalletBatch::ArchiveDeterministicOrphan(const CDeterministicMint& dMint)
+{
+    if (!WriteIC(std::make_pair(std::string("dzco"), dMint.GetPubcoinHash()), dMint))
+        return error("%s: write failed", __func__);
+
+    if (!EraseIC(std::make_pair(std::string("dzpiv"), dMint.GetPubcoinHash())))
+        return error("%s: failed to erase", __func__);
+
+    return true;
+}
+
+bool WalletBatch::UnarchiveDeterministicMint(const uint256& hashPubcoin, CDeterministicMint& dMint)
+{
+    if (!m_batch.Read(std::make_pair(std::string("dzco"), hashPubcoin), dMint))
+        return error("%s: failed to retrieve deterministic mint from archive", __func__);
+
+    if (!WriteDeterministicMint(dMint))
+        return error("%s: failed to write deterministic mint", __func__);
+
+    if (!EraseIC(std::make_pair(std::string("dzco"), dMint.GetPubcoinHash())))
+        return error("%s : failed to erase archived deterministic mint", __func__);
+
+    return true;
+}
+
+bool WalletBatch::UnarchiveZerocoinMint(const uint256& hashPubcoin, CZerocoinMint& mint)
+{
+    if (!m_batch.Read(std::make_pair(std::string("zco"), hashPubcoin), mint))
+        return error("%s: failed to retrieve zerocoinmint from archive", __func__);
+
+    if (!WriteZerocoinMint(mint))
+        return error("%s: failed to write zerocoinmint", __func__);
+
+    uint256 hash = GetPubCoinHash(mint.GetValue());
+    if (!EraseIC(std::make_pair(std::string("zco"), hash)))
+        return error("%s : failed to erase archived zerocoin mint", __func__);
+
+    return true;
+}
+
+bool WalletBatch::WriteCurrentSeedHash(const uint256& hashSeed)
+{
+    return WriteIC(std::string("seedhash"), hashSeed);
+}
+
+bool WalletBatch::ReadCurrentSeedHash(uint256& hashSeed)
+{
+    return m_batch.Read(std::string("seedhash"), hashSeed);
+}
+
+bool WalletBatch::WriteZPIVSeed(const uint256& hashSeed, const std::vector<unsigned char>& seed)
+{
+    if (!WriteCurrentSeedHash(hashSeed))
+        return error("%s: failed to write current seed hash", __func__);
+
+    return WriteIC(std::make_pair(std::string("dzs"), hashSeed), seed);
+}
+
+bool WalletBatch::EraseZPIVSeed()
+{
+    uint256 hash;
+    if(!ReadCurrentSeedHash(hash)){
+        return error("Failed to read a current seed hash");
+    }
+    if(!WriteZPIVSeed(hash, ToByteVector(uint256()))) {
+        return error("Failed to write empty seed to wallet");
+    }
+    if(!WriteCurrentSeedHash(uint256())) {
+        return error("Failed to write empty seedHash");
+    }
+
+    return true;
+}
+
+bool WalletBatch::EraseZPIVSeed_deprecated()
+{
+    return EraseIC(std::string("dzs"));
+}
+
+bool WalletBatch::ReadZPIVSeed(const uint256& hashSeed, std::vector<unsigned char>& seed)
+{
+    return m_batch.Read(std::make_pair(std::string("dzs"), hashSeed), seed);
+}
+
+bool WalletBatch::ReadZPIVSeed_deprecated(uint256& seed)
+{
+    return m_batch.Read(std::string("dzs"), seed);
+}
+
+bool WalletBatch::WriteZPIVCount(const uint32_t& nCount)
+{
+    return WriteIC(std::string("dzc"), nCount);
+}
+
+bool WalletBatch::ReadZPIVCount(uint32_t& nCount)
+{
+    return m_batch.Read(std::string("dzc"), nCount);
+}
+
+bool WalletBatch::WriteMintPoolPair(const uint256& hashMasterSeed, const uint256& hashPubcoin, const uint32_t& nCount)
+{
+    return WriteIC(std::make_pair(std::string("mintpool"), hashPubcoin), std::make_pair(hashMasterSeed, nCount));
+}
+
+//! map with hashMasterSeed as the key, paired with vector of hashPubcoins and their count
+std::map<uint256, std::vector<std::pair<uint256, uint32_t> > > WalletBatch::MapMintPool()
+{
+    std::map<uint256, std::vector<std::pair<uint256, uint32_t> > > mapPool;
+    Dbc* pcursor = m_batch.GetCursor();
+    if (!pcursor)
+        throw std::runtime_error(std::string(__func__)+" : cannot create DB cursor");
+    unsigned int fFlags = DB_SET_RANGE;
+    for (;;)
+    {
+        // Read next record
+        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+        if (fFlags == DB_SET_RANGE)
+            ssKey << std::make_pair(std::string("mintpool"), uint256());
+        CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+        int ret = m_batch.ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
+        fFlags = DB_NEXT;
+        if (ret == DB_NOTFOUND)
+            break;
+        else if (ret != 0)
+        {
+            pcursor->close();
+            throw std::runtime_error(std::string(__func__)+" : error scanning DB");
+        }
+
+        // Unserialize
+        std::string strType;
+        ssKey >> strType;
+        if (strType != "mintpool")
+            break;
+
+        uint256 hashPubcoin;
+        ssKey >> hashPubcoin;
+
+        uint256 hashMasterSeed;
+        ssValue >> hashMasterSeed;
+
+        uint32_t nCount;
+        ssValue >> nCount;
+
+        std::pair<uint256, uint32_t> pMint;
+        pMint.first = hashPubcoin;
+        pMint.second = nCount;
+        if (mapPool.count(hashMasterSeed)) {
+            mapPool.at(hashMasterSeed).emplace_back(pMint);
+        } else {
+            std::vector<std::pair<uint256, uint32_t> > vPairs;
+            vPairs.emplace_back(pMint);
+            mapPool.insert(std::make_pair(hashMasterSeed, vPairs));
+        }
+    }
+
+    pcursor->close();
+
+    return mapPool;
+}
+
+std::list<CDeterministicMint> WalletBatch::ListDeterministicMints()
+{
+    std::list<CDeterministicMint> listMints;
+    Dbc* pcursor = m_batch.GetCursor();
+    if (!pcursor)
+        throw std::runtime_error(std::string(__func__)+" : cannot create DB cursor");
+    unsigned int fFlags = DB_SET_RANGE;
+    for (;;)
+    {
+        // Read next record
+        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+        if (fFlags == DB_SET_RANGE)
+            ssKey << std::make_pair(std::string("dzpiv"), uint256());
+        CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+        int ret = m_batch.ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
+        fFlags = DB_NEXT;
+        if (ret == DB_NOTFOUND)
+            break;
+        else if (ret != 0)
+        {
+            pcursor->close();
+            throw std::runtime_error(std::string(__func__)+" : error scanning DB");
+        }
+
+        // Unserialize
+        std::string strType;
+        ssKey >> strType;
+        if (strType != "dzpiv")
+            break;
+
+        uint256 hashPubcoin;
+        ssKey >> hashPubcoin;
+
+        CDeterministicMint mint;
+        ssValue >> mint;
+
+        listMints.emplace_back(mint);
+    }
+
+    pcursor->close();
+    return listMints;
+}
+
+std::list<CZerocoinMint> WalletBatch::ListMintedCoins()
+{
+    std::list<CZerocoinMint> listPubCoin;
+    Dbc* pcursor = m_batch.GetCursor();
+    if (!pcursor)
+        throw std::runtime_error(std::string(__func__)+" : cannot create DB cursor");
+    unsigned int fFlags = DB_SET_RANGE;
+    std::vector<CZerocoinMint> vOverWrite;
+    std::vector<CZerocoinMint> vArchive;
+    for (;;)
+    {
+        // Read next record
+        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+        if (fFlags == DB_SET_RANGE)
+            ssKey << std::make_pair(std::string("zerocoin"), uint256());
+        CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+        int ret = m_batch.ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
+        fFlags = DB_NEXT;
+        if (ret == DB_NOTFOUND)
+            break;
+        else if (ret != 0)
+        {
+            pcursor->close();
+            throw std::runtime_error(std::string(__func__)+" : error scanning DB");
+        }
+
+        // Unserialize
+        std::string strType;
+        ssKey >> strType;
+        if (strType != "zerocoin")
+            break;
+
+        uint256 hashPubcoin;
+        ssKey >> hashPubcoin;
+
+        CZerocoinMint mint;
+        ssValue >> mint;
+
+        listPubCoin.emplace_back(mint);
+    }
+
+    pcursor->close();
+    return listPubCoin;
+}
+
+std::list<CZerocoinSpend> WalletBatch::ListSpentCoins()
+{
+    std::list<CZerocoinSpend> listCoinSpend;
+    Dbc* pcursor = m_batch.GetCursor();
+    if (!pcursor)
+        throw std::runtime_error(std::string(__func__)+" : cannot create DB cursor");
+    unsigned int fFlags = DB_SET_RANGE;
+    for (;;)
+    {
+        // Read next record
+        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+        if (fFlags == DB_SET_RANGE)
+            ssKey << std::make_pair(std::string("zcserial"), CBigNum(0));
+        CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+        int ret = m_batch.ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
+        fFlags = DB_NEXT;
+        if (ret == DB_NOTFOUND)
+            break;
+        else if (ret != 0)
+        {
+            pcursor->close();
+            throw std::runtime_error(std::string(__func__)+" : error scanning DB");
+        }
+
+        // Unserialize
+        std::string strType;
+        ssKey >> strType;
+        if (strType != "zcserial")
+            break;
+
+        CBigNum value;
+        ssKey >> value;
+
+        CZerocoinSpend zerocoinSpendItem;
+        ssValue >> zerocoinSpendItem;
+
+        listCoinSpend.push_back(zerocoinSpendItem);
+    }
+
+    pcursor->close();
+    return listCoinSpend;
+}
+
+// Just get the Serial Numbers
+std::list<CBigNum> WalletBatch::ListSpentCoinsSerial()
+{
+    std::list<CBigNum> listPubCoin;
+    std::list<CZerocoinSpend> listCoins = ListSpentCoins();
+
+    for ( auto& coin : listCoins) {
+        listPubCoin.push_back(coin.GetSerial());
+    }
+    return listPubCoin;
+}
+
+std::list<CZerocoinMint> WalletBatch::ListArchivedZerocoins()
+{
+    std::list<CZerocoinMint> listMints;
+    Dbc* pcursor = m_batch.GetCursor();
+    if (!pcursor)
+        throw std::runtime_error(std::string(__func__)+" : cannot create DB cursor");
+    unsigned int fFlags = DB_SET_RANGE;
+    for (;;)
+    {
+        // Read next record
+        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+        if (fFlags == DB_SET_RANGE)
+            ssKey << std::make_pair(std::string("zco"), CBigNum(0));
+        CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+        int ret = m_batch.ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
+        fFlags = DB_NEXT;
+        if (ret == DB_NOTFOUND)
+            break;
+        else if (ret != 0)
+        {
+            pcursor->close();
+            throw std::runtime_error(std::string(__func__)+" : error scanning DB");
+        }
+
+        // Unserialize
+        std::string strType;
+        ssKey >> strType;
+        if (strType != "zco")
+            break;
+
+        uint256 value;
+        ssKey >> value;
+
+        CZerocoinMint mint;
+        ssValue >> mint;
+
+        listMints.push_back(mint);
+    }
+
+    pcursor->close();
+    return listMints;
+}
+
+std::list<CDeterministicMint> WalletBatch::ListArchivedDeterministicMints()
+{
+    std::list<CDeterministicMint> listMints;
+    Dbc* pcursor = m_batch.GetCursor();
+    if (!pcursor)
+        throw std::runtime_error(std::string(__func__)+" : cannot create DB cursor");
+    unsigned int fFlags = DB_SET_RANGE;
+    for (;;)
+    {
+        // Read next record
+        CDataStream ssKey(SER_DISK, CLIENT_VERSION);
+        if (fFlags == DB_SET_RANGE)
+            ssKey << std::make_pair(std::string("dzco"), CBigNum(0));
+        CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+        int ret = m_batch.ReadAtCursor(pcursor, ssKey, ssValue, fFlags);
+        fFlags = DB_NEXT;
+        if (ret == DB_NOTFOUND)
+            break;
+        else if (ret != 0)
+        {
+            pcursor->close();
+            throw std::runtime_error(std::string(__func__)+" : error scanning DB");
+        }
+
+        // Unserialize
+        std::string strType;
+        ssKey >> strType;
+        if (strType != "dzco")
+            break;
+
+        uint256 value;
+        ssKey >> value;
+
+        CDeterministicMint dMint;
+        ssValue >> dMint;
+
+        listMints.emplace_back(dMint);
+    }
+
+    pcursor->close();
+    return listMints;
 }

@@ -12,8 +12,10 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include <uint256.h>
 
 class uint256;
+class uint512;
 
 class uint_error : public std::runtime_error {
 public:
@@ -245,6 +247,20 @@ public:
         static_assert(WIDTH >= 2, "Assertion WIDTH >= 2 failed (WIDTH = BITS / 32). BITS is a template parameter.");
         return pn[0] | (uint64_t)pn[1] << 32;
     }
+
+    uint32_t GetLow32() const
+    {
+        static_assert(WIDTH >= 1, "Assertion WIDTH >= 2 failed (WIDTH = BITS / 32). BITS is a template parameter.");
+        return pn[0];
+    }
+
+    base_uint<BITS> UintToArith(const base_blob<BITS> &a)
+    {
+        base_uint<BITS> b;
+        for(int x=0; x<b.WIDTH; ++x)
+            b.pn[x] = ReadLE32(a.begin() + x*4);
+        return b;
+    }
 };
 
 /** 256-bit unsigned big integer. */
@@ -282,7 +298,28 @@ public:
     friend arith_uint256 UintToArith256(const uint256 &);
 };
 
+/** 512-bit unsigned big integer. */
+class arith_uint512 : public base_uint<512> {
+public:
+    arith_uint512() {}
+    arith_uint512(const base_uint<512>& b) : base_uint<512>(b) {}
+    arith_uint512(uint64_t b) : base_uint<512>(b) {}
+
+    // SetHex of base_uint class causes problems with arith_uint512 so I removed the ability to constuct
+    // from a string. If this is important with can find a way to fix it later.
+    //explicit arith_uint512(const std::string& str) : base_uint<512>(str) {}
+
+    arith_uint512& SetCompact(uint32_t nCompact, bool *pfNegative = nullptr, bool *pfOverflow = nullptr);
+    uint32_t GetCompact(bool fNegative = false) const;
+
+    friend uint512 ArithToUint512(const arith_uint512 &);
+    friend arith_uint512 UintToArith512(const uint512 &);
+};
+
 uint256 ArithToUint256(const arith_uint256 &);
 arith_uint256 UintToArith256(const uint256 &);
+
+uint512 ArithToUint512(const arith_uint512 &);
+arith_uint512 UintToArith512(const uint512 &);
 
 #endif // BITCOIN_ARITH_UINT256_H

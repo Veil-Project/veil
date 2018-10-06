@@ -3,10 +3,10 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "accumulatormap.h"
-//include "accumulators.h"
-#include "main.h"
+#include "accumulators.h"
 #include "txdb.h"
 #include "libzerocoin/Denominations.h"
+#include "validation.h"
 
 using namespace libzerocoin;
 using namespace std;
@@ -38,13 +38,13 @@ void AccumulatorMap::Reset(libzerocoin::ZerocoinParams* params2)
 }
 
 //Load a checkpoint containing 8 32bit checksums of accumulator values.
-bool AccumulatorMap::Load(arith_uint256 nCheckpoint)
+bool AccumulatorMap::Load(uint256 nCheckpoint)
 {
     for (auto& denom : zerocoinDenomList) {
-        arith_uint256 nChecksum = ParseChecksum(nCheckpoint, denom);
+        uint32_t nChecksum = ParseChecksum(nCheckpoint, denom);
 
         CBigNum bnValue;
-        if (!zerocoinDB->ReadAccumulatorValue(nChecksum, bnValue))
+        if (!pzerocoinDB->ReadAccumulatorValue(nChecksum, bnValue))
             return error("%s : cannot find checksum %d", __func__, nChecksum);
 
         mapAccumulators.at(denom)->setValue(bnValue);
@@ -82,7 +82,7 @@ CBigNum AccumulatorMap::GetValue(CoinDenomination denom)
 }
 
 //Calculate a 32bit checksum of each accumulator value. Concatenate checksums into arith_unit256
-arith_uint256 AccumulatorMap::GetCheckpoint()
+uint256 AccumulatorMap::GetCheckpoint()
 {
     arith_uint256 nCheckpoint;
 
@@ -94,7 +94,7 @@ arith_uint256 AccumulatorMap::GetCheckpoint()
         nCheckpoint = nCheckpoint << 32 | nCheckSum;
     }
 
-    return nCheckpoint;
+    return ArithToUint256(nCheckpoint);
 }
 
 

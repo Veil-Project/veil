@@ -9,6 +9,8 @@
 #include <script/script.h>
 #include <script/standard.h>
 #include <util.h>
+#include <wallet/walletdb.h>
+#include <wallet/wallet.h>
 
 #include <string>
 #include <vector>

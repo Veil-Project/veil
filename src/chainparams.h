@@ -10,6 +10,7 @@
 #include <consensus/params.h>
 #include <primitives/block.h>
 #include <protocol.h>
+#include <libzerocoin/Params.h>
 
 #include <memory>
 #include <vector>
@@ -85,6 +86,17 @@ public:
     const CCheckpointData& Checkpoints() const { return checkpointData; }
     const ChainTxData& TxData() const { return chainTxData; }
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
+
+    /** Zerocoin **/
+    // TODO: IMPLEMENT METHOD FOR RETURNING ZEROCOIN PARAMS AND REPLACE USES OF ZEROCOIN PARAMS CONSTRUCTOR
+    std::string Zerocoin_Modulus() const { return zerocoinModulus; }
+    int Zerocoin_MaxSpendsPerTransaction() const { return nMaxZerocoinSpendsPerTransaction; }
+    CAmount Zerocoin_MintFee() const { return nMinZerocoinMintFee; }
+    int Zerocoin_MintRequiredConfirmations() const { return nMintRequiredConfirmations; }
+    int Zerocoin_RequiredAccumulation() const { return nRequiredAccumulation; }
+    int Zerocoin_DefaultSpendSecurity() const { return nDefaultSecurityLevel; }
+    int Zerocoin_HeaderVersion() const { return nZerocoinHeaderVersion; }
+    int Zerocoin_RequiredStakeDepth() const { return nZerocoinRequiredStakeDepth; }
 protected:
     CChainParams() {}
 
@@ -106,6 +118,20 @@ protected:
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
     bool m_fallback_fee_enabled;
+
+    // zerocoin
+    std::string zerocoinModulus;
+    int nMaxZerocoinSpendsPerTransaction;
+    CAmount nMinZerocoinMintFee;
+    CAmount nInvalidAmountFiltered;
+    int nMintRequiredConfirmations;
+    int nRequiredAccumulation;
+    int nDefaultSecurityLevel;
+    int nZerocoinHeaderVersion;
+    int64_t nBudget_Fee_Confirmations;
+    int nZerocoinStartHeight;
+    int nZerocoinStartTime;
+    int nZerocoinRequiredStakeDepth;
 };
 
 /**
