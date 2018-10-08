@@ -91,7 +91,11 @@ BITCOIN_TESTS =\
   test/util_tests.cpp \
   test/validation_block_tests.cpp \
   test/versionbits_tests.cpp \
-  test/monthly_rewards_tests.cpp
+  test/monthly_rewards_tests.cpp \
+  test/libzerocoin_tests.cpp \
+  test/zerocoin_denomination_tests.cpp \
+  test/zerocoin_implementation_tests.cpp \
+  test/zerocoin_transactions_tests.cpp
 
 if ENABLE_WALLET
 BITCOIN_TESTS += \
@@ -113,7 +117,7 @@ if ENABLE_WALLET
 test_test_veil_LDADD += $(LIBBITCOIN_WALLET)
 endif
 
-test_test_veil_LDADD += $(LIBBITCOIN_SERVER) $(LIBBITCOIN_CLI) $(LIBBITCOIN_COMMON) $(LIBBITCOIN_UTIL) $(LIBBITCOIN_CONSENSUS) $(LIBBITCOIN_CRYPTO) $(LIBUNIVALUE) \
+test_test_veil_LDADD += $(LIBBITCOIN_SERVER) $(LIBBITCOIN_CLI) $(LIBBITCOIN_COMMON) $(LIBBITCOIN_UTIL) $(LIBBITCOIN_CONSENSUS) $(LIBBITCOIN_CRYPTO) $(LIBUNIVALUE) $(LIBBITCOIN_ZEROCOIN) \
   $(LIBLEVELDB) $(LIBLEVELDB_SSE42) $(LIBMEMENV) $(BOOST_LIBS) $(BOOST_UNIT_TEST_FRAMEWORK_LIB) $(LIBSECP256K1) $(EVENT_LIBS) $(EVENT_PTHREADS_LIBS)
 test_test_veil_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
