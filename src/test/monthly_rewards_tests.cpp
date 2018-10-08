@@ -1,6 +1,3 @@
-//
-// Created by Gabriel on 9/25/18.
-//
 
 #include <veil/budget.h>
 #include <test/test_veil.h>
