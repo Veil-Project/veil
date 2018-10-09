@@ -21,6 +21,7 @@
 #include <wallet/coinselection.h>
 #include <wallet/walletdb.h>
 #include <wallet/rpcwallet.h>
+#include <veil/ztracker.h>
 
 #include <algorithm>
 #include <atomic>
@@ -38,6 +39,7 @@ bool RemoveWallet(const std::shared_ptr<CWallet>& wallet);
 bool HasWallets();
 std::vector<std::shared_ptr<CWallet>> GetWallets();
 std::shared_ptr<CWallet> GetWallet(const std::string& name);
+std::shared_ptr<CWallet> GetMainWallet();
 
 //! Default for -keypool
 static const unsigned int DEFAULT_KEYPOOL_SIZE = 1000;
@@ -72,6 +74,7 @@ class CScript;
 class CTxMemPool;
 class CBlockPolicyEstimator;
 class CWalletTx;
+class CzWallet;
 struct FeeCalculation;
 enum class FeeEstimateMode;
 
@@ -92,6 +95,27 @@ enum WalletFeature
     FEATURE_PRE_SPLIT_KEYPOOL = 169900, // Upgraded to HD SPLIT and can have a pre-split keypool
 
     FEATURE_LATEST = FEATURE_PRE_SPLIT_KEYPOOL
+};
+
+// Possible states for zPIV send
+enum ZerocoinSpendStatus {
+    ZSPEND_OKAY = 0,                            // No error
+    ZSPEND_ERROR = 1,                           // Unspecified class of errors, more details are (hopefully) in the returning text
+    ZWALLET_LOCKED = 2,                         // Wallet was locked
+    ZCOMMIT_FAILED = 3,                         // Commit failed, reset status
+    ZERASE_SPENDS_FAILED = 4,                   // Erasing spends during reset failed
+    ZERASE_NEW_MINTS_FAILED = 5,                // Erasing new mints during reset failed
+    ZTRX_FUNDS_PROBLEMS = 6,                    // Everything related to available funds
+    ZTRX_CREATE = 7,                            // Everything related to create the transaction
+    ZTRX_CHANGE = 8,                            // Everything related to transaction change
+    ZTXMINT_GENERAL = 9,                        // General errors in MintToTxIn
+    ZINVALID_COIN = 10,                         // Selected mint coin is not valid
+    ZFAILED_ACCUMULATOR_INITIALIZATION = 11,    // Failed to initialize witness
+    ZINVALID_WITNESS = 12,                      // Spend coin transaction did not verify
+    ZBAD_SERIALIZATION = 13,                    // Transaction verification failed
+    ZSPENT_USED_ZPIV = 14,                      // Coin has already been spend
+    ZTX_TOO_LARGE = 15,                          // The transaction is larger than the max tx size
+    ZSPEND_V1_SEC_LEVEL                         // Spend is V1 and security level is not set to 100
 };
 
 //! Default for -addresstype
@@ -669,6 +693,13 @@ private:
     std::atomic<bool> fScanningWallet{false}; // controlled by WalletRescanReserver
     std::mutex mutexScanning;
     friend class WalletRescanReserver;
+    friend class CzWallet;
+    friend class CzTracker;
+
+    CzWallet* zwalletMain;
+
+    bool fBackupMints;
+    std::unique_ptr<CzTracker> zTracker;
 
     WalletBatch *encrypted_batch = nullptr;
 
@@ -753,7 +784,7 @@ private:
     std::string m_name;
 
     /** Internal database handle. */
-    std::unique_ptr<WalletDatabase> database;
+    std::shared_ptr<WalletDatabase> database;
 
     /**
      * The following is used to keep track of how far behind the wallet is
@@ -789,6 +820,56 @@ public:
      */
     bool SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAmount& nTargetValue, std::set<CInputCoin>& setCoinsRet, CAmount& nValueRet,
                     const CCoinControl& coin_control, CoinSelectionParams& coin_selection_params, bool& bnb_used) const;
+
+    // Zerocoin
+    bool MintableCoins();
+    bool CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransaction& txNew, std::vector<CDeterministicMint>& vDMints,
+            CReserveKey* reservekey, int64_t& nFeeRet, std::string& strFailReason, const CCoinControl* coinControl = NULL,
+            const bool isZCSpendChange = false);
+    bool CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew, CReserveKey& reserveKey,
+            CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vSelectedMints, std::vector<CDeterministicMint>& vNewMints,
+            bool fMintChange,  bool fMinimizeChange, CKeyID* address = NULL);
+    bool MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, const uint256& hashTxOut, CTxIn& newTxIn,
+            CZerocoinSpendReceipt& receipt, libzerocoin::SpendType spendType, CBlockIndex* pindexCheckpoint = nullptr);
+//    std::string MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
+//            const std::vector<COutPoint> vOutpts);
+//    std::string MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
+//            const CCoinControl* coinControl = NULL);
+//    bool SpendZerocoin(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew, CZerocoinSpendReceipt& receipt,
+//            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, CKeyID* addressTo = NULL);
+//    std::string ResetMintZerocoin();
+//    std::string ResetSpentZerocoin();
+//    void ReconsiderZerocoins(std::list<CZerocoinMint>& listMintsRestored, std::list<CDeterministicMint>& listDMintsRestored);
+//    bool GetZerocoinKey(const CBigNum& bnSerial, CKey& key);
+    bool CreateZOutPut(libzerocoin::CoinDenomination denomination, CTxOut &outMint, CDeterministicMint &dMint);
+    bool GetMint(const uint256& hashSerial, CZerocoinMint& mint);
+//    bool DatabaseMint(CDeterministicMint& dMint);
+//    bool SetMintUnspent(const CBigNum& bnSerial);
+//    bool UpdateMint(const CBigNum& bnValue, const int& nHeight, const uint256& txid, const libzerocoin::CoinDenomination& denom);
+//    std::string GetUniqueWalletBackupName(bool fzpivAuto) const;
+
+    int getZeromintPercentage()
+    {
+        return nZeromintPercentage;
+    }
+
+    void setZWallet(CzWallet* zwallet)
+    {
+        zwalletMain = zwallet;
+        zTracker = std::unique_ptr<CzTracker>(new CzTracker(this));
+    }
+
+    CzWallet* getZWallet() { return zwalletMain; }
+
+    bool isZeromintEnabled()
+    {
+        return fEnableZeromint;
+    }
+
+    void setZPivAutoBackups(bool fEnabled)
+    {
+        fBackupMints = fEnabled;
+    }
 
     /** Get a name for this wallet for logging/debugging purposes.
      */
@@ -951,12 +1032,19 @@ public:
     // ResendWalletTransactionsBefore may only be called if fBroadcastTransactions!
     std::vector<uint256> ResendWalletTransactionsBefore(int64_t nTime, CConnman* connman);
     CAmount GetBalance(const isminefilter& filter=ISMINE_SPENDABLE, const int min_depth=0) const;
+    std::map<libzerocoin::CoinDenomination, CAmount> GetMyZerocoinDistribution() const;
     CAmount GetUnconfirmedBalance() const;
     CAmount GetImmatureBalance() const;
     CAmount GetUnconfirmedWatchOnlyBalance() const;
     CAmount GetImmatureWatchOnlyBalance() const;
     CAmount GetLegacyBalance(const isminefilter& filter, int minDepth, const std::string* account) const;
     CAmount GetAvailableBalance(const CCoinControl* coinControl = nullptr) const;
+    CAmount GetZerocoinBalance(bool fMatureOnly) const;
+    CAmount GetUnconfirmedZerocoinBalance() const;
+    CAmount GetImmatureZerocoinBalance() const;
+
+    // zerocoin
+    bool GetDeterministicSeed(uint256& seed);
 
     OutputType TransactionChangeType(OutputType change_type, const std::vector<CRecipient>& vecSend);
 

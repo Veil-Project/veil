@@ -68,10 +68,10 @@ EXTRA_LIBRARIES += \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_COMMON) \
   $(LIBBITCOIN_CONSENSUS) \
+  $(LIBBITCOIN_ZEROCOIN) \
   $(LIBBITCOIN_SERVER) \
   $(LIBBITCOIN_CLI) \
   $(LIBBITCOIN_WALLET) \
-  $(LIBBITCOIN_ZEROCOIN) \
   $(LIBBITCOIN_ZMQ)
 
 lib_LTLIBRARIES = $(LIBBITCOINCONSENSUS)
@@ -92,6 +92,10 @@ endif
 .PHONY: FORCE check-symbols check-security
 # bitcoin core #
 BITCOIN_CORE_H = \
+  accumulators.h \
+  accumulatorcheckpoints.h \
+  accumulatorcheckpoints.json.h \
+  accumulatormap.h \
   addrdb.h \
   addrman.h \
   base58.h \
@@ -190,8 +194,14 @@ BITCOIN_CORE_H = \
   versionbits.h \
   veil/arrayslice.h \
   veil/budget.h \
+  veil/denomination_functions.h \
   veil/dictionary.h \
+  veil/invalid.h \
+  veil/mintpool.h \
   veil/mnemonic.h \
+  veil/zchain.h \
+  veil/ztracker.h \
+  veil/zwallet.h \
   walletinitinterface.h \
   wallet/coincontrol.h \
   wallet/crypter.h \
@@ -204,7 +214,6 @@ BITCOIN_CORE_H = \
   wallet/walletutil.h \
   wallet/coinselection.h \
   warnings.h \
-  zerocoindb.h \
   zmq/zmqabstractnotifier.h \
   zmq/zmqconfig.h\
   zmq/zmqnotificationinterface.h \
@@ -267,7 +276,6 @@ libbitcoin_server_a_SOURCES = \
   validationinterface.cpp \
   veil/budget.cpp \
   versionbits.cpp \
-  zerocoindb.cpp \
   $(BITCOIN_CORE_H)
 
 if ENABLE_ZMQ
@@ -298,7 +306,14 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/wallet.cpp \
   wallet/walletdb.cpp \
   wallet/walletutil.cpp \
-  wallet/coinselection.cpp \
+  wallet/coinselection.cpp  \
+  primitives/deterministicmint.cpp \
+  primitives/zerocoin.cpp \
+  veil/denomination_functions.cpp \
+  veil/mintpool.cpp \
+  veil/zchain.cpp \
+  veil/ztracker.cpp \
+  veil/zwallet.cpp \
   $(BITCOIN_CORE_H)
 
 # crypto primitives library
@@ -375,6 +390,19 @@ crypto_libbitcoin_crypto_base_a_SOURCES = \
 libzerocoin_libbitcoin_zerocoin_a_CPPFLAGS = $(AM_CPPFLAGS) $(BOOST_CPPFLAGS)
 libzerocoin_libbitcoin_zerocoin_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libzerocoin_libbitcoin_zerocoin_a_SOURCES = \
+  libzerocoin/Accumulator.cpp \
+  libzerocoin/AccumulatorProofOfKnowledge.cpp \
+  libzerocoin/ArithmeticCircuit.cpp \
+  libzerocoin/Bulletproofs.cpp \
+  libzerocoin/Coin.cpp \
+  libzerocoin/Denominations.cpp \
+  libzerocoin/CoinSpend.cpp \
+  libzerocoin/Commitment.cpp \
+  libzerocoin/ParamGeneration.cpp \
+  libzerocoin/Params.cpp \
+  libzerocoin/PolynomialCommitment.cpp \
+  libzerocoin/SerialNumberSignatureOfKnowledge.cpp \
+  libzerocoin/SerialNumberSoK_small.cpp \
   libzerocoin/Accumulator.h \
   libzerocoin/AccumulatorProofOfKnowledge.h \
   libzerocoin/ArithmeticCircuit.h \
@@ -391,20 +419,7 @@ libzerocoin_libbitcoin_zerocoin_a_SOURCES = \
   libzerocoin/SerialNumberSoK_small.h \
   libzerocoin/SpendType.h \
   libzerocoin/ZerocoinDefines.h \
-  libzerocoin/zkplib.h \
-  libzerocoin/Accumulator.cpp \
-  libzerocoin/AccumulatorProofOfKnowledge.cpp \
-  libzerocoin/ArithmeticCircuit.cpp \
-  libzerocoin/Bulletproofs.cpp \
-  libzerocoin/Coin.cpp \
-  libzerocoin/Denominations.cpp \
-  libzerocoin/CoinSpend.cpp \
-  libzerocoin/Commitment.cpp \
-  libzerocoin/ParamGeneration.cpp \
-  libzerocoin/Params.cpp \
-  libzerocoin/PolynomialCommitment.cpp \
-  libzerocoin/SerialNumberSignatureOfKnowledge.cpp \
-  libzerocoin/SerialNumberSoK_small.cpp
+  libzerocoin/zkplib.h
 
 if USE_ASM
 crypto_libbitcoin_crypto_base_a_SOURCES += crypto/sha256_sse4.cpp
@@ -446,7 +461,9 @@ libbitcoin_consensus_a_SOURCES = \
   primitives/block.h \
   primitives/transaction.cpp \
   primitives/transaction.h \
+  primitives/deterministicmint.cpp \
   primitives/zerocoin.cpp \
+  primitives/deterministicmint.h \
   primitives/zerocoin.h \
   pubkey.cpp \
   pubkey.h \
@@ -470,6 +487,9 @@ libbitcoin_consensus_a_SOURCES = \
 libbitcoin_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_common_a_SOURCES = \
+  accumulators.cpp \
+  accumulatorcheckpoints.cpp \
+  accumulatormap.cpp \
   base58.cpp \
   bech32.cpp \
   chainparams.cpp \
@@ -489,6 +509,7 @@ libbitcoin_common_a_SOURCES = \
   script/ismine.cpp \
   script/sign.cpp \
   script/standard.cpp \
+  veil/invalid.cpp \
   warnings.cpp \
   $(BITCOIN_CORE_H)
 
@@ -685,10 +706,6 @@ endif
 
 if ENABLE_TESTS
 include Makefile.test.include
-endif
-
-if ENABLE_BENCH
-include Makefile.bench.include
 endif
 
 if ENABLE_QT

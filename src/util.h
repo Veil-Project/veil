@@ -37,6 +37,10 @@
 // Application startup time (used for uptime calculation)
 int64_t GetStartupTime();
 
+// percentage of veil in wallet to convert to zerocoin
+extern int nZeromintPercentage;
+extern bool fEnableZeromint;
+
 /** Signals for translation. */
 class CTranslationInterface
 {

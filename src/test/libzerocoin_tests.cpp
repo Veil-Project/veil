@@ -201,63 +201,63 @@ Test_ParamGen()
 bool
 Test_Accumulator()
 {
-	// This test assumes a list of coins were generated during
-	// the Test_MintCoin() test.
-	if (gCoins[0] == NULL) {
-		return false;
-	}
-	try {
-		// Accumulate the coin list from first to last into one accumulator
-            Accumulator accOne(&g_Params->accumulatorParams, CoinDenomination::ZQ_ONE);
-            Accumulator accTwo(&g_Params->accumulatorParams,CoinDenomination::ZQ_ONE);
-            Accumulator accThree(&g_Params->accumulatorParams,CoinDenomination::ZQ_ONE);
-            Accumulator accFour(&g_Params->accumulatorParams,CoinDenomination::ZQ_ONE);
-		AccumulatorWitness wThree(g_Params, accThree, gCoins[0]->getPublicCoin());
-
-		for (uint32_t i = 0; i < TESTS_COINS_TO_ACCUMULATE; i++) {
-			accOne += gCoins[i]->getPublicCoin();
-			accTwo += gCoins[TESTS_COINS_TO_ACCUMULATE - (i+1)]->getPublicCoin();
-			accThree += gCoins[i]->getPublicCoin();
-			wThree += gCoins[i]->getPublicCoin();
-			if(i != 0) {
-				accFour += gCoins[i]->getPublicCoin();
-			}
-		}
-
-		// Compare the accumulated results
-		if (accOne.getValue() != accTwo.getValue() || accOne.getValue() != accThree.getValue()) {
-			cout << "Accumulators don't match" << endl;
-			return false;
-		}
-
-		if(accFour.getValue() != wThree.getValue()) {
-			cout << "Witness math not working," << endl;
-			return false;
-		}
-
-		// Verify that the witness is correct
-		if (!wThree.VerifyWitness(accThree, gCoins[0]->getPublicCoin()) ) {
-			cout << "Witness not valid" << endl;
-			return false;
-		}
-
-		// Serialization test: see if we can serialize the accumulator
-		CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-		ss << accOne;
-
-		// Deserialize it into a new object
-		Accumulator newAcc(g_Params, ss);
-
-		// Compare the results
-		if (accOne.getValue() != newAcc.getValue()) {
-			return false;
-		}
-
-	} catch (runtime_error e) {
-		return false;
-	}
-
-	return true;
+//	// This test assumes a list of coins were generated during
+//	// the Test_MintCoin() test.
+//	if (gCoins[0] == NULL) {
+//		return false;
+//	}
+//	try {
+//		// Accumulate the coin list from first to last into one accumulator
+//            Accumulator accOne(&g_Params->accumulatorParams, CoinDenomination::ZQ_ONE);
+//            Accumulator accTwo(&g_Params->accumulatorParams,CoinDenomination::ZQ_ONE);
+//            Accumulator accThree(&g_Params->accumulatorParams,CoinDenomination::ZQ_ONE);
+//            Accumulator accFour(&g_Params->accumulatorParams,CoinDenomination::ZQ_ONE);
+//		AccumulatorWitness wThree(g_Params, accThree, gCoins[0]->getPublicCoin());
+//
+//		for (uint32_t i = 0; i < TESTS_COINS_TO_ACCUMULATE; i++) {
+//			accOne += gCoins[i]->getPublicCoin();
+//			accTwo += gCoins[TESTS_COINS_TO_ACCUMULATE - (i+1)]->getPublicCoin();
+//			accThree += gCoins[i]->getPublicCoin();
+//			wThree += gCoins[i]->getPublicCoin();
+//			if(i != 0) {
+//				accFour += gCoins[i]->getPublicCoin();
+//			}
+//		}
+//
+//		// Compare the accumulated results
+//		if (accOne.getValue() != accTwo.getValue() || accOne.getValue() != accThree.getValue()) {
+//			cout << "Accumulators don't match" << endl;
+//			return false;
+//		}
+//
+//		if(accFour.getValue() != wThree.getValue()) {
+//			cout << "Witness math not working," << endl;
+//			return false;
+//		}
+//
+//		// Verify that the witness is correct
+//		if (!wThree.VerifyWitness(accThree, gCoins[0]->getPublicCoin()) ) {
+//			cout << "Witness not valid" << endl;
+//			return false;
+//		}
+//
+//		// Serialization test: see if we can serialize the accumulator
+//		CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+//		ss << accOne;
+//
+//		// Deserialize it into a new object
+//		Accumulator newAcc(g_Params, ss);
+//
+//		// Compare the results
+//		if (accOne.getValue() != newAcc.getValue()) {
+//			return false;
+//		}
+//
+//	} catch (runtime_error e) {
+//		return false;
+//	}
+//
+//	return true;
 }
 
 bool
@@ -320,132 +320,132 @@ Test_EqualityPoK()
 bool
 Test_MintCoin()
 {
-	gCoinSize = 0;
-
-	try {
-		// Generate a list of coins
-		for (uint32_t i = 0; i < TESTS_COINS_TO_ACCUMULATE; i++) {
-            gCoins[i] = new PrivateCoin(g_Params,libzerocoin::CoinDenomination::ZQ_ONE);
-
-			PublicCoin pc = gCoins[i]->getPublicCoin();
-			CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-			ss << pc;
-			gCoinSize += ss.size();
-		}
-
-		gCoinSize /= TESTS_COINS_TO_ACCUMULATE;
-
-	} catch (exception &e) {
-		return false;
-	}
-
-	return true;
+//	gCoinSize = 0;
+//
+//	try {
+//		// Generate a list of coins
+//		for (uint32_t i = 0; i < TESTS_COINS_TO_ACCUMULATE; i++) {
+//            gCoins[i] = new PrivateCoin(g_Params,libzerocoin::CoinDenomination::ZQ_ONE);
+//
+//			PublicCoin pc = gCoins[i]->getPublicCoin();
+//			CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+//			ss << pc;
+//			gCoinSize += ss.size();
+//		}
+//
+//		gCoinSize /= TESTS_COINS_TO_ACCUMULATE;
+//
+//	} catch (exception &e) {
+//		return false;
+//	}
+//
+//	return true;
 }
 
 bool Test_InvalidCoin()
 {
-	CBigNum coinValue;
-
-	try {
-		// Pick a random non-prime CBigNum
-		for (uint32_t i = 0; i < NON_PRIME_TESTS; i++) {
-			coinValue = CBigNum::randBignum(g_Params->coinCommitmentGroup.modulus);
-			coinValue = coinValue * 2;
-			if (!coinValue.isPrime()) break;
-		}
-
-		PublicCoin pubCoin(g_Params);
-		if (pubCoin.validate()) {
-			// A blank coin should not be valid!
-			return false;
-		}
-
-		PublicCoin pubCoin2(g_Params, coinValue, ZQ_ONE);
-		if (pubCoin2.validate()) {
-			// A non-prime coin should not be valid!
-			return false;
-		}
-
-		PublicCoin pubCoin3 = pubCoin2;
-		if (pubCoin2.validate()) {
-			// A copy of a non-prime coin should not be valid!
-			return false;
-		}
-
-		// Serialize and deserialize the coin
-		CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-		ss << pubCoin;
-		PublicCoin pubCoin4(g_Params, ss);
-		if (pubCoin4.validate()) {
-			// A deserialized copy of a non-prime coin should not be valid!
-			return false;
-		}
-
-	} catch (runtime_error &e) {
-		cout << "Caught exception: " << e.what() << endl;
-		return false;
-	}
-
-	return true;
+//	CBigNum coinValue;
+//
+//	try {
+//		// Pick a random non-prime CBigNum
+//		for (uint32_t i = 0; i < NON_PRIME_TESTS; i++) {
+//			coinValue = CBigNum::randBignum(g_Params->coinCommitmentGroup.modulus);
+//			coinValue = coinValue * 2;
+//			if (!coinValue.isPrime()) break;
+//		}
+//
+//		PublicCoin pubCoin(g_Params);
+//		if (pubCoin.validate()) {
+//			// A blank coin should not be valid!
+//			return false;
+//		}
+//
+//		PublicCoin pubCoin2(g_Params, coinValue, ZQ_ONE);
+//		if (pubCoin2.validate()) {
+//			// A non-prime coin should not be valid!
+//			return false;
+//		}
+//
+//		PublicCoin pubCoin3 = pubCoin2;
+//		if (pubCoin2.validate()) {
+//			// A copy of a non-prime coin should not be valid!
+//			return false;
+//		}
+//
+//		// Serialize and deserialize the coin
+//		CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+//		ss << pubCoin;
+//		PublicCoin pubCoin4(g_Params, ss);
+//		if (pubCoin4.validate()) {
+//			// A deserialized copy of a non-prime coin should not be valid!
+//			return false;
+//		}
+//
+//	} catch (runtime_error &e) {
+//		cout << "Caught exception: " << e.what() << endl;
+//		return false;
+//	}
+//
+//	return true;
 }
 
 bool
 Test_MintAndSpend()
 {
-	try {
-		// This test assumes a list of coins were generated in Test_MintCoin()
-		if (gCoins[0] == NULL)
-		{
-			// No coins: mint some.
-			Test_MintCoin();
-			if (gCoins[0] == NULL) {
-				return false;
-			}
-		}
-
-		// Accumulate the list of generated coins into a fresh accumulator.
-		// The first one gets marked as accumulated for a witness, the
-		// others just get accumulated normally.
-        Accumulator acc(&g_Params->accumulatorParams,CoinDenomination::ZQ_ONE);
-		AccumulatorWitness wAcc(g_Params, acc, gCoins[0]->getPublicCoin());
-
-		for (uint32_t i = 0; i < TESTS_COINS_TO_ACCUMULATE; i++) {
-			acc += gCoins[i]->getPublicCoin();
-			wAcc +=gCoins[i]->getPublicCoin();
-		}
-
-		// Now spend the coin
-		//SpendMetaData m(1,1);
-		CDataStream cc(SER_NETWORK, PROTOCOL_VERSION);
-		cc << *gCoins[0];
-		PrivateCoin myCoin(g_Params,cc);
-		//CoinSpend(const ZerocoinParams* paramsCoin, const ZerocoinParams* paramsAcc, const PrivateCoin& coin, Accumulator& a, const uint32_t& checksum,
-		//const AccumulatorWitness& witness, const uint256& ptxHash, const SpendType& spendType);
-		uint32_t checkSum;
-		uint256 ptxHash;
-		CoinSpend spend(g_Params, g_Params, myCoin, acc, checkSum, wAcc, ptxHash, SpendType::SPEND);
-        bool ret = spend.Verify(acc);
-
-		// Serialize the proof and deserialize into newSpend
-		CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-		ss << spend;
-		gProofSize = ss.size();
-		//CoinSpend newSpend(g_Params, g_Params, ss);
-
-		// See if we can verify the deserialized proof (return our result)
-		//bool ret =  newSpend.Verify(acc);
-
-		// Extract the serial number
-		//CBigNum serialNumber = newSpend.getCoinSerialNumber();
-		//gSerialNumberSize = ceil((double)gSerialNumber.bitSize() / 8.0);
-
-		return ret;
-	} catch (runtime_error &e) {
-		cout << e.what() << endl;
-		return false;
-	}
-
-	return false;
+//	try {
+//		// This test assumes a list of coins were generated in Test_MintCoin()
+//		if (gCoins[0] == NULL)
+//		{
+//			// No coins: mint some.
+//			Test_MintCoin();
+//			if (gCoins[0] == NULL) {
+//				return false;
+//			}
+//		}
+//
+//		// Accumulate the list of generated coins into a fresh accumulator.
+//		// The first one gets marked as accumulated for a witness, the
+//		// others just get accumulated normally.
+//        Accumulator acc(&g_Params->accumulatorParams,CoinDenomination::ZQ_ONE);
+//		AccumulatorWitness wAcc(g_Params, acc, gCoins[0]->getPublicCoin());
+//
+//		for (uint32_t i = 0; i < TESTS_COINS_TO_ACCUMULATE; i++) {
+//			acc += gCoins[i]->getPublicCoin();
+//			wAcc +=gCoins[i]->getPublicCoin();
+//		}
+//
+//		// Now spend the coin
+//		//SpendMetaData m(1,1);
+//		CDataStream cc(SER_NETWORK, PROTOCOL_VERSION);
+//		cc << *gCoins[0];
+//		PrivateCoin myCoin(g_Params,cc);
+//		//CoinSpend(const ZerocoinParams* paramsCoin, const ZerocoinParams* paramsAcc, const PrivateCoin& coin, Accumulator& a, const uint32_t& checksum,
+//		//const AccumulatorWitness& witness, const uint256& ptxHash, const SpendType& spendType);
+//		uint32_t checkSum;
+//		uint256 ptxHash;
+//		CoinSpend spend(g_Params, g_Params, myCoin, acc, checkSum, wAcc, ptxHash, SpendType::SPEND);
+//        bool ret = spend.Verify(acc);
+//
+//		// Serialize the proof and deserialize into newSpend
+//		CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+//		ss << spend;
+//		gProofSize = ss.size();
+//		//CoinSpend newSpend(g_Params, g_Params, ss);
+//
+//		// See if we can verify the deserialized proof (return our result)
+//		//bool ret =  newSpend.Verify(acc);
+//
+//		// Extract the serial number
+//		//CBigNum serialNumber = newSpend.getCoinSerialNumber();
+//		//gSerialNumberSize = ceil((double)gSerialNumber.bitSize() / 8.0);
+//
+//		return ret;
+//	} catch (runtime_error &e) {
+//		cout << e.what() << endl;
+//		return false;
+//	}
+//
+//	return false;
 }
 
 void

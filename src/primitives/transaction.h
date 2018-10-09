@@ -172,6 +172,11 @@ public:
         return (nValue == 0 && scriptPubKey.empty());
     }
 
+    bool IsZerocoinMint() const
+    {
+        return !scriptPubKey.empty() && scriptPubKey.IsZerocoinMint();
+    }
+
     friend bool operator==(const CTxOut& a, const CTxOut& b)
     {
         return (a.nValue       == b.nValue &&

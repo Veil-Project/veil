@@ -33,6 +33,7 @@
 
 class CBlockIndex;
 class CBlockTreeDB;
+class CZerocoinDB;
 class CChainParams;
 class CCoinsViewDB;
 class CInv;
@@ -266,6 +267,11 @@ void ThreadScriptCheck();
 bool IsInitialBlockDownload();
 /** Retrieve a transaction (from memory pool, or from disk, if possible) */
 bool GetTransaction(const uint256& hash, CTransactionRef& tx, const Consensus::Params& params, uint256& hashBlock, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr);
+
+/** Determine if the provided txid corresponds to a transaction in the blockchain */
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransaction& tx, const Consensus::Params& params);
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, const Consensus::Params& params);
+
 /**
  * Find the best known block, and make it the tip of the block chain
  *
@@ -462,6 +468,9 @@ extern std::unique_ptr<CCoinsViewCache> pcoinsTip;
 
 /** Global variable that points to the active block tree (protected by cs_main) */
 extern std::unique_ptr<CBlockTreeDB> pblocktree;
+
+/** Global variable that points to the active zerocoin database (protected by cs_main) */
+extern std::unique_ptr<CZerocoinDB> pzerocoinDB;
 
 /**
  * Return the spend height, which is one more than the inputs.GetBestBlock().

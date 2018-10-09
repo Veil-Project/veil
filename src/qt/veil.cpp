@@ -631,7 +631,8 @@ int main(int argc, char *argv[])
 
     /// 5. Now that settings and translations are available, ask user for data directory
     // User language is set up: pick a data directory
-    if (!Intro::pickDataDirectory(*node))
+    bool fCreateNew = false;
+    if (!Intro::pickDataDirectory(*node, fCreateNew))
         return EXIT_SUCCESS;
 
     /// 6. Determine availability of data and blocks directory and parse veil.conf
