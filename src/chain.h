@@ -11,8 +11,10 @@
 #include <primitives/block.h>
 #include <tinyformat.h>
 #include <uint256.h>
+#include <libzerocoin/bignum.h>
 
 #include <vector>
+#include <map>
 
 /**
  * Maximum amount of time that a block timestamp is allowed to exceed the
@@ -221,7 +223,6 @@ public:
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
-    uint256 hashAccumulatorCheckpoint;
 
     //! (memory only) Sequential id assigned to distinguish order in which blocks are received.
     int32_t nSequenceId;
@@ -235,6 +236,9 @@ public:
 
     //! Used to determine if block is Proof of Stake
     unsigned int nProofOfStakeFlag;
+
+    //! Hash value for the accumulator. Can be used to access the zerocoindb for the accumulator value
+    std::map<libzerocoin::CoinDenomination ,uint256> accumulatorHashes;
 
     void SetNull()
     {
@@ -254,7 +258,14 @@ public:
         nSequenceId = 0;
         nTimeMax = 0;
         nNetworkRewardReserve = 0;
-        hashAccumulatorCheckpoint = uint256();
+
+
+        accumulatorHashes.clear();
+
+        for(int i = 0; i < libzerocoin::zerocoinDenomList.size(); i++) {
+            uint256 zero;
+            accumulatorHashes[libzerocoin::zerocoinDenomList[i]] = zero;
+        }
 
         // Start supply of each denomination with 0s
         for (auto& denom : libzerocoin::zerocoinDenomList) {
@@ -284,8 +295,8 @@ public:
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
+        accumulatorHashes = block.accumulatorHashes;
         nMint          = 0;
-        hashAccumulatorCheckpoint = block.hashAccumulatorCheckpoint;
     }
 
     CDiskBlockPos GetBlockPos() const {
@@ -316,7 +327,7 @@ public:
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
-        block.hashAccumulatorCheckpoint = hashAccumulatorCheckpoint;
+        block.accumulatorHashes = accumulatorHashes;
         return block;
     }
 
@@ -338,6 +349,16 @@ public:
     int64_t GetBlockTimeMax() const
     {
         return (int64_t)nTimeMax;
+    }
+
+    /** Returns the hash of the accumulator for the specified denomination. If it doesn't exist then a new uint256 is returned*/
+    uint256 GetAccumulatorHash(libzerocoin::CoinDenomination denom) const {
+        if(accumulatorHashes.find(denom) != accumulatorHashes.end()) {
+            return accumulatorHashes.find(denom)->second;
+        }
+        else {
+            return uint256();
+        }
     }
 
     static constexpr int nMedianTimeSpan = 11;
@@ -409,6 +430,10 @@ public:
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);
     const CBlockIndex* GetAncestor(int height) const;
+
+    //!Add an accumulator to the CBlockIndex
+    void AddAccumulator(libzerocoin::CoinDenomination denom,CBigNum accumulator);
+
 };
 
 arith_uint256 GetBlockProof(const CBlockIndex& block);

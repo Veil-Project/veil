@@ -4,6 +4,9 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chain.h>
+#include <validation.h>
+#include "hash.h"
+#include <libzerocoin/Denominations.h>
 
 /**
  * CChain implementation
@@ -167,4 +170,9 @@ const CBlockIndex* LastCommonAncestor(const CBlockIndex* pa, const CBlockIndex* 
     // Eventually all chain branches meet at the genesis block.
     assert(pa == pb);
     return pa;
+}
+
+void CBlockIndex::AddAccumulator(libzerocoin::CoinDenomination denom,CBigNum accumulator) {
+    accumulatorHashes[denom] = SerializeHash(accumulator);
+    pzerocoinDB->WriteAccumulatorChecksum256(accumulatorHashes[denom], accumulator);
 }
