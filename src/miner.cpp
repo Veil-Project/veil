@@ -488,7 +488,7 @@ bool fMintableCoins = false;
 int nMintableLastCheck = 0;
 
 void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript) {
-    LogPrintf("PIVXMiner started\n");
+    LogPrintf("Veil Miner started\n");
 
     unsigned int nExtraNonce = 0;
     static const int nInnerLoopCount = 0x10000;

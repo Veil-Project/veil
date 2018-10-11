@@ -23,7 +23,7 @@ bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomina
 {
     CBigNum bnMod;
     bnMod.SetDec(Params().Zerocoin_Modulus());
-    libzerocoin::ZerocoinParams zerocoinParams(bnMod);
+    auto zerocoinParams = Params().Zerocoin_Params();
 
     for (const CTransactionRef tx : block.vtx) {
         if(!tx->IsZerocoinMint())
@@ -34,7 +34,7 @@ bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomina
                 continue;
 
             CValidationState state;
-            libzerocoin::PublicCoin coin(&zerocoinParams);
+            libzerocoin::PublicCoin coin(zerocoinParams);
             if(!TxOutToPublicCoin(txOut, coin, state))
                 return false;
 
@@ -50,9 +50,7 @@ bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomina
 
 bool BlockToPubcoinList(const CBlock& block, std::list<libzerocoin::PublicCoin>& listPubcoins)
 {
-    CBigNum bnMod;
-    bnMod.SetDec(Params().Zerocoin_Modulus());
-    libzerocoin::ZerocoinParams zerocoinParams(bnMod);
+    auto zerocoinParams = Params().Zerocoin_Params();
 
     for (const CTransactionRef tx : block.vtx) {
         if(!tx->IsZerocoinMint())
@@ -64,7 +62,7 @@ bool BlockToPubcoinList(const CBlock& block, std::list<libzerocoin::PublicCoin>&
                 continue;
 
             CValidationState state;
-            libzerocoin::PublicCoin pubCoin(&zerocoinParams);
+            libzerocoin::PublicCoin pubCoin(zerocoinParams);
             if(!TxOutToPublicCoin(txOut, pubCoin, state))
                 return false;
 
@@ -109,9 +107,7 @@ bool BlockToZerocoinMintList(const CBlock& block, std::list<CZerocoinMint>& vMin
 
 void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMintsToUpdate, std::vector<CMintMeta>& vMissingMints)
 {
-    CBigNum bnMod;
-    bnMod.SetDec(Params().Zerocoin_Modulus());
-    auto zerocoinParams = libzerocoin::ZerocoinParams(bnMod);
+    auto zerocoinParams = Params().Zerocoin_Params();
 
     // see which mints are in our public zerocoin database. The mint should be here if it exists, unless
     // something went wrong
@@ -166,7 +162,7 @@ void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMin
         for (auto& out : tx->vout) {
             if (!out.IsZerocoinMint())
                 continue;
-            libzerocoin::PublicCoin pubcoin(&zerocoinParams);
+            libzerocoin::PublicCoin pubcoin(zerocoinParams);
             CValidationState state;
             TxOutToPublicCoin(out, pubcoin, state);
             if (GetPubCoinHash(pubcoin.getValue()) == meta.hashPubcoin && pubcoin.getDenomination() != meta.denom) {
@@ -242,9 +238,7 @@ bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& tx
 
 std::string ReindexZerocoinDB()
 {
-    CBigNum bnMod;
-    bnMod.SetDec(Params().Zerocoin_Modulus());
-    auto zerocoinParams = libzerocoin::ZerocoinParams(bnMod);
+    auto zerocoinParams = Params().Zerocoin_Params();
 
     if (!pzerocoinDB->WipeCoins("spends") || !pzerocoinDB->WipeCoins("mints")) {
         return _("Failed to wipe zerocoinDB");
@@ -292,7 +286,7 @@ std::string ReindexZerocoinDB()
                                 continue;
 
                             CValidationState state;
-                            libzerocoin::PublicCoin coin(&zerocoinParams);
+                            libzerocoin::PublicCoin coin(zerocoinParams);
                             TxOutToPublicCoin(out, coin, state);
                             vMintInfo.push_back(make_pair(coin, txid));
                         }
@@ -331,26 +325,22 @@ bool RemoveSerialFromDB(const CBigNum& bnSerial)
 
 libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin)
 {
-    CBigNum bnMod;
-    bnMod.SetDec(Params().Zerocoin_Modulus());
-    auto zerocoinParams = libzerocoin::ZerocoinParams(bnMod);
+    auto zerocoinParams = Params().Zerocoin_Params();
 
     // extract the CoinSpend from the txin
     std::vector<char, zero_after_free_allocator<char> > dataTxIn;
     dataTxIn.insert(dataTxIn.end(), txin.scriptSig.begin() + BIGNUM_SIZE, txin.scriptSig.end());
     CDataStream serializedCoinSpend(dataTxIn, SER_NETWORK, PROTOCOL_VERSION);
 
-    libzerocoin::ZerocoinParams* paramsAccumulator = &zerocoinParams;
-    libzerocoin::CoinSpend spend(&zerocoinParams, paramsAccumulator, serializedCoinSpend);
+    libzerocoin::ZerocoinParams* paramsAccumulator = zerocoinParams;
+    libzerocoin::CoinSpend spend(zerocoinParams, paramsAccumulator, serializedCoinSpend);
 
     return spend;
 }
 
 bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin, CValidationState& state)
 {
-    CBigNum bnMod;
-    bnMod.SetDec(Params().Zerocoin_Modulus());
-    auto zerocoinParams = libzerocoin::ZerocoinParams(bnMod);
+    auto zerocoinParams = Params().Zerocoin_Params();
 
     CBigNum publicZerocoin;
     vector<unsigned char> vchZeroMint;
@@ -363,7 +353,7 @@ bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin, CV
     if (denomination == libzerocoin::ZQ_ERROR)
         return state.DoS(100, error("TxOutToPublicCoin : txout.nValue is not correct"));
 
-    libzerocoin::PublicCoin checkPubCoin(&zerocoinParams, publicZerocoin, denomination);
+    libzerocoin::PublicCoin checkPubCoin(zerocoinParams, publicZerocoin, denomination);
     pubCoin = checkPubCoin;
 
     return true;

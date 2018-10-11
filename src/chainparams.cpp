@@ -37,23 +37,27 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
 
     // Use this to mine new genesis block
-    arith_uint256 hashTarget = arith_uint256().SetCompact(genesis.nBits);
-    uint256 thash;
-    while (true)
-    {
-        thash = genesis.GetPoWHash();
-        if (UintToArith256(thash) <= hashTarget)
-            break;
-        if ((genesis.nNonce & 0xF) == 0) {
-            printf("nonce %08X: hash = %s (target = %s)\n", genesis.nNonce, thash.ToString().c_str(), hashTarget.ToString().c_str());
-        }
-        ++genesis.nNonce;
-        if (genesis.nNonce == 0)
-        {
-            printf("NONCE WRAPPED, incrementing time\n");
-            ++genesis.nTime;
-        }
-    }
+//    arith_uint256 hashTarget = arith_uint256().SetCompact(genesis.nBits);
+//    uint256 thash;
+//    while (true)
+//    {
+//        thash = genesis.GetPoWHash();
+//        if (UintToArith256(thash) <= hashTarget)
+//            break;
+//        if ((genesis.nNonce & 0xF) == 0) {
+//            printf("nonce %08X: hash = %s (target = %s)\n", genesis.nNonce, thash.ToString().c_str(), hashTarget.ToString().c_str());
+//        }
+//        ++genesis.nNonce;
+//        if (genesis.nNonce == 0)
+//        {
+//            printf("NONCE WRAPPED, incrementing time\n");
+//            ++genesis.nTime;
+//        }
+//    }
+//
+//    printf("genesis block hash: %s\n", genesis.GetHash().GetHex().c_str());
+//    printf("genesis nonce: %d\n", genesis.nNonce);
+//    printf("genesis merkle root: %s\n", genesis.hashMerkleRoot.GetHex().c_str());
 
     return genesis;
 }
@@ -82,24 +86,16 @@ void CChainParams::UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64
     consensus.vDeployments[d].nTimeout = nTimeout;
 }
 
-libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params(bool useModulusV1) const
+libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params() const
 {
     assert(this);
-    static CBigNum bnHexModulus = 0;
-    if (!bnHexModulus)
-        bnHexModulus.SetHex(zerocoinModulus);
-    static libzerocoin::ZerocoinParams ZCParamsHex = libzerocoin::ZerocoinParams(bnHexModulus);
     static CBigNum bnDecModulus = 0;
     if (!bnDecModulus)
         bnDecModulus.SetDec(zerocoinModulus);
     static libzerocoin::ZerocoinParams ZCParamsDec = libzerocoin::ZerocoinParams(bnDecModulus);
 
-    if (useModulusV1)
-        return &ZCParamsHex;
-
     return &ZCParamsDec;
 }
-
 
 /**
  * Main network
@@ -162,9 +158,9 @@ public:
         nDefaultPort = 58810;
         nPruneAfterHeight = 100000;
 
-        genesis = CreateGenesisBlock(1536258109, 2084279062, 0x1e0ffff0, 1, 50 * COIN);
+        genesis = CreateGenesisBlock(1536258109, 2084474521, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x3be262d64c5a27000960e33fb267ac054d9ce54e077b71fb094a711ff7365a39"));
+        assert(consensus.hashGenesisBlock == uint256S("0xe11692cf16f975fee5bde5bfda04c4e109aec0bf153e4e08953606b7c2c8baff"));
         assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
 
         vSeeds.emplace_back("veilseed.presstab.pw");
@@ -277,9 +273,9 @@ public:
         nDefaultPort = 58811;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1536258109, 416208649, 0x1e0ffff0, 1, 50 * COIN);
+        genesis = CreateGenesisBlock(1536258109, 420253054, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x2b832bc2f038ff9093489349fe021944aa2c60deadcd4e00057970fce5b20cd7"));
+        assert(consensus.hashGenesisBlock == uint256S("0xb323cf3b4f2676bb222d7e3831a9d2b5be92f9ca4ca941d91dc33c9b1cc55310"));
         assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
 
         vFixedSeeds.clear();
@@ -317,6 +313,22 @@ public:
         m_fallback_fee_enabled = true;
 
         strNetworkRewardAddress = "2N9sWUmygPRy1c14eFWt8FzA8YF4JgA6j6a";
+
+        // TODO: update for veil
+        /** Zerocoin */
+        zerocoinModulus = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784"
+                          "4069182906412495150821892985591491761845028084891200728449926873928072877767359714183472702618963750149718246911"
+                          "6507761337985909570009733045974880842840179742910064245869181719511874612151517265463228221686998754918242243363"
+                          "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
+                          "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
+                          "31438167899885040445364023527381951378636564391212010397122822120720357";
+        nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
+        nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
+        nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
+        nRequiredAccumulation = 1;
+        nDefaultSecurityLevel = 100; //full security level for accumulators
+        nZerocoinHeaderVersion = 4; //Block headers must be this version once zerocoin is active
+        nZerocoinRequiredStakeDepth = 200; //The required confirmations for a zpiv to be stakable
     }
 };
 
