@@ -30,7 +30,7 @@ public:
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
-    std::map<libzerocoin::CoinDenomination , uint256> accumulatorHashes;
+    std::map<libzerocoin::CoinDenomination , uint256> mapAccumulatorHashes;
 
     CBlockHeader()
     {
@@ -47,7 +47,7 @@ public:
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
-        READWRITE(accumulatorHashes);
+        READWRITE(mapAccumulatorHashes);
     }
 
     void SetNull()
@@ -59,11 +59,11 @@ public:
         nBits = 0;
         nNonce = 0;
 
-        accumulatorHashes.clear();
+        mapAccumulatorHashes.clear();
 
-        for (unsigned int i = 0; i < libzerocoin::zerocoinDenomList.size(); i++) {
+        for(unsigned int i = 0; i < libzerocoin::zerocoinDenomList.size(); i++) {
             uint256 zero;
-            accumulatorHashes[libzerocoin::zerocoinDenomList[i]] = zero;
+            mapAccumulatorHashes[libzerocoin::zerocoinDenomList[i]] = zero;
         }
 
     }

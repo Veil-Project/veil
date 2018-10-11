@@ -5,6 +5,7 @@
 
 #include <validation.h>
 
+#include <accumulatormap.h>
 #include <arith_uint256.h>
 #include <chain.h>
 #include <chainparams.h>
@@ -18,6 +19,8 @@
 #include <hash.h>
 #include <index/txindex.h>
 #include <key_io.h>
+#include <libzerocoin/Accumulator.h>
+#include <libzerocoin/Denominations.h>
 #include <policy/fees.h>
 #include <policy/policy.h>
 #include <policy/rbf.h>
@@ -43,6 +46,7 @@
 #include <warnings.h>
 
 #include <veil/budget.h>
+#include <veil/zchain.h>
 
 #include <future>
 #include <sstream>
@@ -211,6 +215,7 @@ private:
 
 
     bool RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& inputs, const CChainParams& params) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
 } g_chainstate;
 
 
@@ -2158,6 +2163,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     return true;
 }
+
 
 /**
  * Update the on-disk chain state.
@@ -4173,6 +4179,33 @@ bool CChainState::RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& i
     }
     return true;
 }
+
+/**
+ * Given a block, returns an AccumulatorMap of all the accumulators for the block transaction outputs
+ *
+ * @param block
+ * @param state
+ * @param zerocoinParams
+ * @return AccumulatorMap
+ */
+AccumulatorMap AccumulateBlockTxOutputs(const CBlock& block, CValidationState& state, libzerocoin::ZerocoinParams& zerocoinParams) {
+    AccumulatorMap accMap(&zerocoinParams);
+    for(unsigned int i = 0; i < block.vtx.size(); i++) {
+        const CTransaction& tx = *block.vtx[i];
+        if(tx.IsZerocoinMint()) {
+            for (const CTxOut& txout : tx.vout) {
+                if(txout.IsZerocoinMint()) {
+                    libzerocoin::PublicCoin coin(&zerocoinParams);
+                    if(TxOutToPublicCoin(txout, coin, state)) {
+                        accMap.Accumulate(coin);
+                    }
+                }
+            }
+        }
+    }
+    return accMap;
+}
+
 
 bool CChainState::ReplayBlocks(const CChainParams& params, CCoinsView* view)
 {

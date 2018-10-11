@@ -89,6 +89,7 @@ public:
 
     /** Zerocoin **/
     // TODO: IMPLEMENT METHOD FOR RETURNING ZEROCOIN PARAMS AND REPLACE USES OF ZEROCOIN PARAMS CONSTRUCTOR
+    libzerocoin::ZerocoinParams* Zerocoin_Params(bool useModulusV1) const;
     std::string Zerocoin_Modulus() const { return zerocoinModulus; }
     int Zerocoin_MaxSpendsPerTransaction() const { return nMaxZerocoinSpendsPerTransaction; }
     CAmount Zerocoin_MintFee() const { return nMinZerocoinMintFee; }

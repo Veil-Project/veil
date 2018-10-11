@@ -6,6 +6,7 @@
 #ifndef BITCOIN_CHAIN_H
 #define BITCOIN_CHAIN_H
 
+#include <accumulatormap.h>
 #include <arith_uint256.h>
 #include <consensus/params.h>
 #include <primitives/block.h>
@@ -238,7 +239,7 @@ public:
     unsigned int nProofOfStakeFlag;
 
     //! Hash value for the accumulator. Can be used to access the zerocoindb for the accumulator value
-    std::map<libzerocoin::CoinDenomination ,uint256> accumulatorHashes;
+    std::map<libzerocoin::CoinDenomination ,uint256> mapAccumulatorHashes;
 
     void SetNull()
     {
@@ -260,10 +261,10 @@ public:
         nNetworkRewardReserve = 0;
 
 
-        accumulatorHashes.clear();
+        mapAccumulatorHashes.clear();
 
         for (auto& denom : libzerocoin::zerocoinDenomList) {
-            accumulatorHashes[denom] = uint256();
+            mapAccumulatorHashes[denom] = uint256();
         }
 
         // Start supply of each denomination with 0s
@@ -294,7 +295,7 @@ public:
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
-        accumulatorHashes = block.accumulatorHashes;
+        mapAccumulatorHashes = block.mapAccumulatorHashes;
         nMint          = 0;
     }
 
@@ -326,7 +327,7 @@ public:
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
-        block.accumulatorHashes = accumulatorHashes;
+        block.mapAccumulatorHashes = mapAccumulatorHashes;
         return block;
     }
 
@@ -351,9 +352,10 @@ public:
     }
 
     /** Returns the hash of the accumulator for the specified denomination. If it doesn't exist then a new uint256 is returned*/
-    uint256 GetAccumulatorHash(libzerocoin::CoinDenomination denom) const {
-        if(accumulatorHashes.find(denom) != accumulatorHashes.end()) {
-            return accumulatorHashes.find(denom)->second;
+    uint256 GetAccumulatorHash(libzerocoin::CoinDenomination denom) const
+    {
+        if(mapAccumulatorHashes.find(denom) != mapAccumulatorHashes.end()) {
+            return mapAccumulatorHashes.find(denom)->second;
         }
         else {
             return uint256();
@@ -431,7 +433,10 @@ public:
     const CBlockIndex* GetAncestor(int height) const;
 
     //!Add an accumulator to the CBlockIndex
-    void AddAccumulator(libzerocoin::CoinDenomination denom,CBigNum accumulator);
+    void AddAccumulator(libzerocoin::CoinDenomination denom,CBigNum bnAccumulator);
+
+    //! Adds all accumulators to the block idnex given an accumulator map
+    void AddAccumulator(AccumulatorMap mapAccumulator);
 
 };
 
