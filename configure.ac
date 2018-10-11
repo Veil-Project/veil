@@ -710,7 +710,11 @@ if test x$use_hardening != xno; then
   AX_CHECK_LINK_FLAG([[-Wl,--high-entropy-va]], [HARDENED_LDFLAGS="$HARDENED_LDFLAGS -Wl,--high-entropy-va"])
   AX_CHECK_LINK_FLAG([[-Wl,-z,relro]], [HARDENED_LDFLAGS="$HARDENED_LDFLAGS -Wl,-z,relro"])
   AX_CHECK_LINK_FLAG([[-Wl,-z,now]], [HARDENED_LDFLAGS="$HARDENED_LDFLAGS -Wl,-z,now"])
-  AX_CHECK_LINK_FLAG([[-fPIE -pie]], [PIE_FLAGS="-fPIE"; HARDENED_LDFLAGS="$HARDENED_LDFLAGS -pie"],, [[$CXXFLAG_WERROR]])
+
+  if test x$TARGET_OS != xwindows; then
+      AX_CHECK_COMPILE_FLAG([-fPIC],[PIE_FLAGS="-fPIC"])
+      AX_CHECK_LINK_FLAG([[-pic]], [HARDENED_LDFLAGS="$HARDENED_LDFLAGS -pic"])
+  fi
 
   case $host in
     *mingw*)

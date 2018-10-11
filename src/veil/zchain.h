@@ -18,8 +18,8 @@ class CZerocoinMint;
 class uint256;
 
 bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomination denom, std::vector<CBigNum>& vValues);
-bool BlockToPubcoinList(const CBlock& block, std::list<libzerocoin::PublicCoin>& listPubcoins, bool fFilterInvalid);
-bool BlockToZerocoinMintList(const CBlock& block, std::list<CZerocoinMint>& vMints, bool fFilterInvalid);
+bool BlockToPubcoinList(const CBlock& block, std::list<libzerocoin::PublicCoin>& listPubcoins);
+bool BlockToZerocoinMintList(const CBlock& block, std::list<CZerocoinMint>& vMints);
 void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMintsToUpdate, std::vector<CMintMeta>& vMissingMints);
 int GetZerocoinStartHeight();
 bool GetZerocoinMint(const CBigNum& bnPubcoin, uint256& txHash);
@@ -32,6 +32,6 @@ bool RemoveSerialFromDB(const CBigNum& bnSerial);
 std::string ReindexZerocoinDB();
 libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin);
 bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin, CValidationState& state);
-std::list<libzerocoin::CoinDenomination> ZerocoinSpendListFromBlock(const CBlock& block, bool fFilterInvalid);
+std::list<libzerocoin::CoinDenomination> ZerocoinSpendListFromBlock(const CBlock& block);
 
 #endif //VEIL_ZCHAIN_H

@@ -529,27 +529,19 @@ bool CZerocoinDB::WipeCoins(std::string strType)
     return true;
 }
 
-bool CZerocoinDB::WriteAccumulatorValue(const uint32_t& nChecksum, const CBigNum& bnValue)
+bool CZerocoinDB::WriteAccumulatorValue(const uint256& hashChecksum, const CBigNum& bnValue)
 {
-    LogPrint(BCLog::ZEROCOINDB,"%s : checksum:%d val:%s\n", __func__, nChecksum, bnValue.GetHex());
-    return Write(std::make_pair('2', nChecksum), bnValue);
+    LogPrint(BCLog::ZEROCOINDB,"%s : checksum:%d val:%s\n", __func__, hashChecksum.GetHex(), bnValue.GetHex());
+    return Write(std::make_pair('2', hashChecksum), bnValue);
 }
 
-bool CZerocoinDB::WriteAccumulatorChecksum256(const uint256& nChecksum, const CBigNum& bnValue)
+bool CZerocoinDB::ReadAccumulatorValue(const uint256& hashChecksum, CBigNum& bnValue)
 {
-    LogPrint(BCLog::ZEROCOINDB,"%s : checksum:%d val:%s\n", __func__, nChecksum, bnValue.GetHex());
-    return Write(std::make_pair('2', nChecksum), bnValue);
+    return Read(std::make_pair('2', hashChecksum), bnValue);
 }
 
-
-
-bool CZerocoinDB::ReadAccumulatorValue(const uint32_t& nChecksum, CBigNum& bnValue)
+bool CZerocoinDB::EraseAccumulatorValue(const uint256& hashChecksum)
 {
-    return Read(std::make_pair('2', nChecksum), bnValue);
-}
-
-bool CZerocoinDB::EraseAccumulatorValue(const uint32_t& nChecksum)
-{
-    LogPrint(BCLog::ZEROCOINDB, "%s : checksum:%d\n", __func__, nChecksum);
-    return Erase(std::make_pair('2', nChecksum));
+    LogPrint(BCLog::ZEROCOINDB, "%s : checksum:%d\n", __func__, hashChecksum.GetHex());
+    return Erase(std::make_pair('2', hashChecksum));
 }

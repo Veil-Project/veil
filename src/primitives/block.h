@@ -61,7 +61,7 @@ public:
 
         accumulatorHashes.clear();
 
-        for(int i = 0; i < libzerocoin::zerocoinDenomList.size(); i++) {
+        for (unsigned int i = 0; i < libzerocoin::zerocoinDenomList.size(); i++) {
             uint256 zero;
             accumulatorHashes[libzerocoin::zerocoinDenomList[i]] = zero;
         }

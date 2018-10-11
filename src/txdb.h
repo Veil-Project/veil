@@ -122,10 +122,9 @@ public:
     bool EraseCoinMint(const CBigNum& bnPubcoin);
     bool EraseCoinSpend(const CBigNum& bnSerial);
     bool WipeCoins(std::string strType);
-    bool WriteAccumulatorValue(const uint32_t& nChecksum, const CBigNum& bnValue);
-    bool WriteAccumulatorChecksum256(const uint256& nChecksum, const CBigNum& bnValue);
-    bool ReadAccumulatorValue(const uint32_t& nChecksum, CBigNum& bnValue);
-    bool EraseAccumulatorValue(const uint32_t& nChecksum);
+    bool WriteAccumulatorValue(const uint256& nChecksum, const CBigNum& bnValue);
+    bool ReadAccumulatorValue(const uint256& nChecksum, CBigNum& bnValue);
+    bool EraseAccumulatorValue(const uint256& nChecksum);
 };
 
 #endif // BITCOIN_TXDB_H

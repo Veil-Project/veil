@@ -15,29 +15,18 @@
 
 using namespace libzerocoin;
 
-std::map<uint32_t, CBigNum> mapAccumulatorValues;
+std::map<uint256, CBigNum> mapAccumulatorValues;
 std::list<uint256> listAccCheckpointsNoDB;
 
-uint32_t ParseChecksum(uint256 nChecksum, CoinDenomination denomination)
-{
-    //shift to the beginning bit of this denomination and trim any remaining bits by returning 32 bits only
-    int pos = distance(zerocoinDenomList.begin(), find(zerocoinDenomList.begin(), zerocoinDenomList.end(), denomination));
-    auto arithCheckSum = UintToArith256(nChecksum);
-    arithCheckSum = arithCheckSum >> (32 * ((zerocoinDenomList.size() - 1) - pos));
-    return arithCheckSum.GetLow32();
-}
-
-uint32_t GetChecksum(const CBigNum &bnValue)
+uint256 GetChecksum(const CBigNum &bnValue)
 {
     CDataStream ss(SER_GETHASH, 0);
     ss << bnValue;
-    arith_uint256 hash = UintToArith256(Hash(ss.begin(), ss.end()));
-
-    return hash.GetLow32();
+    return  Hash(ss.begin(), ss.end());
 }
 
 // Find the first occurrence of a certain accumulator checksum. Return 0 if not found.
-int GetChecksumHeight(uint32_t nChecksum, CoinDenomination denomination)
+int GetChecksumHeight(uint256 hashChecksum, CoinDenomination denomination)
 {
     CBlockIndex* pindex = chainActive[0];
     if (!pindex)
@@ -45,7 +34,7 @@ int GetChecksumHeight(uint32_t nChecksum, CoinDenomination denomination)
 
     //Search through blocks to find the checksum
     while (pindex) {
-        if (ParseChecksum(pindex->hashAccumulatorCheckpoint, denomination) == nChecksum)
+        if (pindex->GetAccumulatorHash(denomination) == hashChecksum)
             return pindex->nHeight;
 
         //Skip forward in groups of 10 blocks since checkpoints only change every 10 blocks
@@ -62,17 +51,17 @@ int GetChecksumHeight(uint32_t nChecksum, CoinDenomination denomination)
     return 0;
 }
 
-bool GetAccumulatorValueFromChecksum(uint32_t nChecksum, bool fMemoryOnly, CBigNum& bnAccValue)
+bool GetAccumulatorValueFromChecksum(const uint256& hashChecksum, bool fMemoryOnly, CBigNum& bnAccValue)
 {
-    if (mapAccumulatorValues.count(nChecksum)) {
-        bnAccValue = mapAccumulatorValues.at(nChecksum);
+    if (mapAccumulatorValues.count(hashChecksum)) {
+        bnAccValue = mapAccumulatorValues.at(hashChecksum);
         return true;
     }
 
     if (fMemoryOnly)
         return false;
 
-    if (!pzerocoinDB->ReadAccumulatorValue(nChecksum, bnAccValue)) {
+    if (!pzerocoinDB->ReadAccumulatorValue(hashChecksum, bnAccValue)) {
         bnAccValue = 0;
     }
 
@@ -81,65 +70,54 @@ bool GetAccumulatorValueFromChecksum(uint32_t nChecksum, bool fMemoryOnly, CBigN
 
 bool GetAccumulatorValueFromDB(uint256 nCheckpoint, CoinDenomination denom, CBigNum& bnAccValue)
 {
-    uint32_t nChecksum = ParseChecksum(nCheckpoint, denom);
-    return GetAccumulatorValueFromChecksum(nChecksum, false, bnAccValue);
+    return GetAccumulatorValueFromChecksum(nCheckpoint, false, bnAccValue);
 }
 
-void AddAccumulatorChecksum(const uint32_t nChecksum, const CBigNum &bnValue)
+void AddAccumulatorChecksum(const uint256& hashChecksum, const CBigNum &bnValue)
 {
-    pzerocoinDB->WriteAccumulatorValue(nChecksum, bnValue);
-    mapAccumulatorValues.insert(make_pair(nChecksum, bnValue));
+    pzerocoinDB->WriteAccumulatorValue(hashChecksum, bnValue);
+    mapAccumulatorValues.emplace(std::make_pair(hashChecksum, bnValue));
 }
 
 void DatabaseChecksums(AccumulatorMap& mapAccumulators)
 {
-    arith_uint256 nCheckpoint = 0;
     for (auto& denom : zerocoinDenomList) {
         CBigNum bnValue = mapAccumulators.GetValue(denom);
-        uint32_t nCheckSum = GetChecksum(bnValue);
-        AddAccumulatorChecksum(nCheckSum, bnValue);
-        nCheckpoint = nCheckpoint << 32 | nCheckSum;
+        auto hashChecksum = GetChecksum(bnValue);
+        AddAccumulatorChecksum(hashChecksum, bnValue);
     }
 }
 
-bool EraseChecksum(uint32_t nChecksum)
+bool EraseChecksum(uint256 hashChecksum)
 {
     //erase from both memory and database
-    mapAccumulatorValues.erase(nChecksum);
-    return pzerocoinDB->EraseAccumulatorValue(nChecksum);
+    mapAccumulatorValues.erase(hashChecksum);
+    return pzerocoinDB->EraseAccumulatorValue(hashChecksum);
 }
 
 bool EraseAccumulatorValues(const uint256& nCheckpointErase, const uint256& nCheckpointPrevious)
 {
-    for (auto& denomination : zerocoinDenomList) {
-        uint32_t nChecksumErase = ParseChecksum(nCheckpointErase, denomination);
-        uint32_t nChecksumPrevious = ParseChecksum(nCheckpointPrevious, denomination);
+    //if the previous checksum is the same, then it should remain in the database and map
+    if (nCheckpointErase == nCheckpointPrevious)
+        return false;
 
-        //if the previous checksum is the same, then it should remain in the database and map
-        if(nChecksumErase == nChecksumPrevious)
-            continue;
-
-        if (!EraseChecksum(nChecksumErase))
-            return false;
-    }
-
-    return true;
+    return EraseChecksum(nCheckpointErase);
 }
 
-bool LoadAccumulatorValuesFromDB(const uint256 nCheckpoint)
+bool LoadAccumulatorValuesFromDB(const std::map<libzerocoin::CoinDenomination, uint256>& mapCheckpoints)
 {
-    for (auto& denomination : zerocoinDenomList) {
-        uint32_t nChecksum = ParseChecksum(nCheckpoint, denomination);
+    for (auto& checkpoint : mapCheckpoints) {
+        auto hash = checkpoint.second;
 
         //if read is not successful then we are not in a state to verify zerocoin transactions
         CBigNum bnValue;
-        if (!pzerocoinDB->ReadAccumulatorValue(nChecksum, bnValue)) {
-            if (!count(listAccCheckpointsNoDB.begin(), listAccCheckpointsNoDB.end(), nCheckpoint))
-                listAccCheckpointsNoDB.push_back(nCheckpoint);
-            LogPrintf("%s : Missing databased value for checksum %d", __func__, nChecksum);
+        if (!pzerocoinDB->ReadAccumulatorValue(hash, bnValue)) {
+            if (!count(listAccCheckpointsNoDB.begin(), listAccCheckpointsNoDB.end(), hash))
+                listAccCheckpointsNoDB.push_back(hash);
+            LogPrintf("%s : Missing databased value for checksum %d", __func__, hash.GetHex());
             return false;
         }
-        mapAccumulatorValues.insert(make_pair(nChecksum, bnValue));
+        mapAccumulatorValues.insert(std::make_pair(hash, bnValue));
     }
     return true;
 }
@@ -153,23 +131,16 @@ bool EraseCheckpoints(int nStartHeight, int nEndHeight)
     nEndHeight = min(chainActive.Height(), nEndHeight);
 
     CBlockIndex* pindex = chainActive[nStartHeight];
-    uint256 nCheckpointPrev = pindex->pprev->hashAccumulatorCheckpoint;
 
-    //Keep a list of checkpoints from the previous block so that we don't delete them
-    list<uint32_t > listCheckpointsPrev;
-    for (auto denom : zerocoinDenomList)
-        listCheckpointsPrev.emplace_back(ParseChecksum(nCheckpointPrev, denom));
-
-    while (true) {
-        uint256 nCheckpointDelete = pindex->hashAccumulatorCheckpoint;
-
-        for (auto denom : zerocoinDenomList) {
-            uint32_t nChecksumDelete = ParseChecksum(nCheckpointDelete, denom);
-            if (count(listCheckpointsPrev.begin(), listCheckpointsPrev.end(), nChecksumDelete))
-                continue;
-
-            EraseChecksum(nChecksumDelete);
+    auto mapCheckpointsPrev = pindex->pprev->accumulatorHashes;
+    while (pindex) {
+        //Do not erase the hash if it is the same as the previous block
+        for (auto pairPrevious : mapCheckpointsPrev) {
+            auto hashChecksum = pindex->GetAccumulatorHash(pairPrevious.first);
+            if (hashChecksum != pairPrevious.second)
+                EraseChecksum(hashChecksum);
         }
+
         LogPrintf("%s : erasing checksums for block %d\n", __func__, pindex->nHeight);
 
         if (pindex->nHeight + 1 <= nEndHeight)
@@ -226,16 +197,16 @@ bool InitializeAccumulators(const int nHeight, int& nHeightCheckpoint, Accumulat
 //        return error("%s: failed to reset to previous checkpoint", __func__);
 //
 //    nHeightCheckpoint = nHeight;
-//    return true;
+    return true;
 }
 
 //Get checkpoint value for a specific block height
-bool CalculateAccumulatorCheckpoint(int nHeight, uint256& nCheckpoint, AccumulatorMap& mapAccumulators)
+bool CalculateAccumulatorCheckpoint(int nHeight, std::map<libzerocoin::CoinDenomination, uint256>& mapCheckpoints, AccumulatorMap& mapAccumulators)
 {
 
     //the checkpoint is updated every ten blocks, return current active checkpoint if not update block
     if (nHeight % 10 != 0) {
-        nCheckpoint = chainActive[nHeight - 1]->hashAccumulatorCheckpoint;
+        mapCheckpoints = chainActive[nHeight - 1]->accumulatorHashes;
         return true;
     }
 
@@ -244,9 +215,6 @@ bool CalculateAccumulatorCheckpoint(int nHeight, uint256& nCheckpoint, Accumulat
     mapAccumulators.Reset();
     if (!InitializeAccumulators(nHeight, nHeightCheckpoint, mapAccumulators))
         return error("%s: failed to initialize accumulators", __func__);
-
-    //Whether this should filter out invalid/fraudulent outpoints
-    bool fFilterInvalid = false; // TODO: fFilterInvalid = nHeight >= Params().Zerocoin_Block_RecalculateAccumulators();
 
     //Accumulate all coins over the last ten blocks that havent been accumulated (height - 20 through height - 11)
     int nTotalMintsFound = 0;
@@ -263,7 +231,7 @@ bool CalculateAccumulatorCheckpoint(int nHeight, uint256& nCheckpoint, Accumulat
             return error("%s: failed to read block from disk", __func__);
 
         std::list<PublicCoin> listPubcoins;
-        if (!BlockToPubcoinList(block, listPubcoins, fFilterInvalid))
+        if (!BlockToPubcoinList(block, listPubcoins))
             return error("%s: failed to get zerocoin mintlist from block %d", __func__, pindex->nHeight);
 
         nTotalMintsFound += listPubcoins.size();
@@ -279,11 +247,11 @@ bool CalculateAccumulatorCheckpoint(int nHeight, uint256& nCheckpoint, Accumulat
 
     // if there were no new mints found, the accumulator checkpoint will be the same as the last checkpoint
     if (nTotalMintsFound == 0)
-        nCheckpoint = chainActive[nHeight - 1]->hashAccumulatorCheckpoint;
+        mapCheckpoints = chainActive[nHeight - 1]->accumulatorHashes;
     else
-        nCheckpoint = mapAccumulators.GetCheckpoint();
+        mapCheckpoints = mapAccumulators.GetCheckpoints();
 
-    LogPrintf("%s checkpoint=%s\n", __func__, nCheckpoint.GetHex());
+    //LogPrintf("%s checkpoint=%s\n", __func__, nCheckpoint.GetHex());
     return true;
 }
 
@@ -298,21 +266,21 @@ bool InvalidCheckpointRange(int nHeight)
 bool ValidateAccumulatorCheckpoint(const CBlock& block, CBlockIndex* pindex, AccumulatorMap& mapAccumulators)
 {
     if (pindex->nHeight % 10 == 0) {
-        uint256 nCheckpointCalculated;
+        std::map<libzerocoin::CoinDenomination, uint256> mapCheckpointCalculated;
 
-        if (!CalculateAccumulatorCheckpoint(pindex->nHeight, nCheckpointCalculated, mapAccumulators))
+        if (!CalculateAccumulatorCheckpoint(pindex->nHeight, mapCheckpointCalculated, mapAccumulators))
             return error("%s : failed to calculate accumulator checkpoint", __func__);
 
-        if (nCheckpointCalculated != block.hashAccumulatorCheckpoint) {
-            LogPrintf("%s: block=%d calculated: %s\n block: %s\n", __func__, pindex->nHeight,
-                    nCheckpointCalculated.GetHex(), block.hashAccumulatorCheckpoint.GetHex());
+        if (mapCheckpointCalculated != pindex->accumulatorHashes) {
+            //LogPrintf("%s: block=%d calculated: %s\n block: %s\n", __func__, pindex->nHeight,
+            //        nCheckpointCalculated.GetHex(), block.hashAccumulatorCheckpoint.GetHex());
             return error("%s : accumulator does not match calculated value", __func__);
         }
 
         return true;
     }
 
-    if (block.hashAccumulatorCheckpoint != pindex->pprev->hashAccumulatorCheckpoint)
+    if (pindex->accumulatorHashes != pindex->pprev->accumulatorHashes)
         return error("%s : new accumulator checkpoint generated on a block that is not multiple of 10", __func__);
 
     return true;
@@ -360,7 +328,7 @@ int AddBlockMintsToAccumulator(const libzerocoin::PublicCoin& coin, const int nH
         list<PublicCoin> listPubcoins;
 
         //TO DO
-        if(!BlockToPubcoinList(block, listPubcoins, true))
+        if(!BlockToPubcoinList(block, listPubcoins))
             return error("%s: failed to get zerocoin mintlist from block %n\n", __func__, pindex->nHeight);
 
         //add the mints to the witness
@@ -385,25 +353,8 @@ bool GetAccumulatorValue(int& nHeight, const libzerocoin::CoinDenomination denom
         return error("%s: height %d is more than active chain height", __func__, nHeight);
 
     //Every situation except for about 20 blocks should use this method
-    uint256 nCheckpointBeforeMint = chainActive[nHeight]->hashAccumulatorCheckpoint;
-    if (nHeight > 20) // todo: determine if height check is required
-        return GetAccumulatorValueFromDB(nCheckpointBeforeMint, denom, bnAccValue);
-
-    // todo: figure out the right way to do this or if it's necessary
-//    int nHeightCheckpoint = 0;
-//    AccumulatorCheckpoints::Checkpoint checkpoint = AccumulatorCheckpoints::GetClosestCheckpoint(nHeight, nHeightCheckpoint);
-//    if (nHeightCheckpoint < 0) {
-//        //Start at the first zerocoin
-//        libzerocoin::Accumulator accumulator(Params().Zerocoin_Params(false), denom);
-//        bnAccValue = accumulator.getValue();
-//        nHeight = Params().Zerocoin_StartHeight() + 10;
-//        return true;
-//    }
-//
-//    nHeight = nHeightCheckpoint;
-//    bnAccValue = checkpoint.at(denom);
-
-    return true;
+    uint256 nCheckpointBeforeMint = chainActive[nHeight]->GetAccumulatorHash(denom);
+    return GetAccumulatorValueFromDB(nCheckpointBeforeMint, denom, bnAccValue);
 }
 
 bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator, AccumulatorWitness& witness,
@@ -470,7 +421,7 @@ bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator
 
     bool fDoubleCounted = false;
     while (pindex) {
-        if (pindex->nHeight != nAccStartHeight && pindex->pprev->hashAccumulatorCheckpoint != pindex->hashAccumulatorCheckpoint)
+        if (pindex->nHeight != nAccStartHeight && pindex->pprev->accumulatorHashes != pindex->accumulatorHashes)
             ++nCheckpointsAdded;
 
         //If the security level is satisfied, or the stop height is reached, then initialize the accumulator from here
@@ -481,7 +432,7 @@ bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator
                 continue;
 
             bnAccValue = 0;
-            uint256 nCheckpointSpend = chainActive[pindex->nHeight + 10]->hashAccumulatorCheckpoint;
+            uint256 nCheckpointSpend = chainActive[pindex->nHeight + 10]->GetAccumulatorHash(coin.getDenomination());
             if (!GetAccumulatorValueFromDB(nCheckpointSpend, coin.getDenomination(), bnAccValue) || bnAccValue == 0)
                 return error("%s : failed to find checksum in database for accumulator", __func__);
 
