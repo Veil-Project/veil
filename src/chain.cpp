@@ -172,7 +172,15 @@ const CBlockIndex* LastCommonAncestor(const CBlockIndex* pa, const CBlockIndex* 
     return pa;
 }
 
-void CBlockIndex::AddAccumulator(libzerocoin::CoinDenomination denom,CBigNum accumulator)
+void CBlockIndex::AddAccumulator(libzerocoin::CoinDenomination denom, CBigNum bnAccumulator)
 {
-    accumulatorHashes[denom] = SerializeHash(accumulator);
+    mapAccumulatorHashes[denom] = SerializeHash(bnAccumulator);
+}
+
+void CBlockIndex::AddAccumulator(AccumulatorMap mapAccumulator)
+{
+    for(libzerocoin::CoinDenomination denom : libzerocoin::zerocoinDenomList) {
+        CBigNum bnAccumulator = mapAccumulator.GetValue(denom);
+        AddAccumulator(denom, bnAccumulator);
+    }
 }
