@@ -37,17 +37,15 @@ void AccumulatorMap::Reset(libzerocoin::ZerocoinParams* params2)
     }
 }
 
-//Load a checkpoint containing 8 32bit checksums of accumulator values.
-bool AccumulatorMap::Load(uint256 nCheckpoint)
+//Load a checksums matched to each accumulator from the database
+bool AccumulatorMap::Load(const std::map<libzerocoin::CoinDenomination, uint256>& mapCheckpoints)
 {
-    for (auto& denom : zerocoinDenomList) {
-        uint32_t nChecksum = ParseChecksum(nCheckpoint, denom);
-
+    for (auto& mi : mapCheckpoints) {
         CBigNum bnValue;
-        if (!pzerocoinDB->ReadAccumulatorValue(nChecksum, bnValue))
-            return error("%s : cannot find checksum %d", __func__, nChecksum);
+        if (!pzerocoinDB->ReadAccumulatorValue(mi.second, bnValue))
+            return error("%s : cannot find checksum %s", __func__, mi.second.GetHex());
 
-        mapAccumulators.at(denom)->setValue(bnValue);
+        mapAccumulators.at(mi.first)->setValue(bnValue);
     }
     return true;
 }
@@ -82,19 +80,19 @@ CBigNum AccumulatorMap::GetValue(CoinDenomination denom)
 }
 
 //Calculate a 32bit checksum of each accumulator value. Concatenate checksums into arith_unit256
-uint256 AccumulatorMap::GetCheckpoint()
+std::map<libzerocoin::CoinDenomination, uint256> AccumulatorMap::GetCheckpoints()
 {
-    arith_uint256 nCheckpoint;
+    std::map<libzerocoin::CoinDenomination, uint256> mapCheckpoints;
 
-    //Prevent possible overflows from future changes to the list and forgetting to update this code
+            //Prevent possible overflows from future changes to the list and forgetting to update this code
     assert(zerocoinDenomList.size() == 8);
     for (auto& denom : zerocoinDenomList) {
         CBigNum bnValue = mapAccumulators.at(denom)->getValue();
-        arith_uint256 nCheckSum = GetChecksum(bnValue);
-        nCheckpoint = nCheckpoint << 32 | nCheckSum;
+        auto hashChecksum = GetChecksum(bnValue);
+        mapCheckpoints.emplace(std::make_pair(denom, hashChecksum));
     }
 
-    return ArithToUint256(nCheckpoint);
+    return mapCheckpoints;
 }
 
 

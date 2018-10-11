@@ -509,7 +509,6 @@ libbitcoin_common_a_SOURCES = \
   script/ismine.cpp \
   script/sign.cpp \
   script/standard.cpp \
-  veil/invalid.cpp \
   warnings.cpp \
   $(BITCOIN_CORE_H)
 

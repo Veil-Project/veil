@@ -172,7 +172,7 @@ const CBlockIndex* LastCommonAncestor(const CBlockIndex* pa, const CBlockIndex* 
     return pa;
 }
 
-void CBlockIndex::AddAccumulator(libzerocoin::CoinDenomination denom,CBigNum accumulator) {
+void CBlockIndex::AddAccumulator(libzerocoin::CoinDenomination denom,CBigNum accumulator)
+{
     accumulatorHashes[denom] = SerializeHash(accumulator);
-    pzerocoinDB->WriteAccumulatorChecksum256(accumulatorHashes[denom], accumulator);
 }
