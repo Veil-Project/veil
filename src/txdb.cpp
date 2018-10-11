@@ -535,6 +535,14 @@ bool CZerocoinDB::WriteAccumulatorValue(const uint32_t& nChecksum, const CBigNum
     return Write(std::make_pair('2', nChecksum), bnValue);
 }
 
+bool CZerocoinDB::WriteAccumulatorChecksum256(const uint256& nChecksum, const CBigNum& bnValue)
+{
+    LogPrint(BCLog::ZEROCOINDB,"%s : checksum:%d val:%s\n", __func__, nChecksum, bnValue.GetHex());
+    return Write(std::make_pair('2', nChecksum), bnValue);
+}
+
+
+
 bool CZerocoinDB::ReadAccumulatorValue(const uint32_t& nChecksum, CBigNum& bnValue)
 {
     return Read(std::make_pair('2', nChecksum), bnValue);

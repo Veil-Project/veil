@@ -10,6 +10,9 @@
 #include <serialize.h>
 #include <uint256.h>
 
+#include <unordered_map>
+#include <libzerocoin/Denominations.h>
+
 /** Nodes collect new transactions into a block, hash them into a hash tree,
  * and scan through nonce values to make the block's hash satisfy proof-of-work
  * requirements.  When they solve the proof-of-work, they broadcast the block
@@ -27,7 +30,7 @@ public:
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
-    uint256 hashAccumulatorCheckpoint;
+    std::map<libzerocoin::CoinDenomination , uint256> accumulatorHashes;
 
     CBlockHeader()
     {
@@ -44,7 +47,7 @@ public:
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
-        READWRITE(hashAccumulatorCheckpoint);
+        READWRITE(accumulatorHashes);
     }
 
     void SetNull()
@@ -52,10 +55,17 @@ public:
         nVersion = 0;
         hashPrevBlock.SetNull();
         hashMerkleRoot.SetNull();
-        hashAccumulatorCheckpoint.SetNull();
         nTime = 0;
         nBits = 0;
         nNonce = 0;
+
+        accumulatorHashes.clear();
+
+        for(int i = 0; i < libzerocoin::zerocoinDenomList.size(); i++) {
+            uint256 zero;
+            accumulatorHashes[libzerocoin::zerocoinDenomList[i]] = zero;
+        }
+
     }
 
     bool IsNull() const
@@ -125,7 +135,6 @@ public:
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
-        block.hashAccumulatorCheckpoint = hashAccumulatorCheckpoint;
         return block;
     }
 

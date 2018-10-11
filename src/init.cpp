@@ -43,6 +43,7 @@
 #include <ui_interface.h>
 #include <util.h>
 #include <utilmoneystr.h>
+#include <validation.h>
 #include <validationinterface.h>
 #include <warnings.h>
 #include <walletinitinterface.h>
@@ -264,6 +265,7 @@ void Shutdown()
         pcoinscatcher.reset();
         pcoinsdbview.reset();
         pblocktree.reset();
+        pzerocoinDB.reset();
     }
     g_wallet_init_interface.Stop();
 
@@ -1172,6 +1174,8 @@ bool AppInitParameterInteraction()
             }
         }
     }
+
+
     return true;
 }
 
@@ -1455,6 +1459,10 @@ bool AppInitMain()
                 // fails if it's still open from the previous loop. Close it first:
                 pblocktree.reset();
                 pblocktree.reset(new CBlockTreeDB(nBlockTreeDBCache, false, fReset));
+
+                //zerocoinDB
+                pzerocoinDB.reset();
+                pzerocoinDB.reset(new CZerocoinDB(0, false, fReindex));
 
                 if (fReset) {
                     pblocktree->WriteReindexing(true);
