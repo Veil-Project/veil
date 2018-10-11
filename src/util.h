@@ -40,6 +40,8 @@ int64_t GetStartupTime();
 // percentage of veil in wallet to convert to zerocoin
 extern int nZeromintPercentage;
 extern bool fEnableZeromint;
+extern const int64_t AUTOMINT_DELAY;
+
 
 /** Signals for translation. */
 class CTranslationInterface
