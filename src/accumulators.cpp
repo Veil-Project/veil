@@ -132,7 +132,7 @@ bool EraseCheckpoints(int nStartHeight, int nEndHeight)
 
     CBlockIndex* pindex = chainActive[nStartHeight];
 
-    auto mapCheckpointsPrev = pindex->pprev->accumulatorHashes;
+    auto mapCheckpointsPrev = pindex->pprev->mapAccumulatorHashes;
     while (pindex) {
         //Do not erase the hash if it is the same as the previous block
         for (auto pairPrevious : mapCheckpointsPrev) {
@@ -206,7 +206,7 @@ bool CalculateAccumulatorCheckpoint(int nHeight, std::map<libzerocoin::CoinDenom
 
     //the checkpoint is updated every ten blocks, return current active checkpoint if not update block
     if (nHeight % 10 != 0) {
-        mapCheckpoints = chainActive[nHeight - 1]->accumulatorHashes;
+        mapCheckpoints = chainActive[nHeight - 1]->mapAccumulatorHashes;
         return true;
     }
 
@@ -247,7 +247,7 @@ bool CalculateAccumulatorCheckpoint(int nHeight, std::map<libzerocoin::CoinDenom
 
     // if there were no new mints found, the accumulator checkpoint will be the same as the last checkpoint
     if (nTotalMintsFound == 0)
-        mapCheckpoints = chainActive[nHeight - 1]->accumulatorHashes;
+        mapCheckpoints = chainActive[nHeight - 1]->mapAccumulatorHashes;
     else
         mapCheckpoints = mapAccumulators.GetCheckpoints();
 
@@ -271,7 +271,7 @@ bool ValidateAccumulatorCheckpoint(const CBlock& block, CBlockIndex* pindex, Acc
         if (!CalculateAccumulatorCheckpoint(pindex->nHeight, mapCheckpointCalculated, mapAccumulators))
             return error("%s : failed to calculate accumulator checkpoint", __func__);
 
-        if (mapCheckpointCalculated != pindex->accumulatorHashes) {
+        if (mapCheckpointCalculated != pindex->mapAccumulatorHashes) {
             //LogPrintf("%s: block=%d calculated: %s\n block: %s\n", __func__, pindex->nHeight,
             //        nCheckpointCalculated.GetHex(), block.hashAccumulatorCheckpoint.GetHex());
             return error("%s : accumulator does not match calculated value", __func__);
@@ -280,7 +280,7 @@ bool ValidateAccumulatorCheckpoint(const CBlock& block, CBlockIndex* pindex, Acc
         return true;
     }
 
-    if (pindex->accumulatorHashes != pindex->pprev->accumulatorHashes)
+    if (pindex->mapAccumulatorHashes != pindex->pprev->mapAccumulatorHashes)
         return error("%s : new accumulator checkpoint generated on a block that is not multiple of 10", __func__);
 
     return true;
@@ -421,7 +421,7 @@ bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator
 
     bool fDoubleCounted = false;
     while (pindex) {
-        if (pindex->nHeight != nAccStartHeight && pindex->pprev->accumulatorHashes != pindex->accumulatorHashes)
+        if (pindex->nHeight != nAccStartHeight && pindex->pprev->mapAccumulatorHashes != pindex->mapAccumulatorHashes)
             ++nCheckpointsAdded;
 
         //If the security level is satisfied, or the stop height is reached, then initialize the accumulator from here
