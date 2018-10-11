@@ -828,25 +828,26 @@ public:
             const bool isZCSpendChange = false);
     bool CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew, CReserveKey& reserveKey,
             CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vSelectedMints, std::vector<CDeterministicMint>& vNewMints,
-            bool fMintChange,  bool fMinimizeChange, CKeyID* address = NULL);
+            bool fMintChange,  bool fMinimizeChange, CTxDestination* address = NULL);
     bool MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, const uint256& hashTxOut, CTxIn& newTxIn,
             CZerocoinSpendReceipt& receipt, libzerocoin::SpendType spendType, CBlockIndex* pindexCheckpoint = nullptr);
-//    std::string MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
-//            const std::vector<COutPoint> vOutpts);
-//    std::string MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
-//            const CCoinControl* coinControl = NULL);
-//    bool SpendZerocoin(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew, CZerocoinSpendReceipt& receipt,
-//            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, CKeyID* addressTo = NULL);
+    std::string MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
+            const std::vector<COutPoint> vOutpts);
+    std::string MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
+            const CCoinControl* coinControl = NULL);
+    bool SpendZerocoin(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew, CZerocoinSpendReceipt& receipt,
+            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, CTxDestination* addressTo = NULL);
 //    std::string ResetMintZerocoin();
 //    std::string ResetSpentZerocoin();
 //    void ReconsiderZerocoins(std::list<CZerocoinMint>& listMintsRestored, std::list<CDeterministicMint>& listDMintsRestored);
+    void ZBackupWallet();
 //    bool GetZerocoinKey(const CBigNum& bnSerial, CKey& key);
     bool CreateZOutPut(libzerocoin::CoinDenomination denomination, CTxOut &outMint, CDeterministicMint &dMint);
     bool GetMint(const uint256& hashSerial, CZerocoinMint& mint);
 //    bool DatabaseMint(CDeterministicMint& dMint);
 //    bool SetMintUnspent(const CBigNum& bnSerial);
 //    bool UpdateMint(const CBigNum& bnValue, const int& nHeight, const uint256& txid, const libzerocoin::CoinDenomination& denom);
-//    std::string GetUniqueWalletBackupName(bool fzpivAuto) const;
+    std::string GetUniqueWalletBackupName(bool fzAuto) const;
 
     int getZeromintPercentage()
     {
@@ -1062,7 +1063,8 @@ public:
      */
     bool CreateTransaction(const std::vector<CRecipient>& vecSend, CTransactionRef& tx, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
                            std::string& strFailReason, const CCoinControl& coin_control, bool sign = true);
-    bool CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm, std::string fromAccount, CReserveKey& reservekey, CConnman* connman, CValidationState& state);
+    bool CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm,
+            std::string fromAccount, CReserveKey& reservekey, CConnman* connman, CValidationState& state);
 
     void ListAccountCreditDebit(const std::string& strAccount, std::list<CAccountingEntry>& entries);
     bool AddAccountingEntry(const CAccountingEntry&);
