@@ -262,9 +262,8 @@ public:
 
         accumulatorHashes.clear();
 
-        for(int i = 0; i < libzerocoin::zerocoinDenomList.size(); i++) {
-            uint256 zero;
-            accumulatorHashes[libzerocoin::zerocoinDenomList[i]] = zero;
+        for (auto& denom : libzerocoin::zerocoinDenomList) {
+            accumulatorHashes[denom] = uint256();
         }
 
         // Start supply of each denomination with 0s

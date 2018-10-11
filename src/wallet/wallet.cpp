@@ -4634,87 +4634,87 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
     }
 
 
-    uint32_t nChecksum = GetChecksum(accumulator.getValue());
-    CBigNum bnValue;
-    if (!GetAccumulatorValueFromChecksum(nChecksum, false, bnValue) || bnValue == 0)
-        return error("%s: could not find checksum used for spend\n", __func__);
-
-    try {
-        libzerocoin::CoinSpend spend(&zerocoinParams, &zerocoinParams, privateCoin, accumulator, nChecksum, witness, hashTxOut,
-                                     spendType);
-        LogPrintf("%s\n", spend.ToString());
-
-        if (!spend.Verify(accumulator)) {
-            receipt.SetStatus(_("The new spend coin transaction did not verify"), ZINVALID_WITNESS);
-            //return false;
-            LogPrintf("** spend.verify failed, trying with different params\n");
-
-            libzerocoin::CoinSpend spend2(&zerocoinParams, &zerocoinParams, privateCoin, accumulator,
-                                          nChecksum, witness, hashTxOut, libzerocoin::SpendType::SPEND);
-            LogPrintf("*** spend2 valid=%d\n", spend2.Verify(accumulator));
-            return false;
-        }
-
-        // Deserialize the CoinSpend intro a fresh object
-        CDataStream serializedCoinSpend(SER_NETWORK, PROTOCOL_VERSION);
-        serializedCoinSpend << spend;
-        std::vector<unsigned char> data(serializedCoinSpend.begin(), serializedCoinSpend.end());
-
-        //Add the coin spend into a PIVX transaction
-        newTxIn.scriptSig = CScript() << OP_ZEROCOINSPEND << data.size();
-        newTxIn.scriptSig.insert(newTxIn.scriptSig.end(), data.begin(), data.end());
-        newTxIn.prevout.SetNull();
-
-        //use nSequence as a shorthand lookup of denomination
-        //NOTE that this should never be used in place of checking the value in the final blockchain acceptance/verification
-        //of the transaction
-        newTxIn.nSequence = denomination;
-
-        CDataStream serializedCoinSpendChecking(SER_NETWORK, PROTOCOL_VERSION);
-        try {
-            serializedCoinSpendChecking << spend;
-        } catch (...) {
-            receipt.SetStatus(_("Failed to deserialize"), ZBAD_SERIALIZATION);
-            return false;
-        }
-
-        libzerocoin::CoinSpend newSpendChecking(&zerocoinParams, &zerocoinParams, serializedCoinSpendChecking);
-        if (!newSpendChecking.Verify(accumulator)) {
-            receipt.SetStatus(_("The transaction did not verify"), ZBAD_SERIALIZATION);
-            return false;
-        }
-
-        if (IsSerialKnown(spend.getCoinSerialNumber())) {
-            //Tried to spend an already spent zPIV
-            receipt.SetStatus(_("The coin spend has been used"), ZSPENT_USED_ZPIV);
-
-            uint256 hashSerial = GetSerialHash(spend.getCoinSerialNumber());
-            if (!zTracker->HasSerialHash(hashSerial))
-                return error("%s: serialhash %s not found in tracker", __func__, hashSerial.GetHex());
-
-            CMintMeta meta = zTracker->Get(hashSerial);
-            meta.isUsed = true;
-            if (!zTracker->UpdateState(meta))
-                LogPrintf("%s: failed to write zerocoinmint\n", __func__);
-
-            auto pwalletmain = GetMainWallet();
-
-            //todo:
-            //pwalletmain->NotifyZerocoinChanged(pwalletmain, zerocoinSelected.GetValue().GetHex(), "Used", CT_UPDATED);
-            return false;
-        }
-
-        uint32_t nAccumulatorChecksum = GetChecksum(accumulator.getValue());
-        CZerocoinSpend zcSpend(spend.getCoinSerialNumber(), uint256(), zerocoinSelected.GetValue(),
-                zerocoinSelected.GetDenomination(), nAccumulatorChecksum);
-        zcSpend.SetMintCount(nMintsAdded);
-        receipt.AddSpend(zcSpend);
-    } catch (const std::exception&) {
-        receipt.SetStatus(_("CoinSpend: Accumulator witness does not verify"), ZINVALID_WITNESS);
-        return false;
-    }
-
-    receipt.SetStatus(_("Spend Valid"), ZSPEND_OKAY); // Everything okay
+//    auto nChecksum = GetChecksum(accumulator.getValue());
+//    CBigNum bnValue;
+//    if (!GetAccumulatorValueFromChecksum(nChecksum, false, bnValue) || bnValue == 0)
+//        return error("%s: could not find checksum used for spend\n", __func__);
+//
+//    try {
+//        libzerocoin::CoinSpend spend(&zerocoinParams, &zerocoinParams, privateCoin, accumulator, nChecksum, witness, hashTxOut,
+//                                     spendType);
+//        LogPrintf("%s\n", spend.ToString());
+//
+//        if (!spend.Verify(accumulator)) {
+//            receipt.SetStatus(_("The new spend coin transaction did not verify"), ZINVALID_WITNESS);
+//            //return false;
+//            LogPrintf("** spend.verify failed, trying with different params\n");
+//
+////            libzerocoin::CoinSpend spend2(&zerocoinParams, &zerocoinParams, privateCoin, accumulator,
+////                                          nChecksum, witness, hashTxOut, libzerocoin::SpendType::SPEND);
+//            //LogPrintf("*** spend2 valid=%d\n", spend2.Verify(accumulator));
+//            return false;
+//        }
+//
+//        // Deserialize the CoinSpend intro a fresh object
+//        CDataStream serializedCoinSpend(SER_NETWORK, PROTOCOL_VERSION);
+//        serializedCoinSpend << spend;
+//        std::vector<unsigned char> data(serializedCoinSpend.begin(), serializedCoinSpend.end());
+//
+//        //Add the coin spend into a PIVX transaction
+//        newTxIn.scriptSig = CScript() << OP_ZEROCOINSPEND << data.size();
+//        newTxIn.scriptSig.insert(newTxIn.scriptSig.end(), data.begin(), data.end());
+//        newTxIn.prevout.SetNull();
+//
+//        //use nSequence as a shorthand lookup of denomination
+//        //NOTE that this should never be used in place of checking the value in the final blockchain acceptance/verification
+//        //of the transaction
+//        newTxIn.nSequence = denomination;
+//
+//        CDataStream serializedCoinSpendChecking(SER_NETWORK, PROTOCOL_VERSION);
+//        try {
+//            serializedCoinSpendChecking << spend;
+//        } catch (...) {
+//            receipt.SetStatus(_("Failed to deserialize"), ZBAD_SERIALIZATION);
+//            return false;
+//        }
+//
+//        libzerocoin::CoinSpend newSpendChecking(&zerocoinParams, &zerocoinParams, serializedCoinSpendChecking);
+//        if (!newSpendChecking.Verify(accumulator)) {
+//            receipt.SetStatus(_("The transaction did not verify"), ZBAD_SERIALIZATION);
+//            return false;
+//        }
+//
+//        if (IsSerialKnown(spend.getCoinSerialNumber())) {
+//            //Tried to spend an already spent zPIV
+//            receipt.SetStatus(_("The coin spend has been used"), ZSPENT_USED_ZPIV);
+//
+//            uint256 hashSerial = GetSerialHash(spend.getCoinSerialNumber());
+//            if (!zTracker->HasSerialHash(hashSerial))
+//                return error("%s: serialhash %s not found in tracker", __func__, hashSerial.GetHex());
+//
+//            CMintMeta meta = zTracker->Get(hashSerial);
+//            meta.isUsed = true;
+//            if (!zTracker->UpdateState(meta))
+//                LogPrintf("%s: failed to write zerocoinmint\n", __func__);
+//
+//            auto pwalletmain = GetMainWallet();
+//
+//            //todo:
+//            //pwalletmain->NotifyZerocoinChanged(pwalletmain, zerocoinSelected.GetValue().GetHex(), "Used", CT_UPDATED);
+//            return false;
+//        }
+//
+//        auto nAccumulatorChecksum = GetChecksum(accumulator.getValue());
+////        CZerocoinSpend zcSpend(spend.getCoinSerialNumber(), uint256(), zerocoinSelected.GetValue(),
+////                zerocoinSelected.GetDenomination(), nAccumulatorChecksum);
+//       // zcSpend.SetMintCount(nMintsAdded);
+//        //receipt.AddSpend(zcSpend);
+//    } catch (const std::exception&) {
+//        receipt.SetStatus(_("CoinSpend: Accumulator witness does not verify"), ZINVALID_WITNESS);
+//        return false;
+//    }
+//
+//    receipt.SetStatus(_("Spend Valid"), ZSPEND_OKAY); // Everything okay
 
     return true;
 }
