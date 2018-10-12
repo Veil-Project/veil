@@ -5,8 +5,14 @@
 
 namespace veil {
 
-bool CheckBudgetTransaction(const CTransaction& tx, CValidationState& state)
+bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidationState& state)
 {
+    CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
+    veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    if (nHeight % BudgetParams::nBlocksPerPeriod)
+        return true;
+
     // Verify that the amount paid to the budget address is correct
     if (tx.vout[1].nValue != Budget().GetBudgetAmount()) {
         return state.DoS(10, false, REJECT_INVALID, "bad-budget-amount");
@@ -34,19 +40,17 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
 {
 
     if (nBlockHeight <= 0) { // 43830 is the average size of a month in minutes when including leap years
-                                                            // 44640 is the length of a month when not including leap years
         nBlockReward = 0;
         nFounderPayment = 0;
         nLabPayment = 0;
         nBudgetPayment = 0;
-
     } else if (nBlockHeight >= 1 && nBlockHeight <= 381599) {
 
         nBlockReward = 50;
-        if((nBlockHeight % 43830) == 0) {
-            nFounderPayment = 10 * 43830;
-            nLabPayment = 10 * 43830;
-            nBudgetPayment = 30 * 43830;
+        if((nBlockHeight % nBlocksPerPeriod) == 0) {
+            nFounderPayment = 10 * nBlocksPerPeriod;
+            nLabPayment = 10 * nBlocksPerPeriod;
+            nBudgetPayment = 30 * nBlocksPerPeriod;
         } else {
             nFounderPayment = nLabPayment = nBudgetPayment = 0;
         }
@@ -54,10 +58,10 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
     } else if (nBlockHeight >= 381600 && nBlockHeight <= 763199) {
 
         nBlockReward = 40;
-        if((nBlockHeight % 43830) == 0) {
-            nFounderPayment = 8 * 43830;
-            nLabPayment = 8 * 43830;
-            nBudgetPayment = 24 * 43830;
+        if((nBlockHeight % nBlocksPerPeriod) == 0) {
+            nFounderPayment = 8 * nBlocksPerPeriod;
+            nLabPayment = 8 * nBlocksPerPeriod;
+            nBudgetPayment = 24 * nBlocksPerPeriod;
         } else {
             nFounderPayment = nLabPayment = nBudgetPayment = 0;
         }
@@ -65,10 +69,10 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
     } else if (nBlockHeight >= 763200 && nBlockHeight <= 1144799) {
 
         nBlockReward = 30;
-        if((nBlockHeight % 43830) == 0) {
-            nFounderPayment = 6 * 43830;
-            nLabPayment = 6 * 43830;
-            nBudgetPayment = 18 * 43830;
+        if((nBlockHeight % nBlocksPerPeriod) == 0) {
+            nFounderPayment = 6 * nBlocksPerPeriod;
+            nLabPayment = 6 * nBlocksPerPeriod;
+            nBudgetPayment = 18 * nBlocksPerPeriod;
         } else {
             nFounderPayment = nLabPayment = nBudgetPayment = 0;
         }
@@ -76,10 +80,10 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
     } else if (nBlockHeight >= 1144800 && nBlockHeight <= 1526399) {
 
         nBlockReward = 20;
-        if((nBlockHeight % 43830) == 0) {
-            nFounderPayment = 4 * 43830;
-            nLabPayment = 4 * 43830;
-            nBudgetPayment = 12 * 43830;
+        if((nBlockHeight % nBlocksPerPeriod) == 0) {
+            nFounderPayment = 4 * nBlocksPerPeriod;
+            nLabPayment = 4 * nBlocksPerPeriod;
+            nBudgetPayment = 12 * nBlocksPerPeriod;
         } else {
             nFounderPayment = nLabPayment = nBudgetPayment = 0;
         }
@@ -87,10 +91,10 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
     } else if (nBlockHeight >= 1526400 && nBlockHeight <= 1907999) {
 
         nBlockReward = 10;
-        if((nBlockHeight % 43830) == 0) {
-            nFounderPayment = 2 * 43830;
-            nLabPayment = 2 * 43830;
-            nBudgetPayment = 6 * 43830;
+        if((nBlockHeight % nBlocksPerPeriod) == 0) {
+            nFounderPayment = 2 * nBlocksPerPeriod;
+            nLabPayment = 2 * nBlocksPerPeriod;
+            nBudgetPayment = 6 * nBlocksPerPeriod;
         } else {
             nFounderPayment = nLabPayment = nBudgetPayment = 0;
         }
@@ -98,17 +102,20 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
     } else {
 
         nBlockReward = 10;
-        if((nBlockHeight % 43830) == 0) {
-            nFounderPayment = 0 * 43830;
-            nLabPayment = 2 * 43830;
-            nBudgetPayment = 8 * 43830;
+        if((nBlockHeight % nBlocksPerPeriod) == 0) {
+            nFounderPayment = 0 * nBlocksPerPeriod;
+            nLabPayment = 2 * nBlocksPerPeriod;
+            nBudgetPayment = 8 * nBlocksPerPeriod;
         } else {
             nFounderPayment = nLabPayment = nBudgetPayment = 0;
         }
 
     }
 
-
+    nBlockReward *= COIN;
+    nFounderPayment *= COIN;
+    nLabPayment *= COIN;
+    nBudgetPayment *= COIN;
 }
 
 BudgetParams::BudgetParams(std::string strNetwork)

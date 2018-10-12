@@ -17,7 +17,7 @@
 
 namespace libzerocoin
 {
-    CoinSpend::CoinSpend(const ZerocoinParams* paramsCoin, const ZerocoinParams* paramsAcc, const PrivateCoin& coin, Accumulator& a, const uint32_t& checksum,
+    CoinSpend::CoinSpend(const ZerocoinParams* paramsCoin, const ZerocoinParams* paramsAcc, const PrivateCoin& coin, Accumulator& a, const uint256& checksum,
                      const AccumulatorWitness& witness, const uint256& ptxHash, const SpendType& spendType, const uint8_t v) : accChecksum(checksum),
                                                                                   ptxHash(ptxHash),
                                                                                   coinSerialNumber(coin.getSerialNumber()),
@@ -136,7 +136,11 @@ const uint256 CoinSpend::signatureHash() const
 std::string CoinSpend::ToString() const
 {
     std::stringstream ss;
-    ss << "CoinSpend:\n version=" << (int)version << " signatureHash=" << signatureHash().GetHex() << " spendtype=" << spendType << "\n";
+    ss << "CoinSpend:\n "
+          "  version=" << (int)version <<
+          "  signatureHash=" << signatureHash().GetHex() <<
+          "  spendtype=" << spendType <<
+          "  serial=" << coinSerialNumber.GetHex() << "\n";
     return ss.str();
 }
 

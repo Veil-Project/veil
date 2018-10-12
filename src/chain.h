@@ -553,6 +553,9 @@ public:
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
+        READWRITE(mapAccumulatorHashes);
+        READWRITE(mapZerocoinSupply);
+        READWRITE(vMintDenominationsInBlock);
 
         //Proof of stake
         READWRITE(nFlags);
@@ -571,6 +574,7 @@ public:
         block.nTime           = nTime;
         block.nBits           = nBits;
         block.nNonce          = nNonce;
+        block.mapAccumulatorHashes = mapAccumulatorHashes;
         return block.GetHash();
     }
 

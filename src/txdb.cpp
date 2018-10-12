@@ -266,7 +266,6 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
         if (pcursor->GetKey(key) && key.first == DB_BLOCK_INDEX) {
             CDiskBlockIndex diskindex;
             if (pcursor->GetValue(diskindex)) {
-
                 // Construct block index object
                 CBlockIndex* pindexNew = insertBlockIndex(diskindex.GetBlockHash());
                 pindexNew->pprev          = insertBlockIndex(diskindex.hashPrev);
@@ -291,6 +290,11 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
 
                 //RingCT
                 pindexNew->nAnonOutputs             = diskindex.nAnonOutputs;
+
+                // zerocoin
+                pindexNew->mapAccumulatorHashes = diskindex.mapAccumulatorHashes;
+                pindexNew->mapZerocoinSupply = diskindex.mapZerocoinSupply;
+                pindexNew->vMintDenominationsInBlock = diskindex.vMintDenominationsInBlock;
 
                 if (!CheckProofOfWork(pindexNew->GetBlockPoWHash(), pindexNew->nBits, consensusParams))
                     return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
@@ -493,11 +497,11 @@ CZerocoinDB::CZerocoinDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapp
 }
 
 //TODO: add prefixes for zerocoindb to the top of the file insteadof using chars when doing database operations
-bool CZerocoinDB::WriteCoinMintBatch(const std::vector<std::pair<libzerocoin::PublicCoin, uint256> >& mintInfo)
+bool CZerocoinDB::WriteCoinMintBatch(const std::map<libzerocoin::PublicCoin, uint256>& mintInfo)
 {
     CDBBatch batch(*this);
     size_t count = 0;
-    for (std::vector<std::pair<libzerocoin::PublicCoin, uint256> >::const_iterator it=mintInfo.begin(); it != mintInfo.end(); it++) {
+    for (auto it=mintInfo.begin(); it != mintInfo.end(); it++) {
         libzerocoin::PublicCoin pubCoin = it->first;
         uint256 hash = GetPubCoinHash(pubCoin.getValue());
         batch.Write(std::make_pair('m', hash), it->second);
@@ -524,11 +528,11 @@ bool CZerocoinDB::EraseCoinMint(const CBigNum& bnPubcoin)
     return Erase(std::make_pair('m', hash));
 }
 
-bool CZerocoinDB::WriteCoinSpendBatch(const std::vector<std::pair<libzerocoin::CoinSpend, uint256> >& spendInfo)
+bool CZerocoinDB::WriteCoinSpendBatch(const std::map<libzerocoin::CoinSpend, uint256>& spendInfo)
 {
     CDBBatch batch(*this);
     size_t count = 0;
-    for (std::vector<std::pair<libzerocoin::CoinSpend, uint256> >::const_iterator it=spendInfo.begin(); it != spendInfo.end(); it++) {
+    for (auto it=spendInfo.begin(); it != spendInfo.end(); it++) {
         CBigNum bnSerial = it->first.getCoinSerialNumber();
         CDataStream ss(SER_GETHASH, 0);
         ss << bnSerial;

@@ -29,6 +29,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     txNew.vout[0].scriptPubKey = genesisOutputScript;
 
     CBlock genesis;
+    genesis.SetNull();
     genesis.nTime    = nTime;
     genesis.nBits    = nBits;
     genesis.nNonce   = nNonce;
@@ -311,6 +312,7 @@ public:
 
         genesis = CreateGenesisBlock(1536258109, 420253054, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
+        std::cout << "----------GENESIS:---------" << consensus.hashGenesisBlock.GetHex() << std::endl;
         assert(consensus.hashGenesisBlock == uint256S("0xb323cf3b4f2676bb222d7e3831a9d2b5be92f9ca4ca941d91dc33c9b1cc55310"));
         assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
 
@@ -353,7 +355,6 @@ public:
 
         strNetworkRewardAddress = "2N9sWUmygPRy1c14eFWt8FzA8YF4JgA6j6a";
 
-        // TODO: update for veil
         /** Zerocoin */
         zerocoinModulus = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784"
                           "4069182906412495150821892985591491761845028084891200728449926873928072877767359714183472702618963750149718246911"

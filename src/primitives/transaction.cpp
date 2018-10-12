@@ -142,6 +142,13 @@ std::vector<CTxOutBaseRef> DeepCopy(const std::vector<CTxOutBaseRef> &from)
 }
 
 
+CAmount CTxIn::GetZerocoinSpent() const
+{
+    if (!scriptSig.IsZerocoinSpend())
+        return 0;
+    return (nSequence&CTxIn::SEQUENCE_LOCKTIME_MASK) * COIN;
+}
+
 CTxOut::CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn)
 {
     nValue = nValueIn;
@@ -264,6 +271,32 @@ bool CTransaction::IsCoinStake() const
 
     // the coin stake transaction is marked with the first output empty
     return (vout.size() > 1 && vout[0].IsEmpty());
+}
+
+CAmount CTransaction::GetZerocoinSpent() const
+{
+    if(!IsZerocoinSpend())
+        return 0;
+
+    CAmount nValueOut = 0;
+    for (const CTxIn& txin : vin) {
+        if(!txin.scriptSig.IsZerocoinSpend())
+            continue;
+
+        nValueOut += txin.GetZerocoinSpent();
+    }
+
+    return nValueOut;
+}
+
+int CTransaction::GetZerocoinMintCount() const
+{
+    int nCount = 0;
+    for (const CTxOut& out : vout) {
+        if (out.scriptPubKey.IsZerocoinMint())
+            nCount++;
+    }
+    return nCount;
 }
 
 CTransaction& CTransaction::operator=(const CTransaction &tx) {

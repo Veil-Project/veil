@@ -84,8 +84,8 @@ std::map<libzerocoin::CoinDenomination, uint256> AccumulatorMap::GetCheckpoints(
 {
     std::map<libzerocoin::CoinDenomination, uint256> mapCheckpoints;
 
-            //Prevent possible overflows from future changes to the list and forgetting to update this code
-    assert(zerocoinDenomList.size() == 8);
+    //Prevent possible overflows from future changes to the list and forgetting to update this code
+    assert(zerocoinDenomList.size() == 4);
     for (auto& denom : zerocoinDenomList) {
         CBigNum bnValue = mapAccumulators.at(denom)->getValue();
         auto hashChecksum = GetChecksum(bnValue);

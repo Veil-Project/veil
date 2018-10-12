@@ -19,6 +19,9 @@
 #include <key_io.h>
 #include <blind.h>
 #include <validation.h>
+#include <tinyformat.h>
+#include <libzerocoin/CoinSpend.h>
+#include <veil/zchain.h>
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
@@ -141,7 +144,8 @@ unsigned int GetP2SHSigOpCount(const CTransaction& tx, const CCoinsViewCache& in
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
         if (tx.vin[i].IsAnonInput())
             continue;
-
+        if (tx.vin[i].scriptSig.IsZerocoinSpend())
+            continue;
         const Coin& coin = inputs.AccessCoin(tx.vin[i].prevout);
         assert(!coin.IsSpent());
         const CTxOut &prevout = coin.out;
@@ -165,13 +169,88 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
         if (tx.vin[i].IsAnonInput())
             continue;
-
+        if (tx.vin[i].scriptSig.IsZerocoinSpend())
+            continue;
         const Coin& coin = inputs.AccessCoin(tx.vin[i].prevout);
         assert(!coin.IsSpent());
         const CTxOut &prevout = coin.out;
         nSigOps += CountWitnessSigOps(tx.vin[i].scriptSig, prevout.scriptPubKey, &tx.vin[i].scriptWitness, flags);
     }
     return nSigOps;
+}
+
+bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
+{
+    //max needed non-mint outputs should be 2 - one for redemption address and a possible 2nd for change
+    if (tx.vout.size() > 2) {
+        int outs = 0;
+        for (const CTxOut& out : tx.vout) {
+            if (out.IsZerocoinMint())
+                continue;
+            outs++;
+        }
+        if (outs > 2 && !tx.IsCoinStake())
+            return state.DoS(100, error("CheckZerocoinSpend(): over two non-mint outputs in a zerocoinspend transaction"));
+    }
+
+    //compute the txout hash that is used for the zerocoinspend signatures
+    CMutableTransaction txTemp;
+    for (const CTxOut& out : tx.vout) {
+        txTemp.vout.push_back(out);
+    }
+    uint256 hashTxOut = txTemp.GetHash();
+
+    bool fValidated = false;
+    std::set<CBigNum> setSerials;
+    std::list<libzerocoin::CoinSpend> vSpends;
+    CAmount nTotalRedeemed = 0;
+    for (const CTxIn& txin : tx.vin) {
+        //only check txin that is a zcspend
+        if (!txin.scriptSig.IsZerocoinSpend())
+            continue;
+
+        libzerocoin::CoinSpend newSpend = TxInToZerocoinSpend(txin);
+        vSpends.push_back(newSpend);
+
+        //check that the denomination is valid
+        if (newSpend.getDenomination() == libzerocoin::ZQ_ERROR)
+            return state.DoS(100, error("Zerocoinspend does not have the correct denomination"));
+
+        //check that denomination is what it claims to be in nSequence
+        if (newSpend.getDenomination()*COIN != txin.GetZerocoinSpent())
+            return state.DoS(100, error("Zerocoinspend nSequence denomination does not match CoinSpend"));
+
+        //make sure the txout has not changed
+        if (newSpend.getTxOutHash() != hashTxOut)
+            return state.DoS(100, error("Zerocoinspend does not use the same txout that was used in the SoK"));
+
+        if (setSerials.count(newSpend.getCoinSerialNumber()))
+            return state.DoS(100, error("Zerocoinspend serial is used twice in the same tx"));
+        setSerials.emplace(newSpend.getCoinSerialNumber());
+
+        //make sure that there is no over redemption of coins
+        nTotalRedeemed += libzerocoin::ZerocoinDenominationToAmount(newSpend.getDenomination());
+        fValidated = true;
+    }
+
+    if (!tx.IsCoinStake() && nTotalRedeemed < tx.GetValueOut()) {
+        LogPrintf("redeemed = %s , spend = %s \n", FormatMoney(nTotalRedeemed), FormatMoney(tx.GetValueOut()));
+        return state.DoS(100, error("Transaction spend more than was redeemed in zerocoins"));
+    }
+
+    return fValidated;
+}
+
+bool CheckZerocoinMint(const CTxOut& txout, CValidationState& state)
+{
+    libzerocoin::PublicCoin pubCoin(Params().Zerocoin_Params());
+    if (!TxOutToPublicCoin(txout, pubCoin))
+        return state.DoS(100, error("CheckZerocoinMint(): TxOutToPublicCoin() failed"));
+
+    if (!pubCoin.validate())
+        return state.DoS(100, error("CheckZerocoinMint() : PubCoin does not validate"));
+
+    return true;
 }
 
 bool CheckValue(CValidationState &state, CAmount nValue, CAmount &nValueOut)
@@ -261,6 +340,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     if (::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT)
         return state.DoS(100, false, REJECT_INVALID, "bad-txns-oversize");
 
+    // Check for negative or overflow output values
     if (tx.IsParticlVersion()) {
         const Consensus::Params& consensusParams = Params().GetConsensus();
         if (tx.vpout.empty())
@@ -318,26 +398,43 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
             nValueOut += txout.nValue;
             if (!MoneyRange(nValueOut))
                 return state.DoS(100, false, REJECT_INVALID, "bad-txns-txouttotal-toolarge");
+            if (txout.IsZerocoinMint() && !CheckZerocoinMint(txout, state))
+                return state.DoS(100, false, REJECT_INVALID, "bad-zerocoin-mint");
         }
     }
 
-    // Check for duplicate inputs - note that this check is slow so we skip it in CheckBlock
-    if (fCheckDuplicateInputs) {
-        std::set<COutPoint> vInOutPoints;
-        for (const auto& txin : tx.vin) {
-            if (!txin.IsAnonInput() && !vInOutPoints.insert(txin.prevout).second)
-                return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate");
+    std::set<COutPoint> vInOutPoints;
+    std::set<uint256> setZerocoinSpendHashes;
+    for (const auto& txin : tx.vin)
+    {
+        if (txin.scriptSig.IsZerocoinSpend()) {
+            //Veil: Cheap check here by hashing the entire script. This could be worked around, so still needs
+            // a final full check in ConnectBlock()
+            auto hashSpend = Hash(txin.scriptSig.begin(), txin.scriptSig.end());
+            if (setZerocoinSpendHashes.count(hashSpend))
+                return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate-zcspend");
+            setZerocoinSpendHashes.emplace(hashSpend);
+            continue;
         }
+        if (!txin.IsAnonInput() && !vInOutPoints.insert(txin.prevout).second)
+            return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate");
     }
 
     if (tx.IsCoinBase()) {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-length");
+    } else if (tx.IsZerocoinSpend()) {
+        if (tx.vin.size() < 1 || static_cast<int>(tx.vin.size()) > Params().Zerocoin_MaxSpendsPerTransaction())
+            return state.DoS(10, error("CheckTransaction() : Zerocoin Spend has more than allowed txin's"),
+                             REJECT_INVALID, "bad-zerocoinspend");
     } else {
         for (const auto& txin : tx.vin)
             if (!txin.IsAnonInput() && txin.prevout.IsNull())
                 return state.DoS(10, false, REJECT_INVALID, "bad-txns-prevout-null");
     }
+
+    if (tx.IsZerocoinSpend())
+        return CheckZerocoinSpend(tx, state);
 
     return true;
 }
@@ -370,6 +467,16 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
             continue;
         }
 
+        if (tx.vin[i].scriptSig.IsZerocoinSpend()) {
+            //Zerocoinspend uses nSequence as an easy reference to denomination
+            CAmount nValue = tx.vin[i].nSequence & CTxIn::SEQUENCE_LOCKTIME_MASK;
+            nValue *= COIN;
+            if (!MoneyRange(nValue))
+                return false;
+            nValueIn += nValue;
+            LogPrintf("%s: zerocoin input nSequence = %d \n", __func__, nValue);
+            continue;
+        }
         const COutPoint &prevout = tx.vin[i].prevout;
         const Coin& coin = inputs.AccessCoin(prevout);
         assert(!coin.IsSpent());

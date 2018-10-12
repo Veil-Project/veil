@@ -436,13 +436,15 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
     WalletBatch walletdb(*walletDatabase);
     if (fUpdateStatus) {
         std::list<CZerocoinMint> listMintsDB = walletdb.ListMintedCoins();
-        for (auto& mint : listMintsDB)
+        for (auto& mint : listMintsDB) {
             Add(mint);
+        }
         LogPrintf("%s: added %d zerocoinmints from DB\n", __func__, listMintsDB.size());
 
         std::list<CDeterministicMint> listDeterministicDB = walletdb.ListDeterministicMints();
-        for (auto& dMint : listDeterministicDB)
+        for (auto& dMint : listDeterministicDB) {
             Add(dMint);
+        }
         LogPrintf("%s: added %d dzpiv from DB\n", __func__, listDeterministicDB.size());
     }
 
@@ -478,8 +480,9 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
             // Not confirmed
             if (!mint.nHeight || mint.nHeight > chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations())
                 continue;
-            if (mint.nHeight >= mapMaturity.at(mint.denom))
-                continue;
+            //todo
+            //if (mint.nHeight >= mapMaturity.at(mint.denom))
+            //    continue;
         }
         setMints.insert(mint);
     }

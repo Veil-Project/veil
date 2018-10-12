@@ -21,6 +21,8 @@
 #include <sync.h>
 #include <random.h>
 
+#include <libzerocoin/bignum.h>
+
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -94,6 +96,9 @@ private:
     CAmount nModFeesWithAncestors;
     int64_t nSigOpCostWithAncestors;
 
+    //Zerocoin data
+    std::set<CBigNum> setSerialHashes;
+
 public:
     CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee,
                     int64_t _nTime, unsigned int _entryHeight,
@@ -111,6 +116,8 @@ public:
     int64_t GetModifiedFee() const { return nFee + feeDelta; }
     size_t DynamicMemoryUsage() const { return nUsageSize; }
     const LockPoints& GetLockPoints() const { return lockPoints; }
+    bool IsZerocoinSpend() const { return !setSerialHashes.empty(); }
+    const std::set<CBigNum> GetSetSerialHashes() const { return setSerialHashes; }
 
     // Adjusts the descendant state.
     void UpdateDescendantState(int64_t modifySize, CAmount modifyFee, int64_t modifyCount);

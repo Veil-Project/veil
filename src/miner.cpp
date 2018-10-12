@@ -34,6 +34,7 @@
 #include <queue>
 #include <utility>
 #include <boost/thread.hpp>
+#include "accumulators.h"
 
 // Unconfirmed transactions in the memory pool often depend on other
 // transactions in the memory pool. When we select transactions from the
@@ -184,18 +185,56 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     CTxDestination rewardDest = DecodeDestination(strRewardAddress);
     CScript rewardScript = GetScriptForDestination(rewardDest);
 
+    //! find any coins that are sent to the network address, also make sure no conflicting zerocoin spends are included
+    // todo reiterating over the spends here is not ideal, the new mining code is so complicated that this is the easiest solution at the moment
+    std::set<CBigNum> setSerials;
+    std::set<uint256> setDuplicate;
     for (unsigned int i = 0; i < pblock->vtx.size(); i++) {
         if (pblock->vtx[i] == nullptr)
             continue;
 
         const CTransaction &tx = *(pblock->vtx[i]);
 
-        for (auto& txOut : tx.vout) {
+        //double check all zerocoin spends for duplicates
+        bool fRemove = false;
+        for (const auto& in : tx.vin) {
+            if (in.scriptSig.IsZerocoinSpend()) {
+                auto spend = TxInToZerocoinSpend(in);
+                if (setSerials.count(spend.getCoinSerialNumber())) {
+                    setDuplicate.emplace(tx.GetHash());
+                    fRemove = true;
+                    break;
+                }
+
+                setSerials.emplace(spend.getCoinSerialNumber());
+            }
+        }
+        if (fRemove)
+            continue;
+
+        for (auto &txOut : tx.vout) {
             if (txOut.scriptPubKey == rewardScript) {
                 nNetworkRewardReserve += txOut.nValue;
             }
         }
     }
+
+    //Remove duplicates
+    std::vector<CTransactionRef> vtxReplace;
+    for (unsigned int i = 0; i < pblock->vtx.size(); i++) {
+        if (pblock->vtx[i] == nullptr) {
+            vtxReplace.emplace_back(pblock->vtx[i]);
+            continue;
+        }
+
+        if (setDuplicate.count(pblock->vtx[i]->GetHash())) {
+            mempool.removeRecursive(*pblock->vtx[i]);
+            continue;
+        }
+
+        vtxReplace.emplace_back(pblock->vtx[i]);
+    }
+    pblock->vtx = vtxReplace;
 
     CAmount nNetworkReward = nNetworkRewardReserve > Params().MaxNetworkReward() ? Params().MaxNetworkReward() : nNetworkRewardReserve;
 
@@ -204,16 +243,22 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if(!fProofOfStake) {
         coinbaseTx.vin.resize(1);
         coinbaseTx.vin[0].prevout.SetNull();
-        coinbaseTx.vout.resize(2);
+        CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
+        veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+        coinbaseTx.vout.resize(1);
         coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-        coinbaseTx.vout[0].nValue = nFees + nNetworkReward + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+
+        //Miner gets the block reward and any network reward
+        CAmount nMinerReward = nBlockReward + nNetworkReward;
+        coinbaseTx.vout[0].nValue = nMinerReward;
         coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
 
         std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
         CTxDestination dest = DecodeDestination(strBudgetAddress);
         auto budgetScript = GetScriptForDestination(dest);
-        coinbaseTx.vout[1].scriptPubKey = budgetScript;
-        coinbaseTx.vout[1].nValue = veil::Budget().GetBudgetAmount();
+
+        if (nBudgetPayment)
+            coinbaseTx.vout[1] = CTxOut(nBudgetPayment, budgetScript);
     }
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
@@ -234,6 +279,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus(), pblock->IsProofOfStake());
     pblock->nNonce         = 0;
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
+
+    //Calculate the accumulator checkpoint only if the previous cached checkpoint need to be updated
+    std::map<libzerocoin::CoinDenomination, uint256> mapCheckpoints;
+    AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
+    if (!CalculateAccumulatorCheckpoint(nHeight, mapCheckpoints, mapAccumulators))
+        LogPrintf("%s: failed to get accumulator checkpoints\n", __func__);
+    pblock->mapAccumulatorHashes = mapCheckpoints;
 
     //Sign block if this is a proof of stake block
     if (pblock->IsProofOfStake()) {
@@ -256,6 +308,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
         throw std::runtime_error(strprintf("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state)));
     }
+
     int64_t nTime2 = GetTimeMicros();
 
     LogPrint(BCLog::BENCH, "CreateNewBlock() packages: %.2fms (%d packages, %d updated descendants), validity: %.2fms (total %.2fms)\n", 0.001 * (nTime1 - nTimeStart), nPackagesSelected, nDescendantsUpdated, 0.001 * (nTime2 - nTime1), 0.001 * (nTime2 - nTimeStart));
@@ -452,10 +505,10 @@ void BlockAssembler::addPackageTxs(int &nPackagesSelected, int &nDescendantsUpda
             packageSigOpsCost = modit->nSigOpCostWithAncestors;
         }
 
-        if (packageFees < blockMinFeeRate.GetFee(packageSize)) {
-            // Everything else we might consider has a lower fee rate
-            return;
-        }
+//        if (packageFees < blockMinFeeRate.GetFee(packageSize)) {
+//            // Everything else we might consider has a lower fee rate
+//            return;
+//        }
 
         if (!TestPackage(packageSize, packageSigOpsCost)) {
             if (fUsingModified) {
@@ -556,7 +609,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript) {
             IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
         }
 
-        while (!CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
+        while (pblock->nNonce < nInnerLoopCount && !CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
             ++pblock->nNonce;
         }
 
@@ -565,8 +618,12 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript) {
         }
 
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
-        if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr))
+        if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
+            LogPrintf("%s : Failed to process new block, clearing mempool txs\n", __func__);
+            mempool.clear();
             return;
+        }
+
 
         coinbaseScript->KeepScript();
     }

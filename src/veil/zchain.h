@@ -6,6 +6,7 @@
 #include "libzerocoin/CoinSpend.h"
 #include <list>
 #include <string>
+#include <primitives/transaction.h>
 
 class CBlock;
 class CBigNum;
@@ -27,11 +28,11 @@ bool IsPubcoinInBlockchain(const uint256& hashPubcoin, uint256& txid);
 bool IsSerialKnown(const CBigNum& bnSerial);
 bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx);
 bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& txidSpend);
-bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& txidSpend, CTransaction& tx);
+bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& txidSpend, CTransactionRef txRef);
 bool RemoveSerialFromDB(const CBigNum& bnSerial);
 std::string ReindexZerocoinDB();
 libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin);
-bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin, CValidationState& state);
+bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin);
 std::list<libzerocoin::CoinDenomination> ZerocoinSpendListFromBlock(const CBlock& block);
 
 #endif //VEIL_ZCHAIN_H

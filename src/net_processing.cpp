@@ -2249,7 +2249,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         std::list<CTransactionRef> lRemovedTxn;
 
-        if (!AlreadyHave(inv) &&
+        if (!tx.IsZerocoinSpend() && !AlreadyHave(inv) &&
             AcceptToMemoryPool(mempool, state, ptx, &fMissingInputs, &lRemovedTxn, false /* bypass_limits */, 0 /* nAbsurdFee */)) {
             mempool.check(pcoinsTip.get());
             if (inv.IsDandelion()) {
@@ -2331,6 +2331,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
             for (uint256 hash : vEraseQueue)
                 EraseOrphanTx(hash);
+        }
+        else if (tx.IsZerocoinSpend() && AcceptToMemoryPool(mempool, state, ptx, &fMissingInputs, &lRemovedTxn, false, 0)) {
+            RelayTransaction(tx, connman);
         }
         else if (fMissingInputs)
         {
