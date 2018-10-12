@@ -9,6 +9,7 @@
 #include <tinyformat.h>
 #include <utilstrencodings.h>
 #include <crypto/common.h>
+#include <streams.h>
 
 uint256 CBlockHeader::GetHash() const
 {
@@ -17,7 +18,8 @@ uint256 CBlockHeader::GetHash() const
 
 uint256 CBlockHeader::GetPoWHash() const
 {
-    return HashX16R(BEGIN(nVersion), END(nNonce), hashPrevBlock);
+    uint256 hashBlock = GetHash();
+    return HashX16R(BEGIN(hashBlock), END(hashBlock), hashPrevBlock);
 }
 
 std::string CBlock::ToString() const

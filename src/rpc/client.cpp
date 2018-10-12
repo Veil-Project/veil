@@ -173,6 +173,12 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "rescanblockchain", 0, "start_height"},
     { "rescanblockchain", 1, "stop_height"},
     { "createwallet", 1, "disable_private_keys"},
+    { "mintzerocoin", 0, "amount"},
+    { "mintzerocoin", 1, "utxos"},
+    { "spendzerocoin", 0, "amount"},
+    { "spendzerocoin", 1, "mintchange"},
+    { "spendzerocoin", 2, "minimizechange"},
+    { "spendzerocoin", 3, "securitylevel"},
 };
 
 class CRPCConvertTable

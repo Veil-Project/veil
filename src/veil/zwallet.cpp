@@ -11,22 +11,22 @@
 
 using namespace libzerocoin;
 
-CzWallet::CzWallet(CWallet wallet)
+CzWallet::CzWallet(CWallet* wallet)
 {
-    this->walletDatabase = wallet.database;
+    this->walletDatabase = wallet->database;
     WalletBatch walletdb(*walletDatabase);
-    auto pwalletmain = GetMainWallet();
+
+    nCountLastUsed = 0;
 
     //Don't try to do anything if the wallet is locked.
-    if (pwalletmain->IsLocked()) {
+    if (wallet->IsLocked()) {
         seedMaster = uint256();
-        nCountLastUsed = 0;
         this->mintPool = CMintPool();
         return;
     }
 
     uint256 seed;
-    if (!pwalletmain->GetDeterministicSeed(seed)) {
+    if (!wallet->GetDeterministicSeed(seed)) {
         LogPrintf("%s: failed to get deterministic seed\n", __func__);
         return;
     }
@@ -174,10 +174,8 @@ void CzWallet::SyncWithChain(bool fGenerateMintPool)
                     if (!out.scriptPubKey.IsZerocoinMint())
                         continue;
 
-                    CBigNum bnMod;
-                    bnMod.SetDec(Params().Zerocoin_Modulus());
-                    auto zerocoinParams = ZerocoinParams(bnMod);
-                    PublicCoin pubcoin(&zerocoinParams);
+                    auto zerocoinParams = Params().Zerocoin_Params();
+                    PublicCoin pubcoin(zerocoinParams);
                     CValidationState state;
                     if (!TxOutToPublicCoin(out, pubcoin, state)) {
                         LogPrintf("%s : failed to get mint from txout for %s!\n", __func__, pMint.first.GetHex());
@@ -306,19 +304,15 @@ bool CzWallet::SetMintSeen(const CBigNum& bnValue, const int& nHeight, const uin
 // Check if the value of the commitment meets requirements
 bool IsValidCoinValue(const CBigNum& bnValue)
 {
-    CBigNum bnMod;
-    bnMod.SetDec(Params().Zerocoin_Modulus());
-    auto zerocoinParams = ZerocoinParams(bnMod);
-    return bnValue >= zerocoinParams.accumulatorParams.minCoinValue &&
-           bnValue <= zerocoinParams.accumulatorParams.maxCoinValue &&
+    auto zerocoinParams = Params().Zerocoin_Params();
+    return bnValue >= zerocoinParams->accumulatorParams.minCoinValue &&
+           bnValue <= zerocoinParams->accumulatorParams.maxCoinValue &&
            bnValue.isPrime();
 }
 
 void CzWallet::SeedToZPIV(const uint512& seedZerocoin, CBigNum& bnValue, CBigNum& bnSerial, CBigNum& bnRandomness, CKey& key)
 {
-    CBigNum bnMod;
-    bnMod.SetDec(Params().Zerocoin_Modulus());
-    auto zerocoinParams = ZerocoinParams(bnMod);
+    auto zerocoinParams = Params().Zerocoin_Params();
 
     //convert state seed into a seed for the private key
     uint256 nSeedPrivKey = seedZerocoin.trim256();
@@ -327,7 +321,7 @@ void CzWallet::SeedToZPIV(const uint512& seedZerocoin, CBigNum& bnValue, CBigNum
     key = CKey();
     while (!isValidKey) {
         nSeedPrivKey = Hash(nSeedPrivKey.begin(), nSeedPrivKey.end());
-        isValidKey = libzerocoin::GenerateKeyPair(zerocoinParams.coinCommitmentGroup.groupOrder, nSeedPrivKey, key, bnSerial);
+        isValidKey = libzerocoin::GenerateKeyPair(zerocoinParams->coinCommitmentGroup.groupOrder, nSeedPrivKey, key, bnSerial);
     }
 
     //hash randomness seed with Bottom 256 bits of seedZerocoin & attempts256 which is initially 0
@@ -335,13 +329,13 @@ void CzWallet::SeedToZPIV(const uint512& seedZerocoin, CBigNum& bnValue, CBigNum
     uint256 randomnessSeed = ArithToUint512(arithSeed >> 256).trim256();
     uint256 hashRandomness = Hash(randomnessSeed.begin(), randomnessSeed.end());
     bnRandomness.setuint256(hashRandomness);
-    bnRandomness = bnRandomness % zerocoinParams.coinCommitmentGroup.groupOrder;
+    bnRandomness = bnRandomness % zerocoinParams->coinCommitmentGroup.groupOrder;
 
     //See if serial and randomness make a valid commitment
     // Generate a Pedersen commitment to the serial number
-    CBigNum commitmentValue = zerocoinParams.coinCommitmentGroup.g.pow_mod(bnSerial, zerocoinParams.coinCommitmentGroup.modulus).mul_mod(
-            zerocoinParams.coinCommitmentGroup.h.pow_mod(bnRandomness, zerocoinParams.coinCommitmentGroup.modulus),
-            zerocoinParams.coinCommitmentGroup.modulus);
+    CBigNum commitmentValue = zerocoinParams->coinCommitmentGroup.g.pow_mod(bnSerial, zerocoinParams->coinCommitmentGroup.modulus).mul_mod(
+            zerocoinParams->coinCommitmentGroup.h.pow_mod(bnRandomness, zerocoinParams->coinCommitmentGroup.modulus),
+            zerocoinParams->coinCommitmentGroup.modulus);
 
     CBigNum random;
     arith_uint256 attempts256;
@@ -362,9 +356,9 @@ void CzWallet::SeedToZPIV(const uint512& seedZerocoin, CBigNum& bnValue, CBigNum
         hashRandomness = Hash(randomnessSeed.begin(), randomnessSeed.end(),
                               hashAttempts.begin(), hashAttempts.end());
         random.setuint256(hashRandomness);
-        bnRandomness = (bnRandomness + random) % zerocoinParams.coinCommitmentGroup.groupOrder;
-        commitmentValue = commitmentValue.mul_mod(zerocoinParams.coinCommitmentGroup.h.pow_mod(random,
-                zerocoinParams.coinCommitmentGroup.modulus), zerocoinParams.coinCommitmentGroup.modulus);
+        bnRandomness = (bnRandomness + random) % zerocoinParams->coinCommitmentGroup.groupOrder;
+        commitmentValue = commitmentValue.mul_mod(zerocoinParams->coinCommitmentGroup.h.pow_mod(random,
+                zerocoinParams->coinCommitmentGroup.modulus), zerocoinParams->coinCommitmentGroup.modulus);
     }
 }
 
@@ -383,7 +377,7 @@ void CzWallet::UpdateCount()
     walletdb.WriteZPIVCount(nCountLastUsed);
 }
 
-void CzWallet::GenerateDeterministicZPIV(CoinDenomination denom, PrivateCoin& coin, CDeterministicMint& dMint, bool fGenerateOnly)
+void CzWallet::GenerateDeterministicZerocoin(CoinDenomination denom, PrivateCoin& coin, CDeterministicMint& dMint, bool fGenerateOnly)
 {
     GenerateMint(nCountLastUsed + 1, denom, coin, dMint);
     if (fGenerateOnly)
@@ -395,9 +389,7 @@ void CzWallet::GenerateDeterministicZPIV(CoinDenomination denom, PrivateCoin& co
 
 void CzWallet::GenerateMint(const uint32_t& nCount, const CoinDenomination denom, PrivateCoin& coin, CDeterministicMint& dMint)
 {
-    CBigNum bnMod;
-    bnMod.SetDec(Params().Zerocoin_Modulus());
-    auto zerocoinParams = ZerocoinParams(bnMod);
+    auto zerocoinParams = Params().Zerocoin_Params();
 
     uint512 seedZerocoin = GetZerocoinSeed(nCount);
     CBigNum bnValue;
@@ -405,7 +397,7 @@ void CzWallet::GenerateMint(const uint32_t& nCount, const CoinDenomination denom
     CBigNum bnRandomness;
     CKey key;
     SeedToZPIV(seedZerocoin, bnValue, bnSerial, bnRandomness, key);
-    coin = PrivateCoin(&zerocoinParams, denom, bnSerial, bnRandomness);
+    coin = PrivateCoin(zerocoinParams, denom, bnSerial, bnRandomness);
     coin.setPrivKey(key.GetPrivKey());
     coin.setVersion(PrivateCoin::CURRENT_VERSION);
 
@@ -426,11 +418,9 @@ bool CzWallet::RegenerateMint(const CDeterministicMint& dMint, CZerocoinMint& mi
         return error("%s: master seed does not match!\ndmint:\n %s \nhashSeed: %s\nseed: %s", __func__, dMint.ToString(), hashSeed.GetHex(), seedMaster.GetHex());
 
     //Generate the coin
-    CBigNum bnMod;
-    bnMod.SetDec(Params().Zerocoin_Modulus());
-    auto zerocoinParams = ZerocoinParams(bnMod);
+    auto zerocoinParams = Params().Zerocoin_Params();
 
-    PrivateCoin coin(&zerocoinParams, dMint.GetDenomination(), false);
+    PrivateCoin coin(zerocoinParams, dMint.GetDenomination(), false);
     CDeterministicMint dMintDummy;
     GenerateMint(dMint.GetCount(), dMint.GetDenomination(), coin, dMintDummy);
 
