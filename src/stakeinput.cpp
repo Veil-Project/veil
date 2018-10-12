@@ -37,10 +37,10 @@ int CZPivStake::GetChecksumHeightFromMint()
 
 int CZPivStake::GetChecksumHeightFromSpend()
 {
-    return GetChecksumHeight(ArithToUint256(arith_uint256(nChecksum)), denom);
+    return GetChecksumHeight(nChecksum, denom);
 }
 
-uint32_t CZPivStake::GetChecksum()
+uint256 CZPivStake::GetChecksum()
 {
     return nChecksum;
 }

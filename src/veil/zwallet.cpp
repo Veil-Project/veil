@@ -31,6 +31,10 @@ CzWallet::CzWallet(CWallet* wallet)
         return;
     }
 
+    if (!walletdb.ReadZCount(nCountLastUsed)) {
+        nCountLastUsed = 0;
+    }
+
     this->mintPool = CMintPool(nCountLastUsed);
 }
 
@@ -177,7 +181,7 @@ void CzWallet::SyncWithChain(bool fGenerateMintPool)
                     auto zerocoinParams = Params().Zerocoin_Params();
                     PublicCoin pubcoin(zerocoinParams);
                     CValidationState state;
-                    if (!TxOutToPublicCoin(out, pubcoin, state)) {
+                    if (!TxOutToPublicCoin(out, pubcoin)) {
                         LogPrintf("%s : failed to get mint from txout for %s!\n", __func__, pMint.first.GetHex());
                         continue;
                     }
@@ -263,18 +267,17 @@ bool CzWallet::SetMintSeen(const CBigNum& bnValue, const int& nHeight, const uin
     // Check if this is also already spent
     int nHeightTx;
     uint256 txidSpend;
-    CTransaction txSpend;
+    CTransactionRef txSpend;
     if (IsSerialInBlockchain(hashSerial, nHeightTx, txidSpend, txSpend)) {
         //Find transaction details and make a wallettx and add to wallet
         dMint.SetUsed(true);
-        CTransactionRef txSpendRef = std::shared_ptr<CTransaction>(&txSpend);
-        CWalletTx wtx(pwalletmain.get(), txSpendRef);
+        CWalletTx wtx(pwalletmain.get(), txSpend);
         CBlockIndex* pindex = chainActive[nHeightTx];
         CBlock block;
         if (ReadBlockFromDisk(block, pindex, Params().GetConsensus())) {
             int nIndex;
             for (nIndex = 0; nIndex < (int)block.vtx.size(); nIndex++) {
-                if (block.vtx[nIndex]->GetHash() == txSpendRef->GetHash())
+                if (block.vtx[nIndex]->GetHash() == txSpend->GetHash())
                     break;
             }
 
@@ -292,7 +295,7 @@ bool CzWallet::SetMintSeen(const CBigNum& bnValue, const int& nHeight, const uin
     if (nCountLastUsed < pMint.second) {
         WalletBatch walletdb(*walletDatabase);
         nCountLastUsed = pMint.second;
-        walletdb.WriteZPIVCount(nCountLastUsed);
+        walletdb.WriteZCount(nCountLastUsed);
     }
 
     //remove from the pool
@@ -374,7 +377,7 @@ void CzWallet::UpdateCount()
 {
     nCountLastUsed++;
     WalletBatch walletdb(*walletDatabase);
-    walletdb.WriteZPIVCount(nCountLastUsed);
+    walletdb.WriteZCount(nCountLastUsed);
 }
 
 void CzWallet::GenerateDeterministicZerocoin(CoinDenomination denom, PrivateCoin& coin, CDeterministicMint& dMint, bool fGenerateOnly)

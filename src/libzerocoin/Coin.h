@@ -59,6 +59,7 @@ public:
         return ((this->value == rhs.value) && (this->params == rhs.params) && (this->denomination == rhs.denomination));
     }
     bool operator!=(const PublicCoin& rhs) const { return !(*this == rhs); }
+    bool operator<(const PublicCoin& rhs) const;
     /** Checks that coin is prime and in the appropriate range given the parameters
      * @return true if valid
      */

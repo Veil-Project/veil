@@ -271,10 +271,12 @@ void ThreadScriptCheck();
 /** Check whether we are doing an initial block download (synchronizing from disk or network) */
 bool IsInitialBlockDownload();
 /** Retrieve a transaction (from memory pool, or from disk, if possible) */
-bool GetTransaction(const uint256& hash, CTransactionRef& tx, const Consensus::Params& params, uint256& hashBlock, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr);
+bool GetTransaction(const uint256& hash, CTransactionRef tx, const Consensus::Params& params, uint256& hashBlock, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr);
+
+bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight);
 
 /** Determine if the provided txid corresponds to a transaction in the blockchain */
-bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransaction& tx, const Consensus::Params& params);
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params);
 bool IsTransactionInChain(const uint256& txId, int& nHeightTx, const Consensus::Params& params);
 
 /**
@@ -362,6 +364,9 @@ bool TestLockPointValidity(const LockPoints* lp);
  */
 bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp = nullptr, bool useExistingLockPoints = false);
 
+bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock);
+bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::PublicCoin& coin);
+
 /**
  * Closure representing one script verification
  * Note that this stores references to the spending transaction
@@ -431,6 +436,9 @@ bool RewindBlockIndex(const CChainParams& params);
 
 /** Update uncommitted block structures (currently: only the witness reserved value). This is safe for submitted blocks. */
 void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams);
+
+bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::map<libzerocoin::CoinSpend, uint256>& mapSpends,
+                         const std::map<libzerocoin::PublicCoin, uint256>& mapMints);
 
 /** Produce the necessary coinbase commitment for a block (modifies the hash, don't call for mined blocks). */
 std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams);

@@ -35,7 +35,7 @@ bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomina
 
             CValidationState state;
             libzerocoin::PublicCoin coin(zerocoinParams);
-            if(!TxOutToPublicCoin(txOut, coin, state))
+            if(!TxOutToPublicCoin(txOut, coin))
                 return false;
 
             if (coin.getDenomination() != denom)
@@ -63,7 +63,7 @@ bool BlockToPubcoinList(const CBlock& block, std::list<libzerocoin::PublicCoin>&
 
             CValidationState state;
             libzerocoin::PublicCoin pubCoin(zerocoinParams);
-            if(!TxOutToPublicCoin(txOut, pubCoin, state))
+            if(!TxOutToPublicCoin(txOut, pubCoin))
                 return false;
 
             listPubcoins.emplace_back(pubCoin);
@@ -91,7 +91,7 @@ bool BlockToZerocoinMintList(const CBlock& block, std::list<CZerocoinMint>& vMin
 
             CValidationState state;
             libzerocoin::PublicCoin pubCoin(&zerocoinParams);
-            if(!TxOutToPublicCoin(txOut, pubCoin, state))
+            if(!TxOutToPublicCoin(txOut, pubCoin))
                 return false;
 
             //version should not actually matter here since it is just a reference to the pubcoin, not to the privcoin
@@ -164,7 +164,7 @@ void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMin
                 continue;
             libzerocoin::PublicCoin pubcoin(zerocoinParams);
             CValidationState state;
-            TxOutToPublicCoin(out, pubcoin, state);
+            TxOutToPublicCoin(out, pubcoin);
             if (GetPubCoinHash(pubcoin.getValue()) == meta.hashPubcoin && pubcoin.getDenomination() != meta.denom) {
                 LogPrintf("%s: found mismatched denom pubcoinhash = %s\n", __func__, meta.hashPubcoin.GetHex());
                 meta.denom = pubcoin.getDenomination();
@@ -216,24 +216,24 @@ bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx)
     if (!pzerocoinDB->ReadCoinSpend(bnSerial, txHash))
         return false;
 
-    CTransaction tx;
-    return IsTransactionInChain(txHash, nHeightTx, tx, Params().GetConsensus());
+    CTransactionRef txRef;
+    return IsTransactionInChain(txHash, nHeightTx, txRef, Params().GetConsensus());
 }
 
 bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& txidSpend)
 {
-    CTransaction tx;
+    CTransactionRef tx;
     return IsSerialInBlockchain(hashSerial, nHeightTx, txidSpend, tx);
 }
 
-bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& txidSpend, CTransaction& tx)
+bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& txidSpend, CTransactionRef txRef)
 {
     txidSpend = uint256();
     // if not in zerocoinDB then its not in the blockchain
     if (!pzerocoinDB->ReadCoinSpend(hashSerial, txidSpend))
         return false;
 
-    return IsTransactionInChain(txidSpend, nHeightTx, tx, Params().GetConsensus());
+    return IsTransactionInChain(txidSpend, nHeightTx, txRef, Params().GetConsensus());
 }
 
 std::string ReindexZerocoinDB()
@@ -247,8 +247,8 @@ std::string ReindexZerocoinDB()
     uiInterface.ShowProgress(_("Reindexing zerocoin database..."), 0, false);
 
     CBlockIndex* pindex = chainActive[0];
-    std::vector<std::pair<libzerocoin::CoinSpend, uint256> > vSpendInfo;
-    std::vector<std::pair<libzerocoin::PublicCoin, uint256> > vMintInfo;
+    std::map<libzerocoin::CoinSpend, uint256> mapSpends;
+    std::map<libzerocoin::PublicCoin, uint256> mapMints;
     while (pindex) {
         uiInterface.ShowProgress(_("Reindexing zerocoin database..."), std::max(1, std::min(99,
                 (int)((double) (pindex->nHeight) / (double)(chainActive.Height()) * 100))), false);
@@ -275,7 +275,7 @@ std::string ReindexZerocoinDB()
                                 continue;
 
                             libzerocoin::CoinSpend spend = TxInToZerocoinSpend(in);
-                            vSpendInfo.push_back(make_pair(spend, txid));
+                            mapSpends.emplace(spend, txid);
                         }
                     }
 
@@ -287,8 +287,8 @@ std::string ReindexZerocoinDB()
 
                             CValidationState state;
                             libzerocoin::PublicCoin coin(zerocoinParams);
-                            TxOutToPublicCoin(out, coin, state);
-                            vMintInfo.push_back(make_pair(coin, txid));
+                            TxOutToPublicCoin(out, coin);
+                            mapMints.emplace(coin, txid);
                         }
                     }
                 }
@@ -297,11 +297,11 @@ std::string ReindexZerocoinDB()
 
         // Flush the zerocoinDB to disk every 100 blocks
         if (pindex->nHeight % 100 == 0) {
-            if ((!vSpendInfo.empty() && !pzerocoinDB->WriteCoinSpendBatch(vSpendInfo)) || (!vMintInfo.empty()
-                && !pzerocoinDB->WriteCoinMintBatch(vMintInfo)))
+            if ((!mapSpends.empty() && !pzerocoinDB->WriteCoinSpendBatch(mapSpends)) || (!mapMints.empty()
+                && !pzerocoinDB->WriteCoinMintBatch(mapMints)))
                 return _("Error writing zerocoinDB to disk");
-            vSpendInfo.clear();
-            vMintInfo.clear();
+            mapSpends.clear();
+            mapMints.clear();
         }
 
         pindex = chainActive.Next(pindex);
@@ -309,8 +309,8 @@ std::string ReindexZerocoinDB()
     uiInterface.ShowProgress("", 100, false);
 
     // Final flush to disk in case any remaining information exists
-    if ((!vSpendInfo.empty() && !pzerocoinDB->WriteCoinSpendBatch(vSpendInfo)) || (!vMintInfo.empty() &&
-        !pzerocoinDB->WriteCoinMintBatch(vMintInfo)))
+    if ((!mapSpends.empty() && !pzerocoinDB->WriteCoinSpendBatch(mapSpends)) || (!mapMints.empty() &&
+        !pzerocoinDB->WriteCoinMintBatch(mapMints)))
         return _("Error writing zerocoinDB to disk");
 
     uiInterface.ShowProgress("", 100, false);
@@ -338,10 +338,8 @@ libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin)
     return spend;
 }
 
-bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin, CValidationState& state)
+bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin)
 {
-    auto zerocoinParams = Params().Zerocoin_Params();
-
     CBigNum publicZerocoin;
     vector<unsigned char> vchZeroMint;
     vchZeroMint.insert(vchZeroMint.end(), txout.scriptPubKey.begin() + SCRIPT_OFFSET,
@@ -349,11 +347,10 @@ bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin, CV
     publicZerocoin.setvch(vchZeroMint);
 
     libzerocoin::CoinDenomination denomination = libzerocoin::AmountToZerocoinDenomination(txout.nValue);
-    LogPrintf("%s ZCPRINT denomination %d pubcoin %s\n", __func__, denomination, publicZerocoin.GetHex());
     if (denomination == libzerocoin::ZQ_ERROR)
-        return state.DoS(100, error("TxOutToPublicCoin : txout.nValue is not correct"));
+        return error("TxOutToPublicCoin : txout.nValue is not correct");
 
-    libzerocoin::PublicCoin checkPubCoin(zerocoinParams, publicZerocoin, denomination);
+    libzerocoin::PublicCoin checkPubCoin(Params().Zerocoin_Params(), publicZerocoin, denomination);
     pubCoin = checkPubCoin;
 
     return true;
@@ -371,7 +368,7 @@ std::list<libzerocoin::CoinDenomination> ZerocoinSpendListFromBlock(const CBlock
             if (!txin.scriptSig.IsZerocoinSpend())
                 continue;
 
-            libzerocoin::CoinDenomination c = libzerocoin::IntToZerocoinDenomination(txin.nSequence);
+            libzerocoin::CoinDenomination c = libzerocoin::IntToZerocoinDenomination(txin.nSequence&CTxIn::SEQUENCE_LOCKTIME_MASK);
             vSpends.push_back(c);
         }
     }

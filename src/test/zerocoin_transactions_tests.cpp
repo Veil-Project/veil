@@ -39,14 +39,38 @@ CBigNum GetTestModulus()
 
     return testModulus;
 }*/
-BOOST_FIXTURE_TEST_SUITE(libzerocoin, BasicTestingSetup)
-
-BOOST_AUTO_TEST_SUITE(zerocoin_transactions_tests)
+BOOST_FIXTURE_TEST_SUITE(zerocoin_transaction, BasicTestingSetup)
 
 //static CWallet cWallet("unlocked.dat");
 
+BOOST_AUTO_TEST_CASE(spend_nsequence)
+{
+    CTxIn in;
+    in.nSequence = libzerocoin::CoinDenomination::ZQ_TEN;
+    in.nSequence |= CTxIn::SEQUENCE_LOCKTIME_DISABLE_FLAG;
+
+    CAmount nAmount = (in.nSequence & CTxIn::SEQUENCE_LOCKTIME_MASK);
+    BOOST_CHECK_MESSAGE(nAmount == 10, "nSequence did not properly decode for 10");
+
+    in.nSequence = libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED;
+    in.nSequence |= CTxIn::SEQUENCE_LOCKTIME_DISABLE_FLAG;
+    nAmount = (in.nSequence & CTxIn::SEQUENCE_LOCKTIME_MASK);
+    BOOST_CHECK_MESSAGE(nAmount == 100, "nSequence did not properly decode for 100");
+
+    in.nSequence = libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND;
+    in.nSequence |= CTxIn::SEQUENCE_LOCKTIME_DISABLE_FLAG;
+    nAmount = (in.nSequence & CTxIn::SEQUENCE_LOCKTIME_MASK);
+    BOOST_CHECK_MESSAGE(nAmount == 1000, "nSequence did not properly decode for 1000");
+
+    in.nSequence = libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND;
+    in.nSequence |= CTxIn::SEQUENCE_LOCKTIME_DISABLE_FLAG;
+    nAmount = (in.nSequence & CTxIn::SEQUENCE_LOCKTIME_MASK);
+    BOOST_CHECK_MESSAGE(nAmount == 10000, "nSequence did not properly decode for 10000");
+}
+
 BOOST_AUTO_TEST_CASE(zerocoin_spend_test)
 {
+
 /*
     SelectParams(CBaseChainParams::MAIN);
     ZerocoinParams *ZCParams = new ZerocoinParams(GetTestModulus());
@@ -79,4 +103,3 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
-}

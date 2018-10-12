@@ -137,6 +137,9 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason)
 
     for (const CTxIn& txin : tx.vin)
     {
+        if (txin.scriptSig.IsZerocoinSpend())
+            continue;
+
         // Biggest 'standard' txin is a 15-of-15 P2SH multisig with compressed
         // keys (remember the 520 byte limit on redeemScript size). That works
         // out to a (15*(33+1))+3=513 byte redeemScript, 513+1+15*(73+1)+3=1627
@@ -205,6 +208,9 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
 
     for (unsigned int i = 0; i < tx.vin.size(); i++)
     {
+        if (tx.vin[i].scriptSig.IsZerocoinSpend())
+            continue;
+
         const CTxOut& prev = mapInputs.AccessCoin(tx.vin[i].prevout).out;
 
         std::vector<std::vector<unsigned char> > vSolutions;

@@ -46,6 +46,11 @@ PublicCoin::PublicCoin(const ZerocoinParams* p, const CBigNum& coin, const CoinD
 	}
 };
 
+bool PublicCoin::operator<(const PublicCoin& rhs) const
+{
+    return this->getValue() < rhs.getValue();
+}
+
 bool PublicCoin::validate() const
 {
     if (this->params->accumulatorParams.minCoinValue >= value) {

@@ -43,7 +43,7 @@ public:
 class CZPivStake : public CStakeInput
 {
 private:
-    uint32_t nChecksum;
+    uint256 nChecksum;
     bool fMint;
     uint256 hashSerial;
 
@@ -69,7 +69,7 @@ public:
     bool IsZPIV() override { return true; }
     int GetChecksumHeightFromMint();
     int GetChecksumHeightFromSpend();
-    uint32_t GetChecksum();
+    uint256 GetChecksum();
 };
 
 class CPivStake : public CStakeInput

@@ -149,6 +149,8 @@ public:
         nSequence = SEQUENCE_FINAL;
     }
 
+    CAmount GetZerocoinSpent() const;
+
     explicit CTxIn(COutPoint prevoutIn, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=SEQUENCE_FINAL);
     CTxIn(uint256 hashPrevTx, uint32_t nOut, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=SEQUENCE_FINAL);
 
@@ -844,7 +846,7 @@ public:
 
     bool IsZerocoinSpend() const
     {
-        return (vin.size() > 0 && UintToArith256(vin[0].prevout.hash) == 0 && vin[0].scriptSig[0] == OP_ZEROCOINSPEND);
+        return (vin.size() > 0 && vin[0].prevout.hash == uint256() && vin[0].scriptSig[0] == OP_ZEROCOINSPEND);
     }
 
     bool IsZerocoinMint() const
@@ -886,7 +888,7 @@ public:
 
     bool IsCoinBase() const
     {
-        return (vin.size() == 1 && vin[0].prevout.IsNull());
+        return !IsZerocoinSpend() && (vin.size() == 1 && vin[0].prevout.IsNull());
     }
 
     bool GetCTFee(CAmount &nFee) const

@@ -4814,7 +4814,7 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
         obj.push_back(Pair("denomination", spend.GetDenomination()));
         obj.push_back(Pair("pubcoin", spend.GetPubCoin().GetHex()));
         obj.push_back(Pair("serial", spend.GetSerial().GetHex()));
-        uint32_t nChecksum = spend.GetAccumulatorChecksum();
+        uint256 nChecksum = spend.GetAccumulatorChecksum();
         obj.push_back(Pair("acc_checksum", HexStr(BEGIN(nChecksum), END(nChecksum))));
         arrSpends.push_back(obj);
         nValueIn += libzerocoin::ZerocoinDenominationToAmount(spend.GetDenomination());

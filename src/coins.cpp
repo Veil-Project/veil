@@ -280,6 +280,9 @@ CAmount CCoinsViewCache::GetValueIn(const CTransaction& tx) const
     if (tx.IsCoinBase())
         return 0;
 
+    if (tx.IsZerocoinSpend())
+        return tx.GetZerocoinSpent();
+
     CAmount nResult = 0;
     for (unsigned int i = 0; i < tx.vin.size(); i++)
         nResult += AccessCoin(tx.vin[i].prevout).out.nValue;
@@ -291,6 +294,8 @@ bool CCoinsViewCache::HaveInputs(const CTransaction& tx) const
 {
     if (!tx.IsCoinBase()) {
         for (unsigned int i = 0; i < tx.vin.size(); i++) {
+            if (tx.vin[i].scriptSig.IsZerocoinSpend())
+                continue;
             if (tx.vin[i].IsAnonInput())
                 continue;
 

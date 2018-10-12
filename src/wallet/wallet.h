@@ -795,8 +795,8 @@ public:
     bool GetMintFromStakeHash(const uint256& hashStake, CZerocoinMint& mint);
     bool DatabaseMint(CDeterministicMint& dMint);
 //    bool SetMintUnspent(const CBigNum& bnSerial);
-//    bool UpdateMint(const CBigNum& bnValue, const int& nHeight, const uint256& txid, const libzerocoin::CoinDenomination& denom);
     std::string GetUniqueWalletBackupName(bool fzAuto) const;
+    bool UpdateMint(const CBigNum& bnValue, const int& nHeight, const uint256& txid, const libzerocoin::CoinDenomination& denom);
     void AutoZeromint();
 
     CzTracker* GetZTrackerPointer() {
@@ -1107,6 +1107,9 @@ public:
     virtual CAmount GetCredit(const CTransaction& tx, const isminefilter& filter) const;
     CAmount GetChange(const CTransaction& tx) const;
     void ChainStateFlushed(const CBlockLocator& loc) override;
+
+    bool IsMyZerocoinSpend(const CBigNum& bnSerial) const;
+    bool IsMyMint(const CBigNum& bnValue) const;
 
     DBErrors LoadWallet(bool& fFirstRunRet);
     DBErrors ZapWalletTx(std::vector<CWalletTx>& vWtx);

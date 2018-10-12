@@ -19,6 +19,7 @@
 #include <utiltime.h>
 #include <anon.h>
 #include <random.h>
+#include <veil/zchain.h>
 
 CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee,
                                  int64_t _nTime, unsigned int _entryHeight,
@@ -39,6 +40,13 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFe
     nSizeWithAncestors = GetTxSize();
     nModFeesWithAncestors = nFee;
     nSigOpCostWithAncestors = sigOpCost;
+    setSerialHashes.clear();
+    if (tx->IsZerocoinSpend()) {
+        for (const auto& in :tx->vin) {
+            auto spend = TxInToZerocoinSpend(in);
+            setSerialHashes.emplace(spend.getCoinSerialNumber());
+        }
+    }
 }
 
 void CTxMemPoolEntry::UpdateFeeDelta(int64_t newFeeDelta)
@@ -161,7 +169,7 @@ bool CTxMemPool::CalculateMemPoolAncestors(const CTxMemPoolEntry &entry, setEntr
         // GetMemPoolParents() is only valid for entries in the mempool, so we
         // iterate mapTx to find parents.
         for (unsigned int i = 0; i < tx.vin.size(); i++) {
-            if (tx.vin[i].IsAnonInput()) {
+            if (tx.vin[i].IsAnonInput() || tx.vin[i].scriptSig.IsZerocoinSpend()) {
                 continue;
             }
 
@@ -398,7 +406,7 @@ void CTxMemPool::addUnchecked(const uint256& hash, const CTxMemPoolEntry &entry,
     const CTransaction& tx = newit->GetTx();
     std::set<uint256> setParentTransactions;
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
-        if (tx.vin[i].IsAnonInput())
+        if (tx.vin[i].IsAnonInput() || tx.vin[i].scriptSig.IsZerocoinSpend())
             continue;
 
         mapNextTx.insert(std::make_pair(&tx.vin[i].prevout, &tx));
@@ -696,7 +704,7 @@ void CTxMemPool::check(const CCoinsViewCache *pcoins) const
         int64_t parentSizes = 0;
         int64_t parentSigOpCost = 0;
         for (const CTxIn &txin : tx.vin) {
-            if (txin.IsAnonInput())
+            if (txin.IsAnonInput() || txin.scriptSig.IsZerocoinSpend())
                 continue;
 
             // Check that every mempool transaction's inputs refer to available coins, or other mempool tx's.

@@ -10,7 +10,7 @@ class CValidationState;
 namespace veil {
 
 /** Required budget payment validity checks */
-bool CheckBudgetTransaction(const CTransaction& tx, CValidationState& state);
+bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidationState& state);
 
 class BudgetParams
 {
@@ -19,10 +19,6 @@ private:
     explicit BudgetParams(std::string strNetwork);
     std::string budgetAddress;
     CAmount nBudgetAmount;
-
-
-
-
 
 public:
     static BudgetParams* Get();
@@ -34,9 +30,8 @@ public:
                                 CAmount& nBudgetPayment);
 
     std::string GetBudgetAddress() const { return budgetAddress; }
-
     CAmount GetBudgetAmount() const { return nBudgetAmount; }
-
+    static const int nBlocksPerPeriod = 43830;
 };
 
 BudgetParams& Budget();
