@@ -43,8 +43,6 @@ extern bool fEnableZeromint;
 extern const int64_t AUTOMINT_DELAY;
 extern int nPreferredDenom;
 
-
-
 /** Signals for translation. */
 class CTranslationInterface
 {
