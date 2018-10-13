@@ -48,6 +48,8 @@
 #include <veil/budget.h>
 #include <veil/zchain.h>
 
+#include <wallet/wallet.h>
+
 #include <future>
 #include <sstream>
 
@@ -2314,6 +2316,13 @@ static void AppendWarning(std::string& res, const std::string& warn)
 
 /** Check warning conditions and do some notifications on new chain tip set. */
 void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainParams) {
+
+    //If Zerocoin automint is on, then Zerocoins will be minted
+    std::shared_ptr<CWallet> wMainWallet = GetMainWallet();
+    if(wMainWallet->isZeromintEnabled()) {
+        wMainWallet->AutoZeromint();
+    }
+
     // New best block
     mempool.AddTransactionsUpdated(1);
 

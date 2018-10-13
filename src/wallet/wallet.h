@@ -848,6 +848,7 @@ public:
 //    bool SetMintUnspent(const CBigNum& bnSerial);
 //    bool UpdateMint(const CBigNum& bnValue, const int& nHeight, const uint256& txid, const libzerocoin::CoinDenomination& denom);
     std::string GetUniqueWalletBackupName(bool fzAuto) const;
+    void AutoZeromint();
 
     int getZeromintPercentage()
     {
