@@ -3057,6 +3057,35 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
     return obj;
 }
 
+UniValue getzerocoinbalance(const JSONRPCRequest& request)
+{
+
+    if (request.fHelp || request.params.size() != 0)
+        throw runtime_error(
+                "getzerocoinbalance\n"
+                "\nReturn the wallet's total zPIV balance.\n" +
+                HelpRequiringPassphrase(GetMainWallet().get()) + "\n"
+
+                                            "\nResult:\n"
+                                            "amount         (numeric) Total zPIV balance.\n"
+
+                                            "\nExamples:\n" +
+                HelpExampleCli("getzerocoinbalance", "") + HelpExampleRpc("getzerocoinbalance", ""));
+
+    CWallet* pwalletMain = GetMainWallet().get();
+    LOCK2(cs_main, pwalletMain->cs_wallet);
+
+    EnsureWalletIsUnlocked(pwalletMain);
+
+    UniValue ret(UniValue::VOBJ);
+    ret.push_back(Pair("Total", ValueFromAmount(pwalletMain->GetZerocoinBalance(false))));
+    ret.push_back(Pair("Mature", ValueFromAmount(pwalletMain->GetZerocoinBalance(true))));
+//    ret.push_back(Pair("Unconfirmed", ValueFromAmount(pwalletMain->GetUnconfirmedZerocoinBalance())));
+//    ret.push_back(Pair("Immature", ValueFromAmount(pwalletMain->GetImmatureZerocoinBalance())));
+    return ret;
+
+}
+
 static UniValue listwallets(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 0)
@@ -5065,6 +5094,8 @@ static const CRPCCommand commands[] =
     { "wallet",             "gettransaction",                   &gettransaction,                {"txid","include_watchonly"} },
     { "wallet",             "getunconfirmedbalance",            &getunconfirmedbalance,         {} },
     { "wallet",             "getwalletinfo",                    &getwalletinfo,                 {} },
+    { "wallet",             "getzerocoinbalance",               &getzerocoinbalance,            {"fhelp"} },
+
     { "wallet",             "importmulti",                      &importmulti,                   {"requests","options"} },
     { "wallet",             "importprivkey",                    &importprivkey,                 {"privkey","label","rescan"} },
     { "wallet",             "importwallet",                     &importwallet,                  {"filename"} },
