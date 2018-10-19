@@ -44,6 +44,10 @@
 #include <util.h>
 
 static const size_t OUTPUT_GROUP_MAX_ENTRIES = 10;
+int64_t nAutoMintStartupTime = GetTime(); //!< Client startup time for use with automint
+
+//! Sum of all zero coin denominations - 10000 + 1000 + 100 + 10
+static const int ZQ_11110 = 11110;
 
 static CCriticalSection cs_wallets;
 static std::vector<std::shared_ptr<CWallet>> vpwallets GUARDED_BY(cs_wallets);
@@ -4053,6 +4057,85 @@ std::vector<std::string> CWallet::GetDestValues(const std::string& prefix) const
         }
     }
     return values;
+}
+
+// CWallet::AutoZeromint() gets called with each new incoming block
+void CWallet::AutoZeromint()
+{
+
+    // After sync wait even more to reduce load when wallet was just started
+    int64_t nWaitTime = GetAdjustedTime() - nAutoMintStartupTime;
+    if (nWaitTime < AUTOMINT_DELAY){
+        LogPrintf("zero", "CWallet::AutoZeromint(): time since sync-completion or last Automint (%ld sec) < default waiting time (%ld sec). Waiting again...\n", nWaitTime, AUTOMINT_DELAY);
+        return;
+    }
+
+    CAmount nZerocoinBalance = GetZerocoinBalance(false); //false includes both pending and mature Zerocoins. Need total balance for this so nothing is overminted.
+    CAmount nMintAmount = 0;
+    CAmount nToMintAmount = 0;
+
+    // Percentage of zerocoin we already have
+    double dPercentage = 100 * (double)nZerocoinBalance / (double)(nZerocoinBalance);
+
+    // Check if minting is actually needed
+    if(dPercentage >= nZeromintPercentage){
+        LogPrintf("zero", "CWallet::AutoZeromint() @block %ld: percentage of existing Zerocoin (%lf%%) already >= configured percentage (%d%%). No minting needed...\n",
+                 chainActive.Tip()->nHeight, dPercentage, nZeromintPercentage);
+        return;
+    }
+
+    // Zerocoin amount needed for the target percentage
+    nToMintAmount = ((nZerocoinBalance) * nZeromintPercentage / 100);
+
+    // Zerocoin amount missing from target (must be minted)
+    nToMintAmount = (nToMintAmount - nZerocoinBalance) / COIN;
+
+    // Use the biggest denomination smaller than the needed Zerocoin. We'll only mint exact denomination to make minting faster.
+    // Exception: for big amounts use 11110 (11110 = 1*10000 + 1*1000 + 1*100 + 1*10) to create all
+    // possible denominations to avoid having 10000 denominations only.
+    // If a preferred denomination is used (means nPreferredDenom != 0) do nothing until we have enough Veilcoin to mint this denomination
+
+    if (nPreferredDenom > 0){
+        if (nToMintAmount >= nPreferredDenom)
+            nToMintAmount = nPreferredDenom;  // Enough coins => mint preferred denomination
+        else
+            nToMintAmount = 0;                // Not enough coins => do nothing and wait for more coins
+    }
+
+    if (nToMintAmount >= ZQ_11110){
+        nMintAmount = ZQ_11110;
+    } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND){
+        nMintAmount = libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND;
+    } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND){
+        nMintAmount = libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND;
+    } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED){
+        nMintAmount = libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED;
+    } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_TEN){
+        nMintAmount = libzerocoin::CoinDenomination::ZQ_TEN;
+    } else {
+        nMintAmount = 0;
+    }
+
+    if (nMintAmount > 0){
+        CWalletTx wtx(NULL, NULL);
+        vector<CDeterministicMint> vDMints;
+        string strError = GetMainWallet()->MintZerocoin(nMintAmount*COIN, wtx, vDMints);
+
+        // Return if something went wrong during minting
+        if (strError != ""){
+            LogPrintf("CWallet::AutoZeromint(): auto minting failed with error: %s\n", strError);
+            return;
+        }
+        nZerocoinBalance = GetZerocoinBalance(false);
+        dPercentage = 100 * (double)nZerocoinBalance / (double)(nZerocoinBalance);
+        LogPrintf("CWallet::AutoZeromint() @ block %ld: successfully minted %ld Zerocoin. Current percentage of Zerocoin: %lf%%\n",
+                  chainActive.Tip()->nHeight, nMintAmount, dPercentage);
+        // Re-adjust startup time to delay next Automint for 5 minutes
+        nAutoMintStartupTime = GetAdjustedTime();
+    }
+    else {
+        LogPrintf("CWallet::AutoZeromint(): Nothing minted because either not enough funds available or the requested denomination size (%d) is not yet reached.\n", nPreferredDenom);
+    }
 }
 
 void CWallet::MarkPreSplitKeys()
