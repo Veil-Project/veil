@@ -195,6 +195,7 @@ BITCOIN_CORE_H = \
   validationinterface.h \
   versionbits.h \
   veil/arrayslice.h \
+  veil/blockvalidation.h \
   veil/budget.h \
   veil/denomination_functions.h \
   veil/dictionary.h \
@@ -272,6 +273,7 @@ libbitcoin_server_a_SOURCES = \
   txmempool.cpp \
   ui_interface.cpp \
   veil/arrayslice.cpp \
+  veil/blockvalidation.cpp \
   veil/dictionary.cpp \
   veil/mnemonic.cpp \
   validation.cpp \

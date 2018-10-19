@@ -5437,3 +5437,13 @@ bool CWallet::DatabaseMint(CDeterministicMint& dMint)
     zTracker->Add(dMint, true);
     return true;
 }
+
+bool CWallet::GetZerocoinKey(const CBigNum& bnSerial, CKey& key)
+{
+    WalletBatch walletdb(*this->database);
+    CZerocoinMint mint;
+    if (!GetMint(GetSerialHash(bnSerial), mint))
+        return error("%s: could not find serial %s in walletdb!", __func__, bnSerial.GetHex());
+
+    return mint.GetKeyPair(key);
+}
