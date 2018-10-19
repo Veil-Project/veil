@@ -45,6 +45,7 @@
 #include <validationinterface.h>
 #include <warnings.h>
 
+#include <veil/blockvalidation.h>
 #include <veil/budget.h>
 #include <veil/zchain.h>
 
@@ -3192,6 +3193,10 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     // redundant with the call in AcceptBlockHeader.
     if (!CheckBlockHeader(block, state, consensusParams, fCheckPOW))
         return false;
+
+    // Check the block signature if it is a proof of stake block
+    if (block.IsProofOfStake() && !veil::ValidateBlockSignature(block))
+        return state.DoS(100, false, REJECT_INVALID, "bad-block-sig", true, "PoS block signature not valid");
 
     // Check the merkle root.
     if (fCheckMerkleRoot) {

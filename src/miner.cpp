@@ -25,8 +25,10 @@
 #include <utilmoneystr.h>
 #include <validationinterface.h>
 #include <key_io.h>
+#include <wallet/wallet.h>
 
 #include <veil/budget.h>
+#include <veil/zchain.h>
 
 #include <algorithm>
 #include <queue>
@@ -105,6 +107,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     int64_t nTimeStart = GetTimeMicros();
 
     resetBlock();
+
+    //Need wallet if this is for proof of stake
+    auto pwalletMain = GetMainWallet();
+    if (!pwalletMain)
+        return nullptr;
 
     pblocktemplate.reset(new CBlockTemplate());
 
@@ -202,6 +209,23 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus(), pblock->IsProofOfStake());
     pblock->nNonce         = 0;
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
+
+    //Sign block if this is a proof of stake block
+    if (pblock->IsProofOfStake()) {
+        auto spend = TxInToZerocoinSpend(pblock->vtx[1]->vin[0]);
+        auto bnSerial = spend.getCoinSerialNumber();
+
+        CKey key;
+        if (!pwalletMain->GetZerocoinKey(bnSerial, key)) {
+            LogPrintf("%s: Failed to get zerocoin key from wallet!\n", __func__);
+            return nullptr;
+        }
+
+        if (!key.Sign(pblock->GetHash(), pblock->vchBlockSig)) {
+            LogPrintf("%s: Failed to sign block hash\n", __func__);
+            return nullptr;
+        }
+    }
 
     CValidationState state;
     if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
