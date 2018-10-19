@@ -844,11 +844,16 @@ public:
 //    bool GetZerocoinKey(const CBigNum& bnSerial, CKey& key);
     bool CreateZOutPut(libzerocoin::CoinDenomination denomination, CTxOut &outMint, CDeterministicMint &dMint);
     bool GetMint(const uint256& hashSerial, CZerocoinMint& mint);
-//    bool DatabaseMint(CDeterministicMint& dMint);
+    bool GetMintFromStakeHash(const uint256& hashStake, CZerocoinMint& mint);
+    bool DatabaseMint(CDeterministicMint& dMint);
 //    bool SetMintUnspent(const CBigNum& bnSerial);
 //    bool UpdateMint(const CBigNum& bnValue, const int& nHeight, const uint256& txid, const libzerocoin::CoinDenomination& denom);
     std::string GetUniqueWalletBackupName(bool fzAuto) const;
     void AutoZeromint();
+
+    CzTracker* GetZTrackerPointer() {
+        return zTracker.get();
+    }
 
     int getZeromintPercentage()
     {
@@ -910,6 +915,9 @@ public:
 
     int64_t nOrderPosNext = 0;
     uint64_t nAccountingEntryNumber = 0;
+
+    //Stake settings
+    uint64_t nStakeSplitThreshold = 2000;
 
     std::map<CTxDestination, CAddressBookData> mapAddressBook;
 

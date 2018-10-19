@@ -98,6 +98,10 @@ public:
     int Zerocoin_DefaultSpendSecurity() const { return nDefaultSecurityLevel; }
     int Zerocoin_HeaderVersion() const { return nZerocoinHeaderVersion; }
     int Zerocoin_RequiredStakeDepth() const { return nZerocoinRequiredStakeDepth; }
+    int Zerocoin_StartHeight() const {return nZerocoinStartHeight;}
+
+    /** Height or time based activations */
+    int ModifierUpgradeBlock() const { return nModifierUpdateBlock; }
 protected:
     CChainParams() {}
 
@@ -119,6 +123,7 @@ protected:
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
     bool m_fallback_fee_enabled;
+    int nModifierUpdateBlock;
 
     // zerocoin
     std::string zerocoinModulus;

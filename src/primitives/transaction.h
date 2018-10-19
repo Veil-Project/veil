@@ -385,6 +385,8 @@ public:
         return a.hash != b.hash;
     }
 
+    CTransaction& operator=(const CTransaction& tx);
+
     std::string ToString() const;
 
     bool HasWitness() const

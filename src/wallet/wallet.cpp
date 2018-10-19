@@ -2164,6 +2164,14 @@ std::map<libzerocoin::CoinDenomination, CAmount> CWallet::GetMyZerocoinDistribut
     return spread;
 }
 
+bool CWallet::GetMintFromStakeHash(const uint256& hashStake, CZerocoinMint& mint)
+{
+    CMintMeta meta;
+    if (!zTracker->GetMetaFromStakeHash(hashStake, meta))
+        return error("%s: failed to find meta associated with hashStake", __func__);
+    return GetMint(meta.hashSerial, mint);
+}
+
 bool CWallet::GetMint(const uint256& hashSerial, CZerocoinMint& mint)
 {
     if (!zTracker->HasSerialHash(hashSerial))
@@ -5420,5 +5428,12 @@ bool CWallet::GetDeterministicSeed(uint256& seedOut)
     }
 
     seedOut = seed.GetPrivKey_256();
+    return true;
+}
+
+bool CWallet::DatabaseMint(CDeterministicMint& dMint)
+{
+    WalletBatch walletdb(*this->database);
+    zTracker->Add(dMint, true);
     return true;
 }
