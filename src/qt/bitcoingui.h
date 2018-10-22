@@ -87,6 +87,9 @@ private:
     interfaces::Node& m_node;
     std::unique_ptr<interfaces::Handler> m_handler_message_box;
     std::unique_ptr<interfaces::Handler> m_handler_question;
+#ifdef ENABLE_WALLET
+    std::unique_ptr<interfaces::Handler> m_handler_init_wallet;
+#endif
     ClientModel* clientModel = nullptr;
     WalletFrame* walletFrame = nullptr;
 
@@ -188,6 +191,7 @@ public Q_SLOTS:
     void message(const QString &title, const QString &message, unsigned int style, bool *ret = nullptr);
 
 #ifdef ENABLE_WALLET
+    void initWalletMenu(std::string& mnemonic, unsigned int& flag, bool& ret);
     bool setCurrentWallet(const QString& name);
     bool setCurrentWalletBySelectorIndex(int index);
     /** Set the UI status indicators based on the currently selected wallet.

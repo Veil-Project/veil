@@ -247,6 +247,11 @@ class NodeImpl : public Node
     {
         return MakeHandler(::uiInterface.ShowProgress.connect(fn));
     }
+    std::unique_ptr<Handler> handleInitWallet(InitWalletFn fn) override
+    {
+        CHECK_WALLET(
+        return MakeHandler(::uiInterface.InitWallet.connect(fn)));
+    }
     std::unique_ptr<Handler> handleLoadWallet(LoadWalletFn fn) override
     {
         CHECK_WALLET(

@@ -1,8 +1,12 @@
 
-#include "mnemonic.h"
+#include <veil/mnemonic.h>
 #include <crypto/external/pkcs5_pbkdf2.h>
 #include <crypto/external/hmac_sha256.h>
-#include <boost/locale.hpp>
+
+//! Boost Locale is its own library that requires an additional flag to link it "-lboost_locale"
+// TODO: If we really need this we should check for it in the build-aux boost files
+//#include <boost/locale.hpp>
+
 #include <boost/algorithm/string.hpp>
 
 // BIP-39 private constants.
@@ -105,6 +109,43 @@ bool validate_mnemonic(const word_list& words, const dictionary& lexicon)
     return std::equal(mnemonic.begin(), mnemonic.end(), words.begin());
 }
 
+data_chunk key_from_mnemonic(const word_list& words, const dictionary& lexicon)
+{
+    const auto word_count = words.size();
+    if ((word_count % mnemonic_word_multiple) != 0)
+        return {};
+
+    const auto total_bits = bits_per_word * word_count;
+    const auto check_bits = total_bits / (entropy_bit_divisor + 1);
+    const auto entropy_bits = total_bits - check_bits;
+
+    size_t bit = 0;
+    data_chunk data((total_bits + byte_bits - 1) / byte_bits, 0);
+
+    for (const auto& word: words)
+    {
+        const auto position = find_position(lexicon, word);
+        if (position == -1)
+            return {};
+
+        for (size_t loop = 0; loop < bits_per_word; loop++, bit++)
+        {
+            if (position & (1 << (bits_per_word - loop - 1)))
+            {
+                const auto byte = bit / byte_bits;
+                data[byte] |= bip39_shift(bit);
+            }
+        }
+    }
+
+    data.resize(entropy_bits / byte_bits);
+    const auto mnemonic = create_mnemonic(data, lexicon);
+    if (!std::equal(mnemonic.begin(), mnemonic.end(), words.begin()))
+        return {};
+    else
+        return data;
+}
+
 word_list create_mnemonic(data_slice entropy, const dictionary &lexicon)
 {
     if ((entropy.size() % mnemonic_seed_multiple) != 0)
@@ -157,11 +198,11 @@ long_hash decode_mnemonic(const word_list& mnemonic)
                                     hmac_iterations);
 }
 
-long_hash decode_mnemonic(const word_list& mnemonic,
-    const std::string& passphrase)
-{
-    const auto sentence = boost::join(mnemonic, " ");
-    const std::string prefix(passphrase_prefix);
-    const auto salt = boost::locale::normalize(prefix + passphrase, boost::locale::norm_nfkd);
-    return pkcs5_pbkdf2_hmac_sha512(to_chunk(sentence), to_chunk(salt), hmac_iterations);
-}
+//long_hash decode_mnemonic(const word_list& mnemonic,
+//    const std::string& passphrase)
+//{
+//    const auto sentence = boost::join(mnemonic, " ");
+//    const std::string prefix(passphrase_prefix);
+//    const auto salt = boost::locale::normalize(prefix + passphrase, boost::locale::norm_nfkd);
+//    return pkcs5_pbkdf2_hmac_sha512(to_chunk(sentence), to_chunk(salt), hmac_iterations);
+//}

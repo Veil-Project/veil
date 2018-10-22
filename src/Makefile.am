@@ -202,6 +202,8 @@ BITCOIN_CORE_H = \
   veil/invalid.h \
   veil/mintpool.h \
   veil/mnemonic.h \
+  veil/mnemonicwalletinit.h \
+  veil/walletinitflags.h \
   veil/zchain.h \
   veil/ztracker.h \
   veil/zwallet.h \
@@ -211,6 +213,7 @@ BITCOIN_CORE_H = \
   wallet/db.h \
   wallet/feebumper.h \
   wallet/fees.h \
+  wallet/init.h \
   wallet/rpcwallet.h \
   wallet/wallet.h \
   wallet/walletdb.h \
@@ -272,12 +275,9 @@ libbitcoin_server_a_SOURCES = \
   txdb.cpp \
   txmempool.cpp \
   ui_interface.cpp \
-  veil/arrayslice.cpp \
-  veil/blockvalidation.cpp \
-  veil/dictionary.cpp \
-  veil/mnemonic.cpp \
   validation.cpp \
   validationinterface.cpp \
+  veil/blockvalidation.cpp \
   veil/budget.cpp \
   versionbits.cpp \
   $(BITCOIN_CORE_H)
@@ -300,6 +300,9 @@ libbitcoin_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_wallet_a_SOURCES = \
   interfaces/wallet.cpp \
   kernel.cpp \
+  veil/dictionary.cpp \
+  veil/mnemonic.cpp \
+  veil/mnemonicwalletinit.cpp \
   wallet/coincontrol.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \

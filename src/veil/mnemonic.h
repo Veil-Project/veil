@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 #include <array>
-#include "veil/arrayslice.h"
-#include "veil/dictionary.h"
+#include <veil/arrayslice.h>
+#include <veil/dictionary.h>
 
 /**
 * A valid mnemonic word count is evenly divisible by this number.
@@ -37,6 +37,11 @@ typedef std::initializer_list<data_slice> loaf;
 * creation. Entropy byte count must be evenly divisible by 4.
 */
 word_list create_mnemonic(data_slice entropy, const dictionary &lexicon=language::en);
+
+/**
+* Convert a mnemonic to a format for creating a CKey object.
+*/
+data_chunk key_from_mnemonic(const word_list& words, const dictionary& lexicon=language::en);
 
 /**
 * Checks a mnemonic against a dictionary to determine if the

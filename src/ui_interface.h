@@ -6,6 +6,8 @@
 #ifndef BITCOIN_UI_INTERFACE_H
 #define BITCOIN_UI_INTERFACE_H
 
+#include <veil/walletinitflags.h>
+
 #include <memory>
 #include <stdint.h>
 #include <string>
@@ -92,6 +94,9 @@ public:
      */
     boost::signals2::signal<void ()> NotifyAlertChanged;
 
+    /** A new wallet needs to be created. */
+    boost::signals2::signal<bool (std::string& message, unsigned int& flag)> InitWallet;
+
     /** A wallet has been loaded. */
     boost::signals2::signal<void (std::shared_ptr<CWallet> wallet)> LoadWallet;
 
@@ -120,6 +125,14 @@ bool InitError(const std::string& str);
 std::string AmountHighWarn(const std::string& optname);
 
 std::string AmountErrMsg(const char* const optname, const std::string& strValue);
+
+bool InitNewWalletPrompt(unsigned int& initOption);
+
+bool DisplayWalletMnemonic(std::string& message);
+
+bool GetWalletMnemonic(std::string& message);
+
+bool RetryWalletMnemonic(std::string& message);
 
 extern CClientUIInterface uiInterface;
 

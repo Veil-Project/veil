@@ -31,6 +31,7 @@
 #include <accumulators.h>
 #include <primitives/deterministicmint.h>
 #include <veil/denomination_functions.h>
+#include <veil/mnemonic.h>
 #include <veil/zchain.h>
 #include <veil/zwallet.h>
 #include <libzerocoin/Params.h>
@@ -39,6 +40,7 @@
 #include <assert.h>
 #include <future>
 
+#include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <util.h>
@@ -1466,6 +1468,42 @@ CAmount CWallet::GetChange(const CTransaction& tx) const
             throw std::runtime_error(std::string(__func__) + ": value out of range");
     }
     return nChange;
+}
+
+CPubKey CWallet::GenerateNewMnemonicSeed(std::string &mnemonic)
+{
+    assert(!IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
+    CKey key;
+    key.MakeNewKey(true);
+
+    std::vector<unsigned char> keyData;
+    const unsigned char *ptrKeyData = key.begin();
+    for (int i = 0; ptrKeyData != key.end(); i++) {
+        unsigned char byte = *ptrKeyData;
+        keyData.push_back(byte);
+        ptrKeyData++;
+    }
+    mnemonic = boost::algorithm::join(create_mnemonic(keyData), " ");
+
+    return DeriveNewSeed(key);
+}
+
+bool CWallet::SetHDSeedFromMnemonic(const std::string &mnemonic)
+{
+    assert(!IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
+    std::stringstream ss(mnemonic);
+    std::istream_iterator<std::string> begin(ss);
+    std::istream_iterator<std::string> end;
+    std::vector<std::string> mnemonicWordList(begin, end);
+    std::vector<unsigned char> keyData = key_from_mnemonic(mnemonicWordList);
+
+    CKey key;
+    key.Set(keyData.data(), keyData.data() + keyData.size(), true);
+    if (!key.IsValid())
+        return false;
+    CPubKey seed = DeriveNewSeed(key);
+    SetHDSeed(seed);
+    return true;
 }
 
 CPubKey CWallet::GenerateNewSeed()
@@ -4215,6 +4253,8 @@ bool CWallet::Verify(std::string wallet_file, bool salvage_wallet, std::string& 
     return WalletBatch::VerifyDatabaseFile(wallet_path, warning_string, error_string);
 }
 
+// TODO: This function should be cleaned up. Some of this code is being reused in the 2 CreateHDWallet functions, and
+//       much of it was written to handle outdated Bitcoin wallets and won't be needed.
 std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, const fs::path& path, uint64_t wallet_creation_flags)
 {
     const std::string& walletFile = name;
@@ -4546,6 +4586,75 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     walletInstance->setZWallet(zwallet);
 
     return walletInstance;
+}
+
+bool CWallet::CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic)
+{
+    const std::string& walletFile = name;
+
+    uiInterface.InitMessage(_("Generating wallet..."));
+
+    int64_t nStart = GetTimeMillis();
+    bool fFirstRun = true;
+
+    std::shared_ptr<CWallet> walletInstance(new CWallet(name, WalletDatabase::Create(path)), ReleaseWallet);
+    DBErrors nLoadWalletRet = walletInstance->LoadWallet(fFirstRun);
+
+    if (!fFirstRun) {
+        InitError(strprintf(_("Error generating HD wallet: %s already exists?? This should never happen"), walletFile));
+        return false;
+    }
+    if (nLoadWalletRet != DBErrors::LOAD_OK)
+    {
+        InitError(strprintf(_("Error generating %s"), walletFile));
+        return false;
+    }
+
+    walletInstance->SetMinVersion(FEATURE_LATEST);
+    walletInstance->SetMaxVersion(FEATURE_LATEST);
+
+    // generate a new seed
+    CPubKey seed = walletInstance->GenerateNewMnemonicSeed(mnemonic);
+    walletInstance->SetHDSeed(seed);
+
+    walletInstance->ChainStateFlushed(chainActive.GetLocator());
+    return true;
+}
+
+bool CWallet::CreateHDWalletFromMnemonic(const std::string& name, const fs::path& path, const std::string& mnemonic, bool& fBadSeed)
+{
+    const std::string& walletFile = name;
+    fBadSeed = false;
+
+    uiInterface.InitMessage(_("Generating wallet..."));
+
+    int64_t nStart = GetTimeMillis();
+    bool fFirstRun = true;
+
+    std::shared_ptr<CWallet> walletInstance(new CWallet(name, WalletDatabase::Create(path)), ReleaseWallet);
+    DBErrors nLoadWalletRet = walletInstance->LoadWallet(fFirstRun);
+
+    if (!fFirstRun) {
+        InitError(strprintf(_("Error generating HD wallet: %s already exists?? This should never happen"), walletFile));
+        return false;
+    }
+    if (nLoadWalletRet != DBErrors::LOAD_OK)
+    {
+        InitError(strprintf(_("Error generating %s"), walletFile));
+        return false;
+    }
+
+    walletInstance->SetMinVersion(FEATURE_LATEST);
+    walletInstance->SetMaxVersion(FEATURE_LATEST);
+
+    // import seed
+    if (!walletInstance->SetHDSeedFromMnemonic(mnemonic)) {
+        fBadSeed = true;
+        return true;
+    }
+
+    walletInstance->ChainStateFlushed(chainActive.GetLocator());
+    return true;
 }
 
 void CWallet::postInitProcess()

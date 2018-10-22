@@ -196,6 +196,10 @@ public:
     using ShowProgressFn = std::function<void(const std::string& title, int progress, bool resume_possible)>;
     virtual std::unique_ptr<Handler> handleShowProgress(ShowProgressFn fn) = 0;
 
+    //! Register handler for new wallet initialization.
+    using InitWalletFn = std::function<bool(std::string& message, unsigned int& flag)>;
+    virtual std::unique_ptr<Handler> handleInitWallet(InitWalletFn fn) = 0;
+
     //! Register handler for load wallet messages.
     using LoadWalletFn = std::function<void(std::unique_ptr<Wallet> wallet)>;
     virtual std::unique_ptr<Handler> handleLoadWallet(LoadWalletFn fn) = 0;
