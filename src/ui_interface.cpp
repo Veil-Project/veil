@@ -27,3 +27,28 @@ std::string AmountErrMsg(const char* const optname, const std::string& strValue)
 {
     return strprintf(_("Invalid amount for -%s=<amount>: '%s'"), optname, strValue);
 }
+
+bool InitNewWalletPrompt(unsigned int& initOption)
+{
+    std::string message;
+    initOption = MnemonicWalletInitFlags::PROMPT_MNEMONIC;
+    return *uiInterface.InitWallet(message, initOption);
+}
+
+bool DisplayWalletMnemonic(std::string& message)
+{
+    unsigned int initOption = MnemonicWalletInitFlags::NEW_MNEMONIC;
+    return *uiInterface.InitWallet(message, initOption);
+}
+
+bool GetWalletMnemonic(std::string& message)
+{
+    unsigned int initOption = MnemonicWalletInitFlags::IMPORT_MNEMONIC;
+    return *uiInterface.InitWallet(message, initOption);
+}
+
+bool RetryWalletMnemonic(std::string& message)
+{
+    unsigned int initOption = MnemonicWalletInitFlags::INVALID_MNEMONIC;
+    return *uiInterface.InitWallet(message, initOption);
+}

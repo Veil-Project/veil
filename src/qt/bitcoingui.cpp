@@ -22,6 +22,8 @@
 #include <qt/walletframe.h>
 #include <qt/walletmodel.h>
 #include <qt/walletview.h>
+#include <veil/qt/mnemonicdialog.h>
+#include <veil/qt/mnemonicdisplay.h>
 #endif // ENABLE_WALLET
 
 #ifdef Q_OS_MAC
@@ -934,6 +936,66 @@ void BitcoinGUI::message(const QString &title, const QString &message, unsigned 
         notificator->notify(static_cast<Notificator::Class>(nNotifyIcon), strTitle, message);
 }
 
+#ifdef ENABLE_WALLET
+void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool& ret)
+{
+    switch(flag) {
+        case MnemonicWalletInitFlags::PROMPT_MNEMONIC:
+        {
+            MnemonicDialog *mDiag = new MnemonicDialog();
+            mDiag->exec();
+
+            while (mDiag->isVisible()) {
+                MilliSleep(500);
+            }
+
+            ret = !mDiag->ShutdownRequested();
+            flag = mDiag->GetSelection();
+            delete mDiag;
+            break;
+        }
+        case MnemonicWalletInitFlags::NEW_MNEMONIC:
+        {
+            MnemonicDisplay *mDisp = new MnemonicDisplay(QString::fromStdString(mnemonic));
+            mDisp->exec();
+
+            while (mDisp->isVisible())
+                MilliSleep(500);
+
+            ret = !mDisp->ShutdownRequested();
+            delete mDisp;
+            break;
+        }
+        case MnemonicWalletInitFlags::IMPORT_MNEMONIC:
+        {
+            MnemonicDisplay *mDisp = new MnemonicDisplay();
+            mDisp->exec();
+
+            while (mDisp->isVisible())
+                MilliSleep(500);
+
+            ret = !mDisp->ShutdownRequested();
+            mnemonic = mDisp->GetImportSeed().toStdString();
+            delete mDisp;
+            break;
+        }
+        case MnemonicWalletInitFlags::INVALID_MNEMONIC:
+        {
+            bool fRetry = true;
+            MnemonicDisplay *mDisp = new MnemonicDisplay(fRetry);
+            mDisp->exec();
+
+            while (mDisp->isVisible())
+                MilliSleep(500);
+
+            ret = !mDisp->ShutdownRequested();
+            mnemonic = mDisp->GetImportSeed().toStdString();
+            delete mDisp;
+        }
+    }
+}
+#endif
+
 void BitcoinGUI::changeEvent(QEvent *e)
 {
     QMainWindow::changeEvent(e);
@@ -1217,11 +1279,27 @@ static bool ThreadSafeMessageBox(BitcoinGUI *gui, const std::string& message, co
     return ret;
 }
 
+#ifdef ENABLE_WALLET
+static bool InitNewWallet(BitcoinGUI *gui, std::string& mnemonic, unsigned int& flag)
+{
+    bool ret = false;
+    QMetaObject::invokeMethod(gui, "initWalletMenu",
+                              GUIUtil::blockingGUIThreadConnection(),
+                              Q_ARG(std::string&, mnemonic),
+                              Q_ARG(unsigned int&, flag),
+                              Q_ARG(bool&, ret));
+    return ret;
+}
+#endif
+
 void BitcoinGUI::subscribeToCoreSignals()
 {
     // Connect signals to client
     m_handler_message_box = m_node.handleMessageBox(boost::bind(ThreadSafeMessageBox, this, _1, _2, _3));
     m_handler_question = m_node.handleQuestion(boost::bind(ThreadSafeMessageBox, this, _1, _3, _4));
+#ifdef ENABLE_WALLET
+    m_handler_init_wallet = m_node.handleInitWallet(boost::bind(InitNewWallet, this, _1, _2));
+#endif
 }
 
 void BitcoinGUI::unsubscribeFromCoreSignals()
@@ -1229,6 +1307,9 @@ void BitcoinGUI::unsubscribeFromCoreSignals()
     // Disconnect signals from client
     m_handler_message_box->disconnect();
     m_handler_question->disconnect();
+#ifdef ENABLE_WALLET
+    m_handler_init_wallet->disconnect();
+#endif
 }
 
 void BitcoinGUI::toggleNetworkActive()

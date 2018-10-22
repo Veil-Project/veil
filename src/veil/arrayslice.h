@@ -8,15 +8,15 @@ class array_slice
 {
 public:
     template <typename Container>
-    array_slice(const Container& container);
+    array_slice(const Container& container) : begin_(container.data()), end_(container.data() + container.size()) {}
 
-    array_slice(const Iterable* begin, const Iterable* end);
+    array_slice(const Iterable* begin, const Iterable* end) : begin_(begin), end_(end) {}
 
-    const Iterable* begin() const;
-    const Iterable* end() const;
-    const Iterable* data() const;
-    std::size_t size() const;
-    bool empty() const;
+    const Iterable* begin() const { return begin_; }
+    const Iterable* end() const { return end_; }
+    const Iterable* data() const { return begin_; }
+    std::size_t size() const { return end_ - begin_; }
+    bool empty() const { return end_ == begin_; }
 
 private:
     const Iterable* begin_;

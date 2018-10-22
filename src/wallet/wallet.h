@@ -1240,6 +1240,27 @@ public:
     static std::shared_ptr<CWallet> CreateWalletFromFile(const std::string& name, const fs::path& path, uint64_t wallet_creation_flags = 0);
 
     /**
+     * Initializes a new HD wallet with a random seed that is also used to derive a mnemonic.
+     *
+     * @param name          Name of the wallet file (empty string for default)
+     * @param path          Absolute path for the wallet directory
+     * @param mnemonic      This string will contain the new mnemonic after this function returns
+     * @return              Returns true if the wallet was created without error
+     */
+    static bool CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic);
+
+    /**
+     * Initializes an HD wallet from a user-specified mnemonic.
+     *
+     * @param name          Name of the wallet file (empty string for default)
+     * @param path          Absolute path for the wallet directory
+     * @param mnemonic      White-space separated string that is used to recreate an HD seed
+     * @param fBadSeed      Indicates if the mnemonic generated an invalid seed
+     * @return              Returns true if the wallet was created without error
+     */
+    static bool CreateHDWalletFromMnemonic(const std::string& name, const fs::path& path, const std::string& mnemonic, bool& fBadSeed);
+
+    /**
      * Wallet post-init setup
      * Gives the wallet a chance to register repetitive tasks and complete post-init tasks
      */
@@ -1253,6 +1274,13 @@ public:
 
     /* Returns true if HD is enabled */
     bool IsHDEnabled() const;
+
+    /* Generates a new HD seed and mnemonic (will not be activated) */
+    CPubKey GenerateNewMnemonicSeed(std::string &mnemonic);
+
+    /* Set the current HD seed using a mnemonic (if the mnemonic generates
+       an invalid seed this function returns false). */
+    bool SetHDSeedFromMnemonic(const std::string &mnemonic);
 
     /* Generates a new HD seed (will not be activated) */
     CPubKey GenerateNewSeed();

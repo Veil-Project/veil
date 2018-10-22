@@ -111,7 +111,9 @@ QT_FORMS_UI = \
   qt/forms/sendcoinsdialog.ui \
   qt/forms/sendcoinsentry.ui \
   qt/forms/signverifymessagedialog.ui \
-  qt/forms/transactiondescdialog.ui
+  qt/forms/transactiondescdialog.ui \
+  veil/qt/forms/mnemonicdialog.ui \
+  veil/qt/forms/mnemonicdisplay.ui
 
 QT_MOC_CPP = \
   qt/moc_addressbookpage.cpp \
@@ -159,7 +161,9 @@ QT_MOC_CPP = \
   qt/moc_utilitydialog.cpp \
   qt/moc_walletframe.cpp \
   qt/moc_walletmodel.cpp \
-  qt/moc_walletview.cpp
+  qt/moc_walletview.cpp \
+  veil/qt/moc_mnemonicdialog.cpp \
+  veil/qt/moc_mnemonicdisplay.cpp
 
 BITCOIN_MM = \
   qt/macdockiconhandler.mm \
@@ -235,7 +239,9 @@ BITCOIN_QT_H = \
   qt/walletmodel.h \
   qt/walletmodeltransaction.h \
   qt/walletview.h \
-  qt/winshutdownmonitor.h
+  qt/winshutdownmonitor.h \
+  veil/qt/mnemonicdialog.h \
+  veil/qt/mnemonicdisplay.h
 
 RES_ICONS = \
   qt/res/icons/add.png \
@@ -347,7 +353,9 @@ BITCOIN_QT_WALLET_CPP = \
   qt/walletframe.cpp \
   qt/walletmodel.cpp \
   qt/walletmodeltransaction.cpp \
-  qt/walletview.cpp
+  qt/walletview.cpp \
+  veil/qt/mnemonicdialog.cpp \
+  veil/qt/mnemonicdisplay.cpp
 
 BITCOIN_QT_CPP = $(BITCOIN_QT_BASE_CPP)
 if TARGET_WINDOWS
