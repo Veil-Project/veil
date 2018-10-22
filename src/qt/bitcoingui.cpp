@@ -39,7 +39,7 @@
 #include <interfaces/node.h>
 #include <key_io.h>
 #include <ui_interface.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <iostream>
 

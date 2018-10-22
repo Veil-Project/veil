@@ -14,7 +14,7 @@
 // TODO remove the following dependencies
 #include <chain.h>
 #include <coins.h>
-#include <utilmoneystr.h>
+#include <util/moneystr.h>
 #include <chainparams.h>
 #include <pubkey.h>
 #include <script/standard.h>

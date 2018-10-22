@@ -10,8 +10,9 @@
 #include <script/script.h>
 #include <script/script_error.h>
 #include <script/sign.h>
-#include <util.h>
-#include <utilstrencodings.h>
+<<<<<<< HEAD
+#include <util/system.h>
+#include <util/strencodings.h>
 #include <test/test_veil.h>
 #include <rpc/server.h>
 #include <veil/ringct/stealth.h>

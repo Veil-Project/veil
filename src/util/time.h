@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_UTILTIME_H
-#define BITCOIN_UTILTIME_H
+#ifndef BITCOIN_UTIL_TIME_H
+#define BITCOIN_UTIL_TIME_H
 
 #include <stdint.h>
 #include <string>
@@ -37,4 +37,4 @@ std::string FormatISO8601Time(int64_t nTime);
 uint64_t ISO8601Date_Now();
 uint64_t ISO8601Date_FromString(const std::string& dateString);
 bool ISO8601Date_Validate(const std::string& dateString);
-#endif // BITCOIN_UTILTIME_H
+#endif // BITCOIN_UTIL_TIME_H

@@ -5,8 +5,8 @@
 #include <index/txindex.h>
 #include <script/standard.h>
 #include <test/test_veil.h>
-#include <util.h>
-#include <utiltime.h>
+#include <util/system.h>
+#include <util/time.h>
 #include <validation.h>
 #include <veil/ringct/stealth.h>
 #include <veil/ringct/extkey.h>

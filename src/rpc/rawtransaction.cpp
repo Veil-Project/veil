@@ -27,7 +27,7 @@
 #include <script/standard.h>
 #include <txmempool.h>
 #include <uint256.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <veil/dandelioninventory.h>
 #include <veil/ringct/anon.h>
 #ifdef ENABLE_WALLET

@@ -12,7 +12,7 @@
 #include <wincrypt.h>
 #endif
 #include <logging.h>  // for LogPrint()
-#include <utiltime.h> // for GetTime()
+#include <util/time.h> // for GetTime()
 
 #include <stdlib.h>
 #include <chrono>
@@ -34,7 +34,7 @@
 #include <sys/random.h>
 #endif
 #ifdef HAVE_SYSCTL_ARND
-#include <utilstrencodings.h> // for ARRAYLEN
+#include <util/strencodings.h> // for ARRAYLEN
 #include <sys/sysctl.h>
 #endif
 
