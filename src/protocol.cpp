@@ -162,9 +162,11 @@ CInv::CInv()
 {
     type = 0;
     hash.SetNull();
+    nTimeStemPhaseEnd = 0;
 }
 
-CInv::CInv(int typeIn, const uint256& hashIn) : type(typeIn), hash(hashIn) {}
+CInv::CInv(int typeIn, const uint256& hashIn) : type(typeIn), hash(hashIn), nTimeStemPhaseEnd(0){}
+CInv::CInv(int typeIn, const uint256& hashIn, const int32_t nTimeStemExpire) : type(typeIn), hash(hashIn), nTimeStemPhaseEnd(nTimeStemExpire) {}
 
 bool operator<(const CInv& a, const CInv& b)
 {

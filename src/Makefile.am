@@ -197,6 +197,7 @@ BITCOIN_CORE_H = \
   veil/arrayslice.h \
   veil/blockvalidation.h \
   veil/budget.h \
+  veil/dandelioninventory.h \
   veil/denomination_functions.h \
   veil/dictionary.h \
   veil/invalid.h \
@@ -516,6 +517,7 @@ libbitcoin_common_a_SOURCES = \
   script/sign.cpp \
   script/standard.cpp \
   warnings.cpp \
+  veil/dandelioninventory.cpp \
   $(BITCOIN_CORE_H)
 
 # util: shared between all executables.

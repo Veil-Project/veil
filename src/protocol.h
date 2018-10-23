@@ -387,6 +387,7 @@ class CInv
 public:
     CInv();
     CInv(int typeIn, const uint256& hashIn);
+    CInv(int typeIn, const uint256& hashIn, const int32_t nTimeStemExpire);
 
     ADD_SERIALIZE_METHODS;
 
@@ -401,11 +402,13 @@ public:
 
     std::string GetCommand() const;
     std::string ToString() const;
+    bool IsDandelion() const { return static_cast<bool>(nTimeStemPhaseEnd); }
 
     // TODO: make private (improves encapsulation)
 public:
     int type;
     uint256 hash;
+    int32_t nTimeStemPhaseEnd; //memory only
 };
 
 #endif // BITCOIN_PROTOCOL_H
