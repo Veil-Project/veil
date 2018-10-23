@@ -20,6 +20,8 @@
 #include <ui_interface.h>
 #include <utilstrencodings.h>
 
+#include <veil/dandelioninventory.h>
+
 #ifdef WIN32
 #include <string.h>
 #else
@@ -2027,6 +2029,7 @@ void CConnman::ThreadMessageHandler()
 {
     while (!flagInterruptMsgProc)
     {
+        veil::dandelion.Process();
         std::vector<CNode*> vNodesCopy;
         {
             LOCK(cs_vNodes);
