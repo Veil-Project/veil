@@ -1287,8 +1287,13 @@ void static ProcessGetData(CNode* pfrom, const CChainParams& chainparams, CConnm
             auto mi = mapRelay.find(inv.hash);
             int nSendFlags = (inv.type == MSG_TX ? SERIALIZE_TRANSACTION_NO_WITNESS : 0);
             if (mi != mapRelay.end()) {
+                //Only relay dandelion transactions if pfrom node was sent the inventory
+                if (!veil::dandelion.IsNodePendingSend(inv.hash, pfrom->GetId()))
+                    continue;
+
                 connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *mi->second));
                 push = true;
+                veil::dandelion.MarkSent(inv.hash);
             } else if (pfrom->timeLastMempoolReq) {
                 auto txinfo = mempool.info(inv.hash);
                 // To protect privacy, do not answer getdata using the mempool when
@@ -3647,9 +3652,14 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                     if (pto->pfilter && !pto->pfilter->IsRelevantAndUpdate(*txinfo.tx)) continue;
 
                     //Veil: dandelion broadcast
-                    int32_t nTimeStemPhaseEnd = 0;
-                    if (veil::dandelion.IsInStemPhase(hash))
+                    int64_t nTimeStemPhaseEnd = 0;
+                    if (veil::dandelion.IsInStemPhase(hash)) {
                         nTimeStemPhaseEnd = veil::dandelion.GetTimeStemPhaseEnd(hash);
+
+                        //Record that this is the node that inventory was sent to
+                        veil::dandelion.SetInventorySent(hash, pto->GetId());
+                    }
+
 
                     // Send
                     vInv.emplace_back(CInv(MSG_TX, hash, nTimeStemPhaseEnd));
