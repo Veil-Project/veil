@@ -408,7 +408,7 @@ public:
 public:
     int type;
     uint256 hash;
-    int32_t nTimeStemPhaseEnd; //memory only
+    int64_t nTimeStemPhaseEnd; //memory only
 };
 
 #endif // BITCOIN_PROTOCOL_H

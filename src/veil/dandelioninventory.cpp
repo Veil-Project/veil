@@ -32,6 +32,23 @@ bool DandelionInventory::IsInStemPhase(const uint256& hash) const
     return mapStemInventory.at(hash).nTimeStemEnd < GetAdjustedTime();
 }
 
+//Only send to a node that requests the tx if the inventory was broadcast to this node
+bool DandelionInventory::IsNodePendingSend(const uint256& hashInventory, const int64_t nNodeID)
+{
+    if (!mapStemInventory.count(hashInventory))
+        return true;
+
+    return mapStemInventory.at(hashInventory).nNodeIDSentTo == nNodeID;
+}
+
+void DandelionInventory::SetInventorySent(const uint256& hash, const int64_t nNodeID)
+{
+    if (!mapStemInventory.count(hash))
+        return;
+    mapStemInventory.at(hash).nNodeIDSentTo = nNodeID;
+    setPendingSend.erase(hash);
+}
+
 bool DandelionInventory::IsQueuedToSend(const uint256& hashObject) const
 {
     //If no knowledge of this hash, then assume safe to send
@@ -39,6 +56,12 @@ bool DandelionInventory::IsQueuedToSend(const uint256& hashObject) const
         return true;
 
     return static_cast<bool>(setPendingSend.count(hashObject));
+}
+
+void DandelionInventory::MarkSent(const uint256& hash)
+{
+    mapStemInventory.erase(hash);
+    setPendingSend.erase(hash);
 }
 
 void DandelionInventory::Process()
