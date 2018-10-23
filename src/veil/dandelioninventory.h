@@ -9,21 +9,28 @@
 
 namespace veil {
 
+struct Stem
+{
+    int64_t nTimeStemEnd;
+    int64_t nTimeLastRoll;
+};
+
 class DandelionInventory;
 extern DandelionInventory dandelion;
 
 class DandelionInventory
 {
 private:
-    std::map<uint256, int32_t> mapStemInventory; // hash of the object and time that stem phase ends
+    std::map<uint256, Stem> mapStemInventory;
     std::set<uint256> setPendingSend; // Inventory that is ready to be sent
 
 
 public:
-    void Add(const uint256& hashInventory, const int32_t& nTimeStemEnd);
+    void Add(const uint256& hashInventory, const int64_t& nTimeStemEnd);
+    int64_t GetTimeStemPhaseEnd(const uint256& hashObject) const;
     bool IsInStemPhase(const uint256& hash) const;
-    int32_t GetTimeStemPhaseEnd(const uint256& hashObject) const;
     bool IsQueuedToSend(const uint256& hashObject) const;
+    void Process();
 };
 
 }
