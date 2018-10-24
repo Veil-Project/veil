@@ -25,13 +25,12 @@ private:
     std::map<uint256, Stem> mapStemInventory;
     std::set<uint256> setPendingSend; // Inventory that is ready to be sent
 
-
-
 public:
     void Add(const uint256& hashInventory, const int64_t& nTimeStemEnd);
     bool IsNodePendingSend(const uint256& hashInventory, const int64_t nNodeID);
     int64_t GetTimeStemPhaseEnd(const uint256& hashObject) const;
     bool IsInStemPhase(const uint256& hash) const;
+    bool IsSent(const uint256& hash) const;
     bool IsQueuedToSend(const uint256& hashObject) const;
     void SetInventorySent(const uint256& hash, const int64_t nNodeID);
     void MarkSent(const uint256& hash);

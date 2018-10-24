@@ -41,6 +41,7 @@ const char *SENDCMPCT="sendcmpct";
 const char *CMPCTBLOCK="cmpctblock";
 const char *GETBLOCKTXN="getblocktxn";
 const char *BLOCKTXN="blocktxn";
+const char *TX_DAND="tx_dand";
 } // namespace NetMsgType
 
 /** All known message types. Keep this in the same order as the list of
@@ -73,6 +74,7 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::CMPCTBLOCK,
     NetMsgType::GETBLOCKTXN,
     NetMsgType::BLOCKTXN,
+    NetMsgType::TX_DAND,
 };
 const static std::vector<std::string> allNetMessageTypesVec(allNetMessageTypes, allNetMessageTypes+ARRAYLEN(allNetMessageTypes));
 
@@ -166,7 +168,7 @@ CInv::CInv()
 }
 
 CInv::CInv(int typeIn, const uint256& hashIn) : type(typeIn), hash(hashIn), nTimeStemPhaseEnd(0){}
-CInv::CInv(int typeIn, const uint256& hashIn, const int32_t nTimeStemExpire) : type(typeIn), hash(hashIn), nTimeStemPhaseEnd(nTimeStemExpire) {}
+CInv::CInv(int typeIn, const uint256& hashIn, const int64_t nTimeStemExpire) : type(typeIn), hash(hashIn), nTimeStemPhaseEnd(nTimeStemExpire) {}
 
 bool operator<(const CInv& a, const CInv& b)
 {
