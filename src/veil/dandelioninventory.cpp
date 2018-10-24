@@ -41,6 +41,15 @@ bool DandelionInventory::IsNodePendingSend(const uint256& hashInventory, const i
     return mapStemInventory.at(hashInventory).nNodeIDSentTo == nNodeID;
 }
 
+bool DandelionInventory::IsSent(const uint256& hash) const
+{
+    //Assume that if it is not here, then it is sent
+    if (!mapStemInventory.count(hash))
+        return true;
+
+    return mapStemInventory.at(hash).nNodeIDSentTo != 0;
+}
+
 void DandelionInventory::SetInventorySent(const uint256& hash, const int64_t nNodeID)
 {
     if (!mapStemInventory.count(hash))

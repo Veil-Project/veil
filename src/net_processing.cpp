@@ -1287,13 +1287,22 @@ void static ProcessGetData(CNode* pfrom, const CChainParams& chainparams, CConnm
             auto mi = mapRelay.find(inv.hash);
             int nSendFlags = (inv.type == MSG_TX ? SERIALIZE_TRANSACTION_NO_WITNESS : 0);
             if (mi != mapRelay.end()) {
-                //Only relay dandelion transactions if pfrom node was sent the inventory
-                if (!veil::dandelion.IsNodePendingSend(inv.hash, pfrom->GetId()))
-                    continue;
-
-                connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *mi->second));
+                //Veil dandelion protocol
+                if (veil::dandelion.IsInStemPhase(inv.hash)) {
+                    //Only relay dandelion transactions if pfrom node was sent the inventory
+                    if (!veil::dandelion.IsNodePendingSend(inv.hash, pfrom->GetId())) {
+                        LogPrintf("%s: WARNING node %d requested dandelion inventory that we did not send to them\n", __func__, pfrom->GetId());
+                        continue;
+                    }
+                    LogPrintf("%s: Sending dandelion inventory in stem phase to peer %d\n", __func__, pfrom->GetId());
+                    int64_t nTimeStemEnd = veil::dandelion.GetTimeStemPhaseEnd(inv.hash);
+                    connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX_DAND, *mi->second, nTimeStemEnd));
+                    veil::dandelion.MarkSent(inv.hash);
+                } else {
+                    // Normal transaction transmission
+                    connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::TX, *mi->second));
+                }
                 push = true;
-                veil::dandelion.MarkSent(inv.hash);
             } else if (pfrom->timeLastMempoolReq) {
                 auto txinfo = mempool.info(inv.hash);
                 // To protect privacy, do not answer getdata using the mempool when
@@ -2206,7 +2215,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     }
 
 
-    else if (strCommand == NetMsgType::TX)
+    else if (strCommand == NetMsgType::TX || strCommand == NetMsgType::TX_DAND)
     {
         // Stop processing the transaction early if
         // We are in blocks only mode and peer is either not whitelisted or whitelistrelay is off
@@ -2223,8 +2232,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         const CTransaction& tx = *ptx;
 
         // Veil: check for dandelion
-        int32_t nTimeStemPhase;
-        vRecv >> nTimeStemPhase;
+        int64_t nTimeStemPhase = 0;
+        if (strCommand == NetMsgType::TX_DAND)
+            vRecv >> nTimeStemPhase;
 
         CInv inv(MSG_TX, tx.GetHash(), nTimeStemPhase);
         pfrom->AddInventoryKnown(inv);
@@ -3654,12 +3664,15 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                     //Veil: dandelion broadcast
                     int64_t nTimeStemPhaseEnd = 0;
                     if (veil::dandelion.IsInStemPhase(hash)) {
+                        //Don't send stem phase to more than one peer
+                        if (veil::dandelion.IsSent(hash))
+                            continue;
+
                         nTimeStemPhaseEnd = veil::dandelion.GetTimeStemPhaseEnd(hash);
 
                         //Record that this is the node that inventory was sent to
                         veil::dandelion.SetInventorySent(hash, pto->GetId());
                     }
-
 
                     // Send
                     vInv.emplace_back(CInv(MSG_TX, hash, nTimeStemPhaseEnd));
