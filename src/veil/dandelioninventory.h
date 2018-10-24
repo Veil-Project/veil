@@ -6,6 +6,7 @@
 #define VEIL_DANDELIONINVENTORY_H
 
 #include <protocol.h>
+#include <sync.h>
 
 namespace veil {
 
@@ -37,6 +38,8 @@ public:
     void SetInventorySent(const uint256& hash, const int64_t nNodeID);
     void MarkSent(const uint256& hash);
     void Process();
+
+    CCriticalSection cs;
 };
 
 }

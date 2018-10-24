@@ -2029,7 +2029,6 @@ void CConnman::ThreadMessageHandler()
 {
     while (!flagInterruptMsgProc)
     {
-        veil::dandelion.Process();
         std::vector<CNode*> vNodesCopy;
         {
             LOCK(cs_vNodes);
@@ -2037,6 +2036,10 @@ void CConnman::ThreadMessageHandler()
             for (CNode* pnode : vNodesCopy) {
                 pnode->AddRef();
             }
+        }
+        {
+            LOCK(veil::dandelion.cs);
+            veil::dandelion.Process();
         }
 
         bool fMoreWork = false;
@@ -2047,6 +2050,7 @@ void CConnman::ThreadMessageHandler()
                 continue;
 
             // Receive messages
+            LOCK(veil::dandelion.cs);
             bool fMoreNodeWork = m_msgproc->ProcessMessages(pnode, flagInterruptMsgProc);
             fMoreWork |= (fMoreNodeWork && !pnode->fPauseSend);
             if (flagInterruptMsgProc)
