@@ -121,6 +121,10 @@ extern const char *GETHEADERS;
  */
 extern const char *TX;
 /**
+ * The tx message with the dandelion flag transmits a single transaction with an additional timestamp
+ */
+extern const char *TX_DAND;
+/**
  * The headers message sends one or more block headers to a node which
  * previously requested certain headers with a getheaders message.
  * @since protocol version 31800.
@@ -387,6 +391,7 @@ class CInv
 public:
     CInv();
     CInv(int typeIn, const uint256& hashIn);
+    CInv(int typeIn, const uint256& hashIn, const int64_t nTimeStemExpire);
 
     ADD_SERIALIZE_METHODS;
 
@@ -401,11 +406,13 @@ public:
 
     std::string GetCommand() const;
     std::string ToString() const;
+    bool IsDandelion() const { return static_cast<bool>(nTimeStemPhaseEnd); }
 
     // TODO: make private (improves encapsulation)
 public:
     int type;
     uint256 hash;
+    int64_t nTimeStemPhaseEnd; //memory only
 };
 
 #endif // BITCOIN_PROTOCOL_H

@@ -20,6 +20,8 @@
 #include <ui_interface.h>
 #include <utilstrencodings.h>
 
+#include <veil/dandelioninventory.h>
+
 #ifdef WIN32
 #include <string.h>
 #else
@@ -2035,6 +2037,10 @@ void CConnman::ThreadMessageHandler()
                 pnode->AddRef();
             }
         }
+        {
+            LOCK(veil::dandelion.cs);
+            veil::dandelion.Process();
+        }
 
         bool fMoreWork = false;
 
@@ -2044,6 +2050,7 @@ void CConnman::ThreadMessageHandler()
                 continue;
 
             // Receive messages
+            LOCK(veil::dandelion.cs);
             bool fMoreNodeWork = m_msgproc->ProcessMessages(pnode, flagInterruptMsgProc);
             fMoreWork |= (fMoreNodeWork && !pnode->fPauseSend);
             if (flagInterruptMsgProc)
