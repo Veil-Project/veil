@@ -13,6 +13,7 @@ struct Stem
 {
     int64_t nTimeStemEnd;
     int64_t nTimeLastRoll;
+    int64_t nNodeIDFrom;
     int64_t nNodeIDSentTo;
 };
 
@@ -26,7 +27,8 @@ private:
     std::set<uint256> setPendingSend; // Inventory that is ready to be sent
 
 public:
-    void Add(const uint256& hashInventory, const int64_t& nTimeStemEnd);
+    void Add(const uint256& hashInventory, const int64_t& nTimeStemEnd, const int64_t& nNodeIDFrom);
+    bool IsFromNode(const uint256& hash, const int64_t nNodeID) const;
     bool IsNodePendingSend(const uint256& hashInventory, const int64_t nNodeID);
     int64_t GetTimeStemPhaseEnd(const uint256& hashObject) const;
     bool IsInStemPhase(const uint256& hash) const;
