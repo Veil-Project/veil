@@ -9,10 +9,11 @@ namespace veil {
 
 DandelionInventory dandelion;
 
-void DandelionInventory::Add(const uint256& hashInventory, const int64_t& nTimeStemEnd)
+void DandelionInventory::Add(const uint256& hashInventory, const int64_t& nTimeStemEnd, const int64_t& nNodeIDFrom)
 {
     Stem stem;
     stem.nTimeStemEnd = nTimeStemEnd;
+    stem.nNodeIDFrom = nNodeIDFrom;
     mapStemInventory.emplace(std::make_pair(hashInventory, stem));
 }
 
@@ -22,6 +23,14 @@ int64_t DandelionInventory::GetTimeStemPhaseEnd(const uint256& hashObject) const
         return 0;
 
     return mapStemInventory.at(hashObject).nTimeStemEnd;
+}
+
+bool DandelionInventory::IsFromNode(const uint256& hash, const int64_t nNodeID) const
+{
+    if (!mapStemInventory.count(hash))
+        return false;
+
+    return mapStemInventory.at(hash).nNodeIDFrom == nNodeID;
 }
 
 bool DandelionInventory::IsInStemPhase(const uint256& hash) const

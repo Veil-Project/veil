@@ -2253,8 +2253,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             AcceptToMemoryPool(mempool, state, ptx, &fMissingInputs, &lRemovedTxn, false /* bypass_limits */, 0 /* nAbsurdFee */)) {
             mempool.check(pcoinsTip.get());
             if (inv.IsDandelion()) {
-                LogPrintf("Received dandelion transaction %s, delaying rebroadcast until %d\n", inv.hash.GetHex(), inv.nTimeStemPhaseEnd);
-                veil::dandelion.Add(inv.hash, inv.nTimeStemPhaseEnd);
+                LogPrintf("Received dandelion transaction %s, delaying full rebroadcast until %d\n", inv.hash.GetHex(), inv.nTimeStemPhaseEnd);
+                veil::dandelion.Add(inv.hash, inv.nTimeStemPhaseEnd, pfrom->GetId());
             } else {
                 RelayTransaction(tx, connman);
             }
@@ -3622,8 +3622,15 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                 vInvTx.reserve(pto->setInventoryTxToSend.size());
                 for (std::set<uint256>::iterator it = pto->setInventoryTxToSend.begin(); it != pto->setInventoryTxToSend.end(); it++) {
                     //Veil: don't send any dandelion inventory unless marked for sending
-                    if (!veil::dandelion.IsQueuedToSend(*it))
-                        continue;
+                    if (veil::dandelion.IsInStemPhase(*it)) {
+                        if (!veil::dandelion.IsQueuedToSend(*it))
+                            continue;
+
+                        //Don't send to the same node that sent the tx here
+                        if (veil::dandelion.IsFromNode(*it, pto->GetId()))
+                            continue;
+                    }
+
                     vInvTx.push_back(it);
                 }
                 CAmount filterrate = 0;
