@@ -98,11 +98,8 @@ static bool SelectBlockFromCandidates(
         if (fSelected && pindex->GetBlockTime() > nSelectionIntervalStop)
             break;
 
-        //if the lowest block height (vSortedByTimestamp[0]) is >= switch height, use new modifier calc
-        if (fFirstRun){
-            fModifierV2 = pindex->nHeight >= Params().ModifierUpgradeBlock();
-            fFirstRun = false;
-        }
+        fModifierV2 = true;
+        fFirstRun = false;
 
         if (mapSelectedBlocks.count(pindex->GetBlockHash()) > 0)
             continue;
