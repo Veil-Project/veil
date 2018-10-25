@@ -206,16 +206,12 @@ public:
                           "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
                           "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
                           "31438167899885040445364023527381951378636564391212010397122822120720357";
-        nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
+        nMaxZerocoinSpendsPerTransaction = 20;
         nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
         nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
-        nZerocoinHeaderVersion = 4; //Block headers must be this version once zerocoin is active
         nZerocoinRequiredStakeDepth = 200; //The required confirmations for a zpiv to be stakable
-
-        /** Height or time based activations */
-        nModifierUpdateBlock = 615800; //Value from PIVX
     }
 };
 
@@ -320,11 +316,7 @@ public:
         nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
-        nZerocoinHeaderVersion = 4; //Block headers must be this version once zerocoin is active
         nZerocoinRequiredStakeDepth = 200; //The required confirmations for a zpiv to be stakable
-
-        /** Time or height based activations*/
-        nModifierUpdateBlock = 51197; //approx Mon, 17 Apr 2017 04:00:00 GMT - Value from PIVX
     }
 };
 

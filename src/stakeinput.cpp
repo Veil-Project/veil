@@ -60,7 +60,7 @@ CBlockIndex* CZPivStake::GetIndexFrom()
     else
         nHeightChecksum = GetChecksumHeightFromSpend();
 
-    if (nHeightChecksum < Params().Zerocoin_StartHeight() || nHeightChecksum > chainActive.Height()) {
+    if (nHeightChecksum > chainActive.Height()) {
         pindexFrom = nullptr;
     } else {
         //note that this will be a nullptr if the height DNE

@@ -88,7 +88,6 @@ public:
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
 
     /** Zerocoin **/
-    // TODO: IMPLEMENT METHOD FOR RETURNING ZEROCOIN PARAMS AND REPLACE USES OF ZEROCOIN PARAMS CONSTRUCTOR
     libzerocoin::ZerocoinParams* Zerocoin_Params() const;
     std::string Zerocoin_Modulus() const { return zerocoinModulus; }
     int Zerocoin_MaxSpendsPerTransaction() const { return nMaxZerocoinSpendsPerTransaction; }
@@ -96,12 +95,7 @@ public:
     int Zerocoin_MintRequiredConfirmations() const { return nMintRequiredConfirmations; }
     int Zerocoin_RequiredAccumulation() const { return nRequiredAccumulation; }
     int Zerocoin_DefaultSpendSecurity() const { return nDefaultSecurityLevel; }
-    int Zerocoin_HeaderVersion() const { return nZerocoinHeaderVersion; }
     int Zerocoin_RequiredStakeDepth() const { return nZerocoinRequiredStakeDepth; }
-    int Zerocoin_StartHeight() const {return nZerocoinStartHeight;}
-
-    /** Height or time based activations */
-    int ModifierUpgradeBlock() const { return nModifierUpdateBlock; }
 protected:
     CChainParams() {}
 
@@ -123,20 +117,15 @@ protected:
     CCheckpointData checkpointData;
     ChainTxData chainTxData;
     bool m_fallback_fee_enabled;
-    int nModifierUpdateBlock;
 
     // zerocoin
     std::string zerocoinModulus;
     int nMaxZerocoinSpendsPerTransaction;
     CAmount nMinZerocoinMintFee;
-    CAmount nInvalidAmountFiltered;
     int nMintRequiredConfirmations;
     int nRequiredAccumulation;
     int nDefaultSecurityLevel;
-    int nZerocoinHeaderVersion;
     int64_t nBudget_Fee_Confirmations;
-    int nZerocoinStartHeight;
-    int nZerocoinStartTime;
     int nZerocoinRequiredStakeDepth;
 };
 
