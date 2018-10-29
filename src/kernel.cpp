@@ -291,7 +291,7 @@ bool CheckStake(const CDataStream& ssUniqueID, CAmount nValueIn, const uint64_t 
     hashProofOfStake = Hash(ss.begin(), ss.end());
     //LogPrintf("%s: modifier:%d nTimeBlockFrom:%d nTimeTx:%d hash:%s\n", __func__, nStakeModifier, nTimeBlockFrom, nTimeTx, hashProofOfStake.GetHex());
 
-    return stakeTargetHit(hashProofOfStake, nValueIn, bnTarget);
+    return stakeTargetHit(UintToArith256(hashProofOfStake), nValueIn, UintToArith256(bnTarget));
 }
 
 
@@ -312,7 +312,7 @@ void WeightStake(CAmount& nValueIn, const libzerocoin::CoinDenomination denom)
     }
 }
 
-bool Stake(CZPivStake* stakeInput, unsigned int nBits, unsigned int nTimeBlockFrom, unsigned int& nTimeTx, uint256& hashProofOfStake)
+bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockFrom, unsigned int& nTimeTx, uint256& hashProofOfStake)
 {
     if (nTimeTx < nTimeBlockFrom)
         return error("CheckStakeKernelHash() : nTime violation");
@@ -336,7 +336,8 @@ bool Stake(CZPivStake* stakeInput, unsigned int nBits, unsigned int nTimeBlockFr
     int nHashDrift = 30;
     CDataStream ssUniqueID = stakeInput->GetUniqueness();
     CAmount nValueIn = stakeInput->GetValue();
-    WeightStake(nValueIn, stakeInput->GetDenomination());
+    if(stakeInput->IsZPIV())
+        WeightStake(nValueIn, stakeInput->GetDenomination());
     for (int i = 0; i < nHashDrift; i++) //iterate the hashing
     {
         //new block came in, move on

@@ -22,6 +22,7 @@
 #include <wallet/walletdb.h>
 #include <wallet/rpcwallet.h>
 #include <veil/ztracker.h>
+#include <stakeinput.h>
 
 #include <algorithm>
 #include <atomic>
@@ -918,6 +919,7 @@ public:
 
     //Stake settings
     uint64_t nStakeSplitThreshold = 2000;
+    int nStakeSetUpdateTime = 300;
 
     std::map<CTxDestination, CAddressBookData> mapAddressBook;
 
@@ -1052,6 +1054,8 @@ public:
     CAmount GetZerocoinBalance(bool fMatureOnly) const;
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
+    bool CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime);
+    bool SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount);
 
     // zerocoin
     bool GetDeterministicSeed(uint256& seed);
