@@ -102,7 +102,7 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, bool fProofOfStake)
 {
     int64_t nTimeStart = GetTimeMicros();
 
@@ -124,6 +124,23 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxFees.push_back(-1); // updated at end
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 
+    if (fProofOfStake && chainActive.Height() + 1 >= 100){ //TODO add params().posstartheight()
+        //POS block - one coinbase is null then non null coinstake
+        //POW block - one coinbase that is not null
+        pblock->nTime = GetAdjustedTime();
+        CMutableTransaction txCoinStake;
+        uint32_t nTxNewTime = 0;
+        bool fStakefound = false;
+        if (pwalletMain->CreateCoinStake(*GetMainWallet().get(), pblock->nBits, txCoinStake, nTxNewTime)) {
+            pblock->nTime = nTxNewTime;
+            pblock->vtx.push_back(MakeTransactionRef(std::move(txCoinStake)));
+            fStakefound = true;
+        }
+
+        if(!fStakefound)
+            return NULL;
+    }
+
     LOCK2(cs_main, mempool.cs);
     CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);
@@ -135,7 +152,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (chainparams.MineBlocksOnDemand())
         pblock->nVersion = gArgs.GetArg("-blockversion", pblock->nVersion);
 
-    pblock->nTime = GetAdjustedTime();
+    if(!fProofOfStake) pblock->nTime = GetAdjustedTime();
     const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
 
     nLockTimeCutoff = (STANDARD_LOCKTIME_VERIFY_FLAGS & LOCKTIME_MEDIAN_TIME_PAST)
@@ -184,28 +201,36 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
-    coinbaseTx.vin.resize(1);
-    coinbaseTx.vin[0].prevout.SetNull();
-    coinbaseTx.vout.resize(2);
-    coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    coinbaseTx.vout[0].nValue = nFees + nNetworkReward + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+    if(!fProofOfStake) {
+        coinbaseTx.vin.resize(1);
+        coinbaseTx.vin[0].prevout.SetNull();
+        coinbaseTx.vout.resize(2);
+        coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
+        coinbaseTx.vout[0].nValue = nFees + nNetworkReward + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+        coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
 
-    std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
-    CTxDestination dest = DecodeDestination(strBudgetAddress);
-    auto budgetScript = GetScriptForDestination(dest);
-    coinbaseTx.vout[1].scriptPubKey = budgetScript;
-    coinbaseTx.vout[1].nValue = veil::Budget().GetBudgetAmount();
-
+        std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
+        CTxDestination dest = DecodeDestination(strBudgetAddress);
+        auto budgetScript = GetScriptForDestination(dest);
+        coinbaseTx.vout[1].scriptPubKey = budgetScript;
+        coinbaseTx.vout[1].nValue = veil::Budget().GetBudgetAmount();
+    }
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
     pblocktemplate->vTxFees[0] = -nFees;
+    if(fProofOfStake) {
+        CMutableTransaction coinstakeTx;
+        coinstakeTx.vout.resize(1);
+        CTxOut txOutEmpty;
+        coinstakeTx.vout[0] = txOutEmpty;
+        pblock->vtx[1] = MakeTransactionRef(std::move(coinstakeTx));
+    }
 
     LogPrintf("CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops %d\n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
 
     // Fill in header
     pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
-    UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
+    if (!fProofOfStake) UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
     pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus(), pblock->IsProofOfStake());
     pblock->nNonce         = 0;
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);

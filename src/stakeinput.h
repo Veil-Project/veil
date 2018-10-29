@@ -21,6 +21,7 @@ class CStakeInput
 {
 protected:
     CBlockIndex* pindexFrom;
+    libzerocoin::CoinDenomination denom = libzerocoin::CoinDenomination::ZQ_ERROR;
 
 public:
     virtual ~CStakeInput(){};
@@ -32,6 +33,7 @@ public:
     virtual bool GetModifier(uint64_t& nStakeModifier) = 0;
     virtual bool IsZPIV() = 0;
     virtual CDataStream GetUniqueness() = 0;
+    libzerocoin::CoinDenomination GetDenomination() {return denom;};
 };
 
 
@@ -43,7 +45,6 @@ class CZPivStake : public CStakeInput
 private:
     uint32_t nChecksum;
     bool fMint;
-    libzerocoin::CoinDenomination denom;
     uint256 hashSerial;
 
 public:
@@ -69,7 +70,6 @@ public:
     int GetChecksumHeightFromMint();
     int GetChecksumHeightFromSpend();
     uint32_t GetChecksum();
-    libzerocoin::CoinDenomination GetDenomination() {return denom;};
 };
 
 class CPivStake : public CStakeInput
