@@ -20,6 +20,7 @@
 #include <script/script_error.h>
 #include <script/standard.h>
 #include <utilstrencodings.h>
+#include <veil/stealth.h>
 
 #include <map>
 #include <string>

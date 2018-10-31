@@ -218,6 +218,7 @@ static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar
 }
 
 SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) {
+    /* d[0] is present and is the lowest word for all representations */
     return !(a->d[0] & 1);
 }
 #endif

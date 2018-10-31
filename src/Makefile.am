@@ -97,6 +97,7 @@ BITCOIN_CORE_H = \
   accumulatorcheckpoints.json.h \
   accumulatormap.h \
   addrdb.h \
+  rctindex.h \
   addrman.h \
   base58.h \
   bech32.h \
@@ -127,11 +128,19 @@ BITCOIN_CORE_H = \
   index/txindex.h \
   indirectmap.h \
   init.h \
+  anon.h \
+  blind.h \
   interfaces/handler.h \
   interfaces/node.h \
   interfaces/wallet.h \
   kernel.h \
   key.h \
+  veil/stealth.h \
+  veil/mnemonic.h \
+  veil/types.h \
+  veil/keyutil.h \
+  veil/hdwalletdb.h \
+  veil/hdwallet.h \
   key_io.h \
   keystore.h \
   dbwrapper.h \
@@ -208,6 +217,7 @@ BITCOIN_CORE_H = \
   veil/zchain.h \
   veil/ztracker.h \
   veil/zwallet.h \
+  veil/extkey.h \
   walletinitinterface.h \
   wallet/coincontrol.h \
   wallet/crypter.h \
@@ -301,6 +311,8 @@ libbitcoin_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_wallet_a_SOURCES = \
   interfaces/wallet.cpp \
   kernel.cpp \
+  blind.cpp \
+  veil/stealth.cpp \
   veil/dictionary.cpp \
   veil/mnemonic.cpp \
   veil/mnemonicwalletinit.cpp \
@@ -323,6 +335,8 @@ libbitcoin_wallet_a_SOURCES = \
   veil/zchain.cpp \
   veil/ztracker.cpp \
   veil/zwallet.cpp \
+  veil/hdwalletdb.cpp \
+  veil/hdwallet.cpp \
   stakeinput.cpp \
   $(BITCOIN_CORE_H)
 
@@ -507,7 +521,12 @@ libbitcoin_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
+  anon.cpp \
+  blind.cpp \
   key.cpp \
+  veil/keyutil.cpp \
+  veil/stealth.cpp \
+  veil/extkey.cpp \
   key_io.cpp \
   keystore.cpp \
   netaddress.cpp \
@@ -643,7 +662,7 @@ if GLIBC_BACK_COMPAT
 endif
 
 libbitcoinconsensus_la_LDFLAGS = $(AM_LDFLAGS) -no-undefined $(RELDFLAGS)
-libbitcoinconsensus_la_LIBADD = $(LIBSECP256K1)
+libbitcoinconsensus_la_LIBADD = $(LIBSECP256K1) $(BOOST_LIBS)
 libbitcoinconsensus_la_CPPFLAGS = $(AM_CPPFLAGS) -I$(builddir)/obj -I$(srcdir)/secp256k1/include -DBUILD_BITCOIN_INTERNAL
 libbitcoinconsensus_la_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 

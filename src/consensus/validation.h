@@ -36,6 +36,9 @@ private:
     bool corruptionPossible;
     std::string strDebugMessage;
 public:
+    int nodeId;
+    int nFlags;
+
     CValidationState() : mode(MODE_VALID), nDoS(0), chRejectCode(0), corruptionPossible(false) {}
     bool DoS(int level, bool ret = false,
              unsigned int chRejectCodeIn=0, const std::string &strRejectReasonIn="",
@@ -87,6 +90,10 @@ public:
     unsigned int GetRejectCode() const { return chRejectCode; }
     std::string GetRejectReason() const { return strRejectReason; }
     std::string GetDebugMessage() const { return strDebugMessage; }
+
+    bool fEnforceSmsgFees = false; // per block
+    bool fHasAnonOutput = false; // per tx
+    bool fHasAnonInput = false; // per tx
 };
 
 // These implement the weight = (stripped_size * 4) + witness_size formula,

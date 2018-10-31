@@ -12,10 +12,19 @@
 
 #include <boost/optional.hpp>
 
+class CInputData
+{
+public:
+    CAmount nValue;
+    uint256 blind;
+    CScriptWitness scriptWitness;
+};
+
 /** Coin Control Features. */
 class CCoinControl
 {
 public:
+    CScript scriptChange;
     //! Custom change destination, if not set an address is generated
     CTxDestination destChange;
     //! Override the default change type if set, ignored if destChange is set
@@ -36,6 +45,15 @@ public:
     bool m_avoid_partial_spends;
     //! Fee estimation mode to control arguments to estimateSmartFee
     FeeEstimateMode m_fee_mode;
+
+    int nCoinType;
+    mutable bool fHaveAnonOutputs = false;
+    mutable bool fNeedHardwareKey = false;
+    CAmount m_extrafee;
+    std::map<COutPoint, CInputData> m_inputData;
+    bool fAllowLocked = false;
+    mutable int nChangePos = -1;
+    bool m_addChangeOutput = true;
 
     CCoinControl()
     {
@@ -74,7 +92,12 @@ public:
         vOutpoints.assign(setSelected.begin(), setSelected.end());
     }
 
-private:
+    size_t NumSelected()
+    {
+        return setSelected.size();
+    }
+
+//private:
     std::set<COutPoint> setSelected;
 };
 

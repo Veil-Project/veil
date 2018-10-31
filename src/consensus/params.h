@@ -74,6 +74,8 @@ struct Params {
     int64_t nPowTargetSpacing;
     uint256 nMinimumChainWork;
     uint256 defaultAssumeValid;
+
+    int nMinRCTOutputDepth;
 };
 } // namespace Consensus
 

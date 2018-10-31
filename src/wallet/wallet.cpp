@@ -169,6 +169,22 @@ public:
             Process(script);
     }
 
+    void operator()(const CKeyID256 &keyId) {
+        //if (keystore.HaveKey(keyId))
+        //    vKeys.push_back(keyId);
+    }
+
+    void operator()(const CScriptID256 &scriptId) {
+        //CScript script;
+        //if (keystore.GetCScript(scriptId, script))
+        //    Process(script);
+    }
+
+    void operator()(const CNoDestination &none) {}
+
+    void operator()(const CExtKey &none) {}
+    void operator()(const CStealthAddress &sxAddr) {}
+
     void operator()(const WitnessV0ScriptHash& scriptID)
     {
         CScriptID id;
@@ -2359,7 +2375,9 @@ CAmount CWallet::GetAvailableBalance(const CCoinControl* coinControl) const
     return balance;
 }
 
-void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const CCoinControl *coinControl, const CAmount &nMinimumAmount, const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount, const int nMinDepth, const int nMaxDepth) const
+void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const CCoinControl *coinControl, const CAmount &nMinimumAmount,
+        const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount, const int nMinDepth,
+        const int nMaxDepth, bool fIncludeImmature) const
 {
     AssertLockHeld(cs_main);
     AssertLockHeld(cs_wallet);
@@ -3542,7 +3560,6 @@ DBErrors CWallet::ZapWalletTx(std::vector<CWalletTx>& vWtx)
 
     return DBErrors::LOAD_OK;
 }
-
 
 bool CWallet::SetAddressBook(const CTxDestination& address, const std::string& strName, const std::string& strPurpose)
 {
@@ -4885,6 +4902,12 @@ int CMerkleTx::GetBlocksToMaturity() const
     int chain_depth = GetDepthInMainChain();
     assert(chain_depth >= 0); // coinbase tx should not be conflicted
     return std::max(0, (COINBASE_MATURITY+1) - chain_depth);
+}
+
+bool CMerkleTx::IsImmatureCoinBase() const
+{
+    // note GetBlocksToMaturity is 0 for non-coinbase tx
+    return GetBlocksToMaturity() > 0;
 }
 
 

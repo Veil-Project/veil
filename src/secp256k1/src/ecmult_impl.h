@@ -13,6 +13,8 @@
 #include "scalar.h"
 #include "ecmult.h"
 
+#include <string.h>
+
 #if defined(EXHAUSTIVE_TEST_ORDER)
 /* We need to lower these values for exhaustive tests because
  * the tables cannot have infinities in them (this breaks the

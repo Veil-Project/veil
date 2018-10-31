@@ -8,6 +8,8 @@
 
 #include <key.h>
 #include <pubkey.h>
+#include <veil/extkey.h>
+#include <veil/stealth.h>
 #include <script/script.h>
 #include <script/sign.h>
 #include <script/standard.h>
@@ -23,6 +25,7 @@ public:
     virtual bool AddKeyPubKey(const CKey &key, const CPubKey &pubkey) =0;
 
     //! Check whether a key corresponding to a given address is present in the store.
+    virtual isminetype IsMine(const CKeyID &address) const = 0;
     virtual bool HaveKey(const CKeyID &address) const =0;
     virtual std::set<CKeyID> GetKeys() const =0;
 
@@ -36,6 +39,8 @@ public:
     virtual bool RemoveWatchOnly(const CScript &dest) =0;
     virtual bool HaveWatchOnly(const CScript &dest) const =0;
     virtual bool HaveWatchOnly() const =0;
+
+    virtual size_t CountKeys() const =0;
 };
 
 /** Basic key store, that keeps keys in an address->secret map */
@@ -63,6 +68,7 @@ public:
     bool HaveKey(const CKeyID &address) const override;
     std::set<CKeyID> GetKeys() const override;
     bool GetKey(const CKeyID &address, CKey &keyOut) const override;
+    isminetype IsMine(const CKeyID &address) const override;
     bool AddCScript(const CScript& redeemScript) override;
     bool HaveCScript(const CScriptID &hash) const override;
     std::set<CScriptID> GetCScripts() const override;
@@ -72,6 +78,13 @@ public:
     bool RemoveWatchOnly(const CScript &dest) override;
     bool HaveWatchOnly(const CScript &dest) const override;
     bool HaveWatchOnly() const override;
+
+    virtual size_t CountKeys() const override
+    {
+        LOCK(cs_KeyStore);
+        return mapKeys.size();
+    }
+
 };
 
 /** Return the CKeyID of the key involved in a script (if there is a unique one). */

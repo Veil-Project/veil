@@ -10,6 +10,7 @@
 #include <script/standard.h>
 #include <uint256.h>
 #include <test/test_veil.h>
+#include <veil/stealth.h>
 
 #include <vector>
 

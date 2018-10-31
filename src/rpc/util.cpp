@@ -120,6 +120,33 @@ public:
         obj.pushKV("witness_program", HexStr(id.program, id.program + id.length));
         return obj;
     }
+
+    UniValue operator()(const CExtKeyPair &ekp) const {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("isextkey", true);
+        return obj;
+    }
+
+    UniValue operator()(const CStealthAddress &sxAddr) const {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("isstealthaddress", true);
+        obj.pushKV("prefix_num_bits", sxAddr.prefix.number_bits);
+        obj.pushKV("prefix_bitfield", strprintf("0x%04x", sxAddr.prefix.bitfield));
+        return obj;
+    }
+
+    UniValue operator()(const CKeyID256 &idk256) const {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("isscript", false);
+        return obj;
+    }
+
+    UniValue operator()(const CScriptID256 &scriptID256) const {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("isscript", true);
+        return obj;
+    }
+
 };
 
 UniValue DescribeAddress(const CTxDestination& dest)

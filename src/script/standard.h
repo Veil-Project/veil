@@ -8,6 +8,7 @@
 
 #include <script/interpreter.h>
 #include <uint256.h>
+#include <key.h>
 
 #include <boost/variant.hpp>
 
@@ -17,6 +18,8 @@ static const bool DEFAULT_ACCEPT_DATACARRIER = true;
 
 class CKeyID;
 class CScript;
+class CStealthAddress;
+class CExtKeyPair;
 
 /** A reference to a CScript: the Hash160 of its serialization (see script.h) */
 class CScriptID : public uint160
@@ -25,6 +28,17 @@ public:
     CScriptID() : uint160() {}
     explicit CScriptID(const CScript& in);
     CScriptID(const uint160& in) : uint160(in) {}
+
+    bool Set(const uint256& in);
+};
+
+class CScriptID256 : public uint256
+{
+public:
+    CScriptID256() : uint256() {}
+    CScriptID256(const uint256& in) : uint256(in) {}
+
+    bool Set(const CScript& in);
 };
 
 /**
@@ -57,7 +71,7 @@ enum txnouttype
 {
     TX_NONSTANDARD,
     // 'standard' transaction types:
-    TX_PUBKEY,
+            TX_PUBKEY,
     TX_PUBKEYHASH,
     TX_SCRIPTHASH,
     TX_MULTISIG,
@@ -65,6 +79,14 @@ enum txnouttype
     TX_WITNESS_V0_SCRIPTHASH,
     TX_WITNESS_V0_KEYHASH,
     TX_WITNESS_UNKNOWN, //!< Only for Witness versions not already defined above
+
+    TX_SCRIPTHASH256,
+    TX_PUBKEYHASH256,
+    TX_TIMELOCKED_SCRIPTHASH,
+    TX_TIMELOCKED_SCRIPTHASH256,
+    TX_TIMELOCKED_PUBKEYHASH,
+    TX_TIMELOCKED_PUBKEYHASH256,
+    TX_TIMELOCKED_MULTISIG,
 };
 
 class CNoDestination {
@@ -120,7 +142,8 @@ struct WitnessUnknown
  *  * WitnessUnknown: TX_WITNESS_UNKNOWN destination (P2W???)
  *  A CTxDestination is the internal data type encoded in a veil address
  */
-typedef boost::variant<CNoDestination, CKeyID, CScriptID, WitnessV0ScriptHash, WitnessV0KeyHash, WitnessUnknown> CTxDestination;
+typedef boost::variant<CNoDestination, CKeyID, CScriptID, WitnessV0ScriptHash, WitnessV0KeyHash, WitnessUnknown,
+     CStealthAddress, CExtKeyPair, CKeyID256, CScriptID256> CTxDestination;
 
 /** Check whether a CTxDestination is a CNoDestination. */
 bool IsValidDestination(const CTxDestination& dest);
