@@ -4182,6 +4182,44 @@ public:
         return obj;
     }
 
+    UniValue operator()(const CExtKeyPair &ekp) const {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("isextkey", true);
+        return obj;
+    }
+
+    UniValue operator()(const CStealthAddress &sxAddr) const {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("isstealthaddress", true);
+        obj.pushKV("prefix_num_bits", sxAddr.prefix.number_bits);
+        obj.pushKV("prefix_bitfield", strprintf("0x%04x", sxAddr.prefix.bitfield));
+        return obj;
+    }
+
+    UniValue operator()(const CKeyID256 &idk256) const {
+        UniValue obj(UniValue::VOBJ);
+        CPubKey vchPubKey;
+        obj.pushKV("is256bit", true);
+        CKeyID id160(idk256);
+        if (pwallet && pwallet->GetPubKey(id160, vchPubKey)) {
+            obj.pushKV("pubkey", HexStr(vchPubKey));
+            obj.pushKV("iscompressed", vchPubKey.IsCompressed());
+        }
+        return obj;
+    }
+
+    UniValue operator()(const CScriptID256 &scriptID256) const {
+        UniValue obj(UniValue::VOBJ);
+        CScript subscript;
+        obj.pushKV("isscript", true);
+        CScriptID scriptID;
+        scriptID.Set(scriptID256);
+        if (pwallet && pwallet->GetCScript(scriptID, subscript)) {
+            ProcessSubScript(subscript, obj);
+        }
+        return obj;
+    }
+
     UniValue operator()(const WitnessUnknown& id) const { return UniValue(UniValue::VOBJ); }
 };
 

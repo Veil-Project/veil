@@ -166,7 +166,7 @@ private:
 /** RAII class that provides access to a Berkeley database */
 class BerkeleyBatch
 {
-protected:
+public:
     Db* pdb;
     std::string strFile;
     DbTxn* activeTxn;

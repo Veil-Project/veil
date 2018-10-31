@@ -158,6 +158,8 @@ extern CConditionVariable g_best_block_cv;
 extern uint256 g_best_block;
 extern std::atomic_bool fImporting;
 extern std::atomic_bool fReindex;
+extern bool fSkipRangeproof;
+extern bool fBusyImporting;
 extern int nScriptCheckThreads;
 extern bool fIsBareMultisigStd;
 extern bool fRequireStandard;

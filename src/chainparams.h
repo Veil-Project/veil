@@ -55,6 +55,14 @@ public:
         EXT_PUBLIC_KEY,
         EXT_SECRET_KEY,
 
+        STEALTH_ADDRESS,
+        EXT_KEY_HASH,
+        EXT_ACC_HASH,
+        EXT_PUBLIC_KEY_BTC,
+        EXT_SECRET_KEY_BTC,
+        PUBKEY_ADDRESS_256,
+        SCRIPT_ADDRESS_256,
+        STAKE_ONLY_PKADDR,
         MAX_BASE58_TYPES
     };
 
@@ -81,11 +89,16 @@ public:
     /** Return the list of hostnames to look up for DNS seeds */
     const std::vector<std::string>& DNSSeeds() const { return vSeeds; }
     const std::vector<unsigned char>& Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
+    const std::vector<unsigned char>& Bech32Prefix(Base58Type type) const { return bech32Prefixes[type]; }
     const std::string& Bech32HRP() const { return bech32_hrp; }
     const std::vector<SeedSpec6>& FixedSeeds() const { return vFixedSeeds; }
     const CCheckpointData& Checkpoints() const { return checkpointData; }
     const ChainTxData& TxData() const { return chainTxData; }
     void UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout);
+
+    bool IsBech32Prefix(const std::vector<unsigned char> &vchPrefixIn) const;
+    bool IsBech32Prefix(const std::vector<unsigned char> &vchPrefixIn, CChainParams::Base58Type &rtype) const;
+    bool IsBech32Prefix(const char *ps, size_t slen, CChainParams::Base58Type &rtype) const;
 
     /** Zerocoin **/
     libzerocoin::ZerocoinParams* Zerocoin_Params() const;
@@ -108,6 +121,7 @@ protected:
     uint64_t nPruneAfterHeight;
     std::vector<std::string> vSeeds;
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
+    std::vector<unsigned char> bech32Prefixes[MAX_BASE58_TYPES];
     std::string bech32_hrp;
     std::string strNetworkID;
     CBlock genesis;

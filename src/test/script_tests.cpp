@@ -14,6 +14,7 @@
 #include <utilstrencodings.h>
 #include <test/test_veil.h>
 #include <rpc/server.h>
+#include <veil/stealth.h>
 
 #if defined(HAVE_CONSENSUS_LIB)
 #include <script/bitcoinconsensus.h>

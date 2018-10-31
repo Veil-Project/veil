@@ -10,6 +10,7 @@
 #include <test/test_veil.h>
 #include <validation.h>
 #include <consensus/validation.h>
+#include <veil/stealth.h>
 
 #include <vector>
 #include <map>

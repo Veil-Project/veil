@@ -9,6 +9,7 @@
 #include <coins.h>
 #include <dbwrapper.h>
 #include <chain.h>
+#include <rctindex.h>
 #include <primitives/block.h>
 #include <libzerocoin/Coin.h>
 #include <libzerocoin/CoinSpend.h>
@@ -22,6 +23,10 @@
 class CBlockIndex;
 class CCoinsViewDBCursor;
 class uint256;
+
+const char DB_RCTOUTPUT = 'A';
+const char DB_RCTOUTPUT_LINK = 'L';
+const char DB_RCTKEYIMAGE = 'K';
 
 //! No need to periodic flush if at least this much space still available.
 static constexpr int MAX_BLOCK_COINSDB_USAGE = 10;
@@ -98,6 +103,18 @@ public:
     bool WriteFlag(const std::string &name, bool fValue);
     bool ReadFlag(const std::string &name, bool &fValue);
     bool LoadBlockIndexGuts(const Consensus::Params& consensusParams, std::function<CBlockIndex*(const uint256&)> insertBlockIndex);
+
+    bool ReadRCTOutput(int64_t i, CAnonOutput &ao);
+    bool WriteRCTOutput(int64_t i, const CAnonOutput &ao);
+    bool EraseRCTOutput(int64_t i);
+
+    bool ReadRCTOutputLink(const CCmpPubKey &pk, int64_t &i);
+    bool WriteRCTOutputLink(const CCmpPubKey &pk, int64_t i);
+    bool EraseRCTOutputLink(const CCmpPubKey &pk);
+
+    bool ReadRCTKeyImage(const CCmpPubKey &ki, uint256 &txhash);
+    bool WriteRCTKeyImage(const CCmpPubKey &ki, const uint256 &txhash);
+    bool EraseRCTKeyImage(const CCmpPubKey &ki);
 };
 
 /** Zerocoin database (zerocoin/) */

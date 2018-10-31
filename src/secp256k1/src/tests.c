@@ -18,6 +18,8 @@
 #include "include/secp256k1.h"
 #include "testrand_impl.h"
 
+#include <string.h>
+
 #ifdef ENABLE_OPENSSL_TESTS
 #include "openssl/bn.h"
 #include "openssl/ec.h"
@@ -39,7 +41,8 @@
 # endif
 #endif
 
-static int count = 64;
+//static int count = 64;
+static int count = 32;
 static secp256k1_context *ctx = NULL;
 
 static void counting_illegal_callback_fn(const char* str, void* data) {
@@ -132,6 +135,52 @@ void random_scalar_order(secp256k1_scalar *num) {
         }
         break;
     } while(1);
+}
+
+void run_util_tests(void) {
+    int i;
+    uint64_t r;
+    uint64_t r2;
+    uint64_t r3;
+    int64_t s;
+    CHECK(secp256k1_clz64_var(0) == 64);
+    CHECK(secp256k1_clz64_var(1) == 63);
+    CHECK(secp256k1_clz64_var(2) == 62);
+    CHECK(secp256k1_clz64_var(3) == 62);
+    CHECK(secp256k1_clz64_var(~0ULL) == 0);
+    CHECK(secp256k1_clz64_var((~0ULL) - 1) == 0);
+    CHECK(secp256k1_clz64_var((~0ULL) >> 1) == 1);
+    CHECK(secp256k1_clz64_var((~0ULL) >> 2) == 2);
+    CHECK(secp256k1_sign_and_abs64(&r, INT64_MAX) == 0);
+    CHECK(r == INT64_MAX);
+    CHECK(secp256k1_sign_and_abs64(&r, INT64_MAX - 1) == 0);
+    CHECK(r == INT64_MAX - 1);
+    CHECK(secp256k1_sign_and_abs64(&r, INT64_MIN) == 1);
+    CHECK(r == (uint64_t)INT64_MAX + 1);
+    CHECK(secp256k1_sign_and_abs64(&r, INT64_MIN + 1) == 1);
+    CHECK(r == (uint64_t)INT64_MAX);
+    CHECK(secp256k1_sign_and_abs64(&r, 0) == 0);
+    CHECK(r == 0);
+    CHECK(secp256k1_sign_and_abs64(&r, 1) == 0);
+    CHECK(r == 1);
+    CHECK(secp256k1_sign_and_abs64(&r, -1) == 1);
+    CHECK(r == 1);
+    CHECK(secp256k1_sign_and_abs64(&r, 2) == 0);
+    CHECK(r == 2);
+    CHECK(secp256k1_sign_and_abs64(&r, -2) == 1);
+    CHECK(r == 2);
+    for (i = 0; i < 10; i++) {
+        CHECK(secp256k1_clz64_var((~0ULL) - secp256k1_rand32()) == 0);
+        r = ((uint64_t)secp256k1_rand32() << 32) | secp256k1_rand32();
+        r2 = secp256k1_rands64(0, r);
+        CHECK(r2 <= r);
+        r3 = secp256k1_rands64(r2, r);
+        CHECK((r3 >= r2) && (r3 <= r));
+        r = secp256k1_rands64(0, INT64_MAX);
+        s = (int64_t)r * (secp256k1_rand32()&1?-1:1);
+        CHECK(secp256k1_sign_and_abs64(&r2, s) == (s < 0));
+        CHECK(r2 == r);
+    }
 }
 
 void run_context_tests(void) {
@@ -2405,7 +2454,7 @@ void ecmult_const_random_mult(void) {
         0xb84e4e1b, 0xfb77e21f, 0x96baae2a, 0x63dec956
     );
     secp256k1_gej b;
-    secp256k1_ecmult_const(&b, &a, &xn);
+    secp256k1_ecmult_const(&b, &a, &xn, 256);
 
     CHECK(secp256k1_ge_is_valid_var(&a));
     ge_equals_gej(&expected_b, &b);
@@ -2421,12 +2470,12 @@ void ecmult_const_commutativity(void) {
     random_scalar_order_test(&a);
     random_scalar_order_test(&b);
 
-    secp256k1_ecmult_const(&res1, &secp256k1_ge_const_g, &a);
-    secp256k1_ecmult_const(&res2, &secp256k1_ge_const_g, &b);
+    secp256k1_ecmult_const(&res1, &secp256k1_ge_const_g, &a, 256);
+    secp256k1_ecmult_const(&res2, &secp256k1_ge_const_g, &b, 256);
     secp256k1_ge_set_gej(&mid1, &res1);
     secp256k1_ge_set_gej(&mid2, &res2);
-    secp256k1_ecmult_const(&res1, &mid1, &b);
-    secp256k1_ecmult_const(&res2, &mid2, &a);
+    secp256k1_ecmult_const(&res1, &mid1, &b, 256);
+    secp256k1_ecmult_const(&res2, &mid2, &a, 256);
     secp256k1_ge_set_gej(&mid1, &res1);
     secp256k1_ge_set_gej(&mid2, &res2);
     ge_equals_ge(&mid1, &mid2);
@@ -2442,13 +2491,13 @@ void ecmult_const_mult_zero_one(void) {
     secp256k1_scalar_negate(&negone, &one);
 
     random_group_element_test(&point);
-    secp256k1_ecmult_const(&res1, &point, &zero);
+    secp256k1_ecmult_const(&res1, &point, &zero, 3);
     secp256k1_ge_set_gej(&res2, &res1);
     CHECK(secp256k1_ge_is_infinity(&res2));
-    secp256k1_ecmult_const(&res1, &point, &one);
+    secp256k1_ecmult_const(&res1, &point, &one, 2);
     secp256k1_ge_set_gej(&res2, &res1);
     ge_equals_ge(&res2, &point);
-    secp256k1_ecmult_const(&res1, &point, &negone);
+    secp256k1_ecmult_const(&res1, &point, &negone, 256);
     secp256k1_gej_neg(&res1, &res1);
     secp256k1_ge_set_gej(&res2, &res1);
     ge_equals_ge(&res2, &point);
@@ -2474,7 +2523,7 @@ void ecmult_const_chain_multiply(void) {
     for (i = 0; i < 100; ++i) {
         secp256k1_ge tmp;
         secp256k1_ge_set_gej(&tmp, &point);
-        secp256k1_ecmult_const(&point, &tmp, &scalar);
+        secp256k1_ecmult_const(&point, &tmp, &scalar, 256);
     }
     secp256k1_ge_set_gej(&res, &point);
     ge_equals_gej(&res, &expected_point);
@@ -2541,6 +2590,7 @@ void test_constant_wnaf(const secp256k1_scalar *number, int w) {
     int wnaf[256] = {0};
     int i;
     int skew;
+    int bits = 256;
     secp256k1_scalar num = *number;
 
     secp256k1_scalar_set_int(&x, 0);
@@ -2550,10 +2600,11 @@ void test_constant_wnaf(const secp256k1_scalar *number, int w) {
     for (i = 0; i < 16; ++i) {
         secp256k1_scalar_shr_int(&num, 8);
     }
+    bits = 128;
 #endif
-    skew = secp256k1_wnaf_const(wnaf, num, w);
+    skew = secp256k1_wnaf_const(wnaf, num, w, bits, 1);
 
-    for (i = WNAF_SIZE(w); i >= 0; --i) {
+    for (i = WNAF_SIZE(bits, w); i >= 0; --i) {
         secp256k1_scalar t;
         int v = wnaf[i];
         CHECK(v != 0); /* check nonzero */
@@ -4407,6 +4458,26 @@ void run_ecdsa_openssl(void) {
 # include "modules/recovery/tests_impl.h"
 #endif
 
+#ifdef ENABLE_MODULE_GENERATOR
+# include "modules/generator/tests_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_RANGEPROOF
+# include "modules/rangeproof/tests_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_MLSAG
+# include "modules/mlsag/tests_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_WHITELIST
+# include "modules/whitelist/tests_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_SURJECTIONPROOF
+# include "modules/surjection/tests_impl.h"
+#endif
+
 int main(int argc, char **argv) {
     unsigned char seed16[16] = {0};
     unsigned char run32[32] = {0};
@@ -4459,6 +4530,7 @@ int main(int argc, char **argv) {
 
     run_rand_bits();
     run_rand_int();
+    run_util_tests();
 
     run_sha256_tests();
     run_hmac_sha256_tests();
@@ -4523,6 +4595,27 @@ int main(int argc, char **argv) {
 #ifdef ENABLE_MODULE_RECOVERY
     /* ECDSA pubkey recovery tests */
     run_recovery_tests();
+#endif
+
+#ifdef ENABLE_MODULE_GENERATOR
+    run_generator_tests();
+#endif
+
+#ifdef ENABLE_MODULE_RANGEPROOF
+    run_rangeproof_tests();
+#endif
+
+#ifdef ENABLE_MODULE_MLSAG
+    run_mlsag_tests();
+#endif
+
+#ifdef ENABLE_MODULE_WHITELIST
+    /* Key whitelisting tests */
+    run_whitelist_tests();
+#endif
+
+#ifdef ENABLE_MODULE_SURJECTIONPROOF
+    run_surjection_tests();
 #endif
 
     secp256k1_rand256(run32);

@@ -29,6 +29,12 @@
 
 class CBlockIndex;
 
+enum eMemPoolFlags
+{
+    MPE_CT                 = (1 << 1),
+    MPE_RINGCT             = (1 << 2),
+};
+
 /** Fake height value used in Coin to signify they are only in the memory pool (since 0.8) */
 static const uint32_t MEMPOOL_HEIGHT = 0x7FFFFFFF;
 
@@ -519,6 +525,8 @@ public:
     indirectmap<COutPoint, const CTransaction*> mapNextTx GUARDED_BY(cs);
     std::map<uint256, CAmount> mapDeltas;
 
+    std::map<CCmpPubKey, uint256> mapKeyImages;
+
     /** Create a new CTxMemPool.
      */
     explicit CTxMemPool(CBlockPolicyEstimator* estimator = nullptr);
@@ -565,6 +573,8 @@ public:
     void PrioritiseTransaction(const uint256& hash, const CAmount& nFeeDelta);
     void ApplyDelta(const uint256 hash, CAmount &nFeeDelta) const;
     void ClearPrioritisation(const uint256 hash);
+
+    bool HaveKeyImage(const CCmpPubKey &ki, uint256 &hash) const;
 
 public:
     /** Remove a set of transactions from the mempool.

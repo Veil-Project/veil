@@ -81,6 +81,48 @@ static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits
     return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, genesisReward);
 }
 
+bool CChainParams::IsBech32Prefix(const std::vector<unsigned char> &vchPrefixIn) const
+{
+    for (auto &hrp : bech32Prefixes)  {
+        if (vchPrefixIn == hrp) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
+bool CChainParams::IsBech32Prefix(const std::vector<unsigned char> &vchPrefixIn, CChainParams::Base58Type &rtype) const
+{
+    for (size_t k = 0; k < MAX_BASE58_TYPES; ++k) {
+        auto &hrp = bech32Prefixes[k];
+        if (vchPrefixIn == hrp) {
+            rtype = static_cast<CChainParams::Base58Type>(k);
+            return true;
+        }
+    }
+
+    return false;
+};
+
+bool CChainParams::IsBech32Prefix(const char *ps, size_t slen, CChainParams::Base58Type &rtype) const
+{
+    for (size_t k = 0; k < MAX_BASE58_TYPES; ++k)
+    {
+        const auto &hrp = bech32Prefixes[k];
+        size_t hrplen = hrp.size();
+        if (hrplen > 0
+            && slen > hrplen
+            && strncmp(ps, (const char*)&hrp[0], hrplen) == 0)
+        {
+            rtype = static_cast<CChainParams::Base58Type>(k);
+            return true;
+        };
+    };
+
+    return false;
+};
+
 void CChainParams::UpdateVersionBitsParameters(Consensus::DeploymentPos d, int64_t nStartTime, int64_t nTimeout)
 {
     consensus.vDeployments[d].nStartTime = nStartTime;
@@ -147,6 +189,8 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8"); //534292
 
+        consensus.nMinRCTOutputDepth = 12;
+
         /**
          * The message start string is designed to be unlikely to occur in normal data.
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
@@ -169,8 +213,11 @@ public:
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,128);
+        base58Prefixes[STEALTH_ADDRESS] ={0x14}; // todo
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
+
+        bech32Prefixes[STEALTH_ADDRESS].assign("ps","ps"+2);
 
         bech32_hrp = "bc";
 
@@ -275,8 +322,11 @@ public:
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
+        base58Prefixes[STEALTH_ADDRESS]    = {0x15}; // T
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
+
+        bech32Prefixes[STEALTH_ADDRESS].assign("tps","tps"+3);
 
         bech32_hrp = "tb";
 

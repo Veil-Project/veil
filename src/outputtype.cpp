@@ -9,6 +9,7 @@
 #include <pubkey.h>
 #include <script/script.h>
 #include <script/standard.h>
+#include <veil/stealth.h>
 
 #include <assert.h>
 #include <string>

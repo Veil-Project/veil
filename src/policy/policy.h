@@ -80,6 +80,9 @@ CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFee);
 
 bool IsDust(const CTxOut& txout, const CFeeRate& dustRelayFee);
 
+CAmount GetDustThreshold(const CTxOutStandard *txout, const CFeeRate& dustRelayFeeIn);
+bool IsDust(const CTxOutBase *txout, const CFeeRate& dustRelayFee);
+
 bool IsStandard(const CScript& scriptPubKey, txnouttype& whichType);
     /**
      * Check for standard transaction types

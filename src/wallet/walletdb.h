@@ -144,7 +144,10 @@ public:
  */
 class WalletBatch
 {
-private:
+
+friend class CHDWalletDB;
+
+protected:
     template <typename K, typename T>
     bool WriteIC(const K& key, const T& value, bool fOverwrite = true)
     {
@@ -283,7 +286,7 @@ public:
     bool ReadZPIVCount(uint32_t& nCount);
     std::map<uint256, std::vector<std::pair<uint256, uint32_t> > > MapMintPool();
     bool WriteMintPoolPair(const uint256& hashMasterSeed, const uint256& hashPubcoin, const uint32_t& nCount);
-private:
+protected:
     BerkeleyBatch m_batch;
     WalletDatabase& m_database;
 };

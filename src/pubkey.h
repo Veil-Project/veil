@@ -22,6 +22,15 @@ class CKeyID : public uint160
 public:
     CKeyID() : uint160() {}
     explicit CKeyID(const uint160& in) : uint160(in) {}
+
+    CKeyID(const uint256& in);
+};
+
+class CKeyID256 : public uint256
+{
+public:
+    CKeyID256() : uint256() {}
+    explicit CKeyID256(const uint256& in) : uint256(in) {}
 };
 
 typedef uint256 ChainCode;
@@ -157,6 +166,11 @@ public:
         return CKeyID(Hash160(vch, vch + size()));
     }
 
+    CKeyID256 GetID256() const
+    {
+        return CKeyID256(HashSha256(vch, vch + size()));
+    }
+
     //! Get the 256-bit hash of this public key.
     uint256 GetHash() const
     {
@@ -204,55 +218,196 @@ public:
     //! Turn this public key into an uncompressed public key.
     bool Decompress();
 
+    //! Turn this public key into a compressed public key.
+    bool Compress();
+
     //! Derive BIP32 child pubkey.
     bool Derive(CPubKey& pubkeyChild, ChainCode &ccChild, unsigned int nChild, const ChainCode& cc) const;
+
+    bool Derive(CPubKey& pubkeyChild, unsigned char ccChild[32], unsigned int nChild, const unsigned char cc[32]) const;
 };
 
-struct CExtPubKey {
-    unsigned char nDepth;
-    unsigned char vchFingerprint[4];
-    unsigned int nChild;
-    ChainCode chaincode;
-    CPubKey pubkey;
+/** An encapsulated compressed public key. */
+class CCmpPubKey
+{
+private:
+    /**
+     * Just store the serialized data.
+     * Its length can very cheaply be computed from the first byte.
+     */
+    unsigned char vch[33];
 
-    friend bool operator==(const CExtPubKey &a, const CExtPubKey &b)
+    //! Compute the length of a pubkey with a given first byte.
+    unsigned int static GetLen(unsigned char chHeader)
     {
-        return a.nDepth == b.nDepth &&
-            memcmp(&a.vchFingerprint[0], &b.vchFingerprint[0], sizeof(vchFingerprint)) == 0 &&
-            a.nChild == b.nChild &&
-            a.chaincode == b.chaincode &&
-            a.pubkey == b.pubkey;
+        if (chHeader == 2 || chHeader == 3)
+            return 33;
+        return 0;
     }
 
-    void Encode(unsigned char code[BIP32_EXTKEY_SIZE]) const;
-    void Decode(const unsigned char code[BIP32_EXTKEY_SIZE]);
-    bool Derive(CExtPubKey& out, unsigned int nChild) const;
-
-    void Serialize(CSizeComputer& s) const
+    //! Set this key data to be invalid
+    void Invalidate()
     {
-        // Optimized implementation for ::GetSerializeSize that avoids copying.
-        s.seek(BIP32_EXTKEY_SIZE + 1); // add one byte for the size (compact int)
+        vch[0] = 0xFF;
     }
+
+public:
+    //! Construct an invalid public key.
+    CCmpPubKey()
+    {
+        Invalidate();
+    }
+
+    //! Initialize a public key using begin/end iterators to byte data.
+    template <typename T>
+    void Set(const T pbegin, const T pend)
+    {
+        int len = pend == pbegin ? 0 : GetLen(pbegin[0]);
+        if (len && len == (pend - pbegin))
+            memcpy(vch, (unsigned char*)&pbegin[0], len);
+        else
+            Invalidate();
+    }
+
+    //! Construct a public key using begin/end iterators to byte data.
+    template <typename T>
+    CCmpPubKey(const T pbegin, const T pend)
+    {
+        Set(pbegin, pend);
+    }
+
+    //! Construct a public key from a byte vector.
+    CCmpPubKey(const std::vector<unsigned char>& _vch)
+    {
+        Set(_vch.begin(), _vch.end());
+    }
+
+    CCmpPubKey(CPubKey pk)
+    {
+        Set(pk.begin(), pk.end());
+    }
+
+    //! Simple read-only vector-like interface to the pubkey data.
+    unsigned int size() const { return GetLen(vch[0]); }
+    const unsigned char* begin() const { return vch; }
+    unsigned char* ncbegin() { return vch; }
+    const unsigned char* end() const { return vch + size(); }
+    const unsigned char& operator[](unsigned int pos) const { return vch[pos]; }
+
+    //! Comparator implementation.
+    friend bool operator==(const CCmpPubKey& a, const CCmpPubKey& b)
+    {
+        return a.vch[0] == b.vch[0] &&
+               memcmp(a.vch, b.vch, a.size()) == 0;
+    }
+    friend bool operator!=(const CCmpPubKey& a, const CCmpPubKey& b)
+    {
+        return !(a == b);
+    }
+    friend bool operator<(const CCmpPubKey& a, const CCmpPubKey& b)
+    {
+        return a.vch[0] < b.vch[0] ||
+               (a.vch[0] == b.vch[0] && memcmp(a.vch, b.vch, a.size()) < 0);
+    }
+
+    //! Implement serialization, as if this was a byte vector.
     template <typename Stream>
     void Serialize(Stream& s) const
     {
-        unsigned int len = BIP32_EXTKEY_SIZE;
+        unsigned int len = size();
         ::WriteCompactSize(s, len);
-        unsigned char code[BIP32_EXTKEY_SIZE];
-        Encode(code);
-        s.write((const char *)&code[0], len);
+        s.write((char*)vch, len);
     }
     template <typename Stream>
     void Unserialize(Stream& s)
     {
         unsigned int len = ::ReadCompactSize(s);
-        unsigned char code[BIP32_EXTKEY_SIZE];
-        if (len != BIP32_EXTKEY_SIZE)
-            throw std::runtime_error("Invalid extended key size\n");
-        s.read((char *)&code[0], len);
-        Decode(code);
+        if (len <= 33) {
+            s.read((char*)vch, len);
+        } else {
+            // invalid pubkey, skip available data
+            char dummy;
+            while (len--)
+                s.read(&dummy, 1);
+            Invalidate();
+        }
+    }
+
+    //! Get the KeyID of this public key (hash of its serialization)
+    CKeyID GetID() const
+    {
+        return CKeyID(Hash160(vch, vch + size()));
+    }
+
+    //! Get the 256-bit hash of this public key.
+    uint256 GetHash() const
+    {
+        return Hash(vch, vch + size());
+    }
+
+    /*
+     * Check syntactic correctness.
+     *
+     * Note that this is consensus critical as CheckSig() calls it!
+     */
+    bool IsValid() const
+    {
+        return size() > 0;
+    }
+
+    //! Check whether this is a compressed public key.
+    bool IsCompressed() const
+    {
+        return true;
     }
 };
+
+//TODO: might need to comment out this class, particl seems to specifically ignore it
+//struct CExtPubKey {
+//    unsigned char nDepth;
+//    unsigned char vchFingerprint[4];
+//    unsigned int nChild;
+//    ChainCode chaincode;
+//    CPubKey pubkey;
+//
+//    friend bool operator==(const CExtPubKey &a, const CExtPubKey &b)
+//    {
+//        return a.nDepth == b.nDepth &&
+//            memcmp(&a.vchFingerprint[0], &b.vchFingerprint[0], sizeof(vchFingerprint)) == 0 &&
+//            a.nChild == b.nChild &&
+//            a.chaincode == b.chaincode &&
+//            a.pubkey == b.pubkey;
+//    }
+//
+//    void Encode(unsigned char code[BIP32_EXTKEY_SIZE]) const;
+//    void Decode(const unsigned char code[BIP32_EXTKEY_SIZE]);
+//    bool Derive(CExtPubKey& out, unsigned int nChild) const;
+//
+//    void Serialize(CSizeComputer& s) const
+//    {
+//        // Optimized implementation for ::GetSerializeSize that avoids copying.
+//        s.seek(BIP32_EXTKEY_SIZE + 1); // add one byte for the size (compact int)
+//    }
+//    template <typename Stream>
+//    void Serialize(Stream& s) const
+//    {
+//        unsigned int len = BIP32_EXTKEY_SIZE;
+//        ::WriteCompactSize(s, len);
+//        unsigned char code[BIP32_EXTKEY_SIZE];
+//        Encode(code);
+//        s.write((const char *)&code[0], len);
+//    }
+//    template <typename Stream>
+//    void Unserialize(Stream& s)
+//    {
+//        unsigned int len = ::ReadCompactSize(s);
+//        unsigned char code[BIP32_EXTKEY_SIZE];
+//        if (len != BIP32_EXTKEY_SIZE)
+//            throw std::runtime_error("Invalid extended key size\n");
+//        s.read((char *)&code[0], len);
+//        Decode(code);
+//    }
+//};
 
 /** Users of this module must hold an ECCVerifyHandle. The constructor and
  *  destructor of these are not allowed to run in parallel, though. */

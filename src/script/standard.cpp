@@ -11,6 +11,8 @@
 #include <util.h>
 #include <utilstrencodings.h>
 
+#include <veil/stealth.h>
+
 
 typedef std::vector<unsigned char> valtype;
 
@@ -22,6 +24,18 @@ CScriptID::CScriptID(const CScript& in) : uint160(Hash160(in.begin(), in.end()))
 WitnessV0ScriptHash::WitnessV0ScriptHash(const CScript& in)
 {
     CSHA256().Write(in.data(), in.size()).Finalize(begin());
+}
+
+bool CScriptID::Set(const uint256& in)
+{
+    CRIPEMD160().Write(in.begin(), 32).Finalize(this->begin());
+    return true;
+}
+
+bool CScriptID256::Set(const CScript& in)
+{
+    *this = HashSha256(in.begin(), in.end());
+    return true;
 }
 
 const char* GetTxnOutputType(txnouttype t)
@@ -295,6 +309,29 @@ public:
         *script << CScript::EncodeOP_N(id.version) << std::vector<unsigned char>(id.program, id.program + id.length);
         return true;
     }
+
+    bool operator()(const CStealthAddress &ek) const {
+        script->clear();
+        return false;
+    }
+
+    bool operator()(const CExtKeyPair &ek) const {
+        script->clear();
+        return false;
+    }
+
+    bool operator()(const CKeyID256 &keyID) const {
+        script->clear();
+        *script << OP_DUP << OP_SHA256 << ToByteVector(keyID) << OP_EQUALVERIFY << OP_CHECKSIG;
+        return true;
+    }
+
+    bool operator()(const CScriptID256 &scriptID) const {
+        script->clear();
+        *script << OP_SHA256 << ToByteVector(scriptID) << OP_EQUAL;
+        return true;
+    }
+
 };
 } // namespace
 
