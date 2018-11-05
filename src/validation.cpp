@@ -227,7 +227,7 @@ CCriticalSection cs_main;
 
 BlockMap& mapBlockIndex = g_chainstate.mapBlockIndex;
 CChain& chainActive = g_chainstate.chainActive;
-CBlockIndex *pindexBestHeader = nullptr;
+CBlockIndex *pindexBestBlock = nullptr;
 CWaitableCriticalSection g_best_block_mutex;
 CConditionVariable g_best_block_cv;
 uint256 g_best_block;
@@ -479,7 +479,7 @@ static bool IsCurrentForFeeEstimation()
         return false;
     if (chainActive.Tip()->GetBlockTime() < (GetTime() - MAX_FEE_ESTIMATION_TIP_AGE))
         return false;
-    if (chainActive.Height() < pindexBestHeader->nHeight - 1)
+    if (chainActive.Height() < pindexBestBlock->nHeight - 1)
         return false;
     return true;
 }
@@ -1867,8 +1867,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         BlockMap::const_iterator  it = mapBlockIndex.find(hashAssumeValid);
         if (it != mapBlockIndex.end()) {
             if (it->second->GetAncestor(pindex->nHeight) == pindex &&
-                pindexBestHeader->GetAncestor(pindex->nHeight) == pindex &&
-                pindexBestHeader->nChainWork >= nMinimumChainWork) {
+                pindexBestBlock->GetAncestor(pindex->nHeight) == pindex &&
+                pindexBestBlock->nChainWork >= nMinimumChainWork) {
                 // This block is a member of the assumed verified chain and an ancestor of the best header.
                 // The equivalent time check discourages hash power from extorting the network via DOS attack
                 //  into accepting an invalid block through telling users they must manually set assumevalid.
@@ -1878,7 +1878,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 //  artificially set the default assumed verified block further back.
                 // The test against nMinimumChainWork prevents the skipping when denied access to any chain at
                 //  least as good as the expected chain.
-                fScriptChecks = (GetBlockProofEquivalentTime(*pindexBestHeader, *pindex, *pindexBestHeader, chainparams.GetConsensus()) <= 60 * 60 * 24 * 7 * 2);
+                fScriptChecks = (GetBlockProofEquivalentTime(*pindexBestBlock, *pindex, *pindexBestBlock, chainparams.GetConsensus()) <= 60 * 60 * 24 * 7 * 2);
             }
         }
     }
@@ -2699,7 +2699,7 @@ static void NotifyHeaderTip() LOCKS_EXCLUDED(cs_main) {
     CBlockIndex* pindexHeader = nullptr;
     {
         LOCK(cs_main);
-        pindexHeader = pindexBestHeader;
+        pindexHeader = pindexBestBlock;
 
         if (pindexHeader != pindexHeaderOld) {
             fNotify = true;
@@ -2997,8 +2997,8 @@ CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block)
     if (pblock)
         pindexNew->nProofOfStakeFlag = pblock->IsProofOfStake();
 
-    if (pindexBestHeader == nullptr || pindexBestHeader->nChainWork < pindexNew->nChainWork)
-        pindexBestHeader = pindexNew;
+    if (pindexBestBlock == nullptr || pindexBestBlock->nChainWork < pindexNew->nChainWork)
+        pindexBestBlock = pindexNew;
 
     setDirtyBlockIndex.insert(pindexNew);
 
@@ -3935,8 +3935,8 @@ bool CChainState::LoadBlockIndex(const Consensus::Params& consensus_params, CBlo
             pindexBestInvalid = pindex;
         if (pindex->pprev)
             pindex->BuildSkip();
-        if (pindex->IsValid(BLOCK_VALID_TREE) && (pindexBestHeader == nullptr || CBlockIndexWorkComparator()(pindexBestHeader, pindex)))
-            pindexBestHeader = pindex;
+        if (pindex->IsValid(BLOCK_VALID_TREE) && (pindexBestBlock == nullptr || CBlockIndexWorkComparator()(pindexBestBlock, pindex)))
+            pindexBestBlock = pindex;
     }
 
     return true;
@@ -4373,7 +4373,7 @@ void UnloadBlockIndex()
     LOCK(cs_main);
     chainActive.SetTip(nullptr);
     pindexBestInvalid = nullptr;
-    pindexBestHeader = nullptr;
+    pindexBestBlock = nullptr;
     mempool.clear();
     mapBlocksUnlinked.clear();
     vinfoBlockFile.clear();
