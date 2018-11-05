@@ -153,9 +153,9 @@ class NodeImpl : public Node
     bool getHeaderTip(int& height, int64_t& block_time) override
     {
         LOCK(::cs_main);
-        if (::pindexBestHeader) {
-            height = ::pindexBestHeader->nHeight;
-            block_time = ::pindexBestHeader->GetBlockTime();
+        if (::pindexBestBlock) {
+            height = ::pindexBestBlock->nHeight;
+            block_time = ::pindexBestBlock->GetBlockTime();
             return true;
         }
         return false;
