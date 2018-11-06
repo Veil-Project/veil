@@ -11,6 +11,7 @@
 #include <uint256.h>
 #include <test/test_veil.h>
 #include <veil/stealth.h>
+#include <veil/extkey.h>
 
 #include <vector>
 
@@ -72,7 +73,9 @@ static ScriptError VerifyWithFlag(const CTransaction& output, const CMutableTran
 {
     ScriptError error;
     CTransaction inputi(input);
-    bool ret = VerifyScript(inputi.vin[0].scriptSig, output.vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, output.vout[0].nValue), &error);
+    std::vector<uint8_t> vchAmount(8);
+    memcpy(&vchAmount[0], &output.vout[0].nValue, 8);
+    bool ret = VerifyScript(inputi.vin[0].scriptSig, output.vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, vchAmount), &error);
     BOOST_CHECK((ret == true) == (error == SCRIPT_ERR_OK));
 
     return error;

@@ -309,6 +309,8 @@ void PruneAndFlush();
 /** Prune block files up to a given height */
 void PruneBlockFilesManual(int nManualPruneHeight);
 
+bool FlushView(CCoinsViewCache *view, CValidationState& state, bool fDisconnecting);
+
 /** (try to) add transaction to memory pool
  * plTxnReplaced will be appended to with all transactions replaced from mempool **/
 bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransactionRef &tx,
@@ -369,6 +371,7 @@ class CScriptCheck
 private:
     CTxOut m_tx_out;
     const CTransaction *ptxTo;
+    std::vector<uint8_t> vchAmount;
     unsigned int nIn;
     unsigned int nFlags;
     bool cacheStore;
@@ -378,7 +381,10 @@ private:
 public:
     CScriptCheck(): ptxTo(nullptr), nIn(0), nFlags(0), cacheStore(false), error(SCRIPT_ERR_UNKNOWN_ERROR) {}
     CScriptCheck(const CTxOut& outIn, const CTransaction& txToIn, unsigned int nInIn, unsigned int nFlagsIn, bool cacheIn, PrecomputedTransactionData* txdataIn) :
-        m_tx_out(outIn), ptxTo(&txToIn), nIn(nInIn), nFlags(nFlagsIn), cacheStore(cacheIn), error(SCRIPT_ERR_UNKNOWN_ERROR), txdata(txdataIn) { }
+        m_tx_out(outIn), ptxTo(&txToIn), nIn(nInIn), nFlags(nFlagsIn), cacheStore(cacheIn), error(SCRIPT_ERR_UNKNOWN_ERROR), txdata(txdataIn) {
+        vchAmount.resize(8);
+        memcpy(&vchAmount[0], &m_tx_out.nValue, 8);
+    }
 
     bool operator()();
 
@@ -390,6 +396,7 @@ public:
         std::swap(cacheStore, check.cacheStore);
         std::swap(error, check.error);
         std::swap(txdata, check.txdata);
+        std::swap(vchAmount, check.vchAmount);
     }
 
     ScriptError GetScriptError() const { return error; }

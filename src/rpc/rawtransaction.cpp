@@ -746,14 +746,18 @@ static UniValue combinerawtransaction(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_VERIFY_ERROR, "Input not found or already spent");
         }
         SignatureData sigdata;
+        const CScript& prevPubKey = coin.out.scriptPubKey;
+        const CAmount& amount = coin.out.nValue;
+        std::vector<uint8_t> vchAmount(8);
+        memcpy(&vchAmount[0], &amount, 8);
 
         // ... and merge in other signatures:
         for (const CMutableTransaction& txv : txVariants) {
             if (txv.vin.size() > i) {
-                sigdata.MergeSignatureData(DataFromTransaction(txv, i, coin.out));
+                sigdata.MergeSignatureData(DataFromTransaction(txv, i, vchAmount, prevPubKey));
             }
         }
-        ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&mergedTx, i, coin.out.nValue, 1), coin.out.scriptPubKey, sigdata);
+        ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&mergedTx, i, vchAmount, 1), coin.out.scriptPubKey, sigdata);
 
         UpdateInput(txin, sigdata);
     }
@@ -863,13 +867,30 @@ UniValue SignTransaction(CMutableTransaction& mtx, const UniValue& prevTxsUnival
             TxInErrorToJSON(txin, vErrors, "Input not found or already spent");
             continue;
         }
-        const CScript& prevPubKey = coin.out.scriptPubKey;
-        const CAmount& amount = coin.out.nValue;
+        CScript prevPubKey = coin.out.scriptPubKey;
 
-        SignatureData sigdata = DataFromTransaction(mtx, i, coin.out);
+        CAmount amount;
+        std::vector<uint8_t> vchAmount;
+        if (coin.nType == OUTPUT_STANDARD)
+        {
+            amount = coin.out.nValue;
+            vchAmount.resize(8);
+            memcpy(vchAmount.data(), &coin.out.nValue, 8);
+        } else
+        if (coin.nType == OUTPUT_CT)
+        {
+            amount = 0; // Bypass amount check
+            vchAmount.resize(33);
+            memcpy(vchAmount.data(), coin.commitment.data, 33);
+        } else
+        {
+            throw JSONRPCError(RPC_MISC_ERROR, strprintf("Bad input type: %d", coin.nType));
+        };
+
+        SignatureData sigdata = DataFromTransaction(mtx, i, vchAmount, prevPubKey);
         // Only sign SIGHASH_SINGLE if there's a corresponding output:
-        if (!fHashSingle || (i < mtx.vout.size())) {
-            ProduceSignature(*keystore, MutableTransactionSignatureCreator(&mtx, i, amount, nHashType), prevPubKey, sigdata);
+        if (!fHashSingle || (i < mtx.GetNumVOuts())) {
+            ProduceSignature(*keystore, MutableTransactionSignatureCreator(&mtx, i, vchAmount, nHashType), prevPubKey, sigdata);
         }
 
         UpdateInput(txin, sigdata);
@@ -880,7 +901,7 @@ UniValue SignTransaction(CMutableTransaction& mtx, const UniValue& prevTxsUnival
         }
 
         ScriptError serror = SCRIPT_ERR_OK;
-        if (!VerifyScript(txin.scriptSig, prevPubKey, &txin.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&txConst, i, amount), &serror)) {
+        if (!VerifyScript(txin.scriptSig, prevPubKey, &txin.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, TransactionSignatureChecker(&txConst, i, vchAmount), &serror)) {
             if (serror == SCRIPT_ERR_INVALID_STACK_OPERATION) {
                 // Unable to sign input and verification failed (possible attempt to partially sign).
                 TxInErrorToJSON(txin, vErrors, "Unable to sign input, invalid stack size (possibly missing key)");

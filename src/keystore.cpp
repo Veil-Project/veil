@@ -5,6 +5,7 @@
 
 #include <keystore.h>
 #include <veil/stealth.h>
+#include <veil/extkey.h>
 
 #include <util.h>
 
@@ -55,6 +56,16 @@ bool CBasicKeyStore::AddKeyPubKey(const CKey& key, const CPubKey &pubkey)
     mapKeys[pubkey.GetID()] = key;
     ImplicitlyLearnRelatedKeyScripts(pubkey);
     return true;
+}
+
+isminetype CBasicKeyStore::IsMine(const CKeyID &address) const
+{
+    LOCK(cs_KeyStore);
+    if (mapKeys.count(address) > 0)
+        return ISMINE_SPENDABLE;
+    if (mapWatchKeys.count(address) > 0)
+        return ISMINE_WATCH_ONLY;
+    return ISMINE_NO;
 }
 
 bool CBasicKeyStore::HaveKey(const CKeyID &address) const

@@ -18,13 +18,6 @@
 #include <algorithm>
 #include <cmath>
 
-static const uint32_t MAX_DERIVE_TRIES = 16;
-static const uint32_t BIP32_KEY_LEN = 82;       // raw, 74 + 4 bytes id + 4 checksum
-static const uint32_t BIP32_KEY_N_BYTES = 74;   // raw without id and checksum
-
-static const uint32_t MAX_KEY_PACK_SIZE = 128;
-static const uint32_t N_DEFAULT_LOOKAHEAD = 64;
-
 namespace
 {
 class DestinationEncoder : public boost::static_visitor<std::string>

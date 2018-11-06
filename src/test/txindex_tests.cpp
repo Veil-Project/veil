@@ -9,6 +9,7 @@
 #include <utiltime.h>
 #include <validation.h>
 #include <veil/stealth.h>
+#include <veil/extkey.h>
 
 
 #include <boost/test/unit_test.hpp>

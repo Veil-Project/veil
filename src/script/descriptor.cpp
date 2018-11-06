@@ -100,7 +100,7 @@ class BIP32PubkeyProvider final : public PubkeyProvider
         ret.nDepth = m_extkey.nDepth;
         std::copy(m_extkey.vchFingerprint, m_extkey.vchFingerprint + 4, ret.vchFingerprint);
         ret.nChild = m_extkey.nChild;
-        ret.chaincode = m_extkey.chaincode;
+        memcpy(ret.chaincode, m_extkey.chaincode, sizeof(ret.chaincode));
         ret.key = key;
         return true;
     }
@@ -128,7 +128,7 @@ public:
             }
             if (m_derive == DeriveType::UNHARDENED) key.Derive(key, pos);
             if (m_derive == DeriveType::HARDENED) key.Derive(key, pos | 0x80000000UL);
-            out = key.Neuter().pubkey;
+            out = key.Neutered().pubkey;
         } else {
             // TODO: optimize by caching
             CExtPubKey key = m_extkey;
@@ -478,7 +478,7 @@ std::unique_ptr<PubkeyProvider> ParsePubkey(const Span<const char>& sp, bool per
     }
     if (!ParseKeyPath(split, path)) return nullptr;
     if (extkey.key.IsValid()) {
-        extpubkey = extkey.Neuter();
+        extpubkey = extkey.Neutered();
         out.keys.emplace(extpubkey.pubkey.GetID(), extkey.key);
     }
     return MakeUnique<BIP32PubkeyProvider>(extpubkey, std::move(path), type);

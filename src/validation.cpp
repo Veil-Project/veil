@@ -248,6 +248,7 @@ uint64_t nPruneTarget = 0;
 int64_t nMaxTipAge = DEFAULT_MAX_TIP_AGE;
 bool fEnableReplacement = DEFAULT_ENABLE_REPLACEMENT;
 unsigned int nStakeMinAge = 60 * 60;
+static bool fVerifyingDB = false;
 
 
 uint256 hashAssumeValid;
@@ -1427,7 +1428,9 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, int nHeight)
 bool CScriptCheck::operator()() {
     const CScript &scriptSig = ptxTo->vin[nIn].scriptSig;
     const CScriptWitness *witness = &ptxTo->vin[nIn].scriptWitness;
-    return VerifyScript(scriptSig, m_tx_out.scriptPubKey, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, m_tx_out.nValue, cacheStore, *txdata), &error);
+
+    return VerifyScript(scriptSig, m_tx_out.scriptPubKey, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, vchAmount, cacheStore, *txdata), &error);
+    //return VerifyScript(scriptSig, m_tx_out.scriptPubKey, witness, nFlags, CachingTransactionSignatureChecker(ptxTo, nIn, m_tx_out.nValue, cacheStore, *txdata), &error);
 }
 
 int GetSpendHeight(const CCoinsViewCache& inputs)
@@ -1948,6 +1951,8 @@ static int64_t nBlocksTotal = 0;
 bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBlockIndex* pindex,
                   CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck)
 {
+
+    std::cout << "in connect block\n";
     AssertLockHeld(cs_main);
     assert(pindex);
     assert(*pindex->phashBlock == block.GetHash());
@@ -1985,6 +1990,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     if (block.GetHash() == chainparams.GetConsensus().hashGenesisBlock) {
         if (!fJustCheck)
             view.SetBestBlock(pindex->GetBlockHash());
+
         return true;
     }
 
@@ -2141,6 +2147,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
+        const uint256 txhash = tx.GetHash();
 
         nInputs += tx.vin.size();
 
@@ -2194,21 +2201,82 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                              REJECT_INVALID, "bad-blk-sigops");
 
         txdata.emplace_back(tx);
-        if (!tx.IsCoinBase())
-        {
+        if (!tx.IsCoinBase()) {
             std::vector<CScriptCheck> vChecks;
             bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
             if (!CheckInputs(tx, state, view, fScriptChecks, flags, fCacheResults, fCacheResults, txdata[i], nScriptCheckThreads ? &vChecks : nullptr))
                 return error("ConnectBlock(): CheckInputs on %s failed with %s",
                     tx.GetHash().ToString(), FormatStateMessage(state));
+
             control.Add(vChecks);
+
+            blockundo.vtxundo.push_back(CTxUndo());
+            UpdateCoins(tx, view, blockundo.vtxundo.back(), pindex->nHeight);
+        } else {
+            // tx is coinbase
+            CTxUndo undoDummy;
+            UpdateCoins(tx, view, undoDummy, pindex->nHeight);
+            nMoneyCreated += tx.GetValueOut();
         }
 
-        CTxUndo undoDummy;
-        if (i > 0) {
-            blockundo.vtxundo.push_back(CTxUndo());
+        if (view.nLastRCTOutput == 0)
+            view.nLastRCTOutput = pindex->pprev ? pindex->pprev->nAnonOutputs : 0;
+
+        // Index rct outputs and keyimages
+        if (state.fHasAnonOutput || state.fHasAnonInput) {
+            COutPoint op(txhash, 0);
+            for (const auto &txin : tx.vin) {
+                if (txin.IsAnonInput()) {
+                    uint32_t nAnonInputs, nRingSize;
+                    txin.GetAnonInfo(nAnonInputs, nRingSize);
+                    if (txin.scriptData.stack.size() != 1 || txin.scriptData.stack[0].size() != 33 * nAnonInputs) {
+                        control.Wait();
+                        return error("%s: Bad scriptData stack, %s.", __func__, txhash.ToString());
+                    }
+
+                    const std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
+                    for (size_t k = 0; k < nAnonInputs; ++k) {
+                        const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
+                        view.keyImages.emplace_back(std::make_pair(ki, txhash));
+                    }
+                }
+            }
+
+            for (unsigned int k = 0; k < tx.vpout.size(); k++) {
+                if (!tx.vpout[k]->IsType(OUTPUT_RINGCT))
+                    continue;
+
+                CTxOutRingCT *txout = (CTxOutRingCT*)tx.vpout[k].get();
+
+                int64_t nTestExists;
+                if (!fVerifyingDB && pblocktree->ReadRCTOutputLink(txout->pk, nTestExists)) {
+                    control.Wait();
+
+                    if (nTestExists > pindex->pprev->nAnonOutputs) {
+                        // The anon index can diverge from the chain index if shutdown does not complete
+                        LogPrintf("%s: Duplicate anon-output %s, index %d, above last index %d.\n", __func__, HexStr(txout->pk.begin(), txout->pk.end()), nTestExists, pindex->pprev->nAnonOutputs);
+                        LogPrintf("Attempting to repair anon index.\n");
+                        std::set<CCmpPubKey> setKi; // unused
+                        RollBackRCTIndex(pindex->pprev->nAnonOutputs, nTestExists, setKi);
+                        return false;
+                    }
+
+                    return error("%s: Duplicate anon-output (db) %s, index %d.", __func__, HexStr(txout->pk.begin(), txout->pk.end()), nTestExists);
+                }
+
+                if (!fVerifyingDB && view.ReadRCTOutputLink(txout->pk, nTestExists)) {
+                    control.Wait();
+                    return error("%s: Duplicate anon-output (view) %s, index %d.", __func__, HexStr(txout->pk.begin(), txout->pk.end()), nTestExists);
+                }
+
+                op.n = k;
+                view.nLastRCTOutput++;
+                CAnonOutput ao(txout->pk, txout->commitment, op, pindex->nHeight, 0);
+
+                view.anonOutputLinks[txout->pk] = view.nLastRCTOutput;
+                view.anonOutputs.emplace_back(std::make_pair(view.nLastRCTOutput, ao));
+            }
         }
-        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
     }
 
 
@@ -2414,6 +2482,49 @@ static void DoWarning(const std::string& strWarning)
     }
 }
 
+bool FlushView(CCoinsViewCache *view, CValidationState& state, bool fDisconnecting)
+{
+    if (!view->Flush())
+        return false;
+
+    if (fDisconnecting) {
+        for (auto &it : view->keyImages)
+            if (!pblocktree->EraseRCTKeyImage(it.first))
+                return error("%s: EraseRCTKeyImage failed, txn %s.", __func__, it.second.ToString());
+
+        if (view->anonOutputLinks.size() > 0) {
+            for (auto &it : view->anonOutputLinks) {
+                if (!pblocktree->EraseRCTOutput(it.second))
+                    return error("%s: EraseRCTOutput failed.", __func__);
+
+                if (!pblocktree->EraseRCTOutputLink(it.first))
+                    return error("%s: EraseRCTOutput failed.", __func__);
+            }
+        }
+    } else {
+        CDBBatch batch(*pblocktree);
+
+        for (auto &it : view->keyImages)
+            batch.Write(std::make_pair(DB_RCTKEYIMAGE, it.first), it.second);
+
+        for (auto &it : view->anonOutputs)
+            batch.Write(std::make_pair(DB_RCTOUTPUT, it.first), it.second);
+
+        for (auto &it : view->anonOutputLinks)
+            batch.Write(std::make_pair(DB_RCTOUTPUT_LINK, it.first), it.second);
+
+        if (!pblocktree->WriteBatch(batch))
+            return error("%s: Write RCT outputs failed.", __func__);
+    }
+
+    view->nLastRCTOutput = 0;
+    view->anonOutputs.clear();
+    view->anonOutputLinks.clear();
+    view->keyImages.clear();
+
+    return true;
+}
+
 /** Private helper function that concatenates warning messages. */
 static void AppendWarning(std::string& res, const std::string& warn)
 {
@@ -2498,11 +2609,13 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
 {
     CBlockIndex *pindexDelete = chainActive.Tip();
     assert(pindexDelete);
+
     // Read block from disk.
     std::shared_ptr<CBlock> pblock = std::make_shared<CBlock>();
     CBlock& block = *pblock;
     if (!ReadBlockFromDisk(block, pindexDelete, chainparams.GetConsensus()))
         return AbortNode(state, "Failed to read block");
+
     // Apply the block atomically to the chain state.
     int64_t nStart = GetTimeMicros();
     {
@@ -2510,10 +2623,12 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
         assert(view.GetBestBlock() == pindexDelete->GetBlockHash());
         if (DisconnectBlock(block, pindexDelete, view) != DISCONNECT_OK)
             return error("DisconnectTip(): DisconnectBlock %s failed", pindexDelete->GetBlockHash().ToString());
-        bool flushed = view.Flush();
+        bool flushed = FlushView(&view, state, true);
         assert(flushed);
     }
+
     LogPrint(BCLog::BENCH, "- Disconnect block: %.2fms\n", (GetTimeMicros() - nStart) * MILLI);
+
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED))
         return false;
@@ -2523,6 +2638,7 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
         for (auto it = block.vtx.rbegin(); it != block.vtx.rend(); ++it) {
             disconnectpool->addTransaction(*it);
         }
+
         while (disconnectpool->DynamicMemoryUsage() > MAX_DISCONNECTED_TX_POOL_SIZE * 1000) {
             // Drop the earliest entry, and remove its children from the mempool.
             auto it = disconnectpool->queuedTx.get<insertion_order>().begin();
@@ -2532,8 +2648,8 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
     }
 
     chainActive.SetTip(pindexDelete->pprev);
-
     UpdateTip(pindexDelete->pprev, chainparams);
+
     // Let wallets know transactions went from 1-confirmed to
     // 0-confirmed or conflicted:
     GetMainSignals().BlockDisconnected(pblock);
@@ -2632,11 +2748,14 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     } else {
         pthisBlock = pblock;
     }
+
     const CBlock& blockConnecting = *pthisBlock;
+
     // Apply the block atomically to the chain state.
     int64_t nTime2 = GetTimeMicros(); nTimeReadFromDisk += nTime2 - nTime1;
     int64_t nTime3;
     LogPrint(BCLog::BENCH, "  - Load block from disk: %.2fms [%.2fs]\n", (nTime2 - nTime1) * MILLI, nTimeReadFromDisk * MICRO);
+
     {
         CCoinsViewCache view(pcoinsTip.get());
         bool rv = ConnectBlock(blockConnecting, state, pindexNew, view, chainparams);
@@ -2646,21 +2765,27 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
                 InvalidBlockFound(pindexNew, state);
             return error("ConnectTip(): ConnectBlock %s failed", pindexNew->GetBlockHash().ToString());
         }
+
         nTime3 = GetTimeMicros(); nTimeConnectTotal += nTime3 - nTime2;
         LogPrint(BCLog::BENCH, "  - Connect total: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime3 - nTime2) * MILLI, nTimeConnectTotal * MICRO, nTimeConnectTotal * MILLI / nBlocksTotal);
-        bool flushed = view.Flush();
+        bool flushed = FlushView(&view, state, false);
         assert(flushed);
     }
+
     int64_t nTime4 = GetTimeMicros(); nTimeFlush += nTime4 - nTime3;
     LogPrint(BCLog::BENCH, "  - Flush: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime4 - nTime3) * MILLI, nTimeFlush * MICRO, nTimeFlush * MILLI / nBlocksTotal);
+
     // Write the chain state to disk, if necessary.
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED))
         return false;
+
     int64_t nTime5 = GetTimeMicros(); nTimeChainState += nTime5 - nTime4;
     LogPrint(BCLog::BENCH, "  - Writing chainstate: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime5 - nTime4) * MILLI, nTimeChainState * MICRO, nTimeChainState * MILLI / nBlocksTotal);
+
     // Remove conflicting transactions from the mempool.;
     mempool.removeForBlock(blockConnecting.vtx, pindexNew->nHeight);
     disconnectpool.removeForBlock(blockConnecting.vtx);
+
     // Update chainActive & related variables.
     chainActive.SetTip(pindexNew);
     UpdateTip(pindexNew, chainparams);
@@ -3051,6 +3176,7 @@ bool CChainState::InvalidateBlock(CValidationState& state, const CChainParams& c
         it++;
     }
 
+    std::cout << "in invalid block\n";
     InvalidChainFound(pindex);
 
     // Only notify about a new block tip if the active chain was modified.
@@ -4184,6 +4310,8 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
     if (chainActive.Tip() == nullptr || chainActive.Tip()->pprev == nullptr)
         return true;
 
+    fVerifyingDB = true;
+
     // Verify blocks in the best chain
     if (nCheckDepth <= 0 || nCheckDepth > chainActive.Height())
         nCheckDepth = chainActive.Height();
@@ -4268,6 +4396,7 @@ bool CVerifyDB::VerifyDB(const CChainParams& chainparams, CCoinsView *coinsview,
 
     LogPrintf("[DONE].\n");
     LogPrintf("No coin database inconsistencies in last %i blocks (%i transactions)\n", block_count, nGoodTransactions);
+    fVerifyingDB = false;
 
     return true;
 }

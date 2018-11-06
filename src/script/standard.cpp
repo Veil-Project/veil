@@ -12,6 +12,7 @@
 #include <utilstrencodings.h>
 
 #include <veil/stealth.h>
+#include <veil/extkey.h>
 
 
 typedef std::vector<unsigned char> valtype;

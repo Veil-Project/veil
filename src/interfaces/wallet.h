@@ -22,6 +22,7 @@
 #include <vector>
 
 #include <veil/stealth.h>               // For CTxDestination
+#include <veil/extkey.h>
 
 class CCoinControl;
 class CFeeRate;
