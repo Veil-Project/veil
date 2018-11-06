@@ -219,7 +219,7 @@ static int secp256k1_ge_set_xquad(secp256k1_ge *r, const secp256k1_fe *x) {
     secp256k1_fe_sqr(&x2, x);
     secp256k1_fe_mul(&x3, x, &x2);
     r->infinity = 0;
-    secp256k1_fe_set_int(&c, CURVE_B);
+    secp256k1_fe_set_int(&c, 7);
     secp256k1_fe_add(&c, &x3);
     return secp256k1_fe_sqrt(&r->y, &c);
 }
@@ -278,7 +278,7 @@ static int secp256k1_gej_is_valid_var(const secp256k1_gej *a) {
     secp256k1_fe_sqr(&x3, &a->x); secp256k1_fe_mul(&x3, &x3, &a->x);
     secp256k1_fe_sqr(&z2, &a->z);
     secp256k1_fe_sqr(&z6, &z2); secp256k1_fe_mul(&z6, &z6, &z2);
-    secp256k1_fe_mul_int(&z6, CURVE_B);
+    secp256k1_fe_mul_int(&z6, 7);
     secp256k1_fe_add(&x3, &z6);
     secp256k1_fe_normalize_weak(&x3);
     return secp256k1_fe_equal_var(&y2, &x3);
@@ -292,7 +292,7 @@ static int secp256k1_ge_is_valid_var(const secp256k1_ge *a) {
     /* y^2 = x^3 + 7 */
     secp256k1_fe_sqr(&y2, &a->y);
     secp256k1_fe_sqr(&x3, &a->x); secp256k1_fe_mul(&x3, &x3, &a->x);
-    secp256k1_fe_set_int(&c, CURVE_B);
+    secp256k1_fe_set_int(&c, 7);
     secp256k1_fe_add(&x3, &c);
     secp256k1_fe_normalize_weak(&x3);
     return secp256k1_fe_equal_var(&y2, &x3);

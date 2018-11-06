@@ -43,6 +43,105 @@ std::string CTxIn::ToString() const
     return str;
 }
 
+void CTxOutBase::SetValue(int64_t value)
+{
+    // convenience function intended for use with CTxOutStandard only
+    assert(nVersion == OUTPUT_STANDARD);
+    ((CTxOutStandard*) this)->nValue = value;
+};
+
+CAmount CTxOutBase::GetValue() const
+{
+    // convenience function intended for use with CTxOutStandard only
+    /*
+    switch (nVersion)
+    {
+        case OUTPUT_STANDARD:
+            return ((CTxOutStandard*) this)->nValue;
+        case OUTPUT_DATA:
+            return 0;
+        default:
+            assert(false);
+
+    };
+    */
+    assert(nVersion == OUTPUT_STANDARD);
+    return ((CTxOutStandard*) this)->nValue;
+};
+
+std::string CTxOutBase::ToString() const
+{
+    switch (nVersion)
+    {
+        case OUTPUT_STANDARD:
+        {
+            CTxOutStandard *so = (CTxOutStandard*)this;
+            return strprintf("CTxOutStandard(nValue=%d.%08d, scriptPubKey=%s)", so->nValue / COIN, so->nValue % COIN, HexStr(so->scriptPubKey).substr(0, 30));
+        }
+        case OUTPUT_DATA:
+        {
+            CTxOutData *dout = (CTxOutData*)this;
+            return strprintf("CTxOutData(data=%s)", HexStr(dout->vData).substr(0, 30));
+        }
+        case OUTPUT_CT:
+        {
+            CTxOutCT *cto = (CTxOutCT*)this;
+            return strprintf("CTxOutCT(data=%s, scriptPubKey=%s)", HexStr(cto->vData).substr(0, 30), HexStr(cto->scriptPubKey).substr(0, 30));
+        }
+        case OUTPUT_RINGCT:
+        {
+            CTxOutRingCT *rcto = (CTxOutRingCT*)this;
+            return strprintf("CTxOutRingCT(data=%s, pk=%s)", HexStr(rcto->vData).substr(0, 30), HexStr(rcto->pk).substr(0, 30));
+        }
+        default:
+            break;
+    };
+    return strprintf("CTxOutBase unknown version %d", nVersion);
+}
+
+CTxOutStandard::CTxOutStandard(const CAmount& nValueIn, CScript scriptPubKeyIn) : CTxOutBase(OUTPUT_STANDARD)
+{
+    nValue = nValueIn;
+    scriptPubKey = scriptPubKeyIn;
+};
+
+void DeepCopy(CTxOutBaseRef &to, const CTxOutBaseRef &from)
+{
+    switch (from->GetType()) {
+        case OUTPUT_STANDARD:
+            to = MAKE_OUTPUT<CTxOutStandard>();
+            *((CTxOutStandard*)to.get()) = *((CTxOutStandard*)from.get());
+            break;
+        case OUTPUT_CT:
+            to = MAKE_OUTPUT<CTxOutCT>();
+            *((CTxOutCT*)to.get()) = *((CTxOutCT*)from.get());
+            break;
+        case OUTPUT_RINGCT:
+            to = MAKE_OUTPUT<CTxOutRingCT>();
+            *((CTxOutRingCT*)to.get()) = *((CTxOutRingCT*)from.get());
+            break;
+        case OUTPUT_DATA:
+            to = MAKE_OUTPUT<CTxOutData>();
+            *((CTxOutData*)to.get()) = *((CTxOutData*)from.get());
+            break;
+        default:
+            break;
+    }
+    return;
+}
+
+std::vector<CTxOutBaseRef> DeepCopy(const std::vector<CTxOutBaseRef> &from)
+{
+    std::vector<CTxOutBaseRef> vpout;
+    vpout.resize(from.size());
+    for (size_t i = 0; i < from.size(); ++i) {
+        DeepCopy(vpout[i], from[i]);
+    }
+
+    return vpout;
+}
+
+
 CTxOut::CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn)
 {
     nValue = nValueIn;
@@ -55,7 +154,7 @@ std::string CTxOut::ToString() const
 }
 
 CMutableTransaction::CMutableTransaction() : nVersion(CTransaction::CURRENT_VERSION), nLockTime(0) {}
-CMutableTransaction::CMutableTransaction(const CTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime) {}
+CMutableTransaction::CMutableTransaction(const CTransaction& tx) : vin(tx.vin), vout(tx.vout), vpout{DeepCopy(tx.vpout)}, nVersion(tx.nVersion), nLockTime(tx.nLockTime) {}
 
 uint256 CMutableTransaction::GetHash() const
 {
@@ -76,9 +175,9 @@ uint256 CTransaction::ComputeWitnessHash() const
 }
 
 /* For backward compatibility, the hash is initialized to 0. TODO: remove the need for this default constructor entirely. */
-CTransaction::CTransaction() : vin(), vout(), nVersion(CTransaction::CURRENT_VERSION), nLockTime(0), hash{}, m_witness_hash{} {}
-CTransaction::CTransaction(const CMutableTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
-CTransaction::CTransaction(CMutableTransaction&& tx) : vin(std::move(tx.vin)), vout(std::move(tx.vout)), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
+CTransaction::CTransaction() : vin(), vout(), vpout(), nVersion(CTransaction::CURRENT_VERSION), nLockTime(0), hash{}, m_witness_hash{} {}
+CTransaction::CTransaction(const CMutableTransaction &tx) : vin(tx.vin), vout(tx.vout), vpout{DeepCopy(tx.vpout)}, nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
+CTransaction::CTransaction(CMutableTransaction &&tx) : vin(std::move(tx.vin)), vout(std::move(tx.vout)), vpout(std::move(tx.vpout)), nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
 
 CAmount CTransaction::GetValueOut() const
 {
@@ -88,8 +187,49 @@ CAmount CTransaction::GetValueOut() const
         if (!MoneyRange(tx_out.nValue) || !MoneyRange(nValueOut))
             throw std::runtime_error(std::string(__func__) + ": value out of range");
     }
+
+    for (auto &txout : vpout)
+    {
+        if (!txout->IsStandardOutput())
+            continue;
+
+        CAmount nValue = txout->GetValue();
+        nValueOut += txout->GetValue();
+        if (!MoneyRange(nValue) || !MoneyRange(nValueOut))
+            throw std::runtime_error(std::string(__func__) + ": value out of range");
+    };
+
     return nValueOut;
 }
+
+CAmount CTransaction::GetPlainValueOut(size_t &nStandard, size_t &nCT, size_t &nRingCT) const
+{
+    // accumulators not cleared here intentionally
+    CAmount nValueOut = 0;
+
+    for (const auto &txout : vpout)
+    {
+        if (txout->IsType(OUTPUT_CT))
+        {
+            nCT++;
+        } else
+        if (txout->IsType(OUTPUT_RINGCT))
+        {
+            nRingCT++;
+        };
+
+        if (!txout->IsStandardOutput())
+            continue;
+
+        nStandard++;
+        CAmount nValue = txout->GetValue();
+        nValueOut += nValue;
+        if (!MoneyRange(nValue) || !MoneyRange(nValueOut))
+            throw std::runtime_error(std::string(__func__) + ": value out of range");
+    };
+
+    return nValueOut;
+};
 
 unsigned int CTransaction::GetTotalSize() const
 {

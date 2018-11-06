@@ -21,6 +21,9 @@
 #include <utility>
 #include <vector>
 
+#include <veil/stealth.h>               // For CTxDestination
+#include <veil/extkey.h>
+
 class CCoinControl;
 class CFeeRate;
 class CKey;
@@ -289,7 +292,6 @@ public:
     //! Send pending transaction and commit to wallet.
     virtual bool commit(WalletValueMap value_map,
         WalletOrderForm order_form,
-        std::string from_account,
         std::string& reject_reason) = 0;
 };
 

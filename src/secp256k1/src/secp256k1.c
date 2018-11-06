@@ -18,6 +18,16 @@
 #include "eckey_impl.h"
 #include "hash_impl.h"
 
+#ifdef ENABLE_MODULE_GENERATOR
+#include "include/secp256k1_generator.h"
+#endif
+
+#ifdef ENABLE_MODULE_RANGEPROOF
+#include "include/secp256k1_rangeproof.h"
+#include "modules/rangeproof/pedersen.h"
+#include "modules/rangeproof/rangeproof.h"
+#endif
+
 #define ARG_CHECK(cond) do { \
     if (EXPECT(!(cond), 0)) { \
         secp256k1_callback_call(&ctx->illegal_callback, #cond); \
@@ -581,4 +591,25 @@ int secp256k1_ec_pubkey_combine(const secp256k1_context* ctx, secp256k1_pubkey *
 
 #ifdef ENABLE_MODULE_RECOVERY
 # include "modules/recovery/main_impl.h"
+#endif
+
+
+#ifdef ENABLE_MODULE_GENERATOR
+# include "modules/generator/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_RANGEPROOF
+# include "modules/rangeproof/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_MLSAG
+# include "modules/mlsag/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_WHITELIST
+# include "modules/whitelist/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_SURJECTIONPROOF
+# include "modules/surjection/main_impl.h"
 #endif

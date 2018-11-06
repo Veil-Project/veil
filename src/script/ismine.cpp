@@ -9,9 +9,20 @@
 #include <keystore.h>
 #include <script/script.h>
 #include <script/sign.h>
+#include <veil/stealth.h>
+#include <veil/extkey.h>
 
 
 typedef std::vector<unsigned char> valtype;
+
+bool HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keystore)
+{
+    for (const valtype& pubkey : pubkeys) {
+        CKeyID keyID = CPubKey(pubkey).GetID();
+        if (!keystore.HaveKey(keyID)) return false;
+    }
+    return true;
+}
 
 namespace {
 
@@ -44,15 +55,6 @@ enum class IsMineResult
 bool PermitsUncompressed(IsMineSigVersion sigversion)
 {
     return sigversion == IsMineSigVersion::TOP || sigversion == IsMineSigVersion::P2SH;
-}
-
-bool HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keystore)
-{
-    for (const valtype& pubkey : pubkeys) {
-        CKeyID keyID = CPubKey(pubkey).GetID();
-        if (!keystore.HaveKey(keyID)) return false;
-    }
-    return true;
 }
 
 IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey, IsMineSigVersion sigversion)
@@ -95,7 +97,14 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         break;
     }
     case TX_PUBKEYHASH:
-        keyID = CKeyID(uint160(vSolutions[0]));
+    case TX_TIMELOCKED_PUBKEYHASH:
+    case TX_PUBKEYHASH256:
+        if (vSolutions[0].size() == 20)
+            keyID = CKeyID(uint160(vSolutions[0]));
+        else if (vSolutions[0].size() == 32)
+            keyID = CKeyID(uint256(vSolutions[0]));
+        else
+            return IsMineResult::NO;
         if (!PermitsUncompressed(sigversion)) {
             CPubKey pubkey;
             if (keystore.GetPubKey(keyID, pubkey) && !pubkey.IsCompressed()) {
@@ -107,12 +116,21 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         }
         break;
     case TX_SCRIPTHASH:
+    case TX_TIMELOCKED_SCRIPTHASH:
+    case TX_SCRIPTHASH256:
     {
         if (sigversion != IsMineSigVersion::TOP) {
             // P2SH inside P2WSH or P2SH is invalid.
             return IsMineResult::INVALID;
         }
-        CScriptID scriptID = CScriptID(uint160(vSolutions[0]));
+        CScriptID scriptID;
+        if (vSolutions[0].size() == 20)
+            scriptID = CScriptID(uint160(vSolutions[0]));
+        else
+        if (vSolutions[0].size() == 32)
+            scriptID.Set(uint256(vSolutions[0]));
+        else
+            return IsMineResult::NO;
         CScript subscript;
         if (keystore.GetCScript(scriptID, subscript)) {
             ret = std::max(ret, IsMineInner(keystore, subscript, IsMineSigVersion::P2SH));
@@ -158,9 +176,11 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
                 }
             }
         }
+
         if (HaveKeys(keys, keystore)) {
             ret = std::max(ret, IsMineResult::SPENDABLE);
         }
+
         break;
     }
     }
@@ -189,6 +209,11 @@ isminetype IsMine(const CKeyStore& keystore, const CScript& scriptPubKey)
 
 isminetype IsMine(const CKeyStore& keystore, const CTxDestination& dest)
 {
+    if (dest.type() == typeid(CStealthAddress)) {
+        const CStealthAddress &sxAddr = boost::get<CStealthAddress>(dest);
+        return sxAddr.scan_secret.size() == EC_SECRET_SIZE ? ISMINE_SPENDABLE : ISMINE_NO; // TODO: watch only?
+    }
+
     CScript script = GetScriptForDestination(dest);
     return IsMine(keystore, script);
 }

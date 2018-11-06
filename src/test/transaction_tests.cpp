@@ -20,6 +20,8 @@
 #include <script/script_error.h>
 #include <script/standard.h>
 #include <utilstrencodings.h>
+#include <veil/stealth.h>
+#include <veil/extkey.h>
 
 #include <map>
 #include <string>
@@ -167,10 +169,12 @@ BOOST_AUTO_TEST_CASE(tx_valid)
                 if (mapprevOutValues.count(tx.vin[i].prevout)) {
                     amount = mapprevOutValues[tx.vin[i].prevout];
                 }
+                std::vector<uint8_t> vchAmount(8);
+                memcpy(&vchAmount[0], &amount, 8);
                 unsigned int verify_flags = ParseScriptFlags(test[2].get_str());
                 const CScriptWitness *witness = &tx.vin[i].scriptWitness;
                 BOOST_CHECK_MESSAGE(VerifyScript(tx.vin[i].scriptSig, mapprevOutScriptPubKeys[tx.vin[i].prevout],
-                                                 witness, verify_flags, TransactionSignatureChecker(&tx, i, amount, txdata), &err),
+                                                 witness, verify_flags, TransactionSignatureChecker(&tx, i, vchAmount, txdata), &err),
                                     strTest);
                 BOOST_CHECK_MESSAGE(err == SCRIPT_ERR_OK, ScriptErrorString(err));
             }
@@ -251,12 +255,14 @@ BOOST_AUTO_TEST_CASE(tx_invalid)
 
                 unsigned int verify_flags = ParseScriptFlags(test[2].get_str());
                 CAmount amount = 0;
+                std::vector<uint8_t> vchAmount(8);
+                memcpy(&vchAmount[0], &amount, 8);
                 if (mapprevOutValues.count(tx.vin[i].prevout)) {
                     amount = mapprevOutValues[tx.vin[i].prevout];
                 }
                 const CScriptWitness *witness = &tx.vin[i].scriptWitness;
                 fValid = VerifyScript(tx.vin[i].scriptSig, mapprevOutScriptPubKeys[tx.vin[i].prevout],
-                                      witness, verify_flags, TransactionSignatureChecker(&tx, i, amount, txdata), &err);
+                                      witness, verify_flags, TransactionSignatureChecker(&tx, i, vchAmount, txdata), &err);
             }
             BOOST_CHECK_MESSAGE(!fValid, strTest);
             BOOST_CHECK_MESSAGE(err != SCRIPT_ERR_OK, ScriptErrorString(err));
@@ -386,7 +392,10 @@ static void CheckWithFlag(const CTransactionRef& output, const CMutableTransacti
 {
     ScriptError error;
     CTransaction inputi(input);
-    bool ret = VerifyScript(inputi.vin[0].scriptSig, output->vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, output->vout[0].nValue), &error);
+    std::vector<uint8_t> vchAmount(8);
+    memcpy(&vchAmount[0], &output->vout[0].nValue, 8);
+    bool ret = VerifyScript(inputi.vin[0].scriptSig, output->vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, vchAmount), &error);
+
     assert(ret == success);
 }
 
@@ -449,9 +458,12 @@ BOOST_AUTO_TEST_CASE(test_big_witness_transaction) {
         mtx.vout[i].scriptPubKey = CScript() << OP_1;
     }
 
+    CAmount amount = 1000;
+    std::vector<uint8_t> vchAmount(8);
+    memcpy(&vchAmount[0], &amount, 8);
     // sign all inputs
     for(uint32_t i = 0; i < mtx.vin.size(); i++) {
-        bool hashSigned = SignSignature(keystore, scriptPubKey, mtx, i, 1000, sigHashes.at(i % sigHashes.size()));
+        bool hashSigned = SignSignature(keystore, scriptPubKey, mtx, i, vchAmount, sigHashes.at(i % sigHashes.size()));
         assert(hashSigned);
     }
 
@@ -499,12 +511,16 @@ SignatureData CombineSignatures(const CMutableTransaction& input1, const CMutabl
     SignatureData sigdata;
     sigdata = DataFromTransaction(input1, 0, tx->vout[0]);
     sigdata.MergeSignatureData(DataFromTransaction(input2, 0, tx->vout[0]));
-    ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&input1, 0, tx->vout[0].nValue), tx->vout[0].scriptPubKey, sigdata);
+    std::vector<uint8_t> vamount(8);
+    memcpy(vamount.data(), &tx->vout[0].nValue, 8);
+    ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&input1, 0, vamount), tx->vout[0].scriptPubKey, sigdata);
     return sigdata;
 }
 
 BOOST_AUTO_TEST_CASE(test_witness)
 {
+    std::vector<uint8_t> vchAmount(8);
+
     CBasicKeyStore keystore, keystore2;
     CKey key1, key2, key3, key1L, key2L;
     CPubKey pubkey1, pubkey2, pubkey3, pubkey1L, pubkey2L;

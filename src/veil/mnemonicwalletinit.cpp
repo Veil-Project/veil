@@ -44,6 +44,9 @@ bool MnemonicWalletInit::Open() const
         if (!pwallet) {
             return false;
         }
+
+        std::cout << "about to add wallet\n";
+
         AddWallet(pwallet);
     }
 

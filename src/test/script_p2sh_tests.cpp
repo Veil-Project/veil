@@ -13,6 +13,8 @@
 #include <script/sign.h>
 #include <script/ismine.h>
 #include <test/test_veil.h>
+#include <veil/stealth.h>
+#include <veil/extkey.h>
 
 #include <vector>
 
@@ -42,7 +44,9 @@ Verify(const CScript& scriptSig, const CScript& scriptPubKey, bool fStrict, Scri
     txTo.vin[0].scriptSig = scriptSig;
     txTo.vout[0].nValue = 1;
 
-    return VerifyScript(scriptSig, scriptPubKey, nullptr, fStrict ? SCRIPT_VERIFY_P2SH : SCRIPT_VERIFY_NONE, MutableTransactionSignatureChecker(&txTo, 0, txFrom.vout[0].nValue), &err);
+    std::vector<uint8_t> vchAmount(8);
+    memcpy(&vchAmount[0], &txFrom.vout[0].nValue, 8);
+    return VerifyScript(scriptSig, scriptPubKey, nullptr, fStrict ? SCRIPT_VERIFY_P2SH : SCRIPT_VERIFY_NONE, MutableTransactionSignatureChecker(&txTo, 0, vchAmount), &err);
 }
 
 

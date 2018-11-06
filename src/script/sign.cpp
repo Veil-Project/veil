@@ -13,7 +13,7 @@
 
 typedef std::vector<unsigned char> valtype;
 
-MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction* txToIn, unsigned int nInIn, const CAmount& amountIn, int nHashTypeIn) : txTo(txToIn), nIn(nInIn), nHashType(nHashTypeIn), amount(amountIn), checker(txTo, nIn, amountIn) {}
+MutableTransactionSignatureCreator::MutableTransactionSignatureCreator(const CMutableTransaction* txToIn, unsigned int nInIn, const std::vector<uint8_t>& amountIn, int nHashTypeIn) : txTo(txToIn), nIn(nInIn), nHashType(nHashTypeIn), amount(amountIn), checker(txTo, nIn, amountIn) {}
 
 bool MutableTransactionSignatureCreator::CreateSig(const SigningProvider& provider, std::vector<unsigned char>& vchSig, const CKeyID& address, const CScript& scriptCode, SigVersion sigversion) const
 {
@@ -266,7 +266,9 @@ bool SignPSBTInput(const SigningProvider& provider, const CMutableTransaction& t
         return false;
     }
 
-    MutableTransactionSignatureCreator creator(&tx, index, utxo.nValue, sighash);
+    std::vector<uint8_t> amount(8);
+    memcpy(amount.data(), &utxo.nValue, 8);
+    MutableTransactionSignatureCreator creator(&tx, index, amount, sighash);
     sigdata.witness = false;
     bool sig_complete = ProduceSignature(provider, creator, utxo.scriptPubKey, sigdata);
     // Verify that a witness signature was produced in case one was required.
@@ -314,6 +316,13 @@ struct Stacks
 // Extracts signatures and scripts from incomplete scriptSigs. Please do not extend this, use PSBT instead
 SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn, const CTxOut& txout)
 {
+    std::vector<uint8_t> amount(8);
+    memcpy(amount.data(), &txout.nValue, 8);
+    return DataFromTransaction(tx, nIn, amount,  txout.scriptPubKey);
+};
+
+SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn, const std::vector<uint8_t> &amount, const CScript &scriptPubKey)
+{
     SignatureData data;
     assert(tx.vin.size() > nIn);
     data.scriptSig = tx.vin[nIn].scriptSig;
@@ -321,19 +330,27 @@ SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nI
     Stacks stack(data);
 
     // Get signatures
-    MutableTransactionSignatureChecker tx_checker(&tx, nIn, txout.nValue);
+    MutableTransactionSignatureChecker tx_checker(&tx, nIn, amount);
     SignatureExtractorChecker extractor_checker(data, tx_checker);
-    if (VerifyScript(data.scriptSig, txout.scriptPubKey, &data.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, extractor_checker)) {
+    if (VerifyScript(data.scriptSig, scriptPubKey, &data.scriptWitness, STANDARD_SCRIPT_VERIFY_FLAGS, extractor_checker)) {
         data.complete = true;
         return data;
     }
 
     // Get scripts
-    txnouttype script_type;
     std::vector<std::vector<unsigned char>> solutions;
-    Solver(txout.scriptPubKey, script_type, solutions);
+    txnouttype script_type;
+    Solver(scriptPubKey, script_type, solutions);
+
     SigVersion sigversion = SigVersion::BASE;
-    CScript next_script = txout.scriptPubKey;
+    CScript next_script = scriptPubKey;
+
+    if (tx.IsParticlVersion()) {
+        if (script_type == TX_PUBKEY || script_type == TX_PUBKEYHASH || script_type == TX_PUBKEYHASH256 || script_type == TX_TIMELOCKED_PUBKEYHASH)
+            script_type = TX_WITNESS_V0_KEYHASH;
+        else if (script_type == TX_SCRIPTHASH || script_type == TX_SCRIPTHASH256 || script_type == TX_TIMELOCKED_SCRIPTHASH)
+            script_type = TX_WITNESS_V0_SCRIPTHASH;
+    }
 
     if (script_type == TX_SCRIPTHASH && !stack.script.empty() && !stack.script.back().empty()) {
         // Get the redeemScript
@@ -400,7 +417,7 @@ void SignatureData::MergeSignatureData(SignatureData sigdata)
     signatures.insert(std::make_move_iterator(sigdata.signatures.begin()), std::make_move_iterator(sigdata.signatures.end()));
 }
 
-bool SignSignature(const SigningProvider &provider, const CScript& fromPubKey, CMutableTransaction& txTo, unsigned int nIn, const CAmount& amount, int nHashType)
+bool SignSignature(const SigningProvider &provider, const CScript& fromPubKey, CMutableTransaction& txTo, unsigned int nIn, const std::vector<uint8_t>& amount, int nHashType)
 {
     assert(nIn < txTo.vin.size());
 
@@ -412,10 +429,27 @@ bool SignSignature(const SigningProvider &provider, const CScript& fromPubKey, C
     return ret;
 }
 
+bool SignSignature(const SigningProvider &provider, const CScript& fromPubKey, CMutableTransaction& txTo, unsigned int nIn, const CAmount amount, int nHashType)
+{
+    std::vector<uint8_t> vamount(8);
+    memcpy(vamount.data(), &amount, 8);
+    return SignSignature(provider, fromPubKey, txTo, nIn, vamount, nHashType);
+}
+
 bool SignSignature(const SigningProvider &provider, const CTransaction& txFrom, CMutableTransaction& txTo, unsigned int nIn, int nHashType)
 {
     assert(nIn < txTo.vin.size());
     CTxIn& txin = txTo.vin[nIn];
+
+    if (txTo.IsParticlVersion()) {
+        assert(txin.prevout.n < txFrom.vpout.size());
+        CScript scriptPubKey;
+        std::vector<uint8_t> vamount;
+        if (!txFrom.vpout[txin.prevout.n]->PutValue(vamount) || !txFrom.vpout[txin.prevout.n]->GetScriptPubKey(scriptPubKey))
+            return false;
+        return SignSignature(provider, scriptPubKey, txTo, nIn, vamount, nHashType);
+    }
+
     assert(txin.prevout.n < txFrom.vout.size());
     const CTxOut& txout = txFrom.vout[txin.prevout.n];
 
@@ -424,7 +458,7 @@ bool SignSignature(const SigningProvider &provider, const CTransaction& txFrom, 
 
 namespace {
 /** Dummy signature checker which accepts all signatures. */
-class DummySignatureChecker final : public BaseSignatureChecker
+class DummySignatureChecker : public BaseSignatureChecker
 {
 public:
     DummySignatureChecker() {}
@@ -432,7 +466,7 @@ public:
 };
 const DummySignatureChecker DUMMY_CHECKER;
 
-class DummySignatureCreator final : public BaseSignatureCreator {
+class DummySignatureCreator : public BaseSignatureCreator {
 private:
     char m_r_len = 32;
     char m_s_len = 32;
@@ -456,6 +490,22 @@ public:
     }
 };
 
+class DummySignatureCheckerParticl : public DummySignatureChecker
+{
+// IsParticlVersion() must return true to skip stack evaluation
+public:
+    DummySignatureCheckerParticl() : DummySignatureChecker() {}
+    bool IsParticlVersion() const { return true; }
+};
+const DummySignatureCheckerParticl DUMMY_CHECKER_PARTICL;
+
+class DummySignatureCreatorParticl : public DummySignatureCreator {
+public:
+    DummySignatureCreatorParticl() : DummySignatureCreator(33, 32) {}
+    const BaseSignatureChecker& Checker() const { return DUMMY_CHECKER_PARTICL; }
+    bool IsParticlVersion() const { return true; }
+};
+
 template<typename M, typename K, typename V>
 bool LookupHelper(const M& map, const K& key, V& value)
 {
@@ -471,6 +521,7 @@ bool LookupHelper(const M& map, const K& key, V& value)
 
 const BaseSignatureCreator& DUMMY_SIGNATURE_CREATOR = DummySignatureCreator(32, 32);
 const BaseSignatureCreator& DUMMY_MAXIMUM_SIGNATURE_CREATOR = DummySignatureCreator(33, 32);
+const BaseSignatureCreator& DUMMY_SIGNATURE_CREATOR_PARTICL = DummySignatureCreatorParticl();
 const SigningProvider& DUMMY_SIGNING_PROVIDER = SigningProvider();
 
 bool IsSolvable(const SigningProvider& provider, const CScript& script)

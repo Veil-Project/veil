@@ -9,6 +9,8 @@
 #include <script/script_error.h>
 #include <script/standard.h>
 #include <test/test_veil.h>
+#include <veil/stealth.h>
+#include <veil/extkey.h>
 
 #include <boost/test/unit_test.hpp>
 

@@ -19,5 +19,9 @@ void CCoinControl::SetNull()
     m_confirm_target.reset();
     m_signal_bip125_rbf.reset();
     m_fee_mode = FeeEstimateMode::UNSET;
+
+    nCoinType = OUTPUT_STANDARD;
+    fHaveAnonOutputs = false;
+    m_extrafee = 0;
 }
 
