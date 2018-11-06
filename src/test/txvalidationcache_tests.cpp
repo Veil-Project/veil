@@ -17,10 +17,11 @@
 #include <keystore.h>
 #include <policy/policy.h>
 #include <veil/stealth.h>
+#include <veil/extkey.h>
 
 #include <boost/test/unit_test.hpp>
 
-bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &inputs, bool fScriptChecks, unsigned int flags, bool cacheSigStore, bool cacheFullScriptStore, PrecomputedTransactionData& txdata, std::vector<CScriptCheck> *pvChecks, bool fAnonChecks);
+bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsViewCache &inputs, bool fScriptChecks, unsigned int flags, bool cacheSigStore, bool cacheFullScriptStore, PrecomputedTransactionData& txdata, std::vector<CScriptCheck> *pvChecks, bool fAnonChecks = true);
 
 BOOST_AUTO_TEST_SUITE(tx_validationcache_tests)
 
@@ -57,7 +58,10 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
 
         // Sign:
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(scriptPubKey, spends[i], 0, SIGHASH_ALL, 0, SigVersion::BASE);
+        CAmount amount = 0;
+        std::vector<uint8_t> vchAmount(8);
+        memcpy(vchAmount.data(), &amount, 8);
+        uint256 hash = SignatureHash(scriptPubKey, spends[i], 0, SIGHASH_ALL, vchAmount, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char)SIGHASH_ALL);
         spends[i].vin[0].scriptSig << vchSig;
@@ -183,7 +187,10 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     // Sign, with a non-DER signature
     {
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(p2pk_scriptPubKey, spend_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
+        CAmount amount = 0;
+        std::vector<uint8_t> vchAmount(8);
+        memcpy(vchAmount.data(), &amount, 8);
+        uint256 hash = SignatureHash(p2pk_scriptPubKey, spend_tx, 0, SIGHASH_ALL, vchAmount, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char) 0); // padding byte makes this non-DER
         vchSig.push_back((unsigned char)SIGHASH_ALL);
@@ -257,7 +264,10 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
         // Sign
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(spend_tx.vout[2].scriptPubKey, invalid_with_cltv_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
+        CAmount amount = 0;
+        std::vector<uint8_t> vchAmount(8);
+        memcpy(vchAmount.data(), &amount, 8);
+        uint256 hash = SignatureHash(spend_tx.vout[2].scriptPubKey, invalid_with_cltv_tx, 0, SIGHASH_ALL, vchAmount, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char)SIGHASH_ALL);
         invalid_with_cltv_tx.vin[0].scriptSig = CScript() << vchSig << 101;
@@ -285,7 +295,10 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
         // Sign
         std::vector<unsigned char> vchSig;
-        uint256 hash = SignatureHash(spend_tx.vout[3].scriptPubKey, invalid_with_csv_tx, 0, SIGHASH_ALL, 0, SigVersion::BASE);
+        CAmount amount = 0;
+        std::vector<uint8_t> vchAmount(8);
+        memcpy(vchAmount.data(), &amount, 8);
+        uint256 hash = SignatureHash(spend_tx.vout[3].scriptPubKey, invalid_with_csv_tx, 0, SIGHASH_ALL, vchAmount, SigVersion::BASE);
         BOOST_CHECK(coinbaseKey.Sign(hash, vchSig));
         vchSig.push_back((unsigned char)SIGHASH_ALL);
         invalid_with_csv_tx.vin[0].scriptSig = CScript() << vchSig << 101;
@@ -315,7 +328,10 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
 
         // Sign
         SignatureData sigdata;
-        ProduceSignature(keystore, MutableTransactionSignatureCreator(&valid_with_witness_tx, 0, 11*CENT, SIGHASH_ALL), spend_tx.vout[1].scriptPubKey, sigdata);
+        CAmount amount = 11*CENT;
+        std::vector<uint8_t> vchAmount(8);
+        memcpy(vchAmount.data(), &amount, 8);
+        ProduceSignature(keystore, MutableTransactionSignatureCreator(&valid_with_witness_tx, 0, vchAmount, SIGHASH_ALL), spend_tx.vout[1].scriptPubKey, sigdata);
         UpdateInput(valid_with_witness_tx.vin[0], sigdata);
 
         // This should be valid under all script flags.
@@ -343,7 +359,10 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         // Sign
         for (int i=0; i<2; ++i) {
             SignatureData sigdata;
-            ProduceSignature(keystore, MutableTransactionSignatureCreator(&tx, i, 11*CENT, SIGHASH_ALL), spend_tx.vout[i].scriptPubKey, sigdata);
+            CAmount amount = 11*CENT;
+            std::vector<uint8_t> vchAmount(8);
+            memcpy(vchAmount.data(), &amount, 8);
+            ProduceSignature(keystore, MutableTransactionSignatureCreator(&tx, i, vchAmount, SIGHASH_ALL), spend_tx.vout[i].scriptPubKey, sigdata);
             UpdateInput(tx.vin[i], sigdata);
         }
 

@@ -427,7 +427,7 @@ bool CExtKeyPair::Derive(CExtKey &out, unsigned int nChild) const
     return key.Derive(out.key, out.chaincode, nChild, chaincode);
 };
 
-bool CExtKeyPair::Derive(CExtPubKey &out, unsigned int nChild) const
+    bool CExtKeyPair::Derive(CExtPubKey &out, unsigned int nChild) const
 {
     if ((nChild >> 31) == 0)
     {
@@ -1163,7 +1163,7 @@ std::string GetDefaultAccountPath()
     // Return path of default account: 44'/44'/0'
     std::vector<uint32_t> vPath;
     vPath.push_back(WithHardenedBit(44)); // purpose
-    vPath.push_back(WithHardenedBit(Params().BIP44ID())); // coin
+    // todo: vPath.push_back(WithHardenedBit(Params().BIP44ID())); // coin
     vPath.push_back(WithHardenedBit(0)); // account
     std::string rv;
     if (0 == PathToString(vPath, rv, 'h'))

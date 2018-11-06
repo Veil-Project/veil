@@ -10,9 +10,19 @@
 #include <script/script.h>
 #include <script/sign.h>
 #include <veil/stealth.h>
+#include <veil/extkey.h>
 
 
 typedef std::vector<unsigned char> valtype;
+
+bool HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keystore)
+{
+    for (const valtype& pubkey : pubkeys) {
+        CKeyID keyID = CPubKey(pubkey).GetID();
+        if (!keystore.HaveKey(keyID)) return false;
+    }
+    return true;
+}
 
 namespace {
 
@@ -45,15 +55,6 @@ enum class IsMineResult
 bool PermitsUncompressed(IsMineSigVersion sigversion)
 {
     return sigversion == IsMineSigVersion::TOP || sigversion == IsMineSigVersion::P2SH;
-}
-
-bool HaveKeys(const std::vector<valtype>& pubkeys, const CKeyStore& keystore)
-{
-    for (const valtype& pubkey : pubkeys) {
-        CKeyID keyID = CPubKey(pubkey).GetID();
-        if (!keystore.HaveKey(keyID)) return false;
-    }
-    return true;
 }
 
 IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey, IsMineSigVersion sigversion)
@@ -175,9 +176,11 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
                 }
             }
         }
+
         if (HaveKeys(keys, keystore)) {
             ret = std::max(ret, IsMineResult::SPENDABLE);
         }
+
         break;
     }
     }

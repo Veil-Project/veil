@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <wallet/wallet.h>
+#include <veil/hdwallet.h>
 
 #include <checkpoints.h>
 #include <chain.h>
@@ -117,7 +118,7 @@ static void ReleaseWallet(CWallet* wallet)
 
 const uint32_t BIP32_HARDENED_KEY_LIMIT = 0x80000000;
 
-const uint256 CMerkleTx::ABANDON_HASH(uint256S("0000000000000000000000000000000000000000000000000000000000000001"));
+const uint256 ABANDON_HASH(uint256S("0000000000000000000000000000000000000000000000000000000000000001"));
 
 /** @defgroup mapWallet
  *
@@ -2650,7 +2651,9 @@ bool CWallet::SignTransaction(CMutableTransaction &tx)
         const CScript& scriptPubKey = mi->second.tx->vout[input.prevout.n].scriptPubKey;
         const CAmount& amount = mi->second.tx->vout[input.prevout.n].nValue;
         SignatureData sigdata;
-        if (!ProduceSignature(*this, MutableTransactionSignatureCreator(&tx, nIn, amount, SIGHASH_ALL), scriptPubKey, sigdata)) {
+        std::vector<uint8_t> vchAmount(8);
+        memcpy(&vchAmount[0], &amount, 8);
+        if (!ProduceSignature(*this, MutableTransactionSignatureCreator(&tx, nIn, vchAmount, SIGHASH_ALL), scriptPubKey, sigdata)) {
             return false;
         }
         UpdateInput(input, sigdata);
@@ -3086,7 +3089,10 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
                 const CScript& scriptPubKey = coin.txout.scriptPubKey;
                 SignatureData sigdata;
 
-                if (!ProduceSignature(*this, MutableTransactionSignatureCreator(&txNew, nIn, coin.txout.nValue, SIGHASH_ALL), scriptPubKey, sigdata))
+                auto amount = coin.txout.nValue;
+                std::vector<uint8_t> vchAmount(8);
+                memcpy(&vchAmount[0], &amount, 8);
+                if (!ProduceSignature(*this, MutableTransactionSignatureCreator(&txNew, nIn, vchAmount, SIGHASH_ALL), scriptPubKey, sigdata))
                 {
                     strFailReason = _("Signing transaction failed");
                     return false;
@@ -4323,7 +4329,10 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     bool fFirstRun = true;
     // TODO: Can't use std::make_shared because we need a custom deleter but
     // should be possible to use std::allocate_shared.
-    std::shared_ptr<CWallet> walletInstance(new CWallet(name, WalletDatabase::Create(path)), ReleaseWallet);
+    std::shared_ptr<CWallet> walletInstance(fParticlMode
+                                            ? std::shared_ptr<CWallet>(new CHDWallet(name, WalletDatabase::Create(path)), ReleaseWallet)
+                                            : std::shared_ptr<CWallet>(new CWallet(name, WalletDatabase::Create(path)), ReleaseWallet));
+
     DBErrors nLoadWalletRet = walletInstance->LoadWallet(fFirstRun);
     if (nLoadWalletRet != DBErrors::LOAD_OK)
     {
@@ -5045,7 +5054,7 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     //commit the transaction to the network
     CValidationState state;
     mapValue_t mapValue;
-    if (!CommitTransaction(wtxNew.tx, std::move(mapValue), {}, {}, reserveKey, g_connman.get(), state)) {
+    if (!CommitTransaction(wtxNew.tx, std::move(mapValue), {}, reserveKey, g_connman.get(), state)) {
         return _("Error: The transaction was rejected! This might happen if some of the coins in your wallet were already "
                  "spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
     } else {
@@ -5089,7 +5098,7 @@ bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNe
     CValidationState state;
     mapValue_t mapValue;
 
-    if (!CommitTransaction(wtxNew.tx, std::move(mapValue), {}, {}, reserveKey, g_connman.get(), state)) {
+    if (!CommitTransaction(wtxNew.tx, std::move(mapValue), {}, reserveKey, g_connman.get(), state)) {
         LogPrintf("%s: failed to commit\n", __func__);
         nStatus = ZCOMMIT_FAILED;
 

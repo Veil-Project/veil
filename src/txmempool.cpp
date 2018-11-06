@@ -941,11 +941,10 @@ bool CTxMemPool::HaveKeyImage(const CCmpPubKey &ki, uint256 &hash) const
     std::map<CCmpPubKey, uint256>::const_iterator mi;
     mi = mapKeyImages.find(ki);
 
-    if (mi != mapKeyImages.end())
-    {
+    if (mi != mapKeyImages.end()) {
         hash = mi->second;
         return true;
-    };
+    }
 
     return false;
 }

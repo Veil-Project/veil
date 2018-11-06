@@ -37,6 +37,7 @@
 // Application startup time (used for uptime calculation)
 int64_t GetStartupTime();
 
+extern bool fParticlMode;
 extern bool fParticlWallet;
 
 // percentage of veil in wallet to convert to zerocoin

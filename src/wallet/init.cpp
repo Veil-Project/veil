@@ -188,7 +188,6 @@ bool WalletInit::Verify() const
 
 bool WalletInit::Open() const
 {
-    std::cout << "opening wallet instance\n";
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
         LogPrintf("Wallet disabled!\n");
         return true;
@@ -199,6 +198,7 @@ bool WalletInit::Open() const
         if (!pwallet) {
             return false;
         }
+
         AddWallet(pwallet);
     }
 

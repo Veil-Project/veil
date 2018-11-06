@@ -51,6 +51,11 @@ public:
     bool operator==(const CInputCoin& rhs) const {
         return outpoint == rhs.outpoint;
     }
+
+    CAmount GetValue() const
+    {
+        return txout.nValue;
+    }
 };
 
 struct CoinEligibilityFilter

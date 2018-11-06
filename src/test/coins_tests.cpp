@@ -11,6 +11,7 @@
 #include <validation.h>
 #include <consensus/validation.h>
 #include <veil/stealth.h>
+#include <veil/extkey.h>
 
 #include <vector>
 #include <map>

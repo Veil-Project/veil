@@ -458,7 +458,7 @@ public:
     CAmount GetUnconfirmedBalance() const override;
     CAmount GetBlindBalance();
     CAmount GetAnonBalance();
-    CAmount GetLegacyBalance(const isminefilter& filter, int minDepth, const std::string* account = nullptr) const override;
+    CAmount GetLegacyBalance(const isminefilter& filter, int minDepth) const override;
 
     bool GetBalances(CHDWalletBalances &bal);
     CAmount GetAvailableBalance(const CCoinControl* coinControl = nullptr) const override;
@@ -610,7 +610,7 @@ public:
     bool CreateTransaction(std::vector<CTempRecipient>& vecSend, CTransactionRef& tx, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
                            std::string& strFailReason, const CCoinControl& coin_control, bool sign = true);
     bool CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm,
-            std::string fromAccount, CReserveKey& reservekey, CConnman* connman, CValidationState& state) override;
+            CReserveKey& reservekey, CConnman* connman, CValidationState& state) override;
     bool CommitTransaction(CWalletTx &wtxNew, CTransactionRecord &rtx,
         CReserveKey &reservekey, CConnman *connman, CValidationState &state);
 

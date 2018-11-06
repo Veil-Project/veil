@@ -39,19 +39,17 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
     uint8_t zeroBlind[32];
     memset(zeroBlind, 0, 32);
     secp256k1_pedersen_commitment plainCommitment;
-    if (nPlainValueOut > 0)
-    {
+    if (nPlainValueOut > 0) {
         if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainCommitment, zeroBlind, (uint64_t) nPlainValueOut,
                 secp256k1_generator_h))
             return state.DoS(100, false, REJECT_INVALID, "bad-plain-commitment");
-    };
+    }
 
     std::vector<const uint8_t*> vpInputSplitCommits;
     if (fSplitCommitments)
         vpInputSplitCommits.reserve(tx.vin.size());
 
-    for (const auto &txin : tx.vin)
-    {
+    for (const auto &txin : tx.vin) {
         if (!txin.IsAnonInput())
             return state.DoS(100, false, REJECT_MALFORMED, "bad-anon-input");
 
@@ -71,9 +69,9 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
 
         if (txin.scriptData.stack.size() != 1)
             return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-dstack-size");
+
         if (txin.scriptWitness.stack.size() != 2)
             return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-wstack-size");
-
 
         const std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
         const std::vector<uint8_t> &vMI = txin.scriptWitness.stack[0];
@@ -92,108 +90,95 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
         std::vector<const uint8_t*> vpOutCommits;
         std::vector<const uint8_t*> vpInCommits(nCols * nInputs);
 
-        if (fSplitCommitments)
-        {
+        if (fSplitCommitments) {
             vpOutCommits.push_back(&vDL[(1 + (nInputs+1) * nRingSize) * 32]);
             vpInputSplitCommits.push_back(&vDL[(1 + (nInputs+1) * nRingSize) * 32]);
-        } else
-        {
+        } else {
             vpOutCommits.push_back(plainCommitment.data);
 
             secp256k1_pedersen_commitment *pc;
-            for (const auto &txout : tx.vpout)
-            {
+            for (const auto &txout : tx.vpout) {
                 if ((pc = txout->GetPCommitment()))
                     vpOutCommits.push_back(pc->data);
-            };
-        };
+            }
+        }
 
         size_t ofs = 0, nB = 0;
-        for (size_t k = 0; k < nInputs; ++k)
-            for (size_t i = 0; i < nCols; ++i)
-            {
+        for (size_t k = 0; k < nInputs; ++k) {
+            for (size_t i = 0; i < nCols; ++i) {
                 int64_t nIndex;
 
-                if (0 != GetVarInt(vMI, ofs, (uint64_t&)nIndex, nB))
+                if (0 != GetVarInt(vMI, ofs, (uint64_t &) nIndex, nB))
                     return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-extract-i");
-                ofs += nB;
 
+                ofs += nB;
                 if (!setHaveI.insert(nIndex).second)
                     return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-dup-i");
 
                 CAnonOutput ao;
-                if (!pblocktree->ReadRCTOutput(nIndex, ao))
-                {
+                if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
                     return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-unknown-i");
-                };
-                memcpy(&vM[(i+k*nCols)*33], ao.pubkey.begin(), 33);
+                }
+
+                memcpy(&vM[(i + k * nCols) * 33], ao.pubkey.begin(), 33);
                 vCommitments.push_back(ao.commitment);
-                vpInCommits[i+k*nCols] = vCommitments.back().data;
-            };
+                vpInCommits[i + k * nCols] = vCommitments.back().data;
+            }
+        }
 
         uint256 txhashKI;
-        for (size_t k = 0; k < nInputs; ++k)
-        {
+        for (size_t k = 0; k < nInputs; ++k) {
             const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
 
-            if (!setHaveKI.insert(ki).second)
-            {
+            if (!setHaveKI.insert(ki).second) {
                 return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki");
             }
 
-            if (mempool.HaveKeyImage(ki, txhashKI)
-                && txhashKI != txhash)
-            {
+            if (mempool.HaveKeyImage(ki, txhashKI) && txhashKI != txhash) {
                 return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki");
-            };
+            }
 
-            if (pblocktree->ReadRCTKeyImage(ki, txhashKI)
-                && txhashKI != txhash)
-            {
+            if (pblocktree->ReadRCTKeyImage(ki, txhashKI) && txhashKI != txhash) {
                 return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki");
-            };
-        };
+            }
+        }
 
-        if (0 != (rv = secp256k1_prepare_mlsag(&vM[0], nullptr,
-                                               vpOutCommits.size(), vpOutCommits.size(), nCols, nRows,
-                                               &vpInCommits[0], &vpOutCommits[0], nullptr)))
+        if (0 != (rv = secp256k1_prepare_mlsag(&vM[0], nullptr, vpOutCommits.size(), vpOutCommits.size(), nCols, nRows,
+                &vpInCommits[0], &vpOutCommits[0], nullptr)))
             return state.DoS(100, error("%s: prepare-mlsag-failed %d", __func__, rv), REJECT_INVALID, "prepare-mlsag-failed");
 
-        if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind,
-                                              txhash.begin(), nCols, nRows,
-                                              &vM[0], &vKeyImages[0], &vDL[0], &vDL[32])))
+        if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind, txhash.begin(), nCols, nRows, &vM[0], &vKeyImages[0],
+                &vDL[0], &vDL[32])))
             return state.DoS(100, error("%s: verify-mlsag-failed %d", __func__, rv), REJECT_INVALID, "verify-mlsag-failed");
-    };
+    }
 
     // Verify commitment sums match
-    if (fSplitCommitments)
-    {
+    if (fSplitCommitments) {
         std::vector<const uint8_t*> vpOutCommits;
         vpOutCommits.push_back(plainCommitment.data);
 
         secp256k1_pedersen_commitment *pc;
-        for (const auto &txout : tx.vpout)
-        {
+        for (const auto &txout : tx.vpout) {
             if ((pc = txout->GetPCommitment()))
                 vpOutCommits.push_back(pc->data);
-        };
+        }
 
 
         if (1 != (rv = secp256k1_pedersen_verify_tally(secp256k1_ctx_blind,
-                                                       (const secp256k1_pedersen_commitment* const*)vpInputSplitCommits.data(), vpInputSplitCommits.size(),
-                                                       (const secp256k1_pedersen_commitment* const*)vpOutCommits.data(), vpOutCommits.size())))
+                (const secp256k1_pedersen_commitment* const*)vpInputSplitCommits.data(), vpInputSplitCommits.size(),
+                (const secp256k1_pedersen_commitment* const*)vpOutCommits.data(), vpOutCommits.size())))
             return state.DoS(100, error("%s: verify-commit-tally-failed %d", __func__, rv), REJECT_INVALID, "verify-commit-tally-failed");
-    };
+    }
 
     return true;
-};
+}
 
 bool AddKeyImagesToMempool(const CTransaction &tx, CTxMemPool &pool)
 {
-    for (const CTxIn &txin : tx.vin)
-    {
+    for (const CTxIn &txin : tx.vin) {
         if (!txin.IsAnonInput())
             continue;
+
         uint256 txhash = tx.GetHash();
         LOCK(pool.cs);
         uint32_t nInputs, nRingSize;
@@ -204,20 +189,20 @@ bool AddKeyImagesToMempool(const CTransaction &tx, CTxMemPool &pool)
         if (vKeyImages.size() != nInputs * 33)
             return false;
 
-        for (size_t k = 0; k < nInputs; ++k)
-        {
+        for (size_t k = 0; k < nInputs; ++k) {
             const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
             pool.mapKeyImages[ki] = txhash;
-        };
-    };
+        }
+    }
 
     return true;
-};
+}
 
 bool RemoveKeyImagesFromMempool(const uint256 &hash, const CTxIn &txin, CTxMemPool &pool)
 {
     if (!txin.IsAnonInput())
         return false;
+
     LOCK(pool.cs);
     uint32_t nInputs, nRingSize;
     txin.GetAnonInfo(nInputs, nRingSize);
@@ -227,40 +212,35 @@ bool RemoveKeyImagesFromMempool(const uint256 &hash, const CTxIn &txin, CTxMemPo
     if (vKeyImages.size() != nInputs * 33)
         return false;
 
-    for (size_t k = 0; k < nInputs; ++k)
-    {
+    for (size_t k = 0; k < nInputs; ++k) {
         const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
         pool.mapKeyImages.erase(ki);
-    };
+    }
 
     return true;
-};
+}
 
 
 bool AllAnonOutputsUnknown(const CTransaction &tx, CValidationState &state)
 {
     state.fHasAnonOutput = false;
-    for (unsigned int k = 0; k < tx.vpout.size(); k++)
-    {
+    for (unsigned int k = 0; k < tx.vpout.size(); k++) {
         if (!tx.vpout[k]->IsType(OUTPUT_RINGCT))
             continue;
+
         state.fHasAnonOutput = true;
 
         CTxOutRingCT *txout = (CTxOutRingCT*)tx.vpout[k].get();
 
         int64_t nTestExists;
-        if (pblocktree->ReadRCTOutputLink(txout->pk, nTestExists))
-        {
+        if (pblocktree->ReadRCTOutputLink(txout->pk, nTestExists)) {
             COutPoint op(tx.GetHash(), k);
             CAnonOutput ao;
-            if (!pblocktree->ReadRCTOutput(nTestExists, ao) || ao.outpoint != op)
-            {
-                return state.DoS(100,
-                                 error("%s: Duplicate anon-output %s, index %d - existing: %s,%d.",
-                                       __func__, HexStr(txout->pk.begin(), txout->pk.end()), nTestExists, ao.outpoint.hash.ToString(), ao.outpoint.n),
-                                 REJECT_INVALID, "duplicate-anon-output");
-            } else
-            {
+            if (!pblocktree->ReadRCTOutput(nTestExists, ao) || ao.outpoint != op) {
+                return state.DoS(100, error("%s: Duplicate anon-output %s, index %d - existing: %s,%d.", __func__,
+                        HexStr(txout->pk.begin(), txout->pk.end()), nTestExists, ao.outpoint.hash.ToString(), ao.outpoint.n),
+                                REJECT_INVALID, "duplicate-anon-output");
+            } else {
                 // Already in the blockchain, containing block could have been received before loose tx
                 return false;
                 /*
@@ -269,12 +249,12 @@ bool AllAnonOutputsUnknown(const CTransaction &tx, CValidationState &state)
                         __func__, HexStr(txout->pk.begin(), txout->pk.end()), nTestExists),
                     REJECT_INVALID, "duplicate-anon-output");
                 */
-            };
-        };
-    };
+            }
+        }
+    }
 
     return true;
-};
+}
 
 
 bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::set<CCmpPubKey> &setKi)
@@ -286,37 +266,37 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
 
     int64_t nRemRCTOutput = nLastValidRCTOutput;
     CAnonOutput ao;
-    while (true)
-    {
+    while (true) {
         nRemRCTOutput++;
+
         if (!pblocktree->ReadRCTOutput(nRemRCTOutput, ao))
             break;
+
         pblocktree->EraseRCTOutput(nRemRCTOutput);
         pblocktree->EraseRCTOutputLink(ao.pubkey);
-    };
+    }
 
     LogPrintf("%s: Removed up to %d\n", __func__, nRemRCTOutput);
-    if (nExpectErase > nRemRCTOutput)
-    {
+    if (nExpectErase > nRemRCTOutput) {
         nRemRCTOutput = nExpectErase;
-        while (nRemRCTOutput > nLastValidRCTOutput)
-        {
+        while (nRemRCTOutput > nLastValidRCTOutput) {
             if (!pblocktree->ReadRCTOutput(nRemRCTOutput, ao))
                 break;
+
             pblocktree->EraseRCTOutput(nRemRCTOutput);
             pblocktree->EraseRCTOutputLink(ao.pubkey);
             nRemRCTOutput--;
-        };
-        LogPrintf("%s: Removed down to %d\n", __func__, nRemRCTOutput);
-    };
+        }
 
-    for (const auto &ki : setKi)
-    {
+        LogPrintf("%s: Removed down to %d\n", __func__, nRemRCTOutput);
+    }
+
+    for (const auto &ki : setKi) {
         pblocktree->EraseRCTKeyImage(ki);
-    };
+    }
 
     return true;
-};
+}
 
 //bool RewindToCheckpoint(int nCheckPointHeight, int &nBlocks, std::string &sError)
 //{
