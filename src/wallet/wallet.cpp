@@ -2313,9 +2313,29 @@ CAmount CWallet::GetAvailableBalance(const CCoinControl* coinControl) const
     return balance;
 }
 
+CAmount CWallet::GetMintableBalance(std::vector<COutput>& vMintableCoins) const
+{
+    LOCK2(cs_main, cs_wallet);
+
+    vMintableCoins.clear();
+    CAmount balance = 0;
+    std::vector<COutput> vCoins;
+    AvailableCoins(vCoins, true);
+    for (const COutput& coin : vCoins) {
+        CTxDestination address;
+        if (coin.fSpendable &&
+            ExtractDestination(FindNonChangeParentOutput(*coin.tx->tx, coin.i).scriptPubKey, address) &&
+            mapAddressBook.count(address) && mapAddressBook.at(address).purpose != "basecoin") {
+            balance += coin.tx->tx->vout[coin.i].nValue;
+            vMintableCoins.emplace_back(std::move(coin));
+        }
+    }
+    return balance;
+}
+
 void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const CCoinControl *coinControl, const CAmount &nMinimumAmount,
-        const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount, const int nMinDepth,
-        const int nMaxDepth, bool fIncludeImmature) const
+                             const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount, const int nMinDepth,
+                             const int nMaxDepth, bool fIncludeImmature) const
 {
     AssertLockHeld(cs_main);
     AssertLockHeld(cs_wallet);
@@ -4203,13 +4223,24 @@ void CWallet::AutoZeromint()
     CAmount nMintAmount = 0;
     CAmount nToMintAmount = 0;
 
-    // Percentage of zerocoin we already have
-    double dPercentage = 100 * (double)nZerocoinBalance / (double)(nZerocoinBalance);
+    std::vector<COutput> vOutputs;
+    CCoinControl coinControl;
+    CAmount nBalance = GetMintableBalance(vOutputs); // won't consider locked outputs or basecoin address
+
+    for (const COutput& out : vOutputs)
+        coinControl.Select(COutPoint(out.tx->GetHash(), out.i));
+
+    if (nBalance < 10){
+        LogPrintf("zero", "CWallet::AutoZeromint(): available balance (%ld) too small for minting zPIV\n", nBalance);
+        return;
+    }
+
+    double dPercentage = 100 * (double)nZerocoinBalance / (double)(nZerocoinBalance + nBalance);
 
     // Check if minting is actually needed
-    if(dPercentage >= nZeromintPercentage){
+    if(dPercentage == nZeromintPercentage){
         //LogPrintf("CWallet::AutoZeromint() @block %ld: percentage of existing Zerocoin (%lf%%) already >= configured percentage (%d%%). No minting needed...\n",
-          //       chainActive.Tip()->nHeight, dPercentage, nZeromintPercentage);
+        //       chainActive.Tip()->nHeight, dPercentage, nZeromintPercentage);
         return;
     }
 
@@ -4248,7 +4279,7 @@ void CWallet::AutoZeromint()
     if (nMintAmount > 0){
         CWalletTx wtx(NULL, NULL);
         vector<CDeterministicMint> vDMints;
-        string strError = GetMainWallet()->MintZerocoin(nMintAmount*COIN, wtx, vDMints);
+        string strError = GetMainWallet()->MintZerocoin(nMintAmount*COIN, wtx, vDMints, &coinControl);
 
         // Return if something went wrong during minting
         if (strError != ""){
@@ -4256,7 +4287,9 @@ void CWallet::AutoZeromint()
             return;
         }
         nZerocoinBalance = GetZerocoinBalance(false);
-        dPercentage = 100 * (double)nZerocoinBalance / (double)(nZerocoinBalance);
+        std::vector<COutput> vOutputs;
+        CAmount nBalance = GetMintableBalance(vOutputs);
+        dPercentage = 100 * (double)nZerocoinBalance / (double)(nZerocoinBalance + nBalance);
         LogPrintf("CWallet::AutoZeromint() @ block %ld: successfully minted %ld Zerocoin. Current percentage of Zerocoin: %lf%%\n",
                   chainActive.Tip()->nHeight, nMintAmount, dPercentage);
         // Re-adjust startup time to delay next Automint for 5 minutes
@@ -5324,13 +5357,12 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         // select UTXO's to use
 
         std::vector<COutput> vAvailableCoins;
-        AvailableCoins(vAvailableCoins, true);
-        CCoinControl coinControl;
+        AvailableCoins(vAvailableCoins, true, coinControl);
         CoinSelectionParams coin_selection_params; // todo: set selection params
         coin_selection_params.use_bnb = false;
         bool fBool = true;
 
-        if (!SelectCoins(vAvailableCoins, nTotalValue, setCoins, nValueIn, coinControl, coin_selection_params, fBool)) {
+        if (!SelectCoins(vAvailableCoins, nTotalValue, setCoins, nValueIn, *coinControl, coin_selection_params, fBool)) {
             strFailReason = "Insufficient confirmed funds, you might need to wait a few minutes and try again.";
             return false;
         }
