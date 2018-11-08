@@ -89,7 +89,7 @@ bool fParticlWallet = false;
 
 // Automatic Zerocoin minting
 bool fEnableZeromint = true;
-int nZeromintPercentage = 10;
+int nZeromintPercentage = 100;
 const int64_t AUTOMINT_DELAY = (60 * 5); // Wait at least 5 minutes until Automint starts
 int nPreferredDenom = 0;
 

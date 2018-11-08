@@ -290,7 +290,7 @@ static UniValue setlabel(const JSONRPCRequest& request)
     std::string label = LabelFromValue(request.params[1]);
 
     if (IsMine(*pwallet, dest)) {
-        pwallet->SetAddressBook(dest, label, "receive");
+        pwallet->SetAddressBook(dest, label, pwallet->mapAddressBook[dest].purpose);
     } else {
         pwallet->SetAddressBook(dest, label, "send");
     }
@@ -298,6 +298,57 @@ static UniValue setlabel(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
+static UniValue setbasecoinaddress(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
+        throw std::runtime_error(
+                "setbasecoinaddress \"address\" \"foverride\"\n"
+                "\nSets the given address to act as the basecoin address."
+                "\nCoins associated with the basecoin address will not be automatically minted into zerocoin."
+                "\nOnly one wallet address can be marked as a basecoin address.\n"
+                "\nArguments:\n"
+                "1. \"address\"         (string, required) The veil address to be marked as the basecoin address.\n"
+                "2. \"foverride\"       (boolean, optional, default=false) Replace a pre-existing basecoin address.\n"
+                "\nExamples:\n"
+                + HelpExampleCli("setbasecoinaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\"")
+                + HelpExampleCli("setbasecoinaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" true")
+                + HelpExampleRpc("setbasecoinaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\", true")
+        );
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    CTxDestination dest = DecodeDestination(request.params[0].get_str());
+    if (!IsValidDestination(dest))
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Veil address");
+
+    bool fOverride = false;
+    if (!request.params[1].isNull())
+        fOverride = request.params[1].get_bool();
+
+    if (IsMine(*pwallet, dest)) {
+        for (auto& entry : pwallet->mapAddressBook) {
+            if (entry.second.purpose == "basecoin" && !fOverride) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                                   "Wallet already has basecoin address. Use foverride=true to replace it.");
+            } else if (entry.second.purpose == "basecoin") {
+                pwallet->SetAddressBook(entry.first, entry.second.name, "receive");
+                break;
+            }
+        }
+        pwallet->SetAddressBook(dest, pwallet->mapAddressBook[dest].name, "basecoin");
+    } else {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Veil address does not belong to this wallet");
+    }
+
+    return NullUniValue;
+}
 
 static UniValue getaccount(const JSONRPCRequest& request)
 {
@@ -4905,6 +4956,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "lockunspent",                      &lockunspent,                   {"unlock","transactions"} },
     { "wallet",             "sendmany",                         &sendmany,                      {"fromaccount|dummy","amounts","minconf","comment","subtractfeefrom","replaceable","conf_target","estimate_mode"} },
     { "wallet",             "sendtoaddress",                    &sendtoaddress,                 {"address","amount","comment","comment_to","subtractfeefromamount","replaceable","conf_target","estimate_mode"} },
+    { "wallet",             "setbasecoinaddress",               &setbasecoinaddress,            {"address","foverride"} },
     { "wallet",             "settxfee",                         &settxfee,                      {"amount"} },
     { "wallet",             "signmessage",                      &signmessage,                   {"address","message"} },
     { "wallet",             "signrawtransactionwithwallet",     &signrawtransactionwithwallet,  {"hexstring","prevtxs","sighashtype"} },

@@ -996,6 +996,12 @@ public:
     CAmount GetImmatureWatchOnlyBalance() const;
     virtual CAmount GetLegacyBalance(const isminefilter& filter, int minDepth) const;
     virtual CAmount GetAvailableBalance(const CCoinControl* coinControl = nullptr) const;
+
+    /**
+     * Get total balance that can be minted into zercoin.
+     * Does not include locked coins or coins associated with the basecoin address.
+     */
+    CAmount GetMintableBalance(std::vector<COutput>& vMintableCoins) const;
     CAmount GetZerocoinBalance(bool fMatureOnly) const;
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
