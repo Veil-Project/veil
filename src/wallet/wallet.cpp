@@ -4211,7 +4211,6 @@ std::vector<std::string> CWallet::GetDestValues(const std::string& prefix) const
 // CWallet::AutoZeromint() gets called with each new incoming block
 void CWallet::AutoZeromint()
 {
-
     // After sync wait even more to reduce load when wallet was just started
     int64_t nWaitTime = GetAdjustedTime() - nAutoMintStartupTime;
     if (nWaitTime < AUTOMINT_DELAY){
@@ -4245,7 +4244,7 @@ void CWallet::AutoZeromint()
     }
 
     // Zerocoin amount needed for the target percentage
-    nToMintAmount = ((nZerocoinBalance) * nZeromintPercentage / 100);
+    nToMintAmount = ((nZerocoinBalance + nBalance) * nZeromintPercentage / 100);
 
     // Zerocoin amount missing from target (must be minted)
     nToMintAmount = (nToMintAmount - nZerocoinBalance) / COIN;
