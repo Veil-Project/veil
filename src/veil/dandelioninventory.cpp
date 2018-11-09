@@ -3,6 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <timedata.h>
+#include <libzerocoin/bignum.h>
 #include "dandelioninventory.h"
 
 namespace veil {
@@ -65,6 +66,7 @@ void DandelionInventory::SetInventorySent(const uint256& hash, const int64_t nNo
         return;
     mapStemInventory.at(hash).nNodeIDSentTo = nNodeID;
     setPendingSend.erase(hash);
+    mapNodeToSentTo.erase(hash);
 }
 
 bool DandelionInventory::IsQueuedToSend(const uint256& hashObject) const
@@ -80,10 +82,13 @@ void DandelionInventory::MarkSent(const uint256& hash)
 {
     mapStemInventory.erase(hash);
     setPendingSend.erase(hash);
+    mapNodeToSentTo.erase(hash);
 }
 
-void DandelionInventory::Process()
+void DandelionInventory::Process(const std::vector<CNode*>& vNodes)
 {
+    //Clear all the old node destinations
+    mapNodeToSentTo.clear();
     auto mapStem = mapStemInventory;
     for (auto mi : mapStem) {
         auto hash = mi.first;
@@ -104,6 +109,16 @@ void DandelionInventory::Process()
         if (GetAdjustedTime() - stem.nTimeStemEnd > 5)
             continue;
 
+        //Set the index to send to
+        CBigNum bnRandomNodeIndex;
+        int64_t nNodeID;
+        do {
+            bnRandomNodeIndex = CBigNum::randBignum(CBigNum(vNodes.size()));
+            nNodeID = vNodes[bnRandomNodeIndex.getint()]->GetId();
+        }
+        while (nNodeID == stem.nNodeIDFrom);
+        mapNodeToSentTo.insert(std::make_pair<uint256&, int64_t& >(hash, nNodeID));
+
         // Randomly decide to send this if it is in stem phase
         auto n = (int64_t)&stem.nTimeStemEnd; //get sort of random entropy from memory location
         if (n % 3 == 0)
@@ -112,6 +127,11 @@ void DandelionInventory::Process()
             mapStemInventory.at(hash).nTimeLastRoll = GetAdjustedTime();
     }
 }
+
+    bool DandelionInventory::IsCorrectNodeToSend(const uint256& hash, const int64_t nNodeID)
+    {
+        return mapNodeToSentTo[hash] == nNodeID;
+    }
 
 }
 
