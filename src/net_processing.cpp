@@ -1390,8 +1390,8 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
         //   nUnconnectingHeaders gets reset back to 0.
         if (!LookupBlockIndex(headers[0].hashPrevBlock) && nCount < MAX_BLOCKS_TO_ANNOUNCE) {
             nodestate->nUnconnectingHeaders++;
-            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexBestBlock), uint256()));
-            LogPrint(BCLog::NET, "received header %s: missing prev block %s, sending getheaders (%d) to end (peer=%d, nUnconnectingHeaders=%d)\n",
+            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETBLOCKS, chainActive.GetLocator(pindexBestBlock), uint256()));
+            LogPrint(BCLog::NET, "received header %s: missing prev block %s, sending getblocks (%d) to end (peer=%d, nUnconnectingHeaders=%d)\n",
                     headers[0].GetHash().ToString(),
                     headers[0].hashPrevBlock.ToString(),
                     pindexBestBlock->nHeight,
@@ -1989,8 +1989,11 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     // fell back to inv we probably have a reorg which we should get the headers for first,
                     // we now only provide a getheaders response here. When we receive the headers, we will
                     // then ask for the blocks we need.
-                    connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETBLOCKS, chainActive.GetLocator(pindexBestBlock), inv.hash));
+
+                    // Veil: we request the full block here because headers first syncing is not functional
                     LogPrint(BCLog::NET, "getblocks (%d) %s to peer=%d\n", pindexBestBlock->nHeight, inv.hash.ToString(), pfrom->GetId());
+                    MarkBlockAsInFlight(pfrom->GetId(), inv.hash);
+                    pfrom->AskFor(inv);
                 }
             }
             else
