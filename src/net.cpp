@@ -2039,7 +2039,7 @@ void CConnman::ThreadMessageHandler()
         }
         {
             LOCK(veil::dandelion.cs);
-            veil::dandelion.Process();
+            veil::dandelion.Process(vNodesCopy);
         }
 
         bool fMoreWork = false;

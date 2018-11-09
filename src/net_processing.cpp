@@ -3635,6 +3635,9 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                         //Don't send to the same node that sent the tx here
                         if (veil::dandelion.IsFromNode(*it, pto->GetId()))
                             continue;
+
+                        if(!veil::dandelion.IsCorrectNodeToSend(*it, pto->GetId()))
+                            continue;
                     }
 
                     vInvTx.push_back(it);

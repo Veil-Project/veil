@@ -7,6 +7,7 @@
 
 #include <protocol.h>
 #include <sync.h>
+#include "net.h"
 
 namespace veil {
 
@@ -26,7 +27,7 @@ class DandelionInventory
 private:
     std::map<uint256, Stem> mapStemInventory;
     std::set<uint256> setPendingSend; // Inventory that is ready to be sent
-
+    std::map<uint256, int64_t> mapNodeToSentTo; //Maps each tx to a next node to send to
 public:
     void Add(const uint256& hashInventory, const int64_t& nTimeStemEnd, const int64_t& nNodeIDFrom);
     bool IsFromNode(const uint256& hash, const int64_t nNodeID) const;
@@ -37,7 +38,8 @@ public:
     bool IsQueuedToSend(const uint256& hashObject) const;
     void SetInventorySent(const uint256& hash, const int64_t nNodeID);
     void MarkSent(const uint256& hash);
-    void Process();
+    void Process(const std::vector<CNode*>& vNodes);
+    bool IsCorrectNodeToSend(const uint256& hash, const int64_t nNodeID);
 
     CCriticalSection cs;
 };
