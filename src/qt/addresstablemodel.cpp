@@ -28,10 +28,11 @@ struct AddressTableEntry
     Type type;
     QString label;
     QString address;
+    bool fBasecoin;
 
     AddressTableEntry() {}
-    AddressTableEntry(Type _type, const QString &_label, const QString &_address):
-        type(_type), label(_label), address(_address) {}
+    AddressTableEntry(Type _type, const QString &_label, const QString &_address, bool _fBasecoin = false):
+        type(_type), label(_label), address(_address), fBasecoin(_fBasecoin) {}
 };
 
 struct AddressTableEntryLessThan
@@ -57,7 +58,7 @@ static AddressTableEntry::Type translateTransactionType(const QString &strPurpos
     // "refund" addresses aren't shown, and change addresses aren't in mapAddressBook at all.
     if (strPurpose == "send")
         addressType = AddressTableEntry::Sending;
-    else if (strPurpose == "receive")
+    else if (strPurpose == "receive" || strPurpose == "basecoin")
         addressType = AddressTableEntry::Receiving;
     else if (strPurpose == "unknown" || strPurpose == "") // if purpose not set, guess
         addressType = (isMine ? AddressTableEntry::Receiving : AddressTableEntry::Sending);
@@ -82,9 +83,10 @@ public:
             {
                 AddressTableEntry::Type addressType = translateTransactionType(
                         QString::fromStdString(address.purpose), address.is_mine);
+                bool fBasecoin = address.purpose == "basecoin";
                 cachedAddressTable.append(AddressTableEntry(addressType,
                                   QString::fromStdString(address.name),
-                                  QString::fromStdString(EncodeDestination(address.dest))));
+                                  QString::fromStdString(EncodeDestination(address.dest)), fBasecoin));
             }
         }
         // qLowerBound() and qUpperBound() require our cachedAddressTable list to be sorted in asc order
