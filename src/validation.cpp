@@ -1297,8 +1297,8 @@ bool IsInitialBlockDownload()
         return true;
     if (chainActive.Tip() == nullptr)
         return true;
-    if (chainActive.Tip()->nChainWork < nMinimumChainWork)
-        return true;
+//    if (chainActive.Tip()->nChainWork < nMinimumChainWork)
+//        return true;
     if (chainActive.Tip()->GetBlockTime() < (GetTime() - nMaxTipAge))
         return true;
     LogPrintf("Leaving InitialBlockDownload (latching to false)\n");
@@ -1994,7 +1994,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                   CCoinsViewCache& view, const CChainParams& chainparams, bool fJustCheck)
 {
 
-    std::cout << "in connect block\n";
+
     AssertLockHeld(cs_main);
     assert(pindex);
     assert(*pindex->phashBlock == block.GetHash());
