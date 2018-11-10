@@ -18,8 +18,15 @@ bool MnemonicWalletInit::Open() const
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
         fs::path walletPath = fs::absolute(walletFile, GetWalletDir());
         if ((walletFile == "" && !fs::exists(walletPath / "wallet.dat")) || !fs::exists(walletPath)) {
-            unsigned int initOption;
-            if (!InitNewWalletPrompt(initOption))
+            unsigned int initOption = MnemonicWalletInitFlags::INVALID_MNEMONIC;
+            //Have to check startup args because daemon is not interactive
+            if (gArgs.GetBoolArg("-generateseed", false))
+                initOption = MnemonicWalletInitFlags::NEW_MNEMONIC;
+            std::string strSeedPhraseArg = gArgs.GetArg("-importseed", "");
+            if (!strSeedPhraseArg.empty())
+                initOption = MnemonicWalletInitFlags::IMPORT_MNEMONIC;
+
+            if (initOption == MnemonicWalletInitFlags::INVALID_MNEMONIC && !InitNewWalletPrompt(initOption))
                 return false;
             if (initOption == MnemonicWalletInitFlags::NEW_MNEMONIC) {
                 std::string mnemonic;
@@ -28,15 +35,17 @@ bool MnemonicWalletInit::Open() const
                 if (!DisplayWalletMnemonic(mnemonic))
                     return false;
             } else if (initOption == MnemonicWalletInitFlags::IMPORT_MNEMONIC) {
-                std::string importMnemonic;
+                std::string importMnemonic = strSeedPhraseArg;
                 bool ret, fBadSeed;
-                if (!GetWalletMnemonic(importMnemonic))
+                if (importMnemonic.empty() && !GetWalletMnemonic(importMnemonic))
                     return false;
                 do {
                     ret = CWallet::CreateHDWalletFromMnemonic(walletFile, walletPath, importMnemonic, fBadSeed);
                     if (!ret || (fBadSeed && !RetryWalletMnemonic(importMnemonic)))
                         return false;
                 } while (fBadSeed);
+
+                LogPrintf("Successfully imported wallet seed\n");
             }
         }
 
@@ -44,8 +53,6 @@ bool MnemonicWalletInit::Open() const
         if (!pwallet) {
             return false;
         }
-
-        std::cout << "about to add wallet\n";
 
         AddWallet(pwallet);
     }

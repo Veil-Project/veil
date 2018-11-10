@@ -59,9 +59,7 @@ static std::vector<std::shared_ptr<CWallet>> vpwallets GUARDED_BY(cs_wallets);
 
 bool AddWallet(const std::shared_ptr<CWallet>& wallet)
 {
-    LogPrintf("62\n");
     LOCK(cs_wallets);
-    LogPrintf("64\n");
     assert(wallet);
     std::vector<std::shared_ptr<CWallet>>::const_iterator i = std::find(vpwallets.begin(), vpwallets.end(), wallet);
     if (i != vpwallets.end()) return false;
