@@ -132,7 +132,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         CMutableTransaction txCoinStake;
         uint32_t nTxNewTime = 0;
         bool fStakefound = false;
-        if (pwalletMain->CreateCoinStake(*GetMainWallet().get(), pblock->nBits, txCoinStake, nTxNewTime)) {
+        if (pwalletMain->CreateCoinStake(pblock->nBits, txCoinStake, nTxNewTime)) {
             pblock->nTime = nTxNewTime;
             pblock->vtx.push_back(MakeTransactionRef(std::move(txCoinStake)));
             fStakefound = true;
@@ -589,15 +589,54 @@ bool fGenerateBitcoins = false;
 bool fMintableCoins = false;
 int nMintableLastCheck = 0;
 
-void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript) {
+void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false) {
     LogPrintf("Veil Miner started\n");
 
     unsigned int nExtraNonce = 0;
     static const int nInnerLoopCount = 0x10000;
 
-    while (fGenerateBitcoins)
+    while (fGenerateBitcoins || fProofOfStake)
     {
         boost::this_thread::interruption_point();
+        if (fProofOfStake) {
+            //Need wallet if this is for proof of stake
+            auto pwallet = GetMainWallet();
+            if (!pwallet) {
+                MilliSleep(5000);
+                continue;
+            }
+
+            //control the amount of times the client will check for mintable coins
+            if ((GetTime() - nMintableLastCheck > 5 * 60)) // 5 minute check time
+            {
+                nMintableLastCheck = GetTime();
+                fMintableCoins = pwallet->MintableCoins();
+            }
+
+            //todo nodes check
+            while (/*vNodes.empty() || */pwallet->IsLocked() || !fMintableCoins ) {
+                // Do a separate 1 minute check here to ensure fMintableCoins is updated
+                if (!fMintableCoins) {
+                    if (GetTime() - nMintableLastCheck > 1 * 60) // 1 minute check time
+                    {
+                        nMintableLastCheck = GetTime();
+                        fMintableCoins = pwallet->MintableCoins();
+                    }
+                }
+                MilliSleep(5000);
+                if (!fGenerateBitcoins && !fProofOfStake)
+                    continue;
+            }
+
+            if (mapHashedBlocks.count(chainActive.Tip()->nHeight)) //search our map of hashed blocks, see if bestblock has been hashed yet
+            {
+                if (GetTime() - mapHashedBlocks[chainActive.Tip()->nHeight] < max(60, 1)) // wait half of the nHashDrift with max wait of 3 minutes
+                {
+                    MilliSleep(5000);
+                    continue;
+                }
+            }
+        }
 
         std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript));
         if (!pblocktemplate.get())
@@ -624,7 +663,6 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript) {
             return;
         }
 
-
         coinbaseScript->KeepScript();
     }
 }
@@ -642,6 +680,21 @@ void static ThreadBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript)
     }
 
     LogPrintf("ThreadBitcoinMiner exiting\n");
+}
+
+void static ThreadStakeMiner(std::shared_ptr<CReserveScript> coinbaseScript)
+{
+    boost::this_thread::interruption_point();
+    try {
+        BitcoinMiner(coinbaseScript, true);
+        boost::this_thread::interruption_point();
+    } catch (std::exception& e) {
+        LogPrintf("ThreadStakeMiner() exception");
+    } catch (...) {
+        LogPrintf("ThreadStakeMiner() exception");
+    }
+
+    LogPrintf("ThreadStakeMiner exiting\n");
 }
 
 void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScript> coinbaseScript)
@@ -666,4 +719,6 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
     minerThreads = new boost::thread_group();
     for (int i = 0; i < nThreads; i++)
         minerThreads->create_thread(boost::bind(&ThreadBitcoinMiner, coinbaseScript));
+    if (gArgs.GetBoolArg("-staking", true))
+        minerThreads->create_thread(boost::bind(&ThreadStakeMiner, coinbaseScript));
 }

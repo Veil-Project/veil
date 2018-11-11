@@ -6,7 +6,7 @@
 #include "libzerocoin/Coin.h"
 #include "mintpool.h"
 #include "uint256.h"
-#include "primitives/zerocoin.h"
+#include "primitives/rpczerocoin.h"
 
 class CDeterministicMint;
 
@@ -26,6 +26,7 @@ public:
     void SyncWithChain(bool fGenerateMintPool = true);
     void GenerateDeterministicZerocoin(libzerocoin::CoinDenomination denom, libzerocoin::PrivateCoin& coin, CDeterministicMint& dMint, bool fGenerateOnly = false);
     void GenerateMint(const uint32_t& nCount, const libzerocoin::CoinDenomination denom, libzerocoin::PrivateCoin& coin, CDeterministicMint& dMint);
+    WalletDatabase& GetDBHandle() { return *walletDatabase; }
     void GetState(int& nCount, int& nLastGenerated);
     bool RegenerateMint(const CDeterministicMint& dMint, CZerocoinMint& mint);
     void GenerateMintPool(uint32_t nCountStart = 0, uint32_t nCountEnd = 0);

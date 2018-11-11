@@ -793,14 +793,12 @@ bool WalletBatch::ReadZerocoinSpendSerialEntry(const CBigNum& bnSerial)
 
 bool WalletBatch::WriteDeterministicMint(const CDeterministicMint& dMint)
 {
-    std::cout << "Writing deterministic mint\n";
     uint256 hash = dMint.GetPubcoinHash();
     return WriteIC(std::make_pair(std::string("dzpiv"), hash), dMint, true);
 }
 
 bool WalletBatch::ReadDeterministicMint(const uint256& hashPubcoin, CDeterministicMint& dMint)
 {
-    std::cout << "Reading deterministic mint\n";
     return m_batch.Read(std::make_pair(std::string("dzpiv"), hashPubcoin), dMint);
 }
 

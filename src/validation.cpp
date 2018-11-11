@@ -3757,7 +3757,7 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
     }
 
     for (auto& denom : libzerocoin::zerocoinDenomList)
-        LogPrintf("%s coins for denomination %d pubcoin %s\n", __func__, denom, pindex->mapZerocoinSupply.at(denom));
+        LogPrint(BCLog::ZEROCOINDB, "%s coins for denomination %d pubcoin %s\n", __func__, denom, pindex->mapZerocoinSupply.at(denom));
 
     return true;
 }

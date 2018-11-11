@@ -1465,6 +1465,16 @@ bool CWallet::UpdateMint(const CBigNum& bnValue, const int& nHeight, const uint2
     return false;
 }
 
+void CWallet::UpdateZerocoinState(const CMintMeta& meta)
+{
+    zTracker->UpdateState(meta);
+}
+
+void CWallet::ArchiveZerocoin(CMintMeta& meta)
+{
+    zTracker->Archive(meta);
+}
+
 CPubKey CWallet::GenerateNewSeed()
 {
     assert(!IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
@@ -2188,6 +2198,11 @@ bool CWallet::GetMint(const uint256& hashSerial, CZerocoinMint& mint)
     }
 
     return true;
+}
+
+std::set<CMintMeta> CWallet::ListMints(bool fUnusedOnly, bool fMatureOnly, bool fUpdateStatus)
+{
+    return zTracker->ListMints(fUnusedOnly, fMatureOnly, fUpdateStatus);
 }
 
 string CWallet::GetUniqueWalletBackupName(bool fzAuto) const
@@ -3195,7 +3210,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
     return true;
 }
 
-bool CWallet::CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime)
+bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime)
 {
     // The following split & combine thresholds are important to security
     // Should not be adjusted if you don't understand the consequences
@@ -4228,7 +4243,7 @@ void CWallet::AutoZeromint()
         coinControl.Select(COutPoint(out.tx->GetHash(), out.i));
 
     if (nBalance < 10){
-        LogPrintf("zero", "CWallet::AutoZeromint(): available balance (%ld) too small for minting zPIV\n", nBalance);
+        LogPrint(BCLog::SELECTCOINS, "CWallet::AutoZeromint(): available balance (%ld) too small for minting zPIV\n", nBalance);
         return;
     }
 
@@ -5359,7 +5374,11 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         coin_selection_params.use_bnb = false;
         bool fBool = true;
 
-        if (!SelectCoins(vAvailableCoins, nTotalValue, setCoins, nValueIn, *coinControl, coin_selection_params, fBool)) {
+        CCoinControl cControl;
+        if (coinControl)
+            cControl = *coinControl;
+
+        if (!SelectCoins(vAvailableCoins, nTotalValue, setCoins, nValueIn, cControl, coin_selection_params, fBool)) {
             strFailReason = "Insufficient confirmed funds, you might need to wait a few minutes and try again.";
             return false;
         }

@@ -44,6 +44,8 @@ std::vector<std::shared_ptr<CWallet>> GetWallets();
 std::shared_ptr<CWallet> GetWallet(const std::string& name);
 std::shared_ptr<CWallet> GetMainWallet();
 
+extern CCriticalSection cs_main;
+
 //! Default for -keypool
 static const unsigned int DEFAULT_KEYPOOL_SIZE = 1000;
 //! -paytxfee default
@@ -792,11 +794,14 @@ public:
     bool GetZerocoinKey(const CBigNum& bnSerial, CKey& key);
     bool CreateZOutPut(libzerocoin::CoinDenomination denomination, CTxOut &outMint, CDeterministicMint &dMint);
     bool GetMint(const uint256& hashSerial, CZerocoinMint& mint);
+    std::set<CMintMeta> ListMints(bool fUnusedOnly, bool fMatureOnly, bool fUpdateStatus);
     bool GetMintFromStakeHash(const uint256& hashStake, CZerocoinMint& mint);
     bool DatabaseMint(CDeterministicMint& dMint);
 //    bool SetMintUnspent(const CBigNum& bnSerial);
     std::string GetUniqueWalletBackupName(bool fzAuto) const;
     bool UpdateMint(const CBigNum& bnValue, const int& nHeight, const uint256& txid, const libzerocoin::CoinDenomination& denom);
+    void UpdateZerocoinState(const CMintMeta& meta);
+    void ArchiveZerocoin(CMintMeta& meta);
     void AutoZeromint();
 
     CzTracker* GetZTrackerPointer() {
@@ -1005,7 +1010,7 @@ public:
     CAmount GetZerocoinBalance(bool fMatureOnly) const;
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
-    bool CreateCoinStake(const CKeyStore& keystore, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime);
+    bool CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime);
     bool SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount);
 
     // zerocoin
