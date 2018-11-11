@@ -81,7 +81,13 @@ public:
         SendToOther,
         RecvWithAddress,
         RecvFromOther,
-        SendToSelf
+        SendToSelf,
+        ZeroCoinMint,
+        ZeroCoinSpend,
+        ZeroCoinSpendRemint,
+        ZeroCoinSpendSelf,
+        ZeroCoinRecv,
+        ZeroCoinStake
     };
 
     /** Number of confirmation recommended for accepting a transaction */

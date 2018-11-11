@@ -354,6 +354,18 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
         return tr("Payment to yourself");
     case TransactionRecord::Generated:
         return tr("Mined");
+    case TransactionRecord::ZeroCoinMint:
+        return tr("Zerocoin Mint");
+    case TransactionRecord::ZeroCoinSpend:
+        return tr("Sent Zerocoin");
+    case TransactionRecord::ZeroCoinSpendRemint:
+        return tr("Sent Zerocoin (change reminted)");
+    case TransactionRecord::ZeroCoinSpendSelf:
+        return tr("Sent Zerocoin to Self");
+    case TransactionRecord::ZeroCoinRecv:
+        return tr("Received Zerocoin");
+    case TransactionRecord::ZeroCoinStake:
+        return tr("Zerocoin Stake");
     default:
         return QString();
     }

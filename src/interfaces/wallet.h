@@ -343,6 +343,9 @@ struct WalletTx
     int64_t time;
     std::map<std::string, std::string> value_map;
     bool is_coinbase;
+    bool is_coinstake;
+    bool is_my_zerocoin_mint;
+    bool is_my_zerocoin_spend;
 };
 
 //! Updated transaction status.

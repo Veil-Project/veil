@@ -5368,6 +5368,10 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
     } else {
         // select UTXO's to use
 
+        CCoinControl defaultCoinControl;
+        if (coinControl == NULL)
+            coinControl = &defaultCoinControl;
+
         std::vector<COutput> vAvailableCoins;
         AvailableCoins(vAvailableCoins, true, coinControl);
         CoinSelectionParams coin_selection_params; // todo: set selection params

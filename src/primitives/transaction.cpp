@@ -273,6 +273,18 @@ bool CTransaction::IsCoinStake() const
     return (vout.size() > 1 && vout[0].IsEmpty());
 }
 
+CAmount CTransaction::GetZerocoinMinted() const
+{
+    for (const CTxOut& txOut : vout) {
+        if(!txOut.scriptPubKey.IsZerocoinMint())
+            continue;
+
+        return txOut.nValue;
+    }
+
+    return  CAmount(0);
+}
+
 CAmount CTransaction::GetZerocoinSpent() const
 {
     if(!IsZerocoinSpend())

@@ -21,6 +21,7 @@
 #include <ui_interface.h>
 #include <uint256.h>
 #include <validation.h>
+#include <veil/zchain.h>
 #include <wallet/feebumper.h>
 #include <wallet/fees.h>
 #include <wallet/wallet.h>
@@ -80,6 +81,16 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
     result.time = wtx.GetTxTime();
     result.value_map = wtx.mapValue;
     result.is_coinbase = wtx.IsCoinBase();
+    result.is_coinstake = wtx.IsCoinStake();
+
+    CzTracker* pzTracker = wallet.GetZTrackerPointer();
+    result.is_my_zerocoin_mint = pzTracker->HasMintTx(wtx.GetHash());
+    result.is_my_zerocoin_spend = false;
+    if (wtx.IsZerocoinSpend()) {
+        libzerocoin::CoinSpend zcSpend = TxInToZerocoinSpend(wtx.tx->vin[0]);
+        result.is_my_zerocoin_spend = wallet.IsMyZerocoinSpend(zcSpend.getCoinSerialNumber());
+    }
+
     return result;
 }
 
