@@ -318,7 +318,11 @@ public:
 
     const uint256& GetHash() const { return tx->GetHash(); }
     bool IsCoinBase() const { return tx->IsCoinBase(); }
+    bool IsCoinStake() const { return tx->IsCoinStake(); }
     bool IsImmatureCoinBase() const EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
+    bool IsZerocoinSpend() const { return tx->IsZerocoinSpend(); }
+    bool IsZerocoinMint() const { return tx->IsZerocoinMint(); }
 };
 
 //Get the marginal bytes of spending the specified output
