@@ -62,6 +62,7 @@ private:
     WalletModel *model;
     bool fNewRecipientAllowed;
     bool fFeeMinimized;
+    bool fDandelion = false;
     const PlatformStyle *platformStyle;
 
     // Process WalletModel::SendCoinsReturn and generate a pair consisting
@@ -96,6 +97,7 @@ private Q_SLOTS:
     void updateFeeSectionControls();
     void updateMinFeeLabel();
     void updateSmartFeeLabel();
+    void toggleDandelion(bool);
 
 Q_SIGNALS:
     // Fired when a message should be reported to the user
