@@ -27,6 +27,7 @@
 #include <QScrollBar>
 #include <QSettings>
 #include <QTextDocument>
+#include <veil/dandelioninventory.h>
 
 static const std::array<int, 9> confTargets = { {2, 4, 6, 12, 24, 48, 144, 504, 1008} };
 int getConfTargetForIndex(int index) {
@@ -79,6 +80,9 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     connect(ui->pushButtonCoinControl, SIGNAL(clicked()), this, SLOT(coinControlButtonClicked()));
     connect(ui->checkBoxCoinControlChange, SIGNAL(stateChanged(int)), this, SLOT(coinControlChangeChecked(int)));
     connect(ui->lineEditCoinControlChange, SIGNAL(textEdited(const QString &)), this, SLOT(coinControlChangeEdited(const QString &)));
+
+    //Dandelion
+    connect(ui->optionDandelion, SIGNAL(clicked(bool)), this, SLOT(toggleDandelion(bool)));
 
     // Coin Control: clipboard actions
     QAction *clipboardQuantityAction = new QAction(tr("Copy quantity"), this);
@@ -379,7 +383,12 @@ void SendCoinsDialog::on_sendButton_clicked()
         accept();
         CoinControlDialog::coinControl()->UnSelectAll();
         coinControlUpdateLabels();
-        Q_EMIT coinsSent(currentTransaction.getWtx()->get().GetHash());
+        uint256 hashCurrentTx = currentTransaction.getWtx()->get().GetHash();
+        if (fDandelion) {
+            LOCK(veil::dandelion.cs);
+            veil::dandelion.Add(hashCurrentTx, GetAdjustedTime() + veil::dandelion.nDefaultStemTime, veil::dandelion.nDefaultNodeID);
+        }
+        Q_EMIT coinsSent(hashCurrentTx);
     }
     fNewRecipientAllowed = true;
 }
@@ -888,6 +897,17 @@ void SendCoinsDialog::coinControlUpdateLabels()
         ui->widgetCoinControl->hide();
         ui->labelCoinControlInsuffFunds->hide();
     }
+}
+
+void SendCoinsDialog::toggleDandelion(bool fchecked)
+{
+    if(fchecked) {
+        QMessageBox::warning(
+                this,
+                tr("Veil Client"),
+                tr("Dandelion protocol is in beta. Any communications of this transaction may be inconsistent."));
+    }
+    fDandelion = fchecked;
 }
 
 SendConfirmationDialog::SendConfirmationDialog(const QString &title, const QString &text, int _secDelay,

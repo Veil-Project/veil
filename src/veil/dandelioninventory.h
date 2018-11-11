@@ -29,6 +29,9 @@ private:
     std::set<uint256> setPendingSend; // Inventory that is ready to be sent
     std::map<uint256, int64_t> mapNodeToSentTo; //Maps each tx to a next node to send to
 public:
+    const int64_t nDefaultStemTime = 120; //120 seconds
+    //! Indicates the tx came from the current node
+    const int64_t nDefaultNodeID = -1;
     void Add(const uint256& hashInventory, const int64_t& nTimeStemEnd, const int64_t& nNodeIDFrom);
     bool IsFromNode(const uint256& hash, const int64_t nNodeID) const;
     bool IsNodePendingSend(const uint256& hashInventory, const int64_t nNodeID);
