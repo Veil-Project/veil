@@ -22,11 +22,17 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
 {
     CMutableTransaction txNew;
     txNew.nVersion = 1;
+
+    // Mining Reward
     txNew.vin.resize(1);
-    txNew.vout.resize(1);
+    txNew.vin[0].prevout.SetNull();
+    txNew.vpout.resize(1);
     txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
-    txNew.vout[0].nValue = genesisReward;
-    txNew.vout[0].scriptPubKey = genesisOutputScript;
+
+    OUTPUT_PTR<CTxOutStandard> outCoinbase = MAKE_OUTPUT<CTxOutStandard>();
+    outCoinbase->scriptPubKey = genesisOutputScript;
+    outCoinbase->nValue = genesisReward;
+    txNew.vpout[0] = (std::move(outCoinbase));
 
     CBlock genesis;
     genesis.SetNull();
@@ -37,29 +43,31 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
     genesis.hashPrevBlock.SetNull();
     genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
+    genesis.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(genesis);
 
     // Use this to mine new genesis block
-//    arith_uint256 hashTarget = arith_uint256().SetCompact(genesis.nBits);
-//    uint256 thash;
-//    while (true)
-//    {
-//        thash = genesis.GetPoWHash();
-//        if (UintToArith256(thash) <= hashTarget)
-//            break;
-//        if ((genesis.nNonce & 0xF) == 0) {
-//            printf("nonce %08X: hash = %s (target = %s)\n", genesis.nNonce, thash.ToString().c_str(), hashTarget.ToString().c_str());
-//        }
-//        ++genesis.nNonce;
-//        if (genesis.nNonce == 0)
-//        {
-//            printf("NONCE WRAPPED, incrementing time\n");
-//            ++genesis.nTime;
-//        }
-//    }
-//
-//    printf("genesis block hash: %s\n", genesis.GetHash().GetHex().c_str());
-//    printf("genesis nonce: %d\n", genesis.nNonce);
-//    printf("genesis merkle root: %s\n", genesis.hashMerkleRoot.GetHex().c_str());
+    arith_uint256 hashTarget = arith_uint256().SetCompact(genesis.nBits);
+    uint256 thash;
+    while (true)
+    {
+        thash = genesis.GetPoWHash();
+        if (UintToArith256(thash) <= hashTarget)
+            break;
+        if ((genesis.nNonce & 0xF) == 0) {
+            printf("nonce %08X: hash = %s (target = %s)\n", genesis.nNonce, thash.ToString().c_str(), hashTarget.ToString().c_str());
+        }
+        ++genesis.nNonce;
+        if (genesis.nNonce == 0)
+        {
+            printf("NONCE WRAPPED, incrementing time\n");
+            ++genesis.nTime;
+        }
+    }
+
+    printf("genesis block hash: %s\n", genesis.GetHash().GetHex().c_str());
+    printf("genesis nonce: %d\n", genesis.nNonce);
+    printf("genesis merkle root: %s\n", genesis.hashMerkleRoot.GetHex().c_str());
+    printf("genesis witness merkle root: %s\n", genesis.hashWitnessMerkleRoot.GetHex().c_str());
 
     return genesis;
 }
@@ -204,10 +212,11 @@ public:
         nDefaultPort = 58810;
         nPruneAfterHeight = 100000;
 
-        genesis = CreateGenesisBlock(1536258109, 2084474521, 0x1e0ffff0, 1, 50 * COIN);
+        genesis = CreateGenesisBlock(1536258109, 2089114007, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0xe11692cf16f975fee5bde5bfda04c4e109aec0bf153e4e08953606b7c2c8baff"));
-        assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
+        assert(consensus.hashGenesisBlock == uint256S("0x470818a31d210c8b57b3f1365fe277563f4f8acf0e10d6ed80dec781377e1fbb"));
+        assert(genesis.hashMerkleRoot == uint256S("0xba3f7b26d123708f3c7927f771bfe02a8469a0398d7a7f074ca6a9ed8c2f89d9"));
+        assert(genesis.hashWitnessMerkleRoot == uint256S("0xba3f7b26d123708f3c7927f771bfe02a8469a0398d7a7f074ca6a9ed8c2f89d9"));
 
         vSeeds.emplace_back("veilseed.presstab.pw");
 
@@ -310,11 +319,11 @@ public:
         nDefaultPort = 58811;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1536258109, 420253054, 0x1e0ffff0, 1, 50 * COIN);
+        genesis = CreateGenesisBlock(1536258109, 425915524, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-
-        assert(consensus.hashGenesisBlock == uint256S("0xb323cf3b4f2676bb222d7e3831a9d2b5be92f9ca4ca941d91dc33c9b1cc55310"));
-        assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
+        assert(consensus.hashGenesisBlock == uint256S("0x19d82334a4efd0c86a66d0e31bb6b14291388a20e44d373ecd179f6910cb468f"));
+        assert(genesis.hashMerkleRoot == uint256S("0xba3f7b26d123708f3c7927f771bfe02a8469a0398d7a7f074ca6a9ed8c2f89d9"));
+        assert(genesis.hashWitnessMerkleRoot == uint256S("0xba3f7b26d123708f3c7927f771bfe02a8469a0398d7a7f074ca6a9ed8c2f89d9"));
 
         vFixedSeeds.clear();
         vSeeds.clear();

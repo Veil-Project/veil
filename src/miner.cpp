@@ -241,29 +241,38 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
     if(!fProofOfStake) {
+        // Mining Reward
         coinbaseTx.vin.resize(1);
         coinbaseTx.vin[0].prevout.SetNull();
+        coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
         CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
         veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
-        coinbaseTx.vout.resize(1);
-        coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
+        coinbaseTx.vpout.resize(nBudgetPayment > 0 ? 2 : 1);
 
-        //Miner gets the block reward and any network reward
-        CAmount nMinerReward = nBlockReward + nNetworkReward;
-        coinbaseTx.vout[0].nValue = nMinerReward;
-        coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
+        OUTPUT_PTR<CTxOutStandard> outCoinbase = MAKE_OUTPUT<CTxOutStandard>();
+        outCoinbase->scriptPubKey = scriptPubKeyIn;
+        outCoinbase->nValue = nFees + nNetworkReward + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+        coinbaseTx.vpout[0] = (std::move(outCoinbase));
 
+        // Budget Payment
         std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
         CTxDestination dest = DecodeDestination(strBudgetAddress);
         auto budgetScript = GetScriptForDestination(dest);
 
-        if (nBudgetPayment)
-            coinbaseTx.vout[1] = CTxOut(nBudgetPayment, budgetScript);
+        if (nBudgetPayment) {
+            OUTPUT_PTR<CTxOutStandard> outBudget = MAKE_OUTPUT<CTxOutStandard>();
+            outBudget->scriptPubKey = budgetScript;
+            outBudget->nValue = veil::Budget().GetBudgetAmount();
+            coinbaseTx.vpout[1] = (std::move(outBudget));
+        }
     }
+
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
+    std::cout << "create block thinks vout is " << pblock->vtx[0]->vout.size() << "\n";
     pblocktemplate->vTxFees[0] = -nFees;
     if(fProofOfStake) {
+        std::cout << "proof of stake\n";
         CMutableTransaction coinstakeTx;
         coinstakeTx.vout.resize(1);
         CTxOut txOutEmpty;
@@ -278,6 +287,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (!fProofOfStake) UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
     pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus(), pblock->IsProofOfStake());
     pblock->nNonce         = 0;
+    pblock->hashWitnessMerkleRoot = BlockWitnessMerkleRoot(*pblock);
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     //Calculate the accumulator checkpoint only if the previous cached checkpoint need to be updated
@@ -583,6 +593,10 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
 
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+
+    bool malleated = false;
+    pblock->hashWitnessMerkleRoot = BlockWitnessMerkleRoot(*pblock, &malleated);
+    std::cout << "merkle root should be " << pblock->hashWitnessMerkleRoot.GetHex() << "\n";
 }
 
 bool fGenerateBitcoins = false;
@@ -655,6 +669,8 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         if (pblock->nNonce == nInnerLoopCount) {
             continue;
         }
+
+        std::cout << "pow hash of new block: " << pblock->GetPoWHash().GetHex() << "\n";
 
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {

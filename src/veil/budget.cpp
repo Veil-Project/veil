@@ -14,8 +14,17 @@ bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidati
         return true;
 
     // Verify that the amount paid to the budget address is correct
-    if (tx.vout[1].nValue != Budget().GetBudgetAmount()) {
-        return state.DoS(10, false, REJECT_INVALID, "bad-budget-amount");
+    if (tx.vpout.size() != 2) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-vpout-size");
+    }
+
+    if (tx.vpout[1]->nVersion != OUTPUT_STANDARD) {
+        return state.DoS(100, false, REJECT_INVALID, "non-standard-budget-output");
+    }
+
+    auto txout = (CTxOutStandard*) tx.vpout[1].get();
+    if (txout->nValue != Budget().GetBudgetAmount()) {
+        return false;
     }
 
     // Verify that the second output of the coinbase transaction goes to the budget address
@@ -23,7 +32,7 @@ bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidati
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
 
-    if (tx.vout[1].scriptPubKey != budgetScript) {
+    if (txout->scriptPubKey != budgetScript) {
         return state.DoS(10, false, REJECT_INVALID, "bad-budget-output");
     }
 

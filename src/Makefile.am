@@ -218,6 +218,7 @@ BITCOIN_CORE_H = \
   veil/ztracker.h \
   veil/zwallet.h \
   veil/extkey.h \
+  veil/rpchdwallet.h \
   walletinitinterface.h \
   wallet/coincontrol.h \
   wallet/crypter.h \
@@ -338,6 +339,7 @@ libbitcoin_wallet_a_SOURCES = \
   veil/zwallet.cpp \
   veil/hdwalletdb.cpp \
   veil/hdwallet.cpp \
+  veil/rpchdwallet.cpp \
   stakeinput.cpp \
   $(BITCOIN_CORE_H)
 

@@ -18,7 +18,7 @@
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
 static const uint8_t PARTICL_BLOCK_VERSION = 0xA0;
-static const uint8_t PARTICL_TXN_VERSION = 0xFF;
+static const uint8_t PARTICL_TXN_VERSION = 0x00;
 static const uint8_t MAX_PARTICL_TXN_VERSION = 0xBF;
 static const uint8_t BTC_TXN_VERSION = 0x02;
 
@@ -54,7 +54,7 @@ enum DataOutputTypes
 
 inline bool IsParticlTxVersion(int nVersion)
 {
-    return (nVersion & 0xFF) >= PARTICL_TXN_VERSION;
+    return true /*(nVersion & 0xFF) >= PARTICL_TXN_VERSION*/;
 }
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
@@ -719,8 +719,7 @@ template<typename Stream, typename TxType>
 inline void SerializeTransaction(const TxType& tx, Stream& s) {
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
-    if (IsParticlTxVersion(tx.nVersion))
-    {
+    if (IsParticlTxVersion(tx.nVersion)) {
         uint8_t bv = tx.nVersion & 0xFF;
         s << bv;
 
@@ -731,22 +730,22 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
         s << tx.vin;
 
         WriteCompactSize(s, tx.vpout.size());
-        for (size_t k = 0; k < tx.vpout.size(); ++k)
-        {
+        for (size_t k = 0; k < tx.vpout.size(); ++k) {
             s << tx.vpout[k]->nVersion;
             s << *tx.vpout[k];
-        };
+        }
 
-        if (fAllowWitness)
-        {
+        if (fAllowWitness) {
             for (auto &txin : tx.vin)
                 s << txin.scriptWitness.stack;
-        };
+        }
+
         return;
-    };
+    }
 
     s << tx.nVersion;
     unsigned char flags = 0;
+
     // Consistency check
     if (fAllowWitness) {
         /* Check whether witnesses need to be serialized. */
@@ -754,12 +753,14 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
             flags |= 1;
         }
     }
+
     if (flags) {
         /* Use extended format in case witnesses are to be serialized. */
         std::vector<CTxIn> vinDummy;
         s << vinDummy;
         s << flags;
     }
+
     s << tx.vin;
     s << tx.vout;
     if (flags & 1) {
@@ -767,6 +768,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
             s << tx.vin[i].scriptWitness.stack;
         }
     }
+
     s << tx.nLockTime;
 }
 
