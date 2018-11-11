@@ -752,8 +752,8 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         if (!CheckSequenceLocks(tx, STANDARD_LOCKTIME_VERIFY_FLAGS, &lp))
             return state.DoS(0, false, REJECT_NONSTANDARD, "non-BIP68-final");
 
-        CAmount nFees, nValueIn, nValueOut = 0;
-        if (!Consensus::CheckTxInputs(tx, state, view, GetSpendHeight(view), nFees, nValueIn, nValueOut)) {
+        CAmount nFees;
+        if (!Consensus::CheckTxInputs(tx, state, view, GetSpendHeight(view), nFees)) {
             return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
         }
 
@@ -1422,6 +1422,7 @@ void CChainState::InvalidBlockFound(CBlockIndex *pindex, const CValidationState 
         m_failed_blocks.insert(pindex);
         setDirtyBlockIndex.insert(pindex);
         setBlockIndexCandidates.erase(pindex);
+        std::cout << "in invalid block found\n";
         InvalidChainFound(pindex);
     }
 }
@@ -2193,8 +2194,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     std::map<libzerocoin::CoinSpend, uint256> mapSpends;
     std::map<libzerocoin::PublicCoin, uint256> mapMints;
 
-    CAmount nValueIn = 0;
-    CAmount nValueOut = 0;
+    CAmount nMoneyCreated = 0;
 
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
@@ -2211,12 +2211,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             }
         }
 
-        CAmount txfee = 0;
-        CAmount nTxValueIn = 0;
-        CAmount nTxValueOut = 0;
         if (tx.IsCoinBase()) {
-            nTxValueOut += tx.GetValueOut();
+            nMoneyCreated += tx.GetValueOut();
         } else {
+            CAmount txfee = 0;
             if (tx.IsZerocoinSpend()) {
                 int nHeightTx = 0;
                 uint256 txid = tx.GetHash();
@@ -2251,11 +2249,12 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 }
             }
 
-            if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee, nTxValueIn, nTxValueOut))
+            if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee))
                 return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
 
             nFees += txfee;
             if (!MoneyRange(nFees)) {
+                std::cout << "fees out of money range\n";
                 return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
                                  REJECT_INVALID, "bad-txns-accumulated-fee-outofrange");
             }
@@ -2301,9 +2300,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         // * p2sh (when P2SH enabled in flags and excludes coinbase)
         // * witness (when witness enabled in flags and excludes coinbase)
         nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
-        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST)
+        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
+            std::cout << "too many sig ops\n";
             return state.DoS(100, error("ConnectBlock(): too many sigops"),
                              REJECT_INVALID, "bad-blk-sigops");
+        }
 
         txdata.emplace_back(tx);
         if (!tx.IsCoinBase()) {
@@ -2381,8 +2382,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 view.anonOutputs.emplace_back(std::make_pair(view.nLastRCTOutput, ao));
             }
         }
-        nValueIn += nTxValueIn;
-        nValueOut += nTxValueOut;
     }
 
     //Track zerocoin money supply in the block index
@@ -2392,7 +2391,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     // track money supply and mint amount info
     CAmount nMoneySupplyPrev = pindex->pprev ? pindex->pprev->nMoneySupply : 0;
-    pindex->nMoneySupply = nMoneySupplyPrev + nValueOut - nValueIn;
+    pindex->nMoneySupply = (pindex->pprev ? pindex->pprev->nMoneySupply : 0) + nMoneyCreated;
     pindex->nMint = pindex->nMoneySupply - nMoneySupplyPrev + nFees;
 
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
@@ -2424,8 +2423,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         return state.DoS(100, error("%s: Failed to validate accumulator checkpoint for block=%s height=%d", __func__,
                                     block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID, "bad-acc-checkpoint");
 
-    if (!control.Wait())
+    if (!control.Wait()) {
+        std::cout << "control check failed\n";
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
+    }
+
     int64_t nTime4 = GetTimeMicros(); nTimeVerify += nTime4 - nTime2;
     LogPrint(BCLog::BENCH, "    - Verify %u txins: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n", nInputs - 1, MILLI * (nTime4 - nTime2), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime2) / (nInputs-1), nTimeVerify * MICRO, nTimeVerify * MILLI / nBlocksTotal);
 
@@ -2634,6 +2636,7 @@ static void DoWarning(const std::string& strWarning)
 
 bool FlushView(CCoinsViewCache *view, CValidationState& state, bool fDisconnecting)
 {
+
     if (!view->Flush())
         return false;
 
@@ -2780,8 +2783,10 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
     LogPrint(BCLog::BENCH, "- Disconnect block: %.2fms\n", (GetTimeMicros() - nStart) * MILLI);
 
     // Write the chain state to disk, if necessary.
-    if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED))
+    if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED)) {
+        std::cout << "flush state to disk failed\n";
         return false;
+    }
 
     if (disconnectpool) {
         // Save transactions to re-add to mempool at end of reorg
@@ -3058,6 +3063,8 @@ bool CChainState::ActivateBestChainStep(CValidationState& state, const CChainPar
             pindexIter = pindexIter->pprev;
         }
         nHeight = nTargetHeight;
+
+        std::cout << "state status " << state.IsValid() << "\n";
 
         // Connect new blocks.
         for (CBlockIndex *pindexConnect : reverse_iterate(vpindexToConnect)) {
@@ -3611,10 +3618,12 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     }
 
     // Check transactions
-    for (const auto& tx : block.vtx)
-        if (!CheckTransaction(*tx, state, true))
+    for (const auto& tx : block.vtx) {
+        if (!CheckTransaction(*tx, state, false))
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
-                                 strprintf("Transaction check failed (tx hash %s) %s", tx->GetHash().ToString(), state.GetDebugMessage()));
+                                 strprintf("Transaction check failed (tx hash %s) %s", tx->GetHash().ToString(),
+                                           state.GetDebugMessage()));
+    }
 
     unsigned int nSigOps = 0;
     for (const auto& tx : block.vtx)
@@ -3674,6 +3683,9 @@ void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPr
 std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams)
 {
     std::vector<unsigned char> commitment;
+    if (fParticlMode)
+        return commitment;
+
     int commitpos = GetWitnessCommitmentIndex(block);
     std::vector<unsigned char> ret(32, 0x00);
     if (consensusParams.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout != 0) {
@@ -3866,6 +3878,8 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
 {
     const int nHeight = pindexPrev == nullptr ? 0 : pindexPrev->nHeight + 1;
 
+    std::cout << "current block being checked is " << nHeight << "\n";
+
     // Check PoW/PoS
     if (block.GetHash() != Params().GenesisBlock().GetHash()
             && block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake()))
@@ -3888,7 +3902,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
 
     // Verify that the budget output is valid
     if (block.GetHash() != consensusParams.hashGenesisBlock
-        && (block.vtx[0]->vout.size() < 2 || !veil::CheckBudgetTransaction(pindexPrev->nHeight+1, *block.vtx[0], state))) {
+        && (block.vtx[0]->vpout.size() < 2 || !veil::CheckBudgetTransaction(pindexPrev->nHeight+1, *block.vtx[0], state))) {
         return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(), strprintf("Budget transaction check failed"));
     }
 
@@ -3899,41 +3913,13 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         return state.DoS(100, false, REJECT_INVALID, "bad-cb-height", false, "block height mismatch in coinbase");
     }
 
-    // Validation for witness commitments.
-    // * We compute the witness hash (which is the hash including witnesses) of all the block's transactions, except the
-    //   coinbase (where 0x0000....0000 is used instead).
-    // * The coinbase scriptWitness is a stack of a single 32-byte vector, containing a witness reserved value (unconstrained).
-    // * We build a merkle tree with all those witness hashes as leaves (similar to the hashMerkleRoot in the block header).
-    // * There must be at least one output whose scriptPubKey is a single 36-byte push, the first 4 bytes of which are
-    //   {0xaa, 0x21, 0xa9, 0xed}, and the following 32 bytes are SHA256^2(witness root, witness reserved value). In case there are
-    //   multiple, the last one is used.
-    bool fHaveWitness = false;
-    int commitpos = GetWitnessCommitmentIndex(block);
-    if (commitpos != -1) {
-        bool malleated = false;
-        uint256 hashWitness = BlockWitnessMerkleRoot(block, &malleated);
-        // The malleation check is ignored; as the transaction tree itself
-        // already does not permit it, it is impossible to trigger in the
-        // witness tree.
-        //todo - VEIL
-        //if (block.vtx[0]->vin[0].scriptWitness.stack.size() != 1 || block.vtx[0]->vin[0].scriptWitness.stack[0].size() != 32) {
-          //  return state.DoS(100, false, REJECT_INVALID, "bad-witness-nonce-size", true, strprintf("%s : invalid witness reserved value size", __func__));
-        //}
-//        CHash256().Write(hashWitness.begin(), 32).Write(&block.vtx[0]->vin[0].scriptWitness.stack[0][0], 32).Finalize(hashWitness.begin());
-//        if (memcmp(hashWitness.begin(), &block.vtx[0]->vout[commitpos].scriptPubKey[6], 32)) {
-//            return state.DoS(100, false, REJECT_INVALID, "bad-witness-merkle-match", true, strprintf("%s : witness merkle commitment mismatch", __func__));
-//        }
-//        fHaveWitness = true;
-    }
-
-    // No witness data is allowed in blocks that don't commit to witness data, as this would otherwise leave room for spam
-    if (!fHaveWitness) {
-      for (const auto& tx : block.vtx) {
-            if (tx->HasWitness()) {
-                return state.DoS(100, false, REJECT_INVALID, "unexpected-witness", true, strprintf("%s : unexpected witness data found", __func__));
-            }
-        }
-    }
+    // check witness merkleroot TODO: should witnessmerkleroot be hashed?
+    bool malleated = false;
+    uint256 hashWitness = BlockWitnessMerkleRoot(block, &malleated);
+    std::cout << block.hashWitnessMerkleRoot.GetHex() << " " << hashWitness.GetHex() << "\n";
+    if (hashWitness != block.hashWitnessMerkleRoot)
+        return state.DoS(100, false, REJECT_INVALID, "bad-witness-merkle-match", true,
+                         strprintf("%s : witness merkle commitment mismatch", __func__));
 
     // After the coinbase witness reserved value and commitment are verified,
     // we can check if the block weight passes (before we've checked the

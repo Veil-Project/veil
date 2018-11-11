@@ -1817,19 +1817,17 @@ bool CHDWallet::IsTrusted(const uint256 &txhash, const uint256 &blockhash, int n
         return false;
 
     // Trusted if all inputs are from us and are in the mempool:
-    for (const auto &txin : ptx->vin)
-    {
+    for (const auto &txin : ptx->vin) {
         // Transactions not sent by us: not trusted
         MapRecords_t::const_iterator rit = mapRecords.find(txin.prevout.hash);
-        if (rit != mapRecords.end())
-        {
+        if (rit != mapRecords.end()) {
             const COutputRecord *oR = rit->second.GetOutput(txin.prevout.n);
 
-            if (!oR
-                || !(oR->nFlags & ORF_OWNED))
+            if (!oR || !(oR->nFlags & ORF_OWNED))
                 return false;
+
             continue;
-        };
+        }
 
         const CWalletTx *parent = GetWalletTx(txin.prevout.hash);
         if (parent == nullptr)
@@ -1838,10 +1836,10 @@ bool CHDWallet::IsTrusted(const uint256 &txhash, const uint256 &blockhash, int n
         const CTxOutBase *parentOut = parent->tx->vpout[txin.prevout.n].get();
         if (IsMine(parentOut) != ISMINE_SPENDABLE)
             return false;
-    };
+    }
 
     return true;
-};
+}
 
 
 CAmount CHDWallet::GetBalance(const isminefilter& filter, const int min_depth) const
@@ -1849,32 +1847,33 @@ CAmount CHDWallet::GetBalance(const isminefilter& filter, const int min_depth) c
     CAmount nBalance = 0;
 
     LOCK2(cs_main, cs_wallet);
+    std::cout << "size: " << mapRecords.size() << "\n";
 
-    for (const auto &ri : mapRecords)
-    {
+    for (const auto &ri : mapRecords) {
         const auto &txhash = ri.first;
         const auto &rtx = ri.second;
-        if (!IsTrusted(txhash, rtx.blockHash, rtx.nIndex)
-            || GetDepthInMainChain(rtx.blockHash, rtx.nIndex) < min_depth)
+        std::cout << "looking at outputs in hdwallet::getbalance\n";
+        if (!IsTrusted(txhash, rtx.blockHash, rtx.nIndex) || GetDepthInMainChain(rtx.blockHash, rtx.nIndex) < min_depth)
             continue;
 
-        for (const auto &r : rtx.vout)
-        {
+        std::cout << "this output is trusted with vout size: " << rtx.vout.size() << "\n";
+
+        for (const auto &r : rtx.vout) {
             if (r.nType == OUTPUT_STANDARD
                 && (((filter & ISMINE_SPENDABLE) && (r.nFlags & ORF_OWNED))
                     || ((filter & ISMINE_WATCH_ONLY) && (r.nFlags & ORF_OWN_WATCH)))
                 && !IsSpent(txhash, r.n))
                 nBalance += r.nValue;
-        };
+        }
 
 
         if (!MoneyRange(nBalance))
             throw std::runtime_error(std::string(__func__) + ": value out of range");
-    };
+    }
 
     nBalance += CWallet::GetBalance(filter, min_depth);
     return nBalance;
-};
+}
 
 CAmount CHDWallet::GetSpendableBalance() const
 {
@@ -7464,31 +7463,28 @@ bool CHDWallet::CommitTransaction(CWalletTx &wtxNew, CTransactionRecord &rtx,
 
         AddToRecord(rtx, *wtxNew.tx, nullptr, -1);
 
-        if (fBroadcastTransactions)
-        {
+        if (fBroadcastTransactions) {
             // Broadcast
-            if (!wtxNew.AcceptToMemoryPool(maxTxFee, state))
-            {
+            if (!wtxNew.AcceptToMemoryPool(maxTxFee, state)) {
                 LogPrintf("CommitTransaction(): Transaction cannot be broadcast immediately, %s\n", state.GetRejectReason());
                 // If we expect the failure to be long term or permanent, instead delete wtx from the wallet and return failure.
-                if (state.GetRejectCode() != REJECT_DUPLICATE)
-                {
+                if (state.GetRejectCode() != REJECT_DUPLICATE) {
                     const uint256 hash = wtxNew.GetHash();
                     UnloadTransaction(hash);
                     CHDWalletDB wdb(*database);
                     wdb.EraseTxRecord(hash);
                     wdb.EraseStoredTx(hash);
                     return false;
-                };
-            } else
-            {
+                }
+            } else {
                 wtxNew.BindWallet(this);
                 wtxNew.RelayWalletTransaction(connman);
-            };
-        };
+            }
+        }
     }
+
     return true;
-};
+}
 
 // Helper for producing a max-sized low-S signature (eg 72 bytes)
 bool CHDWallet::DummySignInput(CTxIn &tx_in, const CTxOut &txout, bool use_max_sig) const
@@ -8346,7 +8342,7 @@ bool CHDWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t 
     }
 
     return fIsMine;
-};
+}
 
 bool CHDWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate)
 {
@@ -8380,10 +8376,8 @@ bool CHDWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBloc
         bool fIsFromMe = false;
         MapWallet_t::const_iterator miw;
         MapRecords_t::const_iterator mir;
-        for (const auto &txin : tx.vin)
-        {
-            if (txin.IsAnonInput())
-            {
+        for (const auto &txin : tx.vin) {
+            if (txin.IsAnonInput()) {
                 nRingCT++;
 
                 CHDWalletDB wdb(*database, "r");
@@ -8391,34 +8385,31 @@ bool CHDWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBloc
                 txin.GetAnonInfo(nInputs, nRingSize);
 
                 const std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
-                if (vKeyImages.size() != nInputs * 33)
-                {
+                if (vKeyImages.size() != nInputs * 33) {
                     WalletLogPrintf("Error: %s - Malformed anon txin, %s.\n", __func__, tx.GetHash().ToString());
                     continue;
-                };
+                }
 
-                for (size_t k = 0; k < nInputs; ++k)
-                {
+                for (size_t k = 0; k < nInputs; ++k) {
                     const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
                     COutPoint prevout;
 
                     // TODO: Keep keyimages in memory
                     if (!wdb.ReadAnonKeyImage(ki, prevout))
                         continue;
+
                     fIsFromMe = true;
                     break;
-                };
+                }
+
                 if (fIsFromMe)
                     break; // only need one match)
-            };
+            }
 
             miw = mapWallet.find(txin.prevout.hash);
-            if (miw != mapWallet.end())
-            {
+            if (miw != mapWallet.end()) {
                 const CWalletTx &prev = miw->second;
-                if (txin.prevout.n < prev.tx->vpout.size()
-                    && IsMine(prev.tx->vpout[txin.prevout.n].get()) & ISMINE_ALL)
-                {
+                if (txin.prevout.n < prev.tx->vpout.size() && IsMine(prev.tx->vpout[txin.prevout.n].get()) & ISMINE_ALL) {
                     fIsFromMe = true;
                     break; // only need one match
                 }

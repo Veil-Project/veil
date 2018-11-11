@@ -266,7 +266,7 @@ bool CheckValue(CValidationState &state, CAmount nValue, CAmount &nValueOut)
 
 bool CheckStandardOutput(CValidationState &state, const Consensus::Params& consensusParams, const CTxOutStandard *p, CAmount &nValueOut)
 {
-    return !CheckValue(state, p->nValue, nValueOut);
+    return CheckValue(state, p->nValue, nValueOut);
 }
 
 bool CheckBlindOutput(CValidationState &state, const CTxOutCT *p)
@@ -334,8 +334,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     // Basic checks that don't depend on any context
     if (tx.vin.empty())
         return state.DoS(10, false, REJECT_INVALID, "bad-txns-vin-empty");
-    if (tx.vout.empty())
-        return state.DoS(10, false, REJECT_INVALID, "bad-txns-vout-empty");
+
     // Size limits (this doesn't take the witness into account, as that hasn't been checked for malleability)
     if (::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT)
         return state.DoS(100, false, REJECT_INVALID, "bad-txns-oversize");
@@ -440,7 +439,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
 }
 
 bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs,
-                              int nSpendHeight, CAmount& txfee, CAmount& nValueIn, CAmount& nValueOut)
+                              int nSpendHeight, CAmount& txfee)
 {
     // reset per tx
     state.fHasAnonOutput = false;
@@ -459,7 +458,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
 
     std::vector<const secp256k1_pedersen_commitment*> vpCommitsIn, vpCommitsOut;
     size_t nStandard = 0, nCt = 0, nRingCT = 0;
-    nValueIn = 0;
+    CAmount nValueIn = 0;
     for (unsigned int i = 0; i < tx.vin.size(); ++i) {
         if (tx.vin[i].IsAnonInput()) {
             state.fHasAnonInput = true;

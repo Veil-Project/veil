@@ -16,6 +16,7 @@
 #include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
+#include <veil/rpchdwallet.h>
 
 void WalletInit::AddWalletOptions() const
 {
@@ -138,6 +139,7 @@ void WalletInit::RegisterRPC(CRPCTable &t) const
     }
 
     RegisterWalletRPCCommands(t);
+    RegisterHDWalletRPCCommands(t);
 }
 
 bool WalletInit::Verify() const
