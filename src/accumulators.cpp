@@ -191,8 +191,6 @@ bool CalculateAccumulatorCheckpoint(int nHeight, std::map<libzerocoin::CoinDenom
         return true;
     }
 
-    std::cout << "ABOUT TO INITIALIZE ACCUMULATOR\n";
-
     //set the accumulators to last checkpoint value
     int nHeightCheckpoint;
     mapAccumulators.Reset();
@@ -221,7 +219,6 @@ bool CalculateAccumulatorCheckpoint(int nHeight, std::map<libzerocoin::CoinDenom
             return error("%s: failed to get zerocoin mintlist from block %d", __func__, pindex->nHeight);
 
         nTotalMintsFound += listPubcoins.size();
-        LogPrintf("%s found %d mints\n", __func__, listPubcoins.size());
 
         //add the pubcoins to accumulator
         for (const PublicCoin& pubcoin : listPubcoins) {

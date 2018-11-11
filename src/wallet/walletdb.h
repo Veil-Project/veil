@@ -8,7 +8,7 @@
 
 #include <amount.h>
 #include <primitives/transaction.h>
-#include "primitives/zerocoin.h"
+#include "primitives/rpczerocoin.h"
 #include <wallet/db.h>
 #include <key.h>
 

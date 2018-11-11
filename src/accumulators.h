@@ -8,7 +8,7 @@
 #include "libzerocoin/Accumulator.h"
 #include "libzerocoin/Coin.h"
 #include "libzerocoin/Denominations.h"
-#include "primitives/zerocoin.h"
+#include "primitives/rpczerocoin.h"
 #include "accumulatormap.h"
 #include "chain.h"
 #include "arith_uint256.h"

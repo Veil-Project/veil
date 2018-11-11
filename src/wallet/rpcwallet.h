@@ -6,6 +6,7 @@
 #define BITCOIN_WALLET_RPCWALLET_H
 
 #include <string>
+#include <memory>
 
 class CRPCTable;
 class CWallet;
@@ -15,6 +16,7 @@ struct PartiallySignedTransaction;
 class CTransaction;
 
 void RegisterWalletRPCCommands(CRPCTable &t);
+void RegisterZerocoinRPCCommands(CRPCTable &t);
 
 /**
  * Figures out what wallet, if any, to use for a JSONRPCRequest.
