@@ -13,6 +13,7 @@
 #include <tinyformat.h>
 #include <ui_interface.h>
 #include <utilstrencodings.h>
+#include <validation.h>
 #include <validationinterface.h>
 #include <script/ismine.h>
 #include <script/sign.h>
