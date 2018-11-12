@@ -1,7 +1,7 @@
 #ifndef VEIL_ZTRACKER_H
 #define VEIL_ZTRACKER_H
 
-#include "primitives/rpczerocoin.h"
+#include "primitives/zerocoin.h"
 #include "wallet/walletdb.h"
 #include <list>
 

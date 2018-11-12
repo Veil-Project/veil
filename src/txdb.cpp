@@ -17,7 +17,7 @@
 #include <stdint.h>
 
 #include <boost/thread.hpp>
-#include <primitives/rpczerocoin.h>
+#include <primitives/zerocoin.h>
 
 static const char DB_COIN = 'C';
 static const char DB_ADDRESSINDEX = 'a';

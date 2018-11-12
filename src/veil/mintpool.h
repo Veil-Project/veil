@@ -4,7 +4,7 @@
 #include <map>
 #include <list>
 
-#include "primitives/rpczerocoin.h"
+#include "primitives/zerocoin.h"
 #include "libzerocoin/bignum.h"
 #include "uint256.h"
 
