@@ -6,7 +6,7 @@
 #include "libzerocoin/Coin.h"
 #include "mintpool.h"
 #include "uint256.h"
-#include "primitives/rpczerocoin.h"
+#include "primitives/zerocoin.h"
 
 class CDeterministicMint;
 

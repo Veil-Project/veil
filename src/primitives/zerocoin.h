@@ -74,7 +74,7 @@ public:
         value = 0;
         denomination = libzerocoin::ZQ_ERROR;
         nHeight = 0;
-        txid = ArithToUint256(0);
+        txid = uint256();
         version = 1;
         privkey.clear();
     }
@@ -96,7 +96,6 @@ public:
     void SetSerialNumber(CBigNum serial){ this->serialNumber = serial; }
     uint256 GetTxHash() const { return this->txid; }
     void SetTxHash(uint256 txid) { this->txid = txid; }
-    void SetTxHash(arith_uint256 txid) { this->txid = ArithToUint256(txid); }
     uint8_t GetVersion() const { return this->version; }
     void SetVersion(const uint8_t nVersion) { this->version = nVersion; }
     CPrivKey GetPrivKey() const { return this->privkey; }
@@ -204,7 +203,7 @@ public:
     void SetNull()
     {
         coinSerial = 0;
-        hashTx = ArithToUint256(0);
+        hashTx = uint256();
         pubCoin = 0;
         denomination = libzerocoin::ZQ_ERROR;
     }
@@ -212,7 +211,6 @@ public:
     CBigNum GetSerial() const { return coinSerial; }
     uint256 GetTxHash() const { return hashTx; }
     void SetTxHash(uint256 hash) { this->hashTx = hash; }
-    void SetTxHash(arith_uint256 hash) { this->hashTx = ArithToUint256(hash); }
     CBigNum GetPubCoin() const { return pubCoin; }
     libzerocoin::CoinDenomination GetDenomination() const { return denomination; }
     uint256 GetAccumulatorChecksum() const { return this->nAccumulatorChecksum; }

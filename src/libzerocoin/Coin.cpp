@@ -272,8 +272,7 @@ CBigNum GetAdjustedSerial(const CBigNum& bnSerial)
 {
     arith_uint256 serial = bnSerial.getarith_uint256();
     serial &= ~arith_uint256(0) >> PrivateCoin::V2_BITSHIFT;
-    CBigNum bnSerialAdjusted;
-    bnSerialAdjusted.setarith_uint256(serial);
+    CBigNum bnSerialAdjusted(serial);
     return bnSerialAdjusted;
 }
 

@@ -3,7 +3,7 @@
 
 #include "util.h"
 #include "libzerocoin/Denominations.h"
-#include "primitives/rpczerocoin.h"
+#include "primitives/zerocoin.h"
 #include <list>
 #include <map>
 

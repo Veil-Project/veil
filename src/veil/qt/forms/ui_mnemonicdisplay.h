@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mnemonicdisplay.ui'
 **
-** Created by: Qt User Interface Compiler version 5.9.5
+** Created by: Qt User Interface Compiler version 5.5.1
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
@@ -100,10 +100,10 @@ public:
 
     void retranslateUi(QDialog *MnemonicDisplay)
     {
-        MnemonicDisplay->setWindowTitle(QApplication::translate("MnemonicDisplay", "Welcome", Q_NULLPTR));
-        titlelabel->setText(QApplication::translate("MnemonicDisplay", "Wallet Seed Generation", Q_NULLPTR));
-        lblExplanation->setText(QApplication::translate("MnemonicDisplay", "Please store your seed somewhere safe. You will be unable to recover your wallet without it.", Q_NULLPTR));
-        pushButton->setText(QApplication::translate("MnemonicDisplay", "Continue", Q_NULLPTR));
+        MnemonicDisplay->setWindowTitle(QApplication::translate("MnemonicDisplay", "Welcome", 0));
+        titlelabel->setText(QApplication::translate("MnemonicDisplay", "Wallet Seed Generation", 0));
+        lblExplanation->setText(QApplication::translate("MnemonicDisplay", "Please store your seed somewhere safe. You will be unable to recover your wallet without it.", 0));
+        pushButton->setText(QApplication::translate("MnemonicDisplay", "Continue", 0));
     } // retranslateUi
 
 };

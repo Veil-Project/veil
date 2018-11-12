@@ -5,7 +5,7 @@
 #include "chainparams.h"
 #include "validation.h"
 #include "consensus/validation.h"
-#include "primitives/rpczerocoin.h"
+#include "primitives/zerocoin.h"
 #include "ui_interface.h"
 
 // 6 comes from OPCODE (1) + vch.size() (1) + BIGNUM size (4)
