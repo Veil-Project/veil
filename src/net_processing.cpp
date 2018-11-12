@@ -1249,14 +1249,15 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
         }
 
         // Trigger the peer node to send a getblocks request for the next batch of inventory
-        if (inv.hash == pfrom->hashContinue)
-        {
-            // Bypass PushInventory, this must send even if redundant,
-            // and we want it right after the last block so they don't
-            // wait for other stuff first.
+        if (inv.hash == pfrom->hashContinue) {
+            // Veil: Send the header of the next block, which allows the receiving peer to also see the prevblockhash and know what to request
             std::vector<CInv> vInv;
-            vInv.push_back(CInv(MSG_BLOCK, chainActive.Tip()->GetBlockHash()));
-            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::INV, vInv));
+            auto it = mapBlockIndex.find(pfrom->hashContinue);
+            if (it != mapBlockIndex.end()) {
+                auto headerNext = chainActive.Next(it->second);
+                if (headerNext)
+                    connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::HEADERS, std::vector<CBlock>{headerNext->GetBlockHeader()})); //(intentional send as block vec)
+            }
             pfrom->hashContinue.SetNull();
         }
     }
@@ -1371,6 +1372,19 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
 
     if (nCount == 0) {
         // Nothing interesting. Stop asking this peers for more headers.
+        return true;
+    }
+
+    // Veil : header in veil is used instead of sending more inventory during sync. Header gives more context than a simple hash
+    if (headers.size() == 1) {
+        auto header = headers[0];
+        if (mapBlockIndex.count(header.hashPrevBlock) && !mapBlockIndex.count(header.GetHash())) {
+            // Have the previous block but not the block associated with this header, request getblocks from here
+            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETBLOCKS, chainActive.GetLocator(), uint256()));
+            LogPrint(BCLog::NET, "received header %s: missing prev block %s, sending getblocks (%d) to end (peer=%d)\n",
+                     headers[0].GetHash().ToString(), headers[0].hashPrevBlock.ToString(), pindexBestBlock->nHeight,
+                     pfrom->GetId());
+        }
         return true;
     }
 
@@ -1991,7 +2005,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     // then ask for the blocks we need.
 
                     // Veil: we request the full block here because headers first syncing is not functional
-                    LogPrint(BCLog::NET, "getblocks (%d) %s to peer=%d\n", pindexBestBlock->nHeight, inv.hash.ToString(), pfrom->GetId());
+                    LogPrint(BCLog::NET, "getinv (%d) %s to peer=%d\n", pindexBestBlock->nHeight, inv.hash.ToString(), pfrom->GetId());
                     MarkBlockAsInFlight(pfrom->GetId(), inv.hash);
                     pfrom->AskFor(inv);
                 }
@@ -2762,6 +2776,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // mapBlockSource is only used for sending reject messages and DoS scores,
             // so the race between here and cs_main in ProcessNewBlock is fine.
             mapBlockSource.emplace(hash, std::make_pair(pfrom->GetId(), true));
+            if (!mapBlockIndex.count(pblock->hashPrevBlock)) {
+                //Don't have previous block, instead of processing this one, try to work backwards to common fork
+                LogPrint(BCLog::NET, "sending getblocks to outbound peer=%d to because sent a block that we do not have prevblock\n", pfrom->GetId());
+                connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETBLOCKS, chainActive.GetLocator(), uint256()));
+                return true;
+            }
         }
         bool fNewBlock = false;
         ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
@@ -3395,7 +3415,7 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                    got back an empty response.  */
                 if (pindexStart->pprev)
                     pindexStart = pindexStart->pprev;
-                LogPrint(BCLog::NET, "initial getheaders (%d) to peer=%d (startheight:%d)\n", pindexStart->nHeight, pto->GetId(), pto->nStartingHeight);
+                LogPrint(BCLog::NET, "initial getblocks (%d) to peer=%d (startheight:%d)\n", pindexStart->nHeight, pto->GetId(), pto->nStartingHeight);
                 connman->PushMessage(pto, msgMaker.Make(NetMsgType::GETBLOCKS, chainActive.GetLocator(pindexStart), uint256()));
             }
         }
@@ -3539,12 +3559,8 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                             hashToAnnounce.ToString(), chainActive.Tip()->GetBlockHash().ToString());
                     }
 
-                    // If the peer's chain has this block, don't inv it back.
-                    if (!PeerHasHeader(&state, pindex)) {
-                        pto->PushInventory(CInv(MSG_BLOCK, hashToAnnounce));
-                        LogPrint(BCLog::NET, "%s: sending inv peer=%d hash=%s\n", __func__,
-                            pto->GetId(), hashToAnnounce.ToString());
-                    }
+                    //Veil: Send current tip as header
+                    connman->PushMessage(pto, msgMaker.Make(NetMsgType::HEADERS, std::vector<CBlock>{pindex->GetBlockHeader()}));
                 }
             }
             pto->vBlockHashesToAnnounce.clear();
