@@ -285,9 +285,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 //Proof Of Stake
                 pindexNew->nMint = diskindex.nMint;
                 pindexNew->nMoneySupply = diskindex.nMoneySupply;
-                pindexNew->nFlags = diskindex.nFlags;
-                pindexNew->nStakeModifier = diskindex.nStakeModifier;
-                pindexNew->hashProofOfStake = diskindex.hashProofOfStake;
+                pindexNew->fProofOfStake = diskindex.fProofOfStake;
 
                 //RingCT
                 pindexNew->nAnonOutputs             = diskindex.nAnonOutputs;

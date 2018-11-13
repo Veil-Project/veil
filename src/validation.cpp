@@ -3480,7 +3480,6 @@ CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block, bool fProof
     pindexNew->RaiseValidity(BLOCK_VALID_TREE);
 
     //! This may be incorrect if sync headers first is enabled
-    pindexNew->nProofOfStakeFlag = fProofOfStake;
     if (fProofOfStake)
         pindexNew->SetProofOfStake();
 
@@ -3945,9 +3944,11 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     const int nHeight = pindexPrev == nullptr ? 0 : pindexPrev->nHeight + 1;
 
     // Check PoW/PoS
+    if (!pindexPrev)
+        LogPrintf("%s: PINDEXPREV NULL!!!\n", __func__);
     if (block.GetHash() != Params().GenesisBlock().GetHash()
             && block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake()))
-        return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, "incorrect proof of work");
+        return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, strprintf("incorrect proof of work: block bits=%d calc=%d", block.nBits, GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake())));
 
     // Start enforcing BIP113 (Median Time Past) using versionbits logic.
     int nLockTimeFlags = 0;
