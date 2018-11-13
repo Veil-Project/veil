@@ -5,6 +5,7 @@
 #include <util.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
+#include <veil/hdwallet.h>
 
 const WalletInitInterface& g_wallet_init_interface = MnemonicWalletInit();
 
@@ -53,6 +54,9 @@ bool MnemonicWalletInit::Open() const
         if (!pwallet) {
             return false;
         }
+
+        if (fParticlMode && !((CHDWallet*)pwallet.get())->Initialise())
+            return false;
 
         AddWallet(pwallet);
     }

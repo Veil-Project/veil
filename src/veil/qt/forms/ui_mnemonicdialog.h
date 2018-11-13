@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mnemonicdialog.ui'
 **
-** Created by: Qt User Interface Compiler version 5.5.1
+** Created by: Qt User Interface Compiler version 5.9.5
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
 ********************************************************************************/
@@ -99,11 +99,11 @@ public:
 
     void retranslateUi(QDialog *MnemonicDialog)
     {
-        MnemonicDialog->setWindowTitle(QApplication::translate("MnemonicDialog", "Welcome", 0));
-        titlelabel->setText(QApplication::translate("MnemonicDialog", "Wallet Seed Generation", 0));
-        lblExplanation->setText(QApplication::translate("MnemonicDialog", "Your Veil wallet will be generated with a mnemonic seed. In the event that you lose your wallet, this seed will allow you to regenerate it and regain access to your funds. It is important that you keep your seed somewhere safe and private.", 0));
-        seedNew->setText(QApplication::translate("MnemonicDialog", "Generate new seed", 0));
-        seedImport->setText(QApplication::translate("MnemonicDialog", "Regenerate from exisiting seed", 0));
+        MnemonicDialog->setWindowTitle(QApplication::translate("MnemonicDialog", "Welcome", Q_NULLPTR));
+        titlelabel->setText(QApplication::translate("MnemonicDialog", "Wallet Seed Generation", Q_NULLPTR));
+        lblExplanation->setText(QApplication::translate("MnemonicDialog", "Your Veil wallet will be generated with a mnemonic seed. In the event that you lose your wallet, this seed will allow you to regenerate it and regain access to your funds. It is important that you keep your seed somewhere safe and private.", Q_NULLPTR));
+        seedNew->setText(QApplication::translate("MnemonicDialog", "Generate new seed", Q_NULLPTR));
+        seedImport->setText(QApplication::translate("MnemonicDialog", "Regenerate from exisiting seed", Q_NULLPTR));
     } // retranslateUi
 
 };

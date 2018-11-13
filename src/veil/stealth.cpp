@@ -213,8 +213,7 @@ int StealthSecret(const CKey &secret, const ec_point &pubkey, const ec_point &pk
     test 0 and infinity?
     */
 
-    if (pubkey.size() != EC_COMPRESSED_SIZE
-        || pkSpend.size() != EC_COMPRESSED_SIZE)
+    if (pubkey.size() != EC_COMPRESSED_SIZE || pkSpend.size() != EC_COMPRESSED_SIZE)
         return errorN(1, "%s: sanity checks failed.", __func__);
 
     secp256k1_pubkey Q, R;
@@ -223,6 +222,10 @@ int StealthSecret(const CKey &secret, const ec_point &pubkey, const ec_point &pk
 
     if (!secp256k1_ec_pubkey_parse(secp256k1_ctx_stealth, &R, &pkSpend[0], EC_COMPRESSED_SIZE))
         return errorN(1, "%s: secp256k1_ec_pubkey_parse R failed.", __func__);
+
+    if (!secp256k1_ctx_stealth) {
+        std::cout << "ctx_stealth is nullptr\n";
+    }
 
     // eQ
     if (!secp256k1_ec_pubkey_tweak_mul(secp256k1_ctx_stealth, &Q, secret.begin()))
@@ -469,7 +472,7 @@ int PrepareStealthOutput(const CStealthAddress &sx, const std::string &sNarratio
     if (0 != MakeStealthData(sNarration, sx.prefix, sShared, pkEphem, vData, nStealthPrefix, sError))
         return 1;
     return 0;
-};
+}
 
 void ECC_Start_Stealth()
 {
@@ -479,16 +482,15 @@ void ECC_Start_Stealth()
     assert(ctx != nullptr);
 
     secp256k1_ctx_stealth = ctx;
-};
+}
 
 void ECC_Stop_Stealth()
 {
     secp256k1_context *ctx = secp256k1_ctx_stealth;
     secp256k1_ctx_stealth = nullptr;
 
-    if (ctx)
-    {
+    if (ctx) {
         secp256k1_context_destroy(ctx);
-    };
-};
+    }
+}
 
