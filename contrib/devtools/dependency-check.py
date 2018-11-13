@@ -48,7 +48,7 @@ for row in lines:
         # Adds file to list of things that needs to be checked excluding unnecessary files
         if tempLine.count("\\") > 0 and tempLine.count("$") == 0 and \
                 tempLine.count("=") == 0 and tempLine.count("#") == 0:
-            sourceFiles.append(str(tempLine[:-2]).strip())
+            sourceFiles.append(str(tempLine).strip('\\').strip(' '))
             sourceFilesCounter += 1
 
             # Done with this multiline, clear tempLine
