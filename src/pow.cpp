@@ -9,31 +9,32 @@
 #include <chain.h>
 #include <primitives/block.h>
 #include <uint256.h>
+#include "tinyformat.h"
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock,
                                     const Consensus::Params& params, bool fProofOfStake)
 {
     assert(pindexLast != nullptr);
 
-    unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
+  //  unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
 
-    if (params.fPowNoRetargeting)
-        return nProofOfWorkLimit;
-
-    if (params.fPowAllowMinDifficultyBlocks) {
-        // Special difficulty rule for testnet:
-        // If the new block's timestamp is more than 10 minutes
-        // then allow mining of a min-difficulty block.
-        if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing * 5)
-            return nProofOfWorkLimit;
-        else {
-            // Return the last non-special-min-difficulty-rules-block
-            const CBlockIndex *pindex = pindexLast;
-            while (pindex->pprev && (pindex->nBits == nProofOfWorkLimit || pindex->nProofOfStakeFlag != fProofOfStake))
-                pindex = pindex->pprev;
-            return pindex->nBits;
-        }
-    }
+//    if (params.fPowNoRetargeting)
+//        return nProofOfWorkLimit;
+//
+//    if (params.fPowAllowMinDifficultyBlocks) {
+//        // Special difficulty rule for testnet:
+//        // If the new block's timestamp is more than 10 minutes
+//        // then allow mining of a min-difficulty block.
+//        if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing * 5)
+//            return nProofOfWorkLimit;
+//        else {
+//            // Return the last non-special-min-difficulty-rules-block
+//            const CBlockIndex *pindex = pindexLast;
+//            while (pindex->pprev && (pindex->nBits == nProofOfWorkLimit || pindex->nProofOfStakeFlag != fProofOfStake))
+//                pindex = pindex->pprev;
+//            return pindex->nBits;
+//        }
+//    }
 
     // Retarget every block with DarkGravityWave
     return DarkGravityWave(pindexLast, params, fProofOfStake);
@@ -53,7 +54,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
             return bnPowLimit.GetCompact();
 
         // Only consider PoW or PoS blocks but not both
-        if (pindex->nProofOfStakeFlag != fProofOfStake) {
+        if (pindex->IsProofOfStake() != fProofOfStake) {
             pindex = pindex->pprev;
             continue;
         }

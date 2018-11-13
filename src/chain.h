@@ -217,16 +217,7 @@ public:
     //! Verification status of this block. See enum BlockStatus
     uint32_t nStatus;
 
-    unsigned int nFlags; // ppcoin: block index flags
-    enum {
-        BLOCK_PROOF_OF_STAKE = (1 << 0), // is proof-of-stake block
-        BLOCK_STAKE_ENTROPY = (1 << 1),  // entropy bit for stake modifier
-        BLOCK_STAKE_MODIFIER = (1 << 2), // regenerated stake modifier
-    };
-
-    uint64_t nStakeModifier;             // hash modifier for proof-of-stake
-    unsigned int nStakeModifierChecksum; // checksum of index; in-memeory only
-    uint256 hashProofOfStake;
+    bool fProofOfStake;
 
     //! Funds sent into the network to serve as an additional reward to stakers and miners
     CAmount nNetworkRewardReserve;
@@ -248,9 +239,6 @@ public:
 
     //! (memory only) Maximum nTime in the chain up to and including this block.
     unsigned int nTimeMax;
-
-    //! Used to determine if block is Proof of Stake
-    unsigned int nProofOfStakeFlag;
 
     //! Hash value for the accumulator. Can be used to access the zerocoindb for the accumulator value
     std::map<libzerocoin::CoinDenomination ,uint256> mapAccumulatorHashes;
@@ -275,10 +263,7 @@ public:
         nNetworkRewardReserve = 0;
 
         //Proof of stake
-        nFlags = 0;
-        nStakeModifier = 0;
-        nStakeModifierChecksum = 0;
-        hashProofOfStake = uint256();
+        fProofOfStake = false;
 
         nAnonOutputs = 0;
 
@@ -404,46 +389,17 @@ public:
 
     bool IsProofOfWork() const
     {
-        return !(nFlags & BLOCK_PROOF_OF_STAKE);
+        return !fProofOfStake;
     }
 
     bool IsProofOfStake() const
     {
-        return (nFlags & BLOCK_PROOF_OF_STAKE);
+        return fProofOfStake;
     }
 
     void SetProofOfStake()
     {
-        nFlags |= BLOCK_PROOF_OF_STAKE;
-    }
-
-    unsigned int GetStakeEntropyBit() const
-    {
-        unsigned int nEntropyBit = (UintToArith256(GetBlockHash()).GetLow64()) & 1;
-        if (gArgs.GetBoolArg("-printstakemodifier", false))
-            LogPrintf("GetStakeEntropyBit: nHeight=%u hashBlock=%s nEntropyBit=%u\n", nHeight, GetBlockHash().ToString().c_str(), nEntropyBit);
-
-        return nEntropyBit;
-    }
-
-    bool SetStakeEntropyBit(unsigned int nEntropyBit)
-    {
-        if (nEntropyBit > 1)
-            return false;
-        nFlags |= (nEntropyBit ? BLOCK_STAKE_ENTROPY : 0);
-        return true;
-    }
-
-    bool GeneratedStakeModifier() const
-    {
-        return (nFlags & BLOCK_STAKE_MODIFIER);
-    }
-
-    void SetStakeModifier(uint64_t nModifier, bool fGeneratedStakeModifier)
-    {
-        nStakeModifier = nModifier;
-        if (fGeneratedStakeModifier)
-            nFlags |= BLOCK_STAKE_MODIFIER;
+        fProofOfStake = true;
     }
 
     int64_t GetZerocoinSupply() const
@@ -541,7 +497,6 @@ public:
         READWRITE(nMoneySupply);
         READWRITE(VARINT(nStatus));
         READWRITE(VARINT(nTx));
-        READWRITE(VARINT(nProofOfStakeFlag));
         if (nStatus & (BLOCK_HAVE_DATA | BLOCK_HAVE_UNDO))
             READWRITE(VARINT(nFile, VarIntMode::NONNEGATIVE_SIGNED));
         if (nStatus & BLOCK_HAVE_DATA)
@@ -564,8 +519,7 @@ public:
         READWRITE(vMintDenominationsInBlock);
 
         //Proof of stake
-        READWRITE(nFlags);
-        READWRITE(nStakeModifier);
+        READWRITE(fProofOfStake);
 
         //Ring CT
         READWRITE(nAnonOutputs);
