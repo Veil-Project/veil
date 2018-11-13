@@ -223,10 +223,6 @@ int StealthSecret(const CKey &secret, const ec_point &pubkey, const ec_point &pk
     if (!secp256k1_ec_pubkey_parse(secp256k1_ctx_stealth, &R, &pkSpend[0], EC_COMPRESSED_SIZE))
         return errorN(1, "%s: secp256k1_ec_pubkey_parse R failed.", __func__);
 
-    if (!secp256k1_ctx_stealth) {
-        std::cout << "ctx_stealth is nullptr\n";
-    }
-
     // eQ
     if (!secp256k1_ec_pubkey_tweak_mul(secp256k1_ctx_stealth, &Q, secret.begin()))
         return errorN(1, "%s: secp256k1_ec_pubkey_tweak_mul failed.", __func__);

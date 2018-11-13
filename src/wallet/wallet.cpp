@@ -1171,7 +1171,6 @@ void CWallet::MarkConflicted(const uint256& hashBlock, const uint256& hashTx)
 
 void CWallet::SyncTransaction(const CTransactionRef& ptx, const CBlockIndex *pindex, int posInBlock, bool update_tx) {
     if (!AddToWalletIfInvolvingMe(ptx, pindex, posInBlock, update_tx)) {
-        std::cout << "====involving me check failed\n";
         return; // Not one of ours
     }
 

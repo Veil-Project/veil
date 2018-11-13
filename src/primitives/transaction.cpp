@@ -103,7 +103,7 @@ CTxOutStandard::CTxOutStandard(const CAmount& nValueIn, CScript scriptPubKeyIn) 
 {
     nValue = nValueIn;
     scriptPubKey = scriptPubKeyIn;
-};
+}
 
 void DeepCopy(CTxOutBaseRef &to, const CTxOutBaseRef &from)
 {
@@ -213,16 +213,12 @@ CAmount CTransaction::GetPlainValueOut(size_t &nStandard, size_t &nCT, size_t &n
     // accumulators not cleared here intentionally
     CAmount nValueOut = 0;
 
-    for (const auto &txout : vpout)
-    {
-        if (txout->IsType(OUTPUT_CT))
-        {
+    for (const auto &txout : vpout) {
+        if (txout->IsType(OUTPUT_CT)) {
             nCT++;
-        } else
-        if (txout->IsType(OUTPUT_RINGCT))
-        {
+        } else if (txout->IsType(OUTPUT_RINGCT)) {
             nRingCT++;
-        };
+        }
 
         if (!txout->IsStandardOutput())
             continue;
@@ -232,10 +228,10 @@ CAmount CTransaction::GetPlainValueOut(size_t &nStandard, size_t &nCT, size_t &n
         nValueOut += nValue;
         if (!MoneyRange(nValue) || !MoneyRange(nValueOut))
             throw std::runtime_error(std::string(__func__) + ": value out of range");
-    };
+    }
 
     return nValueOut;
-};
+}
 
 unsigned int CTransaction::GetTotalSize() const
 {
