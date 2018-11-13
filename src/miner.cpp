@@ -262,7 +262,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         if (nBudgetPayment) {
             OUTPUT_PTR<CTxOutStandard> outBudget = MAKE_OUTPUT<CTxOutStandard>();
             outBudget->scriptPubKey = budgetScript;
-            outBudget->nValue = veil::Budget().GetBudgetAmount();
+            outBudget->nValue = nBudgetPayment;
             coinbaseTx.vpout[1] = (std::move(outBudget));
         }
     }

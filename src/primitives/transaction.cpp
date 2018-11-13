@@ -195,8 +195,7 @@ CAmount CTransaction::GetValueOut() const
             throw std::runtime_error(std::string(__func__) + ": value out of range");
     }
 
-    for (auto &txout : vpout)
-    {
+    for (auto &txout : vpout) {
         if (!txout->IsStandardOutput())
             continue;
 
@@ -204,7 +203,7 @@ CAmount CTransaction::GetValueOut() const
         nValueOut += txout->GetValue();
         if (!MoneyRange(nValue) || !MoneyRange(nValueOut))
             throw std::runtime_error(std::string(__func__) + ": value out of range");
-    };
+    }
 
     return nValueOut;
 }

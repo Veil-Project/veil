@@ -102,15 +102,13 @@ static UniValue getnewstealthaddress(const JSONRPCRequest &request)
 
     CEKAStealthKey akStealth;
     std::string sError;
-    if (fMakeV2)
-    {
+    if (fMakeV2) {
         if (0 != pwallet->NewStealthKeyV2FromAccount(sLabel, akStealth, num_prefix_bits, sPrefix_num.empty() ? nullptr : sPrefix_num.c_str(), fBech32))
             throw JSONRPCError(RPC_WALLET_ERROR, _("NewStealthKeyV2FromAccount failed."));
-    } else
-    {
+    } else {
         if (0 != pwallet->NewStealthKeyFromAccount(sLabel, akStealth, num_prefix_bits, sPrefix_num.empty() ? nullptr : sPrefix_num.c_str(), fBech32))
             throw JSONRPCError(RPC_WALLET_ERROR, _("NewStealthKeyFromAccount failed."));
-    };
+    }
 
     CStealthAddress sxAddr;
     akStealth.SetSxAddr(sxAddr);

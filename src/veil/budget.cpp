@@ -2,6 +2,7 @@
 
 #include <consensus/validation.h>
 #include <key_io.h>
+#include <iostream>
 
 namespace veil {
 
@@ -24,7 +25,7 @@ bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidati
 
     auto txout = (CTxOutStandard*) tx.vpout[1].get();
     if (txout->nValue != Budget().GetBudgetAmount()) {
-        return false;
+        return state.DoS(100, false, REJECT_INVALID, "bad-budget-amount");
     }
 
     // Verify that the second output of the coinbase transaction goes to the budget address

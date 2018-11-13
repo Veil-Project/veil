@@ -20,12 +20,21 @@ public:
     {
         if (!tx)
             throw std::invalid_argument("tx should not be null");
-        if (i >= tx->vout.size())
+
+        if (i >= tx->GetNumVOuts())
             throw std::out_of_range("The output index is out of range");
 
         outpoint = COutPoint(tx->GetHash(), i);
-        txout = tx->vout[i];
-        effective_value = txout.nValue;
+
+        if (tx->IsParticlVersion()) {
+            assert(tx->vpout[i]->IsStandardOutput());
+            txout.scriptPubKey = *tx->vpout[i]->GetPScriptPubKey();
+            txout.nValue = tx->vpout[i]->GetValue();
+        } else {
+            txout = tx->vout[i];
+        }
+
+        effective_value = GetValue();
     }
 
     CInputCoin(const CTransactionRef& tx, unsigned int i, int input_bytes) : CInputCoin(tx, i)

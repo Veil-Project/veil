@@ -34,6 +34,8 @@
 #include <primitives/deterministicmint.h>
 #include <veil/dandelioninventory.h>
 
+#include <veil/hdwallet.h>
+
 #include <stdint.h>
 
 #include <univalue.h>
@@ -2199,6 +2201,25 @@ static UniValue gettransaction(const JSONRPCRequest& request)
     UniValue entry(UniValue::VOBJ);
     auto it = pwallet->mapWallet.find(hash);
     if (it == pwallet->mapWallet.end()) {
+        if (IsParticlWallet(pwallet)) {
+            CHDWallet *phdw = GetParticlWallet(pwallet);
+            MapRecords_t::const_iterator mri = phdw->mapRecords.find(hash);
+
+            if (mri != phdw->mapRecords.end()) {
+                const CTransactionRecord &rtx = mri->second;
+
+                std::cout << "block hash of rct is " << rtx.blockHash.GetHex() << "\n";
+
+                CStoredTransaction stx;
+                if (CHDWalletDB(phdw->GetDBHandle()).ReadStoredTx(hash, stx)) { // TODO: cache / use mapTempWallet
+                    std::string strHex = EncodeHexTx(*(stx.tx.get()), RPCSerializationFlags());
+                    entry.pushKV("hex", strHex);
+                }
+
+                return entry;
+            }
+        }
+
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid or non-wallet transaction id");
     }
     const CWalletTx& wtx = it->second;
@@ -2943,6 +2964,10 @@ static UniValue loadwallet(const JSONRPCRequest& request)
     if (!wallet) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet loading failed.");
     }
+
+    if (fParticlMode && !((CHDWallet*)wallet.get())->Initialise())
+        throw JSONRPCError(RPC_WALLET_ERROR, "Wallet initialise failed.");
+
     AddWallet(wallet);
 
     wallet->postInitProcess();
@@ -2996,6 +3021,10 @@ static UniValue createwallet(const JSONRPCRequest& request)
     if (!wallet) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet creation failed.");
     }
+
+    if (fParticlMode && !((CHDWallet*)wallet.get())->Initialise())
+        throw JSONRPCError(RPC_WALLET_ERROR, "Wallet initialise failed.");
+
     AddWallet(wallet);
 
     wallet->postInitProcess();
