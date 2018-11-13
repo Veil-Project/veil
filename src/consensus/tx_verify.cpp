@@ -546,7 +546,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
                                  REJECT_INVALID, "bad-coinstake-outputs");
             }
         }
-    } else {
+    } else if (!tx.IsCoinStake()) {
         if (nValueIn < tx.GetValueOut())
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-in-belowout", false,
                              strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(tx.GetValueOut())));
