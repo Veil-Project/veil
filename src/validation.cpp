@@ -1422,7 +1422,6 @@ void CChainState::InvalidBlockFound(CBlockIndex *pindex, const CValidationState 
         m_failed_blocks.insert(pindex);
         setDirtyBlockIndex.insert(pindex);
         setBlockIndexCandidates.erase(pindex);
-        std::cout << "in invalid block found\n";
         InvalidChainFound(pindex);
     }
 }
@@ -2369,7 +2368,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         // * witness (when witness enabled in flags and excludes coinbase)
         nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
         if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
-            std::cout << "too many sig ops\n";
             return state.DoS(100, error("ConnectBlock(): too many sigops"),
                              REJECT_INVALID, "bad-blk-sigops");
         }
@@ -2477,6 +2475,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
 
     CAmount nCreationLimit = networkReward + nBlockReward + nFounderPayment + nBudgetPayment + nLabPayment;
+    //TODO: fees?
 
     LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__, FormatMoney(nBlockReward), FormatMoney(networkReward), FormatMoney(nFounderPayment),
             FormatMoney(nBudgetPayment), FormatMoney(nLabPayment));
@@ -3018,6 +3017,7 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     LogPrint(BCLog::BENCH, "- Connect block: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime6 - nTime1) * MILLI, nTimeTotal * MICRO, nTimeTotal * MILLI / nBlocksTotal);
 
     connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
+    std::cout << "finished connect tip\n";
     return true;
 }
 
@@ -3131,8 +3131,6 @@ bool CChainState::ActivateBestChainStep(CValidationState& state, const CChainPar
             pindexIter = pindexIter->pprev;
         }
         nHeight = nTargetHeight;
-
-        std::cout << "state status " << state.IsValid() << "\n";
 
         // Connect new blocks.
         for (CBlockIndex *pindexConnect : reverse_iterate(vpindexToConnect)) {
@@ -3688,7 +3686,6 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     // Check transactions
     int i = 0;
     for (const auto& tx : block.vtx) {
-        std::cout << "checking tx with vout size: " << tx->vout.size() << " and vpout size: " << tx->vpout.size() << " at index: " << i << "\n";
         if (!CheckTransaction(*tx, state, false))
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
                                  strprintf("Transaction check failed (tx hash %s) %s", tx->GetHash().ToString(),
@@ -3987,7 +3984,6 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     // check witness merkleroot TODO: should witnessmerkleroot be hashed?
     bool malleated = false;
     uint256 hashWitness = BlockWitnessMerkleRoot(block, &malleated);
-    std::cout << block.hashWitnessMerkleRoot.GetHex() << " " << hashWitness.GetHex() << "\n";
     if (hashWitness != block.hashWitnessMerkleRoot)
         return state.DoS(100, false, REJECT_INVALID, "bad-witness-merkle-match", true,
                          strprintf("%s : witness merkle commitment mismatch", __func__));

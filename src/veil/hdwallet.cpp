@@ -1856,10 +1856,8 @@ CAmount CHDWallet::GetBalance(const isminefilter& filter, const int min_depth) c
             continue;
 
         for (const auto &r : rtx.vout) {
-            if (r.nType == OUTPUT_STANDARD
-                && (((filter & ISMINE_SPENDABLE) && (r.nFlags & ORF_OWNED))
-                    || ((filter & ISMINE_WATCH_ONLY) && (r.nFlags & ORF_OWN_WATCH)))
-                && !IsSpent(txhash, r.n))
+            if (r.nType == OUTPUT_STANDARD && (((filter & ISMINE_SPENDABLE) && (r.nFlags & ORF_OWNED))
+                    || ((filter & ISMINE_WATCH_ONLY) && (r.nFlags & ORF_OWN_WATCH))) && !IsSpent(txhash, r.n))
                 nBalance += r.nValue;
         }
 
@@ -4066,10 +4064,9 @@ int CHDWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size_t
     return 0;
 };
 
-int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
-    std::vector<CTempRecipient> &vecSend,
-    CExtKeyAccount *sea, CStoredExtKey *pc,
-    bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
+int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
+    CExtKeyAccount *sea, CStoredExtKey *pc, bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet,
+    const CCoinControl *coinControl, std::string &sError)
 {
     assert(coinControl);
     if (nRingSize < MIN_RINGSIZE || nRingSize > MAX_RINGSIZE) {
@@ -4120,8 +4117,9 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
         size_t nSubFeeTries = 100;
         bool pick_new_inputs = true;
         CAmount nValueIn = 0;
+
         // Start with no fee and loop until there is enough fee
-        for (;;) {
+        while (true) {
             txNew.vin.clear();
             txNew.vpout.clear();
             wtx.fFromMe = true;
@@ -4350,9 +4348,9 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             // Include more fee and try again.
             nFeeRet = nFeeNeeded;
             continue;
-        };
-        coinControl->nChangePos = nChangePosInOut;
+        }
 
+        coinControl->nChangePos = nChangePosInOut;
         nValueOutPlain += nFeeRet;
 
         // Remove scriptSigs to eliminate the fee calculation dummy signatures
@@ -4602,10 +4600,10 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
               100 * feeCalc.est.fail.withinTarget / (feeCalc.est.fail.totalConfirmed + feeCalc.est.fail.inMempool + feeCalc.est.fail.leftMempool),
               feeCalc.est.fail.withinTarget, feeCalc.est.fail.totalConfirmed, feeCalc.est.fail.inMempool, feeCalc.est.fail.leftMempool);
     return 0;
-};
+}
 
-int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
-    std::vector<CTempRecipient> &vecSend, bool sign, size_t nRingSize, size_t nSigs, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
+int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
+        size_t nRingSize, size_t nSigs, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
 {
     if (vecSend.size() < 1) {
         return wserrorN(1, sError, __func__, _("Transaction must have at least one recipient."));
@@ -4664,7 +4662,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     }
 
     return 0;
-};
+}
 
 void CHDWallet::ClearCachedBalances()
 {
@@ -4840,7 +4838,7 @@ int CHDWallet::GetDefaultConfidentialChain(CHDWalletDB *pwdb, CExtKeyAccount *&s
 
     pc = sekConfidential;
     return 0;
-};
+}
 
 int CHDWallet::MakeDefaultAccount()
 {
@@ -7466,8 +7464,6 @@ bool CHDWallet::CommitTransaction(CWalletTx &wtxNew, CTransactionRecord &rtx,
 
         AddToRecord(rtx, *wtxNew.tx, nullptr, -1);
 
-        std::cout << "added to record\n";
-
         if (fBroadcastTransactions) {
             // Broadcast
             if (!wtxNew.AcceptToMemoryPool(maxTxFee, state)) {
@@ -8447,7 +8443,6 @@ bool CHDWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBloc
         }
 
         bool fExisted = mapWallet.count(tx.GetHash()) != 0;
-        std::cout << "---------BOOLS : " << fExisted << " " << fIsMine << " " << fIsFromMe << "\n";
         if (fExisted && !fUpdate) return false;
         if (fExisted || fIsMine || fIsFromMe) {
             CWalletTx wtx(this, MakeTransactionRef(tx));
