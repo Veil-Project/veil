@@ -2,7 +2,6 @@
 
 #include <consensus/validation.h>
 #include <key_io.h>
-#include <iostream>
 
 namespace veil {
 
@@ -14,30 +13,26 @@ bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidati
     if (nHeight % BudgetParams::nBlocksPerPeriod)
         return true;
 
-    // Verify that the amount paid to the budget address is correct
-    if (tx.vpout.size() != 2) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-vpout-size");
-    }
-
-    if (tx.vpout[1]->nVersion != OUTPUT_STANDARD) {
-        return state.DoS(100, false, REJECT_INVALID, "non-standard-budget-output");
-    }
-
-    auto txout = (CTxOutStandard*) tx.vpout[1].get();
-    if (txout->nValue != Budget().GetBudgetAmount()) {
-        return state.DoS(100, false, REJECT_INVALID, "bad-budget-amount");
-    }
-
     // Verify that the second output of the coinbase transaction goes to the budget address
     std::string strBudgetAddress = Budget().GetBudgetAddress(); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
 
-    if (txout->scriptPubKey != budgetScript) {
-        return state.DoS(10, false, REJECT_INVALID, "bad-budget-output");
+    bool fBudgetPayment = false;
+    for (auto pOut : tx.vpout) {
+        if (pOut->nVersion != OUTPUT_STANDARD)
+            continue;
+
+        auto txOut = (CTxOutStandard*)pOut.get();
+        if (txOut->scriptPubKey == budgetScript) {
+            if (txOut->nValue == nBudgetPayment) {
+                fBudgetPayment = true;
+                continue;
+            }
+        }
     }
 
-    return true;
+    return fBudgetPayment;
 }
 
 /**

@@ -13,7 +13,7 @@
 
 typedef std::vector<unsigned char> valtype;
 
-CZPivStake::CZPivStake(const libzerocoin::CoinSpend& spend)
+ZerocoinStake::ZerocoinStake(const libzerocoin::CoinSpend& spend)
 {
     this->nChecksum = spend.getAccumulatorChecksum();
     this->denom = spend.getDenomination();
@@ -23,24 +23,22 @@ CZPivStake::CZPivStake(const libzerocoin::CoinSpend& spend)
     fMint = false;
 }
 
-int CZPivStake::GetChecksumHeightFromMint()
+int ZerocoinStake::GetChecksumHeightFromMint()
 {
     int nHeightChecksum = chainActive.Height() - Params().Zerocoin_RequiredStakeDepth();
-    //TODO
     //Need to return the first occurance of this checksum in order for the validation process to identify a specific
     //block height
     uint256 nChecksum;
     nChecksum = chainActive[nHeightChecksum]->mapAccumulatorHashes[denom];
-    //return GetChecksumHeight(nChecksum, denom);
-    return -1;
+    return GetChecksumHeight(nChecksum, denom);
 }
 
-int CZPivStake::GetChecksumHeightFromSpend()
+int ZerocoinStake::GetChecksumHeightFromSpend()
 {
     return GetChecksumHeight(nChecksum, denom);
 }
 
-uint256 CZPivStake::GetChecksum()
+uint256 ZerocoinStake::GetChecksum()
 {
     return nChecksum;
 }
@@ -48,7 +46,7 @@ uint256 CZPivStake::GetChecksum()
 // The zPIV block index is the first appearance of the accumulator checksum that was used in the spend
 // note that this also means when staking that this checksum should be from a block that is beyond 60 minutes old and
 // 100 blocks deep.
-CBlockIndex* CZPivStake::GetIndexFrom()
+CBlockIndex* ZerocoinStake::GetIndexFrom()
 {
     if (pindexFrom)
         return pindexFrom;
@@ -70,36 +68,43 @@ CBlockIndex* CZPivStake::GetIndexFrom()
     return pindexFrom;
 }
 
-CAmount CZPivStake::GetValue()
+CAmount ZerocoinStake::GetValue()
 {
     return denom * COIN;
 }
 
-//Use the first accumulator checkpoint that occurs 60 minutes after the block being staked from
-bool CZPivStake::GetModifier(uint64_t& nStakeModifier)
+int ZerocoinStake::HeightToModifierHeight(int nHeight)
 {
+    //Nearest multiple of 100 that is over 100 bocks deep in the chain
+    return (nHeight-100) - (nHeight % 100) ;
+}
+
+//Use the first accumulator checkpoint that occurs 60 minutes after the block being staked from
+bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier)
+{
+
     CBlockIndex* pindex = GetIndexFrom();
     if (!pindex)
         return false;
 
-    int nNearest100Block = ((pindex->nHeight-100) / 100) * 100;
+
+    int nNearest100Block = ZerocoinStake::HeightToModifierHeight(pindex->nHeight);
 
     //Rare case block index < 100, we don't use proof of stake for these blocks
-    if (nNearest100Block == 0) {
+    if (nNearest100Block < 1) {
         nStakeModifier = 1;
         return false;
     }
-    else {
-        while(nNearest100Block != pindex->nHeight) {
-            pindex = pindex->pprev;
-        }
 
-        nStakeModifier = UintToArith256(pindex->mapAccumulatorHashes[denom]).GetLow64();
-        return true;
+    while (nNearest100Block != pindex->nHeight) {
+        pindex = pindex->pprev;
     }
+
+    nStakeModifier = UintToArith256(pindex->mapAccumulatorHashes[denom]).GetLow64();
+    return true;
 }
 
-CDataStream CZPivStake::GetUniqueness()
+CDataStream ZerocoinStake::GetUniqueness()
 {
     //The unique identifier for a zPIV is a hash of the serial
     CDataStream ss(SER_GETHASH, 0);
@@ -107,7 +112,7 @@ CDataStream CZPivStake::GetUniqueness()
     return ss;
 }
 
-bool CZPivStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
+bool ZerocoinStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
 {
     CBlockIndex* pindexCheckpoint = GetIndexFrom();
     if (!pindexCheckpoint)
@@ -128,7 +133,7 @@ bool CZPivStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
     return true;
 }
 
-bool CZPivStake::CreateTxOuts(CWallet* pwallet, vector<CTxOut>& vout, CAmount nTotal)
+bool ZerocoinStake::CreateTxOuts(CWallet* pwallet, vector<CTxOut>& vout, CAmount nTotal)
 {
     //Create an output returning the zPIV that was staked
     CTxOut outReward;
@@ -142,26 +147,29 @@ bool CZPivStake::CreateTxOuts(CWallet* pwallet, vector<CTxOut>& vout, CAmount nT
     if (!pwallet->DatabaseMint(dMint))
         return error("%s: failed to database the staked zPIV", __func__);
 
-    for (unsigned int i = 0; i < 3; i++) {
+    CAmount nRewardOut = 0;
+    while (nRewardOut < nTotal) {
         CTxOut out;
         CDeterministicMint dMintReward;
-        if (!pwallet->CreateZOutPut(libzerocoin::CoinDenomination::ZQ_TEN, out, dMintReward))
+        auto denomReward = libzerocoin::CoinDenomination::ZQ_TEN;
+        if (!pwallet->CreateZOutPut(denomReward, out, dMintReward))
             return error("%s: failed to create zPIV output", __func__);
         vout.emplace_back(out);
 
         if (!pwallet->DatabaseMint(dMintReward))
             return error("%s: failed to database mint reward", __func__);
+        nRewardOut += libzerocoin::ZerocoinDenominationToAmount(denomReward);
     }
 
     return true;
 }
 
-bool CZPivStake::GetTxFrom(CTransaction& tx)
+bool ZerocoinStake::GetTxFrom(CTransaction& tx)
 {
     return false;
 }
 
-bool CZPivStake::MarkSpent(CWallet *pwallet, const uint256& txid)
+bool ZerocoinStake::MarkSpent(CWallet *pwallet, const uint256& txid)
 {
     CzTracker* zTracker = pwallet->GetZTrackerPointer();
     CMintMeta meta;
@@ -170,105 +178,4 @@ bool CZPivStake::MarkSpent(CWallet *pwallet, const uint256& txid)
 
     zTracker->SetPubcoinUsed(meta.hashPubcoin, txid);
     return true;
-}
-
-//!PIV Stake
-bool CPivStake::SetInput(CTransaction txPrev, unsigned int n)
-{
-    this->txFrom = txPrev;
-    this->nPosition = n;
-    return true;
-}
-
-bool CPivStake::GetTxFrom(CTransaction& tx)
-{
-    tx = txFrom;
-    return true;
-}
-
-bool CPivStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
-{
-    txIn = CTxIn(txFrom.GetHash(), nPosition);
-    return true;
-}
-
-CAmount CPivStake::GetValue()
-{
-    return txFrom.vout[nPosition].nValue;
-}
-
-bool CPivStake::CreateTxOuts(CWallet* pwallet, vector<CTxOut>& vout, CAmount nTotal)
-{
-    vector<valtype> vSolutions;
-    txnouttype whichType;
-    CScript scriptPubKeyKernel = txFrom.vout[nPosition].scriptPubKey;
-    if (!Solver(scriptPubKeyKernel, whichType, vSolutions)) {
-        LogPrintf("CreateCoinStake : failed to parse kernel\n");
-        return false;
-    }
-
-    if (whichType != TX_PUBKEY && whichType != TX_PUBKEYHASH)
-        return false; // only support pay to public key and pay to address
-
-    CScript scriptPubKey;
-    if (whichType == TX_PUBKEYHASH) // pay to address type
-    {
-        //convert to pay to public key type
-        CKey key;
-        CKeyID keyID = CKeyID(uint160(vSolutions[0]));
-        if (!pwallet->GetKey(keyID, key))
-            return false;
-
-        scriptPubKey << key.GetPubKey() << OP_CHECKSIG;
-    } else
-        scriptPubKey = scriptPubKeyKernel;
-
-    vout.emplace_back(CTxOut(0, scriptPubKey));
-
-    // Calculate if we need to split the output
-    if (nTotal / 2 > (CAmount)(pwallet->nStakeSplitThreshold * COIN))
-        vout.emplace_back(CTxOut(0, scriptPubKey));
-
-    return true;
-}
-
-bool CPivStake::GetModifier(uint64_t& nStakeModifier)
-{
-    int nStakeModifierHeight = 0;
-    int64_t nStakeModifierTime = 0;
-    GetIndexFrom();
-    if (!pindexFrom)
-        return error("%s: failed to get index from", __func__);
-
-    if (!GetKernelStakeModifier(pindexFrom->GetBlockHash(), nStakeModifier, nStakeModifierHeight, nStakeModifierTime, false))
-        return error("CheckStakeKernelHash(): failed to get kernel stake modifier \n");
-
-    return true;
-}
-
-CDataStream CPivStake::GetUniqueness()
-{
-    //The unique identifier for a PIV stake is the outpoint
-    CDataStream ss(SER_NETWORK, 0);
-    ss << nPosition << txFrom.GetHash();
-    return ss;
-}
-
-//The block that the UTXO was added to the chain
-CBlockIndex* CPivStake::GetIndexFrom()
-{
-    uint256 hashBlock;
-    CTransactionRef tx;
-    if (GetTransaction(txFrom.GetHash(), tx, Params().GetConsensus(), hashBlock)) {
-        // If the index is in the chain, then set it as the "index from"
-        if (mapBlockIndex.count(hashBlock)) {
-            CBlockIndex* pindex = mapBlockIndex.at(hashBlock);
-            if (chainActive.Contains(pindex))
-                pindexFrom = pindex;
-        }
-    } else {
-        LogPrintf("%s : failed to find tx %s\n", __func__, txFrom.GetHash().GetHex());
-    }
-
-    return pindexFrom;
 }

@@ -357,7 +357,7 @@ bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator
     CTransactionRef txMinted;
     uint256 hashBlock;
     if (!GetTransaction(txid, txMinted, Params().GetConsensus(), hashBlock, true))
-        return error("%s failed to read tx", __func__);
+        return error("%s failed to read tx %s", __func__, txid.GetHex());
 
     int nHeightTest;
     if (!IsBlockHashInChain(hashBlock, nHeightTest))
@@ -394,7 +394,6 @@ bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator
     RandomizeSecurityLevel(nSecurityLevel); //make security level not always the same and predictable
     libzerocoin::Accumulator witnessAccumulator = accumulator;
 
-    bool fDoubleCounted = false;
     while (pindex) {
         if (pindex->nHeight != nAccStartHeight && pindex->pprev->mapAccumulatorHashes != pindex->mapAccumulatorHashes)
             ++nCheckpointsAdded;

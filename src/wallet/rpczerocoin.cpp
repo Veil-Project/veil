@@ -282,8 +282,8 @@ UniValue getzerocoinbalance(const JSONRPCRequest& request)
     UniValue ret(UniValue::VOBJ);
     ret.push_back(Pair("Total", ValueFromAmount(pwallet->GetZerocoinBalance(false))));
     ret.push_back(Pair("Mature", ValueFromAmount(pwallet->GetZerocoinBalance(true))));
-    ret.push_back(Pair("Unconfirmed", ValueFromAmount(pwallet->GetUnconfirmedZerocoinBalance())));
-    ret.push_back(Pair("Immature", ValueFromAmount(pwallet->GetImmatureZerocoinBalance())));
+    //ret.push_back(Pair("Unconfirmed", ValueFromAmount(pwallet->GetUnconfirmedZerocoinBalance())));
+    //ret.push_back(Pair("Immature", ValueFromAmount(pwallet->GetImmatureZerocoinBalance())));
 
     return ret;
 }

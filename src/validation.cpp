@@ -49,6 +49,7 @@
 #include <veil/blockvalidation.h>
 #include <veil/budget.h>
 #include <veil/zchain.h>
+#include <kernel.h>
 
 #include <wallet/wallet.h>
 
@@ -176,8 +177,9 @@ public:
      * If a block header hasn't already been seen, call CheckBlockHeader on it, ensure
      * that it doesn't descend from an invalid block, and then add it to mapBlockIndex.
      */
-    bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool AcceptBlockHeader(const CBlockHeader& block, bool fProofOfStake, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput* stake);
 
     // Block (dis)connection on a given view:
     DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
@@ -204,7 +206,7 @@ private:
     bool ActivateBestChainStep(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexMostWork, const std::shared_ptr<const CBlock>& pblock, bool& fInvalidFound, ConnectTrace& connectTrace);
     bool ConnectTip(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexNew, const std::shared_ptr<const CBlock>& pblock, ConnectTrace& connectTrace, DisconnectedBlockTransactions &disconnectpool);
 
-    CBlockIndex* AddToBlockIndex(const CBlockHeader& block) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    CBlockIndex* AddToBlockIndex(const CBlockHeader& block, bool fProofOfStake = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     /** Create a new block index entry for a given block hash */
     CBlockIndex* InsertBlockIndex(const uint256& hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     /**
@@ -428,7 +430,6 @@ bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp, bool 
             if (!viewMemPool.GetCoin(txin.prevout, coin)) {
                 return error("%s: Missing input", __func__);
             }
-
             if (coin.nHeight == MEMPOOL_HEIGHT) {
                 // Assume all mempool transaction confirm in the next block
                 prevheights[txinIndex] = tip->nHeight + 1;
@@ -1199,8 +1200,8 @@ bool ReadBlockFromDisk(CBlock& block, const CDiskBlockPos& pos, const Consensus:
     }
 
     // Check the header
-    if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
-        return error("ReadBlockFromDisk: Errors in block header at %s", pos.ToString());
+    //if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
+    //    return error("ReadBlockFromDisk: Errors in block header at %s", pos.ToString());
 
     return true;
 }
@@ -1763,6 +1764,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 const std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
                 for (size_t k = 0; k < nInputs; ++k) {
                     const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
+
                     view.keyImages.push_back(std::make_pair(ki, hash));
                 }
             }
@@ -1809,7 +1811,6 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
                     if (out->IsType(OUTPUT_STANDARD))
                         txout.nValue = out->GetValue();
-
                     bool is_spent = view.SpendCoin(op, &coin);
                     if (!is_spent || txout != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
                         fClean = false; // transaction output mismatch
@@ -2284,7 +2285,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         if (tx.IsCoinBase()) {
             nTxValueOut += tx.GetValueOut();
         } else {
-            CAmount txfee = 0;
             if (tx.IsZerocoinSpend()) {
                 int nHeightTx = 0;
                 uint256 txid = tx.GetHash();
@@ -2324,7 +2324,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
             nFees += txfee;
             if (!MoneyRange(nFees)) {
-                std::cout << "fees out of money range\n";
                 return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
                                  REJECT_INVALID, "bad-txns-accumulated-fee-outofrange");
             }
@@ -2370,10 +2369,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         // * p2sh (when P2SH enabled in flags and excludes coinbase)
         // * witness (when witness enabled in flags and excludes coinbase)
         nSigOpsCost += GetTransactionSigOpCost(tx, view, flags);
-        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST) {
+        if (nSigOpsCost > MAX_BLOCK_SIGOPS_COST)
             return state.DoS(100, error("ConnectBlock(): too many sigops"),
                              REJECT_INVALID, "bad-blk-sigops");
-        }
 
         txdata.emplace_back(tx);
         if (!tx.IsCoinBase()) {
@@ -2482,12 +2480,14 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     CAmount nCreationLimit = networkReward + nBlockReward + nFounderPayment + nBudgetPayment + nLabPayment;
     //TODO: Proof Of Full node gets fees, else check destroyed
 
-    LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__, FormatMoney(nBlockReward), FormatMoney(networkReward), FormatMoney(nFounderPayment),
-            FormatMoney(nBudgetPayment), FormatMoney(nLabPayment));
+    if (block.vtx[0]->GetValueOut() > nCreationLimit) {
+        LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__, FormatMoney(nBlockReward), FormatMoney(networkReward), FormatMoney(nFounderPayment),
+                  FormatMoney(nBudgetPayment), FormatMoney(nLabPayment));
 
-    if (block.vtx[0]->GetValueOut() > nCreationLimit)
         return state.DoS(100, error("ConnectBlock(): coinbase pays too much (actual=%s vs limit=%s)\n %s",
-                               block.vtx[0]->GetValueOut(), nBlockReward, block.vtx[0]->ToString()), REJECT_INVALID, "bad-cb-amount");
+                                    block.vtx[0]->GetValueOut(), nBlockReward, block.vtx[0]->ToString()),
+                         REJECT_INVALID, "bad-cb-amount");
+    }
 
     // Ensure that accumulator checkpoints are valid and in the same state as this instance of the chain
     AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
@@ -2707,7 +2707,6 @@ static void DoWarning(const std::string& strWarning)
 
 bool FlushView(CCoinsViewCache *view, CValidationState& state, bool fDisconnecting)
 {
-
     if (!view->Flush())
         return false;
 
@@ -3451,7 +3450,7 @@ void ResetBlockFailureFlags(CBlockIndex *pindex) {
     return g_chainstate.ResetBlockFailureFlags(pindex);
 }
 
-CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block)
+CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block, bool fProofOfStake)
 {
     AssertLockHeld(cs_main);
 
@@ -3480,10 +3479,10 @@ CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block)
     pindexNew->nChainWork = (pindexNew->pprev ? pindexNew->pprev->nChainWork : 0) + GetBlockProof(*pindexNew);
     pindexNew->RaiseValidity(BLOCK_VALID_TREE);
 
-    //! cast will fail if sync headers first is enabled
-    const CBlock* pblock = dynamic_cast<const CBlock*>(&block);
-    if (pblock)
-        pindexNew->nProofOfStakeFlag = pblock->IsProofOfStake();
+    //! This may be incorrect if sync headers first is enabled
+    pindexNew->nProofOfStakeFlag = fProofOfStake;
+    if (fProofOfStake)
+        pindexNew->SetProofOfStake();
 
     if (pindexBestBlock == nullptr || pindexBestBlock->nChainWork < pindexNew->nChainWork)
         pindexBestBlock = pindexNew;
@@ -3645,7 +3644,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
-    if (!CheckBlockHeader(block, state, consensusParams, fCheckPOW))
+    if (!CheckBlockHeader(block, state, consensusParams, (fCheckPOW && block.IsProofOfWork())))
         return false;
 
     // Check the block signature if it is a proof of stake block
@@ -3966,9 +3965,14 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     }
 
     // Verify that the budget output is valid
-    if (block.GetHash() != consensusParams.hashGenesisBlock
-        && (!veil::CheckBudgetTransaction(pindexPrev->nHeight+1, *block.vtx[0], state))) {
-        return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(), strprintf("Budget transaction check failed"));
+    if (block.GetHash() != consensusParams.hashGenesisBlock) {
+        if (block.IsProofOfWork()) {
+            if (block.vtx[0]->vpout.size() < 2 || !veil::CheckBudgetTransaction(pindexPrev->nHeight+1, *block.vtx[0], state))
+                return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(), strprintf("Budget transaction check failed on PoW Block"));
+        } else {
+            if (!veil::CheckBudgetTransaction(pindexPrev->nHeight+1, *block.vtx[1], state))
+                return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(), strprintf("Budget transaction check failed on PoS Block"));
+        }
     }
 
     // Enforce rule that the coinbase starts with serialized block height
@@ -3998,7 +4002,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     return true;
 }
 
-bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex)
+bool CChainState::AcceptBlockHeader(const CBlockHeader& block, bool fProofOfStake, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex)
 {
     AssertLockHeld(cs_main);
     // Check for duplicate
@@ -4016,7 +4020,8 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
             return true;
         }
 
-        if (!CheckBlockHeader(block, state, chainparams.GetConsensus()))
+        bool fCheckPoW = !fProofOfStake;
+        if (!CheckBlockHeader(block, state, chainparams.GetConsensus(), fCheckPoW))
             return error("%s: Consensus::CheckBlockHeader: %s, %s", __func__, hash.ToString(), FormatStateMessage(state));
 
         // Get prev block index
@@ -4049,7 +4054,7 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
         }
     }
     if (pindex == nullptr)
-        pindex = AddToBlockIndex(block);
+        pindex = AddToBlockIndex(block, fProofOfStake);
 
     if (ppindex)
         *ppindex = pindex;
@@ -4067,7 +4072,8 @@ bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidatio
         LOCK(cs_main);
         for (const CBlockHeader& header : headers) {
             CBlockIndex *pindex = nullptr; // Use a temp pindex instead of ppindex to avoid a const_cast
-            if (!g_chainstate.AcceptBlockHeader(header, state, chainparams, &pindex)) {
+            bool fProofOfStake = false;// todo, no easy way to know if this is PoS block - maybe look at hash value?
+            if (!g_chainstate.AcceptBlockHeader(header, fProofOfStake, state, chainparams, &pindex)) {
                 if (first_invalid) *first_invalid = header;
                 return false;
             }
@@ -4099,6 +4105,28 @@ static CDiskBlockPos SaveBlockToDisk(const CBlock& block, int nHeight, const CCh
     return blockPos;
 }
 
+bool CChainState::ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput* stake)
+{
+    if (ZerocoinStake* stakeCheck = dynamic_cast<ZerocoinStake*>(stake)) {
+        CBlockIndex* pindexFrom = stakeCheck->GetIndexFrom();
+        if (!pindexFrom)
+            return error("%s: failed to get index associated with zerocoin stake checksum", __func__);
+
+        if (pindex->nHeight - pindexFrom->nHeight < Params().Zerocoin_RequiredStakeDepth())
+            return error("%s: zerocoin stake does not have required confirmation depth", __func__);
+
+        //The checksum needs to be the exact checksum from 400 blocks ago
+        libzerocoin::CoinDenomination denom = libzerocoin::AmountToZerocoinDenomination(stakeCheck->GetValue());
+        uint256 hashCheckpoint = chainActive[pindex->nHeight - Params().Zerocoin_RequiredStakeDepth()]->GetAccumulatorHash(denom);
+        if (hashCheckpoint != stakeCheck->GetChecksum())
+            return error("%s: accumulator checksum is different than the block 400 blocks previous. stake=%d block400=%s", __func__, stakeCheck->GetChecksum().GetHex(), hashCheckpoint.GetHex());
+    } else {
+        return error("%s: dynamic_cast of stake ptr failed", __func__);
+    }
+
+    return true;
+}
+
 /** Store block on disk. If dbp is non-nullptr, the file is known to already reside on disk */
 bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock)
 {
@@ -4110,8 +4138,23 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     CBlockIndex *pindexDummy = nullptr;
     CBlockIndex *&pindex = ppindex ? *ppindex : pindexDummy;
 
-    if (!AcceptBlockHeader(block, state, chainparams, &pindex))
-        return false;
+    if (!AcceptBlockHeader(block, block.IsProofOfStake(), state, chainparams, &pindex))
+        return error("%s: AcceptBlockHeader failed for block %s", __func__, block.GetHash().GetHex());
+
+    //! Validate Proof of Stake
+    if (block.IsProofOfStake()) {
+        uint256 hashProofOfStake = uint256();
+        unique_ptr<CStakeInput> stake;
+
+        if (!CheckProofOfStake(block.vtx[1], block.nBits, block.nTime, hashProofOfStake, stake))
+            return state.DoS(100, error("%s: proof of stake check failed", __func__));
+
+        if (!stake)
+            return error("%s: null stake ptr", __func__);
+
+        if (!ContextualCheckZerocoinStake(pindex, stake.get()))
+            return state.DoS(100, error("%s: zerocoin stake fails context checks", __func__));
+    }
 
     // Try to process all requested blocks that we don't have, but only
     // process an unrequested block if it's new and has enough work to

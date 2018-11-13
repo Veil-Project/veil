@@ -1381,7 +1381,7 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
         if (mapBlockIndex.count(header.hashPrevBlock) && !mapBlockIndex.count(header.GetHash())) {
             // Have the previous block but not the block associated with this header, request getblocks from here
             connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETBLOCKS, chainActive.GetLocator(), uint256()));
-            LogPrint(BCLog::NET, "received header %s: missing prev block %s, sending getblocks (%d) to end (peer=%d)\n",
+            LogPrint(BCLog::NET, "received header %s: have prev block %s, sending getblocks (%d) to end (peer=%d)\n",
                      headers[0].GetHash().ToString(), headers[0].hashPrevBlock.ToString(), pindexBestBlock->nHeight,
                      pfrom->GetId());
         }
