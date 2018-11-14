@@ -3779,9 +3779,9 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() != 1) {
+    if (request.fHelp || request.params.size() > 2) {
         throw std::runtime_error(
-                "generatecontinuous (true|false)\n"
+                "generatecontinuous (true|false) (threads)\n"
                 "\nMine blocks continuously while the request is running.\n"
                 "\nExamples:\n"
                 + HelpExampleCli("generatecontinuous", "1")
@@ -3793,6 +3793,10 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
     }
 
     bool fGenerate = request.params[0].get_bool();
+
+    int nThreads = 1;
+    if (request.params.size() > 1)
+        nThreads = request.params[1].get_int();
 
     std::shared_ptr<CReserveScript> coinbase_script;
     pwallet->GetScriptForMining(coinbase_script);
@@ -3807,7 +3811,7 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
     }
 
-    return generateBlocks(fGenerate, -1, coinbase_script);
+    return generateBlocks(fGenerate, nThreads, coinbase_script);
 }
 
 UniValue rescanblockchain(const JSONRPCRequest& request)
