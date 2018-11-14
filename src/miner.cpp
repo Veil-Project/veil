@@ -619,6 +619,9 @@ bool fGenerateBitcoins = false;
 bool fMintableCoins = false;
 int nMintableLastCheck = 0;
 
+CCriticalSection cs_nonce;
+int32_t nNonce_base = 0;
+
 void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false) {
     LogPrintf("Veil Miner started\n");
 
@@ -676,6 +679,16 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             continue;
 
         CBlock *pblock = &pblocktemplate->block;
+        int32_t nNonceLocal;
+
+        {
+            LOCK(cs_nonce);
+            nNonceLocal = nNonce_base++;
+        }
+
+        auto hash = Hash(BEGIN(nNonceLocal), END(nNonceLocal));
+        pblock->nNonce = (uint32_t)hash.GetUint64(0);
+        pblock->nNonce %= nInnerLoopCount;
         if (pblock->IsProofOfWork())
         {
             {
@@ -684,6 +697,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             }
 
             while (pblock->nNonce < nInnerLoopCount && !CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                boost::this_thread::interruption_point();
                 ++pblock->nNonce;
             }
 
