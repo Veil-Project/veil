@@ -2454,8 +2454,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     }
 
     //Track zerocoin money supply in the block index
-    if (!AddZerocoinsToIndex(pindex, block, mapSpends, mapMints))
-        return state.DoS(100, error("%s: Failed to calculate new zPIV supply for block=%s height=%d", __func__,
+    if (!AddZerocoinsToIndex(pindex, block, mapSpends, mapMints, fJustCheck))
+        return state.DoS(100, error("%s: Failed to calculate new zerocoin supply for block=%s height=%d", __func__,
                                     block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID);
 
     // track money supply and mint amount info
@@ -2510,9 +2510,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // Record zerocoin serials
     //TODO : VEIL-89
     std::set<uint256> setAddedTx;
-    for (auto pSpend: mapSpends) {
-        // Send signal to wallet if this is ours
-        if (pwalletMain) {
+    if (pwalletMain) {
+        for (auto pSpend: mapSpends) {
+            // Send signal to wallet if this is ours
             if (pwalletMain->IsMyZerocoinSpend(pSpend.first.getCoinSerialNumber())) {
                 LogPrintf("%s: %s detected zerocoinspend in transaction %s \n", __func__, pSpend.first.getCoinSerialNumber().GetHex(), pSpend.second.GetHex());
                 // todo: pwalletMain->NotifyZerocoinChanged(pwalletMain, pSpend.first.getCoinSerialNumber().GetHex(), "Used", CT_UPDATED);
@@ -3778,7 +3778,7 @@ std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBloc
 }
 
 bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::map<libzerocoin::CoinSpend, uint256>& mapSpends,
-    const std::map<libzerocoin::PublicCoin, uint256>& mapMints)
+    const std::map<libzerocoin::PublicCoin, uint256>& mapMints, bool fJustCheck)
 {
     //TODO: VEIL-89
     auto pwalletMain = GetMainWallet();
@@ -3802,7 +3802,7 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
             pindex->mapZerocoinSupply.at(denom)++;
 
             //Remove any of our own mints from the mintpool
-            if (!pwalletMain)
+            if (!pwalletMain || fJustCheck)
                 continue;
 
             if (pwalletMain->IsMyMint(coin.getValue())) {
