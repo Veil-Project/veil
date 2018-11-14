@@ -54,7 +54,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
         if (UintToArith256(thash) <= hashTarget)
             break;
         if ((genesis.nNonce & 0xF) == 0) {
-            printf("nonce %08X: hash = %s (target = %s)\n", genesis.nNonce, thash.ToString().c_str(), hashTarget.ToString().c_str());
+            //printf("nonce %08X: hash = %s (target = %s)\n", genesis.nNonce, thash.ToString().c_str(), hashTarget.ToString().c_str());
         }
         ++genesis.nNonce;
         if (genesis.nNonce == 0)
@@ -212,30 +212,11 @@ public:
         nDefaultPort = 58810;
         nPruneAfterHeight = 100000;
 
-        int nTimeStart = 1536258109;
+        int nTimeStart = 1536946053;
         arith_uint256 nBits;
         nBits.SetCompact(0x1e0ffff0);
-        uint32_t nNonce = 0;
-        genesis = CreateGenesisBlock(1536946053, 1644344, 0x1e0ffff0, 1, 50 * COIN);
-//        bool found = false;
-//        while (true) {
-//            genesis = CreateGenesisBlock(++nTimeStart, nNonce, 0x1e0ffff0, 1, 50*COIN);
-//            while (nNonce < 10000000) {
-//                genesis = CreateGenesisBlock(++nTimeStart, nNonce, 0x1e0ffff0, 1, 50*COIN);
-//                auto hash = genesis.GetPoWHash();
-//                std::cout << hash.GetHex() << std::endl;
-//                if (UintToArith256(hash) < nBits) {
-//                    std::cout << "hash:" << genesis.GetHash().GetHex() << std::endl;
-//                    std::cout << "nonce:" << nNonce << std::endl;
-//                    std::cout << "time:" << nTimeStart << std::endl;
-//                    found = true;
-//                    break;
-//                }
-//                ++nNonce;
-//            }
-//            if (found)
-//                break;
-//        }
+        uint32_t nNonce = 1644344;
+        genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(genesis.hashWitnessMerkleRoot == uint256S("0xba3f7b26d123708f3c7927f771bfe02a8469a0398d7a7f074ca6a9ed8c2f89d9"));
         assert(consensus.hashGenesisBlock == uint256S("0x0bc728a2543ffedacae493f47f63d965641bd2caae9dae01c837e4b18e45a07c"));
@@ -448,7 +429,7 @@ public:
 
         genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-       // assert(consensus.hashGenesisBlock == uint256S("0x0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"));
+        assert(consensus.hashGenesisBlock == uint256S("0x69a3e87fd68d403c3cd38af25e4eb2fe9454ea7e705575692f077dd9e5e6cd97"));
         //assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
@@ -482,6 +463,20 @@ public:
         m_fallback_fee_enabled = true;
 
         strNetworkRewardAddress = "2N9sWUmygPRy1c14eFWt8FzA8YF4JgA6j6a";
+
+        /** Zerocoin */
+        zerocoinModulus = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784"
+                          "4069182906412495150821892985591491761845028084891200728449926873928072877767359714183472702618963750149718246911"
+                          "6507761337985909570009733045974880842840179742910064245869181719511874612151517265463228221686998754918242243363"
+                          "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
+                          "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
+                          "31438167899885040445364023527381951378636564391212010397122822120720357";
+        nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
+        nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
+        nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
+        nRequiredAccumulation = 1;
+        nDefaultSecurityLevel = 100; //full security level for accumulators
+        nZerocoinRequiredStakeDepth = 400; //The required confirmations for a zpiv to be stakable
     }
 };
 
