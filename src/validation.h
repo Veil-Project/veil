@@ -438,7 +438,7 @@ bool RewindBlockIndex(const CChainParams& params);
 void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams);
 
 bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::map<libzerocoin::CoinSpend, uint256>& mapSpends,
-                         const std::map<libzerocoin::PublicCoin, uint256>& mapMints);
+                         const std::map<libzerocoin::PublicCoin, uint256>& mapMints, bool fJustCheck);
 
 /** Produce the necessary coinbase commitment for a block (modifies the hash, don't call for mined blocks). */
 std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams);
