@@ -693,15 +693,18 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         {
             {
                 LOCK(cs_main);
+                nExtraNonce = nNonceLocal;
                 IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
             }
 
-            while (pblock->nNonce < nInnerLoopCount && !CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
+            int nTries = 0;
+            while (nTries < nInnerLoopCount && !CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
                 boost::this_thread::interruption_point();
+                ++nTries;
                 ++pblock->nNonce;
             }
 
-            if (pblock->nNonce == nInnerLoopCount) {
+            if (nTries == nInnerLoopCount) {
                 continue;
             }
         }
