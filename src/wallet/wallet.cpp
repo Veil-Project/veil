@@ -2674,15 +2674,34 @@ CAmount CWallet::GetZerocoinBalance(bool fMatureOnly) const
         CAmount nBalance = 0;
         std::vector<CMintMeta> vMints = zTracker->GetMints(true);
         for (auto meta : vMints) {
-            //todo
-            //if (meta.nHeight >= mapMintMaturity.at(meta.denom) || meta.nHeight >= chainActive.Height() || meta.nHeight == 0)
-            //    continue;
+            if (!mapMintMaturity.count(meta.denom) || meta.nHeight >= mapMintMaturity.at(meta.denom) || meta.nHeight >= chainActive.Height() || meta.nHeight == 0)
+                continue;
             nBalance += libzerocoin::ZerocoinDenominationToAmount(meta.denom);
         }
         return nBalance;
     }
 
     return zTracker->GetBalance(false, false);
+}
+
+CAmount CWallet::GetUnconfirmedZerocoinBalance() const
+{
+    return zTracker->GetUnconfirmedBalance();
+}
+
+CAmount CWallet::GetImmatureZerocoinBalance() const
+{
+    if (chainActive.Height() > nLastMaturityCheck)
+        mapMintMaturity = GetMintMaturityHeight();
+    nLastMaturityCheck = chainActive.Height();
+
+    CAmount nBalance = 0;
+    std::vector<CMintMeta> vMints = zTracker->GetMints(false);
+    for (auto meta : vMints) {
+        if (!mapMintMaturity.count(meta.denom) || meta.nHeight >= mapMintMaturity.at(meta.denom) || meta.nHeight >= chainActive.Height() || meta.nHeight == 0)
+            nBalance += libzerocoin::ZerocoinDenominationToAmount(meta.denom);
+    }
+    return nBalance;
 }
 
 // TODO: verify this method is implemented correctly
