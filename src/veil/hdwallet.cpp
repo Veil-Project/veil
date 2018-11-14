@@ -152,8 +152,6 @@ bool CHDWallet::Initialise()
 {
     fParticlWallet = true;
 
-    std::cout << "initialising hd wallet\n";
-
     if (!ParseMoney(gArgs.GetArg("-reservebalance", ""), nReserveBalance)) {
         return InitError(_("Invalid amount for -reservebalance=<amount>"));
     }
@@ -8348,7 +8346,6 @@ bool CHDWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t 
 bool CHDWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate)
 {
     const CTransaction& tx = *ptx;
-    std::cout << "---------in add to wallet if involving me" << "\n";
 
     {
         AssertLockHeld(cs_wallet);

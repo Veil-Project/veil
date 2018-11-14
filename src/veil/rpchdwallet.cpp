@@ -1804,8 +1804,8 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
 
     {
         CValidationState state;
-        CAmount nFee = 0;
-        if (!Consensus::CheckTxInputs(txConst, state, view, nSpendHeight, nFee)) {
+        CAmount nFee = 0, nValueIn = 0, nValueOut = 0;
+        if (!Consensus::CheckTxInputs(txConst, state, view, nSpendHeight, nFee, nValueIn, nValueOut)) {
             vErrors.push_back("CheckTxInputs: \"" + state.GetRejectReason() + "\"");
         }
     }

@@ -439,7 +439,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
 }
 
 bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs,
-                              int nSpendHeight, CAmount& txfee)
+                              int nSpendHeight, CAmount& txfee, CAmount& nValueIn, CAmount& nValueOut)
 {
     // reset per tx
     state.fHasAnonOutput = false;
@@ -457,8 +457,8 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     std::vector<const secp256k1_pedersen_commitment*> vpCommitsIn, vpCommitsOut;
-    size_t nStandard = 0, nCt = 0, nRingCT = 0;
-    CAmount nValueIn = 0;
+    size_t nStandard = 0, nCt = 0, nRingCT = 0, nZerocoin = 0;
+    nValueIn = 0;
     for (unsigned int i = 0; i < tx.vin.size(); ++i) {
         if (tx.vin[i].IsAnonInput()) {
             state.fHasAnonInput = true;
@@ -473,7 +473,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
             if (!MoneyRange(nValue))
                 return false;
             nValueIn += nValue;
-            LogPrintf("%s: zerocoin input nSequence = %d \n", __func__, nValue);
+            nZerocoin++;
             continue;
         }
         const COutPoint &prevout = tx.vin[i].prevout;
@@ -507,11 +507,11 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         }
     }
 
-    if ((nStandard > 0) + (nCt > 0) + (nRingCT > 0) > 1)
+    if ((nStandard > 0) + (nCt > 0) + (nRingCT > 0) + (nZerocoin > 0) > 1)
         return state.DoS(100, false, REJECT_INVALID, "mixed-input-types");
 
     size_t nRingCTInputs = nRingCT;
-    // GetPlainValueOut adds to nStandard, nCt, nRingCT
+    // GetPlainValueOut adds to nStandard, nCt, nRingCT //todo double check zerocoinmint here
     CAmount nPlainValueOut = tx.GetPlainValueOut(nStandard, nCt, nRingCT);
     state.fHasAnonOutput = nRingCT > nRingCTInputs;
 
@@ -601,5 +601,6 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
             return state.DoS(100, false, REJECT_INVALID, "bad-commitment-sum");
     }
 
+    nValueOut = nPlainValueOut;
     return true;
 }

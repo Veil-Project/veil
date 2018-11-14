@@ -248,7 +248,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
         veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
         coinbaseTx.vpout.resize(nBudgetPayment > 0 ? 2 : 1);
-        std::cout << nBlockReward << " " << nFounderPayment << " " << nLabPayment << " " << nBudgetPayment << "\n";
 
         OUTPUT_PTR<CTxOutStandard> outCoinbase = MAKE_OUTPUT<CTxOutStandard>();
         outCoinbase->scriptPubKey = scriptPubKeyIn;
@@ -269,13 +268,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
 
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
-    std::cout << pblock->vtx[0]->GetValueOut() << "\n";
 
     pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev, chainparams.GetConsensus());
-    std::cout << "create block thinks vout is " << pblock->vtx[0]->vout.size() << "\n";
     pblocktemplate->vTxFees[0] = -nFees;
     if(fProofOfStake) {
-        std::cout << "proof of stake\n";
         CMutableTransaction coinstakeTx;
         coinstakeTx.vout.resize(1);
         CTxOut txOutEmpty;
@@ -599,7 +595,6 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
 
     bool malleated = false;
     pblock->hashWitnessMerkleRoot = BlockWitnessMerkleRoot(*pblock, &malleated);
-    std::cout << "merkle root should be " << pblock->hashWitnessMerkleRoot.GetHex() << "\n";
 }
 
 bool fGenerateBitcoins = false;
@@ -672,8 +667,6 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         if (pblock->nNonce == nInnerLoopCount) {
             continue;
         }
-
-        std::cout << "pow hash of new block: " << pblock->GetPoWHash().GetHex() << "\n";
 
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
