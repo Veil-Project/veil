@@ -7,6 +7,7 @@
 
 #include <wallet/wallet.h>
 #include <veil/hdwalletdb.h>
+#include <veil/rpchdwallet.h>
 #include <veil/extkey.h>
 
 #include <key_io.h>

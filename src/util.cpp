@@ -84,8 +84,8 @@ const int64_t nStartupTime = GetTime();
 const char * const BITCOIN_CONF_FILENAME = "veil.conf";
 const char * const BITCOIN_PID_FILENAME = "veild.pid";
 
-bool fParticlMode = false;
-bool fParticlWallet = false;
+bool fParticlMode = true;
+bool fParticlWallet = true;
 
 // Automatic Zerocoin minting
 bool fEnableZeromint = true;

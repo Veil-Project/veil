@@ -266,7 +266,7 @@ bool CheckValue(CValidationState &state, CAmount nValue, CAmount &nValueOut)
 
 bool CheckStandardOutput(CValidationState &state, const Consensus::Params& consensusParams, const CTxOutStandard *p, CAmount &nValueOut)
 {
-    return !CheckValue(state, p->nValue, nValueOut);
+    return CheckValue(state, p->nValue, nValueOut);
 }
 
 bool CheckBlindOutput(CValidationState &state, const CTxOutCT *p)
@@ -334,8 +334,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     // Basic checks that don't depend on any context
     if (tx.vin.empty())
         return state.DoS(10, false, REJECT_INVALID, "bad-txns-vin-empty");
-    if (tx.vout.empty())
-        return state.DoS(10, false, REJECT_INVALID, "bad-txns-vout-empty");
+
     // Size limits (this doesn't take the witness into account, as that hasn't been checked for malleability)
     if (::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT)
         return state.DoS(100, false, REJECT_INVALID, "bad-txns-oversize");
@@ -458,7 +457,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     std::vector<const secp256k1_pedersen_commitment*> vpCommitsIn, vpCommitsOut;
-    size_t nStandard = 0, nCt = 0, nRingCT = 0;
+    size_t nStandard = 0, nCt = 0, nRingCT = 0, nZerocoin = 0;
     nValueIn = 0;
     for (unsigned int i = 0; i < tx.vin.size(); ++i) {
         if (tx.vin[i].IsAnonInput()) {
@@ -474,7 +473,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
             if (!MoneyRange(nValue))
                 return false;
             nValueIn += nValue;
-            LogPrintf("%s: zerocoin input nSequence = %d \n", __func__, nValue);
+            nZerocoin++;
             continue;
         }
         const COutPoint &prevout = tx.vin[i].prevout;
@@ -508,11 +507,11 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         }
     }
 
-    if ((nStandard > 0) + (nCt > 0) + (nRingCT > 0) > 1)
+    if ((nStandard > 0) + (nCt > 0) + (nRingCT > 0) + (nZerocoin > 0) > 1)
         return state.DoS(100, false, REJECT_INVALID, "mixed-input-types");
 
     size_t nRingCTInputs = nRingCT;
-    // GetPlainValueOut adds to nStandard, nCt, nRingCT
+    // GetPlainValueOut adds to nStandard, nCt, nRingCT //todo double check zerocoinmint here
     CAmount nPlainValueOut = tx.GetPlainValueOut(nStandard, nCt, nRingCT);
     state.fHasAnonOutput = nRingCT > nRingCTInputs;
 
@@ -602,5 +601,6 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
             return state.DoS(100, false, REJECT_INVALID, "bad-commitment-sum");
     }
 
+    nValueOut = nPlainValueOut;
     return true;
 }

@@ -16,6 +16,7 @@
 #include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
+#include <veil/hdwallet.h>
 
 void WalletInit::AddWalletOptions() const
 {
@@ -201,6 +202,11 @@ bool WalletInit::Open() const
         if (!pwallet) {
             return false;
         }
+
+        std::cout << "about to initialise hd wallet\n";
+
+        if (fParticlMode && !((CHDWallet*)pwallet.get())->Initialise())
+            return false;
 
         AddWallet(pwallet);
     }

@@ -11,6 +11,7 @@
 
 #include <addrman.h>
 #include <amount.h>
+#include <blind.h>
 #include <chain.h>
 #include <chainparams.h>
 #include <checkpoints.h>
@@ -49,9 +50,15 @@
 #include <walletinitinterface.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <veil/hdwallet.h>
+#include <anon.h>
 
 #ifndef WIN32
 #include <signal.h>
+#endif
+
+#ifdef ENABLE_WALLET
+#include <veil/hdwallet.h>
 #endif
 
 #include <boost/algorithm/string/classification.hpp>
@@ -290,6 +297,8 @@ void Shutdown()
     g_wallet_init_interface.Close();
     globalVerifyHandle.reset();
     ECC_Stop();
+    ECC_Stop_Stealth();
+    ECC_Stop_Blinding();
     LogPrintf("%s: done\n", __func__);
 }
 
@@ -1201,6 +1210,8 @@ bool AppInitSanityChecks()
     LogPrintf("Using the '%s' SHA256 implementation\n", sha256_algo);
     RandomInit();
     ECC_Start();
+    ECC_Start_Stealth();
+    ECC_Start_Blinding();
     globalVerifyHandle.reset(new ECCVerifyHandle());
 
     // Sanity check
@@ -1281,6 +1292,11 @@ bool AppInitMain()
      */
     RegisterAllCoreRPCCommands(tableRPC);
     g_wallet_init_interface.RegisterRPC(tableRPC);
+
+#ifdef ENABLE_WALLET
+    RegisterHDWalletRPCCommands(tableRPC);
+#endif
+
 #if ENABLE_ZMQ
     RegisterZMQRPCCommands(tableRPC);
 #endif

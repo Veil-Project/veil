@@ -666,7 +666,8 @@ void CTxMemPool::clear()
 static void CheckInputsAndUpdateCoins(const CTransaction& tx, CCoinsViewCache& mempoolDuplicate, const int64_t spendheight)
 {
     CValidationState state;
-    CAmount txfee, nValueIn, nValueOut = 0;
+    CAmount txfee;
+    CAmount nValueIn = 0, nValueOut = 0;
     bool fCheckResult = tx.IsCoinBase() || Consensus::CheckTxInputs(tx, state, mempoolDuplicate, spendheight, txfee, nValueIn, nValueOut);
     assert(fCheckResult);
     UpdateCoins(tx, mempoolDuplicate, 1000000);
