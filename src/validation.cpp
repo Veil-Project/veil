@@ -3898,7 +3898,8 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
  *  in ConnectBlock().
  *  Note that -reindex-chainstate skips the validation that happens here!
  */
-static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& params, const CBlockIndex* pindexPrev, int64_t nAdjustedTime)
+static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& params,
+        const CBlockIndex* pindexPrev, int64_t nAdjustedTime)
 {
     assert(pindexPrev != nullptr);
     const int nHeight = pindexPrev->nHeight + 1;
@@ -3937,6 +3938,25 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     return true;
 }
 
+bool CheckConsecutivePoW(const CBlock& block, const CBlockIndex* pindexPrev) {
+    // the current block being PoS means that there are 0 consecutive PoW blocks
+    if (block.IsProofOfStake()) {
+        return true;
+    }
+
+    // iterate through previous block indexes until the genesis block is hit,
+    // a proof of stake block is hit, or the limit is reached for pow blocks
+    for (int i = 1; i <= Params().MaxConsecutivePoWBlocks(); i++) {
+        if (!pindexPrev || pindexPrev->IsProofOfStake()) {
+            return true;
+        }
+
+        pindexPrev = pindexPrev->pprev;
+    }
+
+    return false;
+}
+
 /** NOTE: This function is not currently invoked by ConnectBlock(), so we
  *  should consider upgrade issues if we change which consensus rules are
  *  enforced in this function (eg by adding a new consensus rule). See comment
@@ -3953,6 +3973,10 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     if (block.GetHash() != Params().GenesisBlock().GetHash()
             && block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake()))
         return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, strprintf("incorrect proof of work: block bits=%d calc=%d", block.nBits, GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake())));
+
+    if (pindexPrev->nHeight >= Params().ConsecutivePoWHeight() && !CheckConsecutivePoW(block, pindexPrev)) {
+        return state.DoS(100, false, REJECT_INVALID, "bad-pow", false, strprintf("too many consecutive pow blocks"));
+    }
 
     // Start enforcing BIP113 (Median Time Past) using versionbits logic.
     int nLockTimeFlags = 0;
