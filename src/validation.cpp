@@ -3972,7 +3972,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     // Verify that the budget output is valid
     if (block.GetHash() != consensusParams.hashGenesisBlock) {
         if (block.IsProofOfWork()) {
-            if (block.vtx[0]->vpout.size() < 2 || !veil::CheckBudgetTransaction(pindexPrev->nHeight+1, *block.vtx[0], state))
+            if (!veil::CheckBudgetTransaction(pindexPrev->nHeight+1, *block.vtx[0], state))
                 return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(), strprintf("Budget transaction check failed on PoW Block"));
         } else {
             if (!veil::CheckBudgetTransaction(pindexPrev->nHeight+1, *block.vtx[1], state))
