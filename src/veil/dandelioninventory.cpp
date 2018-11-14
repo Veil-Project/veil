@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <timedata.h>
-#include <libzerocoin/bignum.h>
 #include "dandelioninventory.h"
 
 namespace veil {
@@ -106,25 +105,23 @@ void DandelionInventory::Process(const std::vector<CNode*>& vNodes)
             continue;
 
         //If rolled recently, then wait
-        if (GetAdjustedTime() - stem.nTimeStemEnd > 5)
+        if (GetAdjustedTime() - stem.nTimeLastRoll < 5)
             continue;
+        mapStemInventory.at(hash).nTimeLastRoll = GetAdjustedTime();
 
         //Set the index to send to
-        CBigNum bnRandomNodeIndex;
         int64_t nNodeID;
         do {
-            bnRandomNodeIndex = CBigNum::randBignum(CBigNum(vNodes.size()));
-            nNodeID = vNodes[bnRandomNodeIndex.getint()]->GetId();
+            int nRand = GetRandInt(static_cast<int>(vNodes.size() - 1));
+            nNodeID = vNodes[nRand]->GetId();
         }
         while (nNodeID == stem.nNodeIDFrom);
         mapNodeToSentTo.insert(std::make_pair<uint256&, int64_t& >(hash, nNodeID));
 
         // Randomly decide to send this if it is in stem phase
-        auto n = (int64_t)&stem.nTimeStemEnd; //get sort of random entropy from memory location
-        if (n % 3 == 0)
+        auto n = GetRandInt(3);
+        if (n == 1)
             setPendingSend.emplace(hash);
-        else
-            mapStemInventory.at(hash).nTimeLastRoll = GetAdjustedTime();
     }
 }
 
