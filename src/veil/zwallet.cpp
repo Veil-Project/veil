@@ -30,12 +30,33 @@ CzWallet::CzWallet(CWallet* wallet)
         LogPrintf("%s: failed to get deterministic seed\n", __func__);
         return;
     }
+    seedMaster = seed;
 
     if (!walletdb.ReadZCount(nCountLastUsed)) {
         nCountLastUsed = 0;
     }
 
     this->mintPool = CMintPool(nCountLastUsed);
+}
+
+bool CzWallet::SetMasterSeed(const uint256& seedMaster, bool fResetCount)
+{
+
+    WalletBatch walletdb(*walletDatabase);
+    auto pwalletMain = GetMainWallet();
+
+    this->seedMaster = seedMaster;
+
+    nCountLastUsed = 0;
+
+    if (fResetCount)
+        walletdb.WriteZCount(nCountLastUsed);
+    else if (!walletdb.ReadZCount(nCountLastUsed))
+        nCountLastUsed = 0;
+
+    mintPool.Reset();
+
+    return true;
 }
 
 void CzWallet::Lock()
@@ -91,7 +112,7 @@ void CzWallet::GenerateMintPool(uint32_t nCountStart, uint32_t nCountEnd)
         CBigNum bnSerial;
         CBigNum bnRandomness;
         CKey key;
-        SeedToZPIV(seedZerocoin, bnValue, bnSerial, bnRandomness, key);
+        SeedToZerocoin(seedZerocoin, bnValue, bnSerial, bnRandomness, key);
 
         mintPool.Add(bnValue, i);
         WalletBatch(*walletDatabase).WriteMintPoolPair(hashSeed, GetPubCoinHash(bnValue), i);
@@ -130,6 +151,8 @@ void CzWallet::SyncWithChain(bool fGenerateMintPool)
     bool found = true;
     WalletBatch walletdb(*walletDatabase);
     auto pwalletmain = GetMainWallet();
+    if (!pwalletmain || !pwalletmain->zTracker)
+        return;
 
     set<uint256> setAddedTx;
     while (found) {
@@ -139,7 +162,7 @@ void CzWallet::SyncWithChain(bool fGenerateMintPool)
         LogPrintf("%s: Mintpool size=%d\n", __func__, mintPool.size());
 
         std::set<uint256> setChecked;
-        list<pair<uint256,uint32_t> > listMints = mintPool.List();
+        std::list<pair<uint256,uint32_t> > listMints = mintPool.List();
         for (pair<uint256, uint32_t> pMint : listMints) {
             LOCK(cs_main);
             if (setChecked.count(pMint.first))
@@ -247,7 +270,7 @@ bool CzWallet::SetMintSeen(const CBigNum& bnValue, const int& nHeight, const uin
     CBigNum bnSerial;
     CBigNum bnRandomness;
     CKey key;
-    SeedToZPIV(seedZerocoin, bnValueGen, bnSerial, bnRandomness, key);
+    SeedToZerocoin(seedZerocoin, bnValueGen, bnSerial, bnRandomness, key);
 
     //Sanity check
     if (bnValueGen != bnValue)
@@ -313,7 +336,7 @@ bool IsValidCoinValue(const CBigNum& bnValue)
            bnValue.isPrime();
 }
 
-void CzWallet::SeedToZPIV(const uint512& seedZerocoin, CBigNum& bnValue, CBigNum& bnSerial, CBigNum& bnRandomness, CKey& key)
+void CzWallet::SeedToZerocoin(const uint512& seedZerocoin, CBigNum& bnValue, CBigNum& bnSerial, CBigNum& bnRandomness, CKey& key)
 {
     auto zerocoinParams = Params().Zerocoin_Params();
 
@@ -399,7 +422,7 @@ void CzWallet::GenerateMint(const uint32_t& nCount, const CoinDenomination denom
     CBigNum bnSerial;
     CBigNum bnRandomness;
     CKey key;
-    SeedToZPIV(seedZerocoin, bnValue, bnSerial, bnRandomness, key);
+    SeedToZerocoin(seedZerocoin, bnValue, bnSerial, bnRandomness, key);
     coin = PrivateCoin(zerocoinParams, denom, bnSerial, bnRandomness);
     coin.setPrivKey(key.GetPrivKey());
     coin.setVersion(PrivateCoin::CURRENT_VERSION);

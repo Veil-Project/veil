@@ -17,6 +17,7 @@
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 #include <veil/hdwallet.h>
+#include <veil/zwallet.h>
 
 void WalletInit::AddWalletOptions() const
 {
@@ -199,16 +200,15 @@ bool WalletInit::Open() const
 
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
         std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(walletFile, fs::absolute(walletFile, GetWalletDir()));
-        if (!pwallet) {
+        if (!pwallet)
             return false;
-        }
-
-        std::cout << "about to initialise hd wallet\n";
 
         if (fParticlMode && !((CHDWallet*)pwallet.get())->Initialise())
             return false;
 
         AddWallet(pwallet);
+        pwallet->getZWallet()->LoadMintPoolFromDB();
+        pwallet->getZWallet()->SyncWithChain();
     }
 
     return true;

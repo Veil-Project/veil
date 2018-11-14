@@ -13,18 +13,21 @@
 #include "libzerocoin/bignum.h"
 #include <boost/test/unit_test.hpp>
 #include <iostream>
-//#include <accumulators.h>
+#include <primitives/deterministicmint.h>
+#include <veil/zwallet.h>
+#include <accumulators.h>
 #include "wallet/wallet.h"
-//#include "zpivwallet.h"
-//#include "zpivchain.h"
+#include "veil/zchain.h"
+#include "consensus/tx_verify.h"
+#include "validation.h"
 
 using namespace libzerocoin;
 
-extern bool DecodeHexTx(CTransaction& tx, const std::string& strHexTx);
+//extern bool DecodeHexTx(CTransaction& tx, const std::string& strHexTx);
 
 BOOST_AUTO_TEST_SUITE(zerocoin_implementation_tests)
 
-/*
+
 BOOST_AUTO_TEST_CASE(zcparams_test)
 {
     cout << "Running zcparams_test...\n";
@@ -32,7 +35,7 @@ BOOST_AUTO_TEST_CASE(zcparams_test)
     bool fPassed = true;
     try{
         SelectParams(CBaseChainParams::MAIN);
-        ZerocoinParams *ZCParams = Params().Zerocoin_Params(false);
+        ZerocoinParams *ZCParams = Params().Zerocoin_Params();
         (void)ZCParams;
     } catch(std::exception& e) {
         fPassed = false;
@@ -89,7 +92,7 @@ BOOST_AUTO_TEST_CASE(bignum_basic_tests)
     BOOST_CHECK_MESSAGE(bn2 == bn, "CBigNum.setvch() or CBigNum.getvch() does not work correctly");
 }
 
-//ZQ_ONE mints
+//ZQ_TEN mints
 std::string rawTx1 = "0100000001983d5fd91685bb726c0ebc3676f89101b16e663fd896fea53e19972b95054c49000000006a473044022010fbec3e78f9c46e58193d481caff715ceb984df44671d30a2c0bde95c54055f0220446a97d9340da690eaf2658e5b2bf6a0add06f1ae3f1b40f37614c7079ce450d012103cb666bd0f32b71cbf4f32e95fa58e05cd83869ac101435fcb8acee99123ccd1dffffffff0200e1f5050000000086c10280004c80c3a01f94e71662f2ae8bfcd88dfc5b5e717136facd6538829db0c7f01e5fd793cccae7aa1958564518e0223d6d9ce15b1e38e757583546e3b9a3f85bd14408120cd5192a901bb52152e8759fdd194df230d78477706d0e412a66398f330be38a23540d12ab147e9fb19224913f3fe552ae6a587fb30a68743e52577150ff73042c0f0d8f000000001976a914d6042025bd1fff4da5da5c432d85d82b3f26a01688ac00000000";
 std::string rawTxpub1 = "473ff507157523e74680ab37f586aae52e53f3f912492b19f7e14ab120d54238ae30b338f39662a410e6d707784d730f24d19dd9f75e85221b51b902a19d50c120844d15bf8a3b9e346355857e7381e5be19c6d3d22e01845565819aae7cacc93d75f1ef0c7b09d823865cdfa3671715e5bfc8dd8fc8baef26216e7941fa0c3";
 std::string rawTxRand1 = "9fc222b16be09eb88affbdfbcc02d1c8b28f5e843c72eb06c89dd7aff0c60838";
@@ -132,19 +135,19 @@ BOOST_AUTO_TEST_CASE(checkzerocoinmint_test)
 
 
     cout << "Running check_zerocoinmint_test...\n";
-    CTransaction tx;
-    BOOST_CHECK(DecodeHexTx(tx, rawTx1));
+//    CTransaction tx;
+//    //BOOST_CHECK(DecodeHexTx(tx, rawTx1));
 
-    CValidationState state;
-    bool fFoundMint = false;
-    for(unsigned int i = 0; i < tx.vout.size(); i++){
-        if(!tx.vout[i].scriptPubKey.empty() && tx.vout[i].scriptPubKey.IsZerocoinMint()) {
-            BOOST_CHECK(CheckZerocoinMint(tx.GetHash(), tx.vout[i], state, true));
-            fFoundMint = true;
-        }
-    }
-
-    BOOST_CHECK(fFoundMint);
+//    bool fFoundMint = false;
+//    CValidationState state;
+//    for(unsigned int i = 0; i < tx.vout.size(); i++){
+//        if(!tx.vout[i].scriptPubKey.empty() && tx.vout[i].scriptPubKey.IsZerocoinMint()) {
+//            BOOST_CHECK(CheckZerocoinMint(tx.vout[i], state));
+//            fFoundMint = true;
+//        }
+//    }
+//
+//    BOOST_CHECK(fFoundMint);
 }
 
 bool CheckZerocoinSpendNoDB(const CTransaction tx, string& strError)
@@ -175,7 +178,7 @@ bool CheckZerocoinSpendNoDB(const CTransaction tx, string& strError)
     set<CBigNum> serials;
     list<CoinSpend> vSpends;
     CAmount nTotalRedeemed = 0;
-    BOOST_FOREACH(const CTxIn& txin, tx.vin) {
+    for (const CTxIn& txin : tx.vin) {
 
         //only check txin that is a zcspend
         if (!txin.scriptSig.IsZerocoinSpend())
@@ -186,8 +189,8 @@ bool CheckZerocoinSpendNoDB(const CTransaction tx, string& strError)
         dataTxIn.insert(dataTxIn.end(), txin.scriptSig.begin() + 4, txin.scriptSig.end());
         CDataStream serializedCoinSpend(dataTxIn, SER_NETWORK, PROTOCOL_VERSION);
 
-        libzerocoin::ZerocoinParams* paramsAccumulator = Params().Zerocoin_Params(false);
-        CoinSpend newSpend(Params().Zerocoin_Params(true), paramsAccumulator, serializedCoinSpend);
+        libzerocoin::ZerocoinParams* paramsAccumulator = Params().Zerocoin_Params();
+        CoinSpend newSpend(Params().Zerocoin_Params(), paramsAccumulator, serializedCoinSpend);
 
         vSpends.push_back(newSpend);
 
@@ -258,23 +261,22 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     //load our serialized pubcoin
     CBigNum bnpubcoin;
     BOOST_CHECK_MESSAGE(bnpubcoin.SetHexBool(rawTxpub1), "Failed to set CBigNum from hex string");
-    PublicCoin pubCoin(Params().Zerocoin_Params(true), bnpubcoin, CoinDenomination::ZQ_ONE);
+    PublicCoin pubCoin(Params().Zerocoin_Params(), bnpubcoin, CoinDenomination::ZQ_TEN);
     BOOST_CHECK_MESSAGE(pubCoin.validate(), "Failed to validate pubCoin created from hex string");
 
     //initialize and Accumulator and AccumulatorWitness
-    Accumulator accumulator(Params().Zerocoin_Params(false), CoinDenomination::ZQ_ONE);
-    AccumulatorWitness witness(Params().Zerocoin_Params(false), accumulator, pubCoin);
+    Accumulator accumulator(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN);
+    AccumulatorWitness witness(Params().Zerocoin_Params(), accumulator, pubCoin);
 
     //populate the witness and accumulators
-    CValidationState state;
     for(pair<string, string> raw : vecRawMints) {
         CTransaction tx;
-        BOOST_CHECK_MESSAGE(DecodeHexTx(tx, raw.first), "Failed to deserialize hex transaction");
+        //BOOST_CHECK_MESSAGE(DecodeHexTx(tx, raw.first), "Failed to deserialize hex transaction");
 
         for(const CTxOut& out : tx.vout){
             if(!out.scriptPubKey.empty() && out.scriptPubKey.IsZerocoinMint()) {
-                PublicCoin publicCoin(Params().Zerocoin_Params(true));
-                BOOST_CHECK_MESSAGE(TxOutToPublicCoin(out, publicCoin, state), "Failed to convert CTxOut " << out.ToString() << " to PublicCoin");
+                PublicCoin publicCoin(Params().Zerocoin_Params());
+                BOOST_CHECK_MESSAGE(TxOutToPublicCoin(out, publicCoin), "Failed to convert CTxOut " << out.ToString() << " to PublicCoin");
 
                 accumulator += publicCoin;
                 witness += publicCoin;
@@ -283,7 +285,7 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     }
 
     // Create a New Zerocoin with specific denomination given by pubCoin
-    PrivateCoin privateCoin(Params().Zerocoin_Params(true), pubCoin.getDenomination());
+    PrivateCoin privateCoin(Params().Zerocoin_Params(), pubCoin.getDenomination());
     privateCoin.setPublicCoin(pubCoin);
     CBigNum bn = 0;
     bn.SetHex(rawTxRand1);
@@ -294,9 +296,9 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     privateCoin.setVersion(1);
 
     //Get the checksum of the accumulator we use for the spend and also add it to our checksum map
-    uint32_t nChecksum = GetChecksum(accumulator.getValue());
+    auto hashChecksum = GetChecksum(accumulator.getValue());
     //AddAccumulatorChecksum(nChecksum, accumulator.getValue(), true);
-    CoinSpend coinSpend(Params().Zerocoin_Params(true), Params().Zerocoin_Params(false), privateCoin, accumulator, nChecksum, witness, 0, SpendType::SPEND);
+    CoinSpend coinSpend(Params().Zerocoin_Params(), Params().Zerocoin_Params(), privateCoin, accumulator, hashChecksum, witness, uint256(), SpendType::SPEND);
     cout << coinSpend.ToString() << endl;
     BOOST_CHECK_MESSAGE(coinSpend.Verify(accumulator), "Coinspend construction failed to create valid proof");
 
@@ -320,7 +322,7 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     std::vector<unsigned char> data(serializedCoinSpend2.begin(), serializedCoinSpend2.end());
 
     /** Check valid spend */
-/*
+
     CTxIn newTxIn;
     newTxIn.nSequence = 1;
     newTxIn.scriptSig = CScript() << OP_ZEROCOINSPEND << data.size();
@@ -333,29 +335,28 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
 
     CDataStream serializedCoinSpend(dataTxIn, SER_NETWORK, PROTOCOL_VERSION);
     //old params for the V1 generated coin, new params for the accumulator. Emulates main-net transition.
-    CoinSpend spend1(Params().Zerocoin_Params(true), Params().Zerocoin_Params(false), serializedCoinSpend);
+    CoinSpend spend1(Params().Zerocoin_Params(), Params().Zerocoin_Params(), serializedCoinSpend);
     BOOST_CHECK_MESSAGE(spend1.Verify(accumulator), "Failed deserialized check of CoinSpend");
 
     CScript script;
     CTxOut txOut(1 * COIN, script);
 
-    CTransaction txNew;
+    CMutableTransaction txNew;
     txNew.vin.push_back(newTxIn);
     txNew.vout.push_back(txOut);
 
     CTransaction txMintFrom;
-    BOOST_CHECK_MESSAGE(DecodeHexTx(txMintFrom, rawTx1), "Failed to deserialize hex transaction");
+    //BOOST_CHECK_MESSAGE(DecodeHexTx(txMintFrom, rawTx1), "Failed to deserialize hex transaction");
 
     string strError = "";
     if (!CheckZerocoinSpendNoDB(txNew, strError)) {
-        cout << state.GetRejectCode() << endl;
-        BOOST_CHECK_MESSAGE(false, strError);
+        BOOST_CHECK_MESSAGE(false, "checkzerocoinspend failed");
     }
 
     /**check an overspend*/
-/*
+
     CTxOut txOutOverSpend(100 * COIN, script);
-    CTransaction txOverSpend;
+    CMutableTransaction txOverSpend;
     txOverSpend.vin.push_back(newTxIn);
     txOverSpend.vout.push_back(txOutOverSpend);
     strError = "";
@@ -367,12 +368,12 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     cout << "checking v2 spend\n";
 
     CMutableTransaction tx;
-    uint256 txHash = 0;
+    uint256 txHash;
     CTxIn in(txHash, 0);
     tx.vin.emplace_back(in);
 
     // Create a New Zerocoin with specific denomination given by pubCoin
-    PrivateCoin privateCoin_v2(Params().Zerocoin_Params(false), CoinDenomination::ZQ_ONE);
+    PrivateCoin privateCoin_v2(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN);
 
     CKey key;
     key.SetPrivKey(privateCoin.getPrivKey(), true);
@@ -380,14 +381,13 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     PublicCoin pubcoin_v2 = privateCoin_v2.getPublicCoin();
 
     //initialize and Accumulator and AccumulatorWitness
-    Accumulator accumulator_v2(Params().Zerocoin_Params(false), CoinDenomination::ZQ_ONE);
-    AccumulatorWitness witness_v2(Params().Zerocoin_Params(false), accumulator_v2, pubcoin_v2);
+    Accumulator accumulator_v2(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN);
+    AccumulatorWitness witness_v2(Params().Zerocoin_Params(), accumulator_v2, pubcoin_v2);
 
     //populate the witness and accumulators - with old v1 params
     int64_t nTimeStart = GetTimeMillis();
-    CValidationState state_v2;
     for(int i = 0; i < 5; i++) {
-        PrivateCoin privTemp(Params().Zerocoin_Params(true), CoinDenomination::ZQ_ONE);
+        PrivateCoin privTemp(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN);
         PublicCoin pubTemp = privTemp.getPublicCoin();
         accumulator_v2 += pubTemp;
         witness_v2 += pubTemp;
@@ -397,12 +397,12 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     accumulator_v2 += pubcoin_v2;
 
     //Get the checksum of the accumulator we use for the spend and also add it to our checksum map
-    uint32_t nChecksum_v2 = GetChecksum(accumulator_v2.getValue());
+    auto hashChecksum_v2 = GetChecksum(accumulator_v2.getValue());
     //AddAccumulatorChecksum(nChecksum_v2, accumulator_v2.getValue(), true);
     uint256 ptxHash = CBigNum::RandKBitBigum(256).getuint256();
-    CoinSpend coinSpend_v2(Params().Zerocoin_Params(false), Params().Zerocoin_Params(false), privateCoin_v2, accumulator_v2, nChecksum_v2, witness_v2, ptxHash, SpendType::SPEND);
+    CoinSpend coinSpend_v2(Params().Zerocoin_Params(), Params().Zerocoin_Params(), privateCoin_v2, accumulator_v2, hashChecksum_v2, witness_v2, ptxHash, SpendType::SPEND);
 
-    BOOST_CHECK_MESSAGE(coinSpend_v2.HasValidSerial(Params().Zerocoin_Params(false)), "coinspend_v2 does not have a valid serial");
+    BOOST_CHECK_MESSAGE(coinSpend_v2.HasValidSerial(Params().Zerocoin_Params()), "coinspend_v2 does not have a valid serial");
     BOOST_CHECK_MESSAGE(coinSpend_v2.Verify(accumulator_v2), "coinspend_v2 failed to verify");
     BOOST_CHECK_MESSAGE(coinSpend_v2.HasValidSignature(), "coinspend_v2 does not have valid signature");
     BOOST_CHECK_MESSAGE(coinSpend_v2.getVersion() == 2, "coinspend_v2 version is wrong");
@@ -462,7 +462,7 @@ BOOST_AUTO_TEST_CASE(setup_exceptions_test)
     // Check unitialized params Exception for PrivateCoin
     try {
         zerocoinParams.initialized = false;
-        PrivateCoin privCoin(&zerocoinParams, CoinDenomination::ZQ_ONE);
+        PrivateCoin privCoin(&zerocoinParams, CoinDenomination::ZQ_TEN);
         BOOST_CHECK_MESSAGE(false, "Didn't catch exception checking for uninitialized Params");
     }
     catch (...) {
@@ -471,64 +471,36 @@ BOOST_AUTO_TEST_CASE(setup_exceptions_test)
 
 }
 
-BOOST_AUTO_TEST_CASE(checksum_tests)
-{
-    cout << "Running checksum_tests\n";
-
-    uint256 checksum;
-    uint32_t c1 = 0xa3219ef1;
-    uint32_t c2 = 0xabcdef00;
-    uint32_t c3 = 0x101029f3;
-    uint32_t c4 = 0xaaaaaeee;
-    uint32_t c5 = 0xffffffff;
-    uint32_t c6 = 0xbbbbbbbb;
-    uint32_t c7 = 0x11111111;
-    uint32_t c8 = 0xeeeeeeee;
-    vector<uint32_t> vChecksums {c1,c2,c3,c4,c5,c6,c7,c8};
-    for(uint32_t c : vChecksums)
-        checksum = checksum << 32 | c;
-
-    BOOST_CHECK_MESSAGE(checksum == uint256("a3219ef1abcdef00101029f3aaaaaeeeffffffffbbbbbbbb11111111eeeeeeee"), "checksum not properly concatenated");
-
-    int i = 0;
-    for (auto& denom : zerocoinDenomList){
-        uint32_t checksumParsed = ParseChecksum(checksum, denom);
-        BOOST_CHECK_MESSAGE(checksumParsed == vChecksums[i], "checksum parse failed");
-        i++;
-    }
-}
-
 BOOST_AUTO_TEST_CASE(test_checkpoints)
 {
     BOOST_CHECK_MESSAGE(AccumulatorCheckpoints::LoadCheckpoints("main"), "failed to load checkpoints");
     BOOST_CHECK_MESSAGE(AccumulatorCheckpoints::mapCheckpoints.at(1050020)
-                                .at(libzerocoin::CoinDenomination::ZQ_FIVE_THOUSAND)
+                                .at(libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND)
                                 .GetHex() == "fad7cf992b67792695619224fbbe311c6e60bf80d5bc1680fd9e32b5b3f00f373c9305c72c82bfaf1ce56adb617dc71bb8ddaf61326858ae4b01c3acf443bc7d22d4d2c77704b44fbe4f4fd260f13e0e12e82c531c390e72770e1d444e0877844d35a76c1e45072ddf02e101cf9c0a05a125f19ac5205ee1216732f4040cc3e8a68528685f2f39325efb2b7ba4d681fe13aaabb80ef07d8de8ef883a07e0a4f9771e8c370924fe4959de3c2a6e6e7ad74b12dd7e666765d7d660febe4d4cab3f49cb33cb51e44f756eef609184d8eeeb1c4dfe13b123251166c877d8e992f60cefd568644918c3617aec4d5564a9fe008540add903b9739973838d667721f8d", "does not match");
 }
 
 BOOST_AUTO_TEST_CASE(deterministic_tests)
 {
-    SelectParams(CBaseChainParams::UNITTEST);
+    SelectParams(CBaseChainParams::TESTNET);
     cout << "Testing deterministic minting\n";
     uint256 seedMaster("3a1947364362e2e7c073b386869c89c905c0cf462448ffd6c2021bd03ce689f6");
 
     string strWalletFile = "unittestwallet.dat";
-    CWalletDB walletdb(strWalletFile, "cr+");
 
-    CWallet wallet(strWalletFile);
-    CzPIVWallet zWallet(wallet.strWalletFile);
+    CWallet wallet("dummy", WalletDatabase::CreateDummy());
+    CzWallet zWallet(&wallet);
     zWallet.SetMasterSeed(seedMaster);
     wallet.setZWallet(&zWallet);
 
     int64_t nTimeStart = GetTimeMillis();
-    CoinDenomination denom = CoinDenomination::ZQ_FIFTY;
+    CoinDenomination denom = CoinDenomination::ZQ_ONE_HUNDRED;
 
     std::vector<PrivateCoin> vCoins;
     int nTests = 50;
     for (int i = 0; i < nTests; i++) {
-        PrivateCoin coin(Params().Zerocoin_Params(false), denom, false);
+        PrivateCoin coin(Params().Zerocoin_Params(), denom, false);
         CDeterministicMint dMint;
-        zWallet.GenerateDeterministicZPIV(denom, coin, dMint);
+        zWallet.GenerateDeterministicZerocoin(denom, coin, dMint);
         vCoins.emplace_back(coin);
     }
 
@@ -548,5 +520,4 @@ BOOST_AUTO_TEST_CASE(deterministic_tests)
     BOOST_CHECK_MESSAGE(hash == uint256("c90c225f2cbdee5ef053b1f9f70053dd83724c58126d0e1b8425b88091d1f73f"), "minting determinism isn't as expected");
 }
 
-*/
 BOOST_AUTO_TEST_SUITE_END()
