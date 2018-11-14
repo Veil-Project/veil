@@ -2066,8 +2066,13 @@ bool CWalletTx::IsTrusted() const
         const CWalletTx* parent = pwallet->GetWalletTx(txin.prevout.hash);
         if (parent == nullptr)
             return false;
-        const CTxOut& parentOut = parent->tx->vout[txin.prevout.n];
-        if (pwallet->IsMine(parentOut) != ISMINE_SPENDABLE)
+        auto parentOut = parent->tx->vpout[txin.prevout.n];
+        if (!parentOut->IsType(OUTPUT_STANDARD)) {
+            //todo - how to tell if nonstandard is ours?
+            return false;
+        }
+        auto outStandard = (CTxOutStandard*)parentOut.get();
+        if (pwallet->IsMine(outStandard->ToTxOut()) != ISMINE_SPENDABLE)
             return false;
     }
     return true;
@@ -5422,7 +5427,7 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
             return error(strFailReason.c_str());
         }
 
-        txNew.vout.push_back(outMint);
+        txNew.vpout.emplace_back(outMint.GetSharedPtr());
 
         //store as CZerocoinMint for later use
         LogPrintf("%s: new mint %s\n", __func__, dMint.ToString());
@@ -5430,7 +5435,7 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
     }
 
     // calculate fee
-    CAmount nFee = Params().Zerocoin_MintFee() * txNew.vout.size();
+    CAmount nFee = Params().Zerocoin_MintFee() * txNew.vpout.size();
 
     // no ability to select more coins if this is a ZCSpend change mint
     CAmount nTotalValue = (isZCSpendChange ? nValue : (nValue + nFee));
@@ -5476,7 +5481,7 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
 
         //add to the transaction
         CTxOut outChange(nChange, scriptChange);
-        txNew.vout.push_back(outChange);
+        txNew.vpout.emplace_back(outChange.GetSharedPtr());
     } else {
         if (reservekey)
             reservekey->ReturnKey();

@@ -300,6 +300,73 @@ public:
     std::string ToString() const;
 };
 
+
+/** An output of a transaction.  It contains the public key that the next input
+ * must be able to sign with to claim it.
+ */
+class CTxOut
+{
+public:
+    CAmount nValue;
+    CScript scriptPubKey;
+
+    CTxOut()
+    {
+        SetNull();
+    }
+
+    CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn);
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(nValue);
+        READWRITE(scriptPubKey);
+    }
+
+    void SetNull()
+    {
+        nValue = -1;
+        scriptPubKey.clear();
+    }
+
+    bool IsNull() const
+    {
+        return (nValue == -1);
+    }
+
+    void SetEmpty()
+    {
+        nValue = 0;
+        scriptPubKey.clear();
+    }
+
+    bool IsEmpty() const
+    {
+        return (nValue == 0 && scriptPubKey.empty());
+    }
+
+    bool IsZerocoinMint() const
+    {
+        return !scriptPubKey.empty() && scriptPubKey.IsZerocoinMint();
+    }
+
+    friend bool operator==(const CTxOut& a, const CTxOut& b)
+    {
+        return (a.nValue       == b.nValue &&
+                a.scriptPubKey == b.scriptPubKey);
+    }
+
+    friend bool operator!=(const CTxOut& a, const CTxOut& b)
+    {
+        return !(a == b);
+    }
+
+    std::string ToString() const;
+    std::shared_ptr<CTxOutStandard> GetSharedPtr();
+};
+
 #define OUTPUT_PTR std::shared_ptr
 typedef OUTPUT_PTR<CTxOutBase> CTxOutBaseRef;
 #define MAKE_OUTPUT std::make_shared
@@ -355,6 +422,8 @@ public:
     {
         return &scriptPubKey;
     };
+
+    CTxOut ToTxOut() const { return CTxOut(nValue, scriptPubKey); }
 };
 
 class CTxOutCT : public CTxOutBase
@@ -535,71 +604,6 @@ public:
 
         return false;
     };
-};
-
-/** An output of a transaction.  It contains the public key that the next input
- * must be able to sign with to claim it.
- */
-class CTxOut
-{
-public:
-    CAmount nValue;
-    CScript scriptPubKey;
-
-    CTxOut()
-    {
-        SetNull();
-    }
-
-    CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn);
-
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(nValue);
-        READWRITE(scriptPubKey);
-    }
-
-    void SetNull()
-    {
-        nValue = -1;
-        scriptPubKey.clear();
-    }
-
-    bool IsNull() const
-    {
-        return (nValue == -1);
-    }
-
-    void SetEmpty()
-    {
-        nValue = 0;
-        scriptPubKey.clear();
-    }
-
-    bool IsEmpty() const
-    {
-        return (nValue == 0 && scriptPubKey.empty());
-    }
-
-    bool IsZerocoinMint() const
-    {
-        return !scriptPubKey.empty() && scriptPubKey.IsZerocoinMint();
-    }
-
-    friend bool operator==(const CTxOut& a, const CTxOut& b)
-    {
-        return (a.nValue       == b.nValue &&
-                a.scriptPubKey == b.scriptPubKey);
-    }
-
-    friend bool operator!=(const CTxOut& a, const CTxOut& b)
-    {
-        return !(a == b);
-    }
-
-    std::string ToString() const;
 };
 
 struct CMutableTransaction;
