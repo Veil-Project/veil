@@ -172,6 +172,19 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
         return true;
     }
 
+    if (scriptPubKey.IsZerocoinMint()) {
+        typeRet = TX_ZEROCOINMINT;
+        // Zerocoin
+        if (scriptPubKey.IsZerocoinMint()){
+            typeRet = TX_ZEROCOINMINT;
+            if(scriptPubKey.size() > 150) return false;
+            std::vector<unsigned char> hashBytes(scriptPubKey.begin()+2, scriptPubKey.end());
+            vSolutionsRet.push_back(hashBytes);
+            return true;
+        }
+        return true;
+    }
+
     vSolutionsRet.clear();
     typeRet = TX_NONSTANDARD;
     return false;
