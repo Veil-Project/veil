@@ -216,7 +216,7 @@ public:
         arith_uint256 nBits;
         nBits.SetCompact(0x1e0ffff0);
         uint32_t nNonce = 0;
-        genesis = CreateGenesisBlock(1536946053, 687942, 0x1e0ffff0, 1, 50 * COIN);
+        genesis = CreateGenesisBlock(1536946053, 1644344, 0x1e0ffff0, 1, 50 * COIN);
 //        bool found = false;
 //        while (true) {
 //            genesis = CreateGenesisBlock(++nTimeStart, nNonce, 0x1e0ffff0, 1, 50*COIN);
@@ -238,8 +238,8 @@ public:
 //        }
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(genesis.hashWitnessMerkleRoot == uint256S("0xba3f7b26d123708f3c7927f771bfe02a8469a0398d7a7f074ca6a9ed8c2f89d9"));
-        assert(consensus.hashGenesisBlock == uint256S("0x01240235a4c93ff0514a08d4526ab40466d10f64ffe03595e2b89b81664961df"));
-        assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
+        assert(consensus.hashGenesisBlock == uint256S("0x0bc728a2543ffedacae493f47f63d965641bd2caae9dae01c837e4b18e45a07c"));
+        assert(genesis.hashMerkleRoot == uint256S("0xba3f7b26d123708f3c7927f771bfe02a8469a0398d7a7f074ca6a9ed8c2f89d9"));
 
         vSeeds.emplace_back("veilseed.presstab.pw");
 
@@ -342,9 +342,9 @@ public:
         nDefaultPort = 58811;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1536258109, 425915524, 0x1e0ffff0, 1, 50 * COIN);
+        genesis = CreateGenesisBlock(1536258109, 426856007, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x19d82334a4efd0c86a66d0e31bb6b14291388a20e44d373ecd179f6910cb468f"));
+        assert(consensus.hashGenesisBlock == uint256S("0x27672b8b95e9280edb2461ed9f6ce373f001fae90ac606b23463a36b5db5556b"));
         assert(genesis.hashMerkleRoot == uint256S("0xba3f7b26d123708f3c7927f771bfe02a8469a0398d7a7f074ca6a9ed8c2f89d9"));
         assert(genesis.hashWitnessMerkleRoot == uint256S("0xba3f7b26d123708f3c7927f771bfe02a8469a0398d7a7f074ca6a9ed8c2f89d9"));
 

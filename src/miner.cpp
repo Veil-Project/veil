@@ -252,7 +252,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         coinbaseTx.vout.resize(1);
         coinbaseTx.vout[0].SetEmpty();
     } else {
-        coinbaseTx.vout.resize(1);
         CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
         veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
         coinbaseTx.vpout.resize(nBudgetPayment > 0 ? 2 : 1);
