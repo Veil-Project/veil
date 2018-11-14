@@ -752,8 +752,8 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         if (!CheckSequenceLocks(tx, STANDARD_LOCKTIME_VERIFY_FLAGS, &lp))
             return state.DoS(0, false, REJECT_NONSTANDARD, "non-BIP68-final");
 
-        CAmount nFees;
-        if (!Consensus::CheckTxInputs(tx, state, view, GetSpendHeight(view), nFees)) {
+        CAmount nFees, nValueIn, nValueOut;
+        if (!Consensus::CheckTxInputs(tx, state, view, GetSpendHeight(view), nFees, nValueIn, nValueOut)) {
             return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
         }
 
@@ -2261,8 +2261,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     std::map<libzerocoin::CoinSpend, uint256> mapSpends;
     std::map<libzerocoin::PublicCoin, uint256> mapMints;
 
-    CAmount nMoneyCreated = 0;
-
+    CAmount nValueIn = 0;
+    CAmount nValueOut = 0;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2278,8 +2278,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             }
         }
 
+        CAmount txfee = 0;
+        CAmount nTxValueIn = 0;
+        CAmount nTxValueOut = 0;
         if (tx.IsCoinBase()) {
-            nMoneyCreated += tx.GetValueOut();
+            nTxValueOut += tx.GetValueOut();
         } else {
             CAmount txfee = 0;
             if (tx.IsZerocoinSpend()) {
@@ -2316,7 +2319,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 }
             }
 
-            if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee))
+            if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee, nTxValueIn, nTxValueOut))
                 return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
 
             nFees += txfee;
@@ -2448,6 +2451,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 view.anonOutputs.emplace_back(std::make_pair(view.nLastRCTOutput, ao));
             }
         }
+        nValueIn += nTxValueIn;
+        nValueOut += nTxValueOut;
     }
 
     //Track zerocoin money supply in the block index
@@ -2457,7 +2462,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     // track money supply and mint amount info
     CAmount nMoneySupplyPrev = pindex->pprev ? pindex->pprev->nMoneySupply : 0;
-    pindex->nMoneySupply = (pindex->pprev ? pindex->pprev->nMoneySupply : 0) + nMoneyCreated;
+    pindex->nMoneySupply = nMoneySupplyPrev + nValueOut - nValueIn;
     pindex->nMint = pindex->nMoneySupply - nMoneySupplyPrev + nFees;
 
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
@@ -2475,7 +2480,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
 
     CAmount nCreationLimit = networkReward + nBlockReward + nFounderPayment + nBudgetPayment + nLabPayment;
-    //TODO: fees?
+    //TODO: Proof Of Full node gets fees, else check destroyed
 
     LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__, FormatMoney(nBlockReward), FormatMoney(networkReward), FormatMoney(nFounderPayment),
             FormatMoney(nBudgetPayment), FormatMoney(nLabPayment));
@@ -2491,7 +2496,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                                     block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID, "bad-acc-checkpoint");
 
     if (!control.Wait()) {
-        std::cout << "control check failed\n";
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
     }
 
@@ -2850,10 +2854,8 @@ bool CChainState::DisconnectTip(CValidationState& state, const CChainParams& cha
     LogPrint(BCLog::BENCH, "- Disconnect block: %.2fms\n", (GetTimeMicros() - nStart) * MILLI);
 
     // Write the chain state to disk, if necessary.
-    if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED)) {
-        std::cout << "flush state to disk failed\n";
+    if (!FlushStateToDisk(chainparams, state, FlushStateMode::IF_NEEDED))
         return false;
-    }
 
     if (disconnectpool) {
         // Save transactions to re-add to mempool at end of reorg
@@ -3017,7 +3019,6 @@ bool CChainState::ConnectTip(CValidationState& state, const CChainParams& chainp
     LogPrint(BCLog::BENCH, "- Connect block: %.2fms [%.2fs (%.2fms/blk)]\n", (nTime6 - nTime1) * MILLI, nTimeTotal * MICRO, nTimeTotal * MILLI / nBlocksTotal);
 
     connectTrace.BlockConnected(pindexNew, std::move(pthisBlock));
-    std::cout << "finished connect tip\n";
     return true;
 }
 
@@ -3684,13 +3685,11 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     }
 
     // Check transactions
-    int i = 0;
     for (const auto& tx : block.vtx) {
         if (!CheckTransaction(*tx, state, false))
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
                                  strprintf("Transaction check failed (tx hash %s) %s", tx->GetHash().ToString(),
                                            state.GetDebugMessage()));
-        i++;
     }
 
     unsigned int nSigOps = 0;
@@ -3946,8 +3945,6 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
 {
     const int nHeight = pindexPrev == nullptr ? 0 : pindexPrev->nHeight + 1;
 
-    std::cout << "current block being checked is " << nHeight << "\n";
-
     // Check PoW/PoS
     if (block.GetHash() != Params().GenesisBlock().GetHash()
             && block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake()))
@@ -3981,7 +3978,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         return state.DoS(100, false, REJECT_INVALID, "bad-cb-height", false, "block height mismatch in coinbase");
     }
 
-    // check witness merkleroot TODO: should witnessmerkleroot be hashed?
+    // check witness merkleroot
     bool malleated = false;
     uint256 hashWitness = BlockWitnessMerkleRoot(block, &malleated);
     if (hashWitness != block.hashWitnessMerkleRoot)
