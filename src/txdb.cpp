@@ -285,9 +285,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 //Proof Of Stake
                 pindexNew->nMint = diskindex.nMint;
                 pindexNew->nMoneySupply = diskindex.nMoneySupply;
-                pindexNew->nFlags = diskindex.nFlags;
-                pindexNew->nStakeModifier = diskindex.nStakeModifier;
-                pindexNew->hashProofOfStake = diskindex.hashProofOfStake;
+                pindexNew->fProofOfStake = diskindex.fProofOfStake;
 
                 //RingCT
                 pindexNew->nAnonOutputs             = diskindex.nAnonOutputs;
@@ -297,7 +295,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->mapZerocoinSupply = diskindex.mapZerocoinSupply;
                 pindexNew->vMintDenominationsInBlock = diskindex.vMintDenominationsInBlock;
 
-                if (!CheckProofOfWork(pindexNew->GetBlockPoWHash(), pindexNew->nBits, consensusParams))
+                if (pindexNew->IsProofOfWork() && !CheckProofOfWork(pindexNew->GetBlockPoWHash(), pindexNew->nBits, consensusParams))
                     return error("%s: CheckProofOfWork failed: %s", __func__, pindexNew->ToString());
 
                 pcursor->Next();

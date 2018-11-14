@@ -118,7 +118,7 @@ static const int64_t MAX_FEE_ESTIMATION_TIP_AGE = 3 * 60 * 60;
 /** Default for -permitbaremultisig */
 static const bool DEFAULT_PERMIT_BAREMULTISIG = true;
 static const bool DEFAULT_CHECKPOINTS_ENABLED = true;
-static const bool DEFAULT_TXINDEX = false;
+static const bool DEFAULT_TXINDEX = true;
 static const unsigned int DEFAULT_BANSCORE_THRESHOLD = 100;
 /** Default for -persistmempool */
 static const bool DEFAULT_PERSIST_MEMPOOL = true;
@@ -438,7 +438,7 @@ bool RewindBlockIndex(const CChainParams& params);
 void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams);
 
 bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::map<libzerocoin::CoinSpend, uint256>& mapSpends,
-                         const std::map<libzerocoin::PublicCoin, uint256>& mapMints);
+                         const std::map<libzerocoin::PublicCoin, uint256>& mapMints, bool fJustCheck);
 
 /** Produce the necessary coinbase commitment for a block (modifies the hash, don't call for mined blocks). */
 std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams);

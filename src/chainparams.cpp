@@ -173,7 +173,7 @@ public:
         // TODO: Find PoW limit to use - VEIL-55
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
-        consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
+        consensus.nDgwPastBlocks = 10; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1916; // 95% of 2016
@@ -212,11 +212,34 @@ public:
         nDefaultPort = 58810;
         nPruneAfterHeight = 100000;
 
-        genesis = CreateGenesisBlock(1536258109, 2089114007, 0x1e0ffff0, 1, 50 * COIN);
+        int nTimeStart = 1536258109;
+        arith_uint256 nBits;
+        nBits.SetCompact(0x1e0ffff0);
+        uint32_t nNonce = 0;
+        genesis = CreateGenesisBlock(1536946053, 687942, 0x1e0ffff0, 1, 50 * COIN);
+//        bool found = false;
+//        while (true) {
+//            genesis = CreateGenesisBlock(++nTimeStart, nNonce, 0x1e0ffff0, 1, 50*COIN);
+//            while (nNonce < 10000000) {
+//                genesis = CreateGenesisBlock(++nTimeStart, nNonce, 0x1e0ffff0, 1, 50*COIN);
+//                auto hash = genesis.GetPoWHash();
+//                std::cout << hash.GetHex() << std::endl;
+//                if (UintToArith256(hash) < nBits) {
+//                    std::cout << "hash:" << genesis.GetHash().GetHex() << std::endl;
+//                    std::cout << "nonce:" << nNonce << std::endl;
+//                    std::cout << "time:" << nTimeStart << std::endl;
+//                    found = true;
+//                    break;
+//                }
+//                ++nNonce;
+//            }
+//            if (found)
+//                break;
+//        }
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x470818a31d210c8b57b3f1365fe277563f4f8acf0e10d6ed80dec781377e1fbb"));
-        assert(genesis.hashMerkleRoot == uint256S("0xba3f7b26d123708f3c7927f771bfe02a8469a0398d7a7f074ca6a9ed8c2f89d9"));
         assert(genesis.hashWitnessMerkleRoot == uint256S("0xba3f7b26d123708f3c7927f771bfe02a8469a0398d7a7f074ca6a9ed8c2f89d9"));
+        assert(consensus.hashGenesisBlock == uint256S("0x01240235a4c93ff0514a08d4526ab40466d10f64ffe03595e2b89b81664961df"));
+        assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
 
         vSeeds.emplace_back("veilseed.presstab.pw");
 
@@ -376,7 +399,7 @@ public:
         nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
-        nZerocoinRequiredStakeDepth = 200; //The required confirmations for a zpiv to be stakable
+        nZerocoinRequiredStakeDepth = 400; //The required confirmations for a zpiv to be stakable
     }
 };
 

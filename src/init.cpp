@@ -1785,5 +1785,9 @@ bool AppInitMain()
 
     g_wallet_init_interface.Start(scheduler);
 
+    //Start staking thread last
+    if (gArgs.GetBoolArg("-staking", true))
+        threadGroup.create_thread(&ThreadStakeMiner);
+
     return true;
 }
