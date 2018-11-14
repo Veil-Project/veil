@@ -999,8 +999,8 @@ UniValue reconsiderzerocoins(const JSONRPCRequest& request)
 
     list<CZerocoinMint> listMints;
     list<CDeterministicMint> listDMints;
-    //todo
-    //pwallet->ReconsiderZerocoins(listMints, listDMints);
+
+    pwallet->ReconsiderZerocoins(listMints, listDMints);
 
     UniValue arrRet(UniValue::VARR);
     for (const CZerocoinMint& mint : listMints) {
