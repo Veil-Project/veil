@@ -633,7 +633,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         if (fProofOfStake) {
             //Need wallet if this is for proof of stake
             auto pwallet = GetMainWallet();
-            if (!pwallet) {
+            if (!pwallet /*|| vNodes.empty()*/) {
                 MilliSleep(5000);
                 continue;
             }
@@ -645,8 +645,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 fMintableCoins = pwallet->MintableCoins();
             }
 
-            //todo nodes check
-            while (/*vNodes.empty() || */pwallet->IsLocked() || !fMintableCoins || IsInitialBlockDownload()) {
+            while (pwallet->IsLocked() || !fMintableCoins || IsInitialBlockDownload()) {
                 // Do a separate 1 minute check here to ensure fMintableCoins is updated
                 if (!fMintableCoins) {
                     if (GetTime() - nMintableLastCheck > 1 * 60) // 1 minute check time
