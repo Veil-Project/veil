@@ -48,7 +48,14 @@ void CTxOutBase::SetValue(int64_t value)
     // convenience function intended for use with CTxOutStandard only
     assert(nVersion == OUTPUT_STANDARD);
     ((CTxOutStandard*) this)->nValue = value;
-};
+}
+
+void CTxOutBase::AddToValue(const CAmount& nValue)
+{
+    if (nVersion != OUTPUT_STANDARD)
+        return;
+    ((CTxOutStandard*) this)->nValue += nValue;
+}
 
 CAmount CTxOutBase::GetValue() const
 {
@@ -68,6 +75,15 @@ CAmount CTxOutBase::GetValue() const
     assert(nVersion == OUTPUT_STANDARD);
     return ((CTxOutStandard*) this)->nValue;
 };
+
+bool CTxOutBase::GetTxOut(CTxOut& out) const
+{
+    if (!IsStandardOutput())
+        return false;
+
+    out = GetStandardOutput()->ToTxOut();
+    return true;
+}
 
 std::string CTxOutBase::ToString() const
 {
@@ -259,8 +275,8 @@ std::string CTransaction::ToString() const
         str += "    " + tx_in.ToString() + "\n";
     for (const auto& tx_in : vin)
         str += "    " + tx_in.scriptWitness.ToString() + "\n";
-    for (const auto& tx_out : vout)
-        str += "    " + tx_out.ToString() + "\n";
+    for (const auto& tx_out : vpout)
+        str += "    " + tx_out->ToString() + "\n";
     return str;
 }
 
@@ -273,19 +289,7 @@ bool CTransaction::IsCoinStake() const
         return false;
 
     // the coin stake transaction is marked with the first output empty
-    return (vout.size() > 1 && vout[0].IsEmpty());
-}
-
-CAmount CTransaction::GetZerocoinMinted() const
-{
-    for (const CTxOut& txOut : vout) {
-        if(!txOut.scriptPubKey.IsZerocoinMint())
-            continue;
-
-        return txOut.nValue;
-    }
-
-    return  CAmount(0);
+    return (vpout.size() > 1 && vpout[0]->IsEmpty());
 }
 
 CAmount CTransaction::GetZerocoinSpent() const
@@ -304,11 +308,27 @@ CAmount CTransaction::GetZerocoinSpent() const
     return nValueOut;
 }
 
+CAmount CTransaction::GetZerocoinMinted() const
+{
+    for (const auto& pOut : vpout) {
+        if (!pOut->IsStandardOutput())
+            continue;
+        if (!pOut->GetPScriptPubKey()->IsZerocoinMint())
+            continue;
+
+        return pOut->GetValue();
+    }
+
+    return  CAmount(0);
+}
+
 int CTransaction::GetZerocoinMintCount() const
 {
     int nCount = 0;
-    for (const CTxOut& out : vout) {
-        if (out.scriptPubKey.IsZerocoinMint())
+    for (const auto& pOut : vpout) {
+        if (!pOut->IsStandardOutput())
+            continue;
+        if (pOut->GetPScriptPubKey()->IsZerocoinMint())
             nCount++;
     }
     return nCount;
@@ -317,7 +337,7 @@ int CTransaction::GetZerocoinMintCount() const
 CTransaction& CTransaction::operator=(const CTransaction &tx) {
     *const_cast<int*>(&nVersion) = tx.nVersion;
     *const_cast<std::vector<CTxIn>*>(&vin) = tx.vin;
-    *const_cast<std::vector<CTxOut>*>(&vout) = tx.vout;
+    *const_cast<std::vector<CTxOutBaseRef>*>(&vpout) = tx.vpout;
     *const_cast<unsigned int*>(&nLockTime) = tx.nLockTime;
     *const_cast<uint256*>(&hash) = tx.hash;
     return *this;

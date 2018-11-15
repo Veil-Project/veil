@@ -207,6 +207,72 @@ class CTxOutCT;
 class CTxOutRingCT;
 class CTxOutData;
 
+/** An output of a transaction.  It contains the public key that the next input
+ * must be able to sign with to claim it.
+ */
+class CTxOut
+{
+public:
+    CAmount nValue;
+    CScript scriptPubKey;
+
+    CTxOut()
+    {
+        SetNull();
+    }
+
+    CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn);
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(nValue);
+        READWRITE(scriptPubKey);
+    }
+
+    void SetNull()
+    {
+        nValue = -1;
+        scriptPubKey.clear();
+    }
+
+    bool IsNull() const
+    {
+        return (nValue == -1);
+    }
+
+    void SetEmpty()
+    {
+        nValue = 0;
+        scriptPubKey.clear();
+    }
+
+    bool IsEmpty() const
+    {
+        return (nValue == 0 && scriptPubKey.empty());
+    }
+
+    bool IsZerocoinMint() const
+    {
+        return !scriptPubKey.empty() && scriptPubKey.IsZerocoinMint();
+    }
+
+    friend bool operator==(const CTxOut& a, const CTxOut& b)
+    {
+        return (a.nValue       == b.nValue &&
+                a.scriptPubKey == b.scriptPubKey);
+    }
+
+    friend bool operator!=(const CTxOut& a, const CTxOut& b)
+    {
+        return !(a == b);
+    }
+
+    std::string ToString() const;
+    std::shared_ptr<CTxOutStandard> GetSharedPtr();
+};
+
 class CTxOutBase
 {
 public:
@@ -277,11 +343,14 @@ public:
     {
         assert(nVersion == OUTPUT_STANDARD);
         return (CTxOutStandard*)this;
-    };
+    }
+
+    bool GetTxOut(CTxOut& out) const;
 
     virtual bool IsEmpty() const { return false;}
 
     void SetValue(CAmount value);
+    void AddToValue(const CAmount& nValue);
 
     virtual CAmount GetValue() const;
 
@@ -298,73 +367,6 @@ public:
     virtual bool GetDevFundCfwd(CAmount &nCfwd) const { return false; };
 
     std::string ToString() const;
-};
-
-
-/** An output of a transaction.  It contains the public key that the next input
- * must be able to sign with to claim it.
- */
-class CTxOut
-{
-public:
-    CAmount nValue;
-    CScript scriptPubKey;
-
-    CTxOut()
-    {
-        SetNull();
-    }
-
-    CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn);
-
-    ADD_SERIALIZE_METHODS;
-
-    template <typename Stream, typename Operation>
-    inline void SerializationOp(Stream& s, Operation ser_action) {
-        READWRITE(nValue);
-        READWRITE(scriptPubKey);
-    }
-
-    void SetNull()
-    {
-        nValue = -1;
-        scriptPubKey.clear();
-    }
-
-    bool IsNull() const
-    {
-        return (nValue == -1);
-    }
-
-    void SetEmpty()
-    {
-        nValue = 0;
-        scriptPubKey.clear();
-    }
-
-    bool IsEmpty() const
-    {
-        return (nValue == 0 && scriptPubKey.empty());
-    }
-
-    bool IsZerocoinMint() const
-    {
-        return !scriptPubKey.empty() && scriptPubKey.IsZerocoinMint();
-    }
-
-    friend bool operator==(const CTxOut& a, const CTxOut& b)
-    {
-        return (a.nValue       == b.nValue &&
-                a.scriptPubKey == b.scriptPubKey);
-    }
-
-    friend bool operator!=(const CTxOut& a, const CTxOut& b)
-    {
-        return !(a == b);
-    }
-
-    std::string ToString() const;
-    std::shared_ptr<CTxOutStandard> GetSharedPtr();
 };
 
 #define OUTPUT_PTR std::shared_ptr
@@ -405,12 +407,12 @@ public:
         vchAmount.resize(8);
         memcpy(&vchAmount[0], &nValue, 8);
         return true;
-    };
+    }
 
     CAmount GetValue() const override
     {
         return nValue;
-    };
+    }
 
     bool GetScriptPubKey(CScript &scriptPubKey_) const override
     {
@@ -857,9 +859,12 @@ public:
 
     bool IsZerocoinMint() const
     {
-        for(const CTxOut& txout : vout) {
-            if (txout.scriptPubKey.IsZerocoinMint())
-                return true;
+        for(const auto& pout : vpout) {
+            CScript script;
+            if (pout->GetScriptPubKey(script)) {
+                if (script.IsZerocoinMint())
+                    return true;
+            }
         }
         return false;
     }
@@ -869,8 +874,8 @@ public:
         return IsZerocoinSpend() || IsZerocoinMint();
     }
 
-    CAmount GetZerocoinMinted() const;
     CAmount GetZerocoinSpent() const;
+    CAmount GetZerocoinMinted() const;
     int GetZerocoinMintCount() const;
 
     const uint256& GetHash() const { return hash; }
