@@ -207,100 +207,6 @@ class CTxOutCT;
 class CTxOutRingCT;
 class CTxOutData;
 
-class CTxOutBase
-{
-public:
-    CTxOutBase(uint8_t v) : nVersion(v) {};
-    virtual ~CTxOutBase() {};
-    uint8_t nVersion;
-
-    template<typename Stream>
-    void Serialize(Stream &s) const
-    {
-        switch (nVersion)
-        {
-            case OUTPUT_STANDARD:
-                s << *((CTxOutStandard*) this);
-                break;
-            case OUTPUT_CT:
-                s << *((CTxOutCT*) this);
-                break;
-            case OUTPUT_RINGCT:
-                s << *((CTxOutRingCT*) this);
-                break;
-            case OUTPUT_DATA:
-                s << *((CTxOutData*) this);
-                break;
-            default:
-                assert(false);
-        };
-    };
-
-    template<typename Stream>
-    void Unserialize(Stream &s)
-    {
-        switch (nVersion)
-        {
-            case OUTPUT_STANDARD:
-                s >> *((CTxOutStandard*) this);
-                break;
-            case OUTPUT_CT:
-                s >> *((CTxOutCT*) this);
-                break;
-            case OUTPUT_RINGCT:
-                s >> *((CTxOutRingCT*) this);
-                break;
-            case OUTPUT_DATA:
-                s >> *((CTxOutData*) this);
-                break;
-            default:
-                assert(false);
-        };
-    };
-
-    uint8_t GetType() const
-    {
-        return nVersion;
-    };
-
-    bool IsType(uint8_t nType) const
-    {
-        return nVersion == nType;
-    };
-
-    bool IsStandardOutput() const
-    {
-        return nVersion == OUTPUT_STANDARD;
-    };
-
-    const CTxOutStandard *GetStandardOutput() const
-    {
-        assert(nVersion == OUTPUT_STANDARD);
-        return (CTxOutStandard*)this;
-    };
-
-    virtual bool IsEmpty() const { return false;}
-
-    void SetValue(CAmount value);
-
-    virtual CAmount GetValue() const;
-
-    virtual bool PutValue(std::vector<uint8_t> &vchAmount) const { return false; };
-
-    virtual bool GetScriptPubKey(CScript &scriptPubKey_) const { return false; };
-    virtual const CScript *GetPScriptPubKey() const { return nullptr; };
-
-    virtual secp256k1_pedersen_commitment *GetPCommitment() { return nullptr; };
-    virtual std::vector<uint8_t> *GetPRangeproof() { return nullptr; };
-
-    virtual bool GetCTFee(CAmount &nFee) const { return false; };
-    virtual bool SetCTFee(CAmount &nFee) { return false; };
-    virtual bool GetDevFundCfwd(CAmount &nCfwd) const { return false; };
-
-    std::string ToString() const;
-};
-
-
 /** An output of a transaction.  It contains the public key that the next input
  * must be able to sign with to claim it.
  */
@@ -367,6 +273,109 @@ public:
     std::shared_ptr<CTxOutStandard> GetSharedPtr();
 };
 
+class CTxOutBase
+{
+public:
+    CTxOutBase(uint8_t v) : nVersion(v) {};
+    virtual ~CTxOutBase() {};
+    uint8_t nVersion;
+
+    template<typename Stream>
+    void Serialize(Stream &s) const
+    {
+        switch (nVersion)
+        {
+            case OUTPUT_STANDARD:
+                s << *((CTxOutStandard*) this);
+                break;
+            case OUTPUT_CT:
+                s << *((CTxOutCT*) this);
+                break;
+            case OUTPUT_RINGCT:
+                s << *((CTxOutRingCT*) this);
+                break;
+            case OUTPUT_DATA:
+                s << *((CTxOutData*) this);
+                break;
+            default:
+                assert(false);
+        }
+    }
+
+    template<typename Stream>
+    void Unserialize(Stream &s)
+    {
+        switch (nVersion)
+        {
+            case OUTPUT_STANDARD:
+                s >> *((CTxOutStandard*) this);
+                break;
+            case OUTPUT_CT:
+                s >> *((CTxOutCT*) this);
+                break;
+            case OUTPUT_RINGCT:
+                s >> *((CTxOutRingCT*) this);
+                break;
+            case OUTPUT_DATA:
+                s >> *((CTxOutData*) this);
+                break;
+            default:
+                assert(false);
+        }
+    }
+
+    uint8_t GetType() const
+    {
+        return nVersion;
+    }
+
+    bool IsType(uint8_t nType) const
+    {
+        return nVersion == nType;
+    }
+
+    bool IsStandardOutput() const
+    {
+        return nVersion == OUTPUT_STANDARD;
+    }
+
+    bool IsZerocoinMint() const
+    {
+        if (!IsStandardOutput())
+            return false;
+        return GetPScriptPubKey()->IsZerocoinMint();
+    }
+
+    const CTxOutStandard *GetStandardOutput() const
+    {
+        assert(nVersion == OUTPUT_STANDARD);
+        return (CTxOutStandard*)this;
+    }
+
+    bool GetTxOut(CTxOut& out) const;
+
+    virtual bool IsEmpty() const { return false;}
+
+    void SetValue(CAmount value);
+    void AddToValue(const CAmount& nValue);
+
+    virtual CAmount GetValue() const;
+
+    virtual bool PutValue(std::vector<uint8_t> &vchAmount) const { return false; };
+
+    virtual bool GetScriptPubKey(CScript &scriptPubKey_) const { return false; };
+    virtual const CScript *GetPScriptPubKey() const { return nullptr; };
+
+    virtual secp256k1_pedersen_commitment *GetPCommitment() { return nullptr; };
+    virtual std::vector<uint8_t> *GetPRangeproof() { return nullptr; };
+
+    virtual bool GetCTFee(CAmount &nFee) const { return false; };
+    virtual bool SetCTFee(CAmount &nFee) { return false; };
+    virtual bool GetDevFundCfwd(CAmount &nCfwd) const { return false; };
+
+    std::string ToString() const;
+};
+
 #define OUTPUT_PTR std::shared_ptr
 typedef OUTPUT_PTR<CTxOutBase> CTxOutBaseRef;
 #define MAKE_OUTPUT std::make_shared
@@ -405,12 +414,12 @@ public:
         vchAmount.resize(8);
         memcpy(&vchAmount[0], &nValue, 8);
         return true;
-    };
+    }
 
     CAmount GetValue() const override
     {
         return nValue;
-    };
+    }
 
     bool GetScriptPubKey(CScript &scriptPubKey_) const override
     {
@@ -857,9 +866,12 @@ public:
 
     bool IsZerocoinMint() const
     {
-        for(const CTxOut& txout : vout) {
-            if (txout.scriptPubKey.IsZerocoinMint())
-                return true;
+        for(const auto& pout : vpout) {
+            CScript script;
+            if (pout->GetScriptPubKey(script)) {
+                if (script.IsZerocoinMint())
+                    return true;
+            }
         }
         return false;
     }
@@ -869,8 +881,8 @@ public:
         return IsZerocoinSpend() || IsZerocoinMint();
     }
 
-    CAmount GetZerocoinMinted() const;
     CAmount GetZerocoinSpent() const;
+    CAmount GetZerocoinMinted() const;
     int GetZerocoinMintCount() const;
 
     const uint256& GetHash() const { return hash; }

@@ -898,7 +898,7 @@ public:
     /**
      * Find non-change parent output.
      */
-    const CTxOut& FindNonChangeParentOutput(const CTransaction& tx, int output) const;
+    const CTxOutBaseRef& FindNonChangeParentOutput(const CTransaction& tx, int output) const;
 
     /**
      * Shuffle and select coins until nTargetValue is reached while avoiding

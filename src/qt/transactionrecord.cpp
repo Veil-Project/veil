@@ -42,9 +42,9 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             sub.type = TransactionRecord::ZeroCoinStake;
             sub.address = mapValue["zerocoinmint"];
             sub.credit = 0;
-            for (const CTxOut& out : wtx.tx->vout) {
-                if (out.IsZerocoinMint())
-                    sub.credit += out.nValue;
+            for (const auto& pOut : wtx.tx->vpout) {
+                if (pOut->IsZerocoinMint())
+                    sub.credit += pOut->GetValue();
             }
             sub.debit -= wtx.tx->vin[0].nSequence * COIN;
             parts.append(sub);
@@ -52,9 +52,14 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
     } else if (wtx.tx->IsZerocoinSpend()) {
         //zerocoin spend outputs
         bool fFeeAssigned = false;
-        for (unsigned int nOut = 0; nOut < wtx.tx->vout.size(); nOut++) {
-            const CTxOut& txout = wtx.tx->vout[nOut];
+        for (unsigned int nOut = 0; nOut < wtx.tx->vpout.size(); nOut++) {
+            const auto& pOut = wtx.tx->vpout[nOut];
             isminetype mine = wtx.txout_is_mine[nOut];
+
+            // Process ringct and stealth elsewhere
+            CTxOut txout;
+            if (!pOut->GetTxOut(txout))
+                continue;
 
             // change that was reminted as zerocoins
             if (txout.IsZerocoinMint()) {
@@ -117,8 +122,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         //
         // Credit
         //
-        for (unsigned int i = 0; i < wtx.tx->vout.size(); i++) {
-            const CTxOut& txout = wtx.tx->vout[i];
+        for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
+            CTxOut txout;
+            if (!wtx.tx->vpout[i]->GetTxOut(txout))
+                continue;
             isminetype mine = wtx.txout_is_mine[i];
             if (mine) {
                 TransactionRecord sub(hash, nTime);
@@ -169,8 +176,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             //
             CAmount nTxFee = nDebit - wtx.tx->GetValueOut();
 
-            for (unsigned int nOut = 0; nOut < wtx.tx->vout.size(); nOut++) {
-                const CTxOut& txout = wtx.tx->vout[nOut];
+            for (unsigned int nOut = 0; nOut < wtx.tx->vpout.size(); nOut++) {
+                CTxOut txout;
+                if (!wtx.tx->vpout[nOut]->GetTxOut(txout))
+                    continue;
                 TransactionRecord sub(hash, nTime);
                 sub.idx = nOut;
                 sub.involvesWatchAddress = involvesWatchAddress;
