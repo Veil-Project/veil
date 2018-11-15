@@ -203,7 +203,7 @@ bool WalletInit::Open() const
         if (!pwallet)
             return false;
 
-        if (fParticlMode && !((CHDWallet*)pwallet.get())->Initialise())
+        if (!((CHDWallet*)pwallet.get())->Initialise())
             return false;
 
         AddWallet(pwallet);

@@ -285,9 +285,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
         //This is done in incrementextranonce for PoW blocks
         pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
-    } else {
-        pblocktemplate->vchCoinbaseCommitment = GenerateCoinbaseCommitment(*pblock, pindexPrev,
-                                                                           chainparams.GetConsensus());
     }
 
     pblocktemplate->vTxFees[0] = -nFees;

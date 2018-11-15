@@ -774,10 +774,7 @@ int CreateOutput(OUTPUT_PTR<CTxOutBase> &txbout, CTempRecipient &r, std::string 
 int64_t CalculateMaximumSignedTxSize(const CTransaction &tx, const CHDWallet *wallet);
 int64_t CalculateMaximumSignedTxSize(const CTransaction &tx, const CHDWallet *wallet, const std::vector<CTxOutBaseRef>& txouts);
 
-bool IsParticlWallet(const CKeyStore *win);
-CHDWallet *GetParticlWallet(CKeyStore *win);
-const CHDWallet *GetParticlWallet(const CKeyStore *win);
-
+CHDWallet *GetHDWallet(CKeyStore *win);
 
 #endif // PARTICL_WALLET_HDWALLET_H
 

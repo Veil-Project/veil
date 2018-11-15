@@ -48,14 +48,14 @@ static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 static UniValue getnewstealthaddress(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
     if (request.fHelp || request.params.size() > 5)
         throw std::runtime_error(
                 "getnewstealthaddress ( \"label\" num_prefix_bits prefix_num bech32 makeV2 )\n"
-                "Returns a new Particl stealth address for receiving payments."
+                "Returns a new stealth address for receiving payments."
                 + HelpRequiringPassphrase(pwallet) +
                 "\nArguments:\n"
                 "1. \"label\"             (string, optional) If specified the key is added to the address book.\n"
@@ -68,7 +68,7 @@ static UniValue getnewstealthaddress(const JSONRPCRequest &request)
                 "4. bech32              (bool, optional, default=false) Use Bech32 encoding.\n"
                 "5. makeV2              (bool, optional, default=false) Generate an address from the same method used for hardware wallets.\n"
                 "\nResult:\n"
-                "\"address\"              (string) The new particl stealth address\n"
+                "\"address\"              (string) The new stealth address\n"
                 "\nExamples:\n"
                 + HelpExampleCli("getnewstealthaddress", "\"lblTestSxAddrPrefix\" 3 \"0b101\"")
                 + HelpExampleRpc("getnewstealthaddress", "\"lblTestSxAddrPrefix\", 3, \"0b101\""));
@@ -184,7 +184,7 @@ static int AddOutput(uint8_t nType, std::vector<CTempRecipient> &vecSend, const 
 static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, OutputTypes typeOut)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -236,11 +236,11 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
             CBitcoinAddress address(sAddress);
 
             if (typeOut == OUTPUT_RINGCT && !address.IsValidStealthAddress()) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Particl stealth address");
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid stealth address");
             }
 
             if (!obj.exists("script") && !address.IsValid()) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Particl address");
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
             }
 
             if (obj.exists("amount")) {
@@ -288,11 +288,11 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         CBitcoinAddress address(sAddress);
 
         if (typeOut == OUTPUT_RINGCT && !address.IsValidStealthAddress()) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Particl stealth address");
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid stealth address");
         }
 
         if (!address.IsValid()) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Particl address");
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
         }
 
         CAmount nAmount = AmountFromValue(request.params[1]);
@@ -575,7 +575,7 @@ static std::string SendHelp(CHDWallet *pwallet, OutputTypes typeIn, OutputTypes 
     rv += HelpRequiringPassphrase(pwallet);
 
     rv +=   "\nArguments:\n"
-            "1. \"address\"     (string, required) The particl address to send to.\n"
+            "1. \"address\"     (string, required) The address to send to.\n"
             "2. \"amount\"      (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. eg 0.1\n"
             "3. \"comment\"     (string, optional) A comment used to store what the transaction is for. \n"
             "                            This is not part of the transaction, just kept in your wallet.\n"
@@ -604,7 +604,7 @@ static std::string SendHelp(CHDWallet *pwallet, OutputTypes typeIn, OutputTypes 
 static UniValue sendparttoblind(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 6)
@@ -616,7 +616,7 @@ static UniValue sendparttoblind(const JSONRPCRequest &request)
 static UniValue sendparttoanon(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 6)
@@ -629,7 +629,7 @@ static UniValue sendparttoanon(const JSONRPCRequest &request)
 static UniValue sendblindtopart(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 6)
@@ -641,7 +641,7 @@ static UniValue sendblindtopart(const JSONRPCRequest &request)
 static UniValue sendblindtoblind(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 6)
@@ -653,7 +653,7 @@ static UniValue sendblindtoblind(const JSONRPCRequest &request)
 static UniValue sendblindtoanon(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 6)
@@ -666,7 +666,7 @@ static UniValue sendblindtoanon(const JSONRPCRequest &request)
 static UniValue sendanontopart(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 8)
@@ -678,7 +678,7 @@ static UniValue sendanontopart(const JSONRPCRequest &request)
 static UniValue sendanontoblind(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 8)
@@ -690,7 +690,7 @@ static UniValue sendanontoblind(const JSONRPCRequest &request)
 static UniValue sendanontoanon(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 8)
@@ -702,7 +702,7 @@ static UniValue sendanontoanon(const JSONRPCRequest &request)
 UniValue sendtypeto(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
     if (request.fHelp || request.params.size() < 3 || request.params.size() > 9)
@@ -714,7 +714,7 @@ UniValue sendtypeto(const JSONRPCRequest &request)
                 "1. \"typein\"          (string, required) part/blind/anon\n"
                 "2. \"typeout\"         (string, required) part/blind/anon\n"
                 "3. \"outputs\"         (json, required) Array of output objects\n"
-                "    3.1 \"address\"    (string, required) The particl address to send to.\n"
+                "    3.1 \"address\"    (string, required) The address to send to.\n"
                 "    3.2 \"amount\"     (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. eg 0.1\n"
                 "    3.x \"narr\"       (string, optional) Up to 24 character narration sent with the transaction.\n"
                 "    3.x \"subfee\"     (boolean, optional, default=false) The fee will be deducted from the amount being sent.\n"
@@ -766,7 +766,7 @@ UniValue sendtypeto(const JSONRPCRequest &request)
 static UniValue createrawparttransaction(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
 
@@ -793,7 +793,7 @@ static UniValue createrawparttransaction(const JSONRPCRequest& request)
                 "2. \"outputs\"               (array, required) A json array of json objects\n"
                 "     [\n"
                 "       {\n"
-                "         \"address\": \"str\"          (string, required) The particl address\n"
+                "         \"address\": \"str\"          (string, required) The address\n"
                 "         \"amount\": x.xxx           (numeric or string, required) The numeric value (can be string) in " + CURRENCY_UNIT + " of the output\n"
                 "         \"data\": \"hex\",            (string, required) The key is \"data\", the value is hex encoded data\n"
                 "         \"data_ct_fee\": x.xxx,     (numeric, optional) If type is \"data\" and output is at index 0, then it will be treated as a CT fee output\n"
@@ -841,8 +841,6 @@ static UniValue createrawparttransaction(const JSONRPCRequest& request)
     UniValue outputs = request.params[1].get_array();
 
     CMutableTransaction rawTx;
-    rawTx.nVersion = PARTICL_TXN_VERSION;
-
 
     if (!request.params[2].isNull()) {
         int64_t nLockTime = request.params[2].get_int64();
@@ -1106,7 +1104,7 @@ static UniValue createrawparttransaction(const JSONRPCRequest& request)
 static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CHDWallet *const pwallet = GetParticlWallet(wallet.get());
+    CHDWallet *const pwallet = GetHDWallet(wallet.get());
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
@@ -1149,7 +1147,7 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
                 "   }\n"
                 "5. \"options\"             (object, optional)\n"
                 "   {\n"
-                "     \"changeAddress\"          (string, optional, default pool address) The particl address to receive the change\n"
+                "     \"changeAddress\"          (string, optional, default pool address) The address to receive the change\n"
                 "     \"changePosition\"         (numeric, optional, default random) The index of the change output\n"
                 "     \"change_type\"            (string, optional) The output type to use. Only valid if changeAddress is not specified. Options are \"legacy\", \"p2sh-segwit\", and \"bech32\". Default is set by -changetype.\n"
                 "     \"includeWatching\"        (boolean, optional, default false) Also select inputs which are watch only\n"
@@ -1233,7 +1231,7 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
             CTxDestination dest = DecodeDestination(options["changeAddress"].get_str());
 
             if (!IsValidDestination(dest)) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "changeAddress must be a valid particl address");
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "changeAddress must be a valid address");
             }
 
             coinControl.destChange = dest;
@@ -1301,7 +1299,6 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
 
     // parse hex string from parameter
     CMutableTransaction tx;
-    tx.nVersion = PARTICL_TXN_VERSION;
     if (!DecodeHexTx(tx, request.params[1].get_str(), true)) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
     }

@@ -17,12 +17,6 @@
 
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
 
-static const uint8_t PARTICL_BLOCK_VERSION = 0xA0;
-static const uint8_t PARTICL_TXN_VERSION = 0x00;
-static const uint8_t MAX_PARTICL_TXN_VERSION = 0xBF;
-static const uint8_t BTC_TXN_VERSION = 0x02;
-
-
 enum OutputTypes
 {
     OUTPUT_NULL             = 0, // marker for CCoinsView (0.14)
@@ -51,11 +45,6 @@ enum DataOutputTypes
     DO_DEV_FUND_CFWD        = 7,
     DO_FUND_MSG             = 8,
 };
-
-inline bool IsParticlTxVersion(int nVersion)
-{
-    return true /*(nVersion & 0xFF) >= PARTICL_TXN_VERSION*/;
-}
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
@@ -633,147 +622,69 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     tx.nVersion = 0;
     s >> bv;
 
-    if (bv >= PARTICL_TXN_VERSION)
-    {
-        tx.nVersion = bv;
-
-        s >> bv;
-        tx.nVersion |= bv<<8; // TransactionTypes
-
-        s >> tx.nLockTime;
-
-        tx.vin.clear();
-        s >> tx.vin;
-
-        size_t nOutputs = ReadCompactSize(s);
-        tx.vpout.resize(nOutputs);
-        for (size_t k = 0; k < tx.vpout.size(); ++k)
-        {
-            s >> bv;
-
-            switch (bv)
-            {
-                case OUTPUT_STANDARD:
-                    tx.vpout[k] = MAKE_OUTPUT<CTxOutStandard>();
-                    break;
-                case OUTPUT_CT:
-                    tx.vpout[k] = MAKE_OUTPUT<CTxOutCT>();
-                    break;
-                case OUTPUT_RINGCT:
-                    tx.vpout[k] = MAKE_OUTPUT<CTxOutRingCT>();
-                    break;
-                case OUTPUT_DATA:
-                    tx.vpout[k] = MAKE_OUTPUT<CTxOutData>();
-                    break;
-                default:
-                    return;
-            };
-
-            tx.vpout[k]->nVersion = bv;
-            s >> *tx.vpout[k];
-        }
-
-        if (fAllowWitness)
-        {
-            for (auto &txin : tx.vin)
-                s >> txin.scriptWitness.stack;
-        };
-        return;
-    };
-
-    tx.nVersion |= bv;
+    tx.nVersion = bv;
     s >> bv;
-    tx.nVersion |= bv<<8;
-    s >> bv;
-    tx.nVersion |= bv<<16;
-    s >> bv;
-    tx.nVersion |= bv<<24;
+    tx.nVersion |= bv<<8; // TransactionTypes
 
-    unsigned char flags = 0;
-    tx.vin.clear();
-    tx.vout.clear();
-    /* Try to read the vin. In case the dummy is there, this will be read as an empty vector. */
-    s >> tx.vin;
-    if (tx.vin.size() == 0 && fAllowWitness) {
-        /* We read a dummy or an empty vin. */
-        s >> flags;
-        if (flags != 0) {
-            s >> tx.vin;
-            s >> tx.vout;
-        }
-    } else {
-        /* We read a non-empty vin. Assume a normal vout follows. */
-        s >> tx.vout;
-    }
-    if ((flags & 1) && fAllowWitness) {
-        /* The witness flag is present, and we support witnesses. */
-        flags ^= 1;
-        for (size_t i = 0; i < tx.vin.size(); i++) {
-            s >> tx.vin[i].scriptWitness.stack;
-        }
-    }
-    if (flags) {
-        /* Unknown flag in the serialization */
-        throw std::ios_base::failure("Unknown transaction optional data");
-    }
     s >> tx.nLockTime;
+
+    tx.vin.clear();
+    s >> tx.vin;
+
+    size_t nOutputs = ReadCompactSize(s);
+    tx.vpout.resize(nOutputs);
+    for (size_t k = 0; k < tx.vpout.size(); ++k) {
+        s >> bv;
+        switch (bv) {
+            case OUTPUT_STANDARD:
+                tx.vpout[k] = MAKE_OUTPUT<CTxOutStandard>();
+                break;
+            case OUTPUT_CT:
+                tx.vpout[k] = MAKE_OUTPUT<CTxOutCT>();
+                break;
+            case OUTPUT_RINGCT:
+                tx.vpout[k] = MAKE_OUTPUT<CTxOutRingCT>();
+                break;
+            case OUTPUT_DATA:
+                tx.vpout[k] = MAKE_OUTPUT<CTxOutData>();
+                break;
+            default:
+                return;
+        }
+
+        tx.vpout[k]->nVersion = bv;
+        s >> *tx.vpout[k];
+    }
+
+    if (fAllowWitness) {
+        for (auto &txin : tx.vin)
+            s >> txin.scriptWitness.stack;
+    }
 }
 
 template<typename Stream, typename TxType>
 inline void SerializeTransaction(const TxType& tx, Stream& s) {
     const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
-    if (IsParticlTxVersion(tx.nVersion)) {
-        uint8_t bv = tx.nVersion & 0xFF;
-        s << bv;
+    uint8_t bv = tx.nVersion & 0xFF;
+    s << bv;
 
-        bv = (tx.nVersion>>8) & 0xFF;
-        s << bv; // TransactionType
-
-        s << tx.nLockTime;
-        s << tx.vin;
-
-        WriteCompactSize(s, tx.vpout.size());
-        for (size_t k = 0; k < tx.vpout.size(); ++k) {
-            s << tx.vpout[k]->nVersion;
-            s << *tx.vpout[k];
-        }
-
-        if (fAllowWitness) {
-            for (auto &txin : tx.vin)
-                s << txin.scriptWitness.stack;
-        }
-
-        return;
-    }
-
-    s << tx.nVersion;
-    unsigned char flags = 0;
-
-    // Consistency check
-    if (fAllowWitness) {
-        /* Check whether witnesses need to be serialized. */
-        if (tx.HasWitness()) {
-            flags |= 1;
-        }
-    }
-
-    if (flags) {
-        /* Use extended format in case witnesses are to be serialized. */
-        std::vector<CTxIn> vinDummy;
-        s << vinDummy;
-        s << flags;
-    }
-
-    s << tx.vin;
-    s << tx.vout;
-    if (flags & 1) {
-        for (size_t i = 0; i < tx.vin.size(); i++) {
-            s << tx.vin[i].scriptWitness.stack;
-        }
-    }
+    bv = (tx.nVersion>>8) & 0xFF;
+    s << bv; // TransactionType
 
     s << tx.nLockTime;
+    s << tx.vin;
+
+    WriteCompactSize(s, tx.vpout.size());
+    for (size_t k = 0; k < tx.vpout.size(); ++k) {
+        s << tx.vpout[k]->nVersion;
+        s << *tx.vpout[k];
+    }
+
+    if (fAllowWitness) {
+        for (auto &txin : tx.vin)
+            s << txin.scriptWitness.stack;
+    }
 }
 
 
@@ -785,14 +696,12 @@ class CTransaction
 public:
     // Default transaction version.
     static const int32_t CURRENT_VERSION=2;
-    static const int32_t CURRENT_PARTICL_VERSION=0xA0;
 
     // Changing the default transaction version requires a two step process: first
     // adapting relay policy by bumping MAX_STANDARD_VERSION, and then later date
     // bumping the default CURRENT_VERSION at which point both CURRENT_VERSION and
     // MAX_STANDARD_VERSION will be equal.
     static const int32_t MAX_STANDARD_VERSION=2;
-    static const int32_t MAX_STANDARD_PARTICL_VERSION=0xA0;
 
     // The local variables are made const to prevent unintended modification
     // without updating the cached hash value. However, CTransaction is not
@@ -835,17 +744,13 @@ public:
         return vin.empty() && vout.empty() && vpout.empty();
     }
 
-    bool IsParticlVersion() const {
-        return IsParticlTxVersion(nVersion);
-    }
-
     int GetType() const {
         return (nVersion >> 8) & 0xFF;
     }
 
     size_t GetNumVOuts() const
     {
-        return IsParticlTxVersion(nVersion) ? vpout.size() : vout.size();
+        return vpout.size();
     }
 
     bool IsCoinStake() const;
@@ -962,17 +867,13 @@ struct CMutableTransaction
         nVersion |= (type & 0xFF) << 8;
     }
 
-    bool IsParticlVersion() const {
-        return IsParticlTxVersion(nVersion);
-    }
-
     int GetType() const {
         return (nVersion >> 8) & 0xFF;
     }
 
     size_t GetNumVOuts() const
     {
-        return IsParticlTxVersion(nVersion) ? vpout.size() : vout.size();
+        return vpout.size();
     }
 
     /** Compute the hash of this CMutableTransaction. This is computed on the
