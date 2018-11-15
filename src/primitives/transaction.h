@@ -299,8 +299,8 @@ public:
                 break;
             default:
                 assert(false);
-        };
-    };
+        }
+    }
 
     template<typename Stream>
     void Unserialize(Stream &s)
@@ -321,23 +321,30 @@ public:
                 break;
             default:
                 assert(false);
-        };
-    };
+        }
+    }
 
     uint8_t GetType() const
     {
         return nVersion;
-    };
+    }
 
     bool IsType(uint8_t nType) const
     {
         return nVersion == nType;
-    };
+    }
 
     bool IsStandardOutput() const
     {
         return nVersion == OUTPUT_STANDARD;
-    };
+    }
+
+    bool IsZerocoinMint() const
+    {
+        if (!IsStandardOutput())
+            return false;
+        return GetPScriptPubKey()->IsZerocoinMint();
+    }
 
     const CTxOutStandard *GetStandardOutput() const
     {

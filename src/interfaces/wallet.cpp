@@ -65,15 +65,19 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
     for (const auto& txin : wtx.tx->vin) {
         result.txin_is_mine.emplace_back(wallet.IsMine(txin));
     }
-    result.txout_is_mine.reserve(wtx.tx->vout.size());
-    result.txout_address.reserve(wtx.tx->vout.size());
-    result.txout_address_is_mine.reserve(wtx.tx->vout.size());
-    for (const auto& txout : wtx.tx->vout) {
-        result.txout_is_mine.emplace_back(wallet.IsMine(txout));
+    result.txout_is_mine.reserve(wtx.tx->vpout.size());
+    result.txout_address.reserve(wtx.tx->vpout.size());
+    result.txout_address_is_mine.reserve(wtx.tx->vpout.size());
+    for (const auto& txout : wtx.tx->vpout) {
+        result.txout_is_mine.emplace_back(wallet.IsMine(txout.get()));
         result.txout_address.emplace_back();
-        result.txout_address_is_mine.emplace_back(ExtractDestination(txout.scriptPubKey, result.txout_address.back()) ?
-                                                      IsMine(wallet, result.txout_address.back()) :
-                                                      ISMINE_NO);
+        CScript scriptPubKey;
+        if (txout->GetScriptPubKey(scriptPubKey)) {
+            result.txout_address_is_mine.emplace_back(
+                    ExtractDestination(scriptPubKey, result.txout_address.back()) ?
+                    IsMine(wallet, result.txout_address.back()) :
+                    ISMINE_NO);
+        }
     }
     result.credit = wtx.GetCredit(ISMINE_ALL);
     result.debit = wtx.GetDebit(ISMINE_ALL);
