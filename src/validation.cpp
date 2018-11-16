@@ -1812,20 +1812,20 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
         // Check that all outputs are available and match the outputs in the block itself
         // exactly.
-        for (size_t o = 0; o < tx.vout.size(); o++) {
+        for (size_t o = 0; o < tx.vpout.size(); o++) {
             //Zerocoinmint needs to be erased from db
-            if (tx.vout[o].IsZerocoinMint()) {
+            if (tx.vpout[o]->IsZerocoinMint()) {
                 libzerocoin::PublicCoin coin(Params().Zerocoin_Params());
-                if (!TxOutToPublicCoin(tx.vout[o], coin))
+                if (!OutputToPublicCoin(tx.vpout[o].get(), coin))
                     return DISCONNECT_FAILED;
                 pzerocoinDB->EraseCoinMint(coin.getValue());
                 continue;
             }
-            if (!tx.vout[o].scriptPubKey.IsUnspendable()) {
+            if (tx.vpout[o]->IsStandardOutput() && !tx.vpout[o]->GetPScriptPubKey()->IsUnspendable()) {
                 COutPoint out(hash, o);
                 Coin coin;
                 bool is_spent = view.SpendCoin(out, &coin);
-                if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
+                if (!is_spent || coin.Matches(tx.vpout[o].get()) || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
                     fClean = false; // transaction output mismatch
                 }
             }
@@ -2298,12 +2298,12 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
             // Check that zerocoin mints are not already known
             if (tx.IsZerocoinMint()) {
-                for (auto& out : tx.vout) {
-                    if (!out.IsZerocoinMint())
+                for (const auto& pOut : tx.vpout) {
+                    if (!pOut->IsZerocoinMint())
                         continue;
 
                     libzerocoin::PublicCoin coin(Params().Zerocoin_Params());
-                    if (!TxOutToPublicCoin(out, coin))
+                    if (!OutputToPublicCoin(pOut.get(), coin))
                         return state.DoS(100, error("%s: failed final check of zerocoinmint for tx %s", __func__, tx.GetHash().GetHex()), REJECT_INVALID);
 
                     if (!ContextualCheckZerocoinMint(tx, coin))

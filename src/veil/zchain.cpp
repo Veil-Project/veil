@@ -338,6 +338,27 @@ libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin)
     return spend;
 }
 
+bool OutputToPublicCoin(const CTxOutBase* out, libzerocoin::PublicCoin& coin)
+{
+    if (!out->IsZerocoinMint())
+        return false;
+
+    CBigNum publicZerocoin;
+    vector<unsigned char> vchZeroMint;
+    vchZeroMint.insert(vchZeroMint.end(), out->GetPScriptPubKey()->begin() + SCRIPT_OFFSET,
+                       out->GetPScriptPubKey()->begin() + out->GetPScriptPubKey()->size());
+    publicZerocoin.setvch(vchZeroMint);
+
+    libzerocoin::CoinDenomination denomination = libzerocoin::AmountToZerocoinDenomination(out->GetValue());
+    if (denomination == libzerocoin::ZQ_ERROR)
+        return error("TxOutToPublicCoin : txout.nValue is not correct");
+
+    libzerocoin::PublicCoin checkPubCoin(Params().Zerocoin_Params(), publicZerocoin, denomination);
+    coin = checkPubCoin;
+
+    return true;
+}
+
 bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin)
 {
     CBigNum publicZerocoin;
