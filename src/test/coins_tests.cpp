@@ -302,9 +302,11 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
         if (randiter % 20 < 19) {
             CMutableTransaction tx;
             tx.vin.resize(1);
-            tx.vout.resize(1);
-            tx.vout[0].nValue = i; //Keep txs unique unless intended to duplicate
-            tx.vout[0].scriptPubKey.assign(InsecureRand32() & 0x3F, 0); // Random sizes so we can test memory usage accounting
+            tx.vpout.resize(1);
+            tx.vpout[0]->SetValue(i); //Keep txs unique unless intended to duplicate
+            CScript scriptPubKey;
+            scriptPubKey.assign(InsecureRand32() & 0x3F, 0); // Random sizes so we can test memory usage accounting
+            tx.vpout[0]->SetScriptPubKey(scriptPubKey);
             unsigned int height = InsecureRand32();
             Coin old_coin;
 
@@ -372,9 +374,11 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
 
             }
             // Update the expected result to know about the new output coins
-            assert(tx.vout.size() == 1);
+            assert(tx.vpout.size() == 1);
             const COutPoint outpoint(tx.GetHash(), 0);
-            result[outpoint] = Coin(tx.vout[0], height, CTransaction(tx).IsCoinBase());
+            CTxOut txOut;
+            assert(tx.vpout[0]->GetTxOut(txOut));
+            result[outpoint] = Coin(txOut, height, CTransaction(tx).IsCoinBase());
 
             // Call UpdateCoins on the top cache
             CTxUndo undo;

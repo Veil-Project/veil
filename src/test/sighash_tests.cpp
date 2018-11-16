@@ -46,7 +46,7 @@ uint256 static SignatureHashOld(CScript scriptCode, const CTransaction& txTo, un
     if ((nHashType & 0x1f) == SIGHASH_NONE)
     {
         // Wildcard payee
-        txTmp.vout.clear();
+        txTmp.vpout.clear();
 
         // Let the others update at will
         for (unsigned int i = 0; i < txTmp.vin.size(); i++)
@@ -57,13 +57,13 @@ uint256 static SignatureHashOld(CScript scriptCode, const CTransaction& txTo, un
     {
         // Only lock-in the txout payee at same index as txin
         unsigned int nOut = nIn;
-        if (nOut >= txTmp.vout.size())
+        if (nOut >= txTmp.vpout.size())
         {
             return one;
         }
-        txTmp.vout.resize(nOut+1);
+        txTmp.vpout.resize(nOut+1);
         for (unsigned int i = 0; i < nOut; i++)
-            txTmp.vout[i].SetNull();
+            txTmp.vpout[i]->SetNull();
 
         // Let the others update at will
         for (unsigned int i = 0; i < txTmp.vin.size(); i++)
@@ -95,7 +95,7 @@ void static RandomScript(CScript &script) {
 void static RandomTransaction(CMutableTransaction &tx, bool fSingle) {
     tx.nVersion = InsecureRand32();
     tx.vin.clear();
-    tx.vout.clear();
+    tx.vpout.clear();
     tx.nLockTime = (InsecureRandBool()) ? InsecureRand32() : 0;
     int ins = (InsecureRandBits(2)) + 1;
     int outs = fSingle ? ins : (InsecureRandBits(2)) + 1;
@@ -108,10 +108,11 @@ void static RandomTransaction(CMutableTransaction &tx, bool fSingle) {
         txin.nSequence = (InsecureRandBool()) ? InsecureRand32() : (unsigned int)-1;
     }
     for (int out = 0; out < outs; out++) {
-        tx.vout.push_back(CTxOut());
-        CTxOut &txout = tx.vout.back();
-        txout.nValue = InsecureRandRange(100000000);
-        RandomScript(txout.scriptPubKey);
+        tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>());
+        auto &pout = tx.vpout.back();
+        pout->SetValue(InsecureRandRange(100000000));
+        CScript scriptPubKey = *pout->GetPScriptPubKey();
+        RandomScript(scriptPubKey);
     }
 }
 

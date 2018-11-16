@@ -42,8 +42,8 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
     CMutableTransaction tx;
     tx.vin.resize(1);
     tx.vin[0].scriptSig = garbage;
-    tx.vout.resize(1);
-    tx.vout[0].nValue=0LL;
+    tx.vpout.resize(1);
+    tx.vpout[0]->SetValue(0LL);
     CFeeRate baseRate(basefee, GetVirtualTransactionSize(tx));
 
     // Create a fake block

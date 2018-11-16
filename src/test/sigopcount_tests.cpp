@@ -74,8 +74,9 @@ static ScriptError VerifyWithFlag(const CTransaction& output, const CMutableTran
     ScriptError error;
     CTransaction inputi(input);
     std::vector<uint8_t> vchAmount(8);
-    memcpy(&vchAmount[0], &output.vout[0].nValue, 8);
-    bool ret = VerifyScript(inputi.vin[0].scriptSig, output.vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, vchAmount), &error);
+    CAmount nValue = output.vpout[0]->GetValue();
+    memcpy(&vchAmount[0], &nValue, 8);
+    bool ret = VerifyScript(inputi.vin[0].scriptSig, *output.vpout[0]->GetPScriptPubKey(), &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, vchAmount), &error);
     BOOST_CHECK((ret == true) == (error == SCRIPT_ERR_OK));
 
     return error;
@@ -92,9 +93,9 @@ static void BuildTxs(CMutableTransaction& spendingTx, CCoinsViewCache& coins, CM
     creationTx.vin.resize(1);
     creationTx.vin[0].prevout.SetNull();
     creationTx.vin[0].scriptSig = CScript();
-    creationTx.vout.resize(1);
-    creationTx.vout[0].nValue = 1;
-    creationTx.vout[0].scriptPubKey = scriptPubKey;
+    creationTx.vpout.resize(1);
+    creationTx.vpout[0]->SetValue(1);
+    creationTx.vpout[0]->SetScriptPubKey(scriptPubKey);
 
     spendingTx.nVersion = 1;
     spendingTx.vin.resize(1);
@@ -102,9 +103,9 @@ static void BuildTxs(CMutableTransaction& spendingTx, CCoinsViewCache& coins, CM
     spendingTx.vin[0].prevout.n = 0;
     spendingTx.vin[0].scriptSig = scriptSig;
     spendingTx.vin[0].scriptWitness = witness;
-    spendingTx.vout.resize(1);
-    spendingTx.vout[0].nValue = 1;
-    spendingTx.vout[0].scriptPubKey = CScript();
+    spendingTx.vpout.resize(1);
+    spendingTx.vpout[0]->SetValue(1);
+    spendingTx.vpout[0]->SetScriptPubKey(CScript());
 
     AddCoins(coins, creationTx, 0);
 }

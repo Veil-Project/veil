@@ -217,9 +217,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         if (fRemove)
             continue;
 
-        for (auto &txOut : tx.vout) {
-            if (txOut.scriptPubKey == rewardScript) {
-                nNetworkRewardReserve += txOut.nValue;
+        for (const auto& pout : tx.vpout) {
+            if (!pout->IsStandardOutput())
+                continue;
+            if (*pout->GetPScriptPubKey() == rewardScript) {
+                nNetworkRewardReserve += pout->GetValue();
             }
         }
     }

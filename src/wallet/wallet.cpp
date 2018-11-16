@@ -1268,8 +1268,8 @@ isminetype CWallet::IsMine(const CTxIn &txin) const
         if (mi != mapWallet.end())
         {
             const CWalletTx& prev = (*mi).second;
-            if (txin.prevout.n < prev.tx->vout.size())
-                return IsMine(prev.tx->vout[txin.prevout.n]);
+            if (txin.prevout.n < prev.tx->vpout.size())
+                return IsMine(prev.tx->vpout[txin.prevout.n].get());
         }
     }
     return ISMINE_NO;
@@ -2623,7 +2623,7 @@ bool CWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAm
         {
             if (!out.fSpendable)
                  continue;
-            nValueRet += out.tx->tx->vout[out.i].nValue;
+            nValueRet += out.tx->tx->vpout[out.i]->GetValue();
             setCoinsRet.insert(out.GetInputCoin());
         }
         return (nValueRet >= nTargetValue);
@@ -2646,10 +2646,10 @@ bool CWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAm
         {
             const CWalletTx* pcoin = &it->second;
             // Clearly invalid input, fail
-            if (pcoin->tx->vout.size() <= outpoint.n)
+            if (pcoin->tx->vpout.size() <= outpoint.n)
                 return false;
             // Just to calculate the marginal byte size
-            nValueFromPresetInputs += pcoin->tx->vout[outpoint.n].nValue;
+            nValueFromPresetInputs += pcoin->tx->vpout[outpoint.n]->GetValue();
             setPresetCoins.insert(CInputCoin(pcoin->tx, outpoint.n));
         } else
             return false; // TODO: Allow non-wallet inputs
@@ -2767,11 +2767,13 @@ bool CWallet::SignTransaction(CMutableTransaction &tx)
     int nIn = 0;
     for (auto& input : tx.vin) {
         std::map<uint256, CWalletTx>::const_iterator mi = mapWallet.find(input.prevout.hash);
-        if(mi == mapWallet.end() || input.prevout.n >= mi->second.tx->vout.size()) {
+        if(mi == mapWallet.end() || input.prevout.n >= mi->second.tx->vpout.size()) {
             return false;
         }
-        const CScript& scriptPubKey = mi->second.tx->vout[input.prevout.n].scriptPubKey;
-        const CAmount& amount = mi->second.tx->vout[input.prevout.n].nValue;
+        CScript scriptPubKey;
+        if (!mi->second.tx->vpout[input.prevout.n]->GetScriptPubKey(scriptPubKey))
+            return error("%s: Failed to get scriptpubkey from output, probably wrong type", __func__);
+        const CAmount& amount = mi->second.tx->vpout[input.prevout.n]->GetValue();
         SignatureData sigdata;
         std::vector<uint8_t> vchAmount(8);
         memcpy(&vchAmount[0], &amount, 8);
@@ -2997,7 +2999,6 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
             {
                 nChangePosInOut = nChangePosRequest;
                 txNew.vin.clear();
-                txNew.vout.clear();
                 txNew.vpout.clear();
                 bool fFirst = true;
 
@@ -3277,12 +3278,12 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
     // Should not be adjusted if you don't understand the consequences
     //int64_t nCombineThreshold = 0;
     txNew.vin.clear();
-    txNew.vout.clear();
+    txNew.vpout.clear();
 
     // Mark coin stake transaction
     CScript scriptEmpty;
     scriptEmpty.clear();
-    txNew.vout.push_back(CTxOut(0, scriptEmpty));
+    txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
 
     // Choose coins to use
     CAmount nBalance = GetBalance();
@@ -3346,7 +3347,8 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
                 LogPrintf("%s : failed to get scriptPubKey\n", __func__);
                 continue;
             }
-            txNew.vout.insert(txNew.vout.end(), vout.begin(), vout.end());
+            for (auto& txOut : vout)
+                txNew.vpout.emplace_back(txOut.GetSharedPtr());
 
             // Limit size
             unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR;
@@ -3361,7 +3363,7 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
                 if (!stakeInput->CreateTxIn(this, in, hashTxOut)) {
                     LogPrintf("%s : failed to create TxIn\n", __func__);
                     txNew.vin.clear();
-                    txNew.vout.clear();
+                    txNew.vpout.clear();
                     nCredit = 0;
                     continue;
                 }
@@ -3877,15 +3879,18 @@ std::map<CTxDestination, CAmount> CWallet::GetAddressBalances()
             if (nDepth < (pcoin->IsFromMe(ISMINE_ALL) ? 0 : 1))
                 continue;
 
-            for (unsigned int i = 0; i < pcoin->tx->vout.size(); i++)
+            for (unsigned int i = 0; i < pcoin->tx->vpout.size(); i++)
             {
                 CTxDestination addr;
-                if (!IsMine(pcoin->tx->vout[i]))
+                if (!IsMine(pcoin->tx->vpout[i].get()))
                     continue;
-                if(!ExtractDestination(pcoin->tx->vout[i].scriptPubKey, addr))
+                CScript scriptCheck;
+                if (!pcoin->tx->vpout[i]->GetScriptPubKey(scriptCheck))
+                    continue;
+                if(!ExtractDestination(scriptCheck, addr))
                     continue;
 
-                CAmount n = IsSpent(walletEntry.first, i) ? 0 : pcoin->tx->vout[i].nValue;
+                CAmount n = IsSpent(walletEntry.first, i) ? 0 : pcoin->tx->vpout[i]->GetValue();
 
                 if (!balances.count(addr))
                     balances[addr] = 0;
@@ -3916,7 +3921,10 @@ std::set< std::set<CTxDestination> > CWallet::GetAddressGroupings()
                 CTxDestination address;
                 if(!IsMine(txin)) /* If this input isn't mine, ignore it */
                     continue;
-                if(!ExtractDestination(mapWallet.at(txin.prevout.hash).tx->vout[txin.prevout.n].scriptPubKey, address))
+                CScript scriptCheck;
+                if (!mapWallet.at(txin.prevout.hash).tx->vpout[txin.prevout.n]->GetScriptPubKey(scriptCheck))
+                    continue;
+                if(!ExtractDestination(scriptCheck, address))
                     continue;
                 grouping.insert(address);
                 any_mine = true;
@@ -3925,11 +3933,11 @@ std::set< std::set<CTxDestination> > CWallet::GetAddressGroupings()
             // group change with input addresses
             if (any_mine)
             {
-               for (CTxOut txout : pcoin->tx->vout)
-                   if (IsChange(txout))
+               for (auto pout : pcoin->tx->vpout)
+                   if (IsChange(pout.get()))
                    {
                        CTxDestination txoutAddr;
-                       if(!ExtractDestination(txout.scriptPubKey, txoutAddr))
+                       if(!ExtractDestination(pout, txoutAddr))
                            continue;
                        grouping.insert(txoutAddr);
                    }
@@ -3942,11 +3950,11 @@ std::set< std::set<CTxDestination> > CWallet::GetAddressGroupings()
         }
 
         // group lone addrs by themselves
-        for (const auto& txout : pcoin->tx->vout)
-            if (IsMine(txout))
+        for (const auto& pout : pcoin->tx->vpout)
+            if (IsMine(pout.get()))
             {
                 CTxDestination address;
-                if(!ExtractDestination(txout.scriptPubKey, address))
+                if(!ExtractDestination(pout, address))
                     continue;
                 grouping.insert(address);
                 groupings.insert(grouping);
@@ -4142,9 +4150,12 @@ void CWallet::GetKeyBirthTimes(std::map<CTxDestination, int64_t> &mapKeyBirth) c
         if (pindex && chainActive.Contains(pindex)) {
             // ... which are already in a block
             int nHeight = pindex->nHeight;
-            for (const CTxOut &txout : wtx.tx->vout) {
+            for (const auto& pout : wtx.tx->vpout) {
+                CScript scriptCheck;
+                if (!pout->GetScriptPubKey(scriptCheck))
+                    continue;
                 // iterate over all their outputs
-                CAffectedKeysVisitor(*this, vAffected).Process(txout.scriptPubKey);
+                CAffectedKeysVisitor(*this, vAffected).Process(scriptCheck);
                 for (const CKeyID &keyid : vAffected) {
                     // ... and all their affected keys
                     std::map<CKeyID, CBlockIndex*>::iterator rit = mapKeyFirstBlock.find(keyid);
@@ -4950,7 +4961,7 @@ std::vector<OutputGroup> CWallet::GroupOutputs(const std::vector<COutput>& outpu
 
             size_t ancestors, descendants;
             mempool.GetTransactionAncestry(output.tx->GetHash(), ancestors, descendants);
-            if (!single_coin && ExtractDestination(output.tx->tx->vout[output.i].scriptPubKey, dst)) {
+            if (!single_coin && ExtractDestination(output.tx->tx->vpout[output.i], dst)) {
                 // Limit output groups to no more than 10 entries, to protect
                 // against inadvertently creating a too-large transaction
                 // when using -avoidpartialspends
@@ -5666,7 +5677,6 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
         LOCK2(cs_main, cs_wallet);
         {
             txNew.vin.clear();
-            txNew.vout.clear();
             txNew.vpout.clear();
 
             //if there is an address to send to then use it, if not generate a new address to send to

@@ -284,7 +284,7 @@ static void MutateTxAddOutAddr(CMutableTransaction& tx, const std::string& strIn
 
     // construct TxOut, append to transaction output list
     CTxOut txout(value, scriptPubKey);
-    tx.vout.push_back(txout);
+    tx.vpout.emplace_back(MAKE_OUTPUT<CTxOutStandard>(txout.nValue, txout.scriptPubKey));
 }
 
 static void MutateTxAddOutPubKey(CMutableTransaction& tx, const std::string& strInput)
@@ -328,7 +328,7 @@ static void MutateTxAddOutPubKey(CMutableTransaction& tx, const std::string& str
 
     // construct TxOut, append to transaction output list
     CTxOut txout(value, scriptPubKey);
-    tx.vout.push_back(txout);
+    tx.vpout.emplace_back(MAKE_OUTPUT<CTxOutStandard>(txout.nValue, txout.scriptPubKey));
 }
 
 static void MutateTxAddOutMultiSig(CMutableTransaction& tx, const std::string& strInput)
@@ -402,7 +402,7 @@ static void MutateTxAddOutMultiSig(CMutableTransaction& tx, const std::string& s
 
     // construct TxOut, append to transaction output list
     CTxOut txout(value, scriptPubKey);
-    tx.vout.push_back(txout);
+    tx.vpout.emplace_back(MAKE_OUTPUT<CTxOutStandard>(txout.nValue, txout.scriptPubKey));
 }
 
 static void MutateTxAddOutData(CMutableTransaction& tx, const std::string& strInput)
@@ -429,7 +429,7 @@ static void MutateTxAddOutData(CMutableTransaction& tx, const std::string& strIn
     std::vector<unsigned char> data = ParseHex(strData);
 
     CTxOut txout(value, CScript() << OP_RETURN << data);
-    tx.vout.push_back(txout);
+    tx.vpout.emplace_back(MAKE_OUTPUT<CTxOutStandard>(txout.nValue, txout.scriptPubKey));
 }
 
 static void MutateTxAddOutScript(CMutableTransaction& tx, const std::string& strInput)
@@ -474,7 +474,7 @@ static void MutateTxAddOutScript(CMutableTransaction& tx, const std::string& str
 
     // construct TxOut, append to transaction output list
     CTxOut txout(value, scriptPubKey);
-    tx.vout.push_back(txout);
+    tx.vpout.emplace_back(MAKE_OUTPUT<CTxOutStandard>(txout.nValue, txout.scriptPubKey));
 }
 
 static void MutateTxDelInput(CMutableTransaction& tx, const std::string& strInIdx)
@@ -493,12 +493,12 @@ static void MutateTxDelOutput(CMutableTransaction& tx, const std::string& strOut
 {
     // parse requested deletion index
     int64_t outIdx;
-    if (!ParseInt64(strOutIdx, &outIdx) || outIdx < 0 || outIdx >= static_cast<int64_t>(tx.vout.size())) {
+    if (!ParseInt64(strOutIdx, &outIdx) || outIdx < 0 || outIdx >= static_cast<int64_t>(tx.vpout.size())) {
         throw std::runtime_error("Invalid TX output index '" + strOutIdx + "'");
     }
 
     // delete output from transaction
-    tx.vout.erase(tx.vout.begin() + outIdx);
+    tx.vpout.erase(tx.vpout.begin() + outIdx);
 }
 
 static const unsigned int N_SIGHASH_OPTS = 6;
@@ -646,7 +646,7 @@ static void MutateTxSign(CMutableTransaction& tx, const std::string& flagStr)
         memcpy(vchAmount.data(), &amount, 8);
         SignatureData sigdata = DataFromTransaction(mergedTx, i, coin.out);
         // Only sign SIGHASH_SINGLE if there's a corresponding output:
-        if (!fHashSingle || (i < mergedTx.vout.size()))
+        if (!fHashSingle || (i < mergedTx.vpout.size()))
             ProduceSignature(keystore, MutableTransactionSignatureCreator(&mergedTx, i, vchAmount, nHashType), prevPubKey, sigdata);
 
         UpdateInput(txin, sigdata);

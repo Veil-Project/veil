@@ -153,10 +153,10 @@ BOOST_AUTO_TEST_CASE(checkzerocoinmint_test)
 bool CheckZerocoinSpendNoDB(const CTransaction tx, string& strError)
 {
     //max needed non-mint outputs should be 2 - one for redemption address and a possible 2nd for change
-    if (tx.vout.size() > 2){
+    if (tx.vpout.size() > 2){
         int outs = 0;
-        for (const CTxOut& out : tx.vout) {
-            if (out.IsZerocoinMint())
+        for (const auto& out : tx.vpout) {
+            if (out->IsZerocoinMint())
                 continue;
             outs++;
         }
@@ -169,8 +169,8 @@ bool CheckZerocoinSpendNoDB(const CTransaction tx, string& strError)
 
     //compute the txout hash that is used for the zerocoinspend signatures
     CMutableTransaction txTemp;
-    for (const CTxOut& out : tx.vout) {
-        txTemp.vout.push_back(out);
+    for (const auto& out : tx.vpout) {
+        txTemp.vpout.emplace_back(out);
     }
     //    uint256 hashTxOut = txTemp.GetHash();
 
@@ -273,10 +273,10 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
         CTransaction tx;
         //BOOST_CHECK_MESSAGE(DecodeHexTx(tx, raw.first), "Failed to deserialize hex transaction");
 
-        for(const CTxOut& out : tx.vout){
-            if(!out.scriptPubKey.empty() && out.scriptPubKey.IsZerocoinMint()) {
+        for(const auto& out : tx.vpout){
+            if(out->IsZerocoinMint()) {
                 PublicCoin publicCoin(Params().Zerocoin_Params());
-                BOOST_CHECK_MESSAGE(TxOutToPublicCoin(out, publicCoin), "Failed to convert CTxOut " << out.ToString() << " to PublicCoin");
+                BOOST_CHECK_MESSAGE(OutputToPublicCoin(out.get(), publicCoin), "Failed to convert CTxOut to PublicCoin");
 
                 accumulator += publicCoin;
                 witness += publicCoin;
@@ -343,7 +343,7 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
 
     CMutableTransaction txNew;
     txNew.vin.push_back(newTxIn);
-    txNew.vout.push_back(txOut);
+    txNew.vpout.push_back(txOut.GetSharedPtr());
 
     CTransaction txMintFrom;
     //BOOST_CHECK_MESSAGE(DecodeHexTx(txMintFrom, rawTx1), "Failed to deserialize hex transaction");
@@ -358,7 +358,7 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     CTxOut txOutOverSpend(100 * COIN, script);
     CMutableTransaction txOverSpend;
     txOverSpend.vin.push_back(newTxIn);
-    txOverSpend.vout.push_back(txOutOverSpend);
+    txOverSpend.vpout.push_back(txOutOverSpend.GetSharedPtr());
     strError = "";
     CheckZerocoinSpendNoDB(txOverSpend, strError);
     string str = "Failed to detect overspend. Error Message: " + strError;

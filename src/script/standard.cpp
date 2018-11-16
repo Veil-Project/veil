@@ -190,6 +190,14 @@ bool Solver(const CScript& scriptPubKey, txnouttype& typeRet, std::vector<std::v
     return false;
 }
 
+bool ExtractDestination(const CTxOutBaseRef& pout, CTxDestination& addressRet)
+{
+    CScript scriptCheck;
+    if (!pout->GetScriptPubKey(scriptCheck))
+        return false;
+    return ExtractDestination(scriptCheck, addressRet);
+}
+
 bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
 {
     std::vector<valtype> vSolutions;

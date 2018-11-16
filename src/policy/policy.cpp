@@ -159,8 +159,13 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason)
 
     unsigned int nDataOut = 0;
     txnouttype whichType;
-    for (const CTxOut& txout : tx.vout) {
-        if (!::IsStandard(txout.scriptPubKey, whichType)) {
+    for (const auto &txout : tx.vpout) {
+        const CTxOutBase *p = txout.get();
+
+        if (!p->IsType(OUTPUT_STANDARD) && !p->IsType(OUTPUT_CT))
+            continue;
+
+        if (!::IsStandard(*p->GetPScriptPubKey(), whichType)) {
             reason = "scriptpubkey";
             return false;
         }
@@ -170,7 +175,7 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason)
         else if ((whichType == TX_MULTISIG) && (!fIsBareMultisigStd)) {
             reason = "bare-multisig";
             return false;
-        } else if (IsDust(txout, ::dustRelayFee)) {
+        } else if (IsDust(p, ::dustRelayFee)) {
             reason = "dust";
             return false;
         }

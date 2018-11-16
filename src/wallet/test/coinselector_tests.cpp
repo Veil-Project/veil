@@ -39,16 +39,16 @@ CoinSelectionParams coin_selection_params(false, 0, 0, CFeeRate(0), 0);
 static void add_coin(const CAmount& nValue, int nInput, std::vector<CInputCoin>& set)
 {
     CMutableTransaction tx;
-    tx.vout.resize(nInput + 1);
-    tx.vout[nInput].nValue = nValue;
+    tx.vpout.resize(nInput + 1);
+    tx.vpout[nInput]->SetValue(nValue);
     set.emplace_back(MakeTransactionRef(tx), nInput);
 }
 
 static void add_coin(const CAmount& nValue, int nInput, CoinSet& set)
 {
     CMutableTransaction tx;
-    tx.vout.resize(nInput + 1);
-    tx.vout[nInput].nValue = nValue;
+    tx.vpout.resize(nInput + 1);
+    tx.vpout[nInput]->SetValue(nValue);
     set.emplace(MakeTransactionRef(tx), nInput);
 }
 
@@ -58,8 +58,8 @@ static void add_coin(const CAmount& nValue, int nAge = 6*24, bool fIsFromMe = fa
     static int nextLockTime = 0;
     CMutableTransaction tx;
     tx.nLockTime = nextLockTime++;        // so all transactions get different hashes
-    tx.vout.resize(nInput + 1);
-    tx.vout[nInput].nValue = nValue;
+    tx.vpout.resize(nInput + 1);
+    tx.vpout[nInput]->SetValue(nValue);
     if (fIsFromMe) {
         // IsFromMe() returns (GetDebit() > 0), and GetDebit() is 0 if vin.empty(),
         // so stop vin being empty, and cache a non-zero Debit to fake out IsFromMe()

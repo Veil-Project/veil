@@ -143,19 +143,22 @@ bool CBloomFilter::IsRelevantAndUpdate(const CTransaction& tx)
     if (contains(hash))
         fFound = true;
 
-    for (unsigned int i = 0; i < tx.vout.size(); i++)
+    for (unsigned int i = 0; i < tx.vpout.size(); i++)
     {
-        const CTxOut& txout = tx.vout[i];
+        const auto& pOut = tx.vpout[i];
         // Match if the filter contains any arbitrary script data element in any scriptPubKey in tx
         // If this matches, also add the specific output that was matched.
         // This means clients don't have to update the filter themselves when a new relevant tx
         // is discovered in order to find spending transactions, which avoids round-tripping and race conditions.
-        CScript::const_iterator pc = txout.scriptPubKey.begin();
+        CScript scriptPubKey;
+        if (!pOut->GetScriptPubKey(scriptPubKey))
+            continue;
+        CScript::const_iterator pc = scriptPubKey.begin();
         std::vector<unsigned char> data;
-        while (pc < txout.scriptPubKey.end())
+        while (pc < scriptPubKey.end())
         {
             opcodetype opcode;
-            if (!txout.scriptPubKey.GetOp(pc, opcode, data))
+            if (!scriptPubKey.GetOp(pc, opcode, data))
                 break;
             if (data.size() != 0 && contains(data))
             {
@@ -166,7 +169,7 @@ bool CBloomFilter::IsRelevantAndUpdate(const CTransaction& tx)
                 {
                     txnouttype type;
                     std::vector<std::vector<unsigned char> > vSolutions;
-                    if (Solver(txout.scriptPubKey, type, vSolutions) &&
+                    if (Solver(scriptPubKey, type, vSolutions) &&
                             (type == TX_PUBKEY || type == TX_MULTISIG))
                         insert(COutPoint(hash, i));
                 }

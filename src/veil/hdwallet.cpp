@@ -2966,7 +2966,6 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::v
     wtx.BindWallet(this);
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    txNew.vout.clear();
 
     // Discourage fee sniping. See CWallet::CreateTransaction
     txNew.nLockTime = chainActive.Height();
@@ -3447,7 +3446,6 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::ve
     wtx.BindWallet(this);
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    txNew.vout.clear();
 
     // Discourage fee sniping. See CWallet::CreateTransaction
     txNew.nLockTime = chainActive.Height();
@@ -4078,7 +4076,6 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
     wtx.BindWallet(this);
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    txNew.vout.clear();
 
     txNew.nLockTime = 0;
 

@@ -307,18 +307,22 @@ SetupDummyInputs(CBasicKeyStore& keystoreRet, CCoinsViewCache& coinsRet)
     }
 
     // Create some dummy input transactions
-    dummyTransactions[0].vout.resize(2);
-    dummyTransactions[0].vout[0].nValue = 11*CENT;
-    dummyTransactions[0].vout[0].scriptPubKey << ToByteVector(key[0].GetPubKey()) << OP_CHECKSIG;
-    dummyTransactions[0].vout[1].nValue = 50*CENT;
-    dummyTransactions[0].vout[1].scriptPubKey << ToByteVector(key[1].GetPubKey()) << OP_CHECKSIG;
+    dummyTransactions[0].vpout.resize(2);
+    dummyTransactions[0].vpout[0]->SetValue(11*CENT);
+    auto scriptPubKey = *dummyTransactions[0].vpout[0]->GetPScriptPubKey();
+    scriptPubKey << ToByteVector(key[0].GetPubKey()) << OP_CHECKSIG;
+    dummyTransactions[0].vpout[0]->SetScriptPubKey(scriptPubKey);
+    dummyTransactions[0].vpout[1]->SetValue(50*CENT);
+    scriptPubKey = *dummyTransactions[0].vpout[1]->GetPScriptPubKey();
+    scriptPubKey << ToByteVector(key[1].GetPubKey()) << OP_CHECKSIG;
+    dummyTransactions[0].vpout[1]->SetScriptPubKey(scriptPubKey);
     AddCoins(coinsRet, dummyTransactions[0], 0);
 
-    dummyTransactions[1].vout.resize(2);
-    dummyTransactions[1].vout[0].nValue = 21*CENT;
-    dummyTransactions[1].vout[0].scriptPubKey = GetScriptForDestination(key[2].GetPubKey().GetID());
-    dummyTransactions[1].vout[1].nValue = 22*CENT;
-    dummyTransactions[1].vout[1].scriptPubKey = GetScriptForDestination(key[3].GetPubKey().GetID());
+    dummyTransactions[1].vpout.resize(2);
+    dummyTransactions[1].vpout[0]->SetValue(21*CENT);
+    dummyTransactions[1].vpout[0]->SetScriptPubKey(GetScriptForDestination(key[2].GetPubKey().GetID()));
+    dummyTransactions[1].vpout[1]->SetValue(22*CENT);
+    dummyTransactions[1].vpout[1]->SetScriptPubKey(GetScriptForDestination(key[3].GetPubKey().GetID()));
     AddCoins(coinsRet, dummyTransactions[1], 0);
 
     return dummyTransactions;
@@ -342,9 +346,11 @@ BOOST_AUTO_TEST_CASE(test_Get)
     t1.vin[2].prevout.hash = dummyTransactions[1].GetHash();
     t1.vin[2].prevout.n = 1;
     t1.vin[2].scriptSig << std::vector<unsigned char>(65, 0) << std::vector<unsigned char>(33, 4);
-    t1.vout.resize(2);
-    t1.vout[0].nValue = 90*CENT;
-    t1.vout[0].scriptPubKey << OP_1;
+    t1.vpout.resize(2);
+    t1.vpout[0]->SetValue(90*CENT);
+    auto scriptPubKey = *t1.vpout[0]->GetPScriptPubKey();
+    scriptPubKey << OP_1;
+    t1.vpout[0]->SetScriptPubKey(scriptPubKey);
 
     BOOST_CHECK(AreInputsStandard(t1, coins));
     BOOST_CHECK_EQUAL(coins.GetValueIn(t1), (50+21+22)*CENT);
@@ -357,25 +363,25 @@ static void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outsc
     outputm.vin.resize(1);
     outputm.vin[0].prevout.SetNull();
     outputm.vin[0].scriptSig = CScript();
-    outputm.vout.resize(1);
-    outputm.vout[0].nValue = 1;
-    outputm.vout[0].scriptPubKey = outscript;
+    outputm.vpout.resize(1);
+    outputm.vpout[0]->SetValue(1);
+    outputm.vpout[0]->SetScriptPubKey(outscript);
     CDataStream ssout(SER_NETWORK, PROTOCOL_VERSION);
     ssout << outputm;
     ssout >> output;
     assert(output->vin.size() == 1);
     assert(output->vin[0] == outputm.vin[0]);
-    assert(output->vout.size() == 1);
-    assert(output->vout[0] == outputm.vout[0]);
+    assert(output->vpout.size() == 1);
+    assert(output->vpout[0] == outputm.vpout[0]);
 
     CMutableTransaction inputm;
     inputm.nVersion = 1;
     inputm.vin.resize(1);
     inputm.vin[0].prevout.hash = output->GetHash();
     inputm.vin[0].prevout.n = 0;
-    inputm.vout.resize(1);
-    inputm.vout[0].nValue = 1;
-    inputm.vout[0].scriptPubKey = CScript();
+    inputm.vpout.resize(1);
+    inputm.vpout[0]->SetValue(1);
+    inputm.vpout[0]->SetScriptPubKey(CScript());
     bool ret = SignSignature(keystore, *output, inputm, 0, SIGHASH_ALL);
     assert(ret == success);
     CDataStream ssin(SER_NETWORK, PROTOCOL_VERSION);
@@ -383,8 +389,8 @@ static void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outsc
     ssin >> input;
     assert(input.vin.size() == 1);
     assert(input.vin[0] == inputm.vin[0]);
-    assert(input.vout.size() == 1);
-    assert(input.vout[0] == inputm.vout[0]);
+    assert(input.vpout.size() == 1);
+    assert(input.vpout[0] == inputm.vpout[0]);
     assert(input.vin[0].scriptWitness.stack == inputm.vin[0].scriptWitness.stack);
 }
 
@@ -393,8 +399,9 @@ static void CheckWithFlag(const CTransactionRef& output, const CMutableTransacti
     ScriptError error;
     CTransaction inputi(input);
     std::vector<uint8_t> vchAmount(8);
-    memcpy(&vchAmount[0], &output->vout[0].nValue, 8);
-    bool ret = VerifyScript(inputi.vin[0].scriptSig, output->vout[0].scriptPubKey, &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, vchAmount), &error);
+    auto nValue = output->vpout[0]->GetValue();
+    memcpy(&vchAmount[0], &nValue, 8);
+    bool ret = VerifyScript(inputi.vin[0].scriptSig, *output->vpout[0]->GetPScriptPubKey(), &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, vchAmount), &error);
 
     assert(ret == success);
 }
@@ -453,9 +460,9 @@ BOOST_AUTO_TEST_CASE(test_big_witness_transaction) {
         mtx.vin[i].prevout = outpoint;
         mtx.vin[i].scriptSig = CScript();
 
-        mtx.vout.resize(mtx.vout.size() + 1);
-        mtx.vout[i].nValue = 1000;
-        mtx.vout[i].scriptPubKey = CScript() << OP_1;
+        mtx.vpout.resize(mtx.vpout.size() + 1);
+        mtx.vpout[i]->SetValue(1000);
+        mtx.vpout[i]->SetScriptPubKey(CScript() << OP_1);
     }
 
     CAmount amount = 1000;
@@ -509,11 +516,12 @@ BOOST_AUTO_TEST_CASE(test_big_witness_transaction) {
 SignatureData CombineSignatures(const CMutableTransaction& input1, const CMutableTransaction& input2, const CTransactionRef tx)
 {
     SignatureData sigdata;
-    sigdata = DataFromTransaction(input1, 0, tx->vout[0]);
-    sigdata.MergeSignatureData(DataFromTransaction(input2, 0, tx->vout[0]));
+    sigdata = DataFromTransaction(input1, 0, tx->vpout[0]);
+    sigdata.MergeSignatureData(DataFromTransaction(input2, 0, tx->vpout[0]));
     std::vector<uint8_t> vamount(8);
-    memcpy(vamount.data(), &tx->vout[0].nValue, 8);
-    ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&input1, 0, vamount), tx->vout[0].scriptPubKey, sigdata);
+    auto nValue = tx->vpout[0]->GetValue();
+    memcpy(vamount.data(), &nValue, 8);
+    ProduceSignature(DUMMY_SIGNING_PROVIDER, MutableTransactionSignatureCreator(&input1, 0, vamount), *tx->vpout[0]->GetPScriptPubKey(), sigdata);
     return sigdata;
 }
 
@@ -706,11 +714,11 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     t.vin[0].prevout.hash = dummyTransactions[0].GetHash();
     t.vin[0].prevout.n = 1;
     t.vin[0].scriptSig << std::vector<unsigned char>(65, 0);
-    t.vout.resize(1);
-    t.vout[0].nValue = 90*CENT;
+    t.vpout.resize(1);
+    t.vpout[0]->SetValue(90*CENT);
     CKey key;
     key.MakeNewKey(true);
-    t.vout[0].scriptPubKey = GetScriptForDestination(key.GetPubKey().GetID());
+    t.vpout[0]->SetScriptPubKey(GetScriptForDestination(key.GetPubKey().GetID()));
 
     std::string reason;
     BOOST_CHECK(IsStandardTx(t, reason));
@@ -719,68 +727,68 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     CAmount nDustThreshold = 182 * dustRelayFee.GetFeePerK()/1000;
     BOOST_CHECK_EQUAL(nDustThreshold, 546);
     // dust:
-    t.vout[0].nValue = nDustThreshold - 1;
+    t.vpout[0]->SetValue(nDustThreshold - 1);
     BOOST_CHECK(!IsStandardTx(t, reason));
     // not dust:
-    t.vout[0].nValue = nDustThreshold;
+    t.vpout[0]->SetValue(nDustThreshold);
     BOOST_CHECK(IsStandardTx(t, reason));
 
     // Check dust with odd relay fee to verify rounding:
     // nDustThreshold = 182 * 3702 / 1000
     dustRelayFee = CFeeRate(3702);
     // dust:
-    t.vout[0].nValue = 673 - 1;
+    t.vpout[0]->SetValue(673 - 1);
     BOOST_CHECK(!IsStandardTx(t, reason));
     // not dust:
-    t.vout[0].nValue = 673;
+    t.vpout[0]->SetValue(673);
     BOOST_CHECK(IsStandardTx(t, reason));
     dustRelayFee = CFeeRate(DUST_RELAY_TX_FEE);
 
-    t.vout[0].scriptPubKey = CScript() << OP_1;
+    t.vpout[0]->SetScriptPubKey(CScript() << OP_1);
     BOOST_CHECK(!IsStandardTx(t, reason));
 
     // MAX_OP_RETURN_RELAY-byte TX_NULL_DATA (standard)
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef3804678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38");
-    BOOST_CHECK_EQUAL(MAX_OP_RETURN_RELAY, t.vout[0].scriptPubKey.size());
+    t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef3804678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38"));
+    BOOST_CHECK_EQUAL(MAX_OP_RETURN_RELAY, t.vpout[0]->GetPScriptPubKey()->size());
     BOOST_CHECK(IsStandardTx(t, reason));
 
     // MAX_OP_RETURN_RELAY+1-byte TX_NULL_DATA (non-standard)
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef3804678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef3800");
-    BOOST_CHECK_EQUAL(MAX_OP_RETURN_RELAY + 1, t.vout[0].scriptPubKey.size());
+    t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef3804678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef3800"));
+    BOOST_CHECK_EQUAL(MAX_OP_RETURN_RELAY + 1, t.vpout[0]->GetPScriptPubKey()->size());
     BOOST_CHECK(!IsStandardTx(t, reason));
 
     // Data payload can be encoded in any way...
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN << ParseHex("");
+    t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN << ParseHex(""));
     BOOST_CHECK(IsStandardTx(t, reason));
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN << ParseHex("00") << ParseHex("01");
+    t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN << ParseHex("00") << ParseHex("01"));
     BOOST_CHECK(IsStandardTx(t, reason));
     // OP_RESERVED *is* considered to be a PUSHDATA type opcode by IsPushOnly()!
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN << OP_RESERVED << -1 << 0 << ParseHex("01") << 2 << 3 << 4 << 5 << 6 << 7 << 8 << 9 << 10 << 11 << 12 << 13 << 14 << 15 << 16;
+    t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN << OP_RESERVED << -1 << 0 << ParseHex("01") << 2 << 3 << 4 << 5 << 6 << 7 << 8 << 9 << 10 << 11 << 12 << 13 << 14 << 15 << 16);
     BOOST_CHECK(IsStandardTx(t, reason));
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN << 0 << ParseHex("01") << 2 << ParseHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+    t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN << 0 << ParseHex("01") << 2 << ParseHex("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"));
     BOOST_CHECK(IsStandardTx(t, reason));
 
     // ...so long as it only contains PUSHDATA's
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN << OP_RETURN;
+    t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN << OP_RETURN);
     BOOST_CHECK(!IsStandardTx(t, reason));
 
     // TX_NULL_DATA w/o PUSHDATA
-    t.vout.resize(1);
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN;
+    t.vpout.resize(1);
+    t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN);
     BOOST_CHECK(IsStandardTx(t, reason));
 
     // Only one TX_NULL_DATA permitted in all cases
-    t.vout.resize(2);
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38");
-    t.vout[1].scriptPubKey = CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38");
+    t.vpout.resize(2);
+    t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38"));
+    t.vpout[1]->SetScriptPubKey(CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38"));
     BOOST_CHECK(!IsStandardTx(t, reason));
 
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38");
-    t.vout[1].scriptPubKey = CScript() << OP_RETURN;
+    t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38"));
+    t.vpout[1]->SetScriptPubKey(CScript() << OP_RETURN);
     BOOST_CHECK(!IsStandardTx(t, reason));
 
-    t.vout[0].scriptPubKey = CScript() << OP_RETURN;
-    t.vout[1].scriptPubKey = CScript() << OP_RETURN;
+    t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN);
+    t.vpout[1]->SetScriptPubKey(CScript() << OP_RETURN);
     BOOST_CHECK(!IsStandardTx(t, reason));
 }
 

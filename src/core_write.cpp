@@ -214,17 +214,20 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
     entry.pushKV("vin", vin);
 
     UniValue vout(UniValue::VARR);
-    for (unsigned int i = 0; i < tx.vout.size(); i++) {
-        const CTxOut& txout = tx.vout[i];
+    for (unsigned int i = 0; i < tx.vpout.size(); i++) {
+        const auto& pout = tx.vpout[i];
 
         UniValue out(UniValue::VOBJ);
 
-        out.pushKV("value", ValueFromAmount(txout.nValue));
+        out.pushKV("value", ValueFromAmount(pout->GetValue()));
         out.pushKV("n", (int64_t)i);
 
         UniValue o(UniValue::VOBJ);
-        ScriptPubKeyToUniv(txout.scriptPubKey, o, true);
-        out.pushKV("scriptPubKey", o);
+        CScript scriptPubKey;
+        if (pout->GetScriptPubKey(scriptPubKey)) {
+            ScriptPubKeyToUniv(scriptPubKey, o, true);
+            out.pushKV("scriptPubKey", o);
+        }
         vout.push_back(out);
     }
     entry.pushKV("vout", vout);
