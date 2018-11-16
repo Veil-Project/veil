@@ -4458,6 +4458,13 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     // should be possible to use std::allocate_shared.
     std::shared_ptr<CWallet> walletInstance(std::shared_ptr<CWallet>(new CHDWallet(name, WalletDatabase::Create(path)), ReleaseWallet));
 
+    fs::path backupDir = GetDataDir() / "backups";
+    if (!fs::exists(backupDir)) {
+        LogPrintf("%s: Backups folder does not exist. Will try to create.\n", __func__);
+        // Always create backup folder to not confuse the operating system's file browser
+        fs::create_directories(backupDir);
+    }
+
     DBErrors nLoadWalletRet = walletInstance->LoadWallet(fFirstRun);
     if (nLoadWalletRet != DBErrors::LOAD_OK)
     {
