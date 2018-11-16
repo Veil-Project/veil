@@ -331,8 +331,6 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     const Consensus::Params& consensusParams = Params().GetConsensus();
     if (tx.vpout.empty())
         return state.DoS(10, false, REJECT_INVALID, "bad-txns-vpout-empty");
-    if (!tx.vpout.empty())
-        return state.DoS(10, false, REJECT_INVALID, "bad-txns-vpout-not-empty");
 
     size_t nStandardOutputs = 0;
     CAmount nValueOut = 0;
