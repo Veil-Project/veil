@@ -258,6 +258,8 @@ public:
 
         nMaxNetworkReward = 1;
         strNetworkRewardAddress = "3Hkg83bUH68JFsyFaBiAaFbuZWNkyKbxBH";
+        nMaxPoWBlocks = 5; // todo: update
+        nConsecutivePoWHeight = 15000; // todo: update
 
         // TODO: update for veil
         /** Zerocoin */
@@ -348,6 +350,9 @@ public:
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
         fMineBlocksOnDemand = false;
+
+        nMaxPoWBlocks = 5; // todo: update
+        nConsecutivePoWHeight = 15000; // todo: update
 
 
         checkpointData = {

@@ -80,6 +80,8 @@ public:
     bool RequireStandard() const { return fRequireStandard; }
     /** The max amount added to a block reward from funds sent to the network reward address **/
     CAmount MaxNetworkReward() const { return nMaxNetworkReward; }
+    int MaxConsecutivePoWBlocks() const { return nMaxPoWBlocks; }
+    int ConsecutivePoWHeight() const { return nConsecutivePoWHeight; }
     /** The address to send funds to to increase block rewards **/
     std::string NetworkRewardAddress() const { return strNetworkRewardAddress; }
     uint64_t PruneAfterHeight() const { return nPruneAfterHeight; }
@@ -120,6 +122,8 @@ protected:
     CMessageHeader::MessageStartChars pchMessageStart;
     int nDefaultPort;
     CAmount nMaxNetworkReward;
+    int nMaxPoWBlocks;
+    int nConsecutivePoWHeight;
     std::string strNetworkRewardAddress;
     uint64_t nPruneAfterHeight;
     std::vector<std::string> vSeeds;
