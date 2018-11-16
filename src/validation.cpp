@@ -585,11 +585,7 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
         if (txFrom) {
             assert(txFrom->GetNumVOuts() > txin.prevout.n);
             assert(txFrom->GetHash() == txin.prevout.hash);
-            if (txFrom->IsParticlVersion()) {
-                assert(coin.Matches(txFrom->vpout[txin.prevout.n].get()));
-            } else {
-                assert(txFrom->vout[txin.prevout.n] == coin.out);
-            }
+            assert(coin.Matches(txFrom->vpout[txin.prevout.n].get()));
         } else {
             const Coin& coinFromDisk = pcoinsTip->AccessCoin(txin.prevout);
             assert(!coinFromDisk.IsSpent());
@@ -1728,12 +1724,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
         return DISCONNECT_FAILED;
     }
 
-    if (!fParticlMode) {
-        if (blockUndo.vtxundo.size() + 1 != block.vtx.size()) {
-            error("DisconnectBlock(): undo size from block and undo data inconsistent");
-            return DISCONNECT_FAILED;
-        }
-    } else if (blockUndo.vtxundo.size() != block.vtx.size()) {
+    if (blockUndo.vtxundo.size() != block.vtx.size()) {
         // Count non coinbase txns, this should only happen in early blocks.
         size_t nExpectTxns = 0;
         for (auto &tx : block.vtx)
@@ -1840,80 +1831,41 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
             }
         }
 
-        if (fParticlMode) {
-            // restore inputs
-            if (!tx.IsCoinBase()) {
-                if (nVtxundo < 0 || nVtxundo >= (int)blockUndo.vtxundo.size()) {
-                    error("DisconnectBlock(): transaction undo data offset out of range.");
-                    return DISCONNECT_FAILED;
-                }
-
-                size_t nExpectUndo = 0;
-                for (const auto &txin : tx.vin)
-                    if (!txin.IsAnonInput())
-                        nExpectUndo++;
-
-                CTxUndo &txundo = blockUndo.vtxundo[nVtxundo--];
-                if (txundo.vprevout.size() != nExpectUndo) {
-                    error("DisconnectBlock(): transaction and undo data inconsistent");
-                    return DISCONNECT_FAILED;
-                }
-
-                for (unsigned int j = tx.vin.size(); j-- > 0;) {
-                    const CTxIn &in = tx.vin[j];
-
-                    if (in.IsAnonInput())
-                        continue;
-
-                    if (in.scriptSig.IsZerocoinSpend()) {
-                        auto spend = TxInToZerocoinSpend(in);
-                        pzerocoinDB->EraseCoinSpend(spend.getCoinSerialNumber());
-                        continue;
-                    }
-
-                    const COutPoint &out = in.prevout;
-                    int res = ApplyTxInUndo(std::move(txundo.vprevout[j]), view, out);
-                    if (res == DISCONNECT_FAILED) return DISCONNECT_FAILED;
-                    fClean = fClean && res != DISCONNECT_UNCLEAN;
-                }
-            }
-        } else {
-            // Check that all outputs are available and match the outputs in the block itself
-            // exactly.
-            for (size_t o = 0; o < tx.vout.size(); o++) {
-                if (!tx.vout[o].scriptPubKey.IsUnspendable()) {
-                    COutPoint out(hash, o);
-                    Coin coin;
-                    bool is_spent = view.SpendCoin(out, &coin);
-                    if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
-                        fClean = false; // transaction output mismatch
-                    }
-                }
+        // restore inputs
+        if (!tx.IsCoinBase()) {
+            if (nVtxundo < 0 || nVtxundo >= (int)blockUndo.vtxundo.size()) {
+                error("DisconnectBlock(): transaction undo data offset out of range.");
+                return DISCONNECT_FAILED;
             }
 
-            // restore inputs
-            if (i > 0) { // not coinbases
-                CTxUndo &txundo = blockUndo.vtxundo[i - 1];
-                if (txundo.vprevout.size() != tx.vin.size()) {
-                    error("DisconnectBlock(): undo vprevout size from transaction and undo data inconsistent\"");
-                    return DISCONNECT_FAILED;
+            size_t nExpectUndo = 0;
+            for (const auto &txin : tx.vin)
+                if (!txin.IsAnonInput())
+                    nExpectUndo++;
+
+            CTxUndo &txundo = blockUndo.vtxundo[nVtxundo--];
+            if (txundo.vprevout.size() != nExpectUndo) {
+                error("DisconnectBlock(): transaction and undo data inconsistent");
+                return DISCONNECT_FAILED;
+            }
+
+            for (unsigned int j = tx.vin.size(); j-- > 0;) {
+                const CTxIn &in = tx.vin[j];
+
+                if (in.IsAnonInput())
+                    continue;
+
+                if (in.scriptSig.IsZerocoinSpend()) {
+                    auto spend = TxInToZerocoinSpend(in);
+                    pzerocoinDB->EraseCoinSpend(spend.getCoinSerialNumber());
+                    continue;
                 }
 
-                for (unsigned int j = tx.vin.size(); j-- > 0;) {
-                    const CTxIn &in = tx.vin[j];
-                    //Zerocoin spend has no utxo input, only needs to erase it as being spent
-                    if (in.scriptSig.IsZerocoinSpend()) {
-                        auto spend = TxInToZerocoinSpend(in);
-                        pzerocoinDB->EraseCoinSpend(spend.getCoinSerialNumber());
-                        continue;
-                    }
-                    const COutPoint &out = tx.vin[j].prevout;
-                    int res = ApplyTxInUndo(std::move(txundo.vprevout[j]), view, out);
-                    if (res == DISCONNECT_FAILED) return DISCONNECT_FAILED;
-                    fClean = fClean && res != DISCONNECT_UNCLEAN;
-                }
+                const COutPoint &out = in.prevout;
+                int res = ApplyTxInUndo(std::move(txundo.vprevout[j]), view, out);
+                if (res == DISCONNECT_FAILED) return DISCONNECT_FAILED;
+                fClean = fClean && res != DISCONNECT_UNCLEAN;
             }
-            // At this point, all of txundo.vprevout should have been moved out.
         }
     }
 
@@ -3706,10 +3658,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 
 bool IsWitnessEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
 {
-    if (fParticlMode) return true;
-
-    LOCK(cs_main);
-    return (VersionBitsState(pindexPrev, params, Consensus::DEPLOYMENT_SEGWIT, versionbitscache) == ThresholdState::ACTIVE);
+    return true;
 }
 
 bool IsNullDummyEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params)
@@ -3743,38 +3692,6 @@ void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPr
         tx.vin[0].scriptWitness.stack[0] = nonce;
         block.vtx[0] = MakeTransactionRef(std::move(tx));
     }
-}
-
-std::vector<unsigned char> GenerateCoinbaseCommitment(CBlock& block, const CBlockIndex* pindexPrev, const Consensus::Params& consensusParams)
-{
-    std::vector<unsigned char> commitment;
-    if (fParticlMode)
-        return commitment;
-
-    int commitpos = GetWitnessCommitmentIndex(block);
-    std::vector<unsigned char> ret(32, 0x00);
-    if (consensusParams.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout != 0) {
-        if (commitpos == -1) {
-            uint256 witnessroot = BlockWitnessMerkleRoot(block, nullptr);
-            CHash256().Write(witnessroot.begin(), 32).Write(ret.data(), 32).Finalize(witnessroot.begin());
-            CTxOut out;
-            out.nValue = 0;
-            out.scriptPubKey.resize(38);
-            out.scriptPubKey[0] = OP_RETURN;
-            out.scriptPubKey[1] = 0x24;
-            out.scriptPubKey[2] = 0xaa;
-            out.scriptPubKey[3] = 0x21;
-            out.scriptPubKey[4] = 0xa9;
-            out.scriptPubKey[5] = 0xed;
-            memcpy(&out.scriptPubKey[6], witnessroot.begin(), 32);
-            commitment = std::vector<unsigned char>(out.scriptPubKey.begin(), out.scriptPubKey.end());
-            CMutableTransaction tx(*block.vtx[0]);
-            tx.vout.push_back(out);
-            block.vtx[0] = MakeTransactionRef(std::move(tx));
-        }
-    }
-    UpdateUncommittedBlockStructures(block, pindexPrev, consensusParams);
-    return commitment;
 }
 
 bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::map<libzerocoin::CoinSpend, uint256>& mapSpends,

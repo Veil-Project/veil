@@ -79,11 +79,6 @@ public:
     uint256 GetHash() const;
     uint256 GetPoWHash() const;
 
-    bool IsParticlVersion() const
-    {
-        return true /*nVersion == PARTICL_BLOCK_VERSION*/;
-    }
-
     int64_t GetBlockTime() const
     {
         return (int64_t)nTime;

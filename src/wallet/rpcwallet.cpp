@@ -2201,23 +2201,21 @@ static UniValue gettransaction(const JSONRPCRequest& request)
     UniValue entry(UniValue::VOBJ);
     auto it = pwallet->mapWallet.find(hash);
     if (it == pwallet->mapWallet.end()) {
-        if (IsParticlWallet(pwallet)) {
-            CHDWallet *phdw = GetParticlWallet(pwallet);
-            MapRecords_t::const_iterator mri = phdw->mapRecords.find(hash);
+        CHDWallet *phdw = GetHDWallet(pwallet);
+        MapRecords_t::const_iterator mri = phdw->mapRecords.find(hash);
 
-            if (mri != phdw->mapRecords.end()) {
-                const CTransactionRecord &rtx = mri->second;
+        if (mri != phdw->mapRecords.end()) {
+            const CTransactionRecord &rtx = mri->second;
 
-                std::cout << "block hash of rct is " << rtx.blockHash.GetHex() << "\n";
+            std::cout << "block hash of rct is " << rtx.blockHash.GetHex() << "\n";
 
-                CStoredTransaction stx;
-                if (CHDWalletDB(phdw->GetDBHandle()).ReadStoredTx(hash, stx)) { // TODO: cache / use mapTempWallet
-                    std::string strHex = EncodeHexTx(*(stx.tx.get()), RPCSerializationFlags());
-                    entry.pushKV("hex", strHex);
-                }
-
-                return entry;
+            CStoredTransaction stx;
+            if (CHDWalletDB(phdw->GetDBHandle()).ReadStoredTx(hash, stx)) { // TODO: cache / use mapTempWallet
+                std::string strHex = EncodeHexTx(*(stx.tx.get()), RPCSerializationFlags());
+                entry.pushKV("hex", strHex);
             }
+
+            return entry;
         }
 
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid or non-wallet transaction id");
@@ -2965,7 +2963,7 @@ static UniValue loadwallet(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet loading failed.");
     }
 
-    if (fParticlMode && !((CHDWallet*)wallet.get())->Initialise())
+    if (!((CHDWallet*)wallet.get())->Initialise())
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet initialise failed.");
 
     AddWallet(wallet);
@@ -3022,7 +3020,7 @@ static UniValue createwallet(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet creation failed.");
     }
 
-    if (fParticlMode && !((CHDWallet*)wallet.get())->Initialise())
+    if (!((CHDWallet*)wallet.get())->Initialise())
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet initialise failed.");
 
     AddWallet(wallet);

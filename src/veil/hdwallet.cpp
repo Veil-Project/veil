@@ -150,8 +150,6 @@ void CHDWallet::AddOptions()
 
 bool CHDWallet::Initialise()
 {
-    fParticlWallet = true;
-
     if (!ParseMoney(gArgs.GetArg("-reservebalance", ""), nReserveBalance)) {
         return InitError(_("Invalid amount for -reservebalance=<amount>"));
     }
@@ -1553,18 +1551,15 @@ CAmount CHDWallet::GetDebit(const CTxIn &txin, const isminefilter &filter) const
 
 CAmount CHDWallet::GetDebit(const CTransaction& tx, const isminefilter& filter) const
 {
-    if (!tx.IsParticlVersion())
-        return CWallet::GetDebit(tx, filter);
-
     CAmount nDebit = 0;
-    for (auto &txin : tx.vin)
-    {
+    for (auto &txin : tx.vin) {
         nDebit += GetDebit(txin, filter);
         if (!MoneyRange(nDebit))
             throw std::runtime_error(std::string(__func__) + ": value out of range");
-    };
+    }
+
     return nDebit;
-};
+}
 
 CAmount CHDWallet::GetDebit(CHDWalletDB *pwdb, const CTransactionRecord &rtx, const isminefilter& filter) const
 {
@@ -2971,7 +2966,6 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::v
     wtx.BindWallet(this);
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
     txNew.vout.clear();
 
     // Discourage fee sniping. See CWallet::CreateTransaction
@@ -3193,7 +3187,7 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::v
                 std::map<COutPoint, CInputData>::const_iterator it = coinControl->m_inputData.find(coin.outpoint);
                 if (it != coinControl->m_inputData.end()) {
                     sigdata.scriptWitness = it->second.scriptWitness;
-                } else if (!ProduceSignature(*this, DUMMY_SIGNATURE_CREATOR_PARTICL, scriptPubKey, sigdata)) {
+                } else if (!ProduceSignature(*this, DUMMY_SIGNATURE_CREATOR, scriptPubKey, sigdata)) {
                     return wserrorN(1, sError, __func__, "Dummy signature failed.");
                 }
                 UpdateInput(txNew.vin[nIn], sigdata);
@@ -3433,12 +3427,10 @@ int CHDWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::v
     }
 
     return 0;
-};
+}
 
-int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
-    std::vector<CTempRecipient> &vecSend,
-    CExtKeyAccount *sea, CStoredExtKey *pc,
-    bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
+int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
+    CExtKeyAccount *sea, CStoredExtKey *pc, bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
 {
     assert(coinControl);
     nFeeRet = 0;
@@ -3455,7 +3447,6 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
     wtx.BindWallet(this);
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
     txNew.vout.clear();
 
     // Discourage fee sniping. See CWallet::CreateTransaction
@@ -3488,7 +3479,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
         bool pick_new_inputs = true;
         CAmount nValueIn = 0;
         // Start with no fee and loop until there is enough fee
-        for (;;) {
+        while (true) {
             txNew.vin.clear();
             txNew.vpout.clear();
             wtx.fFromMe = true;
@@ -3617,8 +3608,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 std::map<COutPoint, CInputData>::const_iterator it = coinControl->m_inputData.find(prevout);
                 if (it != coinControl->m_inputData.end()) {
                     sigdata.scriptWitness = it->second.scriptWitness;
-                } else
-                if (!ProduceSignature(*this, DUMMY_SIGNATURE_CREATOR_PARTICL, scriptPubKey, sigdata)) {
+                } else if (!ProduceSignature(*this, DUMMY_SIGNATURE_CREATOR, scriptPubKey, sigdata)) {
                     return wserrorN(1, sError, __func__, "Dummy signature failed.");
                 }
                 UpdateInput(txNew.vin[nIn], sigdata);
@@ -3679,8 +3669,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 }
 
                 break; // Done, enough fee included.
-            } else
-            if (!pick_new_inputs) {
+            } else if (!pick_new_inputs) {
                 // This shouldn't happen, we should have had enough excess
                 // fee to pay for the new output and still meet nFeeNeeded
                 // Or we should have just subtracted fee from recipients and
@@ -3762,7 +3751,7 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
             vpBlinds.push_back(&vBlindPlain[0]);
             //if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainCommitment, &vBlindPlain[0], (uint64_t) nValueOutPlain, secp256k1_generator_h))
             //    return errorN(1, sError, __func__, "secp256k1_pedersen_commit failed for plain out.");
-        };
+        }
 
         // Update the change output commitment if it exists, else last blinded
         int nLastBlinded = -1;
@@ -3773,14 +3762,14 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
                 if ((int)i != nChangePosInOut) {
                     vpBlinds.push_back(&r.vBlind[0]);
                 }
+
                 nLastBlinded = i;
             }
         }
 
         if (nChangePosInOut != -1) {
             nLastBlinded = nChangePosInOut; // Use the change output
-        } else
-        if (nLastBlinded != -1) {
+        } else if (nLastBlinded != -1) {
             vpBlinds.pop_back();
         }
 
@@ -3860,10 +3849,10 @@ int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
               100 * feeCalc.est.fail.withinTarget / (feeCalc.est.fail.totalConfirmed + feeCalc.est.fail.inMempool + feeCalc.est.fail.leftMempool),
               feeCalc.est.fail.withinTarget, feeCalc.est.fail.totalConfirmed, feeCalc.est.fail.inMempool, feeCalc.est.fail.leftMempool);
     return 0;
-};
+}
 
-int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
-    std::vector<CTempRecipient> &vecSend, bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
+int CHDWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
+        CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
 {
     if (vecSend.size() < 1) {
         return wserrorN(1, sError, __func__, _("Transaction must have at least one recipient."));
@@ -4089,7 +4078,6 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
     wtx.BindWallet(this);
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    txNew.nVersion = PARTICL_TXN_VERSION;
     txNew.vout.clear();
 
     txNew.nLockTime = 0;
@@ -7337,10 +7325,6 @@ bool CHDWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTrans
 {
     WalletLogPrintf("CHDWallet %s\n", __func__);
 
-    if (!fParticlWallet) {
-        return CWallet::CreateTransaction(vecSend, tx, reservekey, nFeeRet, nChangePosInOut, strFailReason, coin_control, sign);
-    }
-
     std::vector<CTempRecipient> vecSendB;
     for (const auto &rec : vecSend) {
         CTempRecipient tr;
@@ -7492,7 +7476,7 @@ bool CHDWallet::DummySignInput(CTxIn &tx_in, const CTxOut &txout, bool use_max_s
     const CScript &scriptPubKey = txout.scriptPubKey;
     SignatureData sigdata;
 
-    if (!ProduceSignature(*this, DUMMY_SIGNATURE_CREATOR_PARTICL, scriptPubKey, sigdata)) {
+    if (!ProduceSignature(*this, DUMMY_SIGNATURE_CREATOR, scriptPubKey, sigdata)) {
         return false;
     } else {
         UpdateInput(tx_in, sigdata);
@@ -7509,7 +7493,7 @@ bool CHDWallet::DummySignInput(CTxIn &tx_in, const CTxOutBaseRef &txout) const
     const CScript &scriptPubKey = *txout->GetPScriptPubKey();
     SignatureData sigdata;
 
-    if (!ProduceSignature(*this, DUMMY_SIGNATURE_CREATOR_PARTICL, scriptPubKey, sigdata)) {
+    if (!ProduceSignature(*this, DUMMY_SIGNATURE_CREATOR, scriptPubKey, sigdata)) {
         return false;
     } else {
         UpdateInput(tx_in, sigdata);
@@ -7629,7 +7613,7 @@ bool CHDWallet::UpdateStealthAddressIndex(const CKeyID &idK, const CStealthAddre
     }
 
     return true;
-};
+}
 
 bool CHDWallet::GetStealthByIndex(uint32_t sxId, CStealthAddress &sx) const
 {
@@ -7968,10 +7952,10 @@ inline bool MatchPrefix(uint32_t nAddrBits, uint32_t addrPrefix, uint32_t output
     uint32_t mask = SetStealthMask(nAddrBits);
 
     return (addrPrefix & mask) == (outputPrefix & mask);
-};
+}
 
-bool CHDWallet::ProcessStealthOutput(const CTxDestination &address,
-    std::vector<uint8_t> &vchEphemPK, uint32_t prefix, bool fHavePrefix, CKey &sShared, bool fNeedShared)
+bool CHDWallet::ProcessStealthOutput(const CTxDestination &address, std::vector<uint8_t> &vchEphemPK, uint32_t prefix,
+        bool fHavePrefix, CKey &sShared, bool fNeedShared)
 {
     LOCK(cs_wallet);
     ec_point pkExtracted;
@@ -7980,14 +7964,13 @@ bool CHDWallet::ProcessStealthOutput(const CTxDestination &address,
     CKeyID ckidMatch = boost::get<CKeyID>(address);
     if (HaveKey(ckidMatch)) {
         CStealthAddress sx;
-        if (fNeedShared
-            && GetStealthLinked(ckidMatch, sx)
-            && GetStealthAddressScanKey(sx)) {
+        if (fNeedShared && GetStealthLinked(ckidMatch, sx) && GetStealthAddressScanKey(sx)) {
             if (StealthShared(sx.scan_secret, vchEphemPK, sShared) != 0) {
                 WalletLogPrintf("%s: StealthShared failed.\n", __func__);
                 //continue;
             }
         }
+
         return true;
     }
 
@@ -8071,7 +8054,7 @@ bool CHDWallet::ProcessStealthOutput(const CTxDestination &address,
 
         nFoundStealth++;
         return true;
-    };
+    }
 
     // ext account stealth keys
     ExtKeyAccountMap::const_iterator mi;
@@ -8143,7 +8126,7 @@ bool CHDWallet::ProcessStealthOutput(const CTxDestination &address,
     }
 
     return false;
-};
+}
 
 int CHDWallet::CheckForStealthAndNarration(const CTxOutBase *pb, const CTxOutData *pdata, std::string &sNarr)
 {
@@ -8287,9 +8270,9 @@ bool CHDWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t 
             if (ProcessStealthOutput(address, vchEphemPK, prefix, fHavePrefix, sShared)) {
                 fIsMine = true;
             }
+
             continue;
-        } else
-        if (txout->IsType(OUTPUT_RINGCT)) {
+        } else if (txout->IsType(OUTPUT_RINGCT)) {
             nRingCT++;
             const CTxOutRingCT *rctout = (CTxOutRingCT*) txout.get();
 
@@ -10651,27 +10634,12 @@ int64_t CalculateMaximumSignedTxSize(const CTransaction &tx, const CHDWallet *wa
     return GetVirtualTransactionSize(txNew);
 }
 
-bool IsParticlWallet(const CKeyStore *win)
-{
-    return win && dynamic_cast<const CHDWallet*>(win);
-}
-
-CHDWallet *GetParticlWallet(CKeyStore *win)
+CHDWallet *GetHDWallet(CKeyStore *win)
 {
     CHDWallet *rv;
     if (!win)
         throw std::runtime_error("Wallet pointer is null.");
     if (!(rv = dynamic_cast<CHDWallet*>(win)))
-        throw std::runtime_error("Wallet pointer is not an instance of class CHDWallet.");
-    return rv;
-}
-
-const CHDWallet *GetParticlWallet(const CKeyStore *win)
-{
-    const CHDWallet *rv;
-    if (!win)
-        throw std::runtime_error("Wallet pointer is null.");
-    if (!(rv = dynamic_cast<const CHDWallet*>(win)))
         throw std::runtime_error("Wallet pointer is not an instance of class CHDWallet.");
     return rv;
 }

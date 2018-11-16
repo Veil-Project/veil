@@ -88,36 +88,27 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, bool 
     bool fCoinbase = tx.IsCoinBase();
     const uint256& txid = tx.GetHash();
 
-    if (tx.IsParticlVersion()) {
-        for (size_t i = 0; i < tx.vpout.size(); ++i) {
-            const CTxOutBase *out = tx.vpout[i].get();
-            bool overwrite = check ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
-            Coin coin;
-            if (out->IsType(OUTPUT_STANDARD)) {
-                CTxOut txout(out->GetValue(), *out->GetPScriptPubKey());
-                coin = Coin(txout, nHeight, fCoinbase);
-            } else if (out->IsType(OUTPUT_CT)) {
-                CAmount nV = 0;
-                CTxOut txout(nV, *out->GetPScriptPubKey());
-                coin = Coin(txout, nHeight, fCoinbase);
-                coin.nType = OUTPUT_CT;
-                coin.commitment = ((CTxOutCT*)out)->commitment;
-            } else {
-                continue; // Data or anon
-            }
-
-            cache.AddCoin(COutPoint(txid, i), std::move(coin), overwrite);
+    for (size_t i = 0; i < tx.vpout.size(); ++i) {
+        const CTxOutBase *out = tx.vpout[i].get();
+        bool overwrite = check ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
+        Coin coin;
+        if (out->IsType(OUTPUT_STANDARD)) {
+            CTxOut txout(out->GetValue(), *out->GetPScriptPubKey());
+            coin = Coin(txout, nHeight, fCoinbase);
+        } else if (out->IsType(OUTPUT_CT)) {
+            CAmount nV = 0;
+            CTxOut txout(nV, *out->GetPScriptPubKey());
+            coin = Coin(txout, nHeight, fCoinbase);
+            coin.nType = OUTPUT_CT;
+            coin.commitment = ((CTxOutCT*)out)->commitment;
+        } else {
+            continue; // Data or anon
         }
 
-        return;
+        cache.AddCoin(COutPoint(txid, i), std::move(coin), overwrite);
     }
 
-    for (size_t i = 0; i < tx.vout.size(); ++i) {
-        bool overwrite = check ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
-        // Always set the possible_overwrite flag to AddCoin for coinbase txn, in order to correctly
-        // deal with the pre-BIP30 occurrences of duplicate coinbase transactions.
-        cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, fCoinbase), overwrite);
-    }
+    return;
 }
 
 bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, Coin* moveout) {

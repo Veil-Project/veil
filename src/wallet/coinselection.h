@@ -25,15 +25,9 @@ public:
             throw std::out_of_range("The output index is out of range");
 
         outpoint = COutPoint(tx->GetHash(), i);
-
-        if (tx->IsParticlVersion()) {
-            assert(tx->vpout[i]->IsStandardOutput());
-            txout.scriptPubKey = *tx->vpout[i]->GetPScriptPubKey();
-            txout.nValue = tx->vpout[i]->GetValue();
-        } else {
-            txout = tx->vout[i];
-        }
-
+        assert(tx->vpout[i]->IsStandardOutput());
+        txout.scriptPubKey = *tx->vpout[i]->GetPScriptPubKey();
+        txout.nValue = tx->vpout[i]->GetValue();
         effective_value = GetValue();
     }
 

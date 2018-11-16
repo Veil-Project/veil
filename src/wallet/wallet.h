@@ -515,18 +515,15 @@ public:
     // Get the marginal bytes if spending the specified output from this transaction
     int GetSpendSize(unsigned int out, bool use_max_sig = false) const
     {
-        if (tx->IsParticlVersion()) {
-            assert(tx->vpout[out]->IsStandardOutput());
-            CTxOut txout;
-            txout.nValue = tx->vpout[out]->GetValue();
-            txout.scriptPubKey = *tx->vpout[out]->GetPScriptPubKey();
-            return CalculateMaximumSignedInputSize(txout, pwallet, use_max_sig);
-        }
-        return CalculateMaximumSignedInputSize(tx->vout[out], pwallet, use_max_sig);
+        assert(tx->vpout[out]->IsStandardOutput());
+        CTxOut txout;
+        txout.nValue = tx->vpout[out]->GetValue();
+        txout.scriptPubKey = *tx->vpout[out]->GetPScriptPubKey();
+        return CalculateMaximumSignedInputSize(txout, pwallet, use_max_sig);
     }
 
-    void GetAmounts(std::list<COutputEntry>& listReceived,
-                    std::list<COutputEntry>& listSent, CAmount& nFee, const isminefilter& filter) const;
+    void GetAmounts(std::list<COutputEntry>& listReceived, std::list<COutputEntry>& listSent, CAmount& nFee,
+            const isminefilter& filter) const;
 
     bool IsFromMe(const isminefilter& filter) const
     {

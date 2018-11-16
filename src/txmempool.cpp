@@ -713,11 +713,8 @@ void CTxMemPool::check(const CCoinsViewCache *pcoins) const
             if (it2 != mapTx.end()) {
                 const CTransaction& tx2 = it2->GetTx();
 
-                if (fParticlMode)
-                    assert(tx2.vpout.size() > txin.prevout.n && tx2.vpout[txin.prevout.n] != nullptr
-                           && (tx2.vpout[txin.prevout.n]->IsStandardOutput() || tx2.vpout[txin.prevout.n]->IsType(OUTPUT_CT)));
-                else
-                    assert(tx2.vout.size() > txin.prevout.n && !tx2.vout[txin.prevout.n].IsNull());
+                assert(tx2.vpout.size() > txin.prevout.n && tx2.vpout[txin.prevout.n] != nullptr
+                       && (tx2.vpout[txin.prevout.n]->IsStandardOutput() || tx2.vpout[txin.prevout.n]->IsType(OUTPUT_CT)));
 
                 fDependsWait = true;
                 if (setParentCheck.insert(it2).second) {
@@ -978,32 +975,28 @@ bool CCoinsViewMemPool::GetCoin(const COutPoint &outpoint, Coin &coin) const {
     // transactions. First checking the underlying cache risks returning a pruned entry instead.
     CTransactionRef ptx = mempool.get(outpoint.hash);
     if (ptx) {
-        if (ptx->IsParticlVersion()) {
-            if (outpoint.n < ptx->vpout.size()) {
-                const CTxOutBase *out = ptx->vpout[outpoint.n].get();
-                const CScript *ps = out->GetPScriptPubKey();
-                if (!ps) // Data / anon output
-                    return false;
-                CTxOut txout(0, *ps);
-                if (out->IsType(OUTPUT_STANDARD))
-                    txout.nValue = out->GetValue();
-                coin = Coin(txout, MEMPOOL_HEIGHT, false);
-                if (out->IsType(OUTPUT_CT)) {
-                    coin.nType = OUTPUT_CT;
-                    coin.commitment = ((CTxOutCT*)out)->commitment;
-                }
-                return true;
+        if (outpoint.n < ptx->vpout.size()) {
+            const CTxOutBase *out = ptx->vpout[outpoint.n].get();
+            const CScript *ps = out->GetPScriptPubKey();
+            if (!ps) // Data / anon output
+                return false;
+
+            CTxOut txout(0, *ps);
+            if (out->IsType(OUTPUT_STANDARD))
+                txout.nValue = out->GetValue();
+
+            coin = Coin(txout, MEMPOOL_HEIGHT, false);
+            if (out->IsType(OUTPUT_CT)) {
+                coin.nType = OUTPUT_CT;
+                coin.commitment = ((CTxOutCT*)out)->commitment;
             }
-            return false;
+
+            return true;
         }
 
-        if (outpoint.n < ptx->vout.size()) {
-            coin = Coin(ptx->vout[outpoint.n], MEMPOOL_HEIGHT, false);
-            return true;
-        } else {
-            return false;
-        }
+        return false;
     }
+
     return base->GetCoin(outpoint, coin);
 }
 
