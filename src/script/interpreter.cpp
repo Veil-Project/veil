@@ -1159,7 +1159,7 @@ public:
             // Do not lock-in the txout payee at other indices as txin
             ::Serialize(s, CTxOut());
         else
-            ::Serialize(s, txTo.vout[nOutput]);
+            s << *txTo.vpout[nOutput].get();
     }
 
     /** Serialize txTo */
@@ -1173,7 +1173,7 @@ public:
         for (unsigned int nInput = 0; nInput < nInputs; nInput++)
              SerializeInput(s, nInput);
         // Serialize vout
-        unsigned int nOutputs = fHashNone ? 0 : (fHashSingle ? nIn+1 : txTo.vout.size());
+        unsigned int nOutputs = fHashNone ? 0 : (fHashSingle ? nIn+1 : txTo.vpout.size());
         ::WriteCompactSize(s, nOutputs);
         for (unsigned int nOutput = 0; nOutput < nOutputs; nOutput++)
              SerializeOutput(s, nOutput);
@@ -1206,8 +1206,8 @@ template <class T>
 uint256 GetOutputsHash(const T& txTo)
 {
     CHashWriter ss(SER_GETHASH, 0);
-    for (const auto& txout : txTo.vout) {
-        ss << txout;
+    for (const auto& txout : txTo.vpout) {
+        ss << *txout.get();
     }
     return ss.GetHash();
 }
@@ -1253,9 +1253,9 @@ uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn
 
         if ((nHashType & 0x1f) != SIGHASH_SINGLE && (nHashType & 0x1f) != SIGHASH_NONE) {
             hashOutputs = cacheready ? cache->hashOutputs : GetOutputsHash(txTo);
-        } else if ((nHashType & 0x1f) == SIGHASH_SINGLE && nIn < txTo.vout.size()) {
+        } else if ((nHashType & 0x1f) == SIGHASH_SINGLE && nIn < txTo.vpout.size()) {
             CHashWriter ss(SER_GETHASH, 0);
-            ss << txTo.vout[nIn];
+            ss << *txTo.vpout[nIn].get();
             hashOutputs = ss.GetHash();
         }
 
@@ -1286,7 +1286,7 @@ uint256 SignatureHash(const CScript& scriptCode, const T& txTo, unsigned int nIn
 
     // Check for invalid use of SIGHASH_SINGLE
     if ((nHashType & 0x1f) == SIGHASH_SINGLE) {
-        if (nIn >= txTo.vout.size()) {
+        if (nIn >= txTo.vpout.size()) {
             //  nOut out of range
             return one;
         }

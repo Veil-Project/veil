@@ -1813,13 +1813,15 @@ static UniValue getblockstats(const JSONRPCRequest& request)
     std::vector<int64_t> txsize_array;
 
     for (const auto& tx : block.vtx) {
-        outputs += tx->vout.size();
+        outputs += tx->vpout.size();
 
         CAmount tx_total_out = 0;
         if (loop_outputs) {
-            for (const CTxOut& out : tx->vout) {
-                tx_total_out += out.nValue;
-                utxo_size_inc += GetSerializeSize(out, SER_NETWORK, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD;
+            for (const auto& out : tx->vpout) {
+                tx_total_out += out->GetValue();
+                CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+                ss << *out.get();
+                utxo_size_inc += ss.size() + PER_UTXO_OVERHEAD;
             }
         }
 
@@ -1867,10 +1869,12 @@ static UniValue getblockstats(const JSONRPCRequest& request)
                     throw JSONRPCError(RPC_INTERNAL_ERROR, std::string("Unexpected internal error (tx index seems corrupt)"));
                 }
 
-                CTxOut prevoutput = tx_in->vout[in.prevout.n];
+                auto prevoutput = tx_in->vpout[in.prevout.n];
 
-                tx_total_in += prevoutput.nValue;
-                utxo_size_inc -= GetSerializeSize(prevoutput, SER_NETWORK, PROTOCOL_VERSION) + PER_UTXO_OVERHEAD;
+                tx_total_in += prevoutput->GetValue();
+                CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+                ss << *prevoutput.get();
+                utxo_size_inc -= ss.size() + PER_UTXO_OVERHEAD;
             }
 
             CAmount txfee = tx_total_in - tx_total_out;

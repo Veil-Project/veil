@@ -762,10 +762,14 @@ static UniValue getreceivedbyaddress(const JSONRPCRequest& request)
         if (wtx.IsCoinBase() || !CheckFinalTx(*wtx.tx))
             continue;
 
-        for (const CTxOut& txout : wtx.tx->vout)
-            if (txout.scriptPubKey == scriptPubKey)
+        for (const auto& pout : wtx.tx->vpout) {
+            CScript scriptCheck;
+            if (!pout->GetScriptPubKey(scriptCheck))
+                continue;
+            if (scriptCheck == scriptPubKey)
                 if (wtx.GetDepthInMainChain() >= nMinDepth)
-                    nAmount += txout.nValue;
+                    nAmount += pout->GetValue();
+        }
     }
 
     return  ValueFromAmount(nAmount);
@@ -830,12 +834,14 @@ static UniValue getreceivedbylabel(const JSONRPCRequest& request)
         if (wtx.IsCoinBase() || !CheckFinalTx(*wtx.tx))
             continue;
 
-        for (const CTxOut& txout : wtx.tx->vout)
-        {
+        for (const auto& pout : wtx.tx->vpout) {
+            CScript scriptCheck;
+            if (!pout->GetScriptPubKey(scriptCheck))
+                continue;
             CTxDestination address;
-            if (ExtractDestination(txout.scriptPubKey, address) && IsMine(*pwallet, address) && setAddress.count(address)) {
+            if (ExtractDestination(scriptCheck, address) && IsMine(*pwallet, address) && setAddress.count(address)) {
                 if (wtx.GetDepthInMainChain() >= nMinDepth)
-                    nAmount += txout.nValue;
+                    nAmount += pout->GetValue();
             }
         }
     }
@@ -1495,10 +1501,12 @@ static UniValue ListReceived(CWallet * const pwallet, const UniValue& params, bo
         if (nDepth < nMinDepth)
             continue;
 
-        for (const CTxOut& txout : wtx.tx->vout)
-        {
+        for (const auto& pout : wtx.tx->vpout) {
+            CScript scriptCheck;
+            if (!pout->GetScriptPubKey(scriptCheck))
+                continue;
             CTxDestination address;
-            if (!ExtractDestination(txout.scriptPubKey, address))
+            if (!ExtractDestination(scriptCheck, address))
                 continue;
 
             if (has_filtered_address && !(filtered_address == address)) {
@@ -1510,7 +1518,7 @@ static UniValue ListReceived(CWallet * const pwallet, const UniValue& params, bo
                 continue;
 
             tallyitem& item = mapTally[address];
-            item.nAmount += txout.nValue;
+            item.nAmount += pout->GetValue();
             item.nConf = std::min(item.nConf, nDepth);
             item.txids.push_back(wtx.GetHash());
             if (mine & ISMINE_WATCH_ONLY)
@@ -2704,7 +2712,7 @@ static UniValue lockunspent(const JSONRPCRequest& request)
 
         const CWalletTx& trans = it->second;
 
-        if (outpt.n >= trans.tx->vout.size()) {
+        if (outpt.n >= trans.tx->vpout.size()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid parameter, vout index out of bounds");
         }
 
@@ -3251,7 +3259,9 @@ static UniValue listunspent(const JSONRPCRequest& request)
 
     for (const COutput& out : vecOutputs) {
         CTxDestination address;
-        const CScript& scriptPubKey = out.tx->tx->vout[out.i].scriptPubKey;
+        CScript scriptPubKey;
+        if (!out.tx->tx->vpout[out.i]->GetScriptPubKey(scriptPubKey))
+            continue;
         bool fValidAddress = ExtractDestination(scriptPubKey, address);
 
         if (destinations.size() && (!fValidAddress || !destinations.count(address)))
@@ -3282,7 +3292,7 @@ static UniValue listunspent(const JSONRPCRequest& request)
         }
 
         entry.pushKV("scriptPubKey", HexStr(scriptPubKey.begin(), scriptPubKey.end()));
-        entry.pushKV("amount", ValueFromAmount(out.tx->tx->vout[out.i].nValue));
+        entry.pushKV("amount", ValueFromAmount(out.tx->tx->vpout[out.i]->GetValue()));
         entry.pushKV("confirmations", out.nDepth);
         entry.pushKV("spendable", out.fSpendable);
         entry.pushKV("solvable", out.fSolvable);
@@ -3385,10 +3395,10 @@ void FundTransaction(CWallet* const pwallet, CMutableTransaction& tx, CAmount& f
       }
     }
 
-    if (tx.vout.size() == 0)
+    if (tx.vpout.size() == 0)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "TX must have at least one output");
 
-    if (change_position != -1 && (change_position < 0 || (unsigned int)change_position > tx.vout.size()))
+    if (change_position != -1 && (change_position < 0 || (unsigned int)change_position > tx.vpout.size()))
         throw JSONRPCError(RPC_INVALID_PARAMETER, "changePosition out of bounds");
 
     for (unsigned int idx = 0; idx < subtractFeeFromOutputs.size(); idx++) {
@@ -3397,7 +3407,7 @@ void FundTransaction(CWallet* const pwallet, CMutableTransaction& tx, CAmount& f
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, duplicated position: %d", pos));
         if (pos < 0)
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, negative position: %d", pos));
-        if (pos >= int(tx.vout.size()))
+        if (pos >= int(tx.vpout.size()))
             throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid parameter, position too large: %d", pos));
         setSubtractFeeFromOutputs.insert(pos);
     }
@@ -4431,9 +4441,12 @@ bool FillPSBT(const CWallet* pwallet, PartiallySignedTransaction& psbtx, const C
         const auto it = pwallet->mapWallet.find(txhash);
         if (it != pwallet->mapWallet.end()) {
             const CWalletTx& wtx = it->second;
-            CTxOut utxo = wtx.tx->vout[txin.prevout.n];
+            auto pout = wtx.tx->vpout[txin.prevout.n];
             // Update both UTXOs from the wallet.
             input.non_witness_utxo = wtx.tx;
+            CTxOut utxo;
+            if (!pout->GetTxOut(utxo))
+                return error("%s: failed to get txout from output", __func__);
             input.witness_utxo = utxo;
         }
 
@@ -4467,24 +4480,24 @@ bool FillPSBT(const CWallet* pwallet, PartiallySignedTransaction& psbtx, const C
     }
 
     // Fill in the bip32 keypaths and redeemscripts for the outputs so that hardware wallets can identify change
-    for (unsigned int i = 0; i < txConst->vout.size(); ++i) {
-        const CTxOut& out = txConst->vout.at(i);
+    for (unsigned int i = 0; i < txConst->vpout.size(); ++i) {
+        const auto& pout = txConst->vpout.at(i);
         PSBTOutput& psbt_out = psbtx.outputs.at(i);
 
         // Dummy tx so we can use ProduceSignature to get stuff out
         CMutableTransaction dummy_tx;
         dummy_tx.vin.push_back(CTxIn());
-        dummy_tx.vout.push_back(CTxOut());
+        dummy_tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>());
 
         // Fill a SignatureData with output info
         SignatureData sigdata;
         psbt_out.FillSignatureData(sigdata);
 
-        auto amount = out.nValue;
+        auto amount = pout->GetValue();
         std::vector<uint8_t> vchAmount(8);
         memcpy(&vchAmount[0], &amount, 8);
         MutableTransactionSignatureCreator creator(psbtx.tx.get_ptr(), 0, vchAmount, 1);
-        ProduceSignature(*pwallet, creator, out.scriptPubKey, sigdata);
+        ProduceSignature(*pwallet, creator, *pout->GetPScriptPubKey(), sigdata);
         psbt_out.FromSignatureData(sigdata);
 
         // Get public key paths
@@ -4657,7 +4670,7 @@ UniValue walletcreatefundedpsbt(const JSONRPCRequest& request)
     for (unsigned int i = 0; i < rawTx.vin.size(); ++i) {
         psbtx.inputs.push_back(PSBTInput());
     }
-    for (unsigned int i = 0; i < rawTx.vout.size(); ++i) {
+    for (unsigned int i = 0; i < rawTx.vpout.size(); ++i) {
         psbtx.outputs.push_back(PSBTOutput());
     }
 

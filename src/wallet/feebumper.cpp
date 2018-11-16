@@ -93,8 +93,8 @@ Result CreateTransaction(const CWallet* wallet, const uint256& txid, const CCoin
     // figure out which output was change
     // if there was no change output or multiple change outputs, fail
     int nOutput = -1;
-    for (size_t i = 0; i < wtx.tx->vout.size(); ++i) {
-        if (wallet->IsChange(wtx.tx->vout[i])) {
+    for (size_t i = 0; i < wtx.tx->vpout.size(); ++i) {
+        if (wallet->IsChange(wtx.tx->vpout[i].get())) {
             if (nOutput != -1) {
                 errors.push_back("Transaction has multiple change outputs");
                 return Result::WALLET_ERROR;
@@ -186,18 +186,18 @@ Result CreateTransaction(const CWallet* wallet, const uint256& txid, const CCoin
     CAmount nDelta = new_fee - old_fee;
     assert(nDelta > 0);
     mtx = CMutableTransaction{*wtx.tx};
-    CTxOut* poutput = &(mtx.vout[nOutput]);
-    if (poutput->nValue < nDelta) {
+    auto pout = mtx.vpout[nOutput];
+    if (pout->GetValue() < nDelta) {
         errors.push_back("Change output is too small to bump the fee");
         return Result::WALLET_ERROR;
     }
 
     // If the output would become dust, discard it (converting the dust to fee)
-    poutput->nValue -= nDelta;
-    if (poutput->nValue <= GetDustThreshold(*poutput, GetDiscardRate(*wallet, ::feeEstimator))) {
+    pout->AddToValue(-nDelta);
+    if (pout->IsStandardOutput() && pout->GetValue() <= GetDustThreshold(pout->GetStandardOutput(), GetDiscardRate(*wallet, ::feeEstimator))) {
         wallet->WalletLogPrintf("Bumping fee and discarding dust output\n");
-        new_fee += poutput->nValue;
-        mtx.vout.erase(mtx.vout.begin() + nOutput);
+        new_fee += pout->GetValue();
+        mtx.vpout.erase(mtx.vpout.begin() + nOutput);
     }
 
     // Mark new tx not replaceable, if requested.

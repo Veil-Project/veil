@@ -101,8 +101,8 @@ static bool CheckTxScriptsSanity(const CMutableTransaction& tx)
         }
     }
     // Check output scripts
-    for (unsigned int i = 0; i < tx.vout.size(); i++) {
-        if (!tx.vout[i].scriptPubKey.HasValidOps() || tx.vout[i].scriptPubKey.size() > MAX_SCRIPT_SIZE) {
+    for (unsigned int i = 0; i < tx.vpout.size(); i++) {
+        if (tx.vpout[i]->IsStandardOutput() && (!tx.vpout[i]->GetPScriptPubKey()->HasValidOps() || tx.vpout[i]->GetPScriptPubKey()->size() > MAX_SCRIPT_SIZE)) {
             return false;
         }
     }

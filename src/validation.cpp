@@ -1812,20 +1812,20 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
         // Check that all outputs are available and match the outputs in the block itself
         // exactly.
-        for (size_t o = 0; o < tx.vout.size(); o++) {
+        for (size_t o = 0; o < tx.vpout.size(); o++) {
             //Zerocoinmint needs to be erased from db
-            if (tx.vout[o].IsZerocoinMint()) {
+            if (tx.vpout[o]->IsZerocoinMint()) {
                 libzerocoin::PublicCoin coin(Params().Zerocoin_Params());
-                if (!TxOutToPublicCoin(tx.vout[o], coin))
+                if (!OutputToPublicCoin(tx.vpout[o].get(), coin))
                     return DISCONNECT_FAILED;
                 pzerocoinDB->EraseCoinMint(coin.getValue());
                 continue;
             }
-            if (!tx.vout[o].scriptPubKey.IsUnspendable()) {
+            if (tx.vpout[o]->IsStandardOutput() && !tx.vpout[o]->GetPScriptPubKey()->IsUnspendable()) {
                 COutPoint out(hash, o);
                 Coin coin;
                 bool is_spent = view.SpendCoin(out, &coin);
-                if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
+                if (!is_spent || coin.Matches(tx.vpout[o].get()) || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
                     fClean = false; // transaction output mismatch
                 }
             }
@@ -2224,9 +2224,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         nInputs += tx.vin.size();
 
         if (block.vtx[i] != nullptr) {
-            for (auto& txOut : tx.vout) {
-                if (txOut.scriptPubKey == rewardScript) {
-                    pindex->nNetworkRewardReserve += txOut.nValue;
+            for (auto& pout : tx.vpout) {
+                if (!pout->IsStandardOutput())
+                    continue;
+                if (*pout->GetPScriptPubKey() == rewardScript) {
+                    pindex->nNetworkRewardReserve += pout->GetValue();
                 }
             }
         }
@@ -2298,12 +2300,12 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
             // Check that zerocoin mints are not already known
             if (tx.IsZerocoinMint()) {
-                for (auto& out : tx.vout) {
-                    if (!out.IsZerocoinMint())
+                for (const auto& pOut : tx.vpout) {
+                    if (!pOut->IsZerocoinMint())
                         continue;
 
                     libzerocoin::PublicCoin coin(Params().Zerocoin_Params());
-                    if (!TxOutToPublicCoin(out, coin))
+                    if (!OutputToPublicCoin(pOut.get(), coin))
                         return state.DoS(100, error("%s: failed final check of zerocoinmint for tx %s", __func__, tx.GetHash().GetHex()), REJECT_INVALID);
 
                     if (!ContextualCheckZerocoinMint(tx, coin))
@@ -3673,8 +3675,14 @@ static int GetWitnessCommitmentIndex(const CBlock& block)
 {
     int commitpos = -1;
     if (!block.vtx.empty()) {
-        for (size_t o = 0; o < block.vtx[0]->vout.size(); o++) {
-            if (block.vtx[0]->vout[o].scriptPubKey.size() >= 38 && block.vtx[0]->vout[o].scriptPubKey[0] == OP_RETURN && block.vtx[0]->vout[o].scriptPubKey[1] == 0x24 && block.vtx[0]->vout[o].scriptPubKey[2] == 0xaa && block.vtx[0]->vout[o].scriptPubKey[3] == 0x21 && block.vtx[0]->vout[o].scriptPubKey[4] == 0xa9 && block.vtx[0]->vout[o].scriptPubKey[5] == 0xed) {
+        for (size_t o = 0; o < block.vtx[0]->vpout.size(); o++) {
+            if (!block.vtx[0]->vpout[o]->IsStandardOutput())
+                continue;
+            CScript scriptPubKey;
+            if (!block.vtx[0]->vpout[o]->GetScriptPubKey(scriptPubKey))
+                continue;
+            if (scriptPubKey.size() >= 38 && scriptPubKey[0] == OP_RETURN && scriptPubKey[1] == 0x24
+                && scriptPubKey[2] == 0xaa && scriptPubKey[3] == 0x21 && scriptPubKey[4] == 0xa9 && scriptPubKey[5] == 0xed) {
                 commitpos = o;
             }
         }
@@ -4745,10 +4753,10 @@ AccumulatorMap AccumulateBlockTxOutputs(const CBlock& block, CValidationState& s
     for(unsigned int i = 0; i < block.vtx.size(); i++) {
         const CTransaction& tx = *block.vtx[i];
         if(tx.IsZerocoinMint()) {
-            for (const CTxOut& txout : tx.vout) {
-                if(txout.IsZerocoinMint()) {
+            for (const auto& pout : tx.vpout) {
+                if(pout->IsZerocoinMint()) {
                     libzerocoin::PublicCoin coin(&zerocoinParams);
-                    if(TxOutToPublicCoin(txout, coin)) {
+                    if (OutputToPublicCoin(pout.get(), coin)) {
                         accMap.Accumulate(coin);
                     }
                 }

@@ -28,13 +28,13 @@ static CBlock BuildBlockTestCase() {
     CMutableTransaction tx;
     tx.vin.resize(1);
     tx.vin[0].scriptSig.resize(10);
-    tx.vout.resize(2);
-    tx.vout[0].nValue = 42;
+    tx.vpout.resize(2);
+    tx.vpout[0]->SetValue(42);
     std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
-    tx.vout[1].scriptPubKey = budgetScript;
-    tx.vout[1].nValue = veil::Budget().GetBudgetAmount();
+    tx.vpout[1]->SetScriptPubKey(budgetScript);
+    tx.vpout[1]->SetValue(veil::Budget().GetBudgetAmount());
 
     block.vtx.resize(3);
     block.vtx[0] = MakeTransactionRef(tx);
@@ -291,13 +291,13 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     CMutableTransaction coinbase;
     coinbase.vin.resize(1);
     coinbase.vin[0].scriptSig.resize(10);
-    coinbase.vout.resize(2);
-    coinbase.vout[0].nValue = 42;
+    coinbase.vpout.resize(2);
+    coinbase.vpout[0]->SetValue(42);
     std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
-    coinbase.vout[1].scriptPubKey = budgetScript;
-    coinbase.vout[1].nValue = veil::Budget().GetBudgetAmount();
+    coinbase.vpout[1]->SetScriptPubKey(budgetScript);
+    coinbase.vpout[1]->SetValue(veil::Budget().GetBudgetAmount());
 
     CBlock block;
     block.vtx.resize(1);

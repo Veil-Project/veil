@@ -96,7 +96,7 @@ void Check(const std::string& prv, const std::string& pub, int flags, const std:
                 if (flags & SIGNABLE) {
                     CMutableTransaction spend;
                     spend.vin.resize(1);
-                    spend.vout.resize(1);
+                    spend.vpout.resize(1);
                     BOOST_CHECK_MESSAGE(SignSignature(Merge(keys_priv, script_provider), spks[n], spend, 0, 1, SIGHASH_ALL), prv);
                 }
             }

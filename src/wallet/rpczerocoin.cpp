@@ -229,16 +229,16 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
 
     CAmount nValueOut = 0;
     UniValue vout(UniValue::VARR);
-    for (unsigned int i = 0; i < wtx.tx->vout.size(); i++) {
-        const CTxOut& txout = wtx.tx->vout[i];
+    for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
+        const auto& pout = wtx.tx->vpout[i];
         UniValue out(UniValue::VOBJ);
-        out.push_back(Pair("value", ValueFromAmount(txout.nValue)));
-        nValueOut += txout.nValue;
+        out.push_back(Pair("value", ValueFromAmount(pout->GetValue())));
+        nValueOut += pout->GetValue();
 
         CTxDestination dest;
-        if(txout.scriptPubKey.IsZerocoinMint())
+        if (pout->IsZerocoinMint())
             out.push_back(Pair("address", "zerocoinmint"));
-        else if(ExtractDestination(txout.scriptPubKey, dest))
+        else if(pout->IsStandardOutput() && ExtractDestination(*pout->GetPScriptPubKey(), dest))
             out.push_back(Pair("address", EncodeDestination(dest)));
         vout.push_back(out);
     }
@@ -475,16 +475,16 @@ UniValue DoZerocoinSpend(CWallet* pwallet, const CAmount nAmount, bool fMintChan
 
     CAmount nValueOut = 0;
     UniValue vout(UniValue::VARR);
-    for (unsigned int i = 0; i < wtx.tx->vout.size(); i++) {
-        const CTxOut& txout = wtx.tx->vout[i];
+    for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
+        const auto& pout = wtx.tx->vpout[i];
         UniValue out(UniValue::VOBJ);
-        out.push_back(Pair("value", ValueFromAmount(txout.nValue)));
-        nValueOut += txout.nValue;
+        out.push_back(Pair("value", ValueFromAmount(pout->GetValue())));
+        nValueOut += pout->GetValue();
 
         CTxDestination dest;
-        if(txout.scriptPubKey.IsZerocoinMint())
+        if(pout->IsZerocoinMint())
             out.push_back(Pair("address", "zerocoinmint"));
-        else if(ExtractDestination(txout.scriptPubKey, dest))
+        else if(pout->IsStandardOutput() && ExtractDestination(*pout->GetPScriptPubKey(), dest))
             out.push_back(Pair("address", CBitcoinAddress(dest).ToString()));
         vout.push_back(out);
     }

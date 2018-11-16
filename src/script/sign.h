@@ -657,14 +657,14 @@ struct PartiallySignedTransaction
 
         // Read output data
         i = 0;
-        while (!s.empty() && i < tx->vout.size()) {
+        while (!s.empty() && i < tx->vpout.size()) {
             PSBTOutput output;
             s >> output;
             outputs.push_back(output);
             ++i;
         }
         // Make sure that the number of outputs matches the number of outputs in the transaction
-        if (outputs.size() != tx->vout.size()) {
+        if (outputs.size() != tx->vpout.size()) {
             throw std::ios_base::failure("Outputs provided does not match the number of outputs in transaction.");
         }
         // Sanity check
@@ -692,6 +692,7 @@ bool SignPSBTInput(const SigningProvider& provider, const CMutableTransaction& t
 
 /** Extract signature data from a transaction input, and insert it. */
 SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn, const CTxOut& txout);
+SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn, const CTxOutBaseRef pout);
 SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn, const std::vector<uint8_t> &amount, const CScript &scriptPubKey);
 void UpdateInput(CTxIn& input, const SignatureData& data);
 

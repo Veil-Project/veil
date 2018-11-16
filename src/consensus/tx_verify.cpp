@@ -172,10 +172,10 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
 bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
 {
     //max needed non-mint outputs should be 2 - one for redemption address and a possible 2nd for change
-    if (tx.vout.size() > 2) {
+    if (tx.vpout.size() > 2) {
         int outs = 0;
-        for (const CTxOut& out : tx.vout) {
-            if (out.IsZerocoinMint())
+        for (const auto& pout : tx.vpout) {
+            if (pout->IsZerocoinMint())
                 continue;
             outs++;
         }
@@ -185,14 +185,13 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
 
     //compute the txout hash that is used for the zerocoinspend signatures
     CMutableTransaction txTemp;
-    for (const CTxOut& out : tx.vout) {
-        txTemp.vout.push_back(out);
-    }
+    for (const auto& out : tx.vpout)
+        txTemp.vpout.emplace_back(out);
+
     uint256 hashTxOut = txTemp.GetHash();
 
     bool fValidated = false;
     std::set<CBigNum> setSerials;
-    std::list<libzerocoin::CoinSpend> vSpends;
     CAmount nTotalRedeemed = 0;
     for (const CTxIn& txin : tx.vin) {
         //only check txin that is a zcspend
@@ -200,7 +199,6 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
             continue;
 
         libzerocoin::CoinSpend newSpend = TxInToZerocoinSpend(txin);
-        vSpends.push_back(newSpend);
 
         //check that the denomination is valid
         if (newSpend.getDenomination() == libzerocoin::ZQ_ERROR)
@@ -333,8 +331,8 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     const Consensus::Params& consensusParams = Params().GetConsensus();
     if (tx.vpout.empty())
         return state.DoS(10, false, REJECT_INVALID, "bad-txns-vpout-empty");
-    if (!tx.vout.empty())
-        return state.DoS(10, false, REJECT_INVALID, "bad-txns-vout-not-empty");
+    if (!tx.vpout.empty())
+        return state.DoS(10, false, REJECT_INVALID, "bad-txns-vpout-not-empty");
 
     size_t nStandardOutputs = 0;
     CAmount nValueOut = 0;

@@ -2276,7 +2276,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 RelayTransaction(tx, connman);
             }
 
-            for (unsigned int i = 0; i < tx.vout.size(); i++) {
+            for (unsigned int i = 0; i < tx.vpout.size(); i++) {
                 vWorkQueue.emplace_back(inv.hash, i);
             }
 
@@ -2315,7 +2315,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                         LogPrint(BCLog::MEMPOOL, "   accepted orphan tx %s\n", orphanHash.ToString());
                         if (!veil::dandelion.IsInStemPhase(orphanHash))
                             RelayTransaction(orphanTx, connman);
-                        for (unsigned int i = 0; i < orphanTx.vout.size(); i++) {
+                        for (unsigned int i = 0; i < orphanTx.vpout.size(); i++) {
                             vWorkQueue.emplace_back(orphanHash, i);
                         }
                         vEraseQueue.push_back(orphanHash);

@@ -347,7 +347,9 @@ public:
 
     void SetValue(CAmount value);
     void AddToValue(const CAmount& nValue);
+    bool SetScriptPubKey(const CScript& scriptPubKey) { return false; }
 
+    virtual void SetNull() = 0;
     virtual CAmount GetValue() const;
 
     virtual bool PutValue(std::vector<uint8_t> &vchAmount) const { return false; };
@@ -392,6 +394,11 @@ public:
         s >> *(CScriptBase*)(&scriptPubKey);
     };
 
+    void SetNull() override
+    {
+        nValue = -1;
+        scriptPubKey.clear();
+    }
 
     bool IsEmpty() const override
     {
@@ -409,6 +416,8 @@ public:
     {
         return nValue;
     }
+
+    bool SetScriptPubKey(const CScript& scriptPubKey);
 
     bool GetScriptPubKey(CScript &scriptPubKey_) const override
     {
@@ -458,7 +467,15 @@ public:
         s >> *(CScriptBase*)(&scriptPubKey);
 
         s >> vRangeproof;
-    };
+    }
+
+    void SetNull() override
+    {
+        commitment = secp256k1_pedersen_commitment();
+        vData.clear();
+        scriptPubKey.clear();
+        vRangeproof.clear();
+    }
 
     bool PutValue(std::vector<uint8_t> &vchAmount) const override
     {
@@ -512,8 +529,8 @@ public:
         } else
         {
             WriteCompactSize(s, 0);
-        };
-    };
+        }
+    }
 
     template<typename Stream>
     void Unserialize(Stream &s)
@@ -522,24 +539,32 @@ public:
         s.read((char*)&commitment.data[0], 33);
         s >> vData;
         s >> vRangeproof;
-    };
+    }
+
+    void SetNull() override
+    {
+        pk = CCmpPubKey();
+        vData.clear();
+        commitment = secp256k1_pedersen_commitment();
+        vRangeproof.clear();
+    }
 
     bool PutValue(std::vector<uint8_t> &vchAmount) const override
     {
         vchAmount.resize(33);
         memcpy(&vchAmount[0], commitment.data, 33);
         return true;
-    };
+    }
 
     secp256k1_pedersen_commitment *GetPCommitment() override
     {
         return &commitment;
-    };
+    }
 
     std::vector<uint8_t> *GetPRangeproof() override
     {
         return &vRangeproof;
-    };
+    }
 };
 
 class CTxOutData : public CTxOutBase
@@ -554,13 +579,18 @@ public:
     void Serialize(Stream &s) const
     {
         s << vData;
-    };
+    }
 
     template<typename Stream>
     void Unserialize(Stream &s)
     {
         s >> vData;
-    };
+    }
+
+    void SetNull() override
+    {
+        vData.clear();
+    }
 
     bool GetCTFee(CAmount &nFee) const override
     {
@@ -718,7 +748,6 @@ public:
     // and bypass the constness. This is safe, as they update the entire
     // structure, including the hash.
     const std::vector<CTxIn> vin;
-    const std::vector<CTxOut> vout;
     const std::vector<CTxOutBaseRef> vpout;
     const int32_t nVersion;
     const uint32_t nLockTime;
@@ -750,7 +779,7 @@ public:
     CTransaction(deserialize_type, Stream& s) : CTransaction(CMutableTransaction(deserialize, s)) {}
 
     bool IsNull() const {
-        return vin.empty() && vout.empty() && vpout.empty();
+        return vin.empty() && vpout.empty();
     }
 
     int GetType() const {
@@ -851,7 +880,6 @@ public:
 struct CMutableTransaction
 {
     std::vector<CTxIn> vin;
-    std::vector<CTxOut> vout;
     std::vector<CTxOutBaseRef> vpout;
     int32_t nVersion;
     uint32_t nLockTime;

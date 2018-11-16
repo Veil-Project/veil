@@ -385,7 +385,7 @@ public:
         nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
-        nZerocoinRequiredStakeDepth = 400; //The required confirmations for a zpiv to be stakable
+        nZerocoinRequiredStakeDepth = 100; //The required confirmations for a zpiv to be stakable
     }
 };
 

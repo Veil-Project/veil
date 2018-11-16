@@ -29,13 +29,13 @@ bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomina
         if(!tx->IsZerocoinMint())
             continue;
 
-        for (const CTxOut& txOut : tx->vout) {
-            if(!txOut.scriptPubKey.IsZerocoinMint())
+        for (const auto& pout : tx->vpout) {
+            if(!pout->IsZerocoinMint())
                 continue;
 
             CValidationState state;
             libzerocoin::PublicCoin coin(zerocoinParams);
-            if(!TxOutToPublicCoin(txOut, coin))
+            if(!OutputToPublicCoin(pout.get(), coin))
                 return false;
 
             if (coin.getDenomination() != denom)
@@ -56,14 +56,14 @@ bool BlockToPubcoinList(const CBlock& block, std::list<libzerocoin::PublicCoin>&
         if(!tx->IsZerocoinMint())
             continue;
 
-        for (unsigned int i = 0; i < tx->vout.size(); i++) {
-            const CTxOut txOut = tx->vout[i];
-            if(!txOut.scriptPubKey.IsZerocoinMint())
+        for (unsigned int i = 0; i < tx->vpout.size(); i++) {
+            const auto pout = tx->vpout[i];
+            if(!pout->IsZerocoinMint())
                 continue;
 
             CValidationState state;
             libzerocoin::PublicCoin pubCoin(zerocoinParams);
-            if(!TxOutToPublicCoin(txOut, pubCoin))
+            if(!OutputToPublicCoin(pout.get(), pubCoin))
                 return false;
 
             listPubcoins.emplace_back(pubCoin);
@@ -84,14 +84,14 @@ bool BlockToZerocoinMintList(const CBlock& block, std::list<CZerocoinMint>& vMin
         if(!tx->IsZerocoinMint())
             continue;
 
-        for (unsigned int i = 0; i < tx->vout.size(); i++) {
-            const CTxOut txOut = tx->vout[i];
-            if(!txOut.scriptPubKey.IsZerocoinMint())
+        for (unsigned int i = 0; i < tx->vpout.size(); i++) {
+            const auto pout = tx->vpout[i];
+            if(!pout->IsZerocoinMint())
                 continue;
 
             CValidationState state;
             libzerocoin::PublicCoin pubCoin(&zerocoinParams);
-            if(!TxOutToPublicCoin(txOut, pubCoin))
+            if(!OutputToPublicCoin(pout.get(), pubCoin))
                 return false;
 
             //version should not actually matter here since it is just a reference to the pubcoin, not to the privcoin
@@ -159,12 +159,12 @@ void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMin
         }
 
         // is the denomination correct?
-        for (auto& out : tx->vout) {
-            if (!out.IsZerocoinMint())
+        for (auto& out : tx->vpout) {
+            if (!out->IsZerocoinMint())
                 continue;
             libzerocoin::PublicCoin pubcoin(zerocoinParams);
             CValidationState state;
-            TxOutToPublicCoin(out, pubcoin);
+            OutputToPublicCoin(out.get(), pubcoin);
             if (GetPubCoinHash(pubcoin.getValue()) == meta.hashPubcoin && pubcoin.getDenomination() != meta.denom) {
                 LogPrintf("%s: found mismatched denom pubcoinhash = %s\n", __func__, meta.hashPubcoin.GetHex());
                 meta.denom = pubcoin.getDenomination();
@@ -281,13 +281,13 @@ std::string ReindexZerocoinDB()
 
                     //Record mints
                     if (tx->IsZerocoinMint()) {
-                        for (auto& out : tx->vout) {
-                            if (!out.IsZerocoinMint())
+                        for (auto& out : tx->vpout) {
+                            if (!out->IsZerocoinMint())
                                 continue;
 
                             CValidationState state;
                             libzerocoin::PublicCoin coin(zerocoinParams);
-                            TxOutToPublicCoin(out, coin);
+                            OutputToPublicCoin(out.get(), coin);
                             mapMints.emplace(coin, txid);
                         }
                     }
@@ -336,6 +336,27 @@ libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin)
     libzerocoin::CoinSpend spend(zerocoinParams, paramsAccumulator, serializedCoinSpend);
 
     return spend;
+}
+
+bool OutputToPublicCoin(const CTxOutBase* out, libzerocoin::PublicCoin& coin)
+{
+    if (!out->IsZerocoinMint())
+        return false;
+
+    CBigNum publicZerocoin;
+    vector<unsigned char> vchZeroMint;
+    vchZeroMint.insert(vchZeroMint.end(), out->GetPScriptPubKey()->begin() + SCRIPT_OFFSET,
+                       out->GetPScriptPubKey()->begin() + out->GetPScriptPubKey()->size());
+    publicZerocoin.setvch(vchZeroMint);
+
+    libzerocoin::CoinDenomination denomination = libzerocoin::AmountToZerocoinDenomination(out->GetValue());
+    if (denomination == libzerocoin::ZQ_ERROR)
+        return error("TxOutToPublicCoin : txout.nValue is not correct");
+
+    libzerocoin::PublicCoin checkPubCoin(Params().Zerocoin_Params(), publicZerocoin, denomination);
+    coin = checkPubCoin;
+
+    return true;
 }
 
 bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin)

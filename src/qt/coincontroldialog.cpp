@@ -420,7 +420,7 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         if (amount > 0)
         {
             CTxOut txout(amount, static_cast<CScript>(std::vector<unsigned char>(24, 0)));
-            txDummy.vout.push_back(txout);
+            txDummy.vpout.push_back(txout.GetSharedPtr());
             fDust |= IsDust(txout, model->node().getDustRelayFee());
         }
     }
@@ -454,18 +454,19 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         nQuantity++;
 
         // Amount
-        nAmount += out.txout.nValue;
+        nAmount += out.pout->GetValue();
 
         // Bytes
         CTxDestination address;
         int witnessversion = 0;
         std::vector<unsigned char> witnessprogram;
-        if (out.txout.scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram))
+        CScript scriptPubKey;
+        if (out.pout->GetScriptPubKey(scriptPubKey) && scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram))
         {
             nBytesInputs += (32 + 4 + 1 + (107 / WITNESS_SCALE_FACTOR) + 4);
             fWitness = true;
         }
-        else if(ExtractDestination(out.txout.scriptPubKey, address))
+        else if(ExtractDestination(out.pout, address))
         {
             CPubKey pubkey;
             CKeyID *keyid = boost::get<CKeyID>(&address);
@@ -639,7 +640,7 @@ void CoinControlDialog::updateView()
         for (const auto& outpair : coins.second) {
             const COutPoint& output = std::get<0>(outpair);
             const interfaces::WalletTxOut& out = std::get<1>(outpair);
-            nSum += out.txout.nValue;
+            nSum += out.pout->GetValue();
             nChildren++;
 
             CCoinControlWidgetItem *itemOutput;
@@ -651,7 +652,7 @@ void CoinControlDialog::updateView()
             // address
             CTxDestination outputAddress;
             QString sAddress = "";
-            if(ExtractDestination(out.txout.scriptPubKey, outputAddress))
+            if(ExtractDestination(out.pout, outputAddress))
             {
                 sAddress = QString::fromStdString(EncodeDestination(outputAddress));
 
@@ -676,8 +677,8 @@ void CoinControlDialog::updateView()
             }
 
             // amount
-            itemOutput->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, out.txout.nValue));
-            itemOutput->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong)out.txout.nValue)); // padding so that sorting works correctly
+            itemOutput->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, out.pout->GetValue()));
+            itemOutput->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong)out.pout->GetValue())); // padding so that sorting works correctly
 
             // date
             itemOutput->setText(COLUMN_DATE, GUIUtil::dateTimeStr(out.time));

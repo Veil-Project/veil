@@ -253,8 +253,11 @@ bool SignPSBTInput(const SigningProvider& provider, const CMutableTransaction& t
         // matter, as the PSBT deserializer enforces only one of both is provided, and the only way both
         // can be present is when they're added simultaneously by FillPSBT (in which case they always match).
         // Still, check in order to not rely on callers to enforce this.
-        if (!input.witness_utxo.IsNull() && input.non_witness_utxo->vout[tx.vin[index].prevout.n] != input.witness_utxo) return false;
-        utxo = input.non_witness_utxo->vout[tx.vin[index].prevout.n];
+        CTxOut utxoCheck;
+        if (!input.non_witness_utxo->vpout[tx.vin[index].prevout.n]->GetTxOut(utxoCheck))
+            return false;
+        if (!input.witness_utxo.IsNull() && utxoCheck != input.witness_utxo) return false;
+        utxo = utxoCheck;
     } else if (!input.witness_utxo.IsNull()) {
         utxo = input.witness_utxo;
         // When we're taking our information from a witness UTXO, we can't verify it is actually data from
@@ -319,7 +322,17 @@ SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nI
     std::vector<uint8_t> amount(8);
     memcpy(amount.data(), &txout.nValue, 8);
     return DataFromTransaction(tx, nIn, amount,  txout.scriptPubKey);
-};
+}
+
+SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn, const CTxOutBaseRef pout)
+{
+    std::vector<uint8_t> amount(8);
+    CAmount nValue = pout->GetValue();
+    memcpy(amount.data(), &nValue, 8);
+    CScript scriptPubKey;
+    pout->GetScriptPubKey(scriptPubKey);
+    return DataFromTransaction(tx, nIn, amount, scriptPubKey);
+}
 
 SignatureData DataFromTransaction(const CMutableTransaction& tx, unsigned int nIn, const std::vector<uint8_t> &amount, const CScript &scriptPubKey)
 {

@@ -197,14 +197,13 @@ void CzWallet::SyncWithChain(bool fGenerateMintPool)
                 CoinDenomination denomination = CoinDenomination::ZQ_ERROR;
                 bool fFoundMint = false;
                 CBigNum bnValue = 0;
-                for (const CTxOut& out : txRef->vout) {
-                    if (!out.scriptPubKey.IsZerocoinMint())
+                for (const auto& out : txRef->vpout) {
+                    if (!out->IsZerocoinMint())
                         continue;
 
                     auto zerocoinParams = Params().Zerocoin_Params();
                     PublicCoin pubcoin(zerocoinParams);
-                    CValidationState state;
-                    if (!TxOutToPublicCoin(out, pubcoin)) {
+                    if (!OutputToPublicCoin(out.get(), pubcoin)) {
                         LogPrintf("%s : failed to get mint from txout for %s!\n", __func__, pMint.first.GetHex());
                         continue;
                     }

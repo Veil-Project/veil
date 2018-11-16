@@ -418,7 +418,7 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
             std::vector<unsigned char> data = ParseHexV(outputs[name_].getValStr(), "Data");
 
             CTxOut out(0, CScript() << OP_RETURN << data);
-            rawTx.vout.push_back(out);
+            rawTx.vpout.emplace_back(out.GetSharedPtr());
         } else {
             CTxDestination destination = DecodeDestination(name_);
             if (!IsValidDestination(destination)) {
@@ -433,7 +433,7 @@ CMutableTransaction ConstructTransaction(const UniValue& inputs_in, const UniVal
             CAmount nAmount = AmountFromValue(outputs[name_]);
 
             CTxOut out(nAmount, scriptPubKey);
-            rawTx.vout.push_back(out);
+            rawTx.vpout.emplace_back(out.GetSharedPtr());
         }
     }
 
@@ -1148,7 +1148,7 @@ static UniValue sendrawtransaction(const JSONRPCRequest& request)
     LOCK(cs_main);
     CCoinsViewCache &view = *pcoinsTip;
     bool fHaveChain = false;
-    for (size_t o = 0; !fHaveChain && o < tx->vout.size(); o++) {
+    for (size_t o = 0; !fHaveChain && o < tx->vpout.size(); o++) {
         const Coin& existingCoin = view.AccessCoin(COutPoint(hashTx, o));
         fHaveChain = !existingCoin.IsSpent();
     }
@@ -1453,7 +1453,7 @@ UniValue decodepsbt(const JSONRPCRequest& request)
             UniValue non_wit(UniValue::VOBJ);
             TxToUniv(*input.non_witness_utxo, uint256(), non_wit, false);
             in.pushKV("non_witness_utxo", non_wit);
-            total_in += input.non_witness_utxo->vout[psbtx.tx->vin[i].prevout.n].nValue;
+            total_in += input.non_witness_utxo->vpout[psbtx.tx->vin[i].prevout.n]->GetValue();
         } else {
             have_all_utxos = false;
         }
@@ -1576,7 +1576,7 @@ UniValue decodepsbt(const JSONRPCRequest& request)
         outputs.push_back(out);
 
         // Fee calculation
-        output_value += psbtx.tx->vout[i].nValue;
+        output_value += psbtx.tx->vpout[i]->GetValue();
     }
     result.pushKV("outputs", outputs);
     if (have_all_utxos) {
@@ -1757,7 +1757,7 @@ UniValue createpsbt(const JSONRPCRequest& request)
     for (unsigned int i = 0; i < rawTx.vin.size(); ++i) {
         psbtx.inputs.push_back(PSBTInput());
     }
-    for (unsigned int i = 0; i < rawTx.vout.size(); ++i) {
+    for (unsigned int i = 0; i < rawTx.vpout.size(); ++i) {
         psbtx.outputs.push_back(PSBTOutput());
     }
 
@@ -1821,7 +1821,7 @@ UniValue converttopsbt(const JSONRPCRequest& request)
     for (unsigned int i = 0; i < tx.vin.size(); ++i) {
         psbtx.inputs.push_back(PSBTInput());
     }
-    for (unsigned int i = 0; i < tx.vout.size(); ++i) {
+    for (unsigned int i = 0; i < tx.vpout.size(); ++i) {
         psbtx.outputs.push_back(PSBTOutput());
     }
 
