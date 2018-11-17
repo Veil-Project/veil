@@ -75,8 +75,8 @@ CAmount ZerocoinStake::GetValue()
 
 int ZerocoinStake::HeightToModifierHeight(int nHeight)
 {
-    //Nearest multiple of 100 that is over 100 bocks deep in the chain
-    return (nHeight-100) - (nHeight % 100) ;
+    //Nearest multiple of KernelModulus that is over KernelModulus bocks deep in the chain
+    return (nHeight - Params().KernelModulus()) - (nHeight % Params().KernelModulus()) ;
 }
 
 //Use the first accumulator checkpoint that occurs 60 minutes after the block being staked from

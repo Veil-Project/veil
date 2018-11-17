@@ -1217,7 +1217,6 @@ void CWallet::BlockConnected(const std::shared_ptr<const CBlock>& pblock, const 
         TransactionRemovedFromMempool(ptx);
     }
     for (size_t i = 0; i < pblock->vtx.size(); i++) {
-        std::cout << "syncing transaction in block " << pblock->GetHash().GetHex() << " at index " << i << "\n";
         SyncTransaction(pblock->vtx[i], pindex, i);
         TransactionRemovedFromMempool(pblock->vtx[i]);
     }

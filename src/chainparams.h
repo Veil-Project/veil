@@ -115,6 +115,8 @@ public:
     int Zerocoin_DefaultSpendSecurity() const { return nDefaultSecurityLevel; }
     int Zerocoin_RequiredStakeDepth() const { return nZerocoinRequiredStakeDepth; }
     int LAST_POW_BLOCK() const { return nLastPOWBlock; }
+    int HeightPoSStart() const { return nHeightPoSStart; }
+    int KernelModulus() const { return nKernelModulus; }
 protected:
     CChainParams() {}
 
@@ -149,6 +151,8 @@ protected:
     int nDefaultSecurityLevel;
     int64_t nBudget_Fee_Confirmations;
     int nZerocoinRequiredStakeDepth;
+    int nHeightPoSStart;
+    int nKernelModulus;
     int nLastPOWBlock;      //TODO - set values for Veil
 };
 

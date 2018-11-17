@@ -802,22 +802,9 @@ public:
 
     bool IsCoinStake() const;
 
-    bool IsZerocoinSpend() const
-    {
-        return (vin.size() > 0 && vin[0].prevout.hash == uint256() && vin[0].scriptSig[0] == OP_ZEROCOINSPEND && vin[0].nSequence <= 10000);
-    }
+    bool IsZerocoinSpend() const;
 
-    bool IsZerocoinMint() const
-    {
-        for(const auto& pout : vpout) {
-            CScript script;
-            if (pout->GetScriptPubKey(script)) {
-                if (script.IsZerocoinMint())
-                    return true;
-            }
-        }
-        return false;
-    }
+    bool IsZerocoinMint() const;
 
     bool ContainsZerocoins() const
     {
@@ -847,10 +834,7 @@ public:
      */
     unsigned int GetTotalSize() const;
 
-    bool IsCoinBase() const
-    {
-        return !IsZerocoinSpend() && (vin.size() == 1 && vin[0].prevout.IsNull());
-    }
+    bool IsCoinBase() const;
 
     bool GetCTFee(CAmount &nFee) const
     {

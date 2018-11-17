@@ -1,4 +1,5 @@
 #include <version.h>
+#include <tinyformat.h>
 #include "zchain.h"
 #include "libzerocoin/Params.h"
 #include "txdb.h"

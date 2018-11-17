@@ -275,6 +275,8 @@ public:
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 200; //The required confirmations for a zpiv to be stakable
+        nHeightPoSStart = 500;
+        nKernelModulus = 100;
     }
 };
 
@@ -388,6 +390,8 @@ public:
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 100; //The required confirmations for a zpiv to be stakable
+        nHeightPoSStart = 200;
+        nKernelModulus = 100;
     }
 };
 

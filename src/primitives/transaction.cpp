@@ -281,6 +281,11 @@ std::string CTransaction::ToString() const
     return str;
 }
 
+bool CTransaction::IsCoinBase() const
+{
+    return !IsZerocoinSpend() && (vin.size() == 1 && vin[0].prevout.IsNull());
+}
+
 bool CTransaction::IsCoinStake() const
 {
     if (vin.empty())
@@ -291,6 +296,24 @@ bool CTransaction::IsCoinStake() const
 
     // the coin stake transaction is marked with the first output empty
     return (vpout.size() > 1 && vpout[0]->IsEmpty());
+}
+
+bool CTransaction::IsZerocoinMint() const
+{
+    for(const auto& pout : vpout) {
+        CScript script;
+        if (pout->GetScriptPubKey(script)) {
+            if (script.IsZerocoinMint())
+                return true;
+        }
+    }
+    return false;
+}
+
+bool CTransaction::IsZerocoinSpend() const
+{
+    auto nDenom = vin[0].nSequence&CTxIn::SEQUENCE_LOCKTIME_MASK;
+    return (vin.size() > 0 && vin[0].prevout.hash == uint256() && vin[0].scriptSig[0] == OP_ZEROCOINSPEND &&  nDenom <= 10000 && nDenom >= 10);
 }
 
 CAmount CTransaction::GetZerocoinSpent() const

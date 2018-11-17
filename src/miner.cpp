@@ -126,7 +126,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 
     CMutableTransaction txCoinStake;
-    if (fProofOfStake && chainActive.Height() + 1 >= 500){ //TODO add params().posstartheight()
+    if (fProofOfStake && chainActive.Height() + 1 >= Params().HeightPoSStart()) {
         //POS block - one coinbase is null then non null coinstake
         //POW block - one coinbase that is not null
         pblock->nTime = GetAdjustedTime();
