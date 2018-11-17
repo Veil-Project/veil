@@ -31,7 +31,7 @@
 #include <wallet/fees.h>
 #include <wallet/walletutil.h>
 #include <accumulators.h>
-#include <primitives/deterministicmint.h>
+#include <wallet/deterministicmint.h>
 #include <veil/denomination_functions.h>
 #include <veil/mnemonic.h>
 #include <veil/zchain.h>

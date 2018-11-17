@@ -2,7 +2,7 @@
 #include "zwallet.h"
 #include "txdb.h"
 #include "wallet/walletdb.h"
-#include "primitives/deterministicmint.h"
+#include "wallet/deterministicmint.h"
 #include "zchain.h"
 #include "chainparams.h"
 #include "validation.h"

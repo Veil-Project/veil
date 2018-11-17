@@ -6,7 +6,7 @@
 #include <wallet/rpcwallet.h>
 #include <core_io.h>
 #include <key_io.h>
-#include <primitives/deterministicmint.h>
+#include <wallet/deterministicmint.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
 #include <utilmoneystr.h>

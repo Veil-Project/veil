@@ -31,7 +31,7 @@
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
 #include <wallet/walletutil.h>
-#include <primitives/deterministicmint.h>
+#include <wallet/deterministicmint.h>
 #include <veil/dandelioninventory.h>
 
 #include <veil/hdwallet.h>

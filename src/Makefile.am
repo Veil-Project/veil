@@ -330,7 +330,7 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/walletdb.cpp \
   wallet/walletutil.cpp \
   wallet/coinselection.cpp  \
-  primitives/deterministicmint.cpp \
+  wallet/deterministicmint.cpp \
   primitives/zerocoin.cpp \
   veil/denomination_functions.cpp \
   veil/mintpool.cpp \
@@ -488,9 +488,7 @@ libbitcoin_consensus_a_SOURCES = \
   primitives/block.h \
   primitives/transaction.cpp \
   primitives/transaction.h \
-  primitives/deterministicmint.cpp \
   primitives/zerocoin.cpp \
-  primitives/deterministicmint.h \
   primitives/zerocoin.h \
   pubkey.cpp \
   pubkey.h \

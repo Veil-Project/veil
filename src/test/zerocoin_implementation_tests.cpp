@@ -13,7 +13,7 @@
 #include "libzerocoin/bignum.h"
 #include <boost/test/unit_test.hpp>
 #include <iostream>
-#include <primitives/deterministicmint.h>
+#include <wallet/deterministicmint.h>
 #include <veil/zwallet.h>
 #include <accumulators.h>
 #include "wallet/wallet.h"

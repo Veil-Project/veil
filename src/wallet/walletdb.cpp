@@ -15,7 +15,7 @@
 #include <util.h>
 #include <utiltime.h>
 #include <wallet/wallet.h>
-#include <primitives/deterministicmint.h>
+#include <wallet/deterministicmint.h>
 
 #include <atomic>
 #include <string>

@@ -1,4 +1,4 @@
-#include <primitives/deterministicmint.h>
+#include <wallet/deterministicmint.h>
 #include <logging.h>
 #include "ztracker.h"
 #include "util.h"
