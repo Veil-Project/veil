@@ -1764,6 +1764,18 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
         bool is_coinbase = tx.IsCoinBase();
 
         for (size_t k = tx.vpout.size(); k-- > 0;) {
+            //Zerocoinmint needs to be erased from db
+            if (tx.vpout[k]->IsZerocoinMint()) {
+                libzerocoin::PublicCoin coin(Params().Zerocoin_Params());
+                if (!OutputToPublicCoin(tx.vpout[k].get(), coin)) {
+                    LogPrintf("%s: failed to disconnect zerocoinmint\n", __func__);
+                    return DISCONNECT_FAILED;
+                }
+
+                pzerocoinDB->EraseCoinMint(coin.getValue());
+                continue;
+            }
+
             const CTxOutBase *out = tx.vpout[k].get();
 
             if (out->IsType(OUTPUT_RINGCT)) {
@@ -1806,27 +1818,6 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                     if (!is_spent || txout != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
                         fClean = false; // transaction output mismatch
                     }
-                }
-            }
-        }
-
-        // Check that all outputs are available and match the outputs in the block itself
-        // exactly.
-        for (size_t o = 0; o < tx.vpout.size(); o++) {
-            //Zerocoinmint needs to be erased from db
-            if (tx.vpout[o]->IsZerocoinMint()) {
-                libzerocoin::PublicCoin coin(Params().Zerocoin_Params());
-                if (!OutputToPublicCoin(tx.vpout[o].get(), coin))
-                    return DISCONNECT_FAILED;
-                pzerocoinDB->EraseCoinMint(coin.getValue());
-                continue;
-            }
-            if (tx.vpout[o]->IsStandardOutput() && !tx.vpout[o]->GetPScriptPubKey()->IsUnspendable()) {
-                COutPoint out(hash, o);
-                Coin coin;
-                bool is_spent = view.SpendCoin(out, &coin);
-                if (!is_spent || coin.Matches(tx.vpout[o].get()) || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
-                    fClean = false; // transaction output mismatch
                 }
             }
         }
