@@ -127,6 +127,12 @@ bool CTxOutStandard::SetScriptPubKey(const CScript& scriptPubKey)
     return true;
 }
 
+bool CTxOutCT::SetScriptPubKey(const CScript& scriptPubKey)
+{
+    this->scriptPubKey = scriptPubKey;
+    return true;
+}
+
 void DeepCopy(CTxOutBaseRef &to, const CTxOutBaseRef &from)
 {
     switch (from->GetType()) {
@@ -179,7 +185,7 @@ CTxOut::CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn)
 
 std::shared_ptr<CTxOutStandard> CTxOut::GetSharedPtr()
 {
-    OUTPUT_PTR<CTxOutStandard> p =MAKE_OUTPUT<CTxOutStandard>();
+    OUTPUT_PTR<CTxOutStandard> p = MAKE_OUTPUT<CTxOutStandard>();
     p->scriptPubKey = scriptPubKey;
     p->nValue = nValue;
     return std::move(p);

@@ -154,7 +154,7 @@ public:
         if (IsAnonInput())
         {
             READWRITE(scriptData.stack);
-        };
+        }
     }
 
     friend bool operator==(const CTxIn& a, const CTxIn& b)
@@ -347,7 +347,7 @@ public:
 
     void SetValue(CAmount value);
     void AddToValue(const CAmount& nValue);
-    bool SetScriptPubKey(const CScript& scriptPubKey) { return false; }
+    virtual bool SetScriptPubKey(const CScript& scriptPubKey) { return false; }
 
     virtual void SetNull() = 0;
     virtual CAmount GetValue() const;
@@ -417,7 +417,7 @@ public:
         return nValue;
     }
 
-    bool SetScriptPubKey(const CScript& scriptPubKey);
+    bool SetScriptPubKey(const CScript& scriptPubKey) override;
 
     bool GetScriptPubKey(CScript &scriptPubKey_) const override
     {
@@ -488,7 +488,9 @@ public:
     {
         scriptPubKey_ = scriptPubKey;
         return true;
-    };
+    }
+
+    bool SetScriptPubKey(const CScript& scriptPubKey) override;
 
     virtual const CScript *GetPScriptPubKey() const override
     {
@@ -565,6 +567,8 @@ public:
     {
         return &vRangeproof;
     }
+
+    bool SetScriptPubKey(const CScript& scriptPubKey) override { return false; }
 };
 
 class CTxOutData : public CTxOutBase
@@ -632,6 +636,7 @@ public:
 
         return false;
     };
+    bool SetScriptPubKey(const CScript& scriptPubKey) override { return false; }
 };
 
 struct CMutableTransaction;
@@ -795,7 +800,7 @@ public:
 
     bool IsZerocoinSpend() const
     {
-        return (vin.size() > 0 && vin[0].prevout.hash == uint256() && vin[0].scriptSig[0] == OP_ZEROCOINSPEND);
+        return (vin.size() > 0 && vin[0].prevout.hash == uint256() && vin[0].scriptSig[0] == OP_ZEROCOINSPEND && vin[0].nSequence <= 10000);
     }
 
     bool IsZerocoinMint() const
