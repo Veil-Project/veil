@@ -652,6 +652,7 @@ struct CMutableTransaction;
  * - int32_t nVersion
  * - unsigned char dummy = 0x00
  * - unsigned char flags (!= 0)
+ * - bool Tx Has Segwit
  * - std::vector<CTxIn> vin
  * - std::vector<CTxOut> vout
  * - if (flags & 1):
@@ -660,7 +661,6 @@ struct CMutableTransaction;
  */
 template<typename Stream, typename TxType>
 inline void UnserializeTransaction(TxType& tx, Stream& s) {
-    const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     uint8_t bv;
     tx.nVersion = 0;
@@ -669,6 +669,9 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     tx.nVersion = bv;
     s >> bv;
     tx.nVersion |= bv<<8; // TransactionTypes
+
+    bool fUseSegwit;
+    s >> fUseSegwit;
 
     s >> tx.nLockTime;
 
@@ -700,7 +703,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
         s >> *tx.vpout[k];
     }
 
-    if (fAllowWitness) {
+    if (fUseSegwit) {
         for (auto &txin : tx.vin)
             s >> txin.scriptWitness.stack;
     }
@@ -708,13 +711,14 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
 
 template<typename Stream, typename TxType>
 inline void SerializeTransaction(const TxType& tx, Stream& s) {
-    const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     uint8_t bv = tx.nVersion & 0xFF;
     s << bv;
 
     bv = (tx.nVersion>>8) & 0xFF;
     s << bv; // TransactionType
+
+    s << tx.HasWitness();
 
     s << tx.nLockTime;
     s << tx.vin;
@@ -725,7 +729,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
         s << *tx.vpout[k];
     }
 
-    if (fAllowWitness) {
+    if (tx.HasWitness()) {
         for (auto &txin : tx.vin)
             s << txin.scriptWitness.stack;
     }
