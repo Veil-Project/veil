@@ -139,6 +139,7 @@ public:
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
+        block.mapAccumulatorHashes = mapAccumulatorHashes;
         return block;
     }
 

@@ -181,6 +181,11 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "spendzerocoin", 1, "mintchange"},
     { "spendzerocoin", 2, "minimizechange"},
     { "spendzerocoin", 3, "securitylevel"},
+    { "listmintedzerocoins", 0, "verbose"},
+    { "listmintedzerocoins", 1, "mature_only"},
+    { "resetmintzerocoin", 0, "fullscan"},
+    { "exportzerocoins", 0, "include_spent"},
+    { "exportzerocoins", 1, "denomination"},
 };
 
 class CRPCConvertTable

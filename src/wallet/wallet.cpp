@@ -994,7 +994,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                 std::pair<TxSpends::const_iterator, TxSpends::const_iterator> range = mapTxSpends.equal_range(txin.prevout);
                 while (range.first != range.second) {
                     if (range.first->second != tx.GetHash()) {
-                        WalletLogPrintf("Transaction %s (in block %s) conflicts with wallet transaction %s (both spend %s:%i)\n",
+                        WalletLogPrintf("CWallet: Transaction %s (in block %s) conflicts with wallet transaction %s (both spend %s:%i)\n",
                                 tx.GetHash().ToString(), pIndex->GetBlockHash().ToString(), range.first->second.ToString(),
                                 range.first->first.hash.ToString(), range.first->first.n);
                         MarkConflicted(pIndex->GetBlockHash(), range.first->second);
@@ -3346,6 +3346,8 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
                 LogPrintf("%s : failed to get scriptPubKey\n", __func__);
                 continue;
             }
+            txNew.vpout.clear();
+            txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
             for (auto& txOut : vout)
                 txNew.vpout.emplace_back(txOut.GetSharedPtr());
 

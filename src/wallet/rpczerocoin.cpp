@@ -394,10 +394,10 @@ UniValue listzerocoinamounts(const JSONRPCRequest& request)
 
     std::map<libzerocoin::CoinDenomination, CAmount> mapMints = pwallet->GetMyZerocoinDistribution();
     UniValue ret(UniValue::VARR);
-    for (const auto& m : libzerocoin::zerocoinDenomList) {
+    for (const auto& mi : mapMints) {
         UniValue val(UniValue::VOBJ);
-        val.push_back(Pair("denomination", libzerocoin::ZerocoinDenominationToInt(m)));
-        val.push_back(Pair("mints", (int64_t)mapMints.at(m)));
+        val.push_back(Pair("denomination", libzerocoin::ZerocoinDenominationToInt(mi.first)));
+        val.push_back(Pair("mints", (int64_t)mi.second));
         ret.push_back(val);
     }
     return ret;
