@@ -280,7 +280,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     //Must add the height to the coinbase scriptsig
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     if (fProofOfStake) {
-        pblock->vtx.resize(2);
+        if (pblock->vtx.size() < 2)
+            pblock->vtx.resize(2);
         coinbaseTx.vpout.resize(1);
         coinbaseTx.vpout[0]->SetValue(0);
         coinbaseTx.vpout[0]->SetScriptPubKey(CScript());
