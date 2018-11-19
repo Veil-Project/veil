@@ -229,7 +229,7 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
     return fValidated;
 }
 
-bool CheckZerocoinMint(const CTxOut& txout, CValidationState& state)
+bool CheckZerocoinMint(const CTxOut& txout, CBigNum& bnValue, CValidationState& state)
 {
     libzerocoin::PublicCoin pubCoin(Params().Zerocoin_Params());
     if (!TxOutToPublicCoin(txout, pubCoin))
@@ -238,6 +238,7 @@ bool CheckZerocoinMint(const CTxOut& txout, CValidationState& state)
     if (!pubCoin.validate())
         return state.DoS(100, error("CheckZerocoinMint() : PubCoin does not validate"));
 
+    bnValue = pubCoin.getValue();
     return true;
 }
 
@@ -252,8 +253,15 @@ bool CheckValue(CValidationState &state, CAmount nValue, CAmount &nValueOut)
     return true;
 }
 
-bool CheckStandardOutput(CValidationState &state, const Consensus::Params& consensusParams, const CTxOutStandard *p, CAmount &nValueOut)
+bool CheckStandardOutput(CValidationState &state, const Consensus::Params& consensusParams, const CTxOutStandard *p, CAmount &nValueOut, CBigNum& bnPubcoin)
 {
+    if (p->IsZerocoinMint()) {
+        CTxOut txout;
+        if (!p->GetTxOut(txout))
+            return error("%s: failed to extract zerocoinmint from output", __func__);
+        if (!CheckZerocoinMint(txout, bnPubcoin, state))
+            return error("%s: zerocoin mint check failed", __func__);
+    }
     return CheckValue(state, p->nValue, nValueOut);
 }
 
@@ -335,13 +343,23 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     size_t nStandardOutputs = 0;
     CAmount nValueOut = 0;
     size_t nDataOutputs = 0;
+    std::set<CBigNum> setPubCoin;
     for (const auto &txout : tx.vpout) {
         switch (txout->nVersion) {
-            case OUTPUT_STANDARD:
-                if (!CheckStandardOutput(state, consensusParams, (CTxOutStandard*) txout.get(), nValueOut))
+            case OUTPUT_STANDARD: {
+                CBigNum bnPubCoin = 0;
+                if (!CheckStandardOutput(state, consensusParams, (CTxOutStandard*) txout.get(), nValueOut, bnPubCoin))
                     return false;
+
+                //Keep track of pubcoins so they can be checked for the same value being included twice in one tx
+                if (bnPubCoin != 0) {
+                    if (setPubCoin.count(bnPubCoin))
+                        return state.DoS(100, false, REJECT_INVALID, "bad-txns-duplicate-zerocoinmints");
+                    setPubCoin.emplace(bnPubCoin);
+                }
                 nStandardOutputs++;
                 break;
+            }
             case OUTPUT_CT:
                 if (!CheckBlindOutput(state, (CTxOutCT*) txout.get()))
                     return false;
