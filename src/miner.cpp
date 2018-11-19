@@ -140,7 +140,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         if (pwalletMain->CreateCoinStake(pblock->nBits, txCoinStake, nTxNewTime)) {
             pblock->nTime = nTxNewTime;
             fStakefound = true;
-            LogPrintf("%s: FOUND STAKE!!\n", __func__);
         }
 
         if(!fStakefound)
@@ -280,14 +279,15 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     //Must add the height to the coinbase scriptsig
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
-    pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     if (fProofOfStake) {
-        pblock->vtx.resize(2);
+        if (pblock->vtx.size() < 2)
+            pblock->vtx.resize(2);
+        coinbaseTx.vpout.resize(1);
+        coinbaseTx.vpout[0]->SetValue(0);
+        coinbaseTx.vpout[0]->SetScriptPubKey(CScript());
         pblock->vtx[1] = MakeTransactionRef(std::move(txCoinStake));
-
-        //This is done in incrementextranonce for PoW blocks
-        pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
     }
+    pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
 
     pblocktemplate->vTxFees[0] = -nFees;
 
@@ -301,6 +301,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus(), pblock->IsProofOfStake());
     pblock->nNonce         = 0;
+    pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
     pblock->hashWitnessMerkleRoot = BlockWitnessMerkleRoot(*pblock);
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
@@ -326,6 +327,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             LogPrintf("%s: Failed to sign block hash\n", __func__);
             return nullptr;
         }
+        LogPrintf("%s: FOUND STAKE!!\n block: \n%s\n", __func__, pblock->ToString());
     }
 
     CValidationState state;
@@ -618,13 +620,15 @@ bool fMintableCoins = false;
 int nMintableLastCheck = 0;
 
 CCriticalSection cs_nonce;
-int32_t nNonce_base = 0;
+static int32_t nNonce_base = 0;
+static arith_uint256 nHashes = 0;
+static int32_t nTimeStart = 0;
 
 void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false) {
     LogPrintf("Veil Miner started\n");
 
     unsigned int nExtraNonce = 0;
-    static const int nInnerLoopCount = 0x10000;
+    static const int nInnerLoopCount = 0x010000;
 
     while (fGenerateBitcoins || fProofOfStake)
     {
@@ -678,16 +682,16 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         CBlock *pblock = &pblocktemplate->block;
         int32_t nNonceLocal;
 
+        if (!fProofOfStake)
         {
-            LOCK(cs_nonce);
-            nNonceLocal = nNonce_base++;
-        }
+            {
+                LOCK(cs_nonce);
+                nNonceLocal = nNonce_base++;
+                if (!nTimeStart)
+                    nTimeStart = GetTime();
+            }
 
-        auto hash = Hash(BEGIN(nNonceLocal), END(nNonceLocal));
-        pblock->nNonce = (uint32_t)hash.GetUint64(0);
-        pblock->nNonce %= nInnerLoopCount;
-        if (pblock->IsProofOfWork())
-        {
+            pblock->nNonce = 0;
             {
                 LOCK(cs_main);
                 nExtraNonce = nNonceLocal;
@@ -701,6 +705,10 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 ++pblock->nNonce;
             }
 
+            LOCK(cs_nonce);
+            nHashes += nTries;
+            int32_t nTimeDuration = GetTime() - nTimeStart;
+            LogPrintf("%s: PoW Hashspeed %d kh/s\n", __func__, arith_uint256(nHashes/1000/nTimeDuration).getdouble());
             if (nTries == nInnerLoopCount) {
                 continue;
             }
