@@ -45,6 +45,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
 
     const CBlockIndex *pindex = pindexLast;
+    const CBlockIndex* pindexLastMatchingProof = nullptr;
     arith_uint256 bnPastTargetAvg = 0;
 
     unsigned int nCountBlocks = 0;
@@ -57,6 +58,8 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         if (pindex->IsProofOfStake() != fProofOfStake) {
             pindex = pindex->pprev;
             continue;
+        } else if (!pindexLastMatchingProof) {
+            pindexLastMatchingProof = pindex;
         }
 
         arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
@@ -68,7 +71,11 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
 
     arith_uint256 bnNew(bnPastTargetAvg);
 
-    int64_t nActualTimespan = pindexLast->GetBlockTime() - pindex->GetBlockTime();
+    //Should only happen on the first PoS block
+    if (pindexLastMatchingProof)
+        pindexLastMatchingProof = pindexLast;
+
+    int64_t nActualTimespan = pindexLastMatchingProof->GetBlockTime() - pindex->GetBlockTime();
     int64_t nTargetTimespan = params.nDgwPastBlocks * params.nPowTargetSpacing;
 
     if (nActualTimespan < nTargetTimespan/3)
