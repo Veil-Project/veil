@@ -410,6 +410,8 @@ public:
     mutable CAmount nImmatureWatchCreditCached;
     mutable CAmount nAvailableWatchCreditCached;
     mutable CAmount nChangeCached;
+    mutable std::set<OutputTypes> setImmatureTypeCreditCached;
+    mutable std::map<OutputTypes, CAmount> mImmatureTypeCreditCached;
 
     CWalletTx(const CWallet* pwalletIn, CTransactionRef arg) : CMerkleTx(std::move(arg))
     {
@@ -422,6 +424,8 @@ public:
         vPath.clear();
         mapValue.clear();
         vOrderForm.clear();
+        setImmatureTypeCreditCached.clear();
+        mImmatureTypeCreditCached.clear();
         fTimeReceivedIsTxTime = false;
         nTimeReceived = 0;
         nTimeSmart = 0;
@@ -496,6 +500,7 @@ public:
         fImmatureWatchCreditCached = false;
         fDebitCached = false;
         fChangeCached = false;
+        setImmatureTypeCreditCached.clear();
     }
 
     void BindWallet(CWallet *pwalletIn)
@@ -508,6 +513,7 @@ public:
     CAmount GetDebit(const isminefilter& filter) const;
     CAmount GetCredit(const isminefilter& filter) const;
     CAmount GetImmatureCredit(bool fUseCache=true) const;
+    CAmount GetImmatureCreditOfType(const OutputTypes type, bool fUseCache=true) const;
     CAmount GetAvailableCredit(bool fUseCache=true, const isminefilter& filter=ISMINE_SPENDABLE) const;
     CAmount GetImmatureWatchOnlyCredit(const bool fUseCache=true) const;
     CAmount GetChange() const;
@@ -1118,6 +1124,7 @@ public:
     /** Returns whether all of the inputs match the filter */
     virtual bool IsAllFromMe(const CTransaction& tx, const isminefilter& filter) const;
     virtual CAmount GetCredit(const CTransaction& tx, const isminefilter& filter) const;
+    CAmount GetCreditOfType(const CTransaction& tx, const isminefilter& filter, const OutputTypes type) const;
     CAmount GetChange(const CTransaction& tx) const;
     void ChainStateFlushed(const CBlockLocator& loc) override;
 

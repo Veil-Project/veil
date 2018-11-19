@@ -1391,6 +1391,21 @@ CAmount CWallet::GetCredit(const CTransaction& tx, const isminefilter& filter) c
     return nCredit;
 }
 
+CAmount CWallet::GetCreditOfType(const CTransaction& tx, const isminefilter& filter, const OutputTypes type) const
+{
+    CAmount nCredit = 0;
+    for (auto const pOut : tx.vpout)
+    {
+        if (pOut->nVersion != type)
+            continue;
+
+        nCredit += GetCredit(pOut.get(), filter);
+        if (!MoneyRange(nCredit))
+            throw std::runtime_error(std::string(__func__) + ": value out of range");
+    }
+    return nCredit;
+}
+
 CAmount CWallet::GetChange(const CTransaction& tx) const
 {
     CAmount nChange = 0;
@@ -1978,6 +1993,20 @@ CAmount CWalletTx::GetImmatureCredit(bool fUseCache) const
     return 0;
 }
 
+CAmount CWalletTx::GetImmatureCreditOfType(const OutputTypes type, bool fUseCache) const
+{
+    if (GetBlocksToMaturity() > 0 && IsInMainChain())
+    {
+        if (fUseCache && setImmatureTypeCreditCached.count(type) && mImmatureTypeCreditCached.count(type))
+            return mImmatureTypeCreditCached.at(type);
+        mImmatureTypeCreditCached[type] = pwallet->GetCreditOfType(*tx, ISMINE_SPENDABLE, type);
+        setImmatureTypeCreditCached.insert(type);
+        return mImmatureTypeCreditCached.at(type);
+    }
+
+    return 0;
+}
+
 CAmount CWalletTx::GetAvailableCredit(bool fUseCache, const isminefilter& filter) const
 {
     if (pwallet == nullptr)
@@ -2065,24 +2094,25 @@ bool CWalletTx::IsTrusted() const
     if (!InMempool())
         return false;
 
-    // Trusted if all inputs are from us and are in the mempool:
-    for (const CTxIn& txin : tx->vin)
-    {
-        // Transactions not sent by us: not trusted
-        const CWalletTx* parent = pwallet->GetWalletTx(txin.prevout.hash);
-        if (parent == nullptr)
-            return false;
-        auto parentOut = parent->tx->vpout[txin.prevout.n];
-        CTxOut out;
-        if (!parentOut->GetTxOut(out)) {
-            //todo - how to tell if nonstandard is ours?
-            return false;
-        }
-
-        if (pwallet->IsMine(out) != ISMINE_SPENDABLE)
-            return false;
-    }
-    return true;
+//    // Trusted if all inputs are from us and are in the mempool:
+//    for (const CTxIn& txin : tx->vin)
+//    {
+//        // Transactions not sent by us: not trusted
+//        const CWalletTx* parent = pwallet->GetWalletTx(txin.prevout.hash);
+//        if (parent == nullptr)
+//            return false;
+//        auto parentOut = parent->tx->vpout[txin.prevout.n];
+//        CTxOut out;
+//        if (!parentOut->GetTxOut(out)) {
+//            //todo - how to tell if nonstandard is ours?
+//            return false;
+//        }
+//
+//        if (pwallet->IsMine(out) != ISMINE_SPENDABLE)
+//            return false;
+//    }
+//    return true;
+    return false;
 }
 
 bool CWalletTx::IsEquivalentTo(const CWalletTx& _tx) const

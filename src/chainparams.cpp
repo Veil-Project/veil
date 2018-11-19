@@ -322,6 +322,8 @@ public:
         // By default assume that the signatures in ancestors of this block are valid.
         consensus.defaultAssumeValid = uint256S("0x0000000000000037a8cd3e06cd5edbfe9dd1dbcc5dacab279376ef7cfc2b4c75"); //1354312
 
+        consensus.nMinRCTOutputDepth = 12;
+
         pchMessageStart[0] = 0xa8;
         pchMessageStart[1] = 0xd1;
         pchMessageStart[2] = 0xa7;

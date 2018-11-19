@@ -126,6 +126,10 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     icon.addPixmap(icon.pixmap(QSize(64,64), QIcon::Normal), QIcon::Disabled); // also set the disabled icon because we are using a disabled QPushButton to work around missing HiDPI support of QLabel (https://bugreports.qt.io/browse/QTBUG-42503)
     ui->labelTransactionsStatus->setIcon(icon);
     ui->labelWalletStatus->setIcon(icon);
+    ui->labelZWalletStatus->setIcon(icon);
+    ui->labelCTWalletStatus->setIcon(icon);
+    ui->labelRCTWalletStatus->setIcon(icon);
+    ui->labelTotalWalletStatus->setIcon(icon);
 
     // Recent transactions
     ui->listTransactions->setItemDelegate(txdelegate);
@@ -138,6 +142,10 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     // start with displaying the "out of sync" warnings
     showOutOfSyncWarning(true);
     connect(ui->labelWalletStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
+    connect(ui->labelZWalletStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
+    connect(ui->labelCTWalletStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
+    connect(ui->labelRCTWalletStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
+    connect(ui->labelTotalWalletStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
     connect(ui->labelTransactionsStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
 }
 
@@ -161,6 +169,7 @@ void OverviewPage::setBalance(const interfaces::WalletBalances& balances)
 {
     int unit = walletModel->getOptionsModel()->getDisplayUnit();
     m_balances = balances;
+    // Standard Veil
     ui->labelBalance->setText(BitcoinUnits::formatWithUnit(unit, balances.balance, false, BitcoinUnits::separatorAlways));
     ui->labelUnconfirmed->setText(BitcoinUnits::formatWithUnit(unit, balances.unconfirmed_balance, false, BitcoinUnits::separatorAlways));
     ui->labelImmature->setText(BitcoinUnits::formatWithUnit(unit, balances.immature_balance, false, BitcoinUnits::separatorAlways));
@@ -169,6 +178,35 @@ void OverviewPage::setBalance(const interfaces::WalletBalances& balances)
     ui->labelWatchPending->setText(BitcoinUnits::formatWithUnit(unit, balances.unconfirmed_watch_only_balance, false, BitcoinUnits::separatorAlways));
     ui->labelWatchImmature->setText(BitcoinUnits::formatWithUnit(unit, balances.immature_watch_only_balance, false, BitcoinUnits::separatorAlways));
     ui->labelWatchTotal->setText(BitcoinUnits::formatWithUnit(unit, balances.watch_only_balance + balances.unconfirmed_watch_only_balance + balances.immature_watch_only_balance, false, BitcoinUnits::separatorAlways));
+
+    // Zerocoin
+    ui->labelZBalance->setText(BitcoinUnits::formatWithUnit(unit, balances.zerocoin_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelZUnconfirmed->setText(BitcoinUnits::formatWithUnit(unit, balances.zerocoin_unconfirmed_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelZImmature->setText(BitcoinUnits::formatWithUnit(unit, balances.zerocoin_immature_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelZTotal->setText(BitcoinUnits::formatWithUnit(unit, balances.zerocoin_balance + balances.zerocoin_unconfirmed_balance + balances.zerocoin_immature_balance, false, BitcoinUnits::separatorAlways));
+
+    // CT
+    ui->labelCTBalance->setText(BitcoinUnits::formatWithUnit(unit, balances.ct_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelCTUnconfirmed->setText(BitcoinUnits::formatWithUnit(unit, balances.ct_unconfirmed_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelCTImmature->setText(BitcoinUnits::formatWithUnit(unit, balances.ct_immature_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelCTTotal->setText(BitcoinUnits::formatWithUnit(unit, balances.ct_balance + balances.ct_unconfirmed_balance, false, BitcoinUnits::separatorAlways));
+
+    // Ring CT
+    ui->labelRCTBalance->setText(BitcoinUnits::formatWithUnit(unit, balances.ring_ct_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelRCTUnconfirmed->setText(BitcoinUnits::formatWithUnit(unit, balances.ring_ct_unconfirmed_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelRCTImmature->setText(BitcoinUnits::formatWithUnit(unit, balances.ring_ct_immature_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelRCTTotal->setText(BitcoinUnits::formatWithUnit(unit, balances.ring_ct_balance + balances.ring_ct_unconfirmed_balance, false, BitcoinUnits::separatorAlways));
+
+    CAmount nTotalBalance = balances.balance + balances.zerocoin_balance + balances.ct_balance + balances.ring_ct_balance;
+    CAmount nTotalUnconfirmed = balances.unconfirmed_balance + balances.zerocoin_unconfirmed_balance + balances.ct_unconfirmed_balance + balances.ring_ct_unconfirmed_balance;
+    CAmount nTotalImmature = balances.immature_balance + balances.zerocoin_immature_balance + balances.ct_immature_balance + balances.ring_ct_immature_balance;
+    CAmount nGrandTotal = nTotalBalance + nTotalUnconfirmed + nTotalImmature;
+
+    // Total Spendable
+    ui->labelTotalBalance->setText(BitcoinUnits::formatWithUnit(unit, nTotalBalance, false, BitcoinUnits::separatorAlways));
+    ui->labelTotalUnconfirmed->setText(BitcoinUnits::formatWithUnit(unit, nTotalUnconfirmed, false, BitcoinUnits::separatorAlways));
+    ui->labelTotalImmature->setText(BitcoinUnits::formatWithUnit(unit, nTotalImmature, false, BitcoinUnits::separatorAlways));
+    ui->labelGrandTotal->setText(BitcoinUnits::formatWithUnit(unit, nGrandTotal, false, BitcoinUnits::separatorAlways));
 
     // only show immature (newly mined) balance if it's non-zero, so as not to complicate things
     // for the non-mining users
@@ -186,7 +224,6 @@ void OverviewPage::updateWatchOnlyLabels(bool showWatchOnly)
 {
     ui->labelSpendable->setVisible(showWatchOnly);      // show spendable label (only when watch-only is active)
     ui->labelWatchonly->setVisible(showWatchOnly);      // show watch-only label
-    ui->lineWatchBalance->setVisible(showWatchOnly);    // show watch-only balance separator line
     ui->labelWatchAvailable->setVisible(showWatchOnly); // show watch-only available balance
     ui->labelWatchPending->setVisible(showWatchOnly);   // show watch-only pending balance
     ui->labelWatchTotal->setVisible(showWatchOnly);     // show watch-only total balance
@@ -263,5 +300,9 @@ void OverviewPage::updateAlerts(const QString &warnings)
 void OverviewPage::showOutOfSyncWarning(bool fShow)
 {
     ui->labelWalletStatus->setVisible(fShow);
+    ui->labelZWalletStatus->setVisible(fShow);
+    ui->labelCTWalletStatus->setVisible(fShow);
+    ui->labelRCTWalletStatus->setVisible(fShow);
+    ui->labelTotalWalletStatus->setVisible(fShow);
     ui->labelTransactionsStatus->setVisible(fShow);
 }

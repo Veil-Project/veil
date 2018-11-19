@@ -1806,33 +1806,34 @@ bool CHDWallet::IsTrusted(const uint256 &txhash, const uint256 &blockhash, int n
     //    return false;
 
     // Don't trust unconfirmed transactions from us unless they are in the mempool.
-    CTransactionRef ptx = mempool.get(txhash);
-    if (!ptx)
-        return false;
-
-    // Trusted if all inputs are from us and are in the mempool:
-    for (const auto &txin : ptx->vin) {
-        // Transactions not sent by us: not trusted
-        MapRecords_t::const_iterator rit = mapRecords.find(txin.prevout.hash);
-        if (rit != mapRecords.end()) {
-            const COutputRecord *oR = rit->second.GetOutput(txin.prevout.n);
-
-            if (!oR || !(oR->nFlags & ORF_OWNED))
-                return false;
-
-            continue;
-        }
-
-        const CWalletTx *parent = GetWalletTx(txin.prevout.hash);
-        if (parent == nullptr)
-            return false;
-
-        const CTxOutBase *parentOut = parent->tx->vpout[txin.prevout.n].get();
-        if (IsMine(parentOut) != ISMINE_SPENDABLE)
-            return false;
-    }
-
-    return true;
+//    CTransactionRef ptx = mempool.get(txhash);
+//    if (!ptx)
+//        return false;
+//
+//    // Trusted if all inputs are from us and are in the mempool:
+//    for (const auto &txin : ptx->vin) {
+//        // Transactions not sent by us: not trusted
+//        MapRecords_t::const_iterator rit = mapRecords.find(txin.prevout.hash);
+//        if (rit != mapRecords.end()) {
+//            const COutputRecord *oR = rit->second.GetOutput(txin.prevout.n);
+//
+//            if (!oR || !(oR->nFlags & ORF_OWNED))
+//                return false;
+//
+//            continue;
+//        }
+//
+//        const CWalletTx *parent = GetWalletTx(txin.prevout.hash);
+//        if (parent == nullptr)
+//            return false;
+//
+//        const CTxOutBase *parentOut = parent->tx->vpout[txin.prevout.n].get();
+//        if (IsMine(parentOut) != ISMINE_SPENDABLE)
+//            return false;
+//    }
+//
+//    return true;
+    return false;
 }
 
 
@@ -2061,15 +2062,17 @@ bool CHDWallet::GetBalances(CHDWalletBalances &bal)
     for (const auto &item : mapWallet) {
 
         const CWalletTx &wtx = item.second;
-        bal.nPartImmature += wtx.GetImmatureCredit();
+        bal.nVeilImmature += wtx.GetImmatureCreditOfType(OUTPUT_STANDARD);
+        bal.nCTImmature += wtx.GetImmatureCreditOfType(OUTPUT_CT);
+        bal.nRingCTImmature += wtx.GetImmatureCreditOfType(OUTPUT_RINGCT);
 
         if (wtx.IsTrusted()) {
-            bal.nPart += wtx.GetAvailableCredit();
-            bal.nPartWatchOnly += wtx.GetAvailableCredit(true, ISMINE_WATCH_ONLY);
+            bal.nVeil += wtx.GetAvailableCredit();
+            bal.nVeilWatchOnly += wtx.GetAvailableCredit(true, ISMINE_WATCH_ONLY);
         } else {
             if (wtx.GetDepthInMainChain() == 0 && wtx.InMempool()) {
-                bal.nPartUnconf += wtx.GetAvailableCredit();
-                bal.nPartWatchOnlyUnconf += wtx.GetAvailableCredit(true, ISMINE_WATCH_ONLY);
+                bal.nVeilUnconf += wtx.GetAvailableCredit();
+                bal.nVeilWatchOnlyUnconf += wtx.GetAvailableCredit(true, ISMINE_WATCH_ONLY);
             }
         }
     }
@@ -2095,30 +2098,30 @@ bool CHDWallet::GetBalances(CHDWalletBalances &bal)
                     if (!(r.nFlags & ORF_OWNED))
                         continue;
                     if (fTrusted)
-                        bal.nAnon += r.nValue;
+                        bal.nRingCT += r.nValue;
                     else if (fInMempool)
-                        bal.nAnonUnconf += r.nValue;
+                        bal.nRingCTUnconf += r.nValue;
                     break;
                 case OUTPUT_CT:
                     if (!(r.nFlags & ORF_OWNED))
                         continue;
                     if (fTrusted)
-                        bal.nBlind += r.nValue;
+                        bal.nCT += r.nValue;
                     else if (fInMempool)
-                        bal.nBlindUnconf += r.nValue;
+                        bal.nCTUnconf += r.nValue;
                     break;
                 case OUTPUT_STANDARD:
                     if (r.nFlags & ORF_OWNED) {
                         if (fTrusted)
-                            bal.nPart += r.nValue;
+                            bal.nVeil += r.nValue;
                         else if (fInMempool)
-                            bal.nPartUnconf += r.nValue;
+                            bal.nVeilUnconf += r.nValue;
                     } else
                     if (r.nFlags & ORF_OWN_WATCH) {
                         if (fTrusted)
-                            bal.nPartWatchOnly += r.nValue;
+                            bal.nVeilWatchOnly += r.nValue;
                         else if (fInMempool)
-                            bal.nPartWatchOnlyUnconf += r.nValue;
+                            bal.nVeilWatchOnlyUnconf += r.nValue;
                     }
                     break;
                 default:
