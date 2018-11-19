@@ -133,14 +133,11 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action)
     {
+        READWRITE(version);
         READWRITE(publicCoin);
         READWRITE(randomness);
         READWRITE(serialNumber);
-        version = (uint8_t )ExtractVersionFromSerial(serialNumber);
-        if (version == 2) {
-            READWRITE(version);
-            READWRITE(privkey);
-        }
+        READWRITE(privkey);
     }
 
 private:

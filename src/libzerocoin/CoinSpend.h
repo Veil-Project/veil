@@ -44,24 +44,15 @@ public:
     //! \param paramsV2 - params that begin when V2 zerocoins begin on the PIVX network
     //! \param strm - a serialized CoinSpend
     template <typename Stream>
-    CoinSpend(const ZerocoinParams* paramsV1, const ZerocoinParams* paramsV2, Stream& strm) :
-        accumulatorPoK(&paramsV2->accumulatorParams),
-        commitmentPoK(&paramsV2->serialNumberSoKCommitmentGroup, &paramsV2->accumulatorParams.accumulatorPoKCommitmentGroup)
+    CoinSpend(const ZerocoinParams* params, Stream& strm) :
+        accumulatorPoK(&params->accumulatorParams),
+        commitmentPoK(&params->serialNumberSoKCommitmentGroup, &params->accumulatorParams.accumulatorPoKCommitmentGroup)
     {
         Stream strmCopy = strm;
         // First v2, if fail we go to v1
-        init(paramsV2, strm);
+        init(params, strm);
 
         strm >> *this;
-
-        //Need to reset some parameters if v1
-        int serialVersion = ExtractVersionFromSerial(coinSerialNumber);
-        if (serialVersion < PrivateCoin::PUBKEY_VERSION) {
-            accumulatorPoK = AccumulatorProofOfKnowledge(&paramsV2->accumulatorParams);
-            serialNumberSoK = SerialNumberSignatureOfKnowledge(paramsV1);
-            commitmentPoK = CommitmentProofOfKnowledge(&paramsV1->serialNumberSoKCommitmentGroup, &paramsV2->accumulatorParams.accumulatorPoKCommitmentGroup);
-            strmCopy >> *this;
-        }
     }
 
     /**Generates a proof spending a zerocoin.
@@ -87,7 +78,7 @@ public:
 	 * @param a hash of the partial transaction that contains this coin spend
 	 * @throw ZerocoinException if the process fails
 	 */
-    CoinSpend(const ZerocoinParams* paramsCoin, const ZerocoinParams* paramsAcc, const PrivateCoin& coin, Accumulator& a, const uint256& checksum,
+    CoinSpend(const ZerocoinParams* params, const PrivateCoin& coin, Accumulator& a, const uint256& checksum,
               const AccumulatorWitness& witness, const uint256& ptxHash, const SpendType& spendType, const uint8_t version = (uint8_t) V3_SMALL_SOK);
 
     bool operator<(const CoinSpend& rhs) const { return this->getCoinSerialNumber() < rhs.getCoinSerialNumber(); }
@@ -129,53 +120,28 @@ public:
         return hashSig;
     }
 
-    bool Verify(const Accumulator& a, bool verifySoK = true) const;
+    bool Verify(const Accumulator& a, std::string& strError, bool verifySoK = true) const;
     bool HasValidSerial(ZerocoinParams* params) const;
     bool HasValidSignature() const;
-    CBigNum CalculateValidSerial(ZerocoinParams* params);
     std::string ToString() const;
 
     ADD_SERIALIZE_METHODS;
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action)
     {
-
-        if (version == V3_SMALL_SOK){
-            READWRITE(version);
-            READWRITE(spendType);
-            READWRITE(pubkey);
-            READWRITE(vchSig);
-
-            READWRITE(denomination);
-            READWRITE(ptxHash);
-            READWRITE(accChecksum);
-            READWRITE(coinSerialNumber);
-            READWRITE(accCommitmentToCoinValue);
-
-            READWRITE(serialCommitmentToCoinValue);
-            READWRITE(accumulatorPoK);
-            READWRITE(smallSoK);
-            READWRITE(commitmentPoK);
-        }else {
-            READWRITE(denomination);
-            READWRITE(ptxHash);
-            READWRITE(accChecksum);
-            READWRITE(accCommitmentToCoinValue);
-            READWRITE(serialCommitmentToCoinValue);
-            READWRITE(coinSerialNumber);
-            READWRITE(accumulatorPoK);
-            READWRITE(serialNumberSoK);
-            READWRITE(commitmentPoK);
-
-            try {
-                READWRITE(version);
-                READWRITE(pubkey);
-                READWRITE(vchSig);
-                READWRITE(spendType);
-            } catch (...) {
-                version = 1;
-            }
-        }
+        READWRITE(version);
+        READWRITE(spendType);
+        READWRITE(pubkey);
+        READWRITE(vchSig);
+        READWRITE(denomination);
+        READWRITE(ptxHash);
+        READWRITE(accChecksum);
+        READWRITE(coinSerialNumber);
+        READWRITE(accCommitmentToCoinValue);
+        READWRITE(serialCommitmentToCoinValue);
+        READWRITE(accumulatorPoK);
+        READWRITE(smallSoK);
+        READWRITE(commitmentPoK);
     }
 
 private:
@@ -187,7 +153,6 @@ private:
     CBigNum serialCommitmentToCoinValue;
     CBigNum coinSerialNumber;
     AccumulatorProofOfKnowledge accumulatorPoK;
-    SerialNumberSignatureOfKnowledge serialNumberSoK;
     SerialNumberSoK_small smallSoK;
     CommitmentProofOfKnowledge commitmentPoK;
     uint8_t version;
@@ -201,23 +166,11 @@ private:
     uint256 hashSig;
 
     template <typename Stream>
-    void init(const ZerocoinParams* paramsV2, Stream& strm){
-        try{
-            strm >> version;
-            if (version == V3_SMALL_SOK){
-                SerialNumberSoK_small sok(paramsV2);
-                this->smallSoK = sok;
-            }else {
-                version = 0;
-            }
-            strm.Rewind(1);
-        }catch(...){
-            version = 0;
-        }
-        if (version < V3_SMALL_SOK) {
-            SerialNumberSignatureOfKnowledge sok(paramsV2);
-            this->serialNumberSoK = sok;
-        }
+    void init(const ZerocoinParams* params, Stream& strm)
+    {
+        strm >> version;
+        SerialNumberSoK_small sok(params);
+        this->smallSoK = sok;
     }
 };
 

@@ -189,8 +189,7 @@ bool CheckZerocoinSpendNoDB(const CTransaction tx, string& strError)
         dataTxIn.insert(dataTxIn.end(), txin.scriptSig.begin() + 4, txin.scriptSig.end());
         CDataStream serializedCoinSpend(dataTxIn, SER_NETWORK, PROTOCOL_VERSION);
 
-        libzerocoin::ZerocoinParams* paramsAccumulator = Params().Zerocoin_Params();
-        CoinSpend newSpend(Params().Zerocoin_Params(), paramsAccumulator, serializedCoinSpend);
+        CoinSpend newSpend(Params().Zerocoin_Params(), serializedCoinSpend);
 
         vSpends.push_back(newSpend);
 
@@ -298,16 +297,17 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     //Get the checksum of the accumulator we use for the spend and also add it to our checksum map
     auto hashChecksum = GetChecksum(accumulator.getValue());
     //AddAccumulatorChecksum(nChecksum, accumulator.getValue(), true);
-    CoinSpend coinSpend(Params().Zerocoin_Params(), Params().Zerocoin_Params(), privateCoin, accumulator, hashChecksum, witness, uint256(), SpendType::SPEND);
+    CoinSpend coinSpend(Params().Zerocoin_Params(), privateCoin, accumulator, hashChecksum, witness, uint256(), SpendType::SPEND);
     cout << coinSpend.ToString() << endl;
-    BOOST_CHECK_MESSAGE(coinSpend.Verify(accumulator), "Coinspend construction failed to create valid proof");
+    std::string strError;
+    BOOST_CHECK_MESSAGE(coinSpend.Verify(accumulator, strError, true), "Coinspend construction failed to create valid proof");
 
     CBigNum serial = coinSpend.getCoinSerialNumber();
     BOOST_CHECK_MESSAGE(serial, "Serial Number can't be 0");
 
     CoinDenomination denom = coinSpend.getDenomination();
     BOOST_CHECK_MESSAGE(denom == pubCoin.getDenomination(), "Spend denomination must match original pubCoin");
-    BOOST_CHECK_MESSAGE(coinSpend.Verify(accumulator), "CoinSpend object failed to validate");
+    BOOST_CHECK_MESSAGE(coinSpend.Verify(accumulator, strError, true), "CoinSpend object failed to validate");
 
     //serialize the spend
     CDataStream serializedCoinSpend2(SER_NETWORK, PROTOCOL_VERSION);
@@ -335,8 +335,8 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
 
     CDataStream serializedCoinSpend(dataTxIn, SER_NETWORK, PROTOCOL_VERSION);
     //old params for the V1 generated coin, new params for the accumulator. Emulates main-net transition.
-    CoinSpend spend1(Params().Zerocoin_Params(), Params().Zerocoin_Params(), serializedCoinSpend);
-    BOOST_CHECK_MESSAGE(spend1.Verify(accumulator), "Failed deserialized check of CoinSpend");
+    CoinSpend spend1(Params().Zerocoin_Params(), serializedCoinSpend);
+    BOOST_CHECK_MESSAGE(spend1.Verify(accumulator, strError, true), "Failed deserialized check of CoinSpend");
 
     CScript script;
     CTxOut txOut(1 * COIN, script);
@@ -348,7 +348,6 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     CTransaction txMintFrom;
     //BOOST_CHECK_MESSAGE(DecodeHexTx(txMintFrom, rawTx1), "Failed to deserialize hex transaction");
 
-    string strError = "";
     if (!CheckZerocoinSpendNoDB(txNew, strError)) {
         BOOST_CHECK_MESSAGE(false, "checkzerocoinspend failed");
     }
@@ -400,10 +399,10 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     auto hashChecksum_v2 = GetChecksum(accumulator_v2.getValue());
     //AddAccumulatorChecksum(nChecksum_v2, accumulator_v2.getValue(), true);
     uint256 ptxHash = CBigNum::RandKBitBigum(256).getuint256();
-    CoinSpend coinSpend_v2(Params().Zerocoin_Params(), Params().Zerocoin_Params(), privateCoin_v2, accumulator_v2, hashChecksum_v2, witness_v2, ptxHash, SpendType::SPEND);
+    CoinSpend coinSpend_v2(Params().Zerocoin_Params(), privateCoin_v2, accumulator_v2, hashChecksum_v2, witness_v2, ptxHash, SpendType::SPEND);
 
     BOOST_CHECK_MESSAGE(coinSpend_v2.HasValidSerial(Params().Zerocoin_Params()), "coinspend_v2 does not have a valid serial");
-    BOOST_CHECK_MESSAGE(coinSpend_v2.Verify(accumulator_v2), "coinspend_v2 failed to verify");
+    BOOST_CHECK_MESSAGE(coinSpend_v2.Verify(accumulator_v2, strError, true), "coinspend_v2 failed to verify");
     BOOST_CHECK_MESSAGE(coinSpend_v2.HasValidSignature(), "coinspend_v2 does not have valid signature");
     BOOST_CHECK_MESSAGE(coinSpend_v2.getVersion() == 2, "coinspend_v2 version is wrong");
     BOOST_CHECK_MESSAGE(coinSpend_v2.getPubKey() == privateCoin_v2.getPubKey(), "pub keys do not match");

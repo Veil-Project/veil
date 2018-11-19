@@ -122,10 +122,12 @@ bool CheckProofOfStake(const CTransactionRef txRef, const uint32_t& nBits, const
 
     const CTxIn& txin = txRef->vin[0];
 
-    libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txin);
-    stake = std::unique_ptr<CStakeInput>(new ZerocoinStake(spend));
-    if (spend.getSpendType() != libzerocoin::SpendType::STAKE)
-        return error("%s: spend is using the wrong SpendType (%d)", __func__, (int)spend.getSpendType());
+    auto spend = TxInToZerocoinSpend(txin);
+    if (!spend)
+        return false;
+    stake = std::unique_ptr<CStakeInput>(new ZerocoinStake(*spend.get()));
+    if (spend->getSpendType() != libzerocoin::SpendType::STAKE)
+        return error("%s: spend is using the wrong SpendType (%d)", __func__, (int)spend->getSpendType());
 
     CBlockIndex* pindex = stake->GetIndexFrom();
     if (!pindex)

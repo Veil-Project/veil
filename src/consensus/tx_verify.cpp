@@ -198,26 +198,28 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
         if (!txin.scriptSig.IsZerocoinSpend())
             continue;
 
-        libzerocoin::CoinSpend newSpend = TxInToZerocoinSpend(txin);
+        auto newSpend = TxInToZerocoinSpend(txin);
+        if (!newSpend)
+            return state.DoS(100, error("%s: failed to convert TxIn to zerocoinspend", __func__));
 
         //check that the denomination is valid
-        if (newSpend.getDenomination() == libzerocoin::ZQ_ERROR)
+        if (newSpend->getDenomination() == libzerocoin::ZQ_ERROR)
             return state.DoS(100, error("Zerocoinspend does not have the correct denomination"));
 
         //check that denomination is what it claims to be in nSequence
-        if (newSpend.getDenomination()*COIN != txin.GetZerocoinSpent())
+        if (newSpend->getDenomination()*COIN != txin.GetZerocoinSpent())
             return state.DoS(100, error("Zerocoinspend nSequence denomination does not match CoinSpend"));
 
         //make sure the txout has not changed
-        if (newSpend.getTxOutHash() != hashTxOut)
+        if (newSpend->getTxOutHash() != hashTxOut)
             return state.DoS(100, error("Zerocoinspend does not use the same txout that was used in the SoK"));
 
-        if (setSerials.count(newSpend.getCoinSerialNumber()))
+        if (setSerials.count(newSpend->getCoinSerialNumber()))
             return state.DoS(100, error("Zerocoinspend serial is used twice in the same tx"));
-        setSerials.emplace(newSpend.getCoinSerialNumber());
+        setSerials.emplace(newSpend->getCoinSerialNumber());
 
         //make sure that there is no over redemption of coins
-        nTotalRedeemed += libzerocoin::ZerocoinDenominationToAmount(newSpend.getDenomination());
+        nTotalRedeemed += libzerocoin::ZerocoinDenominationToAmount(newSpend->getDenomination());
         fValidated = true;
     }
 

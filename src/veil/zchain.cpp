@@ -14,12 +14,6 @@
 // For Script size (BIGNUM/Uint256 size)
 #define BIGNUM_SIZE   4
 
-// todo: might have to add a check for this
-bool ValidOutPoint(const COutPoint out, int nHeight)
-{
-    return true;
-}
-
 bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomination denom, vector<CBigNum>& vValues)
 {
     CBigNum bnMod;
@@ -275,8 +269,9 @@ std::string ReindexZerocoinDB()
                             if (!in.scriptSig.IsZerocoinSpend())
                                 continue;
 
-                            libzerocoin::CoinSpend spend = TxInToZerocoinSpend(in);
-                            mapSpends.emplace(spend, txid);
+                            auto spend = TxInToZerocoinSpend(in);
+                            if (spend)
+                                mapSpends.emplace(*spend, txid);
                         }
                     }
 
@@ -324,19 +319,21 @@ bool RemoveSerialFromDB(const CBigNum& bnSerial)
     return pzerocoinDB->EraseCoinSpend(bnSerial);
 }
 
-libzerocoin::CoinSpend TxInToZerocoinSpend(const CTxIn& txin)
+std::shared_ptr<libzerocoin::CoinSpend> TxInToZerocoinSpend(const CTxIn& txin)
 {
-    auto zerocoinParams = Params().Zerocoin_Params();
 
     // extract the CoinSpend from the txin
-    std::vector<char, zero_after_free_allocator<char> > dataTxIn;
-    dataTxIn.insert(dataTxIn.end(), txin.scriptSig.begin() + BIGNUM_SIZE, txin.scriptSig.end());
-    CDataStream serializedCoinSpend(dataTxIn, SER_NETWORK, PROTOCOL_VERSION);
+    try {
+        std::vector<char, zero_after_free_allocator<char> > dataTxIn;
+        dataTxIn.insert(dataTxIn.end(), txin.scriptSig.begin() + BIGNUM_SIZE, txin.scriptSig.end());
+        CDataStream serializedCoinSpend(dataTxIn, SER_NETWORK, PROTOCOL_VERSION);
+        libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), serializedCoinSpend);
+        return std::make_shared<libzerocoin::CoinSpend>(spend);
+    } catch (...) {
+        error("%s: Failed to convert CTxIn to ZerocoinSpend", __func__);
+    }
 
-    libzerocoin::ZerocoinParams* paramsAccumulator = zerocoinParams;
-    libzerocoin::CoinSpend spend(zerocoinParams, paramsAccumulator, serializedCoinSpend);
-
-    return spend;
+    return nullptr;
 }
 
 bool OutputToPublicCoin(const CTxOutBase* out, libzerocoin::PublicCoin& coin)
@@ -353,9 +350,12 @@ bool OutputToPublicCoin(const CTxOutBase* out, libzerocoin::PublicCoin& coin)
     libzerocoin::CoinDenomination denomination = libzerocoin::AmountToZerocoinDenomination(out->GetValue());
     if (denomination == libzerocoin::ZQ_ERROR)
         return error("TxOutToPublicCoin : txout.nValue is not correct");
-
-    libzerocoin::PublicCoin checkPubCoin(Params().Zerocoin_Params(), publicZerocoin, denomination);
-    coin = checkPubCoin;
+    try {
+        libzerocoin::PublicCoin checkPubCoin(Params().Zerocoin_Params(), publicZerocoin, denomination);
+        coin = checkPubCoin;
+    } catch (std::runtime_error& e) {
+        return error("%s: failed to create pubcoin: %s", __func__, e.what());
+    }
 
     return true;
 }
@@ -372,8 +372,12 @@ bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin)
     if (denomination == libzerocoin::ZQ_ERROR)
         return error("TxOutToPublicCoin : txout.nValue is not correct");
 
-    libzerocoin::PublicCoin checkPubCoin(Params().Zerocoin_Params(), publicZerocoin, denomination);
-    pubCoin = checkPubCoin;
+    try {
+        libzerocoin::PublicCoin checkPubCoin(Params().Zerocoin_Params(), publicZerocoin, denomination);
+        pubCoin = checkPubCoin;
+    } catch (std::runtime_error& e) {
+        return error("%s: failed to create pubcoin", __func__, e.what());
+    }
 
     return true;
 }

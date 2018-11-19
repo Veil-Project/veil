@@ -64,11 +64,12 @@ bool AccumulatorMap::Accumulate(const PublicCoin& pubCoin, bool fSkipValidation)
     if (denom == CoinDenomination::ZQ_ERROR)
         return false;
 
-    if (fSkipValidation)
+    if (fSkipValidation) {
         mapAccumulators.at(denom)->increment(pubCoin.getValue());
-    else
-        mapAccumulators.at(denom)->accumulate(pubCoin);
-    return true;
+        return true;
+    }
+
+    return mapAccumulators.at(denom)->accumulate(pubCoin);
 }
 
 //Get the value of a specific accumulator

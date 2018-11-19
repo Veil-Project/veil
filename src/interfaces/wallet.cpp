@@ -91,8 +91,9 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
     result.is_my_zerocoin_mint = pzTracker->HasMintTx(wtx.GetHash());
     result.is_my_zerocoin_spend = false;
     if (wtx.IsZerocoinSpend()) {
-        libzerocoin::CoinSpend zcSpend = TxInToZerocoinSpend(wtx.tx->vin[0]);
-        result.is_my_zerocoin_spend = wallet.IsMyZerocoinSpend(zcSpend.getCoinSerialNumber());
+        auto spend = TxInToZerocoinSpend(wtx.tx->vin[0]);
+        if (spend)
+            result.is_my_zerocoin_spend = wallet.IsMyZerocoinSpend(spend->getCoinSerialNumber());
     }
 
     return result;

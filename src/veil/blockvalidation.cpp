@@ -21,7 +21,9 @@ bool ValidateBlockSignature(const CBlock& block)
 
     //Get the zerocoin that was staked
     auto spend = TxInToZerocoinSpend(block.vtx[1]->vin[0]);
-    auto pubkey = spend.getPubKey();
+    if (!spend)
+        return error("%s: failed to get spend from txin", __func__);
+    auto pubkey = spend->getPubKey();
 
     if (!pubkey.IsValid())
         return error("%s: Public Key from zerocoin stake is not valid", __func__);
