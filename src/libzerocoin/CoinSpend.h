@@ -48,10 +48,6 @@ public:
         accumulatorPoK(&params->accumulatorParams),
         commitmentPoK(&params->serialNumberSoKCommitmentGroup, &params->accumulatorParams.accumulatorPoKCommitmentGroup)
     {
-        Stream strmCopy = strm;
-        // First v2, if fail we go to v1
-        init(params, strm);
-
         strm >> *this;
     }
 
@@ -164,14 +160,6 @@ private:
 
     // Cached hashSig
     uint256 hashSig;
-
-    template <typename Stream>
-    void init(const ZerocoinParams* params, Stream& strm)
-    {
-        strm >> version;
-        SerialNumberSoK_small sok(params);
-        this->smallSoK = sok;
-    }
 };
 
 } /* namespace libzerocoin */
