@@ -31,7 +31,7 @@ public:
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
-    std::map<libzerocoin::CoinDenomination , uint256> mapAccumulatorHashes;
+    uint256 hashAccumulators;
 
     CBlockHeader()
     {
@@ -49,7 +49,7 @@ public:
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
-        READWRITE(mapAccumulatorHashes);
+        READWRITE(hashAccumulators);
     }
 
     void SetNull()
@@ -61,14 +61,7 @@ public:
         nTime = 0;
         nBits = 0;
         nNonce = 0;
-
-        mapAccumulatorHashes.clear();
-
-        for(unsigned int i = 0; i < libzerocoin::zerocoinDenomList.size(); i++) {
-            uint256 zero;
-            mapAccumulatorHashes[libzerocoin::zerocoinDenomList[i]] = zero;
-        }
-
+        hashAccumulators.SetNull();
     }
 
     bool IsNull() const
@@ -94,7 +87,10 @@ public:
     // network and disk
     std::vector<CTransactionRef> vtx;
 
-    // ppcoin: block signature - signed by one of the coin base txout[N]'s owner
+    // zerocoin
+    std::map<libzerocoin::CoinDenomination , uint256> mapAccumulatorHashes;
+
+    // Proof of Stake: block signature - signed by one of the coin base txout[N]'s owner
     std::vector<unsigned char> vchBlockSig;
 
     // memory only
@@ -117,6 +113,7 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITEAS(CBlockHeader, *this);
         READWRITE(vtx);
+        READWRITE(mapAccumulatorHashes);
         if (IsProofOfStake())
             READWRITE(vchBlockSig);
     }
@@ -127,6 +124,10 @@ public:
         vtx.clear();
         vchBlockSig.clear();
         fChecked = false;
+        for (unsigned int i = 0; i < libzerocoin::zerocoinDenomList.size(); i++) {
+            uint256 zero;
+            mapAccumulatorHashes[libzerocoin::zerocoinDenomList[i]] = zero;
+        }
     }
 
     CBlockHeader GetBlockHeader() const
@@ -139,11 +140,11 @@ public:
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
-        block.mapAccumulatorHashes = mapAccumulatorHashes;
+        block.hashAccumulators = SerializeHash(mapAccumulatorHashes);
         return block;
     }
 
-    // ppcoin: two types of block: proof-of-work or proof-of-stake
+    // two types of block: proof-of-work or proof-of-stake
     bool IsProofOfStake() const
     {
         return (vtx.size() > 1 && vtx[1]->IsCoinStake());

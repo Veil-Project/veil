@@ -3705,6 +3705,8 @@ void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPr
 bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::map<libzerocoin::CoinSpend, uint256>& mapSpends,
     const std::map<libzerocoin::PublicCoin, uint256>& mapMints, bool fJustCheck)
 {
+    pindex->mapAccumulatorHashes = block.mapAccumulatorHashes;
+
     //TODO: VEIL-89
     auto pwalletMain = GetMainWallet();
     // Initialize zerocoin supply to the supply from previous block

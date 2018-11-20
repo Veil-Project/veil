@@ -303,7 +303,6 @@ public:
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
-        mapAccumulatorHashes = block.mapAccumulatorHashes;
         nMint          = 0;
     }
 
@@ -336,7 +335,7 @@ public:
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
-        block.mapAccumulatorHashes = mapAccumulatorHashes;
+        block.hashAccumulators = SerializeHash(mapAccumulatorHashes);
         return block;
     }
 
@@ -535,7 +534,7 @@ public:
         block.nTime           = nTime;
         block.nBits           = nBits;
         block.nNonce          = nNonce;
-        block.mapAccumulatorHashes = mapAccumulatorHashes;
+        block.hashAccumulators = SerializeHash(mapAccumulatorHashes);
         return block.GetHash();
     }
 

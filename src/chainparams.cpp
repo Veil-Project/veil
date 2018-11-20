@@ -215,11 +215,11 @@ public:
         int nTimeStart = 1536946053;
         arith_uint256 nBits;
         nBits.SetCompact(0x1e0ffff0);
-        uint32_t nNonce = 2149588;
+        uint32_t nNonce = 2229376;
         genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(genesis.hashWitnessMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
-        assert(consensus.hashGenesisBlock == uint256S("0xb6f16fd71b637c17ef241cb53dba5c280bb00c957fdf4721b0527711f707fede"));
+        assert(consensus.hashGenesisBlock == uint256S("0xa50217ba1cf394b54996a7a833fc902d4941cd4fde9a0fe6e9f5780e031f61b5"));
         assert(genesis.hashMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
 
         vSeeds.emplace_back("veilseed.presstab.pw");
@@ -328,10 +328,10 @@ public:
         nPruneAfterHeight = 1000;
 
         int nTimeStart = 1536946053;
-        uint32_t nNonce = 432016465;
+        uint32_t nNonce = 433311825;
         genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0xfd46082febb9f21bf14af11ee1225c0aa245af94da0a80e2c9483bdbe1b17215"));
+        assert(consensus.hashGenesisBlock == uint256S("0x07f787c7b03f894291328c5e0a354cee7816f02e4ad57e021185534129b526a1"));
         assert(genesis.hashMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
         assert(genesis.hashWitnessMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
 
