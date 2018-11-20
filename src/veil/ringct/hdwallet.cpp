@@ -1806,34 +1806,33 @@ bool CHDWallet::IsTrusted(const uint256 &txhash, const uint256 &blockhash, int n
     //    return false;
 
     // Don't trust unconfirmed transactions from us unless they are in the mempool.
-//    CTransactionRef ptx = mempool.get(txhash);
-//    if (!ptx)
-//        return false;
-//
-//    // Trusted if all inputs are from us and are in the mempool:
-//    for (const auto &txin : ptx->vin) {
-//        // Transactions not sent by us: not trusted
-//        MapRecords_t::const_iterator rit = mapRecords.find(txin.prevout.hash);
-//        if (rit != mapRecords.end()) {
-//            const COutputRecord *oR = rit->second.GetOutput(txin.prevout.n);
-//
-//            if (!oR || !(oR->nFlags & ORF_OWNED))
-//                return false;
-//
-//            continue;
-//        }
-//
-//        const CWalletTx *parent = GetWalletTx(txin.prevout.hash);
-//        if (parent == nullptr)
-//            return false;
-//
-//        const CTxOutBase *parentOut = parent->tx->vpout[txin.prevout.n].get();
-//        if (IsMine(parentOut) != ISMINE_SPENDABLE)
-//            return false;
-//    }
-//
-//    return true;
-    return false;
+    CTransactionRef ptx = mempool.get(txhash);
+    if (!ptx)
+        return false;
+
+    // Trusted if all inputs are from us and are in the mempool:
+    for (const auto &txin : ptx->vin) {
+        // Transactions not sent by us: not trusted
+        MapRecords_t::const_iterator rit = mapRecords.find(txin.prevout.hash);
+        if (rit != mapRecords.end()) {
+            const COutputRecord *oR = rit->second.GetOutput(txin.prevout.n);
+
+            if (!oR || !(oR->nFlags & ORF_OWNED))
+                return false;
+
+            continue;
+        }
+
+        const CWalletTx *parent = GetWalletTx(txin.prevout.hash);
+        if (parent == nullptr)
+            return false;
+
+        const CTxOutBase *parentOut = parent->tx->vpout[txin.prevout.n].get();
+        if (IsMine(parentOut) != ISMINE_SPENDABLE)
+            return false;
+    }
+
+    return true;
 }
 
 
@@ -2062,9 +2061,7 @@ bool CHDWallet::GetBalances(CHDWalletBalances &bal)
     for (const auto &item : mapWallet) {
 
         const CWalletTx &wtx = item.second;
-        bal.nVeilImmature += wtx.GetImmatureCreditOfType(OUTPUT_STANDARD);
-        bal.nCTImmature += wtx.GetImmatureCreditOfType(OUTPUT_CT);
-        bal.nRingCTImmature += wtx.GetImmatureCreditOfType(OUTPUT_RINGCT);
+        bal.nVeilImmature += wtx.GetImmatureCredit();
 
         if (wtx.IsTrusted()) {
             bal.nVeil += wtx.GetAvailableCredit();

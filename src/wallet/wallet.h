@@ -513,7 +513,6 @@ public:
     CAmount GetDebit(const isminefilter& filter) const;
     CAmount GetCredit(const isminefilter& filter) const;
     CAmount GetImmatureCredit(bool fUseCache=true) const;
-    CAmount GetImmatureCreditOfType(const OutputTypes type, bool fUseCache=true) const;
     CAmount GetAvailableCredit(bool fUseCache=true, const isminefilter& filter=ISMINE_SPENDABLE) const;
     CAmount GetImmatureWatchOnlyCredit(const bool fUseCache=true) const;
     CAmount GetChange() const;
@@ -1124,7 +1123,6 @@ public:
     /** Returns whether all of the inputs match the filter */
     virtual bool IsAllFromMe(const CTransaction& tx, const isminefilter& filter) const;
     virtual CAmount GetCredit(const CTransaction& tx, const isminefilter& filter) const;
-    CAmount GetCreditOfType(const CTransaction& tx, const isminefilter& filter, const OutputTypes type) const;
     CAmount GetChange(const CTransaction& tx) const;
     void ChainStateFlushed(const CBlockLocator& loc) override;
 

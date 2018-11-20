@@ -258,7 +258,7 @@ public:
         /* disable fallback fee on mainnet */
         m_fallback_fee_enabled = false;
 
-        nMaxNetworkReward = 1;
+        nMaxNetworkReward = 1 * COIN;
         strNetworkRewardAddress = "3Hkg83bUH68JFsyFaBiAaFbuZWNkyKbxBH";
         nMaxPoWBlocks = 5; // todo: update
         nConsecutivePoWHeight = 15000; // todo: update
@@ -380,6 +380,7 @@ public:
         m_fallback_fee_enabled = true;
 
         strNetworkRewardAddress = "2N9sWUmygPRy1c14eFWt8FzA8YF4JgA6j6a";
+        nMaxNetworkReward = 1 * COIN;
 
         /** Zerocoin */
         zerocoinModulus = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784"

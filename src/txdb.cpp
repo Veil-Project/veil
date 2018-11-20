@@ -282,6 +282,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->nNonce         = diskindex.nNonce;
                 pindexNew->nStatus        = diskindex.nStatus;
                 pindexNew->nTx            = diskindex.nTx;
+                pindexNew->nNetworkRewardReserve = diskindex.nNetworkRewardReserve;
 
                 //Proof Of Stake
                 pindexNew->nMint = diskindex.nMint;

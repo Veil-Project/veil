@@ -45,8 +45,8 @@
          <rect>
           <x>0</x>
           <y>0</y>
-          <width>388</width>
-          <height>1137</height>
+          <width>371</width>
+          <height>1123</height>
          </rect>
         </property>
         <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -70,7 +70,7 @@
                  </font>
                 </property>
                 <property name="text">
-                 <string>Total Spendable Balances</string>
+                 <string>Total Balances</string>
                 </property>
                </widget>
               </item>
@@ -296,7 +296,7 @@
                    </font>
                   </property>
                   <property name="text">
-                   <string>Standard Veil Balances</string>
+                   <string>Base Coin Balances</string>
                   </property>
                  </widget>
                 </item>

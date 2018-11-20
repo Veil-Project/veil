@@ -147,6 +147,13 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, QWidget *parent) 
     connect(ui->labelRCTWalletStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
     connect(ui->labelTotalWalletStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
     connect(ui->labelTransactionsStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
+
+    // Currently, getting balances the way Particl does means only CoinBase transactions show as immature, so CT and
+    // RingCT will never have any immature balance, so we hide them.
+    ui->labelCTImmature->setVisible(false);
+    ui->labelCTImmatureText->setVisible(false);
+    ui->labelRCTImmature->setVisible(false);
+    ui->labelRCTImmatureText->setVisible(false);
 }
 
 void OverviewPage::handleTransactionClicked(const QModelIndex &index)
