@@ -116,7 +116,7 @@ test/cache/*
 
 #cmake
 cmake-build-debug/*
-CMakeLists.txt
+#CMakeLists.txt
 
 !src/leveldb*/Makefile
 
@@ -127,5 +127,5 @@ contrib/devtools/split-debug.sh
 
 # files from editor
 .idea
-CMakeLists.txt
+#CMakeLists.txt
 cmake-build-debug
