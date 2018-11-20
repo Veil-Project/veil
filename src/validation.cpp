@@ -2410,6 +2410,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     if (!AddZerocoinsToIndex(pindex, block, mapSpends, mapMints, fJustCheck))
         return state.DoS(100, error("%s: Failed to calculate new zerocoin supply for block=%s height=%d", __func__,
                                     block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID);
+    pindex->mapAccumulatorHashes = block.mapAccumulatorHashes;
 
     // track money supply and mint amount info
     CAmount nMoneySupplyPrev = pindex->pprev ? pindex->pprev->nMoneySupply : 0;
@@ -3705,8 +3706,6 @@ void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPr
 bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::map<libzerocoin::CoinSpend, uint256>& mapSpends,
     const std::map<libzerocoin::PublicCoin, uint256>& mapMints, bool fJustCheck)
 {
-    pindex->mapAccumulatorHashes = block.mapAccumulatorHashes;
-
     //TODO: VEIL-89
     auto pwalletMain = GetMainWallet();
     // Initialize zerocoin supply to the supply from previous block
