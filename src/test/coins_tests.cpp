@@ -10,8 +10,8 @@
 #include <test/test_veil.h>
 #include <validation.h>
 #include <consensus/validation.h>
-#include <veil/stealth.h>
-#include <veil/extkey.h>
+#include <veil/ringct/stealth.h>
+#include <veil/ringct/extkey.h>
 
 #include <vector>
 #include <map>

@@ -14,10 +14,10 @@
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <wallet/deterministicmint.h>
-#include <veil/zwallet.h>
-#include <accumulators.h>
+#include <veil/zerocoin/zwallet.h>
+#include <veil/zerocoin/accumulators.h>
 #include "wallet/wallet.h"
-#include "veil/zchain.h"
+#include "veil/zerocoin/zchain.h"
 #include "consensus/tx_verify.h"
 #include "validation.h"
 
@@ -468,14 +468,6 @@ BOOST_AUTO_TEST_CASE(setup_exceptions_test)
         BOOST_CHECK_MESSAGE(true, "Caught exception checking for initalized Params");
     }
 
-}
-
-BOOST_AUTO_TEST_CASE(test_checkpoints)
-{
-    BOOST_CHECK_MESSAGE(AccumulatorCheckpoints::LoadCheckpoints("main"), "failed to load checkpoints");
-    BOOST_CHECK_MESSAGE(AccumulatorCheckpoints::mapCheckpoints.at(1050020)
-                                .at(libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND)
-                                .GetHex() == "fad7cf992b67792695619224fbbe311c6e60bf80d5bc1680fd9e32b5b3f00f373c9305c72c82bfaf1ce56adb617dc71bb8ddaf61326858ae4b01c3acf443bc7d22d4d2c77704b44fbe4f4fd260f13e0e12e82c531c390e72770e1d444e0877844d35a76c1e45072ddf02e101cf9c0a05a125f19ac5205ee1216732f4040cc3e8a68528685f2f39325efb2b7ba4d681fe13aaabb80ef07d8de8ef883a07e0a4f9771e8c370924fe4959de3c2a6e6e7ad74b12dd7e666765d7d660febe4d4cab3f49cb33cb51e44f756eef609184d8eeeb1c4dfe13b123251166c877d8e992f60cefd568644918c3617aec4d5564a9fe008540add903b9739973838d667721f8d", "does not match");
 }
 
 BOOST_AUTO_TEST_CASE(deterministic_tests)

@@ -5,8 +5,8 @@
 
 #include <validation.h>
 
-#include <accumulatormap.h>
-#include <anon.h>
+#include <veil/zerocoin/accumulatormap.h>
+#include <veil/ringct/anon.h>
 #include <arith_uint256.h>
 #include <chain.h>
 #include <chainparams.h>
@@ -46,10 +46,10 @@
 #include <validationinterface.h>
 #include <warnings.h>
 
-#include <veil/blockvalidation.h>
+#include <veil/proofofstake/blockvalidation.h>
 #include <veil/budget.h>
-#include <veil/zchain.h>
-#include <kernel.h>
+#include <veil/zerocoin/zchain.h>
+#include <veil/proofofstake/kernel.h>
 
 #include <wallet/wallet.h>
 
@@ -58,7 +58,7 @@
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/thread.hpp>
-#include "accumulators.h"
+#include "veil/zerocoin/accumulators.h"
 
 #if defined(NDEBUG)
 # error "Veil cannot be compiled without assertions."

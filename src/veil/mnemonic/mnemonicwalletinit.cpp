@@ -1,11 +1,11 @@
-#include <veil/mnemonicwalletinit.h>
+#include <veil/mnemonic/mnemonicwalletinit.h>
 
 #include <init.h>
 #include <ui_interface.h>
 #include <util.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
-#include <veil/hdwallet.h>
+#include <veil/ringct/hdwallet.h>
 
 const WalletInitInterface& g_wallet_init_interface = MnemonicWalletInit();
 

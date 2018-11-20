@@ -1,7 +1,7 @@
 #ifndef VEIL_MNEMONICDIALOG_H
 #define VEIL_MNEMONICDIALOG_H
 
-#include <veil/walletinitflags.h>
+#include <veil/mnemonic/walletinitflags.h>
 
 #include <QDialog>
 #include <QThread>

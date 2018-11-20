@@ -19,8 +19,8 @@
 #include <stdint.h>
 
 #include <boost/test/unit_test.hpp>
-#include <veil/stealth.h>
-#include <veil/extkey.h>
+#include <veil/ringct/stealth.h>
+#include <veil/ringct/extkey.h>
 
 // Tests these internal-to-net_processing.cpp methods:
 extern bool AddOrphanTx(const CTransactionRef& tx, NodeId peer);

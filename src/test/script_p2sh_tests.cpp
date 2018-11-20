@@ -13,8 +13,8 @@
 #include <script/sign.h>
 #include <script/ismine.h>
 #include <test/test_veil.h>
-#include <veil/stealth.h>
-#include <veil/extkey.h>
+#include <veil/ringct/stealth.h>
+#include <veil/ringct/extkey.h>
 
 #include <vector>
 

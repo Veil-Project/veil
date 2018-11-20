@@ -16,7 +16,7 @@
 #include <veil/budget.h>
 #include <script/standard.h>
 #include <key_io.h>
-#include <accumulators.h>
+#include <veil/zerocoin/accumulators.h>
 
 
 BOOST_FIXTURE_TEST_SUITE(proofofstake_tests, BasicTestingSetup)

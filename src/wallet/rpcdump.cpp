@@ -16,7 +16,7 @@
 #include <core_io.h>
 
 #include <wallet/rpcwallet.h>
-#include <veil/rpchdwallet.h>
+#include <veil/ringct/rpchdwallet.h>
 
 #include <fstream>
 #include <stdint.h>

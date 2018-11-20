@@ -2,13 +2,13 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "accumulators.h"
+#include "veil/zerocoin/accumulators.h"
 #include "chain.h"
 #include "chainparams.h"
 #include "wallet/deterministicmint.h"
 #include "validation.h"
 #include "stakeinput.h"
-#include "kernel.h"
+#include "veil/proofofstake/kernel.h"
 #include "wallet/wallet.h"
 
 typedef std::vector<unsigned char> valtype;

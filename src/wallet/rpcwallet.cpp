@@ -34,7 +34,7 @@
 #include <wallet/deterministicmint.h>
 #include <veil/dandelioninventory.h>
 
-#include <veil/hdwallet.h>
+#include <veil/ringct/hdwallet.h>
 
 #include <stdint.h>
 

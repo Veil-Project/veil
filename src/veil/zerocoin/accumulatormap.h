@@ -7,7 +7,6 @@
 
 #include "libzerocoin/Accumulator.h"
 #include "libzerocoin/Coin.h"
-#include "accumulatorcheckpoints.h"
 #include "arith_uint256.h"
 
 //A map with an accumulator for each denomination
@@ -19,7 +18,6 @@ private:
 public:
     explicit AccumulatorMap(libzerocoin::ZerocoinParams* params);
     bool Load(const std::map<libzerocoin::CoinDenomination, uint256>& mapCheckpoints);
-    void Load(const AccumulatorCheckpoints::Checkpoint& checkpoint);
     bool Accumulate(const libzerocoin::PublicCoin& pubCoin, bool fSkipValidation = false);
     CBigNum GetValue(libzerocoin::CoinDenomination denom);
     std::map<libzerocoin::CoinDenomination, uint256> GetCheckpoints();

@@ -1,4 +1,4 @@
-#include <veil/keyutil.h>
+#include <veil/ringct/keyutil.h>
 
 #include <string.h>
 #include <crypto/sha256.h>

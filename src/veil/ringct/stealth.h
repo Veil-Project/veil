@@ -10,7 +10,7 @@
 #include <serialize.h>
 #include <uint256.h>
 
-#include <veil/types.h>
+#include <veil/ringct/types.h>
 
 class CScript;
 

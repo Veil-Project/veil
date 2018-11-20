@@ -10,15 +10,14 @@
 #include <key.h>
 #include <pubkey.h>
 #include <script/standard.h>
-
-#include <veil/stealth.h>
-#include <veil/extkey.h>
 #include <script/script.h>
 #include <support/allocators/zeroafterfree.h>
 #include <bech32.h>
 #include <base58.h>
 
-#include <veil/keyutil.h>
+#include <veil/ringct/extkey.h>
+#include <veil/ringct/keyutil.h>
+#include <veil/ringct/stealth.h>
 
 #include <string>
 

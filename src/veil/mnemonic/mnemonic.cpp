@@ -1,5 +1,5 @@
 
-#include <veil/mnemonic.h>
+#include <veil/mnemonic/mnemonic.h>
 #include <crypto/external/pkcs5_pbkdf2.h>
 #include <crypto/external/hmac_sha256.h>
 

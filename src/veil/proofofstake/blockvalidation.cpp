@@ -7,7 +7,7 @@
 #include "primitives/block.h"
 #include "primitives/transaction.h"
 #include "util.h"
-#include "zchain.h"
+#include "veil/zerocoin/zchain.h"
 
 namespace veil {
 

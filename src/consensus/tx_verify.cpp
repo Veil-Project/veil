@@ -17,11 +17,11 @@
 #include <pubkey.h>
 #include <script/standard.h>
 #include <key_io.h>
-#include <blind.h>
+#include <veil/ringct/blind.h>
 #include <validation.h>
 #include <tinyformat.h>
 #include <libzerocoin/CoinSpend.h>
-#include <veil/zchain.h>
+#include <veil/zerocoin/zchain.h>
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {

@@ -11,8 +11,8 @@
 #include <rpc/util.h>
 #include <utilmoneystr.h>
 #include <validation.h>
-#include <veil/zwallet.h>
-#include <veil/zchain.h>
+#include <veil/zerocoin/zwallet.h>
+#include <veil/zerocoin/zchain.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
 

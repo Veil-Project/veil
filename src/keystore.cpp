@@ -4,8 +4,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <keystore.h>
-#include <veil/stealth.h>
-#include <veil/extkey.h>
+#include <veil/ringct/stealth.h>
+#include <veil/ringct/extkey.h>
 
 #include <util.h>
 

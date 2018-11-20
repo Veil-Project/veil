@@ -6,12 +6,12 @@
 #define PARTICL_WALLET_HDWALLET_H
 
 #include <wallet/wallet.h>
-#include <veil/hdwalletdb.h>
-#include <veil/rpchdwallet.h>
-#include <veil/extkey.h>
+#include <veil/ringct/hdwalletdb.h>
+#include <veil/ringct/rpchdwallet.h>
+#include <veil/ringct/extkey.h>
 
 #include <key_io.h>
-#include <veil/stealth.h>
+#include <veil/ringct/stealth.h>
 
 typedef std::map<CKeyID, CStealthKeyMetadata> StealthKeyMetaMap;
 typedef std::map<CKeyID, CExtKeyAccount*> ExtKeyAccountMap;

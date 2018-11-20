@@ -16,8 +16,8 @@
 #include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
-#include <veil/hdwallet.h>
-#include <veil/zwallet.h>
+#include <veil/ringct/hdwallet.h>
+#include <veil/zerocoin/zwallet.h>
 
 void WalletInit::AddWalletOptions() const
 {

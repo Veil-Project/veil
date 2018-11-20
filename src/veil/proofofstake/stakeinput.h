@@ -6,7 +6,7 @@
 #ifndef PIVX_STAKEINPUT_H
 #define PIVX_STAKEINPUT_H
 
-#include "accumulatormap.h"
+#include "veil/zerocoin/accumulatormap.h"
 #include "chain.h"
 #include "streams.h"
 

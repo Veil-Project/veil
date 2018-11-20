@@ -17,9 +17,9 @@
 #include <util.h>
 #include <utilmoneystr.h>
 #include <utiltime.h>
-#include <anon.h>
+#include <veil/ringct/anon.h>
 #include <random.h>
-#include <veil/zchain.h>
+#include <veil/zerocoin/zchain.h>
 
 CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee,
                                  int64_t _nTime, unsigned int _entryHeight,

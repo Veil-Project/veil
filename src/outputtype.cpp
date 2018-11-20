@@ -9,8 +9,8 @@
 #include <pubkey.h>
 #include <script/script.h>
 #include <script/standard.h>
-#include <veil/stealth.h>
-#include <veil/extkey.h>
+#include <veil/ringct/stealth.h>
+#include <veil/ringct/extkey.h>
 
 #include <assert.h>
 #include <string>

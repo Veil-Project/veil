@@ -28,13 +28,13 @@
 #include <wallet/wallet.h>
 
 #include <veil/budget.h>
-#include <veil/zchain.h>
+#include <veil/zerocoin/zchain.h>
 
 #include <algorithm>
 #include <queue>
 #include <utility>
 #include <boost/thread.hpp>
-#include "accumulators.h"
+#include "veil/zerocoin/accumulators.h"
 
 // Unconfirmed transactions in the memory pool often depend on other
 // transactions in the memory pool. When we select transactions from the

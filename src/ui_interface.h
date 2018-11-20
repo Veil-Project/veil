@@ -6,7 +6,7 @@
 #ifndef BITCOIN_UI_INTERFACE_H
 #define BITCOIN_UI_INTERFACE_H
 
-#include <veil/walletinitflags.h>
+#include <veil/mnemonic/walletinitflags.h>
 
 #include <memory>
 #include <stdint.h>

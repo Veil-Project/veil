@@ -16,8 +16,8 @@
 #include <core_io.h>
 #include <keystore.h>
 #include <policy/policy.h>
-#include <veil/stealth.h>
-#include <veil/extkey.h>
+#include <veil/ringct/stealth.h>
+#include <veil/ringct/extkey.h>
 
 #include <boost/test/unit_test.hpp>
 

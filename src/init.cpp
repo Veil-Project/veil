@@ -11,7 +11,7 @@
 
 #include <addrman.h>
 #include <amount.h>
-#include <blind.h>
+#include <veil/ringct/blind.h>
 #include <chain.h>
 #include <chainparams.h>
 #include <checkpoints.h>
@@ -50,15 +50,15 @@
 #include <walletinitinterface.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <veil/hdwallet.h>
-#include <anon.h>
+#include <veil/ringct/hdwallet.h>
+#include <veil/ringct/anon.h>
 
 #ifndef WIN32
 #include <signal.h>
 #endif
 
 #ifdef ENABLE_WALLET
-#include <veil/hdwallet.h>
+#include <veil/ringct/hdwallet.h>
 #endif
 
 #include <boost/algorithm/string/classification.hpp>

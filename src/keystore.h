@@ -8,8 +8,8 @@
 
 #include <key.h>
 #include <pubkey.h>
-#include <veil/extkey.h>
-#include <veil/stealth.h>
+#include <veil/ringct/extkey.h>
+#include <veil/ringct/stealth.h>
 #include <script/script.h>
 #include <script/sign.h>
 #include <script/standard.h>

@@ -15,7 +15,7 @@
 #include "timedata.h"
 #include "util.h"
 #include "stakeinput.h"
-#include "veil/zchain.h"
+#include "veil/zerocoin/zchain.h"
 #include "libzerocoin/bignum.h"
 
 using namespace std;

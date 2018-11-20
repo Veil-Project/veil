@@ -133,14 +133,14 @@ BITCOIN_CORE_H = \
   interfaces/handler.h \
   interfaces/node.h \
   interfaces/wallet.h \
-  kernel.h \
+  veil/proofofstake/kernel.h \
   key.h \
-  veil/stealth.h \
-  veil/mnemonic.h \
-  veil/types.h \
-  veil/keyutil.h \
-  veil/hdwalletdb.h \
-  veil/hdwallet.h \
+  veil/ringct/stealth.h \
+  veil/ringct/mnemonic.h \
+  veil/ringct/types.h \
+  veil/ringct/keyutil.h \
+  veil/ringct/hdwalletdb.h \
+  veil/ringct/hdwallet.h \
   key_io.h \
   keystore.h \
   dbwrapper.h \
@@ -204,10 +204,10 @@ BITCOIN_CORE_H = \
   validationinterface.h \
   versionbits.h \
   veil/arrayslice.h \
-  veil/blockvalidation.h \
+  veil/proofofstake/blockvalidation.h \
   veil/budget.h \
   veil/dandelioninventory.h \
-  veil/denomination_functions.h \
+  veil/zerocoin/denomination_functions.h \
   veil/dictionary.h \
   veil/invalid.h \
   veil/mintpool.h \
@@ -217,7 +217,7 @@ BITCOIN_CORE_H = \
   veil/zchain.h \
   veil/ztracker.h \
   veil/zwallet.h \
-  veil/extkey.h \
+  veil/ringct/extkey.h \
   veil/rpchdwallet.h \
   walletinitinterface.h \
   wallet/coincontrol.h \
@@ -289,7 +289,7 @@ libbitcoin_server_a_SOURCES = \
   ui_interface.cpp \
   validation.cpp \
   validationinterface.cpp \
-  veil/blockvalidation.cpp \
+  veil/proofofstake/blockvalidation.cpp \
   veil/budget.cpp \
   versionbits.cpp \
   $(BITCOIN_CORE_H)
@@ -311,12 +311,12 @@ libbitcoin_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_wallet_a_SOURCES = \
   interfaces/wallet.cpp \
-  kernel.cpp \
-  blind.cpp \
-  veil/stealth.cpp \
-  veil/dictionary.cpp \
-  veil/mnemonic.cpp \
-  veil/mnemonicwalletinit.cpp \
+  veil/proofofstake/kernel.cpp \
+  veil/ringct/blind.cpp \
+  veil/ringct/stealth.cpp \
+  veil/mnemonic/dictionary.cpp \
+  veil/mnemonic/mnemonic.cpp \
+  veil/mnemonic/mnemonicwalletinit.cpp \
   wallet/coincontrol.cpp \
   wallet/crypter.cpp \
   wallet/db.cpp \
@@ -332,15 +332,15 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/coinselection.cpp  \
   wallet/deterministicmint.cpp \
   primitives/zerocoin.cpp \
-  veil/denomination_functions.cpp \
-  veil/mintpool.cpp \
-  veil/zchain.cpp \
-  veil/ztracker.cpp \
-  veil/zwallet.cpp \
-  veil/hdwalletdb.cpp \
-  veil/hdwallet.cpp \
-  veil/rpchdwallet.cpp \
-  stakeinput.cpp \
+  veil/zerocoin/denomination_functions.cpp \
+  veil/zerocoin/mintpool.cpp \
+  veil/zerocoin/zchain.cpp \
+  veil/zerocoin/ztracker.cpp \
+  veil/zerocoin/zwallet.cpp \
+  veil/ringct/hdwalletdb.cpp \
+  veil/ringct/hdwallet.cpp \
+  veil/ringct/rpchdwallet.cpp \
+  veil/proofofstake/stakeinput.cpp \
   $(BITCOIN_CORE_H)
 
 # crypto primitives library
@@ -512,9 +512,8 @@ libbitcoin_consensus_a_SOURCES = \
 libbitcoin_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_common_a_SOURCES = \
-  accumulators.cpp \
-  accumulatorcheckpoints.cpp \
-  accumulatormap.cpp \
+  veil/zerocoin/accumulators.cpp \
+  veil/zerocoin/accumulatormap.cpp \
   base58.cpp \
   bech32.cpp \
   chainparams.cpp \
@@ -522,12 +521,12 @@ libbitcoin_common_a_SOURCES = \
   compressor.cpp \
   core_read.cpp \
   core_write.cpp \
-  anon.cpp \
-  blind.cpp \
+  veil/ringct/anon.cpp \
+  veil/ringct/blind.cpp \
   key.cpp \
-  veil/keyutil.cpp \
-  veil/stealth.cpp \
-  veil/extkey.cpp \
+  veil/ringct/keyutil.cpp \
+  veil/ringct/stealth.cpp \
+  veil/ringct/extkey.cpp \
   key_io.cpp \
   keystore.cpp \
   netaddress.cpp \

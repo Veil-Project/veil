@@ -2,7 +2,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
-#include <blind.h>
+#include <veil/ringct/blind.h>
 
 #include <assert.h>
 #include <secp256k1_rangeproof.h>

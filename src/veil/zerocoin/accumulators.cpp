@@ -9,8 +9,7 @@
 #include "validation.h"
 #include "init.h"
 #include "ui_interface.h"
-#include "accumulatorcheckpoints.h"
-#include "veil/zchain.h"
+#include "veil/zerocoin/zchain.h"
 #include "shutdown.h"
 
 using namespace libzerocoin;

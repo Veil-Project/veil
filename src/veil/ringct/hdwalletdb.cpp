@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <veil/hdwalletdb.h>
-#include <veil/hdwallet.h>
+#include <veil/ringct/hdwalletdb.h>
+#include <veil/ringct/hdwallet.h>
 
 #include <serialize.h>
 

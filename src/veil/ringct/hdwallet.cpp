@@ -2,7 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <veil/hdwallet.h>
+#include <veil/ringct/hdwallet.h>
 
 #include <crypto/hmac_sha256.h>
 #include <crypto/hmac_sha512.h>
@@ -20,8 +20,8 @@
 #include <policy/policy.h>
 #include <policy/rbf.h>
 #include <wallet/coincontrol.h>
-#include <blind.h>
-#include <anon.h>
+#include <veil/ringct/blind.h>
+#include <veil/ringct/anon.h>
 #include <txdb.h>
 #include <rpc/server.h>
 #include <rpc/util.h>

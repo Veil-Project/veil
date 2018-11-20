@@ -22,10 +22,10 @@
 #include <wallet/coinselection.h>
 #include <wallet/walletdb.h>
 #include <wallet/rpcwallet.h>
-#include <veil/ztracker.h>
-#include <veil/stealth.h>
-#include <veil/extkey.h>
-#include <stakeinput.h>
+#include <veil/zerocoin/ztracker.h>
+#include <veil/ringct/stealth.h>
+#include <veil/ringct/extkey.h>
+#include <veil/proofofstake/stakeinput.h>
 
 #include <algorithm>
 #include <atomic>

@@ -9,8 +9,8 @@
 #include <keystore.h>
 #include <script/script.h>
 #include <script/sign.h>
-#include <veil/stealth.h>
-#include <veil/extkey.h>
+#include <veil/ringct/stealth.h>
+#include <veil/ringct/extkey.h>
 
 
 typedef std::vector<unsigned char> valtype;

@@ -8,7 +8,7 @@
 #include <bech32.h>
 #include <script/script.h>
 #include <utilstrencodings.h>
-#include <veil/keyutil.h>
+#include <veil/ringct/keyutil.h>
 
 #include <boost/variant/apply_visitor.hpp>
 #include <boost/variant/static_visitor.hpp>

@@ -21,15 +21,15 @@
 #include <timedata.h>
 #include <util.h>
 #include <txdb.h>
-#include <blind.h>
-#include <anon.h>
+#include <veil/ringct/blind.h>
+#include <veil/ringct/anon.h>
 #include <utilmoneystr.h>
-#include <veil/hdwallet.h>
-#include <veil/hdwalletdb.h>
+#include <veil/ringct/hdwallet.h>
+#include <veil/ringct/hdwalletdb.h>
 #include <wallet/coincontrol.h>
 #include <wallet/rpcwallet.h>
 #include <chainparams.h>
-#include <veil/mnemonic.h>
+#include <veil/mnemonic/mnemonic.h>
 #include <crypto/sha256.h>
 #include <warnings.h>
 

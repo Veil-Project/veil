@@ -3,7 +3,7 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <veil/extkey.h>
+#include <veil/ringct/extkey.h>
 
 #include <key_io.h>
 #include <crypto/hmac_sha512.h>

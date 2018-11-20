@@ -10,9 +10,9 @@
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
 #include <key.h>
-#include <veil/types.h>
-#include <veil/stealth.h>
-#include <veil/extkey.h>
+#include <veil/ringct/stealth.h>
+#include <veil/ringct/types.h>
+#include <veil/ringct/extkey.h>
 
 #include <list>
 #include <stdint.h>

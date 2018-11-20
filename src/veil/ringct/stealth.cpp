@@ -3,15 +3,15 @@
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
-#include <veil/stealth.h>
+#include <veil/ringct/stealth.h>
 
 #include <key_io.h>
 #include <pubkey.h>
 #include <crypto/sha256.h>
 #include <random.h>
 #include <script/script.h>
-#include <veil/keyutil.h>
-#include <veil/types.h>
+#include <veil/ringct/keyutil.h>
+#include <veil/ringct/stealth.h>
 #include <util.h>
 
 #include <support/allocators/secure.h>

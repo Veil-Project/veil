@@ -6,7 +6,7 @@
 #ifndef BITCOIN_CHAIN_H
 #define BITCOIN_CHAIN_H
 
-#include <accumulatormap.h>
+#include <veil/zerocoin/accumulatormap.h>
 #include <arith_uint256.h>
 #include <consensus/params.h>
 #include <primitives/block.h>

@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 #include <array>
-#include <veil/arrayslice.h>
-#include <veil/dictionary.h>
+#include <veil/mnemonic/arrayslice.h>
+#include <veil/mnemonic/dictionary.h>
 
 /**
 * A valid mnemonic word count is evenly divisible by this number.

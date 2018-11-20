@@ -10,8 +10,8 @@
 #include <script/standard.h>
 #include <uint256.h>
 #include <test/test_veil.h>
-#include <veil/stealth.h>
-#include <veil/extkey.h>
+#include <veil/ringct/stealth.h>
+#include <veil/ringct/extkey.h>
 
 #include <vector>
 

@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <wallet/wallet.h>
-#include <veil/hdwallet.h>
+#include <veil/ringct/hdwallet.h>
 #include <veil/budget.h>
 
 #include <checkpoints.h>
@@ -30,15 +30,15 @@
 #include <utilmoneystr.h>
 #include <wallet/fees.h>
 #include <wallet/walletutil.h>
-#include <accumulators.h>
+#include <veil/zerocoin/accumulators.h>
 #include <wallet/deterministicmint.h>
-#include <veil/denomination_functions.h>
-#include <veil/mnemonic.h>
-#include <veil/zchain.h>
-#include <veil/zwallet.h>
+#include <veil/zerocoin/denomination_functions.h>
+#include <veil/mnemonic/mnemonic.h>
+#include <veil/zerocoin/zchain.h>
+#include <veil/zerocoin/zwallet.h>
 #include <libzerocoin/Params.h>
-#include <stakeinput.h>
-#include <kernel.h>
+#include <veil/proofofstake/stakeinput.h>
+#include <veil/proofofstake/kernel.h>
 
 #include <algorithm>
 #include <assert.h>

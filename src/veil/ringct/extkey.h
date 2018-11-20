@@ -3,9 +3,9 @@
 
 #include <util.h>
 #include <key.h>
-#include <veil/stealth.h>
-#include <veil/types.h>
-#include <veil/keyutil.h>
+#include <veil/ringct/stealth.h>
+#include <veil/ringct/types.h>
+#include <veil/ringct/keyutil.h>
 #include <sync.h>
 #include <script/ismine.h>
 
