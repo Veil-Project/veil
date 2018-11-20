@@ -59,7 +59,7 @@ public:
      * @throw        Zerocoin exception if the coin is not valid.
      *
      **/
-    void accumulate(const PublicCoin &coin);
+    bool accumulate(const PublicCoin &coin);
     void increment(const CBigNum& bnValue);
 
     CoinDenomination getDenomination() const;

@@ -204,13 +204,15 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         for (const auto& in : tx.vin) {
             if (in.scriptSig.IsZerocoinSpend()) {
                 auto spend = TxInToZerocoinSpend(in);
-                if (setSerials.count(spend.getCoinSerialNumber())) {
+                if (!spend)
+                    continue;
+                if (setSerials.count(spend->getCoinSerialNumber())) {
                     setDuplicate.emplace(tx.GetHash());
                     fRemove = true;
                     break;
                 }
 
-                setSerials.emplace(spend.getCoinSerialNumber());
+                setSerials.emplace(spend->getCoinSerialNumber());
             }
         }
         if (fRemove)
@@ -315,7 +317,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     //Sign block if this is a proof of stake block
     if (fProofOfStake) {
         auto spend = TxInToZerocoinSpend(pblock->vtx[1]->vin[0]);
-        auto bnSerial = spend.getCoinSerialNumber();
+        if (!spend) {
+            LogPrintf("%s: failed to get spend for txin", __func__);
+            return nullptr;
+        }
+
+        auto bnSerial = spend->getCoinSerialNumber();
 
         CKey key;
         if (!pwalletMain->GetZerocoinKey(bnSerial, key)) {

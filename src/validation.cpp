@@ -708,7 +708,9 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             //Veil: check for duplicate zerocoin spends
             if (txin.scriptSig.IsZerocoinSpend()) {
                 auto spend = TxInToZerocoinSpend(txin);
-                auto bnSerial = spend.getCoinSerialNumber();
+                if (!spend)
+                    return false;
+                auto bnSerial = spend->getCoinSerialNumber();
                 int nHeight;
                 if (IsSerialInBlockchain(bnSerial, nHeight) || setSerials.count(bnSerial))
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-known");
@@ -1852,7 +1854,8 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
                 if (in.scriptSig.IsZerocoinSpend()) {
                     auto spend = TxInToZerocoinSpend(in);
-                    pzerocoinDB->EraseCoinSpend(spend.getCoinSerialNumber());
+                    if (spend)
+                        pzerocoinDB->EraseCoinSpend(spend->getCoinSerialNumber());
                     continue;
                 }
 
@@ -2250,19 +2253,20 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 for (const CTxIn& txIn : tx.vin) {
                     if (!txIn.scriptSig.IsZerocoinSpend())
                         continue;
-                    libzerocoin::CoinSpend spend = TxInToZerocoinSpend(txIn);
-
-                    if (setSerialsInBlock.count(spend.getCoinSerialNumber()))
+                    auto spend = TxInToZerocoinSpend(txIn);
+                    if (!spend)
+                        return state.DoS(100, error("%s: TxIn could not be converted to zerocoinspend", __func__),
+                                REJECT_INVALID);
+                    if (setSerialsInBlock.count(spend->getCoinSerialNumber()))
                         return state.DoS(100, error("%s: Zerocoin spend is included in block multiple times", __func__),
-                                         REJECT_INVALID);
-                    if (mapSpends.count(spend))
-                        return state.DoS(100,
-                                         error("%s: Zerocoin spend object included in block multiple times", __func__),
-                                         REJECT_INVALID);
+                                REJECT_INVALID);
+                    if (mapSpends.count(*spend.get()))
+                        return state.DoS(100, error("%s: Zerocoin spend object included in block multiple times", __func__),
+                                REJECT_INVALID);
 
-                    setSerialsInBlock.emplace(spend.getCoinSerialNumber());
-                    mapSpends.emplace(spend, tx.GetHash());
-                    if (!ContextualCheckZerocoinSpend(tx, spend, block.GetHash()))
+                    setSerialsInBlock.emplace(spend->getCoinSerialNumber());
+                    mapSpends.emplace(*spend, tx.GetHash());
+                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash()))
                         return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
                                                     tx.GetHash().GetHex()), REJECT_INVALID);
                 }
@@ -2534,6 +2538,7 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
     {
         bool fFlushForPrune = false;
         bool fDoFullFlush = false;
+        fPruneMode = false; //todo: once logic has been made to make prunding functional, enable this
         LOCK(cs_LastBlockFile);
         if (fPruneMode && (fCheckForPruning || nManualPruneHeight > 0) && !fReindex) {
             if (nManualPruneHeight > 0) {
@@ -3803,7 +3808,8 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
     libzerocoin::Accumulator accumulator(Params().Zerocoin_Params(), spend.getDenomination(), bnAccumulatorValue);
 
     //Check that the coin has been accumulated
-    if(!spend.Verify(accumulator))
+    std::string strError;
+    if (!spend.Verify(accumulator, strError, true))
         return error("CheckZerocoinSpend(): zerocoin spend did not verify");
 
     return true;

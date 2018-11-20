@@ -5060,18 +5060,11 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
         return error("%s: could not find checksum used for spend\n", __func__);
 
     try {
-        libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), Params().Zerocoin_Params(), privateCoin, accumulator,
-                nChecksum, witness, hashTxOut, spendType);
-        LogPrintf("%s\n", spend.ToString());
+        libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), privateCoin, accumulator, nChecksum, witness, hashTxOut, spendType);
 
-        if (!spend.Verify(accumulator)) {
+        std::string strError;
+        if (!spend.Verify(accumulator, strError, true)) {
             receipt.SetStatus(_("The new spend coin transaction did not verify"), ZINVALID_WITNESS);
-            //return false;
-            LogPrintf("** spend.verify failed, trying with different params\n");
-
-            libzerocoin::CoinSpend spend2(Params().Zerocoin_Params(), Params().Zerocoin_Params(), privateCoin, accumulator,
-                                          nChecksum, witness, hashTxOut, libzerocoin::SpendType::SPEND);
-            //LogPrintf("*** spend2 valid=%d\n", spend2.Verify(accumulator));
             return false;
         }
 
@@ -5090,22 +5083,6 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
         //of the transaction
         newTxIn.nSequence = denomination;
         newTxIn.nSequence |= CTxIn::SEQUENCE_LOCKTIME_DISABLE_FLAG; //Don't use any relative locktime for zerocoin spend
-
-        LogPrintf("created zerocoin spend tx input\n");
-
-        CDataStream serializedCoinSpendChecking(SER_NETWORK, PROTOCOL_VERSION);
-        try {
-            serializedCoinSpendChecking << spend;
-        } catch (...) {
-            receipt.SetStatus(_("Failed to deserialize"), ZBAD_SERIALIZATION);
-            return false;
-        }
-
-        libzerocoin::CoinSpend newSpendChecking(Params().Zerocoin_Params(), Params().Zerocoin_Params(), serializedCoinSpendChecking);
-        if (!newSpendChecking.Verify(accumulator)) {
-            receipt.SetStatus(_("The transaction did not verify"), ZBAD_SERIALIZATION);
-            return false;
-        }
 
         if (IsSerialKnown(spend.getCoinSerialNumber())) {
             //Tried to spend an already spent zPIV

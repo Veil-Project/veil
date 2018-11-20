@@ -44,7 +44,8 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFe
     if (tx->IsZerocoinSpend()) {
         for (const auto& in :tx->vin) {
             auto spend = TxInToZerocoinSpend(in);
-            setSerialHashes.emplace(spend.getCoinSerialNumber());
+            if (spend)
+                setSerialHashes.emplace(spend->getCoinSerialNumber());
         }
     }
 }

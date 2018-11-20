@@ -35,16 +35,19 @@ PublicCoin::PublicCoin(const ZerocoinParams* p, const CBigNum& coin, const CoinD
 		throw std::runtime_error("Params are not initialized");
 	}
 
-	denomination = d;
-	for(const CoinDenomination denom : zerocoinDenomList) {
-		if(denom == d)
-			denomination = d;
+	denomination = CoinDenomination::ZQ_ERROR;
+	bool fValidDenom = false;
+	for (const CoinDenomination denom : zerocoinDenomList) {
+		if (denom == d) {
+            denomination = d;
+            fValidDenom = true;
+            break;
+		}
 	}
-    if(denomination == 0){
-		std::cout << "denom does not exist\n";
+
+    if (denomination == CoinDenomination::ZQ_ERROR || !fValidDenom)
 		throw std::runtime_error("Denomination does not exist");
-	}
-};
+}
 
 bool PublicCoin::operator<(const PublicCoin& rhs) const
 {
