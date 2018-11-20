@@ -226,6 +226,7 @@ public:
     int32_t nVersion;
     uint256 hashMerkleRoot;
     uint256 hashWitnessMerkleRoot;
+    uint256 hashAccumulators;
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
@@ -283,6 +284,7 @@ public:
         nVersion       = 0;
         hashMerkleRoot = uint256();
         hashWitnessMerkleRoot = uint256();
+        hashAccumulators = uint256();
         nTime          = 0;
         nBits          = 0;
         nNonce         = 0;
@@ -300,6 +302,7 @@ public:
         nVersion       = block.nVersion;
         hashMerkleRoot = block.hashMerkleRoot;
         hashWitnessMerkleRoot = block.hashWitnessMerkleRoot;
+        hashAccumulators = block.hashAccumulators;
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
@@ -335,7 +338,7 @@ public:
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
-        block.hashAccumulators = SerializeHash(mapAccumulatorHashes);
+        block.hashAccumulators = hashAccumulators;
         return block;
     }
 
@@ -510,6 +513,7 @@ public:
         READWRITE(hashMerkleRoot);
         // NOTE: Careful matching the version, qa tests use different versions
         READWRITE(hashWitnessMerkleRoot);
+        READWRITE(hashAccumulators);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
@@ -534,7 +538,7 @@ public:
         block.nTime           = nTime;
         block.nBits           = nBits;
         block.nNonce          = nNonce;
-        block.hashAccumulators = SerializeHash(mapAccumulatorHashes);
+        block.hashAccumulators = hashAccumulators;
         return block.GetHash();
     }
 
