@@ -19,12 +19,10 @@ uint256 CBlockHeader::GetHash() const
 #define TIME_MASK 0xffffff80
 uint256 CBlockHeader::GetPoWHash() const
 {
-    uint256 hashBlock = GetHash();
-
     //Only change every 128 seconds
     int32_t nTimeX16r = nTime&TIME_MASK;
     uint256 hashTime = Hash(BEGIN(nTimeX16r), END(nTimeX16r));
-    return HashX16R(BEGIN(hashBlock), END(hashBlock), hashTime);
+    return HashX16R(BEGIN(nVersion), END(hashWitnessMerkleRoot), hashTime);
 }
 
 std::string CBlock::ToString() const
