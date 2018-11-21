@@ -255,7 +255,7 @@ bool ValidateAccumulatorCheckpoint(const CBlock& block, CBlockIndex* pindex, Acc
         return true;
     }
 
-    if (pindex->mapAccumulatorHashes != pindex->pprev->mapAccumulatorHashes)
+    if (block.mapAccumulatorHashes != pindex->pprev->mapAccumulatorHashes)
         return error("%s : new accumulator checkpoint generated on a block that is not multiple of 10", __func__);
 
     return true;
