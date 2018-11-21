@@ -6,7 +6,6 @@
 
 #include <assert.h>
 #include <secp256k1.h>
-#include <secp256k1_rangeproof.h>
 #include <secp256k1_mlsag.h>
 
 #include <veil/ringct/blind.h>
@@ -126,6 +125,7 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
             }
         }
 
+        // checking for duplicate key image to prevent double spends
         uint256 txhashKI;
         for (size_t k = 0; k < nInputs; ++k) {
             const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);

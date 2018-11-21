@@ -1534,11 +1534,10 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
             }
 
             for (unsigned int i = 0; i < tx.vin.size(); i++) {
-                if (tx.vin[i].IsAnonInput())
-                {
+                if (tx.vin[i].IsAnonInput()) {
                     fHasAnonInput = true;
                     continue;
-                };
+                }
 
                 if (tx.vin[i].scriptSig.IsZerocoinSpend())
                     continue;

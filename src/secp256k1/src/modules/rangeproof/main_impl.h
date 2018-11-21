@@ -69,10 +69,13 @@ int secp256k1_pedersen_commit(const secp256k1_context* ctx, secp256k1_pedersen_c
     secp256k1_scalar sec;
     int overflow;
     int ret = 0;
-    ARG_CHECK(ctx != NULL);
-    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
-    ARG_CHECK(commit != NULL);
-    ARG_CHECK(blind != NULL);
+
+    if (ctx == NULL || commit == NULL || blind == NULL)
+        return 0;
+
+    if (!secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx))
+        return 0;
+
     secp256k1_generator_load(&genp, gen);
     secp256k1_scalar_set_b32(&sec, blind, &overflow);
     if (!overflow) {
@@ -144,9 +147,10 @@ int secp256k1_pedersen_verify_tally(const secp256k1_context* ctx, const secp256k
     secp256k1_gej accj;
     secp256k1_ge add;
     size_t i;
-    ARG_CHECK(ctx != NULL);
-    ARG_CHECK(!pcnt || (commits != NULL));
-    ARG_CHECK(!ncnt || (ncommits != NULL));
+
+    if (ctx == NULL || commits == NULL || ncommits = NULL || pcnt || ncnt)
+        return 0;
+
     secp256k1_gej_set_infinity(&accj);
     for (i = 0; i < ncnt; i++) {
         secp256k1_pedersen_commitment_load(&add, ncommits[i]);
