@@ -7,18 +7,29 @@ namespace veil {
 
 bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidationState& state)
 {
+    if (nHeight % BudgetParams::nBlocksPerPeriod && nHeight != 1)
+        return true;
+
     CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
     veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
 
-    if (nHeight % BudgetParams::nBlocksPerPeriod)
-        return true;
-
-    // Verify that the second output of the coinbase transaction goes to the budget address
+    // Verify that the superblock rewards are being payed out to the correct addresses with the correct amounts
     std::string strBudgetAddress = Budget().GetBudgetAddress(); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
 
+    std::string strLabAddress = Budget().GetLabAddress(); // KeyID for now
+    CTxDestination destLab = DecodeDestination(strLabAddress);
+    auto labScript = GetScriptForDestination(destLab);
+
+    std::string strFounderAddress = Budget().GetFounderAddress(); // KeyID for now
+    CTxDestination destFounder = DecodeDestination(strFounderAddress);
+    auto founderScript = GetScriptForDestination(destFounder);
+
     bool fBudgetPayment = false;
+    bool fLabPayment = false;
+    bool fFounderPayment = !nFounderPayment;
+
     for (auto pOut : tx.vpout) {
         if (pOut->nVersion != OUTPUT_STANDARD)
             continue;
@@ -27,12 +38,25 @@ bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidati
         if (txOut->scriptPubKey == budgetScript) {
             if (txOut->nValue == nBudgetPayment) {
                 fBudgetPayment = true;
-                continue;
             }
+        } else if (txOut->scriptPubKey == labScript) {
+            if (txOut->nValue == nLabPayment) {
+                fLabPayment = true;
+            }
+        } else if (txOut->scriptPubKey == founderScript) {
+            if (txOut->nValue == nFounderPayment)
+                fFounderPayment = true;
         }
     }
 
-    return fBudgetPayment;
+    if (!fBudgetPayment)
+        LogPrintf("%s: Expected budget payment not found in coinbase transaction\n", __func__);
+    if (!fLabPayment)
+        LogPrintf("%s: Expected lab payment not found in coinbase transaction\n", __func__);
+    if (!fFounderPayment)
+        LogPrintf("%s: Expected founder payment not found in coinbase transaction\n", __func__);
+
+    return fBudgetPayment && fLabPayment && fFounderPayment;
 }
 
 /**
@@ -49,10 +73,10 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
         nFounderPayment = 0;
         nLabPayment = 0;
         nBudgetPayment = 0;
-    } else if (nBlockHeight >= 1 && nBlockHeight <= 381599) {
+    } else if (nBlockHeight >= 1 && nBlockHeight <= 518399) {
 
         nBlockReward = 50;
-        if((nBlockHeight % nBlocksPerPeriod) == 0) {
+        if((nBlockHeight % nBlocksPerPeriod) == 0 || nBlockHeight == 1) {
             nFounderPayment = 10 * nBlocksPerPeriod;
             nLabPayment = 10 * nBlocksPerPeriod;
             nBudgetPayment = 30 * nBlocksPerPeriod;
@@ -60,7 +84,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
             nFounderPayment = nLabPayment = nBudgetPayment = 0;
         }
 
-    } else if (nBlockHeight >= 381600 && nBlockHeight <= 763199) {
+    } else if (nBlockHeight >= 518400 && nBlockHeight <= 1036799) {
 
         nBlockReward = 40;
         if((nBlockHeight % nBlocksPerPeriod) == 0) {
@@ -71,7 +95,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
             nFounderPayment = nLabPayment = nBudgetPayment = 0;
         }
 
-    } else if (nBlockHeight >= 763200 && nBlockHeight <= 1144799) {
+    } else if (nBlockHeight >= 1036800 && nBlockHeight <= 1555199) {
 
         nBlockReward = 30;
         if((nBlockHeight % nBlocksPerPeriod) == 0) {
@@ -82,7 +106,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
             nFounderPayment = nLabPayment = nBudgetPayment = 0;
         }
 
-    } else if (nBlockHeight >= 1144800 && nBlockHeight <= 1526399) {
+    } else if (nBlockHeight >= 1555200 && nBlockHeight <= 2073599) {
 
         nBlockReward = 20;
         if((nBlockHeight % nBlocksPerPeriod) == 0) {
@@ -93,7 +117,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
             nFounderPayment = nLabPayment = nBudgetPayment = 0;
         }
 
-    } else if (nBlockHeight >= 1526400 && nBlockHeight <= 1907999) {
+    } else if (nBlockHeight >= 2073600 && nBlockHeight <= 2591999) {
 
         nBlockReward = 10;
         if((nBlockHeight % nBlocksPerPeriod) == 0) {
@@ -125,14 +149,22 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
 
 BudgetParams::BudgetParams(std::string strNetwork)
 {
+    // Addresses must decode to be different, otherwise CheckBudgetTransaction() will fail
     if (strNetwork == "main") {
-        budgetAddress = "8bf9de7aa440c87e9e3352fe3e74d579e3aa8049";
+        // TODO: Plug in actual addresses to use
+        budgetAddress = "3QALyBrJYUmXPtN8qgh4eNUeQ6NEBehfPY";
+        founderAddress = "3KQmyaDqehG9fcyQ3o8uTUujLgX1zp9LDJ";
+        labAddress = "3BJPMh1UU9r3RVH4ihLDTYfJj8BSPe1iRc";
         nBudgetAmount = 100 * COIN;
     } else if (strNetwork == "test") {
-        budgetAddress = "Budget Address testnet";
+        budgetAddress = "2NCMc2apMAx5vY6wyYM8UyqCmfx2vpFmm1J";
+        founderAddress = "2N7WZtWTdoFQjheviiGn4smykiwxNbHYdci";
+        labAddress = "2N2iEAT5o7TY9yrz6Li4j91j5L59sLqdFSf";
         nBudgetAmount = 100 * COIN;
     } else if (strNetwork == "regtest") {
-        budgetAddress = "Budget Address regtest";
+        budgetAddress = "2NCMc2apMAx5vY6wyYM8UyqCmfx2vpFmm1J";
+        founderAddress = "2N7WZtWTdoFQjheviiGn4smykiwxNbHYdci";
+        labAddress = "2N2iEAT5o7TY9yrz6Li4j91j5L59sLqdFSf";
         nBudgetAmount = 100 * COIN;
     }
 }

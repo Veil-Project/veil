@@ -257,7 +257,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     } else {
         CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
         veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
-        coinbaseTx.vpout.resize(nBudgetPayment > 0 ? 2 : 1);
+
+        if (nBudgetPayment > 0 && nFounderPayment > 0)
+            coinbaseTx.vpout.resize(4);
+        else if (nBudgetPayment > 0)
+            coinbaseTx.vpout.resize(3);
+        else
+            coinbaseTx.vpout.resize(1);
 
         //Miner gets the block reward and any network reward
         CAmount nMinerReward = nBlockReward + nNetworkReward;
@@ -276,6 +282,26 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             outBudget->scriptPubKey = budgetScript;
             outBudget->nValue = nBudgetPayment;
             coinbaseTx.vpout[1] = (std::move(outBudget));
+
+            std::string strLabAddress = veil::Budget().GetLabAddress(); // KeyID for now
+            CTxDestination destLab = DecodeDestination(strLabAddress);
+            auto labScript = GetScriptForDestination(destLab);
+
+            OUTPUT_PTR<CTxOutStandard> outLab = MAKE_OUTPUT<CTxOutStandard>();
+            outLab->scriptPubKey = labScript;
+            outLab->nValue = nLabPayment;
+            coinbaseTx.vpout[2] = (std::move(outLab));
+
+            std::string strFounderAddress = veil::Budget().GetFounderAddress(); // KeyID for now
+            CTxDestination destFounder = DecodeDestination(strFounderAddress);
+            auto founderScript = GetScriptForDestination(destFounder);
+
+            if (nFounderPayment) { // Founder payment will eventually hit 0
+                OUTPUT_PTR<CTxOutStandard> outFounder = MAKE_OUTPUT<CTxOutStandard>();
+                outFounder->scriptPubKey = founderScript;
+                outFounder->nValue = nFounderPayment;
+                coinbaseTx.vpout[3] = (std::move(outFounder));
+            }
         }
     }
 

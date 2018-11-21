@@ -18,6 +18,8 @@ class BudgetParams
 private:
     explicit BudgetParams(std::string strNetwork);
     std::string budgetAddress;
+    std::string founderAddress;
+    std::string labAddress;
     CAmount nBudgetAmount;
 
 public:
@@ -30,8 +32,10 @@ public:
                                 CAmount& nBudgetPayment);
 
     std::string GetBudgetAddress() const { return budgetAddress; }
+    std::string GetFounderAddress() const { return founderAddress; }
+    std::string GetLabAddress() const { return labAddress; }
     CAmount GetBudgetAmount() const { return nBudgetAmount; }
-    static const int nBlocksPerPeriod = 43830;
+    static const int nBlocksPerPeriod = 43200;
 };
 
 BudgetParams& Budget();
