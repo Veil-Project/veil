@@ -3339,6 +3339,11 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
             CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
             veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
             nCredit += nBlockReward;
+            CBlockIndex* pindexPrev = chainActive.Tip();
+            assert(pindexPrev != nullptr);
+            CAmount nNetworkRewardReserve = pindexPrev ? pindexPrev->nNetworkRewardReserve : 0;
+            CAmount nNetworkReward = nNetworkRewardReserve > Params().MaxNetworkReward() ? Params().MaxNetworkReward() : nNetworkRewardReserve;
+            nCredit += nNetworkReward;
 
             // Create the output transaction(s)
             vector<CTxOut> vout;
