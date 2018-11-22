@@ -643,7 +643,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         if (fProofOfStake) {
             //Need wallet if this is for proof of stake
             auto pwallet = GetMainWallet();
-            if (!pwallet /*|| vNodes.empty()*/) {
+            if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL)) {
                 MilliSleep(5000);
                 continue;
             }
