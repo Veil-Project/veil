@@ -251,31 +251,55 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
 
-    if (fProofOfStake) {
-        coinbaseTx.vpout.resize(1);
-        coinbaseTx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
-    } else {
-        CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
-        veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
-        coinbaseTx.vpout.resize(nBudgetPayment > 0 ? 2 : 1);
+    CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
+    veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
 
+    if (nBudgetPayment > 0 && nFounderPayment > 0)
+        coinbaseTx.vpout.resize(fProofOfStake ? 3 : 4);
+    else if (nBudgetPayment > 0)
+        coinbaseTx.vpout.resize(fProofOfStake ? 2 : 3);
+    else {
+        coinbaseTx.vpout.resize(1);
+    }
+
+    if (!fProofOfStake) {
         //Miner gets the block reward and any network reward
         CAmount nMinerReward = nBlockReward + nNetworkReward;
         OUTPUT_PTR<CTxOutStandard> outCoinbase = MAKE_OUTPUT<CTxOutStandard>();
         outCoinbase->scriptPubKey = scriptPubKeyIn;
         outCoinbase->nValue = nMinerReward;
         coinbaseTx.vpout[0] = (std::move(outCoinbase));
+    }
 
-        // Budget Payment
-        if (nBudgetPayment) {
-            std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
-            CTxDestination dest = DecodeDestination(strBudgetAddress);
-            auto budgetScript = GetScriptForDestination(dest);
+    // Budget Payment
+    if (nBudgetPayment) {
+        std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
+        CTxDestination dest = DecodeDestination(strBudgetAddress);
+        auto budgetScript = GetScriptForDestination(dest);
 
-            OUTPUT_PTR<CTxOutStandard> outBudget = MAKE_OUTPUT<CTxOutStandard>();
-            outBudget->scriptPubKey = budgetScript;
-            outBudget->nValue = nBudgetPayment;
-            coinbaseTx.vpout[1] = (std::move(outBudget));
+        OUTPUT_PTR<CTxOutStandard> outBudget = MAKE_OUTPUT<CTxOutStandard>();
+        outBudget->scriptPubKey = budgetScript;
+        outBudget->nValue = nBudgetPayment;
+        coinbaseTx.vpout[fProofOfStake ? 0 : 1] = (std::move(outBudget));
+
+        std::string strLabAddress = veil::Budget().GetLabAddress(); // KeyID for now
+        CTxDestination destLab = DecodeDestination(strLabAddress);
+        auto labScript = GetScriptForDestination(destLab);
+
+        OUTPUT_PTR<CTxOutStandard> outLab = MAKE_OUTPUT<CTxOutStandard>();
+        outLab->scriptPubKey = labScript;
+        outLab->nValue = nLabPayment;
+        coinbaseTx.vpout[fProofOfStake ? 1 : 2] = (std::move(outLab));
+
+        std::string strFounderAddress = veil::Budget().GetFounderAddress(); // KeyID for now
+        CTxDestination destFounder = DecodeDestination(strFounderAddress);
+        auto founderScript = GetScriptForDestination(destFounder);
+
+        if (nFounderPayment) { // Founder payment will eventually hit 0
+            OUTPUT_PTR<CTxOutStandard> outFounder = MAKE_OUTPUT<CTxOutStandard>();
+            outFounder->scriptPubKey = founderScript;
+            outFounder->nValue = nFounderPayment;
+            coinbaseTx.vpout[fProofOfStake ? 2 : 3] = (std::move(outFounder));
         }
     }
 
@@ -284,9 +308,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (fProofOfStake) {
         if (pblock->vtx.size() < 2)
             pblock->vtx.resize(2);
-        coinbaseTx.vpout.resize(1);
-        coinbaseTx.vpout[0]->SetValue(0);
-        coinbaseTx.vpout[0]->SetScriptPubKey(CScript());
+        if (!nBudgetPayment) {
+            coinbaseTx.vpout[0]->SetValue(0);
+            coinbaseTx.vpout[0]->SetScriptPubKey(CScript());
+        }
         pblock->vtx[1] = MakeTransactionRef(std::move(txCoinStake));
     }
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));

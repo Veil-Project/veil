@@ -410,6 +410,8 @@ public:
     mutable CAmount nImmatureWatchCreditCached;
     mutable CAmount nAvailableWatchCreditCached;
     mutable CAmount nChangeCached;
+    mutable std::set<OutputTypes> setImmatureTypeCreditCached;
+    mutable std::map<OutputTypes, CAmount> mImmatureTypeCreditCached;
 
     CWalletTx(const CWallet* pwalletIn, CTransactionRef arg) : CMerkleTx(std::move(arg))
     {
@@ -422,6 +424,8 @@ public:
         vPath.clear();
         mapValue.clear();
         vOrderForm.clear();
+        setImmatureTypeCreditCached.clear();
+        mImmatureTypeCreditCached.clear();
         fTimeReceivedIsTxTime = false;
         nTimeReceived = 0;
         nTimeSmart = 0;
@@ -496,6 +500,7 @@ public:
         fImmatureWatchCreditCached = false;
         fDebitCached = false;
         fChangeCached = false;
+        setImmatureTypeCreditCached.clear();
     }
 
     void BindWallet(CWallet *pwalletIn)

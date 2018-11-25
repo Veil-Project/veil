@@ -21,6 +21,7 @@
 #include <ui_interface.h>
 #include <uint256.h>
 #include <validation.h>
+#include <veil/ringct/hdwallet.h>
 #include <veil/zerocoin/zchain.h>
 #include <wallet/feebumper.h>
 #include <wallet/fees.h>
@@ -348,13 +349,27 @@ public:
     WalletBalances getBalances() override
     {
         WalletBalances result;
-        result.balance = m_wallet.GetBalance();
-        result.unconfirmed_balance = m_wallet.GetUnconfirmedBalance();
-        result.immature_balance = m_wallet.GetImmatureBalance();
-        result.have_watch_only = m_wallet.HaveWatchOnly();
+        CHDWallet* pWallet = reinterpret_cast<CHDWallet*>(&m_wallet);
+        CHDWalletBalances balances;
+        if (!pWallet->GetBalances(balances))
+            return result;
+
+        result.balance = balances.nVeil;
+        result.unconfirmed_balance = balances.nVeilUnconf;
+        result.immature_balance = balances.nVeilImmature;
+        result.ct_balance = balances.nCT;
+        result.ct_unconfirmed_balance = balances.nCTUnconf;
+        result.ct_immature_balance = balances.nCTImmature;
+        result.ring_ct_balance = balances.nRingCT;
+        result.ring_ct_unconfirmed_balance = balances.nRingCTUnconf;
+        result.ring_ct_immature_balance = balances.nRingCTImmature;
+        result.zerocoin_balance = m_wallet.GetZerocoinBalance(true);
+        result.zerocoin_unconfirmed_balance = m_wallet.GetUnconfirmedZerocoinBalance();
+        result.zerocoin_immature_balance = m_wallet.GetImmatureZerocoinBalance();
+        result.have_watch_only = balances.nVeilWatchOnly || balances.nVeilWatchOnlyUnconf;
         if (result.have_watch_only) {
-            result.watch_only_balance = m_wallet.GetBalance(ISMINE_WATCH_ONLY);
-            result.unconfirmed_watch_only_balance = m_wallet.GetUnconfirmedWatchOnlyBalance();
+            result.watch_only_balance = balances.nVeilWatchOnly;
+            result.unconfirmed_watch_only_balance = balances.nVeilWatchOnlyUnconf;
             result.immature_watch_only_balance = m_wallet.GetImmatureWatchOnlyBalance();
         }
         return result;

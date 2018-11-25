@@ -324,30 +324,34 @@ class CHDWalletBalances
 public:
     void Clear()
     {
-        nPart = 0;
-        nPartUnconf = 0;
-        nPartImmature = 0;
-        nPartWatchOnly = 0;
-        nPartWatchOnlyUnconf = 0;
+        nVeil = 0;
+        nVeilUnconf = 0;
+        nVeilImmature = 0;
+        nVeilWatchOnly = 0;
+        nVeilWatchOnlyUnconf = 0;
 
-        nBlind = 0;
-        nBlindUnconf = 0;
+        nCT = 0;
+        nCTUnconf = 0;
+        nCTImmature = 0;
 
-        nAnon = 0;
-        nAnonUnconf = 0;
+        nRingCT = 0;
+        nRingCTUnconf = 0;
+        nRingCTImmature = 0;
     };
 
-    CAmount nPart = 0;
-    CAmount nPartUnconf = 0;
-    CAmount nPartImmature = 0;
-    CAmount nPartWatchOnly = 0;
-    CAmount nPartWatchOnlyUnconf = 0;
+    CAmount nVeil = 0;
+    CAmount nVeilUnconf = 0;
+    CAmount nVeilImmature = 0;
+    CAmount nVeilWatchOnly = 0;
+    CAmount nVeilWatchOnlyUnconf = 0;
 
-    CAmount nBlind = 0;
-    CAmount nBlindUnconf = 0;
+    CAmount nCT = 0;
+    CAmount nCTUnconf = 0;
+    CAmount nCTImmature = 0;
 
-    CAmount nAnon = 0;
-    CAmount nAnonUnconf = 0;
+    CAmount nRingCT = 0;
+    CAmount nRingCTUnconf = 0;
+    CAmount nRingCTImmature = 0;
 };
 
 class CHDWallet : public CWallet
