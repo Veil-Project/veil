@@ -217,11 +217,11 @@ public:
         int nTimeStart = 1536946053;
         arith_uint256 nBits;
         nBits.SetCompact(0x1e0ffff0);
-        uint32_t nNonce = 2298390;
+        uint32_t nNonce = 2789191;
         genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(genesis.hashWitnessMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
-        assert(consensus.hashGenesisBlock == uint256S("0xce1e7a9b87a19d3843102cf26a7486aafeb4cb3e50aee316b6e75d24caff3141"));
+        assert(consensus.hashGenesisBlock == uint256S("0x798b4392f8dd0f7c2049ffc1e9ef5f7ce05bc221e141bd754f25a2f2a3894535"));
         assert(genesis.hashMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
 
         vSeeds.emplace_back("veilseed.presstab.pw");
@@ -330,10 +330,10 @@ public:
         nPruneAfterHeight = 1000;
 
         int nTimeStart = 1536946053;
-        uint32_t nNonce = 433795766;
+        uint32_t nNonce = 2789191;
         genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x457ad7b129c84607fc4e5b211d7ccd538853af296ba55bf0ca33799c4ec924f1"));
+        assert(consensus.hashGenesisBlock == uint256S("0x798b4392f8dd0f7c2049ffc1e9ef5f7ce05bc221e141bd754f25a2f2a3894535"));
         assert(genesis.hashMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
         assert(genesis.hashWitnessMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
 
@@ -363,7 +363,7 @@ public:
 
         checkpointData = {
             {
-                {546, uint256S("000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70")},
+//                {546, uint256S("000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70")},
             }
         };
 
