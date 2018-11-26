@@ -45,7 +45,7 @@ static void EnsureWalletIsUnlocked(CHDWallet *pwallet)
 
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 
-static UniValue getnewstealthaddress(const JSONRPCRequest &request)
+static UniValue getnewaddress(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CHDWallet *const pwallet = GetHDWallet(wallet.get());
@@ -54,7 +54,7 @@ static UniValue getnewstealthaddress(const JSONRPCRequest &request)
 
     if (request.fHelp || request.params.size() > 5)
         throw std::runtime_error(
-                "getnewstealthaddress ( \"label\" num_prefix_bits prefix_num bech32 makeV2 )\n"
+                "getnewaddress ( \"label\" num_prefix_bits prefix_num bech32 makeV2 )\n"
                 "Returns a new stealth address for receiving payments."
                 + HelpRequiringPassphrase(pwallet) +
                 "\nArguments:\n"
@@ -70,8 +70,8 @@ static UniValue getnewstealthaddress(const JSONRPCRequest &request)
                 "\nResult:\n"
                 "\"address\"              (string) The new stealth address\n"
                 "\nExamples:\n"
-                + HelpExampleCli("getnewstealthaddress", "\"lblTestSxAddrPrefix\" 3 \"0b101\"")
-                + HelpExampleRpc("getnewstealthaddress", "\"lblTestSxAddrPrefix\", 3, \"0b101\""));
+                + HelpExampleCli("getnewaddress", "\"lblTestSxAddrPrefix\" 3 \"0b101\"")
+                + HelpExampleRpc("getnewaddress", "\"lblTestSxAddrPrefix\", 3, \"0b101\""));
 
     EnsureWalletIsUnlocked(pwallet);
 
@@ -1856,7 +1856,7 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
 static const CRPCCommand commands[] =
         { //  category              name                                actor (function)                argNames
                 //  --------------------- ------------------------            -----------------------         ----------
-                { "wallet",             "getnewstealthaddress",             &getnewstealthaddress,          {"label","num_prefix_bits","prefix_num","bech32","makeV2"} },
+                { "wallet",             "getnewaddress",             &getnewaddress,          {"label","num_prefix_bits","prefix_num","bech32","makeV2"} },
 
                 //sendparttopart // normal txn
                 { "wallet",             "sendparttoblind",                  &sendparttoblind,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
