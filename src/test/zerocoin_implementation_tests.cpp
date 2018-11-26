@@ -613,11 +613,11 @@ BOOST_AUTO_TEST_CASE(test_zerocoinspend_ringct_change)
 
     auto txbout = MAKE_OUTPUT<CTxOutRingCT>();
     CTxOutRingCT *txout = (CTxOutRingCT*)txbout.get();
-
-    txout->pk = r.pkTo;
-
-    CPubKey pkEphem = r.sEphem.GetPubKey();
-    SetCTOutVData(txout->vData, pkEphem, r.nStealthPrefix);
+//
+//    txout->pk = r.pkTo;
+//
+//    CPubKey pkEphem = r.sEphem.GetPubKey();
+//    SetCTOutVData(txout->vData, pkEphem, r.nStealthPrefix);
 
 }
 
