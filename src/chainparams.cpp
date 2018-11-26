@@ -344,6 +344,7 @@ public:
         vSeeds.clear();
 
         vSeeds.emplace_back("veilseedtestnet.presstab.pw");
+        vSeeds.emplace_back("45.34.187.118", "45.34.187.118"); // blondfrogs single IP
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
