@@ -31,6 +31,8 @@ BOOST_AUTO_TEST_SUITE(zerocoin_implementation_tests)
 BOOST_AUTO_TEST_CASE(zcparams_test)
 {
     cout << "Running zcparams_test...\n";
+    RandomInit();
+    ECC_Start();
 
     bool fPassed = true;
     try{
@@ -473,42 +475,150 @@ BOOST_AUTO_TEST_CASE(setup_exceptions_test)
 BOOST_AUTO_TEST_CASE(deterministic_tests)
 {
     SelectParams(CBaseChainParams::TESTNET);
-    cout << "Testing deterministic minting\n";
-    uint256 seedMaster("3a1947364362e2e7c073b386869c89c905c0cf462448ffd6c2021bd03ce689f6");
+//    cout << "Testing deterministic minting\n";
+//    uint256 seedMaster("3a1947364362e2e7c073b386869c89c905c0cf462448ffd6c2021bd03ce689f6");
+//
+//    string strWalletFile = "unittestwallet.dat";
+//
+//    CWallet wallet("dummy", WalletDatabase::CreateDummy());
+//    CzWallet zWallet(&wallet);
+//    zWallet.SetMasterSeed(seedMaster);
+//    wallet.setZWallet(&zWallet);
+//
+//    int64_t nTimeStart = GetTimeMillis();
+//    CoinDenomination denom = CoinDenomination::ZQ_ONE_HUNDRED;
+//
+//    std::vector<PrivateCoin> vCoins;
+//    int nTests = 50;
+//    for (int i = 0; i < nTests; i++) {
+//        PrivateCoin coin(Params().Zerocoin_Params(), denom, false);
+//        CDeterministicMint dMint;
+//        zWallet.GenerateDeterministicZerocoin(denom, coin, dMint);
+//        vCoins.emplace_back(coin);
+//    }
+//
+//    int64_t nTotalTime = GetTimeMillis() - nTimeStart;
+//    cout << "Total time:" << nTotalTime << "ms. Per Deterministic Mint:" << (nTotalTime/nTests) << "ms" << endl;
+//
+//    cout << "Checking that mints are valid" << endl;
+//    CDataStream ss(SER_GETHASH, 0);
+//    for (PrivateCoin& coin : vCoins) {
+//        BOOST_CHECK_MESSAGE(coin.IsValid(), "Generated Mint is not valid");
+//        ss << coin.getPublicCoin().getValue();
+//    }
+//
+//    cout << "Checking that mints are deterministic: sha256 checksum=";
+//    uint256 hash = Hash(ss.begin(), ss.end());
+//    cout << hash.GetHex() << endl;
+//    BOOST_CHECK_MESSAGE(hash == uint256("c90c225f2cbdee5ef053b1f9f70053dd83724c58126d0e1b8425b88091d1f73f"), "minting determinism isn't as expected");
+}
 
-    string strWalletFile = "unittestwallet.dat";
+    static inline void InsecureNewKey(CKey &key, bool fCompressed)
+    {
+        key.MakeNewKey(fCompressed);
+        assert(key.IsValid()); // Failure should be very rare
+    }
+    void makeNewStealthKey(CStealthAddress &sxAddr, CBasicKeyStore &keystore)
+    {
+        InsecureNewKey(sxAddr.scan_secret, true);
 
-    CWallet wallet("dummy", WalletDatabase::CreateDummy());
-    CzWallet zWallet(&wallet);
-    zWallet.SetMasterSeed(seedMaster);
-    wallet.setZWallet(&zWallet);
+        CKey spend_secret;
+        InsecureNewKey(spend_secret, true);
+        //sxAddr.spend_secret_id = spend_secret.GetPubKey().GetID();
 
-    int64_t nTimeStart = GetTimeMillis();
-    CoinDenomination denom = CoinDenomination::ZQ_ONE_HUNDRED;
+        SecretToPublicKey(sxAddr.scan_secret, sxAddr.scan_pubkey);
+        SecretToPublicKey(spend_secret, sxAddr.spend_pubkey);
 
-    std::vector<PrivateCoin> vCoins;
-    int nTests = 50;
-    for (int i = 0; i < nTests; i++) {
-        PrivateCoin coin(Params().Zerocoin_Params(), denom, false);
-        CDeterministicMint dMint;
-        zWallet.GenerateDeterministicZerocoin(denom, coin, dMint);
-        vCoins.emplace_back(coin);
+        // verify
+        CPubKey pkTemp = sxAddr.scan_secret.GetPubKey();
+        BOOST_CHECK(pkTemp.size() == EC_COMPRESSED_SIZE);
+        BOOST_CHECK(memcmp(&sxAddr.scan_pubkey[0], pkTemp.begin(), EC_COMPRESSED_SIZE) == 0);
+
+        pkTemp = spend_secret.GetPubKey();
+        BOOST_CHECK(pkTemp.size() == EC_COMPRESSED_SIZE);
+        BOOST_CHECK(pkTemp.size() == EC_COMPRESSED_SIZE);
+        BOOST_CHECK(memcmp(&sxAddr.spend_pubkey[0], pkTemp.begin(), EC_COMPRESSED_SIZE) == 0);
+
+        keystore.AddKeyPubKey(spend_secret, pkTemp);
     }
 
-    int64_t nTotalTime = GetTimeMillis() - nTimeStart;
-    cout << "Total time:" << nTotalTime << "ms. Per Deterministic Mint:" << (nTotalTime/nTests) << "ms" << endl;
+BOOST_AUTO_TEST_CASE(test_zerocoinspend_ringct_change)
+{
+    //initialize and Accumulator and AccumulatorWitness
+    PrivateCoin coin(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN, true);
+    auto pubCoin = coin.getPublicCoin();
+    Accumulator accumulator(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN);
+    AccumulatorWitness witness(Params().Zerocoin_Params(), accumulator, pubCoin);
 
-    cout << "Checking that mints are valid" << endl;
-    CDataStream ss(SER_GETHASH, 0);
-    for (PrivateCoin& coin : vCoins) {
-        BOOST_CHECK_MESSAGE(coin.IsValid(), "Generated Mint is not valid");
-        ss << coin.getPublicCoin().getValue();
+
+    std::vector<libzerocoin::PublicCoin> vPubcoins;
+    for (unsigned int i = 0; i < 10; i++) {
+        PrivateCoin c(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN, true);
+        vPubcoins.emplace_back(c.getPublicCoin());
     }
 
-    cout << "Checking that mints are deterministic: sha256 checksum=";
-    uint256 hash = Hash(ss.begin(), ss.end());
-    cout << hash.GetHex() << endl;
-    BOOST_CHECK_MESSAGE(hash == uint256("c90c225f2cbdee5ef053b1f9f70053dd83724c58126d0e1b8425b88091d1f73f"), "minting determinism isn't as expected");
+    //populate the witness and accumulators
+    accumulator += pubCoin;
+    for (const auto& pub : vPubcoins) {
+        BOOST_CHECK_MESSAGE(accumulator.accumulate(pub), "accumulator failed accumulating pubcoin");
+        witness += pub;
+    }
+
+    uint256 nChecksum = GetChecksum(accumulator.getValue());
+    uint256 ptxHash = CBigNum::RandKBitBigum(256).getuint256();
+    bool fSpendValid = true;
+    CoinSpend* pspend;
+    try {
+        pspend = new CoinSpend(Params().Zerocoin_Params(), coin, accumulator, nChecksum, witness, ptxHash, SpendType::SPEND);
+    } catch (...) {
+        fSpendValid = false;
+    }
+    BOOST_CHECK_MESSAGE(fSpendValid, "Spend construction failed");
+
+    CDataStream ss(SER_NETWORK, 0);
+    ss << *pspend;
+
+    std::vector<unsigned char> data(ss.begin(), ss.end());
+
+    CTxIn newTxIn;
+    newTxIn.nSequence = 1;
+    newTxIn.scriptSig = CScript() << OP_ZEROCOINSPEND << data.size();
+    newTxIn.scriptSig.insert(newTxIn.scriptSig.end(), data.begin(), data.end());
+    newTxIn.prevout.SetNull();
+
+    CMutableTransaction tx;
+    tx.vin.emplace_back(newTxIn);
+    tx.vpout.resize(2);
+
+
+    CBasicKeyStore keystore;
+    ECC_Start_Stealth();
+
+    CStealthAddress sxAddr;
+    makeNewStealthKey(sxAddr, keystore);
+
+    CKey sEphem;
+    CKey secretShared;
+    ec_point pkSendTo;
+
+    // Send, secret = ephem_secret, pubkey = scan_pubkey
+    // NOTE: StealthSecret can fail if hash is out of range, retry with new ephemeral key
+    int k, nTries = 24;
+    for (k = 0; k < nTries; ++k)
+    {
+        InsecureNewKey(sEphem, true);
+        if (StealthSecret(sEphem, sxAddr.scan_pubkey, sxAddr.spend_pubkey, secretShared, pkSendTo) == 0)
+            break;
+    };
+
+    auto txbout = MAKE_OUTPUT<CTxOutRingCT>();
+    CTxOutRingCT *txout = (CTxOutRingCT*)txbout.get();
+
+    txout->pk = r.pkTo;
+
+    CPubKey pkEphem = r.sEphem.GetPubKey();
+    SetCTOutVData(txout->vData, pkEphem, r.nStealthPrefix);
+
 }
 
 BOOST_AUTO_TEST_SUITE_END()

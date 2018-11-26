@@ -117,6 +117,8 @@ public:
     int LAST_POW_BLOCK() const { return nLastPOWBlock; }
     int HeightPoSStart() const { return nHeightPoSStart; }
     int KernelModulus() const { return nKernelModulus; }
+    int CoinbaseMaturity() const { return nCoinbaseMaturity; }
+
 protected:
     CChainParams() {}
 
@@ -154,6 +156,7 @@ protected:
     int nHeightPoSStart;
     int nKernelModulus;
     int nLastPOWBlock;      //TODO - set values for Veil
+    int nCoinbaseMaturity;
 };
 
 /**

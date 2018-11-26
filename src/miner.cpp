@@ -261,6 +261,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     else {
         coinbaseTx.vpout.resize(1);
     }
+    coinbaseTx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
 
     if (!fProofOfStake) {
         //Miner gets the block reward and any network reward
@@ -668,10 +669,10 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         if (fProofOfStake) {
             //Need wallet if this is for proof of stake
             auto pwallet = GetMainWallet();
-            if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL)) {
-                MilliSleep(5000);
-                continue;
-            }
+//            if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL)) {
+//                MilliSleep(5000);
+//                continue;
+//            }
 
             //control the amount of times the client will check for mintable coins
             if ((GetTime() - nMintableLastCheck > 5 * 60)) // 5 minute check time
