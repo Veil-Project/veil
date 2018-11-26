@@ -251,7 +251,7 @@ std::map<unsigned int, unsigned int> mapHashedBlocks;
 uint64_t nPruneTarget = 0;
 int64_t nMaxTipAge = DEFAULT_MAX_TIP_AGE;
 bool fEnableReplacement = DEFAULT_ENABLE_REPLACEMENT;
-unsigned int nStakeMinAge = 60 * 60;
+unsigned int nStakeMinAge = 60;
 static bool fVerifyingDB = false;
 
 

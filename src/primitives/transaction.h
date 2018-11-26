@@ -445,18 +445,10 @@ public:
     template<typename Stream>
     void Serialize(Stream &s) const
     {
-        const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
         s.write((char*)&commitment.data[0], 33);
         s << vData;
         s << *(CScriptBase*)(&scriptPubKey);
-
-        if (fAllowWitness)
-        {
-            s << vRangeproof;
-        } else
-        {
-            WriteCompactSize(s, 0);
-        };
+        s << vRangeproof;
     };
 
     template<typename Stream>
@@ -465,7 +457,6 @@ public:
         s.read((char*)&commitment.data[0], 33);
         s >> vData;
         s >> *(CScriptBase*)(&scriptPubKey);
-
         s >> vRangeproof;
     }
 
@@ -520,18 +511,10 @@ public:
     template<typename Stream>
     void Serialize(Stream &s) const
     {
-        const bool fAllowWitness = !(s.GetVersion() & SERIALIZE_TRANSACTION_NO_WITNESS);
         s.write((char*)pk.begin(), 33);
         s.write((char*)&commitment.data[0], 33);
         s << vData;
-
-        if (fAllowWitness)
-        {
-            s << vRangeproof;
-        } else
-        {
-            WriteCompactSize(s, 0);
-        }
+        s << vRangeproof;
     }
 
     template<typename Stream>
