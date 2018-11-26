@@ -141,7 +141,7 @@ static std::string LabelFromValue(const UniValue& value)
     return label;
 }
 
-static UniValue getnewaddress(const JSONRPCRequest& request)
+static UniValue getnewbasecoinaddress(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CWallet* const pwallet = wallet.get();
@@ -152,7 +152,7 @@ static UniValue getnewaddress(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() > 2)
         throw std::runtime_error(
-            "getnewaddress ( \"label\" \"address_type\" )\n"
+            "getnewbasecoinaddress ( \"label\" \"address_type\" )\n"
             "\nReturns a new Veil address for receiving payments.\n"
             "If 'label' is specified, it is added to the address book \n"
             "so payments received with the address will be associated with 'label'.\n"
@@ -162,8 +162,8 @@ static UniValue getnewaddress(const JSONRPCRequest& request)
             "\nResult:\n"
             "\"address\"    (string) The new veil address\n"
             "\nExamples:\n"
-            + HelpExampleCli("getnewaddress", "")
-            + HelpExampleRpc("getnewaddress", "")
+            + HelpExampleCli("getnewbasecoinaddress", "")
+            + HelpExampleRpc("getnewbasecoinaddress", "")
         );
 
     if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
@@ -4724,7 +4724,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "encryptwallet",                    &encryptwallet,                 {"passphrase"} },
     { "wallet",             "getaddressinfo",                   &getaddressinfo,                {"address"} },
     { "wallet",             "getbalance",                       &getbalance,                    {"account|dummy","minconf","include_watchonly"} },
-    { "wallet",             "getnewaddress",                    &getnewaddress,                 {"label|account","address_type"} },
+    { "wallet",             "getnewbasecoinaddress",            &getnewbasecoinaddress,       {"label|account","address_type"} },
     { "wallet",             "getrawchangeaddress",              &getrawchangeaddress,           {"address_type"} },
     { "wallet",             "getreceivedbyaddress",             &getreceivedbyaddress,          {"address","minconf"} },
     { "wallet",             "gettransaction",                   &gettransaction,                {"txid","include_watchonly"} },
