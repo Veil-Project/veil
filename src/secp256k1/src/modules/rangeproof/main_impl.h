@@ -148,7 +148,7 @@ int secp256k1_pedersen_verify_tally(const secp256k1_context* ctx, const secp256k
     secp256k1_ge add;
     size_t i;
 
-    if (ctx == NULL || commits == NULL || ncommits = NULL || pcnt || ncnt)
+    if (ctx == NULL || commits == NULL || ncommits == NULL || pcnt || ncnt)
         return 0;
 
     secp256k1_gej_set_infinity(&accj);
