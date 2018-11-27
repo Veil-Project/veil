@@ -56,6 +56,12 @@ static SECP256K1_INLINE void secp256k1_callback_call(const secp256k1_callback * 
 } while(0)
 #endif
 
+#define RETURN_ZERO(cond) do { \
+    if (EXPECT(!(cond), 0)) { \
+        return 0; \
+    } \
+} while(0)
+
 /* Like assert(), but when VERIFY is defined, and side-effect safe. */
 #if defined(COVERAGE)
 #define VERIFY_CHECK(check)

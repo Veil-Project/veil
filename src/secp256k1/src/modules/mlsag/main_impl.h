@@ -54,7 +54,6 @@ int secp256k1_prepare_mlsag(uint8_t *m, uint8_t *sk,
 
     */
 
-    try {
         secp256k1_gej accj;
         secp256k1_ge c, cno;
         size_t nIns = nRows - 1;
@@ -135,9 +134,6 @@ int secp256k1_prepare_mlsag(uint8_t *m, uint8_t *sk,
         secp256k1_scalar_get_b32(sk, &ts);
 
         return 0;
-    } catch (...) {
-        return 1;
-    }
 }
 
 static int hash_to_curve(secp256k1_ge *ge, const uint8_t *pd, size_t len)
@@ -203,7 +199,6 @@ int secp256k1_generate_mlsag(const secp256k1_context *ctx,
     /* nRows == nInputs + 1, last row sums commitments
     */
 
-    try {
         secp256k1_rfc6979_hmac_sha256_t rng;
         secp256k1_sha256_t sha256_m, sha256_pre;
         size_t dsRows = nRows - 1; /* TODO: pass in dsRows explicitly? */
@@ -387,16 +382,12 @@ int secp256k1_generate_mlsag(const secp256k1_context *ctx,
         secp256k1_rfc6979_hmac_sha256_finalize(&rng);
 
         return 0;
-    } catch (...) {
-        return 1;
-    }
 }
 
 int secp256k1_verify_mlsag(const secp256k1_context *ctx,
     const uint8_t *preimage, size_t nCols, size_t nRows,
     const uint8_t *pk, const uint8_t *ki, const uint8_t *pc, const uint8_t *ps)
 {
-    try {
         secp256k1_sha256_t sha256_m, sha256_pre;
         secp256k1_scalar zero, clast, cSig, ss;
         secp256k1_ge ge1;
@@ -481,9 +472,6 @@ int secp256k1_verify_mlsag(const secp256k1_context *ctx,
         secp256k1_scalar_add(&zero, &clast, &cSig);
 
         return secp256k1_scalar_is_zero(&zero) ? 0 : 2; /* return 0 on success, 2 on failure */
-    } catch (...) {
-        return 1;
-    }
 }
 
 #endif

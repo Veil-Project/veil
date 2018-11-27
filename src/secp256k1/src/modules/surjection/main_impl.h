@@ -40,8 +40,8 @@ int secp256k1_surjectionproof_parse(const secp256k1_context* ctx, secp256k1_surj
     size_t signature_len;
 
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(proof != NULL);
-    ARG_CHECK(input != NULL);
+    RETURN_ZERO(proof != NULL);
+    RETURN_ZERO(input != NULL);
     (void) ctx;
 
     if (inputlen < 2) {
@@ -71,9 +71,9 @@ int secp256k1_surjectionproof_serialize(const secp256k1_context* ctx, unsigned c
     size_t serialized_len;
 
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(output != NULL);
-    ARG_CHECK(outputlen != NULL);
-    ARG_CHECK(proof != NULL);
+    RETURN_ZERO(output != NULL);
+    RETURN_ZERO(outputlen != NULL);
+    RETURN_ZERO(proof != NULL);
     (void) ctx;
 
     signature_len = 32 * (1 + secp256k1_count_bits_set(proof->used_inputs, (proof->n_inputs + 7) / 8));
@@ -93,21 +93,21 @@ int secp256k1_surjectionproof_serialize(const secp256k1_context* ctx, unsigned c
 
 size_t secp256k1_surjectionproof_n_total_inputs(const secp256k1_context* ctx, const secp256k1_surjectionproof* proof) {
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(proof != NULL);
+    RETURN_ZERO(proof != NULL);
     (void) ctx;
     return proof->n_inputs;
 }
 
 size_t secp256k1_surjectionproof_n_used_inputs(const secp256k1_context* ctx, const secp256k1_surjectionproof* proof) {
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(proof != NULL);
+    RETURN_ZERO(proof != NULL);
     (void) ctx;
     return secp256k1_count_bits_set(proof->used_inputs, (proof->n_inputs + 7) / 8);
 }
 
 size_t secp256k1_surjectionproof_serialized_size(const secp256k1_context* ctx, const secp256k1_surjectionproof* proof) {
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(proof != NULL);
+    RETURN_ZERO(proof != NULL);
     return 2 + (proof->n_inputs + 7) / 8 + 32 * (1 + secp256k1_surjectionproof_n_used_inputs(ctx, proof));
 }
 
@@ -147,13 +147,13 @@ int secp256k1_surjectionproof_initialize(const secp256k1_context* ctx, secp256k1
     size_t n_iterations = 0;
 
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(proof != NULL);
-    ARG_CHECK(input_index != NULL);
-    ARG_CHECK(fixed_input_tags != NULL);
-    ARG_CHECK(fixed_output_tag != NULL);
-    ARG_CHECK(random_seed32 != NULL);
-    ARG_CHECK(n_input_tags <= SECP256K1_SURJECTIONPROOF_MAX_N_INPUTS);
-    ARG_CHECK(n_input_tags_to_use <= n_input_tags);
+    RETURN_ZERO(proof != NULL);
+    RETURN_ZERO(input_index != NULL);
+    RETURN_ZERO(fixed_input_tags != NULL);
+    RETURN_ZERO(fixed_output_tag != NULL);
+    RETURN_ZERO(random_seed32 != NULL);
+    RETURN_ZERO(n_input_tags <= SECP256K1_SURJECTIONPROOF_MAX_N_INPUTS);
+    RETURN_ZERO(n_input_tags_to_use <= n_input_tags);
 
     secp256k1_surjectionproof_csprng_init(&csprng, random_seed32);
     memset(proof->data, 0, sizeof(proof->data));
@@ -216,11 +216,11 @@ int secp256k1_surjectionproof_generate(const secp256k1_context* ctx, secp256k1_s
     unsigned char msg32[32];
 
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(proof != NULL);
-    ARG_CHECK(ephemeral_input_tags != NULL);
-    ARG_CHECK(ephemeral_output_tag != NULL);
-    ARG_CHECK(input_blinding_key != NULL);
-    ARG_CHECK(output_blinding_key != NULL);
+    RETURN_ZERO(proof != NULL);
+    RETURN_ZERO(ephemeral_input_tags != NULL);
+    RETURN_ZERO(ephemeral_output_tag != NULL);
+    RETURN_ZERO(input_blinding_key != NULL);
+    RETURN_ZERO(output_blinding_key != NULL);
 #ifdef VERIFY
     CHECK(proof->initialized == 1);
 #endif
@@ -289,9 +289,9 @@ int secp256k1_surjectionproof_verify(const secp256k1_context* ctx, const secp256
     unsigned char msg32[32];
 
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(proof != NULL);
-    ARG_CHECK(ephemeral_input_tags != NULL);
-    ARG_CHECK(ephemeral_output_tag != NULL);
+    RETURN_ZERO(proof != NULL);
+    RETURN_ZERO(ephemeral_input_tags != NULL);
+    RETURN_ZERO(ephemeral_output_tag != NULL);
 
     /* Compute public keys */
     n_total_pubkeys = secp256k1_surjectionproof_n_total_inputs(ctx, proof);

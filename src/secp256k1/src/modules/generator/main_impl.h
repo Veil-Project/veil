@@ -31,8 +31,10 @@ static void secp256k1_generator_save(secp256k1_generator* commit, secp256k1_ge* 
 
 int secp256k1_generator_parse(const secp256k1_context* ctx, secp256k1_generator* gen, const unsigned char *input) {
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(gen != NULL);
-    ARG_CHECK(input != NULL);
+    if (gen == NULL)
+        return 0;
+    if (input == NULL)
+        return 0;
     if ((input[0] & 0xFE) != 10) {
         return 0;
     }
@@ -42,8 +44,10 @@ int secp256k1_generator_parse(const secp256k1_context* ctx, secp256k1_generator*
 
 int secp256k1_generator_serialize(const secp256k1_context* ctx, unsigned char *output, const secp256k1_generator* gen) {
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(output != NULL);
-    ARG_CHECK(gen != NULL);
+    if (output == NULL)
+        return 0;
+    if (gen == NULL)
+        return 0;
     memcpy(output, gen->data, sizeof(gen->data));
     return 1;
 }
@@ -156,7 +160,7 @@ static int secp256k1_generator_generate_internal(const secp256k1_context* ctx, s
         secp256k1_scalar blind = SECP256K1_SCALAR_CONST(0, 0, 0, 0, 0, 0, 0, 1);
         secp256k1_scalar_set_b32(&blind, blind32, &overflow);
         ret = !overflow;
-        CHECK(ret);
+        RETURN_ZERO(ret);
         secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &accum, &blind);
     }
 
@@ -165,7 +169,7 @@ static int secp256k1_generator_generate_internal(const secp256k1_context* ctx, s
     secp256k1_sha256_write(&sha256, key32, 32);
     secp256k1_sha256_finalize(&sha256, b32);
     ret &= secp256k1_fe_set_b32(&t, b32);
-    CHECK(ret);
+    RETURN_ZERO(ret);
     shallue_van_de_woestijne(&add, &t);
     if (blind32) {
         secp256k1_gej_add_ge(&accum, &accum, &add);
@@ -178,7 +182,7 @@ static int secp256k1_generator_generate_internal(const secp256k1_context* ctx, s
     secp256k1_sha256_write(&sha256, key32, 32);
     secp256k1_sha256_finalize(&sha256, b32);
     ret &= secp256k1_fe_set_b32(&t, b32);
-    CHECK(ret);
+    RETURN_ZERO(ret);
     shallue_van_de_woestijne(&add, &t);
     secp256k1_gej_add_ge(&accum, &accum, &add);
 
@@ -189,18 +193,25 @@ static int secp256k1_generator_generate_internal(const secp256k1_context* ctx, s
 
 int secp256k1_generator_generate(const secp256k1_context* ctx, secp256k1_generator* gen, const unsigned char *key32) {
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(gen != NULL);
-    ARG_CHECK(key32 != NULL);
-    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    if (gen == NULL)
+        return 0;
+    if (key32 == NULL)
+        return 0;
+    if (!secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx))
+        return 0;
     return secp256k1_generator_generate_internal(ctx, gen, key32, NULL);
 }
 
 int secp256k1_generator_generate_blinded(const secp256k1_context* ctx, secp256k1_generator* gen, const unsigned char *key32, const unsigned char *blind32) {
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(gen != NULL);
-    ARG_CHECK(key32 != NULL);
-    ARG_CHECK(blind32 != NULL);
-    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    if (gen == NULL)
+        return 0;
+    if (key32 == NULL)
+        return 0;
+    if (blind32 == NULL)
+        return 0;
+    if (!secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx))
+        return 0;
     return secp256k1_generator_generate_internal(ctx, gen, key32, blind32);
 }
 

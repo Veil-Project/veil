@@ -27,10 +27,10 @@ int secp256k1_schnorr_sign(const secp256k1_context* ctx, unsigned char *sig64, c
     unsigned char nonce32[32];
     unsigned int count = 0;
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
-    ARG_CHECK(msg32 != NULL);
-    ARG_CHECK(sig64 != NULL);
-    ARG_CHECK(seckey != NULL);
+    RETURN_ZERO(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    RETURN_ZERO(msg32 != NULL);
+    RETURN_ZERO(sig64 != NULL);
+    RETURN_ZERO(seckey != NULL);
     if (noncefp == NULL) {
         noncefp = secp256k1_nonce_function_default;
     }
@@ -61,10 +61,10 @@ int secp256k1_schnorr_sign(const secp256k1_context* ctx, unsigned char *sig64, c
 int secp256k1_schnorr_verify(const secp256k1_context* ctx, const unsigned char *sig64, const unsigned char *msg32, const secp256k1_pubkey *pubkey) {
     secp256k1_ge q;
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
-    ARG_CHECK(msg32 != NULL);
-    ARG_CHECK(sig64 != NULL);
-    ARG_CHECK(pubkey != NULL);
+    RETURN_ZERO(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
+    RETURN_ZERO(msg32 != NULL);
+    RETURN_ZERO(sig64 != NULL);
+    RETURN_ZERO(pubkey != NULL);
 
     secp256k1_pubkey_load(ctx, &q, pubkey);
     return secp256k1_schnorr_sig_verify(&ctx->ecmult_ctx, sig64, &q, secp256k1_schnorr_msghash_sha256, msg32);
@@ -74,10 +74,10 @@ int secp256k1_schnorr_recover(const secp256k1_context* ctx, secp256k1_pubkey *pu
     secp256k1_ge q;
 
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
-    ARG_CHECK(msg32 != NULL);
-    ARG_CHECK(sig64 != NULL);
-    ARG_CHECK(pubkey != NULL);
+    RETURN_ZERO(secp256k1_ecmult_context_is_built(&ctx->ecmult_ctx));
+    RETURN_ZERO(msg32 != NULL);
+    RETURN_ZERO(sig64 != NULL);
+    RETURN_ZERO(pubkey != NULL);
 
     if (secp256k1_schnorr_sig_recover(&ctx->ecmult_ctx, sig64, &q, secp256k1_schnorr_msghash_sha256, msg32)) {
         secp256k1_pubkey_save(pubkey, &q);
@@ -96,11 +96,11 @@ int secp256k1_schnorr_generate_nonce_pair(const secp256k1_context* ctx, secp256k
     secp256k1_scalar sec;
 
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
-    ARG_CHECK(msg32 != NULL);
-    ARG_CHECK(sec32 != NULL);
-    ARG_CHECK(pubnonce != NULL);
-    ARG_CHECK(privnonce32 != NULL);
+    RETURN_ZERO(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    RETURN_ZERO(msg32 != NULL);
+    RETURN_ZERO(sec32 != NULL);
+    RETURN_ZERO(pubnonce != NULL);
+    RETURN_ZERO(privnonce32 != NULL);
 
     if (noncefp == NULL) {
         noncefp = secp256k1_nonce_function_default;
@@ -135,12 +135,12 @@ int secp256k1_schnorr_partial_sign(const secp256k1_context* ctx, unsigned char *
     secp256k1_scalar sec, non;
     secp256k1_ge pubnon;
     VERIFY_CHECK(ctx != NULL);
-    ARG_CHECK(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
-    ARG_CHECK(msg32 != NULL);
-    ARG_CHECK(sig64 != NULL);
-    ARG_CHECK(sec32 != NULL);
-    ARG_CHECK(secnonce32 != NULL);
-    ARG_CHECK(pubnonce_others != NULL);
+    RETURN_ZERO(secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx));
+    RETURN_ZERO(msg32 != NULL);
+    RETURN_ZERO(sig64 != NULL);
+    RETURN_ZERO(sec32 != NULL);
+    RETURN_ZERO(secnonce32 != NULL);
+    RETURN_ZERO(pubnonce_others != NULL);
 
     secp256k1_scalar_set_b32(&sec, sec32, &overflow);
     if (overflow || secp256k1_scalar_is_zero(&sec)) {
@@ -155,9 +155,9 @@ int secp256k1_schnorr_partial_sign(const secp256k1_context* ctx, unsigned char *
 }
 
 int secp256k1_schnorr_partial_combine(const secp256k1_context* ctx, unsigned char *sig64, const unsigned char * const *sig64sin, size_t n) {
-    ARG_CHECK(sig64 != NULL);
-    ARG_CHECK(n >= 1);
-    ARG_CHECK(sig64sin != NULL);
+    RETURN_ZERO(sig64 != NULL);
+    RETURN_ZERO(n >= 1);
+    RETURN_ZERO(sig64sin != NULL);
     return secp256k1_schnorr_sig_combine(sig64, n, sig64sin);
 }
 
