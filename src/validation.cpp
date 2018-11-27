@@ -2714,7 +2714,7 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
 
     //If Zerocoin automint is on, then Zerocoins will be minted
     std::shared_ptr<CWallet> wMainWallet = GetMainWallet();
-    if(wMainWallet->isZeromintEnabled()) {
+    if (!IsInitialBlockDownload() && wMainWallet->isZeromintEnabled()) {
         wMainWallet->AutoZeromint();
     }
 

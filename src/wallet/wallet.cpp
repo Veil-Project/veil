@@ -4302,13 +4302,13 @@ void CWallet::AutoZeromint()
     CCoinControl coinControl;
     CAmount nBalance = GetMintableBalance(vOutputs); // won't consider locked outputs or basecoin address
 
-    for (const COutput& out : vOutputs)
-        coinControl.Select(COutPoint(out.tx->GetHash(), out.i));
-
     if (nBalance < 10){
         LogPrint(BCLog::SELECTCOINS, "CWallet::AutoZeromint(): available balance (%ld) too small for minting zPIV\n", nBalance);
         return;
     }
+
+    for (const COutput& out : vOutputs)
+        coinControl.Select(COutPoint(out.tx->GetHash(), out.i));
 
     double dPercentage = 100 * (double)nZerocoinBalance / (double)(nZerocoinBalance + nBalance);
 
@@ -4353,7 +4353,7 @@ void CWallet::AutoZeromint()
 
     if (nMintAmount > 0){
         CWalletTx wtx(NULL, NULL);
-        vector<CDeterministicMint> vDMints;
+        std::vector<CDeterministicMint> vDMints;
         string strError = GetMainWallet()->MintZerocoin(nMintAmount*COIN, wtx, vDMints, &coinControl);
 
         // Return if something went wrong during minting
