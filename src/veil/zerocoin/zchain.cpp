@@ -321,7 +321,6 @@ bool RemoveSerialFromDB(const CBigNum& bnSerial)
 
 std::shared_ptr<libzerocoin::CoinSpend> TxInToZerocoinSpend(const CTxIn& txin)
 {
-
     // extract the CoinSpend from the txin
     try {
         std::vector<char, zero_after_free_allocator<char> > dataTxIn;
@@ -329,8 +328,8 @@ std::shared_ptr<libzerocoin::CoinSpend> TxInToZerocoinSpend(const CTxIn& txin)
         CDataStream serializedCoinSpend(dataTxIn, SER_NETWORK, PROTOCOL_VERSION);
         libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), serializedCoinSpend);
         return std::make_shared<libzerocoin::CoinSpend>(spend);
-    } catch (...) {
-        error("%s: Failed to convert CTxIn to ZerocoinSpend", __func__);
+    } catch (const std::exception& e) {
+        error("%s: Failed to convert CTxIn to ZerocoinSpend. %s", __func__, e.what());
     }
 
     return nullptr;

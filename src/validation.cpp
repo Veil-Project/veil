@@ -4087,11 +4087,16 @@ bool CChainState::ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput*
         if (pindex->nHeight - pindexFrom->nHeight < Params().Zerocoin_RequiredStakeDepth())
             return error("%s: zerocoin stake does not have required confirmation depth", __func__);
 
-        //The checksum needs to be the exact checksum from 400 blocks ago
+        //The checksum needs to be the exact checksum from the modifier height
         libzerocoin::CoinDenomination denom = libzerocoin::AmountToZerocoinDenomination(stakeCheck->GetValue());
-        uint256 hashCheckpoint = chainActive[pindex->nHeight - Params().Zerocoin_RequiredStakeDepth()]->GetAccumulatorHash(denom);
+        int nHeightStake = pindex->nHeight - Params().Zerocoin_RequiredStakeDepth();
+        CBlockIndex* pindexFrom2 = pindex->GetAncestor(nHeightStake);
+        if (!pindexFrom2)
+            return error("%s: block ancestor does not exist", __func__);
+
+        uint256 hashCheckpoint = pindexFrom2->GetAccumulatorHash(denom);
         if (hashCheckpoint != stakeCheck->GetChecksum())
-            return error("%s: accumulator checksum is different than the block 400 blocks previous. stake=%d block400=%s", __func__, stakeCheck->GetChecksum().GetHex(), hashCheckpoint.GetHex());
+            return error("%s: accumulator checksum is different than the modifier block. indexfromheight=%d stake=%s blockfrom=%s", __func__, pindexFrom->nHeight, stakeCheck->GetChecksum().GetHex(), hashCheckpoint.GetHex());
     } else {
         return error("%s: dynamic_cast of stake ptr failed", __func__);
     }
