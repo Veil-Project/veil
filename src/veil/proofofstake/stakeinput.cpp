@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <tinyformat.h>
 #include "veil/zerocoin/accumulators.h"
 #include "chain.h"
 #include "chainparams.h"
@@ -25,7 +26,7 @@ ZerocoinStake::ZerocoinStake(const libzerocoin::CoinSpend& spend)
 
 int ZerocoinStake::GetChecksumHeightFromMint()
 {
-    int nHeightChecksum = chainActive.Height() - Params().Zerocoin_RequiredStakeDepth();
+    int nHeightChecksum = chainActive.Height() + 1 - Params().Zerocoin_RequiredStakeDepth();
     //Need to return the first occurance of this checksum in order for the validation process to identify a specific
     //block height
     uint256 nChecksum;

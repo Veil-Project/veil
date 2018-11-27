@@ -3387,12 +3387,7 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
         if (fKernelFound)
             break; // if kernel is found stop searching
     }
-    if (!fKernelFound)
-        return false;
-
-
-    // Successfully generated coinstake
-    return true;
+    return fKernelFound;
 }
 bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount)
 {
