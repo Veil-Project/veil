@@ -404,12 +404,11 @@ void CzWallet::UpdateCount()
 
 void CzWallet::GenerateDeterministicZerocoin(CoinDenomination denom, PrivateCoin& coin, CDeterministicMint& dMint, bool fGenerateOnly)
 {
-    GenerateMint(nCountLastUsed + 1, denom, coin, dMint);
-    if (fGenerateOnly)
-        return;
-
-    //TODO remove this leak of seed from logs before merge to master
-    //LogPrintf("%s : Generated new deterministic mint. Count=%d pubcoin=%s seed=%s\n", __func__, nCount, coin.getPublicCoin().getValue().GetHex().substr(0,6), seedZerocoin.GetHex().substr(0, 4));
+    while (true) {
+        GenerateMint(nCountLastUsed + 1, denom, coin, dMint);
+        if (coin.getPublicCoin().validate())
+            break;
+    }
 }
 
 void CzWallet::GenerateMint(const uint32_t& nCount, const CoinDenomination denom, PrivateCoin& coin, CDeterministicMint& dMint)
