@@ -815,6 +815,7 @@ UniValue exportzerocoins(const JSONRPCRequest& request)
                                             "    \"u\": used,      (boolean) Whether the mint has been spent\n"
                                             "    \"v\": version,   (numeric) The version of the zerocoin\n"
                                             "    \"k\": \"privkey\"  (string) The zerocoin private key (V2+ zerocoin only)\n"
+                                            "    \"sh\": \"serialhash\"  (string) The zerocoin's serialhash\n"
                                             "  }\n"
                                             "  ,...\n"
                                             "]\n"
@@ -861,6 +862,8 @@ UniValue exportzerocoins(const JSONRPCRequest& request)
             cBitcoinSecret.SetKey(key);
             objMint.push_back(Pair("k", cBitcoinSecret.ToString()));
         }
+        uint256 hashSerial = GetSerialHash(mint.GetSerialNumber());
+        objMint.push_back(Pair("sh", hashSerial.GetHex()));
         jsonList.push_back(objMint);
     }
 

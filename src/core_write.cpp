@@ -4,6 +4,7 @@
 
 #include <core_io.h>
 
+#include <veil/ringct/blind.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <key_io.h>
@@ -135,6 +136,82 @@ std::string EncodeHexTx(const CTransaction& tx, const int serializeFlags)
     return HexStr(ssTx.begin(), ssTx.end());
 }
 
+void AddRangeproof(const std::vector<uint8_t> &vRangeproof, UniValue &entry)
+{
+    entry.pushKV("rangeproof", HexStr(vRangeproof.begin(), vRangeproof.end()));
+
+    if (vRangeproof.size() > 0)
+    {
+        int exponent, mantissa;
+        CAmount min_value, max_value;
+        if (0 == GetRangeProofInfo(vRangeproof, exponent, mantissa, min_value, max_value))
+        {
+            entry.pushKV("rp_exponent", exponent);
+            entry.pushKV("rp_mantissa", mantissa);
+            entry.pushKV("rp_min_value", ValueFromAmount(min_value));
+            entry.pushKV("rp_max_value", ValueFromAmount(max_value));
+        };
+    };
+}
+
+void OutputToJSON(uint256 &txid, int i,
+                  const CTxOutBase *baseOut, UniValue &entry)
+{
+    switch (baseOut->GetType())
+    {
+        case OUTPUT_STANDARD:
+        {
+            entry.pushKV("type", "standard");
+            CTxOutStandard *s = (CTxOutStandard*) baseOut;
+            entry.pushKV("value", ValueFromAmount(s->nValue));
+            entry.pushKV("valueSat", s->nValue);
+            UniValue o(UniValue::VOBJ);
+            ScriptPubKeyToUniv(s->scriptPubKey, o, true);
+            entry.pushKV("scriptPubKey", o);
+        }
+            break;
+        case OUTPUT_DATA:
+        {
+            CTxOutData *s = (CTxOutData*) baseOut;
+            entry.pushKV("type", "data");
+            entry.pushKV("data_hex", HexStr(s->vData.begin(), s->vData.end()));
+            CAmount nValue;
+            if (s->GetCTFee(nValue))
+                entry.pushKV("ct_fee", ValueFromAmount(nValue));
+            if (s->GetDevFundCfwd(nValue))
+                entry.pushKV("dev_fund_cfwd", ValueFromAmount(nValue));
+        }
+            break;
+        case OUTPUT_CT:
+        {
+            CTxOutCT *s = (CTxOutCT*) baseOut;
+            entry.pushKV("type", "blind");
+            entry.pushKV("valueCommitment", HexStr(&s->commitment.data[0], &s->commitment.data[0]+33));
+            UniValue o(UniValue::VOBJ);
+            ScriptPubKeyToUniv(s->scriptPubKey, o, true);
+            entry.pushKV("scriptPubKey", o);
+            entry.pushKV("data_hex", HexStr(s->vData.begin(), s->vData.end()));
+
+            AddRangeproof(s->vRangeproof, entry);
+        }
+            break;
+        case OUTPUT_RINGCT:
+        {
+            CTxOutRingCT *s = (CTxOutRingCT*) baseOut;
+            entry.pushKV("type", "ringct");
+            entry.pushKV("pubkey", HexStr(s->pk.begin(), s->pk.end()));
+            entry.pushKV("valueCommitment", HexStr(&s->commitment.data[0], &s->commitment.data[0]+33));
+            entry.pushKV("data_hex", HexStr(s->vData.begin(), s->vData.end()));
+
+            AddRangeproof(s->vRangeproof, entry);
+        }
+            break;
+        default:
+            entry.pushKV("type", "unknown");
+            break;
+    }
+}
+
 void ScriptToUniv(const CScript& script, UniValue& out, bool include_address)
 {
     out.pushKV("asm", ScriptToAsmStr(script));
@@ -193,7 +270,13 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
         UniValue in(UniValue::VOBJ);
         if (tx.IsCoinBase())
             in.pushKV("coinbase", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
-        else {
+        if (txin.IsAnonInput()) {
+            in.pushKV("type", "anon");
+            uint32_t nSigInputs, nSigRingSize;
+            txin.GetAnonInfo(nSigInputs, nSigRingSize);
+            in.pushKV("num_inputs", (int) nSigInputs);
+            in.pushKV("ring_size", (int) nSigRingSize);
+        } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
             in.pushKV("vout", (int64_t)txin.prevout.n);
             UniValue o(UniValue::VOBJ);
@@ -214,22 +297,14 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
     entry.pushKV("vin", vin);
 
     UniValue vout(UniValue::VARR);
+    auto txid = tx.GetHash();
     for (unsigned int i = 0; i < tx.vpout.size(); i++) {
         const auto& pout = tx.vpout[i];
-
         UniValue out(UniValue::VOBJ);
-
-        out.pushKV("value", ValueFromAmount(pout->GetValue()));
-        out.pushKV("n", (int64_t)i);
-
-        UniValue o(UniValue::VOBJ);
-        CScript scriptPubKey;
-        if (pout->GetScriptPubKey(scriptPubKey)) {
-            ScriptPubKeyToUniv(scriptPubKey, o, true);
-            out.pushKV("scriptPubKey", o);
-        }
+        OutputToJSON(txid, i, pout.get(), out);
         vout.push_back(out);
     }
+
     entry.pushKV("vout", vout);
 
     if (!hashBlock.IsNull())
