@@ -4429,7 +4429,6 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
                 }
             }
 
-
             for (size_t l = 0; l < txNew.vin.size(); ++l) {
                 auto &txin = txNew.vin[l];
 
@@ -4548,16 +4547,18 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
                     }
 
                     vpBlinds.pop_back();
-                }
+                };
 
-
-                uint256 txhash = txNew.GetHash();
-
+                uint256 hashOutputs = txNew.GetOutputsHash();
                 if (0 != (rv = secp256k1_generate_mlsag(secp256k1_ctx_blind, &vKeyImages[0], &vDL[0], &vDL[32],
-                    randSeed, txhash.begin(), nCols, nRows, vSecretColumns[l],
+                    randSeed, hashOutputs.begin(), nCols, nRows, vSecretColumns[l],
                     &vpsk[0], &vm[0]))) {
                     return wserrorN(1, sError, __func__, _("secp256k1_generate_mlsag failed %d"), rv);
                 }
+
+                // Validate the mlsag
+                if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind, hashOutputs.begin(), nCols, nRows, &vm[0], &vKeyImages[0], &vDL[0], &vDL[32])))
+                    return wserrorN(1, sError, __func__, _("secp256k1_verify_mlsag failed on initial generation %d"), rv);
             }
         }
 
@@ -9554,13 +9555,13 @@ bool CHDWallet::SelectBlindedCoins(const std::vector<COutputR> &vAvailableCoins,
             const CTransactionRecord &rtx = it->second;
             const COutputRecord *oR = rtx.GetOutput(outpoint.n);
             if (!oR) {
-                return werror("%s: Can't find output %s\n", __func__, outpoint.ToString());
+                return error("%s: Can't find output %s\n", __func__, outpoint.ToString());
             }
 
             nValueFromPresetInputs += oR->nValue;
             vPresetCoins.push_back(std::make_pair(it, outpoint.n));
         } else {
-            return werror("%s: Can't find output %s\n", __func__, outpoint.ToString());
+            return error("%s: Can't find output %s\n", __func__, outpoint.ToString());
         }
     }
 

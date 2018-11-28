@@ -217,6 +217,14 @@ uint256 CTransaction::ComputeWitnessHash() const
     return SerializeHash(*this, SER_GETHASH, 0);
 }
 
+uint256 CTransaction::GetOutputsHash() const
+{
+    uint256 hashOutputs;
+    for (const auto& out : vpout)
+        hashOutputs = Hash(BEGIN(*out.get()), END(*out.get()), hashOutputs.begin(), hashOutputs.end());
+    return hashOutputs;
+}
+
 /* For backward compatibility, the hash is initialized to 0. TODO: remove the need for this default constructor entirely. */
 CTransaction::CTransaction() : vin(), vpout(), nVersion(CTransaction::CURRENT_VERSION), nLockTime(0), hash{}, m_witness_hash{} {}
 CTransaction::CTransaction(const CMutableTransaction &tx) : vin(tx.vin), vpout{DeepCopy(tx.vpout)}, nVersion(tx.nVersion), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}

@@ -48,6 +48,7 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
     if (fSplitCommitments)
         vpInputSplitCommits.reserve(tx.vin.size());
 
+    uint256 hashOutputs = tx.GetOutputsHash();
     for (const auto &txin : tx.vin) {
         if (!txin.IsAnonInput())
             return state.DoS(100, false, REJECT_MALFORMED, "bad-anon-input");
@@ -147,7 +148,7 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
                 &vpInCommits[0], &vpOutCommits[0], nullptr)))
             return state.DoS(100, error("%s: prepare-mlsag-failed %d", __func__, rv), REJECT_INVALID, "prepare-mlsag-failed");
 
-        if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind, txhash.begin(), nCols, nRows, &vM[0], &vKeyImages[0],
+        if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind, hashOutputs.begin(), nCols, nRows, &vM[0], &vKeyImages[0],
                 &vDL[0], &vDL[32])))
             return state.DoS(100, error("%s: verify-mlsag-failed %d", __func__, rv), REJECT_INVALID, "verify-mlsag-failed");
     }

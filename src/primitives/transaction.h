@@ -800,6 +800,7 @@ public:
 
     const uint256& GetHash() const { return hash; }
     const uint256& GetWitnessHash() const { return m_witness_hash; };
+    uint256 GetOutputsHash() const;
 
     // Return sum of txouts.
     CAmount GetValueOut() const;
@@ -896,6 +897,7 @@ struct CMutableTransaction
      * fly, as opposed to GetHash() in CTransaction, which uses a cached result.
      */
     uint256 GetHash() const;
+    uint256 GetOutputsHash() const { return ((CTransaction*)this)->GetOutputsHash(); }
 
     bool HasWitness() const
     {
