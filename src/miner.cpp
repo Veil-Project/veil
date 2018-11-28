@@ -337,6 +337,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         LogPrintf("%s: failed to get accumulator checkpoints\n", __func__);
     pblock->mapAccumulatorHashes = mapCheckpoints;
 
+    // Once the merkleRoot, witnessMerkleRoot and mapAccumulatorHashes have been calculated we can calculate the hashVeilData
+    pblock->hashVeilData = pblock->GetVeilDataHash();
+
     //Sign block if this is a proof of stake block
     if (fProofOfStake) {
         if (!pblock->vtx[1]->IsZerocoinSpend()) {

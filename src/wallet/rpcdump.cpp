@@ -333,65 +333,66 @@ UniValue importaddress(const JSONRPCRequest& request)
 
 UniValue importprunedfunds(const JSONRPCRequest& request)
 {
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CWallet* const pwallet = wallet.get();
-    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
-        return NullUniValue;
-    }
-
-    if (request.fHelp || request.params.size() != 2)
-        throw std::runtime_error(
-            "importprunedfunds\n"
-            "\nImports funds without rescan. Corresponding address or script must previously be included in wallet. Aimed towards pruned wallets. The end-user is responsible to import additional transactions that subsequently spend the imported outputs or rescan after the point in the blockchain the transaction is included.\n"
-            "\nArguments:\n"
-            "1. \"rawtransaction\" (string, required) A raw transaction in hex funding an already-existing address in wallet\n"
-            "2. \"txoutproof\"     (string, required) The hex output from gettxoutproof that contains the transaction\n"
-        );
-
-    CMutableTransaction tx;
-    if (!DecodeHexTx(tx, request.params[0].get_str()))
-        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
-    uint256 hashTx = tx.GetHash();
-    CWalletTx wtx(pwallet, MakeTransactionRef(std::move(tx)));
-
-    CDataStream ssMB(ParseHexV(request.params[1], "proof"), SER_NETWORK, PROTOCOL_VERSION);
-    CMerkleBlock merkleBlock;
-    ssMB >> merkleBlock;
-
-    //Search partial merkle tree in proof for our transaction and index in valid block
-    std::vector<uint256> vMatch;
-    std::vector<unsigned int> vIndex;
-    unsigned int txnIndex = 0;
-    if (merkleBlock.txn.ExtractMatches(vMatch, vIndex) == merkleBlock.header.hashMerkleRoot) {
-
-        LOCK(cs_main);
-        const CBlockIndex* pindex = LookupBlockIndex(merkleBlock.header.GetHash());
-        if (!pindex || !chainActive.Contains(pindex)) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found in chain");
-        }
-
-        std::vector<uint256>::const_iterator it;
-        if ((it = std::find(vMatch.begin(), vMatch.end(), hashTx))==vMatch.end()) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Transaction given doesn't exist in proof");
-        }
-
-        txnIndex = vIndex[it - vMatch.begin()];
-    }
-    else {
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Something wrong with merkleblock");
-    }
-
-    wtx.nIndex = txnIndex;
-    wtx.hashBlock = merkleBlock.header.GetHash();
-
-    LOCK2(cs_main, pwallet->cs_wallet);
-
-    if (pwallet->IsMine(*wtx.tx)) {
-        pwallet->AddToWallet(wtx, false);
-        return NullUniValue;
-    }
-
-    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No addresses in wallet correspond to included transaction");
+    throw JSONRPCError(RPC_INVALID_REQUEST, "This rpc call is not implemented in veil yet.");
+//    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+//    CWallet* const pwallet = wallet.get();
+//    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+//        return NullUniValue;
+//    }
+//
+//    if (request.fHelp || request.params.size() != 2)
+//        throw std::runtime_error(
+//            "importprunedfunds\n"
+//            "\nImports funds without rescan. Corresponding address or script must previously be included in wallet. Aimed towards pruned wallets. The end-user is responsible to import additional transactions that subsequently spend the imported outputs or rescan after the point in the blockchain the transaction is included.\n"
+//            "\nArguments:\n"
+//            "1. \"rawtransaction\" (string, required) A raw transaction in hex funding an already-existing address in wallet\n"
+//            "2. \"txoutproof\"     (string, required) The hex output from gettxoutproof that contains the transaction\n"
+//        );
+//
+//    CMutableTransaction tx;
+//    if (!DecodeHexTx(tx, request.params[0].get_str()))
+//        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
+//    uint256 hashTx = tx.GetHash();
+//    CWalletTx wtx(pwallet, MakeTransactionRef(std::move(tx)));
+//
+//    CDataStream ssMB(ParseHexV(request.params[1], "proof"), SER_NETWORK, PROTOCOL_VERSION);
+//    CMerkleBlock merkleBlock;
+//    ssMB >> merkleBlock;
+//
+//    //Search partial merkle tree in proof for our transaction and index in valid block
+//    std::vector<uint256> vMatch;
+//    std::vector<unsigned int> vIndex;
+//    unsigned int txnIndex = 0;
+//    if (merkleBlock.txn.ExtractMatches(vMatch, vIndex) == merkleBlock.header.hashMerkleRoot) {
+//
+//        LOCK(cs_main);
+//        const CBlockIndex* pindex = LookupBlockIndex(merkleBlock.header.GetHash());
+//        if (!pindex || !chainActive.Contains(pindex)) {
+//            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found in chain");
+//        }
+//
+//        std::vector<uint256>::const_iterator it;
+//        if ((it = std::find(vMatch.begin(), vMatch.end(), hashTx))==vMatch.end()) {
+//            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Transaction given doesn't exist in proof");
+//        }
+//
+//        txnIndex = vIndex[it - vMatch.begin()];
+//    }
+//    else {
+//        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Something wrong with merkleblock");
+//    }
+//
+//    wtx.nIndex = txnIndex;
+//    wtx.hashBlock = merkleBlock.header.GetHash();
+//
+//    LOCK2(cs_main, pwallet->cs_wallet);
+//
+//    if (pwallet->IsMine(*wtx.tx)) {
+//        pwallet->AddToWallet(wtx, false);
+//        return NullUniValue;
+//    }
+//
+//    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No addresses in wallet correspond to included transaction");
 }
 
 UniValue removeprunedfunds(const JSONRPCRequest& request)

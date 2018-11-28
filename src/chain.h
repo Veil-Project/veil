@@ -224,9 +224,7 @@ public:
 
     //! block header
     int32_t nVersion;
-    uint256 hashMerkleRoot;
-    uint256 hashWitnessMerkleRoot;
-    uint256 hashAccumulators;
+    uint256 hashVeilData;
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
@@ -243,6 +241,9 @@ public:
 
     //! Hash value for the accumulator. Can be used to access the zerocoindb for the accumulator value
     std::map<libzerocoin::CoinDenomination ,uint256> mapAccumulatorHashes;
+
+    uint256 hashMerkleRoot;
+    uint256 hashWitnessMerkleRoot;
 
     void SetNull()
     {
@@ -269,6 +270,8 @@ public:
         nAnonOutputs = 0;
 
         mapAccumulatorHashes.clear();
+        hashMerkleRoot = uint256();
+        hashWitnessMerkleRoot = uint256();
 
         for (auto& denom : libzerocoin::zerocoinDenomList) {
             mapAccumulatorHashes[denom] = uint256();
@@ -282,9 +285,9 @@ public:
         vMintDenominationsInBlock.clear();
 
         nVersion       = 0;
+        hashVeilData   = uint256();
         hashMerkleRoot = uint256();
         hashWitnessMerkleRoot = uint256();
-        hashAccumulators = uint256();
         nTime          = 0;
         nBits          = 0;
         nNonce         = 0;
@@ -300,9 +303,7 @@ public:
         SetNull();
 
         nVersion       = block.nVersion;
-        hashMerkleRoot = block.hashMerkleRoot;
-        hashWitnessMerkleRoot = block.hashWitnessMerkleRoot;
-        hashAccumulators = block.hashAccumulators;
+        hashVeilData   = block.hashVeilData;
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
@@ -333,12 +334,10 @@ public:
         block.nVersion       = nVersion;
         if (pprev)
             block.hashPrevBlock = pprev->GetBlockHash();
-        block.hashMerkleRoot = hashMerkleRoot;
-        block.hashWitnessMerkleRoot = hashWitnessMerkleRoot;
+        block.hashVeilData   = hashVeilData;
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
-        block.hashAccumulators = hashAccumulators;
         return block;
     }
 
@@ -510,10 +509,10 @@ public:
         // block header
         READWRITE(this->nVersion);
         READWRITE(hashPrev);
+        READWRITE(hashVeilData);
         READWRITE(hashMerkleRoot);
         // NOTE: Careful matching the version, qa tests use different versions
         READWRITE(hashWitnessMerkleRoot);
-        READWRITE(hashAccumulators);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
@@ -533,12 +532,10 @@ public:
         CBlockHeader block;
         block.nVersion        = nVersion;
         block.hashPrevBlock   = hashPrev;
-        block.hashMerkleRoot  = hashMerkleRoot;
-        block.hashWitnessMerkleRoot = hashWitnessMerkleRoot;
+        block.hashVeilData    = hashVeilData;
         block.nTime           = nTime;
         block.nBits           = nBits;
         block.nNonce          = nNonce;
-        block.hashAccumulators = hashAccumulators;
         return block.GetHash();
     }
 
