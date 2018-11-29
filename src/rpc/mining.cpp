@@ -28,6 +28,7 @@
 
 #include <memory>
 #include <stdint.h>
+#include <tinyformat.h>
 
 unsigned int ParseConfirmTarget(const UniValue& value)
 {
@@ -521,9 +522,24 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
         nStart = GetTime();
         fLastTemplateSupportsSegwit = fSupportsSegwit;
 
+        std::shared_ptr<CReserveScript> coinbaseScript = std::make_shared<CReserveScript>();
+
+        std::string address = "";
+        address = gArgs.GetArg("-miningaddress", "");
+
+        if (address.empty()) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid mining address. Add a miningaddress into your veil.conf");
+        }
+
         // Create new block
-        CScript scriptDummy = CScript() << OP_TRUE;
-        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, fSupportsSegwit);
+        CTxDestination destination = DecodeDestination(address);
+        if (!IsValidDestination(destination)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid mining address");
+        }
+
+        coinbaseScript->reserveScript = GetScriptForDestination(destination);
+
+        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, fSupportsSegwit);
         if (!pblocktemplate)
             throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
 
@@ -539,9 +555,23 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     pblock->nNonce = 0;
 
     // NOTE: If at some point we support pre-segwit miners post-segwit-activation, this needs to take segwit support into consideration
-    const bool fPreSegWit = (ThresholdState::ACTIVE != VersionBitsState(pindexPrev, consensusParams, Consensus::DEPLOYMENT_SEGWIT, versionbitscache));
+    const bool fPreSegWit = false;
 
     UniValue aCaps(UniValue::VARR); aCaps.push_back("proposal");
+
+    UniValue coinbasetxn(UniValue::VOBJ);
+    for (const auto& it : pblock->vtx) {
+        const CTransaction& tx = *it;
+        uint256 txHash = tx.GetHash();
+        coinbasetxn.pushKV("data", EncodeHexTx(tx));
+        coinbasetxn.pushKV("txid", txHash.GetHex());
+        coinbasetxn.pushKV("hash", tx.GetWitnessHash().GetHex());
+        break;
+    }
+
+    UniValue mapaccumulatorhashes(UniValue::VOBJ);
+    for (auto& it : pblock->mapAccumulatorHashes)
+        mapaccumulatorhashes.pushKV(std::to_string(it.first), it.second.GetHex());
 
     UniValue transactions(UniValue::VARR);
     std::map<uint256, int64_t> setTxIndex;
@@ -663,8 +693,6 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     if (fPreSegWit) {
         assert(nSigOpLimit % WITNESS_SCALE_FACTOR == 0);
         nSigOpLimit /= WITNESS_SCALE_FACTOR;
-        assert(nSizeLimit % WITNESS_SCALE_FACTOR == 0);
-        nSizeLimit /= WITNESS_SCALE_FACTOR;
     }
     result.pushKV("sigoplimit", nSigOpLimit);
     result.pushKV("sizelimit", nSizeLimit);
@@ -678,6 +706,12 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     if (!pblocktemplate->vchCoinbaseCommitment.empty() && fSupportsSegwit) {
         result.pushKV("default_witness_commitment", HexStr(pblocktemplate->vchCoinbaseCommitment.begin(), pblocktemplate->vchCoinbaseCommitment.end()));
     }
+
+    result.pushKV("coinbasetxn", coinbasetxn);
+    result.pushKV("accumulatorhashes", mapaccumulatorhashes);
+    result.pushKV("veildatahash", pblock->hashVeilData.GetHex());
+    result.pushKV("witnessmerkleroothash", pblock->hashWitnessMerkleRoot.GetHex());
+    result.pushKV("merkleroothash", pblock->hashMerkleRoot.GetHex());
 
     return result;
 }
