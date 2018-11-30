@@ -968,8 +968,8 @@ bool ArgsManager::ReadConfigFiles(std::string& error, bool ignore_invalid_keys)
 std::string ArgsManager::GetChainName() const
 {
     // TODO: Change me..
-    bool fRegTest = false;ArgsManagerHelper::GetNetBoolArg(*this, "-regtest");
-    bool fTestNet = true;//ArgsManagerHelper::GetNetBoolArg(*this, "-testnet");
+    bool fRegTest = ArgsManagerHelper::GetNetBoolArg(*this, "-regtest");
+    bool fTestNet = fRegTest ? false : true;//ArgsManagerHelper::GetNetBoolArg(*this, "-testnet");
 
     if (fTestNet && fRegTest)
         throw std::runtime_error("Invalid combination of -regtest and -testnet.");
