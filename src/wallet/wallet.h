@@ -844,6 +844,7 @@ public:
 
     void LoadKeyPool(int64_t nIndex, const CKeyPool &keypool) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void MarkPreSplitKeys();
+    void DeriveNewExtKey(WalletBatch& batch, CKeyMetadata& metadata, CExtKey& extKey, bool interal, int nAccount);
 
     // Map from Key ID to key metadata.
     std::map<CKeyID, CKeyMetadata> mapKeyMetadata;
@@ -1208,7 +1209,7 @@ public:
     static bool Verify(std::string wallet_file, bool salvage_wallet, std::string& error_string, std::string& warning_string);
 
     /* Initializes the wallet, returns a new CWallet instance or a null pointer in case of an error */
-    static std::shared_ptr<CWallet> CreateWalletFromFile(const std::string& name, const fs::path& path, uint64_t wallet_creation_flags = 0);
+    static std::shared_ptr<CWallet> CreateWalletFromFile(const std::string& name, const fs::path& path, uint64_t wallet_creation_flags = 0, CPubKey* pseed = nullptr);
 
     /**
      * Initializes a new HD wallet with a random seed that is also used to derive a mnemonic.
@@ -1218,7 +1219,7 @@ public:
      * @param mnemonic      This string will contain the new mnemonic after this function returns
      * @return              Returns true if the wallet was created without error
      */
-    static bool CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic);
+    static bool CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic, CPubKey* seed);
 
     /**
      * Initializes an HD wallet from a user-specified mnemonic.
@@ -1229,7 +1230,7 @@ public:
      * @param fBadSeed      Indicates if the mnemonic generated an invalid seed
      * @return              Returns true if the wallet was created without error
      */
-    static bool CreateHDWalletFromMnemonic(const std::string& name, const fs::path& path, const std::string& mnemonic, bool& fBadSeed);
+    static bool CreateHDWalletFromMnemonic(const std::string& name, const fs::path& path, const std::string& mnemonic, bool& fBadSeed, CPubKey& pubkeySeed);
 
     /**
      * Wallet post-init setup
@@ -1251,7 +1252,7 @@ public:
 
     /* Set the current HD seed using a mnemonic (if the mnemonic generates
        an invalid seed this function returns false). */
-    bool SetHDSeedFromMnemonic(const std::string &mnemonic);
+    bool SetHDSeedFromMnemonic(const std::string &mnemonic, CPubKey& pubkeySeed);
 
     /* Generates a new HD seed (will not be activated) */
     CPubKey GenerateNewSeed();

@@ -369,7 +369,7 @@ public:
 
     static void AddOptions();
 
-    bool Initialise();
+    bool Initialise(CExtKey* extKeyMaster = nullptr);
 
     /* Returns true if HD is enabled, and default account set */
     bool IsHDEnabled() const override;
@@ -523,7 +523,7 @@ public:
 
     int GetDefaultConfidentialChain(CHDWalletDB *pwdb, CExtKeyAccount *&sea, CStoredExtKey *&pc);
 
-    int MakeDefaultAccount();
+    int MakeDefaultAccount(CExtKey* extKeyMaster = nullptr);
 
     int ExtKeyNew32(CExtKey &out);
     int ExtKeyNew32(CExtKey &out, const char *sPassPhrase, int32_t nHash, const char *sSeed);
@@ -550,7 +550,7 @@ public:
     int ExtKeyUnlock(CStoredExtKey *sek, const CKeyingMaterial &vMKey);
     int ExtKeyUnlock(const CKeyingMaterial &vMKey) override;
 
-    int ExtKeyCreateInitial(CHDWalletDB *pwdb);
+    int ExtKeyCreateInitial(CHDWalletDB *pwdb, CExtKey* extKeyMaster);
     int ExtKeyLoadMaster();
 
     int ExtKeyLoadAccountKeys(CHDWalletDB *pwdb, CExtKeyAccount *sea);

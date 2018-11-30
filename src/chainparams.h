@@ -105,6 +105,8 @@ public:
     bool IsBech32Prefix(const std::vector<unsigned char> &vchPrefixIn, CChainParams::Base58Type &rtype) const;
     bool IsBech32Prefix(const char *ps, size_t slen, CChainParams::Base58Type &rtype) const;
 
+    uint32_t BIP44ID() const { return nBIP44ID; }
+
     /** Zerocoin **/
     libzerocoin::ZerocoinParams* Zerocoin_Params() const;
     std::string Zerocoin_Modulus() const { return zerocoinModulus; }
@@ -135,6 +137,7 @@ protected:
     std::vector<unsigned char> bech32Prefixes[MAX_BASE58_TYPES];
     std::string bech32_hrp;
     std::string strNetworkID;
+    uint32_t nBIP44ID;
     CBlock genesis;
     std::vector<SeedSpec6> vFixedSeeds;
     bool fDefaultConsistencyChecks;
