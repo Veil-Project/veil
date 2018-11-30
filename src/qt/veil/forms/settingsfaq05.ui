@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SettingsFaq05</class>
+ <widget class="QWidget" name="SettingsFaq05">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>656</width>
+    <height>575</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">font-size:16px;
+color:#707070;</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="rightMargin">
+    <number>60</number>
+   </property>
+   <item alignment="Qt::AlignLeft|Qt::AlignTop">
+    <widget class="QLabel" name="label_2">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">font-weight:200;</string>
+     </property>
+     <property name="text">
+      <string>“Zerocoin VEIL is used automatically when spending.
+
+To spend Basecoin VEIL, follow these instructions:
+
+    1. Navigate to the Send tab.
+    2. Click the Coin Control button.
+    3. Select all Basecoin UTXO inputs and send a transaction.
+
+All Basecoin transactions are anonymized with RingCT. Although RingCT transactions have an anonymity set size of 11 versus Zerocoin’s thousands, it prevents Basecoin from compromising the privacy of Zerocoin transactions.”					</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

@@ -52,7 +52,7 @@
         </size>
        </property>
        <property name="pixmap">
-        <pixmap resource="../bitcoin.qrc">:/icons/bitcoin</pixmap>
+        <pixmap resource="../veil.qrc">:/icons/img_balance_logo2</pixmap>
        </property>
        <property name="scaledContents">
         <bool>true</bool>
@@ -95,6 +95,14 @@
         <bool>true</bool>
        </property>
        <widget class="QWidget" name="scrollAreaWidgetContents">
+        <property name="geometry">
+         <rect>
+          <x>0</x>
+          <y>0</y>
+          <width>638</width>
+          <height>136</height>
+         </rect>
+        </property>
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
           <widget class="QLabel" name="aboutMessage">
@@ -150,7 +158,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="../bitcoin.qrc"/>
+  <include location="../veil.qrc"/>
  </resources>
  <connections>
   <connection>

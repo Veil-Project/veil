@@ -89,6 +89,7 @@ public:
     static int decimals(int unit);
     //! Format as string
     static QString format(int unit, const CAmount& amount, bool plussign=false, SeparatorStyle separators=separatorStandard);
+    static QString formatFixedAmountOfDecimals(int unit, const CAmount& nIn, bool fPlus, SeparatorStyle separators);
     //! Format as string (with unit)
     static QString formatWithUnit(int unit, const CAmount& amount, bool plussign=false, SeparatorStyle separators=separatorStandard);
     //! Format as HTML string (with unit)

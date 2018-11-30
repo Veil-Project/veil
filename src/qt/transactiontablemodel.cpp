@@ -334,7 +334,8 @@ QString TransactionTableModel::lookupAddress(const std::string &address, bool to
     }
     if(label.isEmpty() || tooltip)
     {
-        description += QString(" (") + QString::fromStdString(address) + QString(")");
+       // description += QString(" (") + QString::fromStdString(address) + QString(")");
+        description += QString::fromStdString(address);
     }
     return description;
 }
@@ -376,15 +377,16 @@ QVariant TransactionTableModel::txAddressDecoration(const TransactionRecord *wtx
     switch(wtx->type)
     {
     case TransactionRecord::Generated:
-        return QIcon(":/icons/tx_mined");
+        //return QIcon(":/icons/tx_mined");
+        return QIcon(":/icons/ic-mined-svg");//:/icons/ic-transcation-6-6-svg");//ic-progress-6-6-complete-14x14");//ic-progress-10-10");
     case TransactionRecord::RecvWithAddress:
     case TransactionRecord::RecvFromOther:
-        return QIcon(":/icons/tx_input");
+        return QIcon(":/icons/ic-received-svg");//":/icons/tx_input");
     case TransactionRecord::SendToAddress:
     case TransactionRecord::SendToOther:
-        return QIcon(":/icons/tx_output");
+        return QIcon(":/icons/ic-sent-svg");//":/icons/tx_output");
     default:
-        return QIcon(":/icons/tx_inout");
+        return QIcon(":/icons/ic-received-svg");//(":/icons/tx_inout");
     }
 }
 

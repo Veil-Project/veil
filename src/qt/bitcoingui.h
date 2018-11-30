@@ -17,6 +17,7 @@
 #include <QMenu>
 #include <QPoint>
 #include <QSystemTrayIcon>
+#include <qt/veil/veilstatusbar.h>
 
 #include <memory>
 
@@ -29,6 +30,8 @@ class RPCConsole;
 class SendCoinsRecipient;
 class UnitDisplayStatusBarControl;
 class WalletFrame;
+class Balance;
+class VeilStatusBar;
 class WalletModel;
 class HelpMessageDialog;
 class ModalOverlay;
@@ -75,6 +78,26 @@ public:
 #endif // ENABLE_WALLET
     bool enableWallet = false;
 
+    void showHide(bool show){
+        if(!op) op = new QLabel(this);
+        if(!show){
+            op->setVisible(false);
+        }else{
+            QColor bg("#000000");
+            bg.setAlpha(200);
+            QPalette palette;
+            palette.setColor(QPalette::Window, bg);
+            op->setAutoFillBackground(true);
+            op->setPalette(palette);
+            op->setWindowFlags(Qt::CustomizeWindowHint);
+            op->move(0,0);
+            op->show();
+            op->activateWindow();
+            op->resize(width(), height());
+            op->setVisible(true);
+        }
+    }
+
 protected:
     void changeEvent(QEvent *e);
     void closeEvent(QCloseEvent *event);
@@ -92,6 +115,8 @@ private:
 #endif
     ClientModel* clientModel = nullptr;
     WalletFrame* walletFrame = nullptr;
+    Balance *balance = nullptr;
+    VeilStatusBar *veilStatusBar = nullptr;
 
     UnitDisplayStatusBarControl* unitDisplayControl = nullptr;
     QLabel* labelWalletEncryptionIcon = nullptr;
@@ -103,10 +128,14 @@ private:
     QProgressBar* progressBar = nullptr;
     QProgressDialog* progressDialog = nullptr;
 
+    QLabel *op = nullptr;
+
     QMenuBar* appMenuBar = nullptr;
     QToolBar* appToolBar = nullptr;
     QAction* overviewAction = nullptr;
-    QAction* historyAction = nullptr;
+    QAction* addressesAction = nullptr;
+    QAction* settingsAction = nullptr;
+    //QAction* historyAction = nullptr;
     QAction* quitAction = nullptr;
     QAction* sendCoinsAction = nullptr;
     QAction* sendCoinsMenuAction = nullptr;
@@ -181,6 +210,8 @@ public Q_SLOTS:
     /** Set number of blocks and last block date shown in the UI */
     void setNumBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, bool headers);
 
+    void showModalOverlay();
+
     /** Notify the user of an event from the core network or transaction handling code.
        @param[in] title     the message box / notification title
        @param[in] message   the displayed text
@@ -227,11 +258,15 @@ private Q_SLOTS:
     /** Switch to overview (home) page */
     void gotoOverviewPage();
     /** Switch to history (transactions) page */
-    void gotoHistoryPage();
+    //void gotoHistoryPage();
     /** Switch to receive coins page */
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
+    /** Switch to addresses page */
+    void gotoAddressesPage();
+    /** Switch to settings page */
+    void gotoSettingsPage();
 
     /** Show Sign/Verify Message dialog and switch to sign message tab */
     void gotoSignMessageTab(QString addr = "");
@@ -272,8 +307,6 @@ private Q_SLOTS:
 
     /** Toggle networking */
     void toggleNetworkActive();
-
-    void showModalOverlay();
 };
 
 class UnitDisplayStatusBarControl : public QLabel

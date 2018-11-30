@@ -37,7 +37,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     platformStyle(_platformStyle)
 {
     // Create tabs
-    overviewPage = new OverviewPage(platformStyle);
+    overviewPage = new OverviewPage(platformStyle, this);
 
     transactionsPage = new QWidget(this);
     QVBoxLayout *vbox = new QVBoxLayout();
@@ -55,15 +55,21 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     transactionsPage->setLayout(vbox);
 
     receiveCoinsPage = new ReceiveCoinsDialog(platformStyle);
-    sendCoinsPage = new SendCoinsDialog(platformStyle);
+    receiveWidget = new ReceiveWidget(this, this);
+    sendCoinsPage = new SendCoinsDialog(platformStyle,0, this);
+    addressesWidget = new AddressesWidget(platformStyle, this);
+    settingsWidget = new SettingsWidget(this);
 
     usedSendingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::SendingTab, this);
     usedReceivingAddressesPage = new AddressBookPage(platformStyle, AddressBookPage::ForEditing, AddressBookPage::ReceivingTab, this);
 
     addWidget(overviewPage);
     addWidget(transactionsPage);
-    addWidget(receiveCoinsPage);
+    //addWidget(receiveCoinsPage);
+    addWidget(receiveWidget);
     addWidget(sendCoinsPage);
+    addWidget(addressesWidget);
+    addWidget(settingsWidget);
 
     // Clicking on a transaction on the overview pre-selects the transaction on the transaction history page
     connect(overviewPage, SIGNAL(transactionClicked(QModelIndex)), transactionView, SLOT(focusTransaction(QModelIndex)));
@@ -90,6 +96,7 @@ WalletView::~WalletView()
 
 void WalletView::setBitcoinGUI(BitcoinGUI *gui)
 {
+    this->gui = gui;
     if (gui)
     {
         // Clicking on a transaction on the overview page simply sends you to transaction history page
@@ -127,10 +134,14 @@ void WalletView::setWalletModel(WalletModel *_walletModel)
     // Put transaction list in tabs
     transactionView->setModel(_walletModel);
     overviewPage->setWalletModel(_walletModel);
-    receiveCoinsPage->setModel(_walletModel);
+    //receiveCoinsPage->setModel(_walletModel);
+    receiveWidget->setWalletModel(_walletModel);
     sendCoinsPage->setModel(_walletModel);
     usedReceivingAddressesPage->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
     usedSendingAddressesPage->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
+
+    addressesWidget->setWalletModel(_walletModel);
+    addressesWidget->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
 
     if (_walletModel)
     {
@@ -188,7 +199,7 @@ void WalletView::gotoHistoryPage()
 
 void WalletView::gotoReceiveCoinsPage()
 {
-    setCurrentWidget(receiveCoinsPage);
+    setCurrentWidget(receiveWidget);
 }
 
 void WalletView::gotoSendCoinsPage(QString addr)
@@ -197,6 +208,15 @@ void WalletView::gotoSendCoinsPage(QString addr)
 
     if (!addr.isEmpty())
         sendCoinsPage->setAddress(addr);
+}
+
+void WalletView::gotoAddressesPage(){
+    setCurrentWidget(addressesWidget);
+    addressesWidget->onForeground();
+}
+
+void WalletView::gotoSettingsPage(){
+    setCurrentWidget(settingsWidget);
 }
 
 void WalletView::gotoSignMessageTab(QString addr)

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" id="ic_close" viewBox="0 0 26 26">
+    <defs>
+        <style type="text/css">
+            .cls-1{fill:none}.cls-2{fill:#707070}
+        </style>
+    </defs>
+    <g id="Group_8295" data-name="Group 8295">
+        <path id="Rectangle_3657" d="M0 0h26v26H0z" class="cls-1" data-name="Rectangle 3657"/>
+    </g>
+    <path id="Path_18420" d="M14.4 13l8.3-8.3.7-.7-.7-.7a.967.967 0 0 0-1.4 0L13 11.6 4.7 3.3a.967.967 0 0 0-1.4 0l-.7.7.7.7 8.3 8.3-8.3 8.3a.967.967 0 0 0 0 1.4l.7.7.7-.7 8.3-8.3 8.3 8.3.7.7.7-.7a.967.967 0 0 0 0-1.4z" class="cls-2" data-name="Path 18420"/>
+</svg>

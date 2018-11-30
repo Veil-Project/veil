@@ -6,7 +6,7 @@
 #define BITCOIN_QT_OVERVIEWPAGE_H
 
 #include <interfaces/wallet.h>
-
+#include <qt/walletview.h>
 #include <QWidget>
 #include <memory>
 
@@ -15,6 +15,7 @@ class TransactionFilterProxy;
 class TxViewDelegate;
 class PlatformStyle;
 class WalletModel;
+class WalletView;
 
 namespace Ui {
     class OverviewPage;
@@ -30,15 +31,12 @@ class OverviewPage : public QWidget
     Q_OBJECT
 
 public:
-    explicit OverviewPage(const PlatformStyle *platformStyle, QWidget *parent = 0);
+    explicit OverviewPage(const PlatformStyle *platformStyle, WalletView *parent = 0);
     ~OverviewPage();
 
     void setClientModel(ClientModel *clientModel);
     void setWalletModel(WalletModel *walletModel);
     void showOutOfSyncWarning(bool fShow);
-
-public Q_SLOTS:
-    void setBalance(const interfaces::WalletBalances& balances);
 
 Q_SIGNALS:
     void transactionClicked(const QModelIndex &index);
@@ -46,19 +44,20 @@ Q_SIGNALS:
 
 private:
     Ui::OverviewPage *ui;
+    WalletView *mainWindow;
     ClientModel *clientModel;
     WalletModel *walletModel;
-    interfaces::WalletBalances m_balances;
-
     TxViewDelegate *txdelegate;
     std::unique_ptr<TransactionFilterProxy> filter;
 
 private Q_SLOTS:
     void updateDisplayUnit();
+    void updateTxesView();
     void handleTransactionClicked(const QModelIndex &index);
     void updateAlerts(const QString &warnings);
     void updateWatchOnlyLabels(bool showWatchOnly);
     void handleOutOfSyncWarningClicks();
+    void onFaqClicked();
 };
 
 #endif // BITCOIN_QT_OVERVIEWPAGE_H

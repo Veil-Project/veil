@@ -56,6 +56,7 @@
 #include <QThread>
 #include <QUrlQuery>
 #include <QMouseEvent>
+#include <QFile>
 
 
 #if QT_VERSION >= 0x50200
@@ -65,6 +66,14 @@
 static fs::detail::utf8_codecvt_facet utf8;
 
 namespace GUIUtil {
+
+QString loadStyleSheet(){
+    QFile file(":/css/main");
+    if(file.open(QFile::ReadOnly)){
+        return QLatin1String(file.readAll());
+    }
+    return QString();
+}
 
 QString dateTimeStr(const QDateTime &date)
 {
@@ -109,10 +118,10 @@ void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent)
 {
     parent->setFocusProxy(widget);
 
-    widget->setFont(fixedPitchFont());
+    //widget->setFont(fixedPitchFont());
     // We don't want translators to use own addresses in translations
     // and this is the only place, where this address is supplied.
-    widget->setPlaceholderText(QObject::tr("Enter a Bitcoin address (e.g. %1)").arg(
+    widget->setPlaceholderText(QObject::tr("Enter a Veil address (e.g. %1)").arg(
         QString::fromStdString(DummyAddress(Params()))));
     widget->setValidator(new BitcoinAddressEntryValidator(parent));
     widget->setCheckValidator(new BitcoinAddressCheckValidator(parent));
@@ -669,9 +678,9 @@ bool SetStartOnSystemStartup(bool fAutoStart)
         optionFile << "[Desktop Entry]\n";
         optionFile << "Type=Application\n";
         if (chain == CBaseChainParams::MAIN)
-            optionFile << "Name=Bitcoin\n";
+            optionFile << "Name=Veil\n";
         else
-            optionFile << strprintf("Name=Bitcoin (%s)\n", chain);
+            optionFile << strprintf("Name=Veil (%s)\n", chain);
         optionFile << "Exec=" << pszExePath << strprintf(" -min -testnet=%d -regtest=%d\n", gArgs.GetBoolArg("-testnet", false), gArgs.GetBoolArg("-regtest", false));
         optionFile << "Terminal=false\n";
         optionFile << "Hidden=false\n";

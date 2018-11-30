@@ -31,7 +31,7 @@ std::string AmountErrMsg(const char* const optname, const std::string& strValue)
 bool InitNewWalletPrompt(unsigned int& initOption)
 {
     std::string message;
-    initOption = MnemonicWalletInitFlags::PROMPT_MNEMONIC;
+    initOption = MnemonicWalletInitFlags::SELECT_LANGUAGE;
     return *uiInterface.InitWallet(message, initOption);
 }
 

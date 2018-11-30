@@ -8,6 +8,7 @@
 #include <qt/walletmodel.h>
 
 #include <QStackedWidget>
+#include <QLineEdit>
 
 class WalletModel;
 class PlatformStyle;
@@ -72,6 +73,9 @@ private:
     const PlatformStyle *platformStyle;
 
     bool updateLabel(const QString &address);
+    bool validAmount(QLineEdit* edit, bool valid);
+    CAmount parseAmount(const QString &text, bool *valid_out=0) const;
+    bool validateEdit(QLineEdit *edit);
 };
 
 #endif // BITCOIN_QT_SENDCOINSENTRY_H

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400px" height="100px" viewBox="0 0 1400 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 52.4 (67378) - http://www.bohemiancoding.com/sketch -->
+    <title>img-banner-top</title>
+    <desc>Created with Sketch.</desc>
+    <defs>
+        <linearGradient x1="-302.322269%" y1="-620.8856%" x2="250.873986%" y2="442.8144%" id="linearGradient-1">
+            <stop stop-color="#080B2E" offset="0%"></stop>
+            <stop stop-color="#0A3979" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="36.1648382%" y1="353.5026%" x2="95.4901936%" y2="-932.8174%" id="linearGradient-2">
+            <stop stop-color="#080B2E" offset="0%"></stop>
+            <stop stop-color="#084A93" offset="96%"></stop>
+            <stop stop-color="#084A93" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="-23.2855033%" y1="301.1%" x2="-23.2855033%" y2="300.1%" id="linearGradient-3">
+            <stop stop-color="#080B2E" offset="0%"></stop>
+            <stop stop-color="#0A3979" offset="100%"></stop>
+        </linearGradient>
+        <linearGradient x1="-23.4833298%" y1="300.7%" x2="-23.2195611%" y2="300.7%" id="linearGradient-4">
+            <stop stop-color="#080B2E" offset="0%"></stop>
+            <stop stop-color="#084A93" offset="96%"></stop>
+            <stop stop-color="#084A93" offset="100%"></stop>
+        </linearGradient>
+    </defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="img-banner-top">
+            <path d="M0,100 L669.69,100 C624.523333,67.9133333 580.89,34.58 538.79,0 L0,0 L0,100 Z" id="Path" fill="url(#linearGradient-1)"></path>
+            <path d="M1400,100 L1400,0 L777.45,0 C823.016667,34.4133333 869.836667,67.7466667 917.91,100 L1400,100 Z" id="Path" fill="url(#linearGradient-2)"></path>
+            <path d="M917.91,100 C869.863333,67.78 823.043333,34.4466667 777.45,0 L538.79,0 C580.863333,34.5533333 624.496667,67.8866667 669.69,100 L917.91,100 Z" id="Path" fill="url(#linearGradient-3)"></path>
+            <path d="M917.91,100 C869.863333,67.78 823.043333,34.4466667 777.45,0 L538.79,0 C580.863333,34.5533333 624.496667,67.8866667 669.69,100 L917.91,100 Z" id="Path" fill="url(#linearGradient-4)"></path>
+        </g>
+    </g>
+</svg>

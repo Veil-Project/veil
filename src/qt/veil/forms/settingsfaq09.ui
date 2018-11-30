@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SettingsFaq09</class>
+ <widget class="QWidget" name="SettingsFaq09">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>656</width>
+    <height>575</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">font-size:16px;
+color:#707070;</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="rightMargin">
+    <number>60</number>
+   </property>
+   <item alignment="Qt::AlignLeft|Qt::AlignTop">
+    <widget class="QLabel" name="label_2">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">font-weight:200;</string>
+     </property>
+     <property name="text">
+      <string>“VEIL secures its network with an exclusively anonymous Zerocoin-based Proof-of-Stake system. Basecoin VEIL cannot stake. Only Zerocoin VEIL can stake.
+
+Follow these simple steps to begin staking VEIL:
+
+1. Send VEIL to the QR code or receiving address displayed in the overview tab to deposit VEIL to yourself.
+2. Click the Staking Toggle at the bottom left of the Overview screen and input your password to unlock your wallet for Staking/Autominting.
+3. Allow the wallet to automatically mind your Basecoin VEIL into Zerocoin VEIL.
+4. After newly minted Zerocoin VEIL receives 200 confirmations, it will begin staking and can earn staking rewards.
+5. Ensure the staking icon at the bottom left of the Overview screen is turned on. Exiting your wallet will stop staking.”					</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+     </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

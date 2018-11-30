@@ -1,0 +1,979 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>SettingsFaq</class>
+ <widget class="QDialog" name="SettingsFaq">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>927</width>
+    <height>667</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>600</width>
+    <height>0</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">#SettingsFaq{
+	background-color:transparent;
+}</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_2">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>20</number>
+   </property>
+   <property name="topMargin">
+    <number>20</number>
+   </property>
+   <property name="rightMargin">
+    <number>20</number>
+   </property>
+   <property name="bottomMargin">
+    <number>20</number>
+   </property>
+   <item>
+    <widget class="QFrame" name="frameBase">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>0</height>
+      </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">#frameBase{
+ border:none;
+  background-color: transparent;
+  border-radius: 20px;
+}</string>
+     </property>
+     <property name="frameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <property name="frameShadow">
+      <enum>QFrame::Raised</enum>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_6">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <property name="leftMargin">
+       <number>3</number>
+      </property>
+      <property name="topMargin">
+       <number>3</number>
+      </property>
+      <property name="rightMargin">
+       <number>3</number>
+      </property>
+      <property name="bottomMargin">
+       <number>3</number>
+      </property>
+      <item>
+       <widget class="QFrame" name="frame">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>120</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>150</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">#frame{
+border-image: url(&quot;:/icons/img-banner-top-svg&quot;) 0 0 0 0 stretch stretch;
+    padding:10px;
+    margin:0px;
+    border-top-right-radius: 20px;
+    border-top-left-radius: 20px;
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <property name="lineWidth">
+         <number>0</number>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout">
+           <item>
+            <widget class="QFrame" name="frame_t">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="layoutDirection">
+              <enum>Qt::LeftToRight</enum>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">#frame_t{
+background:none;
+background-color:transparent;
+}</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_4">
+              <property name="spacing">
+               <number>6</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item alignment="Qt::AlignVCenter">
+               <widget class="QLabel" name="label_3">
+                <property name="styleSheet">
+                 <string notr="true">text-align: left;
+  color: #ffffff;
+font-size:40px;
+font-weight:light;
+</string>
+                </property>
+                <property name="text">
+                 <string>Tutorials/FAQ</string>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignBottom|Qt::AlignLeading|Qt::AlignLeft</set>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <layout class="QVBoxLayout" name="verticalLayout_5">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <item alignment="Qt::AlignRight">
+              <widget class="QPushButton" name="btnEsc">
+               <property name="minimumSize">
+                <size>
+                 <width>32</width>
+                 <height>44</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>32</width>
+                 <height>44</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">#btnEsc {
+background-color:transparent;
+border:0px;
+background-repeat:no-repeat;
+background-position: center;
+}</string>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+               <property name="icon">
+                <iconset resource="../../veil.qrc">
+                 <normaloff>:/icons/ic-close-white-svg</normaloff>:/icons/ic-close-white-svg</iconset>
+               </property>
+               <property name="iconSize">
+                <size>
+                 <width>24</width>
+                 <height>24</height>
+                </size>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="frame_2">
+        <property name="styleSheet">
+         <string notr="true">#frame_2{
+ border:none;
+  border-bottom-right-radius: 20px;
+  border-bottom-left-radius: 20px;
+  margin:0px;
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Raised</enum>
+        </property>
+        <property name="lineWidth">
+         <number>0</number>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <property name="spacing">
+          <number>0</number>
+         </property>
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QScrollArea" name="scrollArea">
+           <property name="minimumSize">
+            <size>
+             <width>400</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="maximumSize">
+            <size>
+             <width>400</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">#scrollArea {
+border-right:1px solid #707070;
+margin:0px;
+background-color:white;
+}
+QScrollBar {
+background-color:white;
+border:0;
+}
+QScrollBar:vertical {             
+ border: 0px ;
+ background:white;
+ width:10px;    
+  margin: 0px 0px 0px 0px;
+}</string>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::NoFrame</enum>
+           </property>
+           <property name="lineWidth">
+            <number>1</number>
+           </property>
+           <property name="horizontalScrollBarPolicy">
+            <enum>Qt::ScrollBarAlwaysOff</enum>
+           </property>
+           <property name="widgetResizable">
+            <bool>true</bool>
+           </property>
+           <widget class="QWidget" name="scrollAreaWidgetContents">
+            <property name="geometry">
+             <rect>
+              <x>0</x>
+              <y>0</y>
+              <width>400</width>
+              <height>546</height>
+             </rect>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>400</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">background-color:white;
+border-right:1px solid #707070;</string>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_3">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QGroupBox" name="groupBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>400</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>400</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">background-color:white;
+border:none;
+margin:0px;</string>
+               </property>
+               <property name="title">
+                <string/>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_4">
+                <property name="spacing">
+                 <number>5</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_01">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>400</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::NoFocus</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">#radioButton_01 {
+    border-radius: 0px;
+    border:  none;
+    margin:0px;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10px 30px 10px 30px;
+    text-align:center !important;
+}
+
+#radioButton_01:checked {
+    border:  none;
+     background-color:rgba(16,90,239,0.2);
+    color: #707070;
+    margin:0px;
+}
+
+#radioButton_01:unchecked {
+    border:  none;
+    background-color:white;
+    color: #707070;
+}
+
+#radioButton_01::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}</string>
+                  </property>
+                  <property name="text">
+                   <string>VEIL Privacy and Minting</string>
+                  </property>
+                  <property name="checked">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_03">
+                  <property name="minimumSize">
+                   <size>
+                    <width>400</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>390</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::NoFocus</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">#radioButton_03 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+#radioButton_03:checked {
+    border:  0;
+     background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+#radioButton_03:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+#radioButton_03::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}</string>
+                  </property>
+                  <property name="text">
+                   <string>How do I backup/restore my wallet?</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_04">
+                  <property name="minimumSize">
+                   <size>
+                    <width>400</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>400</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::NoFocus</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">#radioButton_04 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+#radioButton_04:checked {
+    border:  0;
+     background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+#radioButton_04:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+#radioButton_04::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}</string>
+                  </property>
+                  <property name="text">
+                   <string>Why is my VEIL unspendable?</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_05">
+                  <property name="minimumSize">
+                   <size>
+                    <width>400</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>390</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::NoFocus</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">#radioButton_05 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+#radioButton_05:checked {
+    border:  0;
+     background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+#radioButton_05:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+#radioButton_05::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}</string>
+                  </property>
+                  <property name="text">
+                   <string>How do I spend Basecoin VEIL 
+(dust/change)?</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_06">
+                  <property name="minimumSize">
+                   <size>
+                    <width>400</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>390</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::NoFocus</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">#radioButton_06 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+#radioButton_06:checked {
+    border:  0;
+     background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+#radioButton_06:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+#radioButton_06::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}</string>
+                  </property>
+                  <property name="text">
+                   <string>What is the Single Non-Autominting 
+Address / Exchange or Service mode?</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_07">
+                  <property name="minimumSize">
+                   <size>
+                    <width>400</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>390</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::NoFocus</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">#radioButton_07 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+#radioButton_07:checked {
+    border:  0;
+     background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+#radioButton_07:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+#radioButton_07::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}</string>
+                  </property>
+                  <property name="text">
+                   <string>How do I use the QR code?</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_08">
+                  <property name="minimumSize">
+                   <size>
+                    <width>400</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>390</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::NoFocus</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">#radioButton_08 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+#radioButton_08:checked {
+    border:  0;
+     background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+#radioButton_08:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+#radioButton_08::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}</string>
+                  </property>
+                  <property name="text">
+                   <string>How do I stake VEIL and earn
+ staking rewards?</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_09">
+                  <property name="minimumSize">
+                   <size>
+                    <width>400</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>390</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::NoFocus</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">#radioButton_09 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+#radioButton_09:checked {
+    border:  0;
+     background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+#radioButton_09:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+#radioButton_09:indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}</string>
+                  </property>
+                  <property name="text">
+                   <string>How do I mine VEIL?</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_10">
+                  <property name="minimumSize">
+                   <size>
+                    <width>400</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>390</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::NoFocus</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">#radioButton_10 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+#radioButton_10:checked {
+    border:  0;
+     background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+#radioButton_10:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+#radioButton_10::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}</string>
+                  </property>
+                  <property name="text">
+                   <string>What is the VEIL Bounty Program?</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_11">
+                  <property name="maximumSize">
+                   <size>
+                    <width>390</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">#radioButton_11 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+#radioButton_11:checked {
+    border:  0;
+     background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+#radioButton_11:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+#radioButton_11::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}</string>
+                  </property>
+                  <property name="text">
+                   <string>Contact VEIL Support for help</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="verticalSpacer">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </widget>
+         </item>
+         <item>
+          <widget class="QScrollArea" name="scrollArea_2">
+           <property name="styleSheet">
+            <string notr="true">background-color:white;
+border:0;</string>
+           </property>
+           <property name="widgetResizable">
+            <bool>true</bool>
+           </property>
+           <widget class="QWidget" name="scrollAreaWidgetContents_2">
+            <property name="geometry">
+             <rect>
+              <x>0</x>
+              <y>0</y>
+              <width>481</width>
+              <height>501</height>
+             </rect>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">background-color:white;
+border:0;</string>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QStackedWidget" name="stackedWidget">
+               <property name="styleSheet">
+                <string notr="true">background-color:transparent;
+border:0;</string>
+               </property>
+               <property name="lineWidth">
+                <number>0</number>
+               </property>
+               <widget class="QWidget" name="page"/>
+               <widget class="QWidget" name="page_2"/>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="../../veil.qrc"/>
+ </resources>
+ <connections/>
+</ui>

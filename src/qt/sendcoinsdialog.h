@@ -11,11 +11,13 @@
 #include <QMessageBox>
 #include <QString>
 #include <QTimer>
+#include <qt/walletview.h>
 
 class ClientModel;
 class PlatformStyle;
 class SendCoinsEntry;
 class SendCoinsRecipient;
+class WalletView;
 
 namespace Ui {
     class SendCoinsDialog;
@@ -31,7 +33,7 @@ class SendCoinsDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *parent = 0);
+    explicit SendCoinsDialog(const PlatformStyle *platformStyle, QWidget *parent = 0, WalletView* main = 0);
     ~SendCoinsDialog();
 
     void setClientModel(ClientModel *clientModel);
@@ -60,6 +62,7 @@ private:
     Ui::SendCoinsDialog *ui;
     ClientModel *clientModel;
     WalletModel *model;
+    WalletView *mainWindow;
     bool fNewRecipientAllowed;
     bool fFeeMinimized;
     bool fDandelion = false;

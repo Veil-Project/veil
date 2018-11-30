@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="22px" height="21px" viewBox="0 0 22 21" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 52.4 (67378) - http://www.bohemiancoding.com/sketch -->
+    <title>ic-close-white</title>
+    <desc>Created with Sketch.</desc>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="ic-close-white" transform="translate(-2.000000, -3.000000)">
+            <g id="Group_8295">
+                <polygon id="Rectangle_3657" points="0 0 26 0 26 26 0 26"></polygon>
+            </g>
+            <path d="M14.4,13 L22.7,4.7 L23.4,4 L22.7,3.3 C22.5175003,3.10851414 22.264524,3.00014991 22,3.00014991 C21.735476,3.00014991 21.4824997,3.10851414 21.3,3.3 L13,11.6 L4.7,3.3 C4.51750032,3.10851414 4.26452404,3.00014991 4,3.00014991 C3.73547596,3.00014991 3.48249968,3.10851414 3.3,3.3 L2.6,4 L3.3,4.7 L11.6,13 L3.3,21.3 C3.10851414,21.4824997 3.00014991,21.735476 3.00014991,22 C3.00014991,22.264524 3.10851414,22.5175003 3.3,22.7 L4,23.4 L4.7,22.7 L13,14.4 L21.3,22.7 L22,23.4 L22.7,22.7 C22.8914859,22.5175003 22.9998501,22.264524 22.9998501,22 C22.9998501,21.735476 22.8914859,21.4824997 22.7,21.3 L14.4,13 Z" id="Path_18420" fill="#FFFFFF"></path>
+        </g>
+    </g>
+</svg>

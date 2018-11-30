@@ -111,7 +111,7 @@
              <string>&amp;Request payment</string>
             </property>
             <property name="icon">
-             <iconset resource="../bitcoin.qrc">
+             <iconset resource="../veil.qrc">
               <normaloff>:/icons/receiving_addresses</normaloff>:/icons/receiving_addresses</iconset>
             </property>
            </widget>
@@ -131,7 +131,7 @@
              <string>Clear</string>
             </property>
             <property name="icon">
-             <iconset resource="../bitcoin.qrc">
+             <iconset resource="../veil.qrc">
               <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
             </property>
             <property name="autoDefault">
@@ -301,7 +301,7 @@
            <string>Show</string>
           </property>
           <property name="icon">
-           <iconset resource="../bitcoin.qrc">
+           <iconset resource="../veil.qrc">
             <normaloff>:/icons/edit</normaloff>:/icons/edit</iconset>
           </property>
           <property name="autoDefault">
@@ -321,7 +321,7 @@
            <string>Remove</string>
           </property>
           <property name="icon">
-           <iconset resource="../bitcoin.qrc">
+           <iconset resource="../veil.qrc">
             <normaloff>:/icons/remove</normaloff>:/icons/remove</iconset>
           </property>
           <property name="autoDefault">
@@ -369,7 +369,7 @@
   <tabstop>removeRequestButton</tabstop>
  </tabstops>
  <resources>
-  <include location="../bitcoin.qrc"/>
+  <include location="../veil.qrc"/>
  </resources>
  <connections/>
 </ui>

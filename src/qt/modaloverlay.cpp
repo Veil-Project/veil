@@ -12,8 +12,9 @@
 #include <QResizeEvent>
 #include <QPropertyAnimation>
 
-ModalOverlay::ModalOverlay(QWidget *parent) :
+ModalOverlay::ModalOverlay(QWidget *parent, BitcoinGUI *btcGui) :
 QWidget(parent),
+gui(btcGui),
 ui(new Ui::ModalOverlay),
 bestHeaderHeight(0),
 bestHeaderDate(QDateTime()),
@@ -29,6 +30,8 @@ userClosed(false)
 
     blockProcessTime.clear();
     setVisible(false);
+
+    op = new QLabel(parentWidget());
 }
 
 ModalOverlay::~ModalOverlay()
@@ -158,12 +161,34 @@ void ModalOverlay::showHide(bool hide, bool userRequested)
 
     setGeometry(0, hide ? 0 : height(), width(), height());
 
+
+
+    if(hide){
+        setVisible(false);
+        op->setVisible(false);
+    }else{
+        QColor bg("#000000");
+        bg.setAlpha(200);
+        QPalette palette;
+        palette.setColor(QPalette::Window, bg);
+        op->setAutoFillBackground(true);
+        op->setPalette(palette);
+        op->setWindowFlags(Qt::CustomizeWindowHint);
+        op->move(0,0);
+        op->show();
+        op->activateWindow();
+        op->resize(parentWidget()->parentWidget()->width(), parentWidget()->parentWidget()->height());
+        op->setVisible(true);
+    }
+
     QPropertyAnimation* animation = new QPropertyAnimation(this, "pos");
     animation->setDuration(300);
-    animation->setStartValue(QPoint(0, hide ? 0 : this->height()));
-    animation->setEndValue(QPoint(0, hide ? this->height() : 0));
+    int xPos = 0;//this->parentWidget()->width() - 12;
+    animation->setStartValue(QPoint(xPos, hide ? 0 : this->height()));
+    animation->setEndValue(QPoint(xPos, hide ? this->height() : this->height() / 4.3));
     animation->setEasingCurve(QEasingCurve::OutQuad);
     animation->start(QAbstractAnimation::DeleteWhenStopped);
+
     layerIsVisible = !hide;
 }
 

@@ -23,10 +23,15 @@
 #include <QDesktopWidget>
 #include <QPainter>
 #include <QRadialGradient>
+#include "qt/guiutil.h"
 
 SplashScreen::SplashScreen(interfaces::Node& node, Qt::WindowFlags f, const NetworkStyle *networkStyle) :
     QWidget(0, f), curAlignment(0), m_node(node)
 {
+
+    this->setStyleSheet(GUIUtil::loadStyleSheet());
+    this->setStyleSheet("background-color:red;border-image: url(\":/icons/splash_background\") 0 0 0 0 stretch stretch;padding:0;margin:0;");
+
     // set reference point, paddings
     int paddingRight            = 50;
     int paddingTop              = 50;
@@ -48,7 +53,7 @@ SplashScreen::SplashScreen(interfaces::Node& node, Qt::WindowFlags f, const Netw
     QString font            = QApplication::font().toString();
 
     // create a bitmap according to device pixelratio
-    QSize splashSize(480*devicePixelRatio,320*devicePixelRatio);
+    QSize splashSize(800*devicePixelRatio,514*devicePixelRatio);
     pixmap = QPixmap(splashSize);
 
 #if QT_VERSION > 0x050100
@@ -60,17 +65,21 @@ SplashScreen::SplashScreen(interfaces::Node& node, Qt::WindowFlags f, const Netw
     pixPaint.setPen(QColor(100,100,100));
 
     // draw a slightly radial gradient
-    QRadialGradient gradient(QPoint(0,0), splashSize.width()/devicePixelRatio);
-    gradient.setColorAt(0, Qt::white);
-    gradient.setColorAt(1, QColor(247,247,247));
-    QRect rGradient(QPoint(0,0), splashSize);
-    pixPaint.fillRect(rGradient, gradient);
+    //QRadialGradient gradient(QPoint(0,0), splashSize.width()/devicePixelRatio);
+    //gradient.setColorAt(0, Qt::white);
+    //gradient.setColorAt(1, QColor(247,247,247));
+    //QRect rGradient(QPoint(0,0), splashSize);
+    //pixPaint.fillRect(rGradient, gradient);
+
+    QPixmap background(":/icons/bg_splash2");
+    QRect rectIcon1(QPoint(0,0) , QPoint(800,514) );
+    pixPaint.drawPixmap(rectIcon1, background);
 
     // draw the bitcoin icon, expected size of PNG: 1024x1024
-    QRect rectIcon(QPoint(-150,-122), QSize(430,430));
+    QRect rectIcon(QPoint(200,200), QSize(250,200));
 
     const QSize requiredSize(1024,1024);
-    QPixmap icon(networkStyle->getAppIcon().pixmap(requiredSize));
+    QPixmap icon(":/icons/logo_splash");//networkStyle->getAppIcon().pixmap(requiredSize));
 
     pixPaint.drawPixmap(rectIcon, icon);
 

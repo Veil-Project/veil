@@ -111,7 +111,51 @@ QT_FORMS_UI = \
   qt/forms/sendcoinsdialog.ui \
   qt/forms/sendcoinsentry.ui \
   qt/forms/signverifymessagedialog.ui \
+  qt/forms/splashscreenveil.ui \
   qt/forms/transactiondescdialog.ui \
+  qt/veil/forms/tutorialwidget.ui \
+  qt/veil/forms/tutorialmnemonicrevealed.ui \
+  qt/veil/forms/tutorialmnemoniccode.ui \
+  qt/veil/forms/tutorialcreatewalletwidget.ui \
+  qt/veil/forms/tutoriallanguageswidget.ui \
+  qt/veil/forms/createpassword.ui \
+  qt/veil/forms/settingsadvanceconsole.ui \
+  qt/veil/forms/settingsadvanceinformation.ui \
+  qt/veil/forms/settingsadvancenetwork.ui \
+  qt/veil/forms/settingsadvancepeers.ui \
+  qt/veil/forms/settingsadvance.ui \
+  qt/veil/forms/settingsbackup.ui \
+  qt/veil/forms/settingschangepassword.ui \
+  qt/veil/forms/settingsfaq.ui \
+  qt/veil/forms/settingsfaq01.ui \
+  qt/veil/forms/settingsfaq02.ui \
+  qt/veil/forms/settingsfaq03.ui \
+  qt/veil/forms/settingsfaq04.ui \
+  qt/veil/forms/settingsfaq05.ui \
+  qt/veil/forms/settingsfaq06.ui \
+  qt/veil/forms/settingsfaq07.ui \
+  qt/veil/forms/settingsfaq08.ui \
+  qt/veil/forms/settingsfaq09.ui \
+  qt/veil/forms/settingsfaq10.ui \
+  qt/veil/forms/settingsfaq11.ui \
+  qt/veil/forms/settingsminting.ui \
+  qt/veil/forms/settingsnetwork.ui \
+  qt/veil/forms/settingspreferences.ui \
+  qt/veil/forms/settingsrestore.ui \
+  qt/veil/forms/settingsrestorefile.ui \
+  qt/veil/forms/settingsrestoreseed.ui \
+  qt/veil/forms/settingswidget.ui \
+  qt/veil/forms/receivewidget.ui \
+  qt/veil/forms/addresseswidget.ui \
+  qt/veil/forms/addressnewcontact.ui \
+  qt/veil/forms/addressreceive.ui \
+  qt/veil/forms/balance.ui \
+  qt/veil/forms/sendconfirmation.ui \
+  qt/veil/forms/tooltipbalance.ui \
+  qt/veil/forms/toast.ui \
+  qt/veil/forms/unlockpassworddialog.ui \
+  qt/veil/forms/veilstatusbar.ui \
+  qt/veil/forms/transactiondetaildialog.ui \
   veil/qt/forms/mnemonicdialog.ui \
   veil/qt/forms/mnemonicdisplay.ui
 
@@ -151,6 +195,7 @@ QT_MOC_CPP = \
   qt/moc_sendcoinsdialog.cpp \
   qt/moc_sendcoinsentry.cpp \
   qt/moc_signverifymessagedialog.cpp \
+  qt/moc_splashscreenveil.cpp \
   qt/moc_splashscreen.cpp \
   qt/moc_trafficgraphwidget.cpp \
   qt/moc_transactiondesc.cpp \
@@ -162,6 +207,49 @@ QT_MOC_CPP = \
   qt/moc_walletframe.cpp \
   qt/moc_walletmodel.cpp \
   qt/moc_walletview.cpp \
+  qt/veil/moc_tutorialwidget.cpp \
+  qt/veil/moc_tutorialmnemonicrevealed.cpp \
+  qt/veil/moc_tutorialmnemoniccode.cpp \
+  qt/veil/moc_tutorialcreatewalletwidget.cpp \
+  qt/veil/moc_tutoriallanguageswidget.cpp \
+  qt/veil/moc_createpassword.cpp \
+  qt/veil/settings/moc_settingsadvanceconsole.cpp \
+  qt/veil/settings/moc_settingsadvanceinformation.cpp \
+  qt/veil/settings/moc_settingsadvancenetwork.cpp \
+  qt/veil/settings/moc_settingsadvancepeers.cpp \
+  qt/veil/settings/moc_settingsadvance.cpp \
+  qt/veil/settings/moc_settingsbackup.cpp \
+  qt/veil/settings/moc_settingschangepassword.cpp \
+  qt/veil/settings/moc_settingsfaq.cpp \
+  qt/veil/settings/moc_settingsfaq01.cpp \
+  qt/veil/settings/moc_settingsfaq02.cpp \
+  qt/veil/settings/moc_settingsfaq03.cpp \
+  qt/veil/settings/moc_settingsfaq04.cpp \
+  qt/veil/settings/moc_settingsfaq05.cpp \
+  qt/veil/settings/moc_settingsfaq06.cpp \
+  qt/veil/settings/moc_settingsfaq07.cpp \
+  qt/veil/settings/moc_settingsfaq08.cpp \
+  qt/veil/settings/moc_settingsfaq09.cpp \
+  qt/veil/settings/moc_settingsfaq10.cpp \
+  qt/veil/settings/moc_settingsfaq11.cpp \
+  qt/veil/settings/moc_settingsminting.cpp \
+  qt/veil/settings/moc_settingsnetwork.cpp \
+  qt/veil/settings/moc_settingspreferences.cpp \
+  qt/veil/settings/moc_settingsrestore.cpp \
+  qt/veil/settings/moc_settingsrestorefile.cpp \
+  qt/veil/settings/moc_settingsrestoreseed.cpp \
+  qt/veil/settings/moc_settingswidget.cpp \
+  qt/veil/moc_receivewidget.cpp \
+  qt/veil/moc_addresseswidget.cpp \
+  qt/veil/moc_addressnewcontact.cpp \
+  qt/veil/moc_addressreceive.cpp \
+  qt/veil/moc_balance.cpp \
+  qt/veil/moc_sendconfirmation.cpp \
+  qt/veil/moc_tooltipbalance.cpp \
+  qt/veil/moc_toast.cpp \
+  qt/veil/moc_unlockpassworddialog.cpp \
+  qt/veil/moc_veilstatusbar.cpp \
+  qt/veil/moc_transactiondetaildialog.cpp \
   veil/qt/moc_mnemonicdialog.cpp \
   veil/qt/moc_mnemonicdisplay.cpp
 
@@ -175,6 +263,7 @@ QT_MOC = \
   qt/callback.moc \
   qt/intro.moc \
   qt/overviewpage.moc \
+  qt/veil/addresseswidget.moc \
   qt/rpcconsole.moc
 
 QT_QRC_CPP = qt/qrc_veil.cpp
@@ -226,6 +315,7 @@ BITCOIN_QT_H = \
   qt/sendcoinsdialog.h \
   qt/sendcoinsentry.h \
   qt/signverifymessagedialog.h \
+  qt/splashscreenveil.h \
   qt/splashscreen.h \
   qt/trafficgraphwidget.h \
   qt/transactiondesc.h \
@@ -240,10 +330,252 @@ BITCOIN_QT_H = \
   qt/walletmodeltransaction.h \
   qt/walletview.h \
   qt/winshutdownmonitor.h \
+  qt/veil/tutorialwidget.h \
+  qt/veil/tutorialmnemonicrevealed.h \
+  qt/veil/tutorialmnemoniccode.h \
+  qt/veil/tutorialcreatewalletwidget.h \
+  qt/veil/tutoriallanguageswidget.h \
+  qt/veil/createpassword.h \
+  qt/veil/settings/settingsadvanceconsole.h \
+  qt/veil/settings/settingsadvanceinformation.h \
+  qt/veil/settings/settingsadvancenetwork.h \
+  qt/veil/settings/settingsadvancepeers.h \
+  qt/veil/settings/settingsadvance.h \
+  qt/veil/settings/settingsbackup.h \
+  qt/veil/settings/settingschangepassword.h \
+  qt/veil/settings/settingsfaq.h \
+  qt/veil/settings/settingsfaq01.h \
+  qt/veil/settings/settingsfaq02.h \
+  qt/veil/settings/settingsfaq03.h \
+  qt/veil/settings/settingsfaq04.h \
+  qt/veil/settings/settingsfaq05.h \
+  qt/veil/settings/settingsfaq06.h \
+  qt/veil/settings/settingsfaq07.h \
+  qt/veil/settings/settingsfaq08.h \
+  qt/veil/settings/settingsfaq09.h \
+  qt/veil/settings/settingsfaq10.h \
+  qt/veil/settings/settingsfaq11.h \
+  qt/veil/settings/settingsminting.h \
+  qt/veil/settings/settingsnetwork.h \
+  qt/veil/settings/settingspreferences.h \
+  qt/veil/settings/settingsrestore.h \
+  qt/veil/settings/settingsrestorefile.h \
+  qt/veil/settings/settingsrestoreseed.h \
+  qt/veil/settings/settingswidget.h \
+  qt/veil/receivewidget.h \
+  qt/veil/qtutils.h \
+  qt/veil/addresseswidget.h \
+  qt/veil/addressnewcontact.h \
+  qt/veil/addressreceive.h \
+  qt/veil/balance.h \
+  qt/veil/sendconfirmation.h \
+  qt/veil/tooltipbalance.h \
+  qt/veil/toast.h \
+  qt/veil/unlockpassworddialog.h \
+  qt/veil/veilstatusbar.h \
+  qt/veil/transactiondetaildialog.h \
   veil/qt/mnemonicdialog.h \
   veil/qt/mnemonicdisplay.h
 
 RES_ICONS = \
+  qt/res/icons/ic-add@3x.png \
+  qt/res/icons/ic-navigation-receive@3x.png \
+  qt/res/icons/ic-update-address@3x.png \
+  qt/res/icons/ic-update-address.png \
+  qt/res/icons/ic-copy-small.png \
+  qt/res/icons/ic-navigation-transactions.png \
+  qt/res/icons/img-logo-binance@2x.png \
+  qt/res/icons/ic-nav-transactions@2x.png \
+  qt/res/icons/ic-nav-exchange@2x.png \
+  qt/res/icons/ic-nav-send.svg \
+  qt/res/icons/img-start-wallet@2x.png \
+  qt/res/icons/ic-progress-6-10@2x.png \
+  qt/res/icons/ic-copy-small@2x.png \
+  qt/res/icons/ic-progress-2-10.png \
+  qt/res/icons/ic-navigation-addresses@3x.png \
+  qt/res/icons/ic-send-address@2x.png \
+  qt/res/icons/ic-reset-options@3x.png \
+  qt/res/icons/ic-nav-address.png \
+  qt/res/icons/ic-add-account@3x.png \
+  qt/res/icons/ic-information.png \
+  qt/res/icons/ic-navigation-settings@3x.png \
+  qt/res/icons/img-start-backup@2x.png \
+  qt/res/icons/ic-navigation-settings@2x.png \
+  qt/res/icons/img-start-backup@3x.png \
+  qt/res/icons/ic-add-account@2x.png \
+  qt/res/icons/ic-reset-options@2x.png \
+  qt/res/icons/ic-send-address@3x.png \
+  qt/res/icons/ic-navigation-addresses@2x.png \
+  qt/res/icons/ic-nav-receive.svg \
+  qt/res/icons/ic-send-address.png \
+  qt/res/icons/img-start-logo.png \
+  qt/res/icons/ic-progress-6-10@3x.png \
+  qt/res/icons/ic-copy-small@3x.png \
+  qt/res/icons/img-start-wallet@3x.png \
+  qt/res/icons/ic-navigation-send.png \
+  qt/res/icons/ic-nav-exchange@3x.png \
+  qt/res/icons/ic-nav-transactions@3x.png \
+  qt/res/icons/img-logo-binance@3x.png \
+  qt/res/icons/ic-update-address@2x.png \
+  qt/res/icons/ic-add-account-blue.png \
+  qt/res/icons/ic-add-blue.png \
+  qt/res/icons/ic-copy-dark.png \
+  qt/res/icons/Banner_inicio.png \
+  qt/res/icons/ic-nav-transactions.svg \
+  qt/res/icons/ic-arrow-down.png \
+  qt/res/icons/ic-navigation-receive@2x.png \
+  qt/res/icons/point.svg \
+  qt/res/icons/ic-add@2x.png \
+  qt/res/icons/qr.png \
+  qt/res/icons/ic-add-account-blue@3x.png \
+  qt/res/icons/veil_splash@2x.png \
+  qt/res/icons/ic-progress-1-10@3x.png \
+  qt/res/icons/ic-nav-send@2x.png \
+  qt/res/icons/ic-nav-transactions.png \
+  qt/res/icons/img-logo-bittrex@2x.png \
+  qt/res/icons/banner-top@2x.png \
+  qt/res/icons/ic-copy-blue.png \
+  qt/res/icons/simbol@3x.png \
+  qt/res/icons/ic-switch-off.png \
+  qt/res/icons/ic-progress-8-10.png \
+  qt/res/icons/ic-copy-blue@2x.png \
+  qt/res/icons/ic-folder@3x.png \
+  qt/res/icons/ic-progress-4-10.png \
+  qt/res/icons/ic-nav-address@2x.png \
+  qt/res/icons/bg_splash@3x.png \
+  qt/res/icons/ic-arrow-back@2x.png \
+  qt/res/icons/Banner_inicio@2x.png \
+  qt/res/icons/bg-splash@2x.png \
+  qt/res/icons/ic-close-active@3x.png \
+  qt/res/icons/ic-progress-7-10@2x.png \
+  qt/res/icons/ic-nav-addresses@3x.png \
+  qt/res/icons/img_balance_logo@2x.png \
+  qt/res/icons/ic-nav-receive.png \
+  qt/res/icons/ic-close@2x.png \
+  qt/res/icons/ic-transaction-completed.png \
+  qt/res/icons/ic-information@2x.png \
+  qt/res/icons/ic-arrow-down@3x.png \
+  qt/res/icons/ic-navigation-transactions@3x.png \
+  qt/res/icons/ic-arrow-right.png \
+  qt/res/icons/veil_splash.png \
+  qt/res/icons/ic-search-white.png \
+  qt/res/icons/ic-navigation-transactions@2x.png \
+  qt/res/icons/ic-arrow-down@2x.png \
+  qt/res/icons/ic_exchange.png \
+  qt/res/icons/ic-information@3x.png \
+  qt/res/icons/ic-close@3x.png \
+  qt/res/icons/img-logo-bittrex.png \
+  qt/res/icons/img_balance_logo@3x.png \
+  qt/res/icons/ic-nav-addresses@2x.png \
+  qt/res/icons/ic-progress-7-10@3x.png \
+  qt/res/icons/ic-close-active@2x.png \
+  qt/res/icons/bg-splash@3x.png \
+  qt/res/icons/ic-nav-send.png \
+  qt/res/icons/Banner_inicio@3x.png \
+  qt/res/icons/ic-arrow-back@3x.png \
+  qt/res/icons/ic-copy-blue@3x.png \
+  qt/res/icons/ic-folder@2x.png \
+  qt/res/icons/ic-nav-address@3x.png \
+  qt/res/icons/bg_splash@2x.png \
+  qt/res/icons/img_balance_logo.png \
+  qt/res/icons/simbol@2x.png \
+  qt/res/icons/banner-top@3x.png \
+  qt/res/icons/img-logo-bittrex@3x.png \
+  qt/res/icons/ic-nav-send@3x.png \
+  qt/res/icons/ic-progress-6-10.png \
+  qt/res/icons/veil_splash@3x.png \
+  qt/res/icons/ic-progress-1-10@2x.png \
+  qt/res/icons/ic-add-account-blue@2x.png \
+  qt/res/icons/ic-navigation-addresses.png \
+  qt/res/icons/ic-watch-on.png \
+  qt/res/icons/ic-copy-dark@3x.png \
+  qt/res/icons/ic-arrow-back.png \
+  qt/res/icons/ic-search-white@3x.png \
+  qt/res/icons/ic-progress-2-10@3x.png \
+  qt/res/icons/ic-progress-3-10.png \
+  qt/res/icons/ic-arrow-right@3x.png \
+  qt/res/icons/ic-add-blue@3x.png \
+  qt/res/icons/ic-progress-9-10@2x.png \
+  qt/res/icons/ic-nav-exchange.png \
+  qt/res/icons/ic-nav-addresses.svg \
+  qt/res/icons/logo_splash.png \
+  qt/res/icons/img-start-password@3x.png \
+  qt/res/icons/img-start-logo@2x.png \
+  qt/res/icons/ic-watch-off@2x.png \
+  qt/res/icons/ic-switch-on.png \
+  qt/res/icons/ic-progress-4-10@2x.png \
+  qt/res/icons/ic-progress-10-10.png \
+  qt/res/icons/ic-copy@3x.png \
+  qt/res/icons/ic-copy@2x.png \
+  qt/res/icons/ic-progress-4-10@3x.png \
+  qt/res/icons/ic-folder.png \
+  qt/res/icons/ic-watch-off@3x.png \
+  qt/res/icons/ic-nav-settings.png \
+  qt/res/icons/img-start-confirm.png \
+  qt/res/icons/img-start-password@2x.png \
+  qt/res/icons/img-start-logo@3x.png \
+  qt/res/icons/ic-nav-overview.svg \
+  qt/res/icons/img-start-wallet.png \
+  qt/res/icons/img-logo-coinbase.png \
+  qt/res/icons/ic-arrow-right@2x.png \
+  qt/res/icons/ic-add-blue@2x.png \
+  qt/res/icons/ic-progress-9-10@3x.png \
+  qt/res/icons/img-logo-binance.png \
+  qt/res/icons/ic-progress-2-10@2x.png \
+  qt/res/icons/ic-search-white@2x.png \
+  qt/res/icons/ic-progress-1-10.png \
+  qt/res/icons/ic-copy-dark@2x.png \
+  qt/res/icons/ic-watch-on@3x.png \
+  qt/res/icons/ic-nav-receive@3x.png \
+  qt/res/icons/img-start-confirm@3x.png \
+  qt/res/icons/ic_exchange@2x.png \
+  qt/res/icons/banner-top.png \
+  qt/res/icons/ic-nav-settings@3x.png \
+  qt/res/icons/ic-switch-off@2x.png \
+  qt/res/icons/img-logo-coinbase@2x.png \
+  qt/res/icons/img-start-backup.png \
+  qt/res/icons/img-start-password.png \
+  qt/res/icons/ic-progress-8-10@2x.png \
+  qt/res/icons/ic-copy.png \
+  qt/res/icons/simbol.png \
+  qt/res/icons/ic-switch-on@2x.png \
+  qt/res/icons/ic-watch-off.png \
+  qt/res/icons/ic-close-active.png \
+  qt/res/icons/ic-progress-3-10@3x.png \
+  qt/res/icons/ic-progress-10-10@2x.png \
+  qt/res/icons/ic-progress-9-10.png \
+  qt/res/icons/ic-add.png \
+  qt/res/icons/img_splash.jpg \
+  qt/res/icons/ic-nav-settings.svg \
+  qt/res/icons/ic-progress-5-10.png \
+  qt/res/icons/ic-add-account.png \
+  qt/res/icons/ic-progress-5-10@2x.png \
+  qt/res/icons/logo_splash@2x.png \
+  qt/res/icons/ic-navigation-send@3x.png \
+  qt/res/icons/bg-splash.png \
+  qt/res/icons/ic-progress-7-10.png \
+  qt/res/icons/ic-navigation-send@2x.png \
+  qt/res/icons/logo_splash@3x.png \
+  qt/res/icons/ic-close.png \
+  qt/res/icons/ic-progress-5-10@3x.png \
+  qt/res/icons/bg_splash.png \
+  qt/res/icons/transaction2.png \
+  qt/res/icons/ic-reset-options.png \
+  qt/res/icons/ic-nav-addresses.png \
+  qt/res/icons/ic-navigation-receive.png \
+  qt/res/icons/ic-progress-3-10@2x.png \
+  qt/res/icons/ic-progress-10-10@3x.png \
+  qt/res/icons/ic_nav_active.png \
+  qt/res/icons/ic-switch-on@3x.png \
+  qt/res/icons/ic-progress-8-10@3x.png \
+  qt/res/icons/ic-switch-off@3x.png \
+  qt/res/icons/img-logo-coinbase@3x.png \
+  qt/res/icons/ic-navigation-settings.png \
+  qt/res/icons/ic-nav-settings@2x.png \
+  qt/res/icons/img-start-confirm@2x.png \
+  qt/res/icons/ic_exchange@3x.png \
+  qt/res/icons/ic-nav-receive@2x.png \
+  qt/res/icons/ic-watch-on@2x.png \
   qt/res/icons/add.png \
   qt/res/icons/address-book.png \
   qt/res/icons/about.png \
@@ -298,7 +630,45 @@ RES_ICONS = \
   qt/res/icons/tx_input.png \
   qt/res/icons/tx_output.png \
   qt/res/icons/tx_mined.png \
+  qt/res/icons/qr.png \
+  qt/res/icons/banner-dialogo.png \
+  qt/res/icons/banner-dialogo@2x.png \
+  qt/res/icons/banner-dialogo@3x.png \
   qt/res/icons/warning.png \
+  qt/res/icons/ic-settings.png \
+  qt/res/icons/ic-settings@2x.png \
+  qt/res/icons/ic-settings@3x.png \
+  qt/res/icons/ic-settings.svg \
+  qt/res/icons/ic-progress-6-6-complete-14x14.png \
+  qt/res/icons/ic-switch-on.svg \
+  qt/res/icons/ic-switch-off.svg \
+  qt/res/icons/ic-addresses.svg \
+  qt/res/icons/ic-transactions.svg \
+  qt/res/icons/ic-send.svg \
+  qt/res/icons/ic-receive.svg \
+  qt/res/icons/ic-information.svg \
+  qt/res/icons/logo-splash@3x.png \
+  qt/res/icons/logo-splash@2x.png \
+  qt/res/icons/logo-splash.png \
+  qt/res/icons/img-wallet.png \
+  qt/res/icons/img-wallet@2x.png \
+  qt/res/icons/img-wallet@3x.png \
+  qt/res/icons/img-banner-top.svg \
+  qt/res/icons/ic-folder.svg \
+  qt/res/icons/img-empty-addresses.svg \
+  qt/res/icons/img-veil-logo-small.svg \
+  qt/res/icons/ic-close-white.svg \
+  qt/res/icons/ic_sent.svg \
+  qt/res/icons/ic_received.svg \
+  qt/res/icons/ic_mint.svg \
+  qt/res/icons/ic_mined.svg \
+  qt/res/icons/ic-transaction-6-6.svg \
+  qt/res/icons/simbol.svg \
+  qt/res/icons/point.svg \
+  qt/res/icons/ic-close.svg \
+  qt/res/icons/ic-copy.svg \
+  qt/res/icons/ic-add-account.svg \
+  qt/res/icons/ic-reset-options.svg \
   qt/res/icons/verify.png
 
 BITCOIN_QT_BASE_CPP = \
@@ -344,6 +714,7 @@ BITCOIN_QT_WALLET_CPP = \
   qt/sendcoinsdialog.cpp \
   qt/sendcoinsentry.cpp \
   qt/signverifymessagedialog.cpp \
+  qt/splashscreenveil.cpp \
   qt/transactiondesc.cpp \
   qt/transactiondescdialog.cpp \
   qt/transactionfilterproxy.cpp \
@@ -354,6 +725,50 @@ BITCOIN_QT_WALLET_CPP = \
   qt/walletmodel.cpp \
   qt/walletmodeltransaction.cpp \
   qt/walletview.cpp \
+  qt/veil/tutorialwidget.cpp \
+  qt/veil/tutorialmnemonicrevealed.cpp \
+  qt/veil/tutorialmnemoniccode.cpp \
+  qt/veil/tutorialcreatewalletwidget.cpp \
+  qt/veil/tutoriallanguageswidget.cpp \
+  qt/veil/qtutils.cpp \
+  qt/veil/createpassword.cpp \
+  qt/veil/settings/settingsadvanceconsole.cpp \
+  qt/veil/settings/settingsadvanceinformation.cpp \
+  qt/veil/settings/settingsadvancenetwork.cpp \
+  qt/veil/settings/settingsadvancepeers.cpp \
+  qt/veil/settings/settingsadvance.cpp \
+  qt/veil/settings/settingsbackup.cpp \
+  qt/veil/settings/settingschangepassword.cpp \
+  qt/veil/settings/settingsfaq.cpp \
+  qt/veil/settings/settingsfaq01.cpp \
+  qt/veil/settings/settingsfaq02.cpp \
+  qt/veil/settings/settingsfaq03.cpp \
+  qt/veil/settings/settingsfaq04.cpp \
+  qt/veil/settings/settingsfaq05.cpp \
+  qt/veil/settings/settingsfaq06.cpp \
+  qt/veil/settings/settingsfaq07.cpp \
+  qt/veil/settings/settingsfaq08.cpp \
+  qt/veil/settings/settingsfaq09.cpp \
+  qt/veil/settings/settingsfaq10.cpp \
+  qt/veil/settings/settingsfaq11.cpp \
+  qt/veil/settings/settingsminting.cpp \
+  qt/veil/settings/settingsnetwork.cpp \
+  qt/veil/settings/settingspreferences.cpp \
+  qt/veil/settings/settingsrestore.cpp \
+  qt/veil/settings/settingsrestorefile.cpp \
+  qt/veil/settings/settingsrestoreseed.cpp \
+  qt/veil/settings/settingswidget.cpp \
+  qt/veil/receivewidget.cpp \
+  qt/veil/addresseswidget.cpp \
+  qt/veil/addressnewcontact.cpp \
+  qt/veil/addressreceive.cpp \
+  qt/veil/balance.cpp \
+  qt/veil/sendconfirmation.cpp \
+  qt/veil/tooltipbalance.cpp \
+  qt/veil/toast.cpp \
+  qt/veil/unlockpassworddialog.cpp \
+  qt/veil/veilstatusbar.cpp \
+  qt/veil/transactiondetaildialog.cpp \
   veil/qt/mnemonicdialog.cpp \
   veil/qt/mnemonicdisplay.cpp
 
@@ -369,6 +784,9 @@ RES_IMAGES =
 
 RES_MOVIES = $(wildcard $(srcdir)/qt/res/movies/spinner-*.png)
 
+RES_CSS = \
+  qt/res/css/main.css
+
 BITCOIN_RC = qt/res/veil-qt-res.rc
 
 BITCOIN_QT_INCLUDES = -DQT_NO_KEYWORDS
@@ -379,7 +797,7 @@ qt_libbitcoinqt_a_CXXFLAGS = $(AM_CXXFLAGS) $(QT_PIE_FLAGS)
 qt_libbitcoinqt_a_OBJCXXFLAGS = $(AM_OBJCXXFLAGS) $(QT_PIE_FLAGS)
 
 qt_libbitcoinqt_a_SOURCES = $(BITCOIN_QT_CPP) $(BITCOIN_QT_H) $(QT_FORMS_UI) \
-  $(QT_QRC) $(QT_QRC_LOCALE) $(QT_TS) $(PROTOBUF_PROTO) $(RES_ICONS) $(RES_IMAGES) $(RES_MOVIES)
+  $(QT_QRC) $(QT_QRC_LOCALE) $(QT_TS) $(PROTOBUF_PROTO) $(RES_ICONS) $(RES_IMAGES) $(RES_CSS) $(RES_MOVIES)
 
 nodist_qt_libbitcoinqt_a_SOURCES = $(QT_MOC_CPP) $(QT_MOC) $(PROTOBUF_CC) \
   $(PROTOBUF_H) $(QT_QRC_CPP) $(QT_QRC_LOCALE_CPP)
@@ -442,7 +860,7 @@ $(QT_QRC_LOCALE_CPP): $(QT_QRC_LOCALE) $(QT_QM)
 	  $(SED) -e '/^\*\*.*Created:/d' -e '/^\*\*.*by:/d' > $@
 	@rm $(@D)/temp_$(<F)
 
-$(QT_QRC_CPP): $(QT_QRC) $(QT_FORMS_H) $(RES_ICONS) $(RES_IMAGES) $(RES_MOVIES) $(PROTOBUF_H)
+$(QT_QRC_CPP): $(QT_QRC) $(QT_FORMS_H) $(RES_ICONS) $(RES_IMAGES) $(RES_CSS) $(RES_MOVIES) $(PROTOBUF_H)
 	@test -f $(RCC)
 	$(AM_V_GEN) QT_SELECT=$(QT_SELECT) $(RCC) -name veil $< | \
 	  $(SED) -e '/^\*\*.*Created:/d' -e '/^\*\*.*by:/d' > $@

@@ -154,7 +154,7 @@ class FrameworkInfo(object):
 class ApplicationBundleInfo(object):
     def __init__(self, path):
         self.path = path
-        appName = "Bitcoin-Qt"
+        appName = "Veil-Qt"
         self.binaryPath = os.path.join(path, "Contents", "MacOS", appName)
         if not os.path.exists(self.binaryPath):
             raise RuntimeError("Could not find bundle binary for " + path)
@@ -423,8 +423,9 @@ def deployPlugins(appBundleInfo, deploymentInfo, strip, verbose):
                 continue
             elif pluginPath == "imageformats/libqsvg.dylib" or pluginPath == "iconengines/libqsvgicon.dylib":
                 # Deploy the svg plugins only if QtSvg is in use
-                if not deploymentInfo.usesFramework("QtSvg"):
-                    continue
+                # if not deploymentInfo.usesFramework("QtSvg"):
+                #    continue
+                a = deploymentInfo.usesFramework("QtSvg")
             elif pluginPath == "accessible/libqtaccessiblecompatwidgets.dylib":
                 # Deploy accessibility for Qt3Support only if the Qt3Support is in use
                 if not deploymentInfo.usesFramework("Qt3Support"):
@@ -602,7 +603,7 @@ else:
 
 # ------------------------------------------------
 
-target = os.path.join("dist", "Bitcoin-Qt.app")
+target = os.path.join("dist", "Veil-Qt.app")
 
 if verbose >= 2:
     print("+ Copying source bundle +")

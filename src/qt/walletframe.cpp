@@ -13,17 +13,21 @@
 
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QGraphicsOpacityEffect>
 
 WalletFrame::WalletFrame(const PlatformStyle *_platformStyle, BitcoinGUI *_gui) :
     QFrame(_gui),
     gui(_gui),
     platformStyle(_platformStyle)
 {
+
     // Leave HBox hook for adding a list view later
     QHBoxLayout *walletFrameLayout = new QHBoxLayout(this);
     setContentsMargins(0,0,0,0);
     walletStack = new QStackedWidget(this);
     walletFrameLayout->setContentsMargins(0,0,0,0);
+    walletFrameLayout->setSpacing(0);
+
     walletFrameLayout->addWidget(walletStack);
 
     QLabel *noWallet = new QLabel(tr("No wallet has been loaded."));
@@ -149,6 +153,18 @@ void WalletFrame::gotoSendCoinsPage(QString addr)
     QMap<QString, WalletView*>::const_iterator i;
     for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
         i.value()->gotoSendCoinsPage(addr);
+}
+
+void WalletFrame::gotoAddressesPage(){
+    QMap<QString, WalletView*>::const_iterator i;
+    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
+        i.value()->gotoAddressesPage();
+}
+
+void WalletFrame::gotoSettings(){
+    QMap<QString, WalletView*>::const_iterator i;
+    for (i = mapWalletViews.constBegin(); i != mapWalletViews.constEnd(); ++i)
+        i.value()->gotoSettingsPage();
 }
 
 void WalletFrame::gotoSignMessageTab(QString addr)

@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TutorialCreateWalletWidget</class>
+ <widget class="QWidget" name="TutorialCreateWalletWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>689</width>
+    <height>499</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,1,0,0,3,2">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item alignment="Qt::AlignHCenter">
+    <widget class="QLabel" name="label">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>40</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>40</height>
+      </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">color:#105aef;</string>
+     </property>
+     <property name="text">
+      <string>Select an option below
+</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_3">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBox">
+     <property name="title">
+      <string/>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <property name="spacing">
+       <number>20</number>
+      </property>
+      <item alignment="Qt::AlignHCenter">
+       <widget class="QPushButton" name="btnCreate">
+        <property name="minimumSize">
+         <size>
+          <width>190</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>190</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+</string>
+        </property>
+        <property name="text">
+         <string>Create Wallet</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="autoExclusive">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item alignment="Qt::AlignHCenter">
+       <widget class="QPushButton" name="btnRestore">
+        <property name="minimumSize">
+         <size>
+          <width>190</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>190</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+</string>
+        </property>
+        <property name="text">
+         <string>Restore Wallet</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="autoExclusive">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item alignment="Qt::AlignHCenter">
+       <widget class="QPushButton" name="btnImport">
+        <property name="minimumSize">
+         <size>
+          <width>190</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>190</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+</string>
+        </property>
+        <property name="text">
+         <string>Import Wallet File</string>
+        </property>
+        <property name="checkable">
+         <bool>true</bool>
+        </property>
+        <property name="autoExclusive">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <property name="spacing">
+      <number>20</number>
+     </property>
+    </layout>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>198</width>
+       <height>163</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

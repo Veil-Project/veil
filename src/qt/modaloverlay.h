@@ -7,6 +7,10 @@
 
 #include <QDateTime>
 #include <QWidget>
+#include <QLabel>
+#include <qt/bitcoingui.h>
+
+class BitcoinGUI;
 
 //! The required delta of headers to the estimated number of available headers until we show the IBD progress
 static constexpr int HEADER_HEIGHT_DELTA_SYNC = 24;
@@ -21,7 +25,7 @@ class ModalOverlay : public QWidget
     Q_OBJECT
 
 public:
-    explicit ModalOverlay(QWidget *parent);
+    explicit ModalOverlay(QWidget *parent, BitcoinGUI *btcGui);
     ~ModalOverlay();
 
 public Q_SLOTS:
@@ -40,8 +44,10 @@ protected:
 
 private:
     Ui::ModalOverlay *ui;
+    BitcoinGUI *gui;
     int bestHeaderHeight; //best known height (based on the headers)
     QDateTime bestHeaderDate;
+    QLabel *op;
     QVector<QPair<qint64, double> > blockProcessTime;
     bool layerIsVisible;
     bool userClosed;

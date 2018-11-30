@@ -8,6 +8,14 @@
 #include <amount.h>
 
 #include <QStackedWidget>
+#include <qt/veil/settings/settingswidget.h>
+#include <qt/bitcoingui.h>
+#include <qt/veil/receivewidget.h>
+#include <qt/veil/addresseswidget.h>
+
+#include <QLabel>
+#include <QColor>
+#include <QPalette>
 
 class BitcoinGUI;
 class ClientModel;
@@ -16,6 +24,8 @@ class PlatformStyle;
 class ReceiveCoinsDialog;
 class SendCoinsDialog;
 class SendCoinsRecipient;
+class AddressesWidget;
+class SettingsWidget;
 class TransactionView;
 class WalletModel;
 class AddressBookPage;
@@ -39,7 +49,7 @@ public:
     explicit WalletView(const PlatformStyle *platformStyle, QWidget *parent);
     ~WalletView();
 
-    void setBitcoinGUI(BitcoinGUI *gui);
+    void setBitcoinGUI(BitcoinGUI *);
     /** Set the client model.
         The client model represents the part of the core that communicates with the P2P network, and is wallet-agnostic.
     */
@@ -55,14 +65,28 @@ public:
 
     void showOutOfSyncWarning(bool fShow);
 
+    BitcoinGUI* getGUI(){ return gui;}
+
+    void showHide(bool show)
+    {
+        gui->showHide(show);
+    }
+
+
 private:
+    BitcoinGUI *gui;
+
     ClientModel *clientModel;
     WalletModel *walletModel;
 
     OverviewPage *overviewPage;
     QWidget *transactionsPage;
     ReceiveCoinsDialog *receiveCoinsPage;
+    ReceiveWidget *receiveWidget;
     SendCoinsDialog *sendCoinsPage;
+    AddressesWidget *addressesWidget;
+    SettingsWidget *settingsWidget;
+
     AddressBookPage *usedSendingAddressesPage;
     AddressBookPage *usedReceivingAddressesPage;
 
@@ -80,6 +104,10 @@ public Q_SLOTS:
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
+    /** Switch to addresses page */
+    void gotoAddressesPage();
+    /** Switch to settings page */
+    void gotoSettingsPage();
 
     /** Show Sign/Verify Message dialog and switch to sign message tab */
     void gotoSignMessageTab(QString addr = "");

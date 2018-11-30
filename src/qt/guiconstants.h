@@ -21,6 +21,7 @@ static const bool DEFAULT_SPLASHSCREEN = true;
 
 /* Transaction list -- unconfirmed transaction */
 #define COLOR_UNCONFIRMED QColor(128, 128, 128)
+#define COLOR_CONFIRMED QColor(0, 141, 54)
 /* Transaction list -- negative amount */
 #define COLOR_NEGATIVE QColor(255, 0, 0)
 /* Transaction list -- bare address (without label) */
@@ -47,7 +48,7 @@ static const int MAX_URI_LENGTH = 255;
 #define SPINNER_FRAMES 36
 
 #define QAPP_ORG_NAME "Veil"
-#define QAPP_ORG_DOMAIN "bitcoin.org"
+#define QAPP_ORG_DOMAIN "veil.org"
 #define QAPP_APP_NAME_DEFAULT "Veil-Qt"
 #define QAPP_APP_NAME_TESTNET "Veil-Qt-testnet"
 

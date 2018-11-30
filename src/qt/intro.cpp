@@ -18,6 +18,8 @@
 #include <QFileDialog>
 #include <QSettings>
 #include <QMessageBox>
+#include <QPixmap>
+#include <QDebug>
 
 #include <cmath>
 
@@ -121,36 +123,56 @@ Intro::Intro(QWidget *parent) :
     signalled(false)
 {
     ui->setupUi(this);
+    this->setStyleSheet(GUIUtil::loadStyleSheet());
     ui->welcomeLabel->setText(ui->welcomeLabel->text().arg(tr(PACKAGE_NAME)));
-    ui->storageLabel->setText(ui->storageLabel->text().arg(tr(PACKAGE_NAME)));
 
-    ui->lblExplanation1->setText(ui->lblExplanation1->text()
-        .arg(tr(PACKAGE_NAME))
-        .arg(BLOCK_CHAIN_SIZE)
-        .arg(2009)
-        .arg(tr("Veil"))
-    );
-    ui->lblExplanation2->setText(ui->lblExplanation2->text().arg(tr(PACKAGE_NAME)));
+    ui->welcomeLabel->setProperty("cssClass" , "title-dialog");
+    ui->btnSave->setProperty("cssClass" , "btn-text-primary");
+    ui->btnEsc->setProperty("cssClass" , "btn-text-primary-inactive");
 
-    uint64_t pruneTarget = std::max<int64_t>(0, gArgs.GetArg("-prune", 0));
-    requiredSpace = BLOCK_CHAIN_SIZE;
-    QString storageRequiresMsg = tr("At least %1 GB of data will be stored in this directory, and it will grow over time.");
-    if (pruneTarget) {
-        uint64_t prunedGBs = std::ceil(pruneTarget * 1024 * 1024.0 / GB_BYTES);
-        if (prunedGBs <= requiredSpace) {
-            requiredSpace = prunedGBs;
-            storageRequiresMsg = tr("Approximately %1 GB of data will be stored in this directory.");
-        }
-        ui->lblExplanation3->setVisible(true);
-    } else {
-        ui->lblExplanation3->setVisible(false);
-    }
-    requiredSpace += CHAIN_STATE_SIZE;
-    ui->sizeWarningLabel->setText(
-        tr("%1 will download and store a copy of the Veil block chain.").arg(tr(PACKAGE_NAME)) + " " +
-        storageRequiresMsg.arg(requiredSpace) + " " +
-        tr("The wallet will also be stored in this directory.")
-    );
+    ui->dataDirCustom->setProperty("cssClass" , "edit-primary");
+
+    ui->dataDirDefault->setProperty("cssClass" , "edit-primary");
+
+    //ui->dataDirDefault->setProperty("cssClass" , "btn-radio");
+    ui->dataDirDefault->setAttribute(Qt::WA_MacShowFocusRect, 0);
+
+    //ui->dataDirCustom->setProperty("cssClass" , "btn-radio");
+    ui->dataDirCustom->setAttribute(Qt::WA_MacShowFocusRect, 0);
+
+    //ui->storageLabel->setText(ui->storageLabel->text().arg(tr(PACKAGE_NAME)));
+
+//    ui->lblExplanation1->setText(ui->lblExplanation1->text()
+//        .arg(tr(PACKAGE_NAME))
+//        .arg(BLOCK_CHAIN_SIZE)
+//        .arg(2009)
+//        .arg(tr("Veil"))
+//    );
+//    ui->lblExplanation2->setText(ui->lblExplanation2->text().arg(tr(PACKAGE_NAME)));
+
+//    uint64_t pruneTarget = std::max<int64_t>(0, gArgs.GetArg("-prune", 0));
+//    requiredSpace = BLOCK_CHAIN_SIZE;
+//    QString storageRequiresMsg = tr("At least %1 GB of data will be stored in this directory, and it will grow over time.");
+//    if (pruneTarget) {
+//        uint64_t prunedGBs = std::ceil(pruneTarget * 1024 * 1024.0 / GB_BYTES);
+//        if (prunedGBs <= requiredSpace) {
+//            requiredSpace = prunedGBs;
+//            storageRequiresMsg = tr("Approximately %1 GB of data will be stored in this directory.");
+//        }
+//        ui->lblExplanation3->setVisible(true);
+//    } else {
+//        ui->lblExplanation3->setVisible(false);
+//    }
+//    requiredSpace += CHAIN_STATE_SIZE;
+//    ui->sizeWarningLabel->setText(
+//        tr("%1 will download and store a copy of the Veil block chain.").arg(tr(PACKAGE_NAME)) + " " +
+//        storageRequiresMsg.arg(requiredSpace) + " " +
+//        tr("The wallet will also be stored in this directory.")
+//    );
+
+    connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(reject()));
+    connect(ui->btnSave, SIGNAL(clicked()), this, SLOT(accept()));
+
     startThread();
 }
 
@@ -269,13 +291,15 @@ void Intro::setStatus(int status, const QString &message, quint64 bytesAvailable
         ui->freeSpace->setText(freeString + ".");
     }
     /* Don't allow confirm in ERROR state */
-    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(status != FreespaceChecker::ST_ERROR);
+    ui->btnSave->setEnabled(status != FreespaceChecker::ST_ERROR);
+    //ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(status != FreespaceChecker::ST_ERROR);
 }
 
 void Intro::on_dataDirectory_textChanged(const QString &dataDirStr)
 {
     /* Disable OK button until check result comes in */
-    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+    //ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+    ui->btnSave->setEnabled(false);
     checkPath(dataDirStr);
 }
 

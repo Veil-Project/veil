@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 30">
+    <defs>
+        <style type="text/css">
+            .cls-1{fill:#707070}
+        </style>
+    </defs>
+    <g id="ic_add_account" transform="translate(-1412 -293)">
+        <g id="Group_6019" data-name="Group 6019" transform="translate(1412 293)">
+            <path id="Path_16087" d="M18.96 11.386h-5.2v-5.2A1.278 1.278 0 0 0 12.574 5a1.171 1.171 0 0 0-1.188 1.188v5.2h-5.2A1.093 1.093 0 0 0 5 12.574a1.171 1.171 0 0 0 1.188 1.188h5.2v5.2a1.278 1.278 0 0 0 1.188 1.188 1.278 1.278 0 0 0 1.188-1.188v-5.2h5.2a1.278 1.278 0 0 0 1.188-1.188 1.278 1.278 0 0 0-1.192-1.188z" class="cls-1" data-name="Path 16087" transform="translate(2.426 2.426)"/>
+            <path id="Path_16088" d="M15 0a15 15 0 1 0 15 15A14.959 14.959 0 0 0 15 0zm0 27.624A12.624 12.624 0 1 1 27.624 15 12.613 12.613 0 0 1 15 27.624z" class="cls-1" data-name="Path 16088"/>
+        </g>
+    </g>
+</svg>

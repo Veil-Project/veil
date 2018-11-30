@@ -7,6 +7,7 @@
 #include <primitives/transaction.h>
 
 #include <QStringList>
+#include <iostream>
 
 BitcoinUnits::BitcoinUnits(QObject *parent):
         QAbstractListModel(parent),
@@ -96,6 +97,47 @@ int BitcoinUnits::decimals(int unit)
     }
 }
 
+QString BitcoinUnits::formatFixedAmountOfDecimals(int unit, const CAmount& nIn, bool fPlus, SeparatorStyle separators)
+{
+    // Note: not using straight sprintf here because we do NOT want
+    // localized number formatting.
+    if(!valid(unit))
+        return QString(); // Refuse to format invalid unit
+    qint64 n = (qint64)nIn;
+    qint64 coin = factor(unit);
+    int num_decimals = decimals(unit);
+    qint64 n_abs = (n > 0 ? n : -n);
+    qint64 quotient = n_abs / coin;
+    QString quotient_str = QString::number(quotient);
+
+    // Use SI-style thin space separators as these are locale independent and can't be
+    // confused with the decimal marker.
+    QChar thin_sp(THIN_SP_CP);
+    int q_size = quotient_str.size();
+    if (separators == separatorAlways || (separators == separatorStandard && q_size > 4))
+        for (int i = 3; i < q_size; i += 3)
+            quotient_str.insert(q_size - i, thin_sp);
+
+    if (n < 0)
+        quotient_str.insert(0, '-');
+    else if (fPlus && n > 0)
+        quotient_str.insert(0, '+');
+
+    if (num_decimals > 0) {
+        qint64 remainder = n_abs % coin;
+        QString remainder_str = QString::number(remainder);
+        int left = remainder_str.size() - 2;
+        if(left == -1){
+            remainder_str = remainder_str.rightJustified(2, '0');
+        }else if(left == -2){
+            remainder_str = remainder_str.rightJustified(3, '0');
+        }
+        return quotient_str + QString(".") + remainder_str;
+    } else {
+        return quotient_str;
+    }
+}
+
 QString BitcoinUnits::format(int unit, const CAmount& nIn, bool fPlus, SeparatorStyle separators)
 {
     // Note: not using straight sprintf here because we do NOT want
@@ -142,7 +184,7 @@ QString BitcoinUnits::format(int unit, const CAmount& nIn, bool fPlus, Separator
 
 QString BitcoinUnits::formatWithUnit(int unit, const CAmount& amount, bool plussign, SeparatorStyle separators)
 {
-    return format(unit, amount, plussign, separators) + QString(" ") + shortName(unit);
+    return formatFixedAmountOfDecimals(unit, amount, plussign, separators) + QString(" ") + shortName(unit);
 }
 
 QString BitcoinUnits::formatHtmlWithUnit(int unit, const CAmount& amount, bool plussign, SeparatorStyle separators)

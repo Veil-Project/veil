@@ -6,6 +6,8 @@
 #include <config/veil-config.h>
 #endif
 
+#include "splashscreenveil.h"
+
 #include <qt/bitcoingui.h>
 
 #include <chainparams.h>
@@ -202,7 +204,7 @@ public:
     /// Get process return value
     int getReturnValue() const { return returnValue; }
 
-    /// Get window identifier of QMainWindow (BitcoinGUI)
+    /// Get window identifier of Q (BitcoinGUI)
     WId getMainWinId() const;
 
     /// Setup platform style
@@ -299,6 +301,7 @@ BitcoinApplication::BitcoinApplication(interfaces::Node& node, int &argc, char *
     platformStyle(0)
 {
     setQuitOnLastWindowClosed(false);
+    //QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
 }
 
 void BitcoinApplication::setupPlatformStyle()
@@ -358,7 +361,7 @@ void BitcoinApplication::createWindow(const NetworkStyle *networkStyle)
 
 void BitcoinApplication::createSplashScreen(const NetworkStyle *networkStyle)
 {
-    SplashScreen *splash = new SplashScreen(m_node, 0, networkStyle);
+    SplashScreenVeil *splash = new SplashScreenVeil(m_node, 0, networkStyle);
     // We don't hold a direct pointer to the splash screen after creation, but the splash
     // screen will take care of deleting itself when slotFinish happens.
     splash->show();

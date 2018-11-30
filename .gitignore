@@ -129,3 +129,17 @@ contrib/devtools/split-debug.sh
 .idea
 #CMakeLists.txt
 cmake-build-debug
+
+# files from qt-creator
+
+veil-qt.creator.user
+veil.pro
+veil.pro.user
+moc_*
+.qmake*
+*.autosave
+*.pro
+*.files
+*.includes
+ui_*
+CMakeLists.txt

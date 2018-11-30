@@ -7,6 +7,7 @@
 
 #include <QFrame>
 #include <QMap>
+#include <qt/veil/balance.h>
 
 class BitcoinGUI;
 class ClientModel;
@@ -50,6 +51,7 @@ Q_SIGNALS:
     void requestedSyncWarningInfo();
 
 private:
+    QStackedWidget *windowStack;
     QStackedWidget *walletStack;
     BitcoinGUI *gui;
     ClientModel *clientModel;
@@ -71,6 +73,10 @@ public Q_SLOTS:
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
+    /** Switch to addresses page */
+    void gotoAddressesPage();
+    /** Switch to settings page */
+    void gotoSettings();
 
     /** Show Sign/Verify Message dialog and switch to sign message tab */
     void gotoSignMessageTab(QString addr = "");

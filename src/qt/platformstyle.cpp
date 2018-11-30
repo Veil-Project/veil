@@ -82,17 +82,17 @@ PlatformStyle::PlatformStyle(const QString &_name, bool _imagesOnButtons, bool _
     if (colorizeIcons) {
         const QColor colorHighlightBg(QApplication::palette().color(QPalette::Highlight));
         const QColor colorHighlightFg(QApplication::palette().color(QPalette::HighlightedText));
-        const QColor colorText(QApplication::palette().color(QPalette::WindowText));
+        const QColor colorText("#105aef");//QApplication::palette().color("#bababa"));//QPalette::WindowText));
         const int colorTextLightness = colorText.lightness();
-        QColor colorbase;
-        if (abs(colorHighlightBg.lightness() - colorTextLightness) < abs(colorHighlightFg.lightness() - colorTextLightness))
-            colorbase = colorHighlightBg;
-        else
-            colorbase = colorHighlightFg;
+        QColor colorbase("#105aef");
+        //if (abs(colorHighlightBg.lightness() - colorTextLightness) < abs(colorHighlightFg.lightness() - colorTextLightness))
+        //    colorbase = colorHighlightBg;
+        //else
+        //    colorbase = colorHighlightFg;
         singleColor = colorbase;
     }
     // Determine text color
-    textColor = QColor(QApplication::palette().color(QPalette::WindowText));
+    textColor = QColor("#105aef");//QApplication::palette().color("#bababa"));//QPalette::WindowText));
 }
 
 QImage PlatformStyle::SingleColorImage(const QString& filename) const

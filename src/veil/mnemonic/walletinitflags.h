@@ -3,6 +3,7 @@
 
 enum MnemonicWalletInitFlags
 {
+    SELECT_LANGUAGE,
     PROMPT_MNEMONIC,
     NEW_MNEMONIC,
     IMPORT_MNEMONIC,

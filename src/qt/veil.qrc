@@ -1,4 +1,4 @@
-<!DOCTYPE RCC><RCC version="1.0">
+<RCC>
     <qresource prefix="/icons">
         <file alias="bitcoin">res/icons/bitcoin.png</file>
         <file alias="address-book">res/icons/address-book.png</file>
@@ -54,6 +54,243 @@
         <file alias="hd_disabled">res/icons/hd_disabled.png</file>
         <file alias="network_disabled">res/icons/network_disabled.png</file>
         <file alias="proxy">res/icons/proxy.png</file>
+        <file alias="qr">res/icons/qr.png</file>
+        <file alias="Banner_inicio">res/icons/Banner_inicio.png</file>
+        <file alias="Banner_inicio2">res/icons/Banner_inicio@2x.png</file>
+        <file alias="Banner_inicio3">res/icons/Banner_inicio@3x.png</file>
+        <file alias="banner-top">res/icons/banner-top.png</file>
+        <file alias="banner-top2">res/icons/banner-top@2x.png</file>
+        <file alias="banner-top3">res/icons/banner-top@3x.png</file>
+        <file alias="splash_background">res/icons/bg_splash.png</file>
+        <file alias="bg_splash2">res/icons/bg_splash@2x.png</file>
+        <file alias="bg_splash3">res/icons/bg_splash@3x.png</file>
+        <file alias="bg_splash">res/icons/bg-splash.png</file>
+        <file>res/icons/bg-splash@2x.png</file>
+        <file>res/icons/bg-splash@3x.png</file>
+        <file>res/icons/bitcoin_testnet.ico</file>
+        <file>res/icons/bitcoin.icns</file>
+        <file>res/icons/bitcoin.ico</file>
+        <file alias="ic_exchange">res/icons/ic_exchange.png</file>
+        <file alias="ic_exchange2">res/icons/ic_exchange@2x.png</file>
+        <file alias="ic_exchange3">res/icons/ic_exchange@3x.png</file>
+        <file alias="ic_nav_active">res/icons/ic_nav_active.png</file>
+        <file alias="ic-add-account-blue">res/icons/ic-add-account-blue.png</file>
+        <file alias="ic-add-account-blue2">res/icons/ic-add-account-blue@2x.png</file>
+        <file alias="ic-add-account-blue3">res/icons/ic-add-account-blue@3x.png</file>
+        <file alias="ic-add-account">res/icons/ic-add-account.png</file>
+        <file alias="ic-add-account2">res/icons/ic-add-account@2x.png</file>
+        <file alias="ic-add-account3">res/icons/ic-add-account@3x.png</file>
+        <file alias="ic-add-blue">res/icons/ic-add-blue.png</file>
+        <file alias="ic-add-blue2">res/icons/ic-add-blue@2x.png</file>
+        <file alias="ic-add-blue3">res/icons/ic-add-blue@3x.png</file>
+        <file alias="ic-add">res/icons/ic-add.png</file>
+        <file alias="ic-add2">res/icons/ic-add@2x.png</file>
+        <file alias="ic-add3">res/icons/ic-add@3x.png</file>
+        <file alias="ic-arrow-back">res/icons/ic-arrow-back.png</file>
+        <file alias="ic-arrow-back2">res/icons/ic-arrow-back@2x.png</file>
+        <file alias="ic-arrow-back3">res/icons/ic-arrow-back@3x.png</file>
+        <file alias="ic-arrow-down">res/icons/ic-arrow-down.png</file>
+        <file alias="ic-arrow-down2">res/icons/ic-arrow-down@2x.png</file>
+        <file alias="ic-arrow-down3">res/icons/ic-arrow-down@3x.png</file>
+        <file alias="ic-arrow-right">res/icons/ic-arrow-right.png</file>
+        <file alias="ic-arrow-right2">res/icons/ic-arrow-right@2x.png</file>
+        <file alias="ic-arrow-right3">res/icons/ic-arrow-right@3x.png</file>
+        <file alias="ic-close-active">res/icons/ic-close-active.png</file>
+        <file alias="ic-close-active2">res/icons/ic-close-active@2x.png</file>
+        <file alias="ic-close-active3">res/icons/ic-close-active@3x.png</file>
+        <file alias="ic-close">res/icons/ic-close.png</file>
+        <file alias="ic-close2">res/icons/ic-close@2x.png</file>
+        <file alias="ic-close3">res/icons/ic-close@3x.png</file>
+        <file alias="ic-copy-blue">res/icons/ic-copy-blue.png</file>
+        <file alias="ic-copy-blue2">res/icons/ic-copy-blue@2x.png</file>
+        <file alias="ic-copy-blue3">res/icons/ic-copy-blue@3x.png</file>
+        <file alias="ic-copy-dark">res/icons/ic-copy-dark.png</file>
+        <file alias="ic-copy-dark2">res/icons/ic-copy-dark@2x.png</file>
+        <file alias="ic-copy-dark3">res/icons/ic-copy-dark@3x.png</file>
+        <file alias="ic-copy-small">res/icons/ic-copy-small.png</file>
+        <file alias="ic-copy-small2">res/icons/ic-copy-small@2x.png</file>
+        <file alias="ic-copy-small3">res/icons/ic-copy-small@3x.png</file>
+        <file alias="ic-copy">res/icons/ic-copy.png</file>
+        <file alias="ic-copy2">res/icons/ic-copy@2x.png</file>
+        <file alias="ic-copy3">res/icons/ic-copy@3x.png</file>
+        <file alias="ic-folder">res/icons/ic-folder.png</file>
+        <file alias="ic-folder2">res/icons/ic-folder@2x.png</file>
+        <file alias="ic-folder3">res/icons/ic-folder@3x.png</file>
+        <file alias="ic-information">res/icons/ic-information.png</file>
+        <file alias="ic-information2">res/icons/ic-information@2x.png</file>
+        <file alias="ic-information3">res/icons/ic-information@3x.png</file>
+        <file>res/icons/ic-nav-address.png</file>
+        <file>res/icons/ic-nav-address@2x.png</file>
+        <file>res/icons/ic-nav-address@3x.png</file>
+        <file>res/icons/ic-nav-addresses.png</file>
+        <file alias="ic-nav-addresses-svg">res/icons/ic-nav-addresses.svg</file>
+        <file>res/icons/ic-nav-addresses@2x.png</file>
+        <file>res/icons/ic-nav-addresses@3x.png</file>
+        <file>res/icons/ic-nav-exchange.png</file>
+        <file>res/icons/ic-nav-exchange@2x.png</file>
+        <file>res/icons/ic-nav-exchange@3x.png</file>
+        <file>res/icons/ic-nav-overview.svg</file>
+        <file>res/icons/ic-nav-receive.png</file>
+        <file alias="ic-nav-receive-svg">res/icons/ic-nav-receive.svg</file>
+        <file>res/icons/ic-nav-receive@2x.png</file>
+        <file>res/icons/ic-nav-receive@3x.png</file>
+        <file>res/icons/ic-nav-send.png</file>
+        <file alias="ic-nav-send-svg">res/icons/ic-nav-send.svg</file>
+        <file>res/icons/ic-nav-send@2x.png</file>
+        <file>res/icons/ic-nav-send@3x.png</file>
+        <file>res/icons/ic-nav-settings.png</file>
+        <file alias="ic-nav-settings-svg">res/icons/ic-nav-settings.svg</file>
+        <file>res/icons/ic-nav-settings@2x.png</file>
+        <file>res/icons/ic-nav-settings@3x.png</file>
+        <file alias="ic-nav-transactions">res/icons/ic-nav-transactions.png</file>
+        <file alias="ic-nav-transactions-svg">res/icons/ic-nav-transactions.svg</file>
+        <file alias="ic-nav-transactions2">res/icons/ic-nav-transactions@2x.png</file>
+        <file alias="ic-nav-transactions3">res/icons/ic-nav-transactions@3x.png</file>
+        <file alias="ic-navigation-addresses">res/icons/ic-navigation-addresses.png</file>
+        <file alias="ic-navigation-addresses2">res/icons/ic-navigation-addresses@2x.png</file>
+        <file alias="ic-navigation-addresses3">res/icons/ic-navigation-addresses@3x.png</file>
+        <file alias="ic-navigation-receive">res/icons/ic-navigation-receive.png</file>
+        <file alias="ic-navigation-receive2">res/icons/ic-navigation-receive@2x.png</file>
+        <file alias="ic-navigation-receive3">res/icons/ic-navigation-receive@3x.png</file>
+        <file alias="ic-navigation-send">res/icons/ic-navigation-send.png</file>
+        <file alias="ic-navigation-send2">res/icons/ic-navigation-send@2x.png</file>
+        <file alias="ic-navigation-send3">res/icons/ic-navigation-send@3x.png</file>
+        <file alias="ic-navigation-settings">res/icons/ic-navigation-settings.png</file>
+        <file alias="ic-navigation-settings2">res/icons/ic-navigation-settings@2x.png</file>
+        <file alias="ic-navigation-settings3">res/icons/ic-navigation-settings@3x.png</file>
+        <file alias="ic-navigation-transactions">res/icons/ic-navigation-transactions.png</file>
+        <file alias="ic-navigation-transactions2">res/icons/ic-navigation-transactions@2x.png</file>
+        <file alias="ic-navigation-transactions3">res/icons/ic-navigation-transactions@3x.png</file>
+        <file>res/icons/ic-progress-1-10.png</file>
+        <file>res/icons/ic-progress-1-10@2x.png</file>
+        <file>res/icons/ic-progress-1-10@3x.png</file>
+        <file>res/icons/ic-progress-2-10.png</file>
+        <file>res/icons/ic-progress-2-10@2x.png</file>
+        <file>res/icons/ic-progress-2-10@3x.png</file>
+        <file>res/icons/ic-progress-3-10.png</file>
+        <file>res/icons/ic-progress-3-10@2x.png</file>
+        <file>res/icons/ic-progress-3-10@3x.png</file>
+        <file>res/icons/ic-progress-4-10.png</file>
+        <file>res/icons/ic-progress-4-10@2x.png</file>
+        <file>res/icons/ic-progress-4-10@3x.png</file>
+        <file>res/icons/ic-progress-5-10.png</file>
+        <file>res/icons/ic-progress-5-10@2x.png</file>
+        <file>res/icons/ic-progress-5-10@3x.png</file>
+        <file>res/icons/ic-progress-6-10.png</file>
+        <file>res/icons/ic-progress-6-10@2x.png</file>
+        <file>res/icons/ic-progress-6-10@3x.png</file>
+        <file>res/icons/ic-progress-7-10.png</file>
+        <file>res/icons/ic-progress-7-10@2x.png</file>
+        <file>res/icons/ic-progress-7-10@3x.png</file>
+        <file>res/icons/ic-progress-8-10.png</file>
+        <file>res/icons/ic-progress-8-10@2x.png</file>
+        <file>res/icons/ic-progress-8-10@3x.png</file>
+        <file>res/icons/ic-progress-9-10.png</file>
+        <file>res/icons/ic-progress-9-10@2x.png</file>
+        <file>res/icons/ic-progress-9-10@3x.png</file>
+        <file alias="ic-progress-10-10">res/icons/ic-progress-10-10.png</file>
+        <file alias="ic-progress-10-10-2">res/icons/ic-progress-10-10@2x.png</file>
+        <file alias="ic-progress-10-10-3">res/icons/ic-progress-10-10@3x.png</file>
+        <file alias="ic-reset-options">res/icons/ic-reset-options.png</file>
+        <file alias="ic-reset-options2">res/icons/ic-reset-options@2x.png</file>
+        <file alias="ic-reset-options3">res/icons/ic-reset-options@3x.png</file>
+        <file alias="ic-search-white">res/icons/ic-search-white.png</file>
+        <file alias="ic-search-white2">res/icons/ic-search-white@2x.png</file>
+        <file alias="ic-search-white3">res/icons/ic-search-white@3x.png</file>
+        <file alias="ic-send-address">res/icons/ic-send-address.png</file>
+        <file alias="ic-send-address2">res/icons/ic-send-address@2x.png</file>
+        <file alias="ic-send-address3">res/icons/ic-send-address@3x.png</file>
+        <file alias="ic-switch-off">res/icons/ic-switch-off.png</file>
+        <file alias="ic-switch-off2">res/icons/ic-switch-off@2x.png</file>
+        <file alias="ic-switch-off3">res/icons/ic-switch-off@3x.png</file>
+        <file alias="ic-switch-on">res/icons/ic-switch-on.png</file>
+        <file alias="ic-switch-on2">res/icons/ic-switch-on@2x.png</file>
+        <file alias="ic-switch-on3">res/icons/ic-switch-on@3x.png</file>
+        <file alias="ic-title">res/icons/point.svg</file>
+        <file>res/icons/ic-transaction-completed.png</file>
+        <file alias="ic-update-address">res/icons/ic-update-address.png</file>
+        <file alias="ic-update-address2">res/icons/ic-update-address@2x.png</file>
+        <file alias="ic-update-address3">res/icons/ic-update-address@3x.png</file>
+        <file alias="ic-watch-off">res/icons/ic-watch-off.png</file>
+        <file alias="ic-watch-off2">res/icons/ic-watch-off@2x.png</file>
+        <file alias="ic-watch-off3">res/icons/ic-watch-off@3x.png</file>
+        <file alias="ic-watch-on">res/icons/ic-watch-on.png</file>
+        <file alias="ic-watch-on2">res/icons/ic-watch-on@2x.png</file>
+        <file alias="ic-watch-on3">res/icons/ic-watch-on@3x.png</file>
+        <file alias="img_balance_logo">res/icons/img_balance_logo.png</file>
+        <file alias="img_balance_logo2">res/icons/img_balance_logo@2x.png</file>
+        <file alias="img_balance_logo3">res/icons/img_balance_logo@3x.png</file>
+        <file>res/icons/img_splash.jpg</file>
+        <file>res/icons/img-logo-binance.png</file>
+        <file>res/icons/img-logo-binance@2x.png</file>
+        <file>res/icons/img-logo-binance@3x.png</file>
+        <file>res/icons/img-logo-bittrex.png</file>
+        <file>res/icons/img-logo-bittrex@2x.png</file>
+        <file>res/icons/img-logo-bittrex@3x.png</file>
+        <file>res/icons/img-logo-coinbase.png</file>
+        <file>res/icons/img-logo-coinbase@2x.png</file>
+        <file>res/icons/img-logo-coinbase@3x.png</file>
+        <file alias="img-start-backup">res/icons/img-start-backup.png</file>
+        <file alias="img-start-backup2">res/icons/img-start-backup@2x.png</file>
+        <file alias="img-start-backup3">res/icons/img-start-backup@3x.png</file>
+        <file alias="img-start-confirm">res/icons/img-start-confirm.png</file>
+        <file alias="img-start-confirm2">res/icons/img-start-confirm@2x.png</file>
+        <file alias="img-start-confirm3">res/icons/img-start-confirm@3x.png</file>
+        <file alias="img-start-logo">res/icons/img-start-logo.png</file>
+        <file alias="img-start-logo2">res/icons/img-start-logo@2x.png</file>
+        <file alias="img-start-logo3">res/icons/img-start-logo@3x.png</file>
+        <file alias="img-start-password">res/icons/img-start-password.png</file>
+        <file alias="img-start-password2">res/icons/img-start-password@2x.png</file>
+        <file alias="img-start-password3">res/icons/img-start-password@3x.png</file>
+        <file alias="img-start-wallet">res/icons/img-start-wallet.png</file>
+        <file alias="img-start-wallet2">res/icons/img-start-wallet@2x.png</file>
+        <file alias="img-start-wallet3">res/icons/img-start-wallet@3x.png</file>
+        <file alias="logo_splash">res/icons/logo_splash.png</file>
+        <file alias="logo_splash2">res/icons/logo_splash@2x.png</file>
+        <file alias="logo_splash3">res/icons/logo_splash@3x.png</file>
+        <file alias="symbol">res/icons/simbol.png</file>
+        <file alias="symbol2">res/icons/simbol@2x.png</file>
+        <file alias="symbol3">res/icons/simbol@3x.png</file>
+        <file>res/icons/veil_splash.png</file>
+        <file>res/icons/veil_splash@2x.png</file>
+        <file>res/icons/veil_splash@3x.png</file>
+        <file alias="banner-modal">res/icons/banner-dialogo.png</file>
+        <file alias="banner-modal2">res/icons/banner-dialogo@2x.png</file>
+        <file alias="banner-modal3">res/icons/banner-dialogo@3x.png</file>
+        <file alias="logo-splash">res/icons/logo-splash.png</file>
+        <file alias="logo-splash2">res/icons/logo-splash@2x.png</file>
+        <file alias="logo-splash3">res/icons/logo-splash@3x.png</file>
+        <file alias="ic-settings">res/icons/ic-settings.png</file>
+        <file alias="ic-settings2">res/icons/ic-settings@2x.png</file>
+        <file alias="ic-settings3">res/icons/ic-settings@3x.png</file>
+        <file alias="ic-settings-svg2">res/icons/ic-settings.svg</file>
+        <file alias="ic-information-svg">res/icons/ic-information.svg</file>
+        <file alias="ic-receive-svg2">res/icons/ic-receive.svg</file>
+        <file alias="ic-send-svg2">res/icons/ic-send.svg</file>
+        <file alias="ic-switch-off-svg">res/icons/ic-switch-off.svg</file>
+        <file alias="ic-switch-on-svg">res/icons/ic-switch-on.svg</file>
+        <file alias="ic-transactions-svg2">res/icons/ic-transactions.svg</file>
+        <file alias="ic-addresses-svg2">res/icons/ic-addresses.svg</file>
+        <file alias="ic-progress-6-6-complete-14x14">res/icons/ic-progress-6-6-complete-14x14.png</file>
+        <file alias="img-wallet">res/icons/img-wallet.png</file>
+        <file alias="img-wallet3">res/icons/img-wallet@3x.png</file>
+        <file alias="img-wallet2">res/icons/img-wallet@2x.png</file>
+        <file alias="img-banner-top-svg">res/icons/img-banner-top.svg</file>
+        <file alias="ic-folder-svg">res/icons/ic-folder.svg</file>
+        <file alias="img-empty-addresses">res/icons/img-empty-addresses.svg</file>
+        <file alias="img-veil-logo-small-svg">res/icons/img-veil-logo-small.svg</file>
+        <file alias="ic-close-white-svg">res/icons/ic-close-white.svg</file>
+        <file alias="img-balance-logo-svg-1">res/icons/img-balance-logo.svg</file>
+        <file alias="ic-transcation-6-6-svg">res/icons/ic-transaction-6-6.svg</file>
+        <file alias="ic-sent-svg">res/icons/ic_sent.svg</file>
+        <file alias="ic-received-svg">res/icons/ic_received.svg</file>
+        <file alias="ic-mint-svg">res/icons/ic_mint.svg</file>
+        <file alias="ic-mined-svg">res/icons/ic_mined.svg</file>
+        <file alias="ic-copy-blue-svg">res/icons/ic-copy.svg</file>
+        <file alias="ic-close-svg">res/icons/ic-close.svg</file>
+        <file alias="simbol-svg">res/icons/simbol.svg</file>
+        <file alias="ic-add-account-svg">res/icons/ic-add-account.svg</file>
+        <file alias="ic-reset-options-svg">res/icons/ic-reset-options.svg</file>
     </qresource>
     <qresource prefix="/movies">
         <file alias="spinner-000">res/movies/spinner-000.png</file>
@@ -92,5 +329,16 @@
         <file alias="spinner-033">res/movies/spinner-033.png</file>
         <file alias="spinner-034">res/movies/spinner-034.png</file>
         <file alias="spinner-035">res/movies/spinner-035.png</file>
+    </qresource>
+    <qresource prefix="/css">
+        <file alias="main">res/css/main.css</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>res/icons/ic-addresses.svg</file>
+        <file>res/icons/img-banner-top.svg</file>
+        <file>res/icons/ic-folder.svg</file>
+        <file>res/icons/img-empty-addresses.svg</file>
+        <file>res/icons/img-veil-logo-small.svg</file>
+        <file>res/icons/ic-close-white.svg</file>
     </qresource>
 </RCC>

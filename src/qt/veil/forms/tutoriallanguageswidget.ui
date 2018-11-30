@@ -1,0 +1,425 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TutorialLanguagesWidget</class>
+ <widget class="QWidget" name="TutorialLanguagesWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>735</width>
+    <height>759</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">background-color:white;
+border:none;</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,1,0,3,2">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
+    <number>0</number>
+   </property>
+   <item>
+    <spacer name="verticalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
+    <widget class="QLabel" name="labelTitle">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>190</width>
+       <height>40</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>40</height>
+      </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">color:#105aef;</string>
+     </property>
+     <property name="text">
+      <string>Select a language</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignHCenter|Qt::AlignTop</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_3">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <layout class="QVBoxLayout" name="verticalLayout">
+     <property name="spacing">
+      <number>20</number>
+     </property>
+     <item>
+      <widget class="QGroupBox" name="groupBox">
+       <property name="styleSheet">
+        <string notr="true">border:none;
+background-color:white;</string>
+       </property>
+       <property name="title">
+        <string/>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <layout class="QVBoxLayout" name="verticalLayout_3">
+        <property name="spacing">
+         <number>10</number>
+        </property>
+        <item alignment="Qt::AlignHCenter">
+         <widget class="QPushButton" name="pushButton">
+          <property name="minimumSize">
+           <size>
+            <width>190</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>190</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+</string>
+          </property>
+          <property name="text">
+           <string>English</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="autoExclusive">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item alignment="Qt::AlignHCenter">
+         <widget class="QPushButton" name="pushButton">
+          <property name="minimumSize">
+           <size>
+            <width>190</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>190</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+</string>
+          </property>
+          <property name="text">
+           <string>Spanish</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="autoExclusive">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item alignment="Qt::AlignHCenter">
+         <widget class="QPushButton" name="pushButton">
+          <property name="minimumSize">
+           <size>
+            <width>190</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>190</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+</string>
+          </property>
+          <property name="text">
+           <string>Portuguese</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="autoExclusive">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item alignment="Qt::AlignHCenter">
+         <widget class="QPushButton" name="pushButton">
+          <property name="minimumSize">
+           <size>
+            <width>190</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>190</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+</string>
+          </property>
+          <property name="text">
+           <string>Italian</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="autoExclusive">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item alignment="Qt::AlignHCenter">
+         <widget class="QPushButton" name="pushButton">
+          <property name="minimumSize">
+           <size>
+            <width>190</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>190</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+</string>
+          </property>
+          <property name="text">
+           <string>French</string>
+          </property>
+          <property name="checkable">
+           <bool>true</bool>
+          </property>
+          <property name="autoExclusive">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>168</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
