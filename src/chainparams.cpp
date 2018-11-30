@@ -232,6 +232,7 @@ public:
         base58Prefixes[STEALTH_ADDRESS] ={0x84}; // v
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
+        nBIP44ID = 0x800002ba;
 
         bech32Prefixes[STEALTH_ADDRESS].assign("ps","ps"+2);
 
@@ -354,6 +355,7 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
         bech32Prefixes[STEALTH_ADDRESS].assign("tps","tps"+3);
+        nBIP44ID = 0x80000001;
 
         bech32_hrp = "tb";
 

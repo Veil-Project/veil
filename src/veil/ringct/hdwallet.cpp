@@ -148,7 +148,7 @@ void CHDWallet::AddOptions()
     return;
 }
 
-bool CHDWallet::Initialise()
+bool CHDWallet::Initialise(CExtKey* extKeyMaster)
 {
     if (!ParseMoney(gArgs.GetArg("-reservebalance", ""), nReserveBalance)) {
         return InitError(_("Invalid amount for -reservebalance=<amount>"));
@@ -161,6 +161,12 @@ bool CHDWallet::Initialise()
     }
 
     {
+        LOCK(cs_wallet);
+        CHDWalletDB wdb(GetDBHandle());
+        // Force load of master seed for RingCT wallet
+        if (extKeyMaster)
+              MakeDefaultAccount(extKeyMaster);
+
         // Prepare extended keys
         ExtKeyLoadMaster();
         ExtKeyLoadAccounts();
@@ -4824,7 +4830,7 @@ int CHDWallet::GetDefaultConfidentialChain(CHDWalletDB *pwdb, CExtKeyAccount *&s
     return 0;
 }
 
-int CHDWallet::MakeDefaultAccount()
+int CHDWallet::MakeDefaultAccount(CExtKey* extKeyMaster)
 {
     WalletLogPrintf("Generating initial master key and account from random data.\n");
 
@@ -4841,7 +4847,9 @@ int CHDWallet::MakeDefaultAccount()
     CExtKeyAccount *sea;
     CExtKey ekMaster;
 
-    if (0 != ExtKeyNew32(ekMaster)) {
+    if (extKeyMaster)
+        ekMaster = *extKeyMaster;
+    else if (0 != ExtKeyNew32(ekMaster)) {
         wdb.TxnAbort();
         return 1;
     }
@@ -5100,8 +5108,10 @@ int CHDWallet::ExtKeySetMaster(CHDWalletDB *pwdb, CKeyID &idNewMaster)
     bool fNew = false;
     mi = mapExtKeys.find(idNewMaster);
     if (mi != mapExtKeys.end()) {
+        LogPrintf("%s: 5109\n", __func__);
         pEKNewMaster = mi->second;
     } else {
+        LogPrintf("%s: 5112\n", __func__);
         pEKNewMaster = new CStoredExtKey();
         fNew = true;
         if (!pwdb->ReadExtKey(idNewMaster, *pEKNewMaster)) {
@@ -5648,7 +5658,7 @@ int CHDWallet::ExtKeyUnlock(const CKeyingMaterial &vMKey)
 };
 
 
-int CHDWallet::ExtKeyCreateInitial(CHDWalletDB *pwdb)
+int CHDWallet::ExtKeyCreateInitial(CHDWalletDB *pwdb, CExtKey* extKeyMaster)
 {
     WalletLogPrintf("Creating intital extended master key and account.\n");
 
@@ -5658,10 +5668,19 @@ int CHDWallet::ExtKeyCreateInitial(CHDWalletDB *pwdb)
         return werrorN(1, "%s TxnBegin failed.", __func__);
     }
 
-    if (ExtKeyNewMaster(pwdb, idMaster, true) != 0
-        || ExtKeySetMaster(pwdb, idMaster) != 0) {
+    if (!extKeyMaster) {
+        if (ExtKeyNewMaster(pwdb, idMaster, true) != 0) {
+            pwdb->TxnAbort();
+            return werrorN(1, "%s Make masterkey failed.", __func__);
+        }
+    } else {
+        idDefaultAccount = extKeyMaster->key.GetPubKey().GetID();
+        //pwdb->WriteExtKey(idMaster, extKeyMaster);
+    }
+
+    if (ExtKeySetMaster(pwdb, idMaster) != 0) {
         pwdb->TxnAbort();
-        return werrorN(1, "%s Make or SetNewMasterKey failed.", __func__);
+        return werrorN(1, "%s SetNewMasterKey failed.", __func__);
     }
 
     CExtKeyAccount *seaDefault = new CExtKeyAccount();
@@ -5712,8 +5731,7 @@ int CHDWallet::ExtKeyLoadMaster()
     CHDWalletDB wdb(*database, "r+");
     if (!wdb.ReadNamedExtKeyId("master", idMaster)) {
         int nValue;
-        if (!wdb.ReadFlag("madeDefaultEKey", nValue)
-            || nValue == 0) {
+        if (!wdb.ReadFlag("madeDefaultEKey", nValue) || nValue == 0) {
             /*
             if (IsLocked())
             {
