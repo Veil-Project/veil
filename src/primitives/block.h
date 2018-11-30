@@ -13,6 +13,31 @@
 #include <unordered_map>
 #include <libzerocoin/Denominations.h>
 
+
+struct CVeilBlockData
+{
+    uint256 hashMerkleRoot;
+    uint256 hashWitnessMerkleRoot;
+
+    std::map<libzerocoin::CoinDenomination , uint256> mapAccumulatorHashes;
+
+    CVeilBlockData(const uint256& hashMerkleRootTmp, const uint256& hashWitnessMerkleRootTmp, const std::map<libzerocoin::CoinDenomination , uint256> mapAccumulatorHashesTmp)
+    {
+        this->hashMerkleRoot= hashMerkleRootTmp;
+        this->hashWitnessMerkleRoot = hashWitnessMerkleRootTmp;
+        this->mapAccumulatorHashes = mapAccumulatorHashesTmp;
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(hashMerkleRoot);
+        READWRITE(hashWitnessMerkleRoot);
+        READWRITE(mapAccumulatorHashes);
+    }
+};
+
 /** Nodes collect new transactions into a block, hash them into a hash tree,
  * and scan through nonce values to make the block's hash satisfy proof-of-work
  * requirements.  When they solve the proof-of-work, they broadcast the block
@@ -26,12 +51,10 @@ public:
     // header
     int32_t nVersion;
     uint256 hashPrevBlock;
-    uint256 hashMerkleRoot;
+    uint256 hashVeilData; // Serialzie hash of CVeilBlockData(hashMerkleRoot, hashAccumulators, hashWitnessMerkleRoot
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
-    uint256 hashAccumulators;
-    uint256 hashWitnessMerkleRoot;
 
     CBlockHeader()
     {
@@ -44,24 +67,20 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(nVersion);
         READWRITE(hashPrevBlock);
-        READWRITE(hashMerkleRoot);
+        READWRITE(hashVeilData);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
-        READWRITE(hashAccumulators);
-        READWRITE(hashWitnessMerkleRoot);
     }
 
     void SetNull()
     {
         nVersion = 0;
         hashPrevBlock.SetNull();
-        hashMerkleRoot.SetNull();
+        hashVeilData.SetNull();
         nTime = 0;
         nBits = 0;
         nNonce = 0;
-        hashAccumulators.SetNull();
-        hashWitnessMerkleRoot.SetNull();
     }
 
     bool IsNull() const
@@ -90,6 +109,9 @@ public:
     // zerocoin
     std::map<libzerocoin::CoinDenomination , uint256> mapAccumulatorHashes;
 
+    uint256 hashWitnessMerkleRoot;
+    uint256 hashMerkleRoot;
+
     // Proof of Stake: block signature - signed by one of the coin base txout[N]'s owner
     std::vector<unsigned char> vchBlockSig;
 
@@ -114,6 +136,8 @@ public:
         READWRITEAS(CBlockHeader, *this);
         READWRITE(vtx);
         READWRITE(mapAccumulatorHashes);
+        READWRITE(hashMerkleRoot);
+        READWRITE(hashWitnessMerkleRoot);
         if (IsProofOfStake())
             READWRITE(vchBlockSig);
     }
@@ -128,19 +152,22 @@ public:
             uint256 zero;
             mapAccumulatorHashes[libzerocoin::zerocoinDenomList[i]] = zero;
         }
+
+        hashMerkleRoot = uint256();
+        hashWitnessMerkleRoot = uint256();
     }
 
     CBlockHeader GetBlockHeader() const
     {
+        CVeilBlockData veilBlockData(hashMerkleRoot, hashWitnessMerkleRoot, mapAccumulatorHashes);
+
         CBlockHeader block;
         block.nVersion       = nVersion;
         block.hashPrevBlock  = hashPrevBlock;
-        block.hashMerkleRoot = hashMerkleRoot;
-        block.hashWitnessMerkleRoot = hashWitnessMerkleRoot;
+        block.hashVeilData   = SerializeHash(veilBlockData);
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
-        block.hashAccumulators = SerializeHash(mapAccumulatorHashes);
         return block;
     }
 
@@ -153,6 +180,13 @@ public:
     bool IsProofOfWork() const
     {
         return !IsProofOfStake();
+    }
+
+    uint256 GetVeilDataHash() const
+    {
+        CVeilBlockData veilBlockData(hashMerkleRoot, hashWitnessMerkleRoot, mapAccumulatorHashes);
+
+        return SerializeHash(veilBlockData);
     }
 
     std::string ToString() const;
