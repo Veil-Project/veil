@@ -451,10 +451,10 @@ public:
         nDefaultPort = 58821;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN);
+        genesis = CreateGenesisBlock(1296688602, 2789192, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x457ad7b129c84607fc4e5b211d7ccd538853af296ba55bf0ca33799c4ec924f1"));
-        //assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
+        assert(consensus.hashGenesisBlock == uint256S("0xb1cf85ac0057d85bafed36f8973fd648b4be2b33afb998a3ce6ee3ef4ee56873"));
+        assert(genesis.hashMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
 
         vFixedSeeds.clear(); //!< Regtest mode doesn't have any fixed seeds.
         vSeeds.clear();      //!< Regtest mode doesn't have any DNS seeds.
@@ -465,7 +465,7 @@ public:
 
         checkpointData = {
             {
-                {0, uint256S("0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206")},
+                {0, uint256S("b1cf85ac0057d85bafed36f8973fd648b4be2b33afb998a3ce6ee3ef4ee56873")},
             }
         };
 

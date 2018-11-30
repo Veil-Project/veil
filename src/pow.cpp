@@ -16,11 +16,11 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 {
     assert(pindexLast != nullptr);
 
-  //  unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
+    unsigned int nProofOfWorkLimit = UintToArith256(params.powLimit).GetCompact();
 
-//    if (params.fPowNoRetargeting)
-//        return nProofOfWorkLimit;
-//
+    if (params.fPowNoRetargeting) // regtest only
+        return nProofOfWorkLimit;
+
 //    if (params.fPowAllowMinDifficultyBlocks) {
 //        // Special difficulty rule for testnet:
 //        // If the new block's timestamp is more than 10 minutes
