@@ -385,7 +385,7 @@ public:
     bool LoadTxRecords(CHDWalletDB *pwdb);
 
     bool IsLocked() const override;
-    bool EncryptWallet(const SecureString &strWalletPassphrase) override;
+    bool EncryptWallet(const SecureString &strWalletPassphrase);
     bool Lock() override;
     bool Unlock(const SecureString &strWalletPassphrase) override;
 
@@ -393,7 +393,7 @@ public:
     isminetype HaveAddress(const CTxDestination &dest);
     isminetype HaveKey(const CKeyID &address, const CEKAKey *&pak, const CEKASCKey *&pasc, CExtKeyAccount *&pa) const;
     isminetype IsMine(const CKeyID &address) const override;
-    bool HaveKey(const CKeyID &address) const override;
+    bool CheckKey(const CKeyID &address) const;
 
     isminetype HaveExtKey(const CKeyID &keyID) const;
     bool GetExtKey(const CKeyID &keyID, CStoredExtKey &extKeyOut) const;

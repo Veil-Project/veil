@@ -646,6 +646,9 @@ class WalletRescanReserver; //forward declarations for ScanForWalletTransactions
  */
 class CWallet : public CCryptoKeyStore, public CValidationInterface
 {
+private:
+    //This method should not be used. HDWallet's method of encryption does the same thing and a little more and should be used
+    bool WalletEncryption(const SecureString& strWalletPassphrase); //Previously named EncryptWallet but changed for sake of refractoring
 protected:
     std::atomic<bool> fAbortRescan{false};
     std::atomic<bool> fScanningWallet{false}; // controlled by WalletRescanReserver
@@ -976,7 +979,6 @@ public:
     virtual int ExtKeyUnlock(const CKeyingMaterial &vMKey) {return 0;};
     virtual bool Unlock(const SecureString& strWalletPassphrase);
     bool ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase);
-    virtual bool EncryptWallet(const SecureString& strWalletPassphrase);
 
     void GetKeyBirthTimes(std::map<CTxDestination, int64_t> &mapKeyBirth) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     unsigned int ComputeTimeSmart(const CWalletTx& wtx) const;
