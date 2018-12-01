@@ -2423,10 +2423,10 @@ CAmount CWallet::GetMintableBalance(std::vector<COutput>& vMintableCoins) const
                 continue;
             if (!ExtractDestination(*pOut->GetPScriptPubKey(), address))
                 continue;
-            if (mapAddressBook.count(address) && mapAddressBook.at(address).purpose != "basecoin") {
-                balance += coin.tx->tx->vpout[coin.i]->GetValue();
-                vMintableCoins.emplace_back(std::move(coin));
-            }
+            if (mapAddressBook.count(address) && mapAddressBook.at(address).purpose == "basecoin")
+                continue;
+            balance += coin.tx->tx->vpout[coin.i]->GetValue();
+            vMintableCoins.emplace_back(std::move(coin));
         }
     }
     return balance;
@@ -4353,7 +4353,7 @@ void CWallet::AutoZeromint()
     // After sync wait even more to reduce load when wallet was just started
     int64_t nWaitTime = GetAdjustedTime() - nAutoMintStartupTime;
     if (nWaitTime < AUTOMINT_DELAY){
-     //   LogPrint("zero", "CWallet::AutoZeromint(): time since sync-completion or last Automint (%ld sec) < default waiting time (%ld sec). Waiting again...\n", nWaitTime, AUTOMINT_DELAY);
+        LogPrint(BCLog::SELECTCOINS, "CWallet::AutoZeromint(): time since sync-completion or last Automint (%ld sec) < default waiting time (%ld sec). Waiting again...\n", nWaitTime, AUTOMINT_DELAY);
         return;
     }
 
