@@ -31,6 +31,8 @@ typedef byte_array<64> long_hash;
 typedef byte_array<32> hash_digest;
 typedef std::initializer_list<data_slice> loaf;
 
+dictionary string_to_lexicon(const std::string& strLanguage);
+
 /**
 * Create a new mnenomic (list of words) from provided entropy and a dictionary
 * selection. The mnemonic can later be converted to a seed for use in wallet

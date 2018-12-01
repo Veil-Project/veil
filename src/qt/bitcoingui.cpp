@@ -1040,9 +1040,10 @@ void BitcoinGUI::message(const QString &title, const QString &message, unsigned 
 void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool& ret)
 {
     switch(flag) {
+        //Note: Veil new GUI only responds to SELECT_LANGUAGE and does everything in that one signal
         case MnemonicWalletInitFlags::SELECT_LANGUAGE:
         {
-            std::cout << "mnemonic: " << mnemonic << std::endl;
+            //std::cout << "mnemonic: " << mnemonic << std::endl;
             TutorialWidget *tutorial = new TutorialWidget();
             tutorial->exec();
 
@@ -1051,7 +1052,8 @@ void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool&
             }
 
             ret = !tutorial->ShutdownRequested();
-            flag = tutorial->GetSelection();
+            mnemonic = tutorial->GetMnemonic();
+            flag = MnemonicWalletInitFlags::IMPORT_MNEMONIC;
             delete tutorial;
 
             break;

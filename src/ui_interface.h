@@ -132,6 +132,8 @@ bool DisplayWalletMnemonic(std::string& message);
 
 bool GetWalletMnemonic(std::string& message);
 
+bool GetWalletMnemonicLanguage(std::string& message, unsigned int& initOption);
+
 bool RetryWalletMnemonic(std::string& message);
 
 extern CClientUIInterface uiInterface;

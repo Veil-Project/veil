@@ -6,6 +6,7 @@
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 #include <veil/ringct/hdwallet.h>
+#include "mnemonic.h"
 
 const WalletInitInterface& g_wallet_init_interface = MnemonicWalletInit();
 
@@ -30,11 +31,26 @@ bool MnemonicWalletInit::Open() const
             if (!strSeedPhraseArg.empty())
                 initOption = MnemonicWalletInitFlags::IMPORT_MNEMONIC;
 
-            if (initOption == MnemonicWalletInitFlags::INVALID_MNEMONIC && !InitNewWalletPrompt(initOption))
-                return false;
-            if (initOption == MnemonicWalletInitFlags::NEW_MNEMONIC) {
+          //  if (initOption == MnemonicWalletInitFlags::INVALID_MNEMONIC && !InitNewWalletPrompt(initOption))
+            std::string strLanguage = "english";
+            if (initOption == MnemonicWalletInitFlags::INVALID_MNEMONIC) {
+                if (!GetWalletMnemonicLanguage(strLanguage, initOption))
+                    return false;
+                std::stringstream ss(strLanguage);
+                std::istream_iterator<std::string> begin(ss);
+                std::istream_iterator<std::string> end;
+                std::vector<std::string> mnemonicWordList(begin, end);
+                std::vector<unsigned char> keyData = key_from_mnemonic(mnemonicWordList);
+
+                CKey key;
+                key.Set(keyData.data(), keyData.data() + keyData.size(), true);
+                if (!key.IsValid())
+                    return error("%s: Key not valid\n", __func__);
+                pubkeySeed = key.GetPubKey();
+                LogPrintf("%s: GUI loaded seed %s\n", __func__, HexStr(pubkeySeed));
+            } else if (initOption == MnemonicWalletInitFlags::NEW_MNEMONIC) {
                 std::string mnemonic;
-                if (!CWallet::CreateNewHDWallet(walletFile, walletPath, mnemonic, &pubkeySeed))
+                if (!CWallet::CreateNewHDWallet(walletFile, walletPath, mnemonic, strLanguage, &pubkeySeed))
                     return false;
                 if (!DisplayWalletMnemonic(mnemonic))
                     return false;

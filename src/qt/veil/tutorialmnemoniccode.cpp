@@ -3,12 +3,12 @@
 #include <QLineEdit>
 #include <QDebug>
 
-TutorialMnemonicCode::TutorialMnemonicCode(QWidget *parent) :
+TutorialMnemonicCode::TutorialMnemonicCode(std::vector<std::string> vWords, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::TutorialMnemonicCode)
 {
     ui->setupUi(this);
-
+    this->vWords = vWords;
 
     // right side
 
@@ -37,9 +37,8 @@ void TutorialMnemonicCode::onRevealClicked(){
     for (QLabel* label : labelsList) {
         label->setStyleSheet("QLabel{background-color:#e3e3e3;padding-left:8px;padding-right:8px;padding-top:2px;padding-bottom:2px;border-radius:4px;}");
         label->setContentsMargins(8,12,8,12);
-        label->setText("word_");
+        label->setText(QString::fromStdString(vWords[i]));
         i++;
-
     }
 }
 
