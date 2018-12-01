@@ -59,17 +59,17 @@ bool MnemonicWalletInit::Open() const
         }
 
         //Extract masterkey for HD wallet from account 1 m/0/0/1
+        CExtKey extKey;
         if (fNewSeed) {
             WalletBatch walletdb(pwallet->GetDBHandle());
-            CExtKey extKey;
             CKeyMetadata metadata;
             pwallet->DeriveNewExtKey(walletdb, metadata, extKey, false, 1);
             LogPrintf("%s: Loading key %s %s for hdwallet\n", __func__, metadata.hdKeypath, HexStr(extKey.key.GetPubKey()));
-            CHDWallet *phdwallet = (CHDWallet *) pwallet.get();
-            if (!phdwallet->Initialise(&extKey))
-                return false;
         }
 
+        CHDWallet *phdwallet = (CHDWallet *) pwallet.get();
+        if (!phdwallet->Initialise(fNewSeed ? &extKey : nullptr))
+            return false;
         AddWallet(pwallet);
     }
 
