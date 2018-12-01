@@ -751,7 +751,7 @@ isminetype CHDWallet::IsMine(const CKeyID &address) const
     return HaveKey(address, pak, pasc, pa);
 };
 
-bool CHDWallet::HaveKey(const CKeyID &address) const
+bool CHDWallet::CheckKey(const CKeyID &address) const
 {
     LOCK(cs_wallet);
 
@@ -7978,7 +7978,7 @@ bool CHDWallet::ProcessStealthOutput(const CTxDestination &address, std::vector<
     CKey sSpend;
 
     CKeyID ckidMatch = boost::get<CKeyID>(address);
-    if (HaveKey(ckidMatch)) {
+    if (CheckKey(ckidMatch)) {
         CStealthAddress sx;
         if (fNeedShared && GetStealthLinked(ckidMatch, sx) && GetStealthAddressScanKey(sx)) {
             if (StealthShared(sx.scan_secret, vchEphemPK, sShared) != 0) {
