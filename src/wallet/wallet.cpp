@@ -4872,10 +4872,6 @@ bool CWallet::CreateNewHDWallet(const std::string& name, const fs::path& path, s
     std::shared_ptr<CWallet> walletInstance(new CWallet(name, WalletDatabase::Create(path)), ReleaseWallet);
     DBErrors nLoadWalletRet = walletInstance->LoadWallet(fFirstRun);
 
-    if (!fFirstRun) {
-        InitError(strprintf(_("Error generating HD wallet: %s already exists?? This should never happen"), walletFile));
-        return false;
-    }
     if (nLoadWalletRet != DBErrors::LOAD_OK)
     {
         InitError(strprintf(_("Error generating %s"), walletFile));

@@ -51,6 +51,10 @@ include_directories(src/wallet)
 include_directories(src/wallet/test)
 include_directories(src/zmq)
 
+find_package( Qt5Core REQUIRED )
+find_package( Qt5Widgets REQUIRED )
+find_package( Qt5Gui REQUIRED )
+
 add_executable(veil
         src/veil/ringct/extkey.cpp
         src/veil/ringct/extkey.h
@@ -970,3 +974,5 @@ add_executable(veil
         INSTALL.md
         Makefile.am
         README.md src/test/proofofstaketests.cpp)
+
+qt5_use_modules(veil Core Widgets Gui)

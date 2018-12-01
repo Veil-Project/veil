@@ -17,3 +17,15 @@ TutorialCreateWalletWidget::~TutorialCreateWalletWidget()
 {
     delete ui;
 }
+
+int TutorialCreateWalletWidget::GetButtonClicked()
+{
+    if (ui->btnCreate->isChecked())
+        return 1;
+    else if (ui->btnRestore->isChecked())
+        return 2;
+    else if (ui->btnImport->isChecked())
+        return 3;
+    else
+        return 0;
+}
