@@ -20,6 +20,7 @@
 #include <QLabel>
 #include <QPainter>
 #include <qt/veil/qtutils.h>
+#include <qt/walletmodel.h>
 
 #ifdef USE_QRCODE
 #include <qrencode.h>
@@ -73,7 +74,9 @@ void Balance::on_btnCopyAddress_clicked() {
 }
 
 void Balance::onBtnBalanceClicked(){
-    tooltip = new TooltipBalance(parentWidget());
+    interfaces::Wallet& wallet = walletModel->wallet();
+    interfaces::WalletBalances balances = wallet.getBalances();
+    tooltip = new TooltipBalance(parentWidget(),balances.zerocoin_balance + balances.zerocoin_immature_balance, 0 );
     tooltip->move(ui->btnBalance->pos().rx()+150,0);
     tooltip->show();
 }

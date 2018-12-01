@@ -12,7 +12,7 @@ class TooltipBalance : public QWidget
     Q_OBJECT
 
 public:
-    explicit TooltipBalance(QWidget *parent = nullptr);
+    explicit TooltipBalance(QWidget *parent = nullptr, int nZerocoinbalance = 0, int nRingBalance = 0);
     ~TooltipBalance();
 
     virtual void showEvent(QShowEvent *event) override;
