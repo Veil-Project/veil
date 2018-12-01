@@ -730,7 +730,7 @@ void CWallet::AddToSpends(const uint256& wtxid)
         AddToSpends(txin.prevout, wtxid);
 }
 
-bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
+bool CWallet::WalletEncryption(const SecureString& strWalletPassphrase)
 {
     if (IsCrypted())
         return false;

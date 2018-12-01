@@ -137,7 +137,8 @@ public:
 
     bool encryptWallet(const SecureString& wallet_passphrase) override
     {
-        return m_wallet.EncryptWallet(wallet_passphrase);
+        CHDWallet * pHDWallet = (CHDWallet *) &m_wallet;
+        return pHDWallet->EncryptWallet(wallet_passphrase);
     }
     bool isCrypted() override { return m_wallet.IsCrypted(); }
     bool lock() override { return m_wallet.Lock(); }

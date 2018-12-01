@@ -385,7 +385,7 @@ public:
     bool LoadTxRecords(CHDWalletDB *pwdb);
 
     bool IsLocked() const override;
-    bool EncryptWallet(const SecureString &strWalletPassphrase) override;
+    bool EncryptWallet(const SecureString &strWalletPassphrase);
     bool Lock() override;
     bool Unlock(const SecureString &strWalletPassphrase) override;
 
