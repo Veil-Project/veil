@@ -48,6 +48,7 @@
 
 #include <veil/proofofstake/blockvalidation.h>
 #include <veil/budget.h>
+#include <veil/ringct/blind.h>
 #include <veil/zerocoin/zchain.h>
 #include <veil/proofofstake/kernel.h>
 
@@ -2234,7 +2235,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         CAmount nTxValueIn = 0;
         CAmount nTxValueOut = 0;
         if (tx.IsCoinBase()) {
-            nTxValueOut += tx.GetValueOut();
+            if (tx.nVersion == OUTPUT_STANDARD) {
+                nTxValueOut += tx.GetValueOut();
+            }
         } else {
             if (tx.IsZerocoinSpend()) {
                 int nHeightTx = 0;
@@ -2341,6 +2344,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             // tx is coinbase
             CTxUndo undoDummy;
             UpdateCoins(tx, view, undoDummy, pindex->nHeight);
+            if (tx.vpout[0]->IsType(OUTPUT_RINGCT))
+                state.fHasAnonOutput = true;
         }
 
         if (view.nLastRCTOutput == 0)
@@ -2431,16 +2436,33 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
 
     CAmount nCreationLimit = networkReward + nBlockReward + nFounderPayment + nBudgetPayment + nLabPayment;
-    //TODO: Proof Of Full node gets fees, else check destroyed
+    if (block.vtx.size() == 0)
+        return state.DoS(100, error("ConnectBlock(): coinbase missing\n",
+                         REJECT_INVALID, "bad-cb"));
 
-    if (block.vtx[0]->GetValueOut() > nCreationLimit) {
-        LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__, FormatMoney(nBlockReward), FormatMoney(networkReward), FormatMoney(nFounderPayment),
-                  FormatMoney(nBudgetPayment), FormatMoney(nLabPayment));
+    // Check that the coinbase doesn't exceed the creation limit
+    if (block.vtx[0]->vpout.size() != 0 && (block.vtx[0]->vpout[0]->IsType(OUTPUT_RINGCT) || block.vtx[0]->vpout[0]->IsType(OUTPUT_CT))) {
+        // Check that the max value doesn't exceed the creation limit, so we can
+        // be sure the block doesn't generate generate more than it should
+        int nExponent, nMantissa;
+        CAmount nMin, nMax;
+        if (GetRangeProofInfo(*(block.vtx[0]->vpout[0]->GetPRangeproof()), nExponent, nMantissa, nMin, nMax) != 0)
+            return state.DoS(100, error("ConnectBlock(): couldn't get range proof info\n",
+                                        REJECT_INVALID, "bad-range-proof"));
 
-        return state.DoS(100, error("ConnectBlock(): coinbase pays too much (actual=%s vs limit=%s)\n %s",
-                                    block.vtx[0]->GetValueOut(), nBlockReward, block.vtx[0]->ToString()),
-                         REJECT_INVALID, "bad-cb-amount");
+        if (nMax > nCreationLimit)
+            return state.DoS(100, error("ConnectBlock(): coinbase range max too high\n",
+                                        REJECT_INVALID, "bad-range-proof"));
+    } else if ((block.vtx[0]->vpout.empty() || block.vtx[0]->vpout[0]->IsType(OUTPUT_STANDARD)) && block.vtx[0]->GetValueOut() > nCreationLimit) {
+            LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__,
+                      FormatMoney(nBlockReward), FormatMoney(networkReward), FormatMoney(nFounderPayment),
+                      FormatMoney(nBudgetPayment), FormatMoney(nLabPayment));
+
+            return state.DoS(100, error("ConnectBlock(): coinbase pays too much (actual=%s vs limit=%s)\n %s",
+                                        block.vtx[0]->GetValueOut(), nBlockReward, block.vtx[0]->ToString()),
+                             REJECT_INVALID, "bad-cb-amount");
     }
+    //TODO: Proof Of Full node gets fees, else check destroyed
 
     // Ensure that accumulator checkpoints are valid and in the same state as this instance of the chain
     AccumulatorMap mapAccumulators(Params().Zerocoin_Params());

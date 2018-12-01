@@ -3449,7 +3449,12 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
         if (fKernelFound)
             break; // if kernel is found stop searching
     }
-    return fKernelFound;
+    if (!fKernelFound)
+        return false;
+
+
+    // Successfully generated coinstake
+    return true;
 }
 bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount)
 {
@@ -4133,15 +4138,45 @@ void CWallet::MarkReserveKeysAsUsed(int64_t keypool_id)
     }
 }
 
-void CWallet::GetScriptForMining(std::shared_ptr<CReserveScript> &script)
+/**
+ * Gets recipient info to send to a stealth address for mining. Uses the stealth
+ * address provided or generates a new stealth address if there is none.
+ */
+void CWallet::GetRecipientForMining(std::shared_ptr<CTempRecipient> &recipient, std::shared_ptr<CStealthAddress> address)
 {
-    std::shared_ptr<CReserveKey> rKey = std::make_shared<CReserveKey>(this);
-    CPubKey pubkey;
-    if (!rKey->GetReservedKey(pubkey))
-        return;
+    CHDWallet* pwallet = reinterpret_cast<CHDWallet*>(this);
 
-    script = rKey;
-    script->reserveScript = CScript() << ToByteVector(pubkey) << OP_CHECKSIG;
+    static CEKAStealthKey akStealth;
+    // Generate a new stealth key if no stealth address was provided and not already set
+    if (address == nullptr && !akStealth.skScan.IsValid()) {
+        LogPrintf("%s: Generating new stealth key for mining", __func__);
+        std::string label("Mining address");
+        pwallet->NewStealthKeyFromAccount(label, akStealth, 0, nullptr, true);
+    }
+
+    // Set stealth address
+    CStealthAddress stealthAddr;
+    if (address == nullptr)
+        akStealth.SetSxAddr(stealthAddr);
+    else
+        stealthAddr = *address;
+
+    // Generate a new ephemeral key every time, since an ephemeral key cannot be used twice
+    CKey ephemeralKey;
+    CKey secretShared;
+    ec_point pkSendTo;
+    int nResult;
+    do {
+        ephemeralKey.MakeNewKey(true);
+        nResult = StealthSecret(ephemeralKey, stealthAddr.scan_pubkey, stealthAddr.spend_pubkey, secretShared, pkSendTo);
+    } while (nResult != 0);
+
+    recipient = std::make_shared<CTempRecipient>();
+    recipient->nType = OUTPUT_RINGCT;
+    recipient->pkTo = CPubKey(pkSendTo);
+    recipient->sEphem = ephemeralKey;
+    recipient->vBlind.resize(32);
+    GetStrongRandBytes(&(recipient->vBlind[0]), 32);
 }
 
 void CWallet::LockCoin(const COutPoint& output)
@@ -4365,13 +4400,13 @@ void CWallet::AutoZeromint()
     CCoinControl coinControl;
     CAmount nBalance = GetMintableBalance(vOutputs); // won't consider locked outputs or basecoin address
 
+    for (const COutput& out : vOutputs)
+        coinControl.Select(COutPoint(out.tx->GetHash(), out.i));
+
     if (nBalance < 10){
         LogPrint(BCLog::SELECTCOINS, "CWallet::AutoZeromint(): available balance (%ld) too small for minting zPIV\n", nBalance);
         return;
     }
-
-    for (const COutput& out : vOutputs)
-        coinControl.Select(COutPoint(out.tx->GetHash(), out.i));
 
     double dPercentage = 100 * (double)nZerocoinBalance / (double)(nZerocoinBalance + nBalance);
 
@@ -4416,7 +4451,7 @@ void CWallet::AutoZeromint()
 
     if (nMintAmount > 0){
         CWalletTx wtx(NULL, NULL);
-        std::vector<CDeterministicMint> vDMints;
+        vector<CDeterministicMint> vDMints;
         string strError = GetMainWallet()->MintZerocoin(nMintAmount*COIN, wtx, vDMints, &coinControl);
 
         // Return if something went wrong during minting

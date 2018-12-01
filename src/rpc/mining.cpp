@@ -30,6 +30,8 @@
 #include <stdint.h>
 #include <tinyformat.h>
 
+#include <veil/ringct/hdwallet.h>
+
 unsigned int ParseConfirmTarget(const UniValue& value)
 {
     int target = value.get_int();
@@ -104,7 +106,7 @@ static UniValue getnetworkhashps(const JSONRPCRequest& request)
     return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 120, !request.params[1].isNull() ? request.params[1].get_int() : -1);
 }
 
-UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript)
+UniValue generateBlocks(std::shared_ptr<CTempRecipient> recipient, int nGenerate, uint64_t nMaxTries, bool keepScript, std::shared_ptr<CStealthAddress> address)
 {
     static const int nInnerLoopCount = 0x10000;
     int nHeightEnd = 0;
@@ -119,7 +121,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
     UniValue blockHashes(UniValue::VARR);
     while (nHeight < nHeightEnd && !ShutdownRequested())
     {
-        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript));
+        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(*recipient, true, false, address));
         if (!pblocktemplate.get())
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
         CBlock *pblock = &pblocktemplate->block;
@@ -144,17 +146,17 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
         blockHashes.push_back(pblock->GetHash().GetHex());
 
         //mark script as important because it was used at least for one coinbase output if the script came from the wallet
-        if (keepScript)
-        {
-            coinbaseScript->KeepScript();
-        }
+//        if (keepScript)
+//        {
+//            coinbaseScript->KeepScript();
+//        }
     }
     return blockHashes;
 }
 
-UniValue generateBlocks(bool fGenerate, int nThreads, std::shared_ptr<CReserveScript> coinbaseScript)
+UniValue generateBlocks(bool fGenerate, int nThreads, std::shared_ptr<CTempRecipient> recipient)
 {
-    GenerateBitcoins(fGenerate, nThreads, coinbaseScript);
+    GenerateBitcoins(fGenerate, nThreads, recipient);
     return UniValue(UniValue::VNULL);
 }
 
@@ -186,10 +188,24 @@ static UniValue generatetoaddress(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid address");
     }
 
-    std::shared_ptr<CReserveScript> coinbaseScript = std::make_shared<CReserveScript>();
-    coinbaseScript->reserveScript = GetScriptForDestination(destination);
+    if (!IsStealthAddress(request.params[1].get_str())) {
+        std::shared_ptr<CTempRecipient> recipient = std::make_shared<CTempRecipient>();
+        recipient->nType = OUTPUT_STANDARD;
+        recipient->fScriptSet = true;
+        recipient->scriptPubKey = GetScriptForDestination(destination);
+        return generateBlocks(recipient, nGenerate, nMaxTries, false);
+    }
 
-    return generateBlocks(coinbaseScript, nGenerate, nMaxTries, false);
+    // Get stealth address from boost variant
+    CStealthAddress stealthAddress = boost::get<CStealthAddress>(destination);
+
+    std::shared_ptr<CTempRecipient> recipient = std::make_shared<CTempRecipient>();
+    recipient->nType = OUTPUT_RINGCT;
+
+    std::shared_ptr<CStealthAddress> paddress = MAKE_OUTPUT<CStealthAddress>();
+    *paddress = stealthAddress;
+
+    return generateBlocks(recipient, nGenerate, nMaxTries, false, paddress);
 }
 
 static UniValue getmininginfo(const JSONRPCRequest& request)
@@ -531,15 +547,27 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid mining address. Add a miningaddress into your veil.conf");
         }
 
-        // Create new block
         CTxDestination destination = DecodeDestination(address);
         if (!IsValidDestination(destination)) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid mining address");
         }
 
-        coinbaseScript->reserveScript = GetScriptForDestination(destination);
+        // Create new block
+        CTempRecipient recipient;
+        std::shared_ptr<CStealthAddress> paddress = nullptr;
+        if (!IsStealthAddress(request.params[1].get_str())) {
+            recipient.nType = OUTPUT_STANDARD;
+            recipient.fScriptSet = true;
+            recipient.scriptPubKey = GetScriptForDestination(destination);
+        } else {
+            // Get stealth address from boost variant
+            CStealthAddress stealthAddress = boost::get<CStealthAddress>(destination);
+            recipient.nType = OUTPUT_RINGCT;
+            paddress = MAKE_OUTPUT<CStealthAddress>();
+            *paddress = stealthAddress;
+        }
 
-        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, fSupportsSegwit);
+        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(recipient, fSupportsSegwit, false, paddress);
         if (!pblocktemplate)
             throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
 

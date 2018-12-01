@@ -9027,7 +9027,7 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
 
     if (fInsertedNew || fUpdated) {
         // Plain to plain will always be a wtx, revisit if adding p2p to rtx
-        if (!tx.GetCTFee(rtx.nFee)) {
+        if (!tx.IsCoinBase() && !tx.GetCTFee(rtx.nFee)) {
             WalletLogPrintf("%s: ERROR - GetCTFee failed %s.\n", __func__, txhash.ToString());
         }
 
