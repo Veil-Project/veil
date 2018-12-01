@@ -6,15 +6,15 @@
 #include <QPropertyAnimation>
 #include <QTimer>
 
-TooltipBalance::TooltipBalance(QWidget *parent) :
+TooltipBalance::TooltipBalance(QWidget *parent, int nZerocoinBalance, int nRingBalance) :
     QWidget(parent),
     ui(new Ui::TooltipBalance)
 {
     ui->setupUi(this);
 
     // TODO: Load me..
-    ui->textZero->setText("25.280 Veil");
-    ui->textRing->setText("25.280 Veil");
+    ui->textZero->setText(nZerocoinBalance + "Veil");
+    ui->textRing->setText(nRingBalance + "Veil");
 
     QTimer::singleShot(3500, this, SLOT(hide()));
 
