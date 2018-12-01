@@ -220,8 +220,10 @@ uint256 CTransaction::ComputeWitnessHash() const
 uint256 CTransaction::GetOutputsHash() const
 {
     uint256 hashOutputs;
-    for (const auto& out : vpout)
-        hashOutputs = Hash(BEGIN(*out.get()), END(*out.get()), hashOutputs.begin(), hashOutputs.end());
+    for (const auto& out : vpout) {
+        auto hash = SerializeHash(*out, SER_GETHASH);
+        hashOutputs = Hash(BEGIN(hash), END(hash), hashOutputs.begin(), hashOutputs.end());
+    }
     return hashOutputs;
 }
 
