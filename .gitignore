@@ -42,6 +42,8 @@ src/qt/*.moc
 src/veil/qt/*.moc
 src/qt/moc_*.cpp
 src/veil/qt/moc_*.cpp
+src/qt/veil/*.moc
+src/qt/veil/moc_*.cpp
 src/qt/forms/ui_*.h
 src/veil/qt/forms/ui_*.h
 src/veil/qt/forms/ui_*.h
