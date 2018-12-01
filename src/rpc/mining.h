@@ -9,13 +9,10 @@
 
 #include <univalue.h>
 
-class CTempRecipient;
-class CStealthAddress;
-
 /** Generate blocks (mine) */
-UniValue generateBlocks(std::shared_ptr<CTempRecipient> recipient, int nGenerate, uint64_t nMaxTries, bool keepScript, std::shared_ptr<CStealthAddress> address = nullptr);
+UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript);
 
-UniValue generateBlocks(bool fGenerate, int nThreads, std::shared_ptr<CTempRecipient> recipient);
+UniValue generateBlocks(bool fGenerate, int nThreads, std::shared_ptr<CReserveScript> coinbaseScript);
 
 /** Check bounds on a command line confirm target */
 unsigned int ParseConfirmTarget(const UniValue& value);

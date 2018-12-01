@@ -18,8 +18,6 @@
 #include <rpc/register.h>
 #include <script/sigcache.h>
 
-#include <veil/ringct/hdwallet.h>
-
 void CConnmanTest::AddNode(CNode& node)
 {
     LOCK(g_connman->cs_vNodes);
@@ -149,10 +147,7 @@ CBlock
 TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>& txns, const CScript& scriptPubKey)
 {
     const CChainParams& chainparams = Params();
-    CTempRecipient recipient;
-    recipient.nType = OUTPUT_STANDARD;
-    recipient.scriptPubKey = scriptPubKey;
-    std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(chainparams).CreateNewBlock(recipient);
+    std::unique_ptr<CBlockTemplate> pblocktemplate = BlockAssembler(chainparams).CreateNewBlock(scriptPubKey);
     CBlock& block = pblocktemplate->block;
 
     // Replace mempool-selected txns with just coinbase plus passed-in txns:

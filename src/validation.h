@@ -183,7 +183,7 @@ extern uint256 hashAssumeValid;
 extern arith_uint256 nMinimumChainWork;
 
 /** Best header we've seen so far (used for getheaders queries' starting points). */
-extern CBlockIndex *pindexBestBlock;
+extern CBlockIndex *pindexBestHeader;
 
 /** Minimum disk space required - used in CheckDiskSpace() */
 static const uint64_t nMinDiskSpace = 52428800;

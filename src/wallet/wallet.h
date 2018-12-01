@@ -77,7 +77,6 @@ class CCoinControl;
 class COutput;
 class CReserveKey;
 class CScript;
-class CTempRecipient;
 class CTxMemPool;
 class CBlockPolicyEstimator;
 class CWalletTx;
@@ -1143,7 +1142,7 @@ public:
 
     const std::string& GetLabelName(const CScript& scriptPubKey) const;
 
-    void GetRecipientForMining(std::shared_ptr<CTempRecipient> &recipient, std::shared_ptr<CStealthAddress> address = nullptr);
+    void GetScriptForMining(std::shared_ptr<CReserveScript> &script);
 
     unsigned int GetKeyPoolSize() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet)
     {

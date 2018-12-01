@@ -100,7 +100,7 @@ static bool TestSequenceLocks(const CTransaction &tx, int flags)
 // Test suite for ancestor feerate transaction selection.
 // Implemented as an additional function, rather than a separate test case,
 // to allow reusing the blockchain created in CreateNewBlock_validity.
-static void TestPackageSelection(const CChainParams& chainparams, const CTempRecipient& recipient, const std::vector<CTransactionRef>& txFirst) EXCLUSIVE_LOCKS_REQUIRED(::mempool.cs)
+static void TestPackageSelection(const CChainParams& chainparams, const CScript& scriptPubKey, const std::vector<CTransactionRef>& txFirst) EXCLUSIVE_LOCKS_REQUIRED(::mempool.cs)
 {
     // Test the ancestor feerate transaction selection.
     TestMemPoolEntryHelper entry;
@@ -130,7 +130,7 @@ static void TestPackageSelection(const CChainParams& chainparams, const CTempRec
     uint256 hashHighFeeTx = tx.GetHash();
     mempool.addUnchecked(hashHighFeeTx, entry.Fee(50000).Time(GetTime()).SpendsCoinbase(false).FromTx(tx));
 
-    std::unique_ptr<CBlockTemplate> pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(recipient);
+    std::unique_ptr<CBlockTemplate> pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(scriptPubKey);
     BOOST_CHECK(pblocktemplate->block.vtx[1]->GetHash() == hashParentTx);
     BOOST_CHECK(pblocktemplate->block.vtx[2]->GetHash() == hashHighFeeTx);
     BOOST_CHECK(pblocktemplate->block.vtx[3]->GetHash() == hashMediumFeeTx);
@@ -150,7 +150,7 @@ static void TestPackageSelection(const CChainParams& chainparams, const CTempRec
     tx.vpout[0]->SetValue(5000000000LL - 1000 - 50000 - feeToUse);
     uint256 hashLowFeeTx = tx.GetHash();
     mempool.addUnchecked(hashLowFeeTx, entry.Fee(feeToUse).FromTx(tx));
-    pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(recipient);
+    pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(scriptPubKey);
     // Verify that the free tx and the low fee tx didn't get selected
     for (size_t i=0; i<pblocktemplate->block.vtx.size(); ++i) {
         BOOST_CHECK(pblocktemplate->block.vtx[i]->GetHash() != hashFreeTx);
@@ -164,7 +164,7 @@ static void TestPackageSelection(const CChainParams& chainparams, const CTempRec
     tx.vpout[0]->AddToValue(-2); // Now we should be just over the min relay fee
     hashLowFeeTx = tx.GetHash();
     mempool.addUnchecked(hashLowFeeTx, entry.Fee(feeToUse+2).FromTx(tx));
-    pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(recipient);
+    pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(scriptPubKey);
     BOOST_CHECK(pblocktemplate->block.vtx[4]->GetHash() == hashFreeTx);
     BOOST_CHECK(pblocktemplate->block.vtx[5]->GetHash() == hashLowFeeTx);
 
@@ -185,7 +185,7 @@ static void TestPackageSelection(const CChainParams& chainparams, const CTempRec
     tx.vpout[0]->SetValue(5000000000LL - 100000000 - feeToUse);
     uint256 hashLowFeeTx2 = tx.GetHash();
     mempool.addUnchecked(hashLowFeeTx2, entry.Fee(feeToUse).SpendsCoinbase(false).FromTx(tx));
-    pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(recipient);
+    pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(scriptPubKey);
 
     // Verify that this tx isn't selected.
     for (size_t i=0; i<pblocktemplate->block.vtx.size(); ++i) {
@@ -198,7 +198,7 @@ static void TestPackageSelection(const CChainParams& chainparams, const CTempRec
     tx.vin[0].prevout.n = 1;
     tx.vpout[0]->SetValue(100000000 - 10000); // 10k satoshi fee
     mempool.addUnchecked(tx.GetHash(), entry.Fee(10000).FromTx(tx));
-    pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(recipient);
+    pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(scriptPubKey);
     BOOST_CHECK(pblocktemplate->block.vtx[8]->GetHash() == hashLowFeeTx2);
 }
 /*

@@ -28,7 +28,6 @@
 #include <wallet/wallet.h>
 
 #include <veil/budget.h>
-#include <veil/ringct/hdwallet.h>
 #include <veil/zerocoin/zchain.h>
 
 #include <algorithm>
@@ -104,7 +103,7 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CTempRecipient& recipient, bool fMineWitnessTx, bool fProofOfStake, std::shared_ptr<CStealthAddress> address)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, bool fProofOfStake)
 {
     int64_t nTimeStart = GetTimeMicros();
 
@@ -264,39 +263,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CTempRecipi
     if (!fProofOfStake) {
         //Miner gets the block reward and any network reward
         CAmount nMinerReward = nBlockReward + nNetworkReward;
-        CTempRecipient tempRecipient;
-
-        if (recipient.nType == OUTPUT_CT || recipient.nType == OUTPUT_RINGCT) {
-            // Stealth transactions require a new ephemeral key each time
-            std::shared_ptr<CTempRecipient> pRecipient;
-            pwalletMain->GetRecipientForMining(pRecipient, address);
-            tempRecipient = *pRecipient;
-        } else {
-            tempRecipient = recipient;
-        }
-
-        tempRecipient.nAmount = nMinerReward;
-        OUTPUT_PTR<CTxOutBase> outCoinbase;
-
-        std::string strError;
-        if (CreateOutput(outCoinbase, tempRecipient, strError) != 0) {
-            LogPrintf("%s: %s", __func__, strError);
-            return nullptr;
-        }
-
-        if (tempRecipient.nType == OUTPUT_CT || tempRecipient.nType == OUTPUT_RINGCT) {
-            CHDWallet *pHDWallet = reinterpret_cast<CHDWallet *>(pwalletMain.get());
-            tempRecipient.fOverwriteRangeProofParams = true;
-            // Max in CT range seems to always be at least 1 satoshi greater than min
-            tempRecipient.min_value = nMinerReward - 1;
-            tempRecipient.ct_exponent = 0;
-            tempRecipient.ct_bits = 0;
-            if (pHDWallet->AddCTData(outCoinbase.get(), tempRecipient, strError) != 0) {
-                LogPrintf("%s: %s", __func__, strError);
-                return nullptr;
-            }
-        }
-
+        OUTPUT_PTR<CTxOutStandard> outCoinbase = MAKE_OUTPUT<CTxOutStandard>();
+        outCoinbase->scriptPubKey = scriptPubKeyIn;
+        outCoinbase->nValue = nMinerReward;
         coinbaseTx.vpout[0] = (std::move(outCoinbase));
     }
 
@@ -692,7 +661,7 @@ static int32_t nNonce_base = 0;
 static arith_uint256 nHashes = 0;
 static int32_t nTimeStart = 0;
 
-void BitcoinMiner(std::shared_ptr<CTempRecipient> recipient, bool fProofOfStake = false) {
+void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false) {
     LogPrintf("Veil Miner started\n");
 
     unsigned int nExtraNonce = 0;
@@ -740,7 +709,10 @@ void BitcoinMiner(std::shared_ptr<CTempRecipient> recipient, bool fProofOfStake 
             }
         }
 
-        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(*recipient, false, fProofOfStake));
+        CScript scriptMining;
+        if (coinbaseScript)
+            scriptMining = coinbaseScript->reserveScript;
+        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(scriptMining, false, fProofOfStake));
         if (!pblocktemplate || !pblocktemplate.get())
             continue;
 
@@ -785,14 +757,17 @@ void BitcoinMiner(std::shared_ptr<CTempRecipient> recipient, bool fProofOfStake 
             mempool.clear();
             continue;
         }
+
+        if (!fProofOfStake)
+            coinbaseScript->KeepScript();
     }
 }
 
-void static ThreadBitcoinMiner(std::shared_ptr<CTempRecipient> recipient)
+void static ThreadBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript)
 {
     boost::this_thread::interruption_point();
     try {
-        BitcoinMiner(recipient);
+        BitcoinMiner(coinbaseScript);
         boost::this_thread::interruption_point();
     } catch (std::exception& e) {
         LogPrintf("ThreadBitcoinMiner() exception");
@@ -807,8 +782,8 @@ void ThreadStakeMiner()
 {
     boost::this_thread::interruption_point();
     try {
-        std::shared_ptr<CTempRecipient> recipient;
-        BitcoinMiner(recipient, true);
+        std::shared_ptr<CReserveScript> coinbase_script;
+        BitcoinMiner(coinbase_script, true);
         boost::this_thread::interruption_point();
     } catch (std::exception& e) {
         LogPrintf("ThreadStakeMiner() exception");
@@ -819,7 +794,7 @@ void ThreadStakeMiner()
     LogPrintf("ThreadStakeMiner exiting\n");
 }
 
-void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CTempRecipient> recipient)
+void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScript> coinbaseScript)
 {
     static boost::thread_group* minerThreads = NULL;
     fGenerateBitcoins = fGenerate;
@@ -840,6 +815,6 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CTempRecipie
 
     minerThreads = new boost::thread_group();
     for (int i = 0; i < nThreads; i++)
-        minerThreads->create_thread(boost::bind(&ThreadBitcoinMiner, recipient));
+        minerThreads->create_thread(boost::bind(&ThreadBitcoinMiner, coinbaseScript));
 
 }

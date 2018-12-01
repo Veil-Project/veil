@@ -55,6 +55,7 @@ public:
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
+    uint8_t fProofOfStake;
 
     CBlockHeader()
     {
@@ -71,6 +72,8 @@ public:
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
+        if (!(s.GetType() & SER_GETHASH))
+            READWRITE(fProofOfStake);
     }
 
     void SetNull()
@@ -81,6 +84,7 @@ public:
         nTime = 0;
         nBits = 0;
         nNonce = 0;
+        fProofOfStake = 0;
     }
 
     bool IsNull() const
@@ -98,7 +102,6 @@ public:
 
     virtual ~CBlockHeader(){};
 };
-
 
 class CBlock : public CBlockHeader
 {
@@ -168,6 +171,7 @@ public:
         block.nTime          = nTime;
         block.nBits          = nBits;
         block.nNonce         = nNonce;
+        block.fProofOfStake = IsProofOfStake();
         return block;
     }
 

@@ -48,7 +48,6 @@
 
 #include <veil/proofofstake/blockvalidation.h>
 #include <veil/budget.h>
-#include <veil/ringct/blind.h>
 #include <veil/zerocoin/zchain.h>
 #include <veil/proofofstake/kernel.h>
 
@@ -178,7 +177,7 @@ public:
      * If a block header hasn't already been seen, call CheckBlockHeader on it, ensure
      * that it doesn't descend from an invalid block, and then add it to mapBlockIndex.
      */
-    bool AcceptBlockHeader(const CBlockHeader& block, bool fProofOfStake, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fProofOfStake) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput* stake);
 
@@ -232,7 +231,7 @@ CCriticalSection cs_main;
 
 BlockMap& mapBlockIndex = g_chainstate.mapBlockIndex;
 CChain& chainActive = g_chainstate.chainActive;
-CBlockIndex *pindexBestBlock = nullptr;
+CBlockIndex *pindexBestHeader = nullptr;
 CWaitableCriticalSection g_best_block_mutex;
 CConditionVariable g_best_block_cv;
 uint256 g_best_block;
@@ -499,7 +498,7 @@ static bool IsCurrentForFeeEstimation()
         return false;
     if (chainActive.Tip()->GetBlockTime() < (GetTime() - MAX_FEE_ESTIMATION_TIP_AGE))
         return false;
-    if (chainActive.Height() < pindexBestBlock->nHeight - 1)
+    if (chainActive.Height() < pindexBestHeader->nHeight - 1)
         return false;
     return true;
 }
@@ -2067,8 +2066,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         BlockMap::const_iterator  it = mapBlockIndex.find(hashAssumeValid);
         if (it != mapBlockIndex.end()) {
             if (it->second->GetAncestor(pindex->nHeight) == pindex &&
-                pindexBestBlock->GetAncestor(pindex->nHeight) == pindex &&
-                pindexBestBlock->nChainWork >= nMinimumChainWork) {
+                pindexBestHeader->GetAncestor(pindex->nHeight) == pindex &&
+                pindexBestHeader->nChainWork >= nMinimumChainWork) {
                 // This block is a member of the assumed verified chain and an ancestor of the best header.
                 // The equivalent time check discourages hash power from extorting the network via DOS attack
                 //  into accepting an invalid block through telling users they must manually set assumevalid.
@@ -2078,7 +2077,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 //  artificially set the default assumed verified block further back.
                 // The test against nMinimumChainWork prevents the skipping when denied access to any chain at
                 //  least as good as the expected chain.
-                fScriptChecks = (GetBlockProofEquivalentTime(*pindexBestBlock, *pindex, *pindexBestBlock, chainparams.GetConsensus()) <= 60 * 60 * 24 * 7 * 2);
+                fScriptChecks = (GetBlockProofEquivalentTime(*pindexBestHeader, *pindex, *pindexBestHeader, chainparams.GetConsensus()) <= 60 * 60 * 24 * 7 * 2);
             }
         }
     }
@@ -2235,9 +2234,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         CAmount nTxValueIn = 0;
         CAmount nTxValueOut = 0;
         if (tx.IsCoinBase()) {
-            if (tx.nVersion == OUTPUT_STANDARD) {
-                nTxValueOut += tx.GetValueOut();
-            }
+            nTxValueOut += tx.GetValueOut();
         } else {
             if (tx.IsZerocoinSpend()) {
                 int nHeightTx = 0;
@@ -2344,8 +2341,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             // tx is coinbase
             CTxUndo undoDummy;
             UpdateCoins(tx, view, undoDummy, pindex->nHeight);
-            if (tx.vpout[0]->IsType(OUTPUT_RINGCT))
-                state.fHasAnonOutput = true;
         }
 
         if (view.nLastRCTOutput == 0)
@@ -2436,33 +2431,16 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
 
     CAmount nCreationLimit = networkReward + nBlockReward + nFounderPayment + nBudgetPayment + nLabPayment;
-    if (block.vtx.size() == 0)
-        return state.DoS(100, error("ConnectBlock(): coinbase missing\n",
-                         REJECT_INVALID, "bad-cb"));
-
-    // Check that the coinbase doesn't exceed the creation limit
-    if (block.vtx[0]->vpout.size() != 0 && (block.vtx[0]->vpout[0]->IsType(OUTPUT_RINGCT) || block.vtx[0]->vpout[0]->IsType(OUTPUT_CT))) {
-        // Check that the max value doesn't exceed the creation limit, so we can
-        // be sure the block doesn't generate generate more than it should
-        int nExponent, nMantissa;
-        CAmount nMin, nMax;
-        if (GetRangeProofInfo(*(block.vtx[0]->vpout[0]->GetPRangeproof()), nExponent, nMantissa, nMin, nMax) != 0)
-            return state.DoS(100, error("ConnectBlock(): couldn't get range proof info\n",
-                                        REJECT_INVALID, "bad-range-proof"));
-
-        if (nMax > nCreationLimit)
-            return state.DoS(100, error("ConnectBlock(): coinbase range max too high\n",
-                                        REJECT_INVALID, "bad-range-proof"));
-    } else if ((block.vtx[0]->vpout.empty() || block.vtx[0]->vpout[0]->IsType(OUTPUT_STANDARD)) && block.vtx[0]->GetValueOut() > nCreationLimit) {
-            LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__,
-                      FormatMoney(nBlockReward), FormatMoney(networkReward), FormatMoney(nFounderPayment),
-                      FormatMoney(nBudgetPayment), FormatMoney(nLabPayment));
-
-            return state.DoS(100, error("ConnectBlock(): coinbase pays too much (actual=%s vs limit=%s)\n %s",
-                                        block.vtx[0]->GetValueOut(), nBlockReward, block.vtx[0]->ToString()),
-                             REJECT_INVALID, "bad-cb-amount");
-    }
     //TODO: Proof Of Full node gets fees, else check destroyed
+
+    if (block.vtx[0]->GetValueOut() > nCreationLimit) {
+        LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__, FormatMoney(nBlockReward), FormatMoney(networkReward), FormatMoney(nFounderPayment),
+                  FormatMoney(nBudgetPayment), FormatMoney(nLabPayment));
+
+        return state.DoS(100, error("ConnectBlock(): coinbase pays too much (actual=%s vs limit=%s)\n %s",
+                                    block.vtx[0]->GetValueOut(), nBlockReward, block.vtx[0]->ToString()),
+                         REJECT_INVALID, "bad-cb-amount");
+    }
 
     // Ensure that accumulator checkpoints are valid and in the same state as this instance of the chain
     AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
@@ -3161,7 +3139,7 @@ static void NotifyHeaderTip() LOCKS_EXCLUDED(cs_main) {
     CBlockIndex* pindexHeader = nullptr;
     {
         LOCK(cs_main);
-        pindexHeader = pindexBestBlock;
+        pindexHeader = pindexBestHeader;
 
         if (pindexHeader != pindexHeaderOld) {
             fNotify = true;
@@ -3459,8 +3437,8 @@ CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block, bool fProof
     if (fProofOfStake)
         pindexNew->SetProofOfStake();
 
-    if (pindexBestBlock == nullptr || pindexBestBlock->nChainWork < pindexNew->nChainWork)
-        pindexBestBlock = pindexNew;
+    if (pindexBestHeader == nullptr || pindexBestHeader->nChainWork < pindexNew->nChainWork)
+        pindexBestHeader = pindexNew;
 
     setDirtyBlockIndex.insert(pindexNew);
 
@@ -3996,7 +3974,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     return true;
 }
 
-bool CChainState::AcceptBlockHeader(const CBlockHeader& block, bool fProofOfStake, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex)
+bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fProofOfStake)
 {
     AssertLockHeld(cs_main);
     // Check for duplicate
@@ -4066,8 +4044,8 @@ bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidatio
         LOCK(cs_main);
         for (const CBlockHeader& header : headers) {
             CBlockIndex *pindex = nullptr; // Use a temp pindex instead of ppindex to avoid a const_cast
-            bool fProofOfStake = false;// todo, no easy way to know if this is PoS block - maybe look at hash value?
-            if (!g_chainstate.AcceptBlockHeader(header, fProofOfStake, state, chainparams, &pindex)) {
+            bool fProofOfStake = header.fProofOfStake;// todo, no easy way to know if this is PoS block - maybe look at hash value?
+            if (!g_chainstate.AcceptBlockHeader(header, state, chainparams, &pindex, fProofOfStake)) {
                 if (first_invalid) *first_invalid = header;
                 return false;
             }
@@ -4137,7 +4115,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     CBlockIndex *pindexDummy = nullptr;
     CBlockIndex *&pindex = ppindex ? *ppindex : pindexDummy;
 
-    if (!AcceptBlockHeader(block, block.IsProofOfStake(), state, chainparams, &pindex))
+    if (!AcceptBlockHeader(block, state, chainparams, &pindex, block.IsProofOfStake()))
         return error("%s: AcceptBlockHeader failed for block %s", __func__, block.GetHash().GetHex());
 
     //! Validate Proof of Stake
@@ -4556,8 +4534,8 @@ bool CChainState::LoadBlockIndex(const Consensus::Params& consensus_params, CBlo
             pindexBestInvalid = pindex;
         if (pindex->pprev)
             pindex->BuildSkip();
-        if (pindex->IsValid(BLOCK_VALID_TREE) && (pindexBestBlock == nullptr || CBlockIndexWorkComparator()(pindexBestBlock, pindex)))
-            pindexBestBlock = pindex;
+        if (pindex->IsValid(BLOCK_VALID_TREE) && (pindexBestHeader == nullptr || CBlockIndexWorkComparator()(pindexBestHeader, pindex)))
+            pindexBestHeader = pindex;
     }
 
     return true;
@@ -4997,7 +4975,7 @@ void UnloadBlockIndex()
     LOCK(cs_main);
     chainActive.SetTip(nullptr);
     pindexBestInvalid = nullptr;
-    pindexBestBlock = nullptr;
+    pindexBestHeader = nullptr;
     mempool.clear();
     mapBlocksUnlinked.clear();
     vinfoBlockFile.clear();

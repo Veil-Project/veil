@@ -16,7 +16,6 @@
 #include <veil/budget.h>
 #include <script/standard.h>
 #include <key_io.h>
-#include <veil/ringct/hdwallet.h>
 
 struct RegtestingSetup : public TestingSetup {
     RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
@@ -55,11 +54,10 @@ std::shared_ptr<CBlock> Block(const uint256& prev_hash)
     static int i = 0;
     static uint64_t time = Params().GenesisBlock().nTime;
 
-    CTempRecipient recipient;
-    recipient.nType = OUTPUT_STANDARD;
-    recipient.scriptPubKey << i++ << OP_TRUE;
+    CScript pubKey;
+    pubKey << i++ << OP_TRUE;
 
-    auto ptemplate = BlockAssembler(Params()).CreateNewBlock(recipient, false);
+    auto ptemplate = BlockAssembler(Params()).CreateNewBlock(pubKey, false);
     auto pblock = std::make_shared<CBlock>(ptemplate->block);
     pblock->hashPrevBlock = prev_hash;
     pblock->nTime = ++time;

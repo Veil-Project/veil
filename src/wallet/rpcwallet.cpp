@@ -3761,15 +3761,20 @@ UniValue generate(const JSONRPCRequest& request)
         max_tries = request.params[1].get_int();
     }
 
-    std::shared_ptr<CTempRecipient> recipient;
-    pwallet->GetRecipientForMining(recipient);
+    std::shared_ptr<CReserveScript> coinbase_script;
+    pwallet->GetScriptForMining(coinbase_script);
 
     // If the keypool is exhausted, no script is returned at all.  Catch this.
-    if (!recipient) {
+    if (!coinbase_script) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
     }
 
-    return generateBlocks(recipient, num_generate, max_tries, true);
+    //throw an error if no script was provided
+    if (coinbase_script->reserveScript.empty()) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
+    }
+
+    return generateBlocks(coinbase_script, num_generate, max_tries, true);
 }
 
 UniValue generatecontinuous(const JSONRPCRequest& request)
@@ -3801,15 +3806,20 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
     if (request.params.size() > 1)
         nThreads = request.params[1].get_int();
 
-    std::shared_ptr<CTempRecipient> recipient;
-    pwallet->GetRecipientForMining(recipient);
+    std::shared_ptr<CReserveScript> coinbase_script;
+    pwallet->GetScriptForMining(coinbase_script);
 
     // If the keypool is exhausted, no script is returned at all.  Catch this.
-    if (!recipient) {
+    if (!coinbase_script) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
     }
 
-    return generateBlocks(fGenerate, nThreads, recipient);
+    //throw an error if no script was provided
+    if (coinbase_script->reserveScript.empty()) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
+    }
+
+    return generateBlocks(fGenerate, nThreads, coinbase_script);
 }
 
 UniValue rescanblockchain(const JSONRPCRequest& request)
