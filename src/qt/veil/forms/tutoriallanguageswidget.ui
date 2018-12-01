@@ -121,7 +121,7 @@ background-color:white;</string>
          <number>10</number>
         </property>
         <item alignment="Qt::AlignHCenter">
-         <widget class="QPushButton" name="pushButton">
+         <widget class="QPushButton" name="pushButton_en">
           <property name="minimumSize">
            <size>
             <width>190</width>
@@ -177,7 +177,7 @@ QPushButton:unchecked {
          </widget>
         </item>
         <item alignment="Qt::AlignHCenter">
-         <widget class="QPushButton" name="pushButton">
+         <widget class="QPushButton" name="pushButton_es">
           <property name="minimumSize">
            <size>
             <width>190</width>
@@ -233,7 +233,7 @@ QPushButton:unchecked {
          </widget>
         </item>
         <item alignment="Qt::AlignHCenter">
-         <widget class="QPushButton" name="pushButton">
+         <widget class="QPushButton" name="pushButton_port">
           <property name="minimumSize">
            <size>
             <width>190</width>
@@ -289,7 +289,7 @@ QPushButton:unchecked {
          </widget>
         </item>
         <item alignment="Qt::AlignHCenter">
-         <widget class="QPushButton" name="pushButton">
+         <widget class="QPushButton" name="pushButton_it">
           <property name="minimumSize">
            <size>
             <width>190</width>
@@ -345,7 +345,7 @@ QPushButton:unchecked {
          </widget>
         </item>
         <item alignment="Qt::AlignHCenter">
-         <widget class="QPushButton" name="pushButton">
+         <widget class="QPushButton" name="pushButton_fr">
           <property name="minimumSize">
            <size>
             <width>190</width>

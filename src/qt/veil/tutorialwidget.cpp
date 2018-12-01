@@ -3,12 +3,14 @@
 #include <qt/guiutil.h>
 #include <QDebug>
 #include <iostream>
+#include <wallet/wallet.h>
 
 TutorialWidget::TutorialWidget(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::TutorialWidget)
 {
     ui->setupUi(this);
+    this->parent = parent;
 
     this->setStyleSheet(GUIUtil::loadStyleSheet());
 
@@ -45,6 +47,7 @@ void TutorialWidget::loadLeftContainer(QString imgPath, QString topMessage,  QSt
 
 
 // Actions
+std::vector<std::string> mnemonicWordList;
 void TutorialWidget::on_next_triggered(){
     QWidget *qWidget = nullptr;
     switch (position) {
@@ -61,7 +64,19 @@ void TutorialWidget::on_next_triggered(){
             }
         case 1:
             {
-                tutorialMnemonicCode = new TutorialMnemonicCode(this);
+                word_list listWords;
+                mnemonic = "";
+                std::string strWalletFile = "wallet.dat";
+                CWallet::CreateNewHDWallet(strWalletFile, GetDataDir(), mnemonic, this->strLanguageSelection.toStdString(), &pkSeed);
+
+                std::stringstream ss(mnemonic);
+                std::istream_iterator<std::string> begin(ss);
+                std::istream_iterator<std::string> end;
+                mnemonicWordList.clear();
+                mnemonicWordList = std::vector<std::string>(begin, end);
+                std::vector<unsigned char> keyData = key_from_mnemonic(mnemonicWordList);
+
+                tutorialMnemonicCode = new TutorialMnemonicCode(mnemonicWordList, this);
                 ui->QStackTutorialContainer->addWidget(tutorialMnemonicCode);
                 qWidget = tutorialMnemonicCode;
                 loadLeftContainer(":/icons/img-start-backup","Backup your \n recovery seed phrase","Your 24-word seed phrase \n can  be used to restore your wallet.");
@@ -138,6 +153,11 @@ void TutorialWidget::on_back_triggered(){
             }
         }
     }
+}
+
+std::string TutorialWidget::GetLanguageSelection() const
+{
+    return strLanguageSelection.toStdString();
 }
 
 TutorialWidget::~TutorialWidget()

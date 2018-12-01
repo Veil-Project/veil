@@ -146,6 +146,22 @@ data_chunk key_from_mnemonic(const word_list& words, const dictionary& lexicon)
         return data;
 }
 
+dictionary string_to_lexicon(const std::string& strLanguage)
+{
+    if (strLanguage == "english")
+        return language::en;
+    else if (strLanguage == "spanish")
+        return language::es;
+    else if (strLanguage == "italian")
+        return language::it;
+    else if (strLanguage == "japanese")
+        return language::ja;
+    else if (strLanguage == "french")
+        return language::fr;
+
+    return language::en;
+}
+
 word_list create_mnemonic(data_slice entropy, const dictionary &lexicon)
 {
     if ((entropy.size() % mnemonic_seed_multiple) != 0)

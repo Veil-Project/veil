@@ -1221,7 +1221,7 @@ public:
      * @param mnemonic      This string will contain the new mnemonic after this function returns
      * @return              Returns true if the wallet was created without error
      */
-    static bool CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic, CPubKey* seed);
+    static bool CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic, const std::string& strLanguage, CPubKey* seed);
 
     /**
      * Initializes an HD wallet from a user-specified mnemonic.
@@ -1250,7 +1250,7 @@ public:
     virtual bool IsHDEnabled() const;
 
     /* Generates a new HD seed and mnemonic (will not be activated) */
-    CPubKey GenerateNewMnemonicSeed(std::string &mnemonic);
+    CPubKey GenerateNewMnemonicSeed(std::string &mnemonic, const std::string& strLanguage);
 
     /* Set the current HD seed using a mnemonic (if the mnemonic generates
        an invalid seed this function returns false). */

@@ -10,6 +10,7 @@
 
 #include <QWidget>
 #include <QDialog>
+#include <pubkey.h>
 
 namespace Ui {
 class TutorialWidget;
@@ -24,6 +25,10 @@ public:
     ~TutorialWidget();
     bool ShutdownRequested() const { return shutdown; }
     MnemonicWalletInitFlags GetSelection() const { return selection; }
+    void SetLanguageSelection(QString strLanguage) { this->strLanguageSelection = strLanguage; }
+    std::string GetLanguageSelection() const;
+    CPubKey GetSeed() const { return pkSeed; }
+    std::string GetMnemonic() const {return mnemonic; }
 
 private Q_SLOTS:
     void on_next_triggered();
@@ -31,6 +36,7 @@ private Q_SLOTS:
     void on_back_triggered();
 private:
     Ui::TutorialWidget *ui;
+    QWidget* parent;
     int position = 0;
 
     bool shutdown = true;
@@ -41,6 +47,10 @@ private:
     CreatePassword *createPassword;
     TutorialLanguagesWidget *tutorialLanguageWidget;
     TutorialCreateWalletWidget *tutorialCreateWallet;
+
+    QString strLanguageSelection;
+    CPubKey pkSeed;
+    std::string mnemonic;
 
     void loadLeftContainer(QString imgPath, QString topMessage,  QString bottomMessage);
 };

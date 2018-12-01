@@ -13,10 +13,16 @@ class TutorialLanguagesWidget : public QWidget
 
 public:
     explicit TutorialLanguagesWidget(QWidget *parent = nullptr);
+    std::string GetLanguageSelection();
     ~TutorialLanguagesWidget();
 
 private:
     Ui::TutorialLanguagesWidget *ui;
+    QString strLanguageSelection;
+    QWidget* parent;
+
+private Q_SLOTS:
+    void buttonClicked(QString str);
 };
 
 #endif // TUTORIALLANGUAGESWIDGET_H

@@ -259,6 +259,7 @@ void CWallet::DeriveNewExtKey(WalletBatch& batch, CKeyMetadata& metadata, CExtKe
     // for now we use a fixed keypath scheme of m/0'/0'/k
     CKey seed;                     //seed (256bit)
     CExtKey masterKey;             //hd master key
+    CExtKey purposeKey;            //key at m/44
     CExtKey accountKey;            //key at m/0'
     CExtKey chainChildKey;         //key at m/0'/0' (external) or m/0'/1' (internal)
     CExtKey childKey;              //key at m/0'/0'/<n>'
@@ -271,7 +272,8 @@ void CWallet::DeriveNewExtKey(WalletBatch& batch, CKeyMetadata& metadata, CExtKe
 
     // derive m/0'
     // use hardened derivation (child keys >= 0x80000000 are hardened after bip32)
-    masterKey.Derive(accountKey, Params().BIP44ID());
+    masterKey.Derive(purposeKey, (uint32_t)0x8000002C);
+    purposeKey.Derive(accountKey, Params().BIP44ID());
 
     // derive m/0'/0' (external chain) OR m/0'/1' (internal chain)
     assert(internal ? CanSupportFeature(FEATURE_HD_SPLIT) : true);
@@ -306,8 +308,10 @@ void CWallet::DeriveNewChildKey(WalletBatch &batch, CKeyMetadata& metadata, CKey
     // for now we use a fixed keypath scheme of m/0'/0'/k
     CKey seed;                     //seed (256bit)
     CExtKey masterKey;             //hd master key m;
-    CExtKey accountKey;            //key at m/44'/119'
-    CExtKey chainChildKey;         //key at m/44'/119'/0' (external) or m/44'/119'/1' (internal)
+    CExtKey purposeKey;            //key at m/44'
+    CExtKey veilMasterKey;         //key at m/44'/119'
+    CExtKey accountKey;            //key at m/44'/119'/0'/
+    CExtKey chainChildKey;         //key at m/44'/119'/0'/0' (external) or m/44'/119'/1' (internal)
     CExtKey childKey;              //key at m/44'/119'/0'/<n>'
 
     // try to get the seed
@@ -318,8 +322,10 @@ void CWallet::DeriveNewChildKey(WalletBatch &batch, CKeyMetadata& metadata, CKey
 
     // derive m/0'
     // use hardened derivation (child keys >= 0x80000000 are hardened after bip32)
-    // masterKey.Derive(masterKey, Params().BIP44ID());
-    masterKey.Derive(accountKey, Params().BIP44ID());
+    //masterKey.Derive(masterKey, Params().BIP44ID());
+    masterKey.Derive(purposeKey, (uint32_t)0x8000002C);
+    purposeKey.Derive(veilMasterKey, Params().BIP44ID());
+    veilMasterKey.Derive(accountKey, 0);
     //LogPrintf("Account Key %s\n", HexStr(accountKey.key.GetPubKey()));
 
     // derive m/0'/0' (external chain) OR m/0'/1' (internal chain)
@@ -1455,7 +1461,7 @@ CAmount CWallet::GetChange(const CTransaction& tx) const
     return nChange;
 }
 
-CPubKey CWallet::GenerateNewMnemonicSeed(std::string &mnemonic)
+CPubKey CWallet::GenerateNewMnemonicSeed(std::string &mnemonic, const std::string& strLanguage)
 {
     assert(!IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
     CKey key;
@@ -1469,7 +1475,7 @@ CPubKey CWallet::GenerateNewMnemonicSeed(std::string &mnemonic)
         ptrKeyData++;
     }
 
-    word_list mnemonic_words = create_mnemonic(keyData);
+    word_list mnemonic_words = create_mnemonic(keyData, string_to_lexicon(strLanguage));
     for (auto it = mnemonic_words.begin(); it != mnemonic_words.end();) {
         const auto word = *it;
         mnemonic += word;
@@ -4854,7 +4860,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     return walletInstance;
 }
 
-bool CWallet::CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic, CPubKey* seed)
+bool CWallet::CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic, const std::string& strLanguage, CPubKey* seed)
 {
     const std::string& walletFile = name;
 
@@ -4880,7 +4886,7 @@ bool CWallet::CreateNewHDWallet(const std::string& name, const fs::path& path, s
     walletInstance->SetMaxVersion(FEATURE_LATEST);
 
     // generate a new seed
-    CPubKey seedLocal = walletInstance->GenerateNewMnemonicSeed(mnemonic);
+    CPubKey seedLocal = walletInstance->GenerateNewMnemonicSeed(mnemonic, strLanguage);
     walletInstance->SetHDSeed(seedLocal);
     *seed = seedLocal;
 

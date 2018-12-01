@@ -65,6 +65,34 @@ add_executable(veil
         src/veil/ringct/stealth.cpp
         src/veil/ringct/stealth.h
         src/veil/ringct/types.h
+        src/qt/veil/qtutils.cpp
+        src/qt/veil/qtutils.h
+        src/qt/veil/receivewidget.cpp
+        src/qt/veil/receivewidget.h
+        src/qt/veil/sendconfirmation.cpp
+        src/qt/veil/sendconfirmation.h
+        src/qt/veil/sendcontroldialog.cpp
+        src/qt/veil/sendcontroldialog.h
+        src/qt/veil/toast.cpp
+        src/qt/veil/toast.h
+        src/qt/veil/tooltipbalance.cpp
+        src/qt/veil/tooltipbalance.h
+        src/qt/veil/transactiondetaildialog.cpp
+        src/qt/veil/transactiondetaildialog.h
+        src/qt/veil/tutorialcreatewalletwidget.cpp
+        src/qt/veil/tutorialcreatewalletwidget.h
+        src/qt/veil/tutoriallanguageswidget.cpp
+        src/qt/veil/tutoriallanguageswidget.h
+        src/qt/veil/tutorialmnemoniccode.cpp
+        src/qt/veil/tutorialmnemoniccode.h
+        src/qt/veil/tutorialmnemonicrevealed.cpp
+        src/qt/veil/tutorialmnemonicrevealed.h
+        src/qt/veil/tutorialwidget.cpp
+        src/qt/veil/tutorialwidget.h
+        src/qt/veil/unlockpassworddialog.cpp
+        src/qt/veil/unlockpassworddialog.h
+        src/qt/veil/veilstatusbar.cpp
+        src/qt/veil/veilstatusbar.h
         src/consensus/consensus.h
         src/consensus/merkle.cpp
         src/consensus/merkle.h
@@ -902,6 +930,19 @@ add_executable(veil
         src/utiltime.cpp
         src/utiltime.h
         src/validation.cpp
+        src/qt/veil/addresseswidget.cpp
+        src/qt/veil/addresseswidget.h
+        src/qt/veil/addresseswidget.moc
+        src/qt/veil/addressnewcontact.cpp
+        src/qt/veil/addressnewcontact.h
+        src/qt/veil/addressreceive.cpp
+        src/qt/veil/addressreceive.h
+        src/qt/veil/balance.cpp
+        src/qt/veil/balance.h
+        src/qt/veil/createpassword.cpp
+        src/qt/veil/createpassword.h
+        src/qt/veil/mainwindow.cpp
+        src/qt/veil/mainwindow.h
         src/validation.h
         src/validationinterface.cpp
         src/validationinterface.h
