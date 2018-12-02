@@ -9678,6 +9678,11 @@ bool CHDWallet::SelectAnonCoins(const std::vector<COutputR> &vAvailableCoins, co
 bool CHDWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew, CZerocoinSpendReceipt& receipt,
         std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, CTxDestination* addressTo)
 {
+    //todo consolidate CWallet and CHDWallet's spend method into one method
+    CTxDestination dummyDest = CStealthAddress();
+    if (!addressTo || addressTo->which() != dummyDest.which())
+        return CWallet::SpendZerocoin(nValue, nSecurityLevel, wtxNew, receipt, vMintsSelected, fMintChange, fMinimizeChange, addressTo);
+
     // Default: assume something goes wrong. Depending on the problem this gets more specific below
     int nStatus = ZSPEND_ERROR;
 
@@ -9765,13 +9770,13 @@ bool CHDWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLeve
     // Check available funds
     int nStatus = ZTRX_FUNDS_PROBLEMS;
     CAmount nzBalance = GetZerocoinBalance(true);
-    if (nValue > GetZerocoinBalance(true)) {
+    if (nValue > nzBalance) {
         receipt.SetStatus("You don't have enough Zerocoins in your wallet", nStatus);
         return false;
     }
 
     if (nValue < 10) {
-        receipt.SetStatus("Value is below the smallest available denomination (= 1) of zerocoin", nStatus);
+        receipt.SetStatus("Value is below the smallest available denomination (= 10) of zerocoin", nStatus);
         return false;
     }
 
@@ -10004,6 +10009,10 @@ bool CHDWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLeve
 
 string CHDWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDeterministicMint>& vDMints, const CCoinControl* coinControl)
 {
+    // If not enough stealth inputs, then use basecoins
+    if (GetAnonBalance() < nValue)
+        return CWallet::MintZerocoin(nValue, wtxNew, vDMints, coinControl);
+
     // Check amount
     if (nValue <= 0)
         return _("Invalid amount");
