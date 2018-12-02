@@ -20,7 +20,6 @@ private:
     std::string budgetAddress;
     std::string founderAddress;
     std::string labAddress;
-    CAmount nBudgetAmount;
 
 public:
     static BudgetParams* Get();
@@ -34,7 +33,6 @@ public:
     std::string GetBudgetAddress() const { return budgetAddress; }
     std::string GetFounderAddress() const { return founderAddress; }
     std::string GetLabAddress() const { return labAddress; }
-    CAmount GetBudgetAmount() const { return nBudgetAmount; }
     static const int nBlocksPerPeriod = 43200;
 };
 

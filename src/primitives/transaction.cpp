@@ -308,6 +308,21 @@ bool CTransaction::IsCoinStake() const
     return (vpout.size() > 1 && vpout[0]->IsEmpty());
 }
 
+bool CTransaction::HasBlindedValues() const
+{
+    for (const auto& in : vin) {
+        if (in.IsAnonInput())
+            return true;
+    }
+
+    for (const auto& pout : vpout) {
+        if (pout->IsType(OUTPUT_CT) || pout->IsType(OUTPUT_RINGCT))
+            return true;
+    }
+
+    return false;
+}
+
 bool CTransaction::IsZerocoinMint() const
 {
     for(const auto& pout : vpout) {

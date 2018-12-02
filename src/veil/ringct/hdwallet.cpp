@@ -10139,7 +10139,8 @@ bool CHDWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTran
 
     std::string sError;
     if (!isZCSpendChange && 0 != AddAnonInputs(wtx, rtx, vecSend, true, nRingSize, nInputsPerSig, nFeeRet, &cControl, sError)) {
-        return false; // todo
+        strFailReason = sError;
+        return false;
     }
 
     txNew = CMutableTransaction(*wtx.tx);
