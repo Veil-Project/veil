@@ -219,13 +219,13 @@ public:
         int nTimeStart = 1536946053;
         arith_uint256 nBits;
         nBits.SetCompact(0x1e0ffff0);
-        uint32_t nNonce = 2853389;
+        uint32_t nNonce = 3962663;
         genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
         assert(genesis.hashWitnessMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
-        assert(consensus.hashGenesisBlock == uint256S("0x6694a34f1bf7c2411c5fea01c28605bf5b258d93e2a2ab4017f6931577f26a96"));
+        assert(consensus.hashGenesisBlock == uint256S("0xf5d5088b836b93d384ce7afb2ebc7a087835d19ef3d3b2a28d4910a7a81e3c9f"));
         assert(genesis.hashMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
-        assert(genesis.hashVeilData == uint256S("0xa1123b6b18d5b6aaef81b54052d449bad50778440cf674de0c8bc9f3fb38fcca"));
+        assert(genesis.hashVeilData == uint256S("0x3e683ad346b50576bb9b36cd94879c6950e7bf0ae41ddb421603bbab8e48f14d"));
 
         vSeeds.emplace_back("veilseed.presstab.pw");
 
@@ -340,13 +340,13 @@ public:
         nPruneAfterHeight = 1000;
 
         int nTimeStart = 1536946053;
-        uint32_t nNonce = 2853389;
+        uint32_t nNonce = 3962663;
         genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0x6694a34f1bf7c2411c5fea01c28605bf5b258d93e2a2ab4017f6931577f26a96"));
+        assert(consensus.hashGenesisBlock == uint256S("0xf5d5088b836b93d384ce7afb2ebc7a087835d19ef3d3b2a28d4910a7a81e3c9f"));
         assert(genesis.hashMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
         assert(genesis.hashWitnessMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
-        assert(genesis.hashVeilData == uint256S("0xa1123b6b18d5b6aaef81b54052d449bad50778440cf674de0c8bc9f3fb38fcca"));
+        assert(genesis.hashVeilData == uint256S("0x3e683ad346b50576bb9b36cd94879c6950e7bf0ae41ddb421603bbab8e48f14d"));
 
         vFixedSeeds.clear();
         vSeeds.clear();

@@ -239,6 +239,15 @@ bool CalculateAccumulatorCheckpoint(int nHeight, std::map<libzerocoin::CoinDenom
     return true;
 }
 
+std::string PrintAccumulatorCheckpoints(std::map<libzerocoin::CoinDenomination ,uint256> mapAccumulatorHashes)
+{
+    std::string strRet;
+    for (auto p : mapAccumulatorHashes) {
+        strRet += strprintf("Denom:%d Hash:%s\n", p.first, p.second.GetHex());
+    }
+    return strRet;
+}
+
 bool ValidateAccumulatorCheckpoint(const CBlock& block, CBlockIndex* pindex, AccumulatorMap& mapAccumulators)
 {
     if (pindex->nHeight % 10 == 0 && pindex->nHeight > 10) {
@@ -247,9 +256,9 @@ bool ValidateAccumulatorCheckpoint(const CBlock& block, CBlockIndex* pindex, Acc
         if (!CalculateAccumulatorCheckpoint(pindex->nHeight, mapCheckpointCalculated, mapAccumulators))
             return error("%s : failed to calculate accumulator checkpoint", __func__);
 
-        for (auto checkpointPair: mapCheckpointCalculated) {
-            if (checkpointPair.second != pindex->mapAccumulatorHashes.at(checkpointPair.first))
-                return error("%s : accumulator does not match calculated value", __func__);
+        for (auto checkpointPair: mapAccumulators.GetCheckpoints(true)) {
+            if (checkpointPair.second != block.mapAccumulatorHashes.at(checkpointPair.first))
+                return error("%s : accumulator does not match calculated value. block=%s calculated=%s", __func__, pindex->mapAccumulatorHashes.at(checkpointPair.first).GetHex(), checkpointPair.second.GetHex());
         }
 
         return true;
