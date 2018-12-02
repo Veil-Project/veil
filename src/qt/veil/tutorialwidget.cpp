@@ -5,6 +5,7 @@
 #include <QFileDialog>
 #include <iostream>
 #include <wallet/wallet.h>
+#include <wallet/walletutil.h>
 
 TutorialWidget::TutorialWidget(QWidget *parent) :
     QDialog(parent),
@@ -71,7 +72,7 @@ void TutorialWidget::on_next_triggered(){
                         {
                             mnemonic = "";
                             std::string strWalletFile = "wallet.dat";
-                            CWallet::CreateNewHDWallet(strWalletFile, GetDataDir(), mnemonic, this->strLanguageSelection.toStdString(), &pkSeed);
+                            CWallet::CreateNewHDWallet(strWalletFile, GetWalletDir(), mnemonic, this->strLanguageSelection.toStdString(), &pkSeed);
 
                             std::stringstream ss(mnemonic);
                             std::istream_iterator<std::string> begin(ss);
@@ -126,7 +127,7 @@ void TutorialWidget::on_next_triggered(){
 
                     bool fBadSeed = false;
                     CPubKey pubKey;
-                    CWallet::CreateHDWalletFromMnemonic(strWalletFile, GetDataDir(), mnemonic, fBadSeed, pubKey);
+                    CWallet::CreateHDWalletFromMnemonic(strWalletFile, GetWalletDir(), mnemonic, fBadSeed, pubKey);
                     if (fBadSeed) {
                         tutorialMnemonicRevealed = new TutorialMnemonicRevealed(this);
                         ui->QStackTutorialContainer->addWidget(tutorialMnemonicRevealed);
@@ -191,15 +192,10 @@ void TutorialWidget::on_back_triggered(){
                 }
             case 1:
                 {
-                    if (tutorialMnemonicRevealed && tutorialCreateWallet->GetButtonClicked() == 2) {
-                        qWidget = tutorialMnemonicRevealed;
-                        loadLeftContainer(":/icons/img-start-confirm","Enter your \n seed phrase","");
-                    } else {
-                        qWidget = tutorialCreateWallet;
-                        loadLeftContainer(":/icons/img-start-wallet","Setup your\nVEIL wallet","");
-                        ui->btnLineSeparator->setVisible(true);
-                        ui->btnBack->setVisible(true);
-                    }
+                    qWidget = tutorialCreateWallet;
+                    loadLeftContainer(":/icons/img-start-wallet","Setup your\nVEIL wallet","");
+                    ui->btnLineSeparator->setVisible(true);
+                    ui->btnBack->setVisible(true);
                     break;
                 }
             case 2:

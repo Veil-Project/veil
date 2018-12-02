@@ -1484,7 +1484,6 @@ CPubKey CWallet::GenerateNewMnemonicSeed(std::string &mnemonic, const std::strin
             break;
         mnemonic += " ";
     }
-    LogPrintf("%s: Mnemonic Seed = %s\n", __func__, HexStr(keyData));
 
     return DeriveNewSeed(key);
 }
@@ -1503,7 +1502,7 @@ bool CWallet::SetHDSeedFromMnemonic(const std::string &mnemonic, CPubKey& pubkey
     if (!key.IsValid())
         return false;
     CPubKey seed = DeriveNewSeed(key);
-    LogPrintf("%s: Mnemonic Seed = %s\n", __func__, HexStr(keyData));
+    LogPrintf("%s: Mnemonic Seed = %s\n", __func__, HexStr(seed));
     SetHDSeed(seed);
     pubkeySeed = seed;
     return true;
@@ -4883,6 +4882,7 @@ bool CWallet::CreateNewHDWallet(const std::string& name, const fs::path& path, s
 
     // generate a new seed
     CPubKey seedLocal = walletInstance->GenerateNewMnemonicSeed(mnemonic, strLanguage);
+    LogPrintf("%s: Mnemonic Seed = %s\n", __func__, HexStr(seedLocal));
     walletInstance->SetHDSeed(seedLocal);
     *seed = seedLocal;
 
@@ -4903,10 +4903,6 @@ bool CWallet::CreateHDWalletFromMnemonic(const std::string& name, const fs::path
     std::shared_ptr<CWallet> walletInstance(new CWallet(name, WalletDatabase::Create(path)), ReleaseWallet);
     DBErrors nLoadWalletRet = walletInstance->LoadWallet(fFirstRun);
 
-    if (!fFirstRun) {
-        InitError(strprintf(_("Error generating HD wallet: %s already exists?? This should never happen"), walletFile));
-        return false;
-    }
     if (nLoadWalletRet != DBErrors::LOAD_OK)
     {
         InitError(strprintf(_("Error generating %s"), walletFile));
