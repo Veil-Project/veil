@@ -28,6 +28,7 @@
 #include <wallet/wallet.h>
 
 #include <veil/budget.h>
+#include <veil/proofoffullnode/proofoffullnode.h>
 #include <veil/zerocoin/zchain.h>
 
 #include <algorithm>
@@ -103,7 +104,7 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, bool fProofOfStake)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, bool fProofOfStake, bool fProofOfFullNode)
 {
     int64_t nTimeStart = GetTimeMicros();
 
@@ -337,6 +338,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         LogPrintf("%s: failed to get accumulator checkpoints\n", __func__);
     pblock->mapAccumulatorHashes = mapCheckpoints;
 
+    //Proof of full node
+    if(fProofOfFullNode && !fProofOfStake)
+        LogPrintf("%s: A block can not be proof of full node and proof of work.\n", __func__);
+    else if(fProofOfFullNode && fProofOfStake) {
+        if (veil::GenerateProofOfFullNode(pblock, pindexPrev, Params()))
+            LogPrintf("%s: Failure to create proof of full node.", __func__);
+    }
     // Once the merkleRoot, witnessMerkleRoot and mapAccumulatorHashes have been calculated we can calculate the hashVeilData
     pblock->hashVeilData = pblock->GetVeilDataHash();
 
@@ -661,7 +669,7 @@ static int32_t nNonce_base = 0;
 static arith_uint256 nHashes = 0;
 static int32_t nTimeStart = 0;
 
-void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false) {
+void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false, bool fProofOfFullNode = false) {
     LogPrintf("Veil Miner started\n");
 
     unsigned int nExtraNonce = 0;
@@ -712,7 +720,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         CScript scriptMining;
         if (coinbaseScript)
             scriptMining = coinbaseScript->reserveScript;
-        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(scriptMining, false, fProofOfStake));
+        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(scriptMining, false, fProofOfStake, fProofOfFullNode));
         if (!pblocktemplate || !pblocktemplate.get())
             continue;
 

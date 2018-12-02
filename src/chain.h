@@ -218,6 +218,7 @@ public:
     uint32_t nStatus;
 
     bool fProofOfStake;
+    bool fProofOfFullNode;
 
     //! Funds sent into the network to serve as an additional reward to stakers and miners
     CAmount nNetworkRewardReserve;
@@ -244,6 +245,7 @@ public:
 
     uint256 hashMerkleRoot;
     uint256 hashWitnessMerkleRoot;
+    uint256 hashPoFN;
 
     void SetNull()
     {
@@ -266,6 +268,10 @@ public:
 
         //Proof of stake
         fProofOfStake = false;
+
+        //Proof of Full Node
+        fProofOfFullNode = false;
+        hashPoFN = uint256();
 
         nAnonOutputs = 0;
 
@@ -339,6 +345,7 @@ public:
         block.nBits          = nBits;
         block.nNonce         = nNonce;
         block.fProofOfStake = IsProofOfStake();
+        block.fProofOfFullNode = fProofOfFullNode;
         return block;
     }
 
@@ -514,12 +521,14 @@ public:
         READWRITE(hashMerkleRoot);
         // NOTE: Careful matching the version, qa tests use different versions
         READWRITE(hashWitnessMerkleRoot);
+        READWRITE(hashPoFN);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
         READWRITE(mapAccumulatorHashes);
         READWRITE(mapZerocoinSupply);
         READWRITE(vMintDenominationsInBlock);
+        READWRITE(fProofOfFullNode);
 
         //Proof of stake
         READWRITE(fProofOfStake);

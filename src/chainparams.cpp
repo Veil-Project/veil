@@ -44,6 +44,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     genesis.hashPrevBlock.SetNull();
     genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
     genesis.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(genesis);
+    genesis.hashPoFN = uint256();
     genesis.mapAccumulatorHashes = genesis.mapAccumulatorHashes;
     genesis.hashVeilData = genesis.GetVeilDataHash(); // This has to be done after both merkle roots and the map accumulatorHashes have been assigned
 
@@ -283,6 +284,7 @@ public:
         nHeightPoSStart = 500;
         nKernelModulus = 100;
         nCoinbaseMaturity = 100;
+        nProofOfFullNodeRounds = 4;
     }
 };
 
@@ -404,6 +406,7 @@ public:
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
+        nProofOfFullNodeRounds = 4;
     }
 };
 

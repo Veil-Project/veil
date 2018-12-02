@@ -18,14 +18,16 @@ struct CVeilBlockData
 {
     uint256 hashMerkleRoot;
     uint256 hashWitnessMerkleRoot;
+    uint256 hashPoFN;
 
     std::map<libzerocoin::CoinDenomination , uint256> mapAccumulatorHashes;
 
-    CVeilBlockData(const uint256& hashMerkleRootTmp, const uint256& hashWitnessMerkleRootTmp, const std::map<libzerocoin::CoinDenomination , uint256> mapAccumulatorHashesTmp)
+    CVeilBlockData(const uint256& hashMerkleRootTmp, const uint256& hashWitnessMerkleRootTmp, const std::map<libzerocoin::CoinDenomination , uint256> mapAccumulatorHashesTmp, const uint256& hashPoFNTmp)
     {
         this->hashMerkleRoot= hashMerkleRootTmp;
         this->hashWitnessMerkleRoot = hashWitnessMerkleRootTmp;
         this->mapAccumulatorHashes = mapAccumulatorHashesTmp;
+        this->hashPoFN = hashPoFNTmp;
     }
 
     ADD_SERIALIZE_METHODS;
@@ -35,6 +37,7 @@ struct CVeilBlockData
         READWRITE(hashMerkleRoot);
         READWRITE(hashWitnessMerkleRoot);
         READWRITE(mapAccumulatorHashes);
+        READWRITE(hashPoFN);
     }
 };
 
@@ -51,11 +54,12 @@ public:
     // header
     int32_t nVersion;
     uint256 hashPrevBlock;
-    uint256 hashVeilData; // Serialzie hash of CVeilBlockData(hashMerkleRoot, hashAccumulators, hashWitnessMerkleRoot
+    uint256 hashVeilData; // Serialzie hash of CVeilBlockData(hashMerkleRoot, hashAccumulators, hashWitnessMerkleRoot, hashPoFN)
     uint32_t nTime;
     uint32_t nBits;
     uint32_t nNonce;
     uint8_t fProofOfStake;
+    uint8_t fProofOfFullNode;
 
     CBlockHeader()
     {
@@ -72,8 +76,10 @@ public:
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);
-        if (!(s.GetType() & SER_GETHASH))
+        if (!(s.GetType() & SER_GETHASH)) {
             READWRITE(fProofOfStake);
+            READWRITE(fProofOfFullNode);
+        }
     }
 
     void SetNull()
@@ -85,6 +91,7 @@ public:
         nBits = 0;
         nNonce = 0;
         fProofOfStake = 0;
+        fProofOfFullNode = 0;
     }
 
     bool IsNull() const
@@ -114,6 +121,7 @@ public:
 
     uint256 hashWitnessMerkleRoot;
     uint256 hashMerkleRoot;
+    uint256 hashPoFN;
 
     // Proof of Stake: block signature - signed by one of the coin base txout[N]'s owner
     std::vector<unsigned char> vchBlockSig;
@@ -141,6 +149,7 @@ public:
         READWRITE(mapAccumulatorHashes);
         READWRITE(hashMerkleRoot);
         READWRITE(hashWitnessMerkleRoot);
+        READWRITE(hashPoFN);
         if (IsProofOfStake())
             READWRITE(vchBlockSig);
     }
@@ -158,11 +167,12 @@ public:
 
         hashMerkleRoot = uint256();
         hashWitnessMerkleRoot = uint256();
+        hashPoFN = uint256();
     }
 
     CBlockHeader GetBlockHeader() const
     {
-        CVeilBlockData veilBlockData(hashMerkleRoot, hashWitnessMerkleRoot, mapAccumulatorHashes);
+        CVeilBlockData veilBlockData(hashMerkleRoot, hashWitnessMerkleRoot, mapAccumulatorHashes, hashPoFN);
 
         CBlockHeader block;
         block.nVersion       = nVersion;
@@ -172,6 +182,7 @@ public:
         block.nBits          = nBits;
         block.nNonce         = nNonce;
         block.fProofOfStake = IsProofOfStake();
+        block.fProofOfFullNode = fProofOfFullNode;
         return block;
     }
 
@@ -188,7 +199,7 @@ public:
 
     uint256 GetVeilDataHash() const
     {
-        CVeilBlockData veilBlockData(hashMerkleRoot, hashWitnessMerkleRoot, mapAccumulatorHashes);
+        CVeilBlockData veilBlockData(hashMerkleRoot, hashWitnessMerkleRoot, mapAccumulatorHashes, hashPoFN);
 
         return SerializeHash(veilBlockData);
     }

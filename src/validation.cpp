@@ -46,6 +46,7 @@
 #include <validationinterface.h>
 #include <warnings.h>
 
+#include <veil/proofoffullnode/proofoffullnode.h>
 #include <veil/proofofstake/blockvalidation.h>
 #include <veil/budget.h>
 #include <veil/zerocoin/zchain.h>
@@ -177,7 +178,7 @@ public:
      * If a block header hasn't already been seen, call CheckBlockHeader on it, ensure
      * that it doesn't descend from an invalid block, and then add it to mapBlockIndex.
      */
-    bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fProofOfStake) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fProofOfStake, bool fProofOfFullNode) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput* stake);
 
@@ -206,7 +207,7 @@ private:
     bool ActivateBestChainStep(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexMostWork, const std::shared_ptr<const CBlock>& pblock, bool& fInvalidFound, ConnectTrace& connectTrace);
     bool ConnectTip(CValidationState& state, const CChainParams& chainparams, CBlockIndex* pindexNew, const std::shared_ptr<const CBlock>& pblock, ConnectTrace& connectTrace, DisconnectedBlockTransactions &disconnectpool);
 
-    CBlockIndex* AddToBlockIndex(const CBlockHeader& block, bool fProofOfStake = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    CBlockIndex* AddToBlockIndex(const CBlockHeader& block, bool fProofOfStake = false, bool fProofOfFullNode = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     /** Create a new block index entry for a given block hash */
     CBlockIndex* InsertBlockIndex(const uint256& hash) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     /**
@@ -2439,7 +2440,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
 
     CAmount nCreationLimit = networkReward + nBlockReward + nFounderPayment + nBudgetPayment + nLabPayment;
-    //TODO: Proof Of Full node gets fees, else check destroyed
+
+    uint256 hashGeneratePoFN;
+    if(block.fProofOfFullNode && veil::ValidateProofOfFullNode(block, pindex->pprev, Params(), hashGeneratePoFN))
+        nCreationLimit += nFees;
 
     if (block.vtx[0]->GetValueOut() > nCreationLimit) {
         LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__, FormatMoney(nBlockReward), FormatMoney(networkReward), FormatMoney(nFounderPayment),
@@ -2462,6 +2466,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     int64_t nTime4 = GetTimeMicros(); nTimeVerify += nTime4 - nTime2;
     LogPrint(BCLog::BENCH, "    - Verify %u txins: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n", nInputs - 1, MILLI * (nTime4 - nTime2), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime2) / (nInputs-1), nTimeVerify * MICRO, nTimeVerify * MILLI / nBlocksTotal);
+
+    CVeilBlockData veilComputedData = CVeilBlockData(BlockMerkleRoot(block), BlockWitnessMerkleRoot(block), mapAccumulators.GetCheckpoints(), hashGeneratePoFN);
+    if(SerializeHash(veilComputedData) != block.GetVeilDataHash())
+        return state.DoS(100, error("%s: VeilDataHash comparison  failed", __func__), REJECT_INVALID, "block-validation-failed");
 
     if (fJustCheck)
         return true;
@@ -3412,7 +3420,7 @@ void ResetBlockFailureFlags(CBlockIndex *pindex) {
     return g_chainstate.ResetBlockFailureFlags(pindex);
 }
 
-CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block, bool fProofOfStake)
+CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block, bool fProofOfStake, bool fProofOfFullNode)
 {
     AssertLockHeld(cs_main);
 
@@ -3444,6 +3452,9 @@ CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block, bool fProof
     //! This may be incorrect if sync headers first is enabled
     if (fProofOfStake)
         pindexNew->SetProofOfStake();
+
+    if (fProofOfFullNode)
+        pindexNew->fProofOfFullNode = true;
 
     if (pindexBestHeader == nullptr || pindexBestHeader->nChainWork < pindexNew->nChainWork)
         pindexBestHeader = pindexNew;
@@ -3588,8 +3599,11 @@ static bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, 
     return true;
 }
 
-static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
+static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, bool fCheckProofOfFullNode = false)
 {
+    //Prevent Proof of full node and proof of work existing together
+    if (fCheckPOW && fCheckProofOfFullNode)
+        return state.DoS(50, false, REJECT_INVALID, "PoW and PoFN conflict", false, "Block attempted to use both PoW and PoFN");
     // Check proof of work matches claimed amount
     if (fCheckPOW && !CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
         return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
@@ -3605,7 +3619,7 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
-    if (!CheckBlockHeader(block, state, consensusParams, (fCheckPOW && block.IsProofOfWork())))
+    if (!CheckBlockHeader(block, state, consensusParams, (fCheckPOW && block.IsProofOfWork()), block.fProofOfFullNode))
         return false;
 
     // Check the block signature if it is a proof of stake block
@@ -3982,7 +3996,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     return true;
 }
 
-bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fProofOfStake)
+bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fProofOfStake, bool fProofOfFullNode)
 {
     AssertLockHeld(cs_main);
     // Check for duplicate
@@ -4001,7 +4015,7 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
         }
 
         bool fCheckPoW = !fProofOfStake;
-        if (!CheckBlockHeader(block, state, chainparams.GetConsensus(), fCheckPoW))
+        if (!CheckBlockHeader(block, state, chainparams.GetConsensus(), fCheckPoW, fProofOfFullNode))
             return error("%s: Consensus::CheckBlockHeader: %s, %s", __func__, hash.ToString(), FormatStateMessage(state));
 
         // Get prev block index
@@ -4034,7 +4048,7 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
         }
     }
     if (pindex == nullptr)
-        pindex = AddToBlockIndex(block, fProofOfStake);
+        pindex = AddToBlockIndex(block, fProofOfStake, fProofOfFullNode);
 
     if (ppindex)
         *ppindex = pindex;
@@ -4053,7 +4067,8 @@ bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidatio
         for (const CBlockHeader& header : headers) {
             CBlockIndex *pindex = nullptr; // Use a temp pindex instead of ppindex to avoid a const_cast
             bool fProofOfStake = header.fProofOfStake;// todo, no easy way to know if this is PoS block - maybe look at hash value?
-            if (!g_chainstate.AcceptBlockHeader(header, state, chainparams, &pindex, fProofOfStake)) {
+            bool fProofOfFullNode = header.fProofOfFullNode;
+            if (!g_chainstate.AcceptBlockHeader(header, state, chainparams, &pindex, fProofOfStake, fProofOfFullNode)) {
                 if (first_invalid) *first_invalid = header;
                 return false;
             }
@@ -4123,7 +4138,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     CBlockIndex *pindexDummy = nullptr;
     CBlockIndex *&pindex = ppindex ? *ppindex : pindexDummy;
 
-    if (!AcceptBlockHeader(block, state, chainparams, &pindex, block.IsProofOfStake()))
+    if (!AcceptBlockHeader(block, state, chainparams, &pindex, block.IsProofOfStake(), block.fProofOfFullNode))
         return error("%s: AcceptBlockHeader failed for block %s", __func__, block.GetHash().GetHex());
 
     //! Validate Proof of Stake

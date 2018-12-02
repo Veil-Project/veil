@@ -121,6 +121,9 @@ public:
     int KernelModulus() const { return nKernelModulus; }
     int CoinbaseMaturity() const { return nCoinbaseMaturity; }
 
+    /**PoFN**/
+    int ProofOfFullNodeRounds() const {return nProofOfFullNodeRounds; }
+
 protected:
     CChainParams() {}
 
@@ -160,6 +163,7 @@ protected:
     int nKernelModulus;
     int nLastPOWBlock;      //TODO - set values for Veil
     int nCoinbaseMaturity;
+    int nProofOfFullNodeRounds;
 };
 
 /**

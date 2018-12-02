@@ -712,6 +712,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     result.pushKV("veildatahash", pblock->hashVeilData.GetHex());
     result.pushKV("witnessmerkleroothash", pblock->hashWitnessMerkleRoot.GetHex());
     result.pushKV("merkleroothash", pblock->hashMerkleRoot.GetHex());
+    result.pushKV("proofoffullnodehash", pblock->hashPoFN.GetHex());
 
     return result;
 }

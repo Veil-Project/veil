@@ -277,6 +277,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->hashVeilData   = diskindex.hashVeilData;
                 pindexNew->hashMerkleRoot = diskindex.hashMerkleRoot;
                 pindexNew->hashWitnessMerkleRoot = diskindex.hashWitnessMerkleRoot;
+                pindexNew->hashPoFN       = diskindex.hashPoFN;
                 pindexNew->nTime          = diskindex.nTime;
                 pindexNew->nBits          = diskindex.nBits;
                 pindexNew->nNonce         = diskindex.nNonce;
@@ -288,6 +289,9 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->nMint = diskindex.nMint;
                 pindexNew->nMoneySupply = diskindex.nMoneySupply;
                 pindexNew->fProofOfStake = diskindex.fProofOfStake;
+
+                //PoFN
+                pindexNew->fProofOfFullNode = diskindex.fProofOfFullNode;
 
                 //RingCT
                 pindexNew->nAnonOutputs             = diskindex.nAnonOutputs;

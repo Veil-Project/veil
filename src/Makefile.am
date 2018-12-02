@@ -204,6 +204,7 @@ BITCOIN_CORE_H = \
   validationinterface.h \
   versionbits.h \
   veil/arrayslice.h \
+  veil/proofoffullnode/proofoffullnode.h \
   veil/proofofstake/blockvalidation.h \
   veil/budget.h \
   veil/dandelioninventory.h \
@@ -289,6 +290,7 @@ libbitcoin_server_a_SOURCES = \
   ui_interface.cpp \
   validation.cpp \
   validationinterface.cpp \
+  veil/proofoffullnode/proofoffullnode.cpp \
   veil/proofofstake/blockvalidation.cpp \
   veil/budget.cpp \
   versionbits.cpp \
