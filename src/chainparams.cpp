@@ -238,7 +238,7 @@ public:
 
         bech32Prefixes[STEALTH_ADDRESS].assign("ps","ps"+2);
 
-        bech32_hrp = "bc";
+        bech32_hrp = "bv";
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
@@ -360,7 +360,7 @@ public:
         bech32Prefixes[STEALTH_ADDRESS].assign("tps","tps"+3);
         nBIP44ID = 0x80000001;
 
-        bech32_hrp = "tb";
+        bech32_hrp = "tv";
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
@@ -368,7 +368,6 @@ public:
 
         nMaxPoWBlocks = 5; // todo: update
         nConsecutivePoWHeight = 15000; // todo: update
-
 
         checkpointData = {
             {
