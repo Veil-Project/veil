@@ -174,7 +174,7 @@ public:
         consensus.BIP34Hash = uint256S("0x000000000000024b89b42a942fe0d9fea3bb44ab7bd1b19115dd6a759c0808b8");
         consensus.BIP65Height = 388381; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.BIP66Height = 363725; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
-        // TODO: Find PoW limit to use - VEIL-55
+
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
         consensus.nDgwPastBlocks = 10; // number of blocks to average in Dark Gravity Wave
@@ -275,7 +275,7 @@ public:
                           "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
                           "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
                           "31438167899885040445364023527381951378636564391212010397122822120720357";
-        nMaxZerocoinSpendsPerTransaction = 20;
+        nMaxZerocoinSpendsPerTransaction = 20; // Assume about 6.5kb each
         nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
         nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
@@ -399,7 +399,7 @@ public:
                           "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
                           "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
                           "31438167899885040445364023527381951378636564391212010397122822120720357";
-        nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
+        nMaxZerocoinSpendsPerTransaction = 20; // Assume about 6.5kb each
         nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
         nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;

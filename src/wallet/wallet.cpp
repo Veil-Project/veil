@@ -5112,17 +5112,13 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
     privateCoin.setRandomness(zerocoinSelected.GetRandomness());
     privateCoin.setSerialNumber(zerocoinSelected.GetSerialNumber());
 
-    //Version 2 zerocoins have a privkey associated with them
+    // Version 2 zerocoins have a privkey associated with them. This key is stored in the wallet keystore and has to be retrieved
     uint8_t nVersion = zerocoinSelected.GetVersion();
     privateCoin.setVersion(nVersion);
-    LogPrintf("%s: privatecoin version=%d\n", __func__, nVersion);
-    if (nVersion >= libzerocoin::PrivateCoin::PUBKEY_VERSION) {
-        CKey key;
-        if (!zerocoinSelected.GetKeyPair(key))
-            return error("%s: failed to set zerocoin privkey mint version=%d", __func__, nVersion);
-
-        privateCoin.setPrivKey(key.GetPrivKey());
-    }
+    CKey key;
+    if (!zerocoinSelected.GetKeyPair(key))
+        return error("%s: failed to set zerocoin privkey mint version=%d", __func__, nVersion);
+    privateCoin.setPrivKey(key.GetPrivKey());
 
 
     auto nChecksum = GetChecksum(accumulator.getValue());
@@ -5799,9 +5795,9 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
             // Limit size
             unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION);
             if (nBytes >= MAX_ZEROCOIN_TX_SIZE) {
-                receipt.SetStatus("In rare cases, a spend with 7 coins exceeds our maximum allowable transaction size, "
-                                  "please retry spend using 6 or less coins", ZTX_TOO_LARGE);
-                return false;
+                receipt.SetStatus(strprintf("In rare cases, a spend with 7 coins exceeds our maximum allowable transaction size, "
+                                  "please retry spend using 6 or less coins. Size=%d", nBytes), ZTX_TOO_LARGE);
+                return error("%s: %s", __func__, receipt.GetStatusMessage());
             }
 
             //now that all inputs have been added, add full tx hash to zerocoinspend records and write to db
