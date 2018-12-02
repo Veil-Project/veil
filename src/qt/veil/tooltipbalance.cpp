@@ -13,8 +13,8 @@ TooltipBalance::TooltipBalance(QWidget *parent, int nZerocoinBalance, int nRingB
     ui->setupUi(this);
 
     // TODO: Load me..
-    ui->textZero->setText(nZerocoinBalance + "Veil");
-    ui->textRing->setText(nRingBalance + "Veil");
+    ui->textZero->setText(QString::fromStdString(std::to_string(nZerocoinBalance) + " Veil"));
+    ui->textRing->setText(QString::fromStdString(std::to_string(nRingBalance) + " Veil"));
 
     QTimer::singleShot(3500, this, SLOT(hide()));
 
