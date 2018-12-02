@@ -68,7 +68,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
         CAmount& nFounderPayment, CAmount& nLabPayment, CAmount& nBudgetPayment)
 {
 
-    if (nBlockHeight <= 0) { // 43830 is the average size of a month in minutes when including leap years
+    if (nBlockHeight <= 0 || nBlockHeight > Params().HeightSupplyCreationStop()) { // 43830 is the average size of a month in minutes when including leap years
         nBlockReward = 0;
         nFounderPayment = 0;
         nLabPayment = 0;

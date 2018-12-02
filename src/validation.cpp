@@ -2210,6 +2210,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     std::vector<PrecomputedTransactionData> txdata;
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
 
+    //Do not accept PoW blocks after the last pow height
+    if (pindex->nHeight > Params().LAST_POW_BLOCK() && !block.IsProofOfStake())
+        return state.DoS(100, error("%s: Proof of Work block added after the last allowed PoW height", __func__), REJECT_INVALID, "pow-after-cutoff");
+
     pindex->nNetworkRewardReserve = pindex->pprev ? pindex->pprev->nNetworkRewardReserve : 0;
     std::string strRewardAddress = Params().NetworkRewardAddress();
     CTxDestination dest = DecodeDestination(strRewardAddress);

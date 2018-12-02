@@ -120,6 +120,7 @@ public:
     int HeightPoSStart() const { return nHeightPoSStart; }
     int KernelModulus() const { return nKernelModulus; }
     int CoinbaseMaturity() const { return nCoinbaseMaturity; }
+    int HeightSupplyCreationStop() const { return nHeightSupplyCreationStop; }
 
     /**PoFN**/
     int ProofOfFullNodeRounds() const {return nProofOfFullNodeRounds; }
@@ -164,6 +165,7 @@ protected:
     int nLastPOWBlock;      //TODO - set values for Veil
     int nCoinbaseMaturity;
     int nProofOfFullNodeRounds;
+    int nHeightSupplyCreationStop;
 };
 
 /**

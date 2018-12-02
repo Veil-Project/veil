@@ -285,6 +285,8 @@ public:
         nKernelModulus = 100;
         nCoinbaseMaturity = 100;
         nProofOfFullNodeRounds = 4;
+        nLastPOWBlock = 2000000;
+        nHeightSupplyCreationStop = 300000000;
     }
 };
 
@@ -407,6 +409,8 @@ public:
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
         nProofOfFullNodeRounds = 4;
+        nLastPOWBlock = 2000000;
+        nHeightSupplyCreationStop = 300000000;
     }
 };
 
