@@ -5786,16 +5786,14 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
             txNew.vpout.emplace_back(txOutZerocoinSpend.GetSharedPtr());
 
             //hash with only the output info in it to be used in Signature of Knowledge
-            uint256 hashTxOut = txNew.GetHash();
+            uint256 hashTxOut = txNew.GetOutputsHash();
 
             //add all of the mints to the transaction as inputs
             for (CZerocoinMint mint : vSelectedMints) {
                 CTxIn newTxIn;
-                if (!MintToTxIn(mint, nSecurityLevel, hashTxOut, newTxIn, receipt, libzerocoin::SpendType::SPEND)) {
+                if (!MintToTxIn(mint, nSecurityLevel, hashTxOut, newTxIn, receipt, libzerocoin::SpendType::SPEND))
                     return false;
-                }
                 txNew.vin.push_back(newTxIn);
-                LogPrintf("%s USING MINT WITH SERIAL %s\n", __func__, mint.GetSerialNumber().GetHex());
             }
 
             // Limit size
