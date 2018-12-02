@@ -72,7 +72,7 @@ CAmount CTxOutBase::GetValue() const
 
     };
     */
-    assert(nVersion == OUTPUT_STANDARD);
+    if (nVersion != OUTPUT_STANDARD) return 0;
     return ((CTxOutStandard*) this)->nValue;
 };
 

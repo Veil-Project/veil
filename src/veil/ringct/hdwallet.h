@@ -209,6 +209,7 @@ public:
         nStealthPrefix = 0;
         fSplitBlindOutput = false;
         fExemptFeeSub = false;
+        fZerocoin = false;
     };
 
     void SetAmount(CAmount nValue)
@@ -225,6 +226,7 @@ public:
     bool fSubtractFeeFromAmount;
     bool fSplitBlindOutput;
     bool fExemptFeeSub;         // Value too low to sub fee when blinded value split into two outputs
+    bool fZerocoin;
     CTxDestination address;
     CScript scriptPubKey;
     std::vector<uint8_t> vData;
@@ -485,17 +487,14 @@ public:
     /** Update wallet after successful transaction */
     int PostProcessTempRecipients(std::vector<CTempRecipient> &vecSend);
 
-    int AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
-        std::vector<CTempRecipient> &vecSend,
-        CExtKeyAccount *sea, CStoredExtKey *pc,
-        bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError);
-    int AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx,
-        std::vector<CTempRecipient> &vecSend, bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError);
+    int AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
+        CExtKeyAccount *sea, CStoredExtKey *pc, bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError,
+        bool fZerocoinInputs);
+    int AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
+            CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs = false);
 
-    int AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
-        std::vector<CTempRecipient> &vecSend,
-        CExtKeyAccount *sea, CStoredExtKey *pc,
-        bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError);
+    int AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
+        CExtKeyAccount *sea, CStoredExtKey *pc, bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError);
     int AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx,
         std::vector<CTempRecipient> &vecSend, bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError);
 
@@ -676,6 +675,20 @@ public:
 
     void AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe=true, const CCoinControl *coinControl = nullptr, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t& nMaximumCount = 0, const int& nMinDepth = 0, const int& nMaxDepth = 0x7FFFFFFF, bool fIncludeImmature=false) const EXCLUSIVE_LOCKS_REQUIRED(cs_main, cs_wallet);
     //bool SelectAnonCoins(const std::vector<COutputR> &vAvailableCoins, const CAmount &nTargetValue, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &setCoinsRet, CAmount &nValueRet, const CCoinControl *coinControl = NULL) const;
+
+    // zerocoin
+    bool SpendZerocoin(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew, CZerocoinSpendReceipt& receipt,
+                       std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, CTxDestination* addressTo = NULL) override;
+    bool CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew, CTransactionRecord& rtx, CReserveKey& reserveKey,
+            CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vSelectedMints, std::vector<CDeterministicMint>& vNewMints,
+            bool fMintChange,  bool fMinimizeChange, CTxDestination* address = NULL);
+
+    bool CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransaction& txNew, CTransactionRecord& rtx, std::vector<CDeterministicMint>& vDMints,
+            CReserveKey* reservekey, int64_t& nFeeRet, std::string& strFailReason, const CCoinControl* coinControl = NULL,
+            const bool isZCSpendChange = false);
+
+    std::string MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
+            const CCoinControl* coinControl = NULL) override;
 
     /**
      * Return list of available coins and locked coins grouped by non-change output address.

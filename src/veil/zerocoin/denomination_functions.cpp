@@ -371,9 +371,11 @@ int calculateChange(
             if (nRemainingValue < 0) break;
         }
 
+
         CAmount nChangeAmount = AmountUsed - nValueTarget;
         std::map<CoinDenomination, CAmount> mapChange = getChange(nChangeAmount);
         int nMaxChangeCount = getNumberOfCoinsUsed(mapChange);
+
 
         // Instead get max Denom held
         CoinDenomination maxDenomHeld = getMaxDenomHeld(mapOfDenomsHeld);
@@ -424,12 +426,12 @@ std::vector<CMintMeta> SelectMintsFromList(const CAmount nValueTarget, CAmount& 
     // Since either too many spends needed or can not spend the exact amount,
     // calculate the change needed and the map of coins used
     nCoinsReturned = calculateChange(nMaxNumberOfSpends, fMinimizeChange, nValueTarget, mapOfDenomsHeld, mapOfDenomsUsed);
-    if (nCoinsReturned == 0) {
-        LogPrintf("%s: Problem getting change (TBD) or Too many spends %d\n", __func__, nValueTarget);
-        vSelectedMints.clear();
-    } else {
+    //if (nCoinsReturned == 0) {
+    //    LogPrintf("%s: Problem getting change (TBD) or Too many spends %d\n", __func__, nValueTarget);
+    //    vSelectedMints.clear();
+    //} else {
         vSelectedMints = getSpends(listMints, mapOfDenomsUsed, nSelectedValue);
         LogPrintf("%s: %d coins in change for %d\n", __func__, nCoinsReturned, nValueTarget);
-    }
+    //}
     return vSelectedMints;
 }

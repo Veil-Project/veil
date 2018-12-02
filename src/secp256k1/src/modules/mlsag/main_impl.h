@@ -7,7 +7,6 @@
 #ifndef SECP256K1_MLSAG_MAIN
 #define SECP256K1_MLSAG_MAIN
 
-
 static void pedersen_commitment_load(secp256k1_ge *ge, const uint8_t *commit) {
     secp256k1_fe fe;
     secp256k1_fe_set_b32(&fe, &commit[1]);
@@ -400,8 +399,9 @@ int secp256k1_verify_mlsag(const secp256k1_context *ctx,
         secp256k1_scalar_set_int(&zero, 0);
 
         secp256k1_scalar_set_b32(&clast, pc, &overflow);
-        if (overflow || secp256k1_scalar_is_zero(&clast))
-            return 1;
+        if (overflow || secp256k1_scalar_is_zero(&clast)) {
+            return 9;
+        }
 
         cSig = clast;
 
@@ -415,21 +415,25 @@ int secp256k1_verify_mlsag(const secp256k1_context *ctx,
             for (k = 0; k < dsRows; ++k) {
                 /* L = G * ss + pk[k][i] * clast */
                 secp256k1_scalar_set_b32(&ss, &ps[(i + k * nCols) * 32], &overflow);
-                if (overflow || secp256k1_scalar_is_zero(&ss))
+                if (overflow || secp256k1_scalar_is_zero(&ss)) {
                     return 1;
-                if (!secp256k1_eckey_pubkey_parse(&ge1, &pk[(i + k * nCols) * 33], 33))
-                    return 1;
+                }
+                if (!secp256k1_eckey_pubkey_parse(&ge1, &pk[(i + k * nCols) * 33], 33)) {
+                    return 2;
+                }
                 secp256k1_gej_set_ge(&gej1, &ge1);
                 secp256k1_ecmult(&ctx->ecmult_ctx, &L, &gej1, &clast, &ss);
 
                 /* R = H(pk[k][i]) * ss + ki[k] * clast */
-                if (0 != hash_to_curve(&ge1, &pk[(i + k * nCols) * 33], 33)) /* H(pk[k][i]) */
-                    return 1;
+                if (0 != hash_to_curve(&ge1, &pk[(i + k * nCols) * 33], 33)) { /* H(pk[k][i]) */
+                    return 3;
+                }
                 secp256k1_gej_set_ge(&gej1, &ge1);
                 secp256k1_ecmult(&ctx->ecmult_ctx, &gej1, &gej1, &ss, &zero); /* gej1 = H(pk[k][i]) * ss */
 
-                if (!secp256k1_eckey_pubkey_parse(&ge1, &ki[k * 33], 33))
-                    return 1;
+                if (!secp256k1_eckey_pubkey_parse(&ge1, &ki[k * 33], 33)) {
+                    return 4;
+                }
                 secp256k1_gej_set_ge(&gej2, &ge1);
                 secp256k1_ecmult(&ctx->ecmult_ctx, &gej2, &gej2, &clast, &zero); /* gej2 = ki[k] * clast */
 
@@ -447,11 +451,13 @@ int secp256k1_verify_mlsag(const secp256k1_context *ctx,
             for (k = dsRows; k < nRows; ++k) {
                 /* L = G * ss + pk[k][i] * clast */
                 secp256k1_scalar_set_b32(&ss, &ps[(i + k * nCols) * 32], &overflow);
-                if (overflow || secp256k1_scalar_is_zero(&ss))
-                    return 1;
+                if (overflow || secp256k1_scalar_is_zero(&ss)) {
+                    return 5;
+                }
 
-                if (!secp256k1_eckey_pubkey_parse(&ge1, &pk[(i + k * nCols) * 33], 33))
-                    return 1;
+                if (!secp256k1_eckey_pubkey_parse(&ge1, &pk[(i + k * nCols) * 33], 33)) {
+                    return 6;
+                }
 
                 secp256k1_gej_set_ge(&gej1, &ge1);
                 secp256k1_ecmult(&ctx->ecmult_ctx, &L, &gej1, &clast, &ss);
@@ -464,14 +470,15 @@ int secp256k1_verify_mlsag(const secp256k1_context *ctx,
 
             secp256k1_sha256_finalize(&sha256_m, tmp);
             secp256k1_scalar_set_b32(&clast, tmp, &overflow);
-            if (overflow || secp256k1_scalar_is_zero(&clast))
-                return 1;
+            if (overflow || secp256k1_scalar_is_zero(&clast)) {
+                return 7;
+            }
         };
 
         secp256k1_scalar_negate(&cSig, &cSig);
         secp256k1_scalar_add(&zero, &clast, &cSig);
 
-        return secp256k1_scalar_is_zero(&zero) ? 0 : 2; /* return 0 on success, 2 on failure */
+        return secp256k1_scalar_is_zero(&zero) ? 0 : 8; /* return 0 on success, 2 on failure */
 }
 
 #endif

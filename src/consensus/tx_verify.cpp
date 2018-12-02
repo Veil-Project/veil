@@ -179,8 +179,8 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
                 continue;
             outs++;
         }
-        if (outs > 2 && !tx.IsCoinStake())
-            return state.DoS(100, error("CheckZerocoinSpend(): over two non-mint outputs in a zerocoinspend transaction"));
+        //if (outs > 2 && !tx.IsCoinStake())
+        //    return state.DoS(100, error("CheckZerocoinSpend(): over two non-mint outputs in a zerocoinspend transaction"));
     }
 
     //compute the txout hash that is used for the zerocoinspend signatures
@@ -188,7 +188,7 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
     for (const auto& out : tx.vpout)
         txTemp.vpout.emplace_back(out);
 
-    uint256 hashTxOut = txTemp.GetHash();
+    uint256 hashTxOut = txTemp.GetOutputsHash();
 
     bool fValidated = false;
     std::set<CBigNum> setSerials;

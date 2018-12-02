@@ -673,7 +673,7 @@ static UniValue sendanontopart(const JSONRPCRequest &request)
         throw std::runtime_error(SendHelp(pwallet, OUTPUT_RINGCT, OUTPUT_STANDARD));
 
     return SendToInner(request, OUTPUT_RINGCT, OUTPUT_STANDARD);
-};
+}
 
 static UniValue sendanontoblind(const JSONRPCRequest &request)
 {
@@ -685,7 +685,7 @@ static UniValue sendanontoblind(const JSONRPCRequest &request)
         throw std::runtime_error(SendHelp(pwallet, OUTPUT_RINGCT, OUTPUT_CT));
 
     return SendToInner(request, OUTPUT_RINGCT, OUTPUT_CT);
-};
+}
 
 static UniValue sendanontoanon(const JSONRPCRequest &request)
 {
@@ -697,7 +697,7 @@ static UniValue sendanontoanon(const JSONRPCRequest &request)
         throw std::runtime_error(SendHelp(pwallet, OUTPUT_RINGCT, OUTPUT_RINGCT));
 
     return SendToInner(request, OUTPUT_RINGCT, OUTPUT_RINGCT);
-};
+}
 
 UniValue sendtypeto(const JSONRPCRequest &request)
 {

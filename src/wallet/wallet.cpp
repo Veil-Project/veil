@@ -2241,6 +2241,10 @@ CAmount CWallet::GetBalance(const isminefilter& filter, const int min_depth) con
 std::map<libzerocoin::CoinDenomination, CAmount> CWallet::GetMyZerocoinDistribution() const
 {
     std::map<libzerocoin::CoinDenomination, CAmount> spread;
+    spread[libzerocoin::ZQ_TEN] = 0;
+    spread[libzerocoin::ZQ_ONE_HUNDRED] = 0;
+    spread[libzerocoin::ZQ_ONE_THOUSAND] = 0;
+    spread[libzerocoin::ZQ_TEN_THOUSAND] = 0;
 
     {
         LOCK(cs_wallet);
@@ -3496,7 +3500,8 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInp
 /**
  * Call after CreateTransaction unless you want to abort
  */
-bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm, CReserveKey& reservekey, CConnman* connman, CValidationState& state)
+bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm,
+        CReserveKey& reservekey, CConnman* connman, CValidationState& state)
 {
     {
         LOCK2(cs_main, cs_wallet);

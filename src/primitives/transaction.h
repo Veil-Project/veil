@@ -172,21 +172,21 @@ public:
     bool IsAnonInput() const
     {
         return prevout.IsAnonInput();
-    };
+    }
 
     bool SetAnonInfo(uint32_t nInputs, uint32_t nRingSize)
     {
         memcpy(prevout.hash.begin(), &nInputs, 4);
         memcpy(prevout.hash.begin()+4, &nRingSize, 4);
         return true;
-    };
+    }
 
     bool GetAnonInfo(uint32_t &nInputs, uint32_t &nRingSize) const
     {
         memcpy(&nInputs, prevout.hash.begin(), 4);
         memcpy(&nRingSize, prevout.hash.begin()+4, 4);
         return true;
-    };
+    }
 
     std::string ToString() const;
 };
@@ -423,12 +423,12 @@ public:
     {
         scriptPubKey_ = scriptPubKey;
         return true;
-    };
+    }
 
     virtual const CScript *GetPScriptPubKey() const override
     {
         return &scriptPubKey;
-    };
+    }
 
     CTxOut ToTxOut() const { return CTxOut(nValue, scriptPubKey); }
 };
@@ -449,7 +449,7 @@ public:
         s << vData;
         s << *(CScriptBase*)(&scriptPubKey);
         s << vRangeproof;
-    };
+    }
 
     template<typename Stream>
     void Unserialize(Stream &s)
@@ -473,7 +473,7 @@ public:
         vchAmount.resize(33);
         memcpy(&vchAmount[0], commitment.data, 33);
         return true;
-    };
+    }
 
     bool GetScriptPubKey(CScript &scriptPubKey_) const override
     {
@@ -486,17 +486,17 @@ public:
     virtual const CScript *GetPScriptPubKey() const override
     {
         return &scriptPubKey;
-    };
+    }
 
     secp256k1_pedersen_commitment *GetPCommitment() override
     {
         return &commitment;
-    };
+    }
 
     std::vector<uint8_t> *GetPRangeproof() override
     {
         return &vRangeproof;
-    };
+    }
 };
 
 class CTxOutRingCT : public CTxOutBase
