@@ -1124,32 +1124,40 @@ bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus
     return false;
 }
 
-bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight)
+bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight, CBlockIndex* pindex)
 {
     LOCK(cs_main);
 
     if (hashBlock == uint256() || !mapBlockIndex.count(hashBlock))
         return false;
 
-    if (!chainActive.Contains(mapBlockIndex.at(hashBlock))) {
-        return false;
+    auto pindexCheck = mapBlockIndex.at(hashBlock);
+    bool inChainActive = chainActive.Contains(mapBlockIndex.at(hashBlock));
+    nHeight = pindexCheck->nHeight;
+
+    //It is possible that the block is part of chainactive, but we are trying to reorg. If pindex is included, and it is not part of
+    //chain active, then see if the blockhash is part of the same chain as pindex
+    if (pindex) {
+        auto pindexAncestor = pindex->GetAncestor(nHeight);
+        if (!pindexAncestor)
+            return false;
+        //If the same block height that is on the same linked list as this pindex has a different hash, then they are on different chains
+        return pindexAncestor->GetBlockHash() == pindexCheck->GetBlockHash();
     }
 
-    nHeight = mapBlockIndex.at(hashBlock)->nHeight;
-
-    return true;
+    return inChainActive;
 }
 
-bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params)
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params, CBlockIndex* pindex)
 {
     uint256 hashBlock;
     if (!GetTransaction(txId, txRef, params, hashBlock, true))
         return false;
 
-    return IsBlockHashInChain(hashBlock, nHeightTx);
+    return IsBlockHashInChain(hashBlock, nHeightTx, pindex);
 }
 
-bool IsTransactionInChain(const uint256& txId, int& nHeightTx, const Consensus::Params& params)
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, const Consensus::Params& params, CBlockIndex* pindex)
 {
     CTransactionRef tx;
     return IsTransactionInChain(txId, nHeightTx, tx, params);
@@ -2239,7 +2247,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             if (tx.IsZerocoinSpend()) {
                 int nHeightTx = 0;
                 uint256 txid = tx.GetHash();
-                if (IsTransactionInChain(txid, nHeightTx, Params().GetConsensus())) {
+                if (IsTransactionInChain(txid, nHeightTx, Params().GetConsensus(), pindex)) {
                     //when verifying blocks on init, the blocks are scanned without being disconnected - prevent that from causing an error
                     if (pindex->nHeight > nHeightTx)
                         return state.DoS(100,
@@ -2265,7 +2273,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
                     setSerialsInBlock.emplace(spend->getCoinSerialNumber());
                     mapSpends.emplace(*spend, tx.GetHash());
-                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash()))
+                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex))
                         return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
                                                     tx.GetHash().GetHex()), REJECT_INVALID);
                 }
@@ -2306,7 +2314,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                     if (!OutputToPublicCoin(pOut.get(), coin))
                         return state.DoS(100, error("%s: failed final check of zerocoinmint for tx %s", __func__, tx.GetHash().GetHex()), REJECT_INVALID);
 
-                    if (!ContextualCheckZerocoinMint(tx, coin))
+                    if (!ContextualCheckZerocoinMint(tx, coin, pindex))
                         return state.DoS(100, error("%s: zerocoin mint failed contextual check", __func__), REJECT_INVALID);
 
                     if (mapMints.count(coin))
@@ -3764,19 +3772,19 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
     return true;
 }
 
-bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::PublicCoin& coin)
+bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::PublicCoin& coin, CBlockIndex* pindex)
 {
     //See if this coin has already been added to the blockchain
     uint256 txid;
     int nHeight;
-    if (pzerocoinDB->ReadCoinMint(coin.getValue(), txid) && IsTransactionInChain(txid, nHeight, Params().GetConsensus()))
+    if (pzerocoinDB->ReadCoinMint(coin.getValue(), txid) && IsTransactionInChain(txid, nHeight, Params().GetConsensus(), pindex))
         return error("%s: pubcoin %s was already accumulated in tx %s", __func__,
                      coin.getValue().GetHex().substr(0, 10), txid.GetHex());
 
     return true;
 }
 
-bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock)
+bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock, CBlockIndex* pindex)
 {
     if (!spend.HasValidSignature())
         return error("%s: zeorcoin spend does not have a valid signature", __func__);
@@ -3791,7 +3799,7 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
 
     //Reject serial's that are already in the blockchain
     int nHeightTx = 0;
-    if ((!fVerifying && !fReindex) && IsSerialInBlockchain(spend.getCoinSerialNumber(), nHeightTx))
+    if ((!fVerifying && !fReindex) && IsSerialInBlockchain(spend.getCoinSerialNumber(), nHeightTx, pindex))
         return error("%s : zerocoin spend with serial %s is already in block %d\n", __func__,
                      spend.getCoinSerialNumber().GetHex(), nHeightTx);
 
