@@ -601,7 +601,7 @@ static std::string SendHelp(CHDWallet *pwallet, OutputTypes typeIn, OutputTypes 
     return rv;
 }
 
-static UniValue sendparttoblind(const JSONRPCRequest &request)
+static UniValue sendbasecointostealth(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CHDWallet *const pwallet = GetHDWallet(wallet.get());
@@ -613,7 +613,7 @@ static UniValue sendparttoblind(const JSONRPCRequest &request)
     return SendToInner(request, OUTPUT_STANDARD, OUTPUT_CT);
 };
 
-static UniValue sendparttoanon(const JSONRPCRequest &request)
+static UniValue sendbasecointoringct(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CHDWallet *const pwallet = GetHDWallet(wallet.get());
@@ -626,7 +626,7 @@ static UniValue sendparttoanon(const JSONRPCRequest &request)
 };
 
 
-static UniValue sendblindtopart(const JSONRPCRequest &request)
+static UniValue sendstealthtobasecoin(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CHDWallet *const pwallet = GetHDWallet(wallet.get());
@@ -638,7 +638,7 @@ static UniValue sendblindtopart(const JSONRPCRequest &request)
     return SendToInner(request, OUTPUT_CT, OUTPUT_STANDARD);
 };
 
-static UniValue sendblindtoblind(const JSONRPCRequest &request)
+static UniValue sendstealthtostealth(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CHDWallet *const pwallet = GetHDWallet(wallet.get());
@@ -650,7 +650,7 @@ static UniValue sendblindtoblind(const JSONRPCRequest &request)
     return SendToInner(request, OUTPUT_CT, OUTPUT_CT);
 };
 
-static UniValue sendblindtoanon(const JSONRPCRequest &request)
+static UniValue sendstealthtoringct(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CHDWallet *const pwallet = GetHDWallet(wallet.get());
@@ -663,7 +663,7 @@ static UniValue sendblindtoanon(const JSONRPCRequest &request)
 };
 
 
-static UniValue sendanontopart(const JSONRPCRequest &request)
+static UniValue sendringcttobasecoin(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CHDWallet *const pwallet = GetHDWallet(wallet.get());
@@ -675,7 +675,7 @@ static UniValue sendanontopart(const JSONRPCRequest &request)
     return SendToInner(request, OUTPUT_RINGCT, OUTPUT_STANDARD);
 }
 
-static UniValue sendanontoblind(const JSONRPCRequest &request)
+static UniValue sendringcttostealth(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CHDWallet *const pwallet = GetHDWallet(wallet.get());
@@ -687,7 +687,7 @@ static UniValue sendanontoblind(const JSONRPCRequest &request)
     return SendToInner(request, OUTPUT_RINGCT, OUTPUT_CT);
 }
 
-static UniValue sendanontoanon(const JSONRPCRequest &request)
+static UniValue sendringcttoringct(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CHDWallet *const pwallet = GetHDWallet(wallet.get());
@@ -711,8 +711,8 @@ UniValue sendtypeto(const JSONRPCRequest &request)
                 "\nSend part to multiple outputs.\n"
                 + HelpRequiringPassphrase(pwallet) +
                 "\nArguments:\n"
-                "1. \"typein\"          (string, required) part/blind/anon\n"
-                "2. \"typeout\"         (string, required) part/blind/anon\n"
+                "1. \"typein\"          (string, required) basecoin/stealth/ringct\n"
+                "2. \"typeout\"         (string, required) basecoin/stealth/ringct\n"
                 "3. \"outputs\"         (json, required) Array of output objects\n"
                 "    3.1 \"address\"    (string, required) The address to send to.\n"
                 "    3.2 \"amount\"     (numeric or string, required) The amount in " + CURRENCY_UNIT + " to send. eg 0.1\n"
@@ -724,8 +724,8 @@ UniValue sendtypeto(const JSONRPCRequest &request)
                 "5. \"comment_to\"      (string, optional) A comment to store the name of the person or organization \n"
                 "                            to which you're sending the transaction. This is not part of the \n"
                 "                            transaction, just kept in your wallet.\n"
-                "6. ringsize         (int, optional, default=4) Only applies when typein is anon.\n"
-                "7. inputs_per_sig   (int, optional, default=32) Only applies when typein is anon.\n"
+                "6. ringsize         (int, optional, default=4) Only applies when typein is ringct.\n"
+                "7. inputs_per_sig   (int, optional, default=32) Only applies when typein is ringct.\n"
                 "8. test_fee         (bool, optional, default=false) Only return the fee it would cost to send, txn is discarded.\n"
                 "9. coin_control     (json, optional) Coincontrol object.\n"
                 "   {\"changeaddress\": ,\n"
@@ -1859,16 +1859,16 @@ static const CRPCCommand commands[] =
                 { "wallet",             "getnewaddress",             &getnewaddress,          {"label","num_prefix_bits","prefix_num","bech32","makeV2"} },
 
                 //sendparttopart // normal txn
-                { "wallet",             "sendparttoblind",                  &sendparttoblind,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
-                { "wallet",             "sendparttoanon",                   &sendparttoanon,                {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
+                { "wallet",             "sendbasecointostealth", &sendbasecointostealth,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
+                { "wallet",             "sendbasecointoringct", &sendbasecointoringct,                {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
 
-                { "wallet",             "sendblindtopart",                  &sendblindtopart,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
-                { "wallet",             "sendblindtoblind",                 &sendblindtoblind,              {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
-                { "wallet",             "sendblindtoanon",                  &sendblindtoanon,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
+                { "wallet",             "sendstealthtobasecoin", &sendstealthtobasecoin,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
+                { "wallet",             "sendstealthtostealth", &sendstealthtostealth,              {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
+                { "wallet",             "sendstealthtoringct", &sendstealthtoringct,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
 
-                { "wallet",             "sendanontopart",                   &sendanontopart,                {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
-                { "wallet",             "sendanontoblind",                  &sendanontoblind,               {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
-                { "wallet",             "sendanontoanon",                   &sendanontoanon,                {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
+                { "wallet",             "sendringcttobasecoin", &sendringcttobasecoin,                {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
+                { "wallet",             "sendringcttostealth", &sendringcttostealth,               {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
+                { "wallet",             "sendringcttoringct", &sendringcttoringct,                {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
 
                 { "wallet",             "sendtypeto",                       &sendtypeto,                    {"typein","typeout","outputs","comment","comment_to","ringsize","inputs_per_sig","test_fee","coincontrol"} },
 

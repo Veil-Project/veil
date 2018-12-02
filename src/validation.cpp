@@ -2414,8 +2414,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 view.anonOutputs.emplace_back(std::make_pair(view.nLastRCTOutput, ao));
             }
         }
-        nBlockValueIn += nTxValueIn;
-        nBlockValueOut += nTxValueOut;
+        // With mismatched blind values it will throw off some other checks.
+        if (!tx.HasBlindedValues()) {
+            nBlockValueIn += nTxValueIn;
+            nBlockValueOut += nTxValueOut;
+        }
     }
 
     //Track zerocoin money supply in the block index
@@ -2455,7 +2458,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                   FormatMoney(nBudgetPayment), FormatMoney(nLabPayment));
 
         return state.DoS(100, error("ConnectBlock(): coinbase pays too much (actual=%s vs limit=%s)\n %s",
-                                    block.vtx[0]->GetValueOut(), nBlockReward, block.vtx[0]->ToString()),
+                                    FormatMoney(nCreated), FormatMoney(nCreationLimit), block.vtx[0]->ToString()),
                          REJECT_INVALID, "bad-cb-amount");
     }
 

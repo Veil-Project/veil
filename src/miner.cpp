@@ -273,6 +273,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // Budget Payment
     if (nBudgetPayment) {
         std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
+        CBitcoinAddress addressFounder(strBudgetAddress);
+        assert(addressFounder.IsValid());
         CTxDestination dest = DecodeDestination(strBudgetAddress);
         auto budgetScript = GetScriptForDestination(dest);
 

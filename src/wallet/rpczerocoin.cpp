@@ -119,7 +119,7 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
     UniValue arrMints(UniValue::VARR);
     for (CDeterministicMint dMint : vDMints) {
         UniValue m(UniValue::VOBJ);
-        m.push_back(Pair("txid", wtx.tx->GetHash().ToString()));
+        m.push_back(Pair("txid", wtx.tx->GetHash().GetHex()));
         m.push_back(Pair("value", ValueFromAmount(libzerocoin::ZerocoinDenominationToAmount(dMint.GetDenomination()))));
         m.push_back(Pair("pubcoinhash", dMint.GetPubcoinHash().GetHex()));
         m.push_back(Pair("serialhash", dMint.GetSerialHash().GetHex()));

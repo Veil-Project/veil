@@ -34,7 +34,7 @@ static CBlock BuildBlockTestCase() {
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
     tx.vpout[1]->SetScriptPubKey(budgetScript);
-    tx.vpout[1]->SetValue(veil::Budget().GetBudgetAmount());
+    tx.vpout[1]->SetValue(50*COIN);
 
     block.vtx.resize(3);
     block.vtx[0] = MakeTransactionRef(tx);
@@ -297,7 +297,7 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
     coinbase.vpout[1]->SetScriptPubKey(budgetScript);
-    coinbase.vpout[1]->SetValue(veil::Budget().GetBudgetAmount());
+    coinbase.vpout[1]->SetValue(50*COIN);
 
     CBlock block;
     block.vtx.resize(1);

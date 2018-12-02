@@ -155,17 +155,14 @@ BudgetParams::BudgetParams(std::string strNetwork)
         budgetAddress = "3QALyBrJYUmXPtN8qgh4eNUeQ6NEBehfPY";
         founderAddress = "3KQmyaDqehG9fcyQ3o8uTUujLgX1zp9LDJ";
         labAddress = "3BJPMh1UU9r3RVH4ihLDTYfJj8BSPe1iRc";
-        nBudgetAmount = 100 * COIN;
     } else if (strNetwork == "test") {
         budgetAddress = "2NCMc2apMAx5vY6wyYM8UyqCmfx2vpFmm1J";
         founderAddress = "2N7WZtWTdoFQjheviiGn4smykiwxNbHYdci";
         labAddress = "2N2iEAT5o7TY9yrz6Li4j91j5L59sLqdFSf";
-        nBudgetAmount = 100 * COIN;
     } else if (strNetwork == "regtest") {
         budgetAddress = "2NCMc2apMAx5vY6wyYM8UyqCmfx2vpFmm1J";
         founderAddress = "2N7WZtWTdoFQjheviiGn4smykiwxNbHYdci";
         labAddress = "2N2iEAT5o7TY9yrz6Li4j91j5L59sLqdFSf";
-        nBudgetAmount = 100 * COIN;
     }
 }
 
