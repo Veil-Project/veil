@@ -332,11 +332,15 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
 
     //Calculate the accumulator checkpoint only if the previous cached checkpoint need to be updated
-    std::map<libzerocoin::CoinDenomination, uint256> mapCheckpoints;
     AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
-    if (!CalculateAccumulatorCheckpoint(nHeight, mapCheckpoints, mapAccumulators))
-        LogPrintf("%s: failed to get accumulator checkpoints\n", __func__);
-    pblock->mapAccumulatorHashes = mapCheckpoints;
+    auto mapCheckpoints = mapAccumulators.GetCheckpoints(true);
+    if (nHeight % 10 == 0) {
+        if (!CalculateAccumulatorCheckpoint(nHeight, mapCheckpoints, mapAccumulators))
+            LogPrintf("%s: failed to get accumulator checkpoints\n", __func__);
+        pblock->mapAccumulatorHashes = mapAccumulators.GetCheckpoints(true);
+    } else {
+        pblock->mapAccumulatorHashes = pindexPrev->mapAccumulatorHashes;
+    }
 
     //Proof of full node
     if(fProofOfFullNode && !fProofOfStake)

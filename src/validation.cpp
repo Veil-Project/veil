@@ -2224,8 +2224,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     std::map<libzerocoin::CoinSpend, uint256> mapSpends;
     std::map<libzerocoin::PublicCoin, uint256> mapMints;
 
-    CAmount nValueIn = 0;
-    CAmount nValueOut = 0;
+    CAmount nBlockValueIn = 0;
+    CAmount nBlockValueOut = 0;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2414,8 +2414,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 view.anonOutputs.emplace_back(std::make_pair(view.nLastRCTOutput, ao));
             }
         }
-        nValueIn += nTxValueIn;
-        nValueOut += nTxValueOut;
+        nBlockValueIn += nTxValueIn;
+        nBlockValueOut += nTxValueOut;
     }
 
     //Track zerocoin money supply in the block index
@@ -2426,7 +2426,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     // track money supply and mint amount info
     CAmount nMoneySupplyPrev = pindex->pprev ? pindex->pprev->nMoneySupply : 0;
-    pindex->nMoneySupply = nMoneySupplyPrev + nValueOut - nValueIn;
+    pindex->nMoneySupply = nMoneySupplyPrev + nBlockValueOut - nBlockValueIn;
     pindex->nMint = pindex->nMoneySupply - nMoneySupplyPrev + nFees;
 
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
@@ -2449,7 +2449,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     if(block.fProofOfFullNode && veil::ValidateProofOfFullNode(block, pindex->pprev, Params(), hashGeneratePoFN))
         nCreationLimit += nFees;
 
-    if (block.vtx[0]->GetValueOut() > nCreationLimit) {
+    CAmount nCreated = nBlockValueOut - nBlockValueIn;
+    if (nCreated > nCreationLimit) {
         LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__, FormatMoney(nBlockReward), FormatMoney(networkReward), FormatMoney(nFounderPayment),
                   FormatMoney(nBudgetPayment), FormatMoney(nLabPayment));
 
@@ -2471,9 +2472,14 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     int64_t nTime4 = GetTimeMicros(); nTimeVerify += nTime4 - nTime2;
     LogPrint(BCLog::BENCH, "    - Verify %u txins: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n", nInputs - 1, MILLI * (nTime4 - nTime2), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime2) / (nInputs-1), nTimeVerify * MICRO, nTimeVerify * MILLI / nBlocksTotal);
 
-    CVeilBlockData veilComputedData = CVeilBlockData(BlockMerkleRoot(block), BlockWitnessMerkleRoot(block), mapAccumulators.GetCheckpoints(), hashGeneratePoFN);
-    if(SerializeHash(veilComputedData) != block.GetVeilDataHash())
-        return state.DoS(100, error("%s: VeilDataHash comparison  failed", __func__), REJECT_INVALID, "block-validation-failed");
+    //Check that the final calculated data matched the veildatahash
+    CBlock blockCalc;
+    blockCalc.hashMerkleRoot = BlockMerkleRoot(block);
+    blockCalc.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(block);
+    blockCalc.mapAccumulatorHashes = block.mapAccumulatorHashes; //This acc map already validated above in validateaccumulatorcheckpoint
+    blockCalc.hashPoFN = hashGeneratePoFN;
+    if(blockCalc.GetVeilDataHash() != block.GetVeilDataHash())
+        return state.DoS(100, error("%s: VeilDataHash comparison  failed: %s", __func__, blockCalc.DataHashElementsToString()), REJECT_INVALID, "block-validation-failed");
 
     if (fJustCheck)
         return true;

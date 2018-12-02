@@ -56,6 +56,8 @@ find_package( Qt5Widgets REQUIRED )
 find_package( Qt5Gui REQUIRED )
 
 add_executable(veil
+        src/veil/proofoffullnode/proofoffullnode.cpp
+        src/veil/proofoffullnode/proofoffullnode.h
         src/veil/ringct/extkey.cpp
         src/veil/ringct/extkey.h
         src/veil/ringct/hdwallet.cpp

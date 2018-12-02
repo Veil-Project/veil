@@ -197,12 +197,10 @@ public:
         return !IsProofOfStake();
     }
 
-    uint256 GetVeilDataHash() const
-    {
-        CVeilBlockData veilBlockData(hashMerkleRoot, hashWitnessMerkleRoot, mapAccumulatorHashes, hashPoFN);
+    uint256 GetVeilDataHash() const;
 
-        return SerializeHash(veilBlockData);
-    }
+    std::string DataHashElementsToString() const;
+
 
     std::string ToString() const;
 };

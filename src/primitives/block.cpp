@@ -25,6 +25,20 @@ uint256 CBlockHeader::GetPoWHash() const
     return HashX16R(BEGIN(nVersion), END(nNonce), hashTime);
 }
 
+uint256 CBlock::GetVeilDataHash() const
+{
+    CVeilBlockData veilBlockData(hashMerkleRoot, hashWitnessMerkleRoot, mapAccumulatorHashes, hashPoFN);
+
+    return SerializeHash(veilBlockData);
+}
+
+std::string CBlock::DataHashElementsToString() const
+{
+    return strprintf("%s:\n   HashMerkleRoot=%s\n   WitnessMerkleRoot=%s\n   hashPoFN=%s\n   mapAccumulatorHashes=%s\n",
+            __func__, hashMerkleRoot.GetHex(), hashWitnessMerkleRoot.GetHex(), hashPoFN.GetHex(),
+            SerializeHash(mapAccumulatorHashes).GetHex());
+}
+
 std::string CBlock::ToString() const
 {
     std::stringstream s;
