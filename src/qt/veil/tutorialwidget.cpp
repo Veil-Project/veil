@@ -2,8 +2,10 @@
 #include <qt/veil/forms/ui_tutorialwidget.h>
 #include <qt/guiutil.h>
 #include <QDebug>
+#include <QFileDialog>
 #include <iostream>
 #include <wallet/wallet.h>
+#include <wallet/walletutil.h>
 
 TutorialWidget::TutorialWidget(QWidget *parent) :
     QDialog(parent),
@@ -64,38 +66,101 @@ void TutorialWidget::on_next_triggered(){
             }
         case 1:
             {
-                word_list listWords;
-                mnemonic = "";
-                std::string strWalletFile = "wallet.dat";
-                CWallet::CreateNewHDWallet(strWalletFile, GetDataDir(), mnemonic, this->strLanguageSelection.toStdString(), &pkSeed);
+                if (tutorialCreateWallet && tutorialCreateWallet->GetButtonClicked()) {
+                    switch (tutorialCreateWallet->GetButtonClicked()) {
+                        case 1:
+                        {
+                            mnemonic = "";
+                            std::string strWalletFile = "wallet.dat";
+                            CWallet::CreateNewHDWallet(strWalletFile, GetWalletDir(), mnemonic, this->strLanguageSelection.toStdString(), &pkSeed);
 
-                std::stringstream ss(mnemonic);
-                std::istream_iterator<std::string> begin(ss);
-                std::istream_iterator<std::string> end;
-                mnemonicWordList.clear();
-                mnemonicWordList = std::vector<std::string>(begin, end);
-                std::vector<unsigned char> keyData = key_from_mnemonic(mnemonicWordList);
+                            std::stringstream ss(mnemonic);
+                            std::istream_iterator<std::string> begin(ss);
+                            std::istream_iterator<std::string> end;
+                            mnemonicWordList.clear();
+                            mnemonicWordList = std::vector<std::string>(begin, end);
+                            std::vector<unsigned char> keyData = key_from_mnemonic(mnemonicWordList);
 
-                tutorialMnemonicCode = new TutorialMnemonicCode(mnemonicWordList, this);
-                ui->QStackTutorialContainer->addWidget(tutorialMnemonicCode);
-                qWidget = tutorialMnemonicCode;
-                loadLeftContainer(":/icons/img-start-backup","Backup your \n recovery seed phrase","Your 24-word seed phrase \n can  be used to restore your wallet.");
+                            tutorialMnemonicCode = new TutorialMnemonicCode(mnemonicWordList, this);
+                            ui->QStackTutorialContainer->addWidget(tutorialMnemonicCode);
+                            qWidget = tutorialMnemonicCode;
+                            loadLeftContainer(":/icons/img-start-backup","Backup your \n recovery seed phrase","Your 24-word seed phrase \n can  be used to restore your wallet.");
+                            break;
+                        }
+                        case 2:
+                        {
+                            tutorialMnemonicRevealed = new TutorialMnemonicRevealed(this);
+                            ui->QStackTutorialContainer->addWidget(tutorialMnemonicRevealed);
+                            qWidget = tutorialMnemonicRevealed;
+                            loadLeftContainer(":/icons/img-start-confirm","Enter your \n seed phrase","");
+                            break;
+                        }
+                        case 3:
+                        {
+                            //TODO: Import wallet from file. This code probably doesn't work.
+                            QFile walletFile(QFileDialog::getOpenFileName(0, "Choose wallet file"));
+                            if(!walletFile.exists())
+                                return;
+                            fs::path walletPath = walletFile.fileName().toStdString();
+                            CWallet::CreateWalletFromFile(walletFile.fileName().toStdString(), walletPath);
+                            shutdown = false;
+                            accept();
+                            return;
+                        }
+                    }
+                }
+
                 break;
             }
         case 2:
             {
-                tutorialMnemonicRevealed = new TutorialMnemonicRevealed(this);
-                ui->QStackTutorialContainer->addWidget(tutorialMnemonicRevealed);
-                qWidget = tutorialMnemonicRevealed;
-                loadLeftContainer(":/icons/img-start-confirm","Confirm your \n seed phrase","");
+                if (tutorialMnemonicRevealed && tutorialCreateWallet->GetButtonClicked() == 2) {
+                    mnemonic = "";
+                    std::string strWalletFile = "wallet.dat";
+                    std::list<QString> q_word_list = tutorialMnemonicRevealed->getOrderedStrings();
+                    for (QString &q_word : q_word_list) {
+                        if (mnemonic.empty())
+                            mnemonic = q_word.toStdString();
+                        else
+                            mnemonic += " " + q_word.toStdString();
+                    }
+
+                    bool fBadSeed = false;
+                    CPubKey pubKey;
+                    CWallet::CreateHDWalletFromMnemonic(strWalletFile, GetWalletDir(), mnemonic, fBadSeed, pubKey);
+                    if (fBadSeed) {
+                        tutorialMnemonicRevealed = new TutorialMnemonicRevealed(this);
+                        ui->QStackTutorialContainer->addWidget(tutorialMnemonicRevealed);
+                        qWidget = tutorialMnemonicRevealed;
+                        loadLeftContainer(":/icons/img-start-confirm","Bad seed phrase \n Try again","");
+                        ui->QStackTutorialContainer->setCurrentWidget(qWidget);
+                        return;
+                    }
+
+                    createPassword = new CreatePassword(this);
+                    ui->QStackTutorialContainer->addWidget(createPassword);
+                    qWidget = createPassword;
+                    loadLeftContainer(":/icons/img-start-password","Encrypt your wallet","");
+                } else {
+                    tutorialMnemonicRevealed = new TutorialMnemonicRevealed(this);
+                    ui->QStackTutorialContainer->addWidget(tutorialMnemonicRevealed);
+                    qWidget = tutorialMnemonicRevealed;
+                    loadLeftContainer(":/icons/img-start-confirm","Confirm your \n seed phrase","");
+                }
                 break;
             }
         case 3:
             {
-                createPassword = new CreatePassword(this);
-                ui->QStackTutorialContainer->addWidget(createPassword);
-                qWidget = createPassword;
-                loadLeftContainer(":/icons/img-start-password","Encrypt your wallet","");
+                if (createPassword && tutorialCreateWallet->GetButtonClicked() == 2) {
+                    shutdown = false;
+                    accept();
+                    return;
+                } else {
+                    createPassword = new CreatePassword(this);
+                    ui->QStackTutorialContainer->addWidget(createPassword);
+                    qWidget = createPassword;
+                    loadLeftContainer(":/icons/img-start-password","Encrypt your wallet","");
+                }
                 break;
             }
         case 4:
@@ -135,8 +200,13 @@ void TutorialWidget::on_back_triggered(){
                 }
             case 2:
                 {
-                    qWidget = tutorialMnemonicCode;               
-                    loadLeftContainer(":/icons/img-start-confirm","Confirm your \n seed phrase","");
+                    if (tutorialMnemonicRevealed && tutorialCreateWallet->GetButtonClicked() == 2) {
+                        qWidget = tutorialMnemonicRevealed;
+                        loadLeftContainer(":/icons/img-start-confirm","Enter your \n seed phrase","");
+                    } else {
+                        qWidget = tutorialMnemonicCode;
+                        loadLeftContainer(":/icons/img-start-confirm","Confirm your \n seed phrase","");
+                    }
                     break;
                 }
             case 3:

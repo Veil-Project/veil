@@ -15,6 +15,8 @@ public:
     explicit TutorialCreateWalletWidget(QWidget *parent = nullptr);
     ~TutorialCreateWalletWidget();
 
+    int GetButtonClicked();
+
 private:
     Ui::TutorialCreateWalletWidget *ui;
 };
