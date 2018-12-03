@@ -376,13 +376,13 @@ public:
 
         checkpointData = {
             {
-//                {546, uint256S("000000002a936ca763904c3c35fce2f3556c559c0214345d31b1bcebf76acb70")},
+                {105, uint256S("6f3b52100061d0ee707a5f920bc6f38c66c24cebdfc9ce296b189fc87047bcd0")},
             }
         };
 
         chainTxData = ChainTxData{
             // Data from rpc: getchaintxstats 4096 0000000000000037a8cd3e06cd5edbfe9dd1dbcc5dacab279376ef7cfc2b4c75
-            /* nTime    */ 1531929919,
+            /* nTime    */ 1543868766,
             /* nTxCount */ 19438708,
             /* dTxRate  */ 0.626
         };
@@ -390,7 +390,7 @@ public:
         /* enable fallback fee on testnet */
         m_fallback_fee_enabled = true;
 
-        strNetworkRewardAddress = "2N9sWUmygPRy1c14eFWt8FzA8YF4JgA6j6a";
+        strNetworkRewardAddress = "tv1qhzkv6xdc7zpfx9ldsrqpk84hkcf36kclsyyeeh";
         nMaxNetworkReward = 10 * COIN;
 
         /** Zerocoin */
