@@ -123,6 +123,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Add dummy coinbase tx as first transaction
     pblock->vtx.emplace_back();
+    pblock->fProofOfStake = fProofOfStake;
     pblocktemplate->vTxFees.push_back(-1); // updated at end
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 

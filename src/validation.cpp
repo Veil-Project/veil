@@ -4036,7 +4036,7 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
             return true;
         }
 
-        bool fCheckPoW = !fProofOfStake;
+        bool fCheckPoW = !block.fProofOfStake;
         if (!CheckBlockHeader(block, state, chainparams.GetConsensus(), fCheckPoW, fProofOfFullNode))
             return error("%s: Consensus::CheckBlockHeader: %s, %s", __func__, hash.ToString(), FormatStateMessage(state));
 
@@ -4160,11 +4160,14 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     CBlockIndex *pindexDummy = nullptr;
     CBlockIndex *&pindex = ppindex ? *ppindex : pindexDummy;
 
-    if (!AcceptBlockHeader(block, state, chainparams, &pindex, block.IsProofOfStake(), block.fProofOfFullNode))
+    if (!AcceptBlockHeader(block, state, chainparams, &pindex, block.fProofOfStake, block.fProofOfFullNode))
         return error("%s: AcceptBlockHeader failed for block %s", __func__, block.GetHash().GetHex());
 
     //! Validate Proof of Stake
-    if (block.IsProofOfStake()) {
+    if (block.fProofOfStake) {
+        if (!block.IsProofOfStake())
+            return state.DoS(100, error("%s: Blockheader marked as PoS but block is not PoS", __func__));
+        
         uint256 hashProofOfStake = uint256();
         unique_ptr<CStakeInput> stake;
 
