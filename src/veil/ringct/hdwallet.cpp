@@ -10024,8 +10024,8 @@ string CHDWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDeterm
     int64_t nFeeRequired;
 
     if (IsLocked()) {
-        string strError = _("Error: Wallet locked, unable to create transaction!");
-        LogPrintf("MintZerocoin() : %s", strError.c_str());
+        string strError = _("CHDWallet:: Error: Wallet locked, unable to create transaction!");
+        LogPrintf("CHDWallet::MintZerocoin() : %s", strError.c_str());
         return strError;
     }
 
@@ -10034,7 +10034,7 @@ string CHDWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDeterm
     CTransactionRecord rtx;
     if (!CreateZerocoinMintTransaction(nValue, txNew, rtx, vDMints, &reserveKey, nFeeRequired, strError, coinControl)) {
         if (nValue + nFeeRequired > GetBalance())
-            return strprintf(_("Error: This transaction requires a transaction fee of at least %s because of its amount, "
+            return strprintf(_("CHDWallet:: Error: This transaction requires a transaction fee of at least %s because of its amount, "
                                "complexity, or use of recently received funds!"), FormatMoney(nFeeRequired).c_str());
         return strError;
     }
@@ -10047,14 +10047,14 @@ string CHDWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDeterm
     // Limit size
     unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION);
     if (nBytes >= MAX_ZEROCOIN_TX_SIZE) {
-        return _("Error: The transaction is larger than the maximum allowed transaction size!");
+        return _("CHDWallet:: Error: The transaction is larger than the maximum allowed transaction size!");
     }
 
     //commit the transaction to the network
     CValidationState state;
     mapValue_t mapValue;
     if (!CommitTransaction(wtxNew, rtx, reserveKey, g_connman.get(), state)) {
-        return _("Error: The transaction was rejected! This might happen if some of the coins in your wallet were already "
+        return _("CHDWallet:: Error: The transaction was rejected! This might happen if some of the coins in your wallet were already "
                  "spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
     } else {
         //update mints with full transaction hash and then database them
@@ -10077,8 +10077,8 @@ bool CHDWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTran
         const CCoinControl* coinControl, const bool isZCSpendChange)
 {
     if (IsLocked()) {
-        strFailReason = "Error: Wallet locked, unable to create transaction!";
-        LogPrintf("SpendZerocoin() : %s", strFailReason.c_str());
+        strFailReason = "CHDWallet:: Error: Wallet locked, unable to create transaction!";
+        LogPrintf("CHDWallet:: SpendZerocoin() : %s", strFailReason.c_str());
         return false;
     }
 
@@ -10106,12 +10106,12 @@ bool CHDWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTran
         CTxOut outMint;
         CDeterministicMint dMint;
         if (!CreateZOutPut(denomination, outMint, dMint)) {
-            strFailReason = strprintf("%s: failed to create new z output", __func__);
+            strFailReason = strprintf("CHDWallet::%s: failed to create new z output", __func__);
             return error(strFailReason.c_str());
         }
 
         //store as CZerocoinMint for later use
-        LogPrintf("%s: new mint %s\n", __func__, dMint.ToString());
+        LogPrintf("CHDWallet::%s: new mint %s\n", __func__, dMint.ToString());
         vDMints.emplace_back(dMint);
 
         CTempRecipient tempRecipient;

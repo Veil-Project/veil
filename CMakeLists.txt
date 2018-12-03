@@ -938,7 +938,6 @@ add_executable(veil
         src/validation.cpp
         src/qt/veil/addresseswidget.cpp
         src/qt/veil/addresseswidget.h
-        src/qt/veil/addresseswidget.moc
         src/qt/veil/addressnewcontact.cpp
         src/qt/veil/addressnewcontact.h
         src/qt/veil/addressreceive.cpp

@@ -2440,22 +2440,32 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     CAmount networkReward = pindex->nNetworkRewardReserve > Params().MaxNetworkReward() ? Params().MaxNetworkReward() : pindex->nNetworkRewardReserve;
     pindex->nNetworkRewardReserve -= networkReward;
 
-    /*
-     * Adding block rewards as specified in VEIL-36. The block rewards are stratified based upon the height of the block.
-     */
+    // The block rewards are stratified based upon the height of the block.
     CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment = 0;
     veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
 
-    CAmount nCreationLimit = networkReward + nBlockReward + nFounderPayment + nBudgetPayment + nLabPayment;
+    //Check proof of full node
+    if (block.fProofOfFullNode || block.hashPoFN != uint256()) {
+        if (!block.IsProofOfStake())
+            return state.DoS(100, error("%s: block marked as proof of full node that is not proof of stake", __func__));
 
-    uint256 hashGeneratePoFN;
-    if(block.fProofOfFullNode && veil::ValidateProofOfFullNode(block, pindex->pprev, Params(), hashGeneratePoFN))
+        uint256 hashRequired = veil::GetFullNodeHash(block, pindex->pprev);
+        if (block.hashPoFN != hashRequired)
+            return state.DoS(100, error("%s: block's Proof of Full node hash is invalid. Block=%s Required=%s",
+                    __func__, block.hashPoFN.GetHex(), hashRequired.GetHex()), REJECT_INVALID, "bad-fullnode-hash");
+    }
+
+    // Full nodes are rewarded with the transaction fees in the block
+    CAmount nCreationLimit = networkReward + nBlockReward + nFounderPayment + nBudgetPayment + nLabPayment;
+    if (block.fProofOfFullNode || pindex->nHeight >= Params().HeightSupplyCreationStop())
         nCreationLimit += nFees;
 
+    // Check that the block's miner did not create more coins than allowed
     CAmount nCreated = nBlockValueOut - nBlockValueIn;
     if (nCreated > nCreationLimit) {
-        LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__, FormatMoney(nBlockReward), FormatMoney(networkReward), FormatMoney(nFounderPayment),
-                  FormatMoney(nBudgetPayment), FormatMoney(nLabPayment));
+        LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__, FormatMoney(nBlockReward),
+                FormatMoney(networkReward), FormatMoney(nFounderPayment), FormatMoney(nBudgetPayment),
+                FormatMoney(nLabPayment));
 
         return state.DoS(100, error("ConnectBlock(): coinbase pays too much (actual=%s vs limit=%s)\n %s",
                                     FormatMoney(nCreated), FormatMoney(nCreationLimit), block.vtx[0]->ToString()),
@@ -2468,9 +2478,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         return state.DoS(100, error("%s: Failed to validate accumulator checkpoint for block=%s height=%d", __func__,
                                     block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID, "bad-acc-checkpoint");
 
-    if (!control.Wait()) {
+    if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
-    }
 
     int64_t nTime4 = GetTimeMicros(); nTimeVerify += nTime4 - nTime2;
     LogPrint(BCLog::BENCH, "    - Verify %u txins: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n", nInputs - 1, MILLI * (nTime4 - nTime2), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime2) / (nInputs-1), nTimeVerify * MICRO, nTimeVerify * MILLI / nBlocksTotal);
@@ -2480,7 +2489,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     blockCalc.hashMerkleRoot = BlockMerkleRoot(block);
     blockCalc.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(block);
     blockCalc.mapAccumulatorHashes = block.mapAccumulatorHashes; //This acc map already validated above in validateaccumulatorcheckpoint
-    blockCalc.hashPoFN = hashGeneratePoFN;
+    blockCalc.hashPoFN = block.hashPoFN;
     if(blockCalc.GetVeilDataHash() != block.GetVeilDataHash())
         return state.DoS(100, error("%s: VeilDataHash comparison  failed: %s", __func__, blockCalc.DataHashElementsToString()), REJECT_INVALID, "block-validation-failed");
 

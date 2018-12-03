@@ -348,9 +348,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if(fProofOfFullNode && !fProofOfStake)
         LogPrintf("%s: A block can not be proof of full node and proof of work.\n", __func__);
     else if(fProofOfFullNode && fProofOfStake) {
-        if (veil::GenerateProofOfFullNode(pblock, pindexPrev, Params()))
-            LogPrintf("%s: Failure to create proof of full node.", __func__);
+        LOCK(cs_main);
+        pblock->hashPoFN = veil::GetFullNodeHash(*pblock, pindexPrev);
     }
+
     // Once the merkleRoot, witnessMerkleRoot and mapAccumulatorHashes have been calculated we can calculate the hashVeilData
     pblock->hashVeilData = pblock->GetVeilDataHash();
 
@@ -797,7 +798,8 @@ void ThreadStakeMiner()
     boost::this_thread::interruption_point();
     try {
         std::shared_ptr<CReserveScript> coinbase_script;
-        BitcoinMiner(coinbase_script, true);
+        bool fProofOfFullNode = true;
+        BitcoinMiner(coinbase_script, true, fProofOfFullNode);
         boost::this_thread::interruption_point();
     } catch (std::exception& e) {
         LogPrintf("ThreadStakeMiner() exception");
