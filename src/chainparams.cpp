@@ -237,8 +237,10 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
         nBIP44ID = 0x800002ba;
 
-        bech32Prefixes[STEALTH_ADDRESS].assign("ps","ps"+2);
+        //sv for "stealth veil"
+        bech32Prefixes[STEALTH_ADDRESS].assign("sv","sv"+2);
 
+        //bv for "basecoin veil"
         bech32_hrp = "bv";
 
         fDefaultConsistencyChecks = false;
@@ -264,10 +266,9 @@ public:
 
         nMaxNetworkReward = 10 * COIN;
         strNetworkRewardAddress = "3Hkg83bUH68JFsyFaBiAaFbuZWNkyKbxBH";
-        nMaxPoWBlocks = 5; // todo: update
-        nConsecutivePoWHeight = 15000; // todo: update
+        nMaxPoWBlocks = 5;
+        nConsecutivePoWHeight = 15000;
 
-        // TODO: update for veil
         /** Zerocoin */
         zerocoinModulus = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784"
                           "4069182906412495150821892985591491761845028084891200728449926873928072877767359714183472702618963750149718246911"
