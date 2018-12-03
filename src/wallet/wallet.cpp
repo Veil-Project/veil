@@ -4900,6 +4900,9 @@ bool CWallet::CreateNewHDWallet(const std::string& name, const fs::path& path, s
 
 bool CWallet::CreateHDWalletFromMnemonic(const std::string& name, const fs::path& path, const std::string& mnemonic, bool& fBadSeed, CPubKey& pubkeySeed)
 {
+    // Rescan the chain to get any transactions belonging to this wallet
+    gArgs.SoftSetBoolArg("-rescan", true);
+
     const std::string& walletFile = name;
     fBadSeed = false;
 
