@@ -74,6 +74,11 @@ bool CBasicKeyStore::HaveKey(const CKeyID &address) const
     return mapKeys.count(address) > 0;
 }
 
+bool CBasicKeyStore::CheckKey(const CKeyID &address) const
+{
+    return HaveKey(address);
+}
+
 std::set<CKeyID> CBasicKeyStore::GetKeys() const
 {
     LOCK(cs_KeyStore);

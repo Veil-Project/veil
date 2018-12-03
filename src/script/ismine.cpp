@@ -111,7 +111,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
                 return IsMineResult::INVALID;
             }
         }
-        if (keystore.HaveKey(keyID)) {
+        if (keystore.HaveKey(keyID) || keystore.CheckKey(keyID)) {
             ret = std::max(ret, IsMineResult::SPENDABLE);
         }
         break;

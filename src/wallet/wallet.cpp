@@ -3433,7 +3433,7 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
             if (nBytes >= MAX_BLOCK_WEIGHT / 5)
                 return error("CreateCoinStake : exceeded coinstake size limit");
 
-            uint256 hashTxOut = txNew.GetHash();
+            uint256 hashTxOut = txNew.GetOutputsHash();
             CTxIn in;
             {
                 LOCK(cs_wallet);

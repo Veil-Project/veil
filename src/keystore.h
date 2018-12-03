@@ -27,6 +27,7 @@ public:
     //! Check whether a key corresponding to a given address is present in the store.
     virtual isminetype IsMine(const CKeyID &address) const = 0;
     virtual bool HaveKey(const CKeyID &address) const =0;
+    virtual bool CheckKey(const CKeyID &address) const =0;
     virtual std::set<CKeyID> GetKeys() const =0;
 
     //! Support for BIP 0013 : see https://github.com/bitcoin/bips/blob/master/bip-0013.mediawiki
@@ -66,6 +67,7 @@ public:
     bool AddKey(const CKey &key) { return AddKeyPubKey(key, key.GetPubKey()); }
     bool GetPubKey(const CKeyID &address, CPubKey& vchPubKeyOut) const override;
     bool HaveKey(const CKeyID &address) const override;
+    bool CheckKey(const CKeyID &address) const override;
     std::set<CKeyID> GetKeys() const override;
     bool GetKey(const CKeyID &address, CKey &keyOut) const override;
     isminetype IsMine(const CKeyID &address) const override;

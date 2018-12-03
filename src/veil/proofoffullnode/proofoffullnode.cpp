@@ -16,71 +16,69 @@
 #include "validation.h"
 #include "veil/zerocoin/zchain.h"
 
-
 namespace veil{
 
-    bool ValidateProofOfFullNode(const CBlock& block, const CBlockIndex* pindexPrev, const CChainParams& params, uint256& outputHash)
-    {
-        uint256 hashBlock = block.GetHash();
-        std::vector<uint256> vGeneratedSignatures;
-        outputHash;
-        if(!GenerateProofOfFullNodeVector(hashBlock, outputHash, vGeneratedSignatures, pindexPrev, params))
+uint256 GetFullNodeHash(const CBlock& block, const CBlockIndex* pindexPrev)
+{
+
+    uint256 hashOut;
+    if (!GenerateProofOfFullNodeVector(block.hashMerkleRoot, block.hashPrevBlock, pindexPrev, hashOut))
+        return uint256();
+
+    return hashOut;
+}
+
+//! Construct a hash that challenges the owner of the block to prove they are a full node by grabbing a deterministic
+//!  psuedo-random previous block, and reording the transactions to construct a new merkle tree
+bool GenerateProofOfFullNodeVector(const uint256& hashUniqueToOwner, const uint256& hashUniqueToBlock,
+        const CBlockIndex* pindexPrev, uint256& hashProofOfFullNode)
+{
+    //Commit the owner to the previous block of the chain
+    uint256 hashCommitToChain = Hash(hashUniqueToOwner.begin(), hashUniqueToOwner.end(), hashUniqueToBlock.begin(), hashUniqueToBlock.end());
+    uint32_t nCommitNumber = UintToArith256(hashCommitToChain).GetLow32();
+
+    // Use the commitment hash to get a random previous block in the chain
+    uint32_t nHeightBlockCheck = nCommitNumber % pindexPrev->nHeight;
+
+    std::vector<uint256> vProofs;
+    for (int i = 0; i < Params().ProofOfFullNodeRounds(); i++ ) {
+        auto pindexCheck = pindexPrev->GetAncestor(nHeightBlockCheck);
+        if (!pindexCheck)
+            return error("%s: do not have ancestor block at height %d", __func__, nHeightBlockCheck);
+        CBlock block;
+        if (!ReadBlockFromDisk(block, pindexCheck, Params().GetConsensus()))
             return false;
 
-        return outputHash == block.hashPoFN;
+        //Get data from the block that a full node would have
+        uint32_t nRandTx = nCommitNumber % block.vtx.size();
+        nRandTx = std::min(nRandTx, (uint32_t)block.vtx.size() - 1);
+        CMutableTransaction txMutate(*block.vtx[nRandTx]);
+
+        // Mutate the transaction and get a new hash
+        for (auto& txin : txMutate.vin)
+            txin.nSequence = nCommitNumber;
+        uint256 hashMutatedTx = txMutate.GetHash();
+
+        // Strengthen commitment to owner, chain, and mutation
+        uint256 seed = Hash(hashMutatedTx.begin(), hashMutatedTx.end(), hashCommitToChain.begin(), hashCommitToChain.end());
+
+        // Use the seed to randomly shuffle the block's transactions and construct a mutated merkle root that contains mutated tx
+        std::default_random_engine rng(UintToArith256(seed).GetLow64());
+        CTransaction tx(txMutate);
+        block.vtx.emplace_back(MakeTransactionRef(tx));
+        std::shuffle(block.vtx.begin(), block.vtx.end(), rng);
+
+        // Bind with mutated merkle root
+        uint256 hashMutatedRoot = BlockMerkleRoot(block);
+        hashMutatedRoot = Hash(hashMutatedRoot.begin(), hashMutatedRoot.end(), seed.begin(), seed.end());
+        vProofs.emplace_back(hashMutatedRoot);
+        nHeightBlockCheck = UintToArith256(hashMutatedRoot).GetLow32() % pindexPrev->nHeight;
     }
 
-    bool GenerateProofOfFullNode(CBlock* block, const CBlockIndex* prev, const CChainParams& params){
-        uint256 hashBlock = block->GetHash();
-        std::vector<uint256> vPoFNSigs;
-        uint256 outputHash;
-        if (!GenerateProofOfFullNodeVector(hashBlock, outputHash, vPoFNSigs, prev, params))
-            return false;
+    hashProofOfFullNode = Hash(vProofs.begin(), vProofs.end());
 
-        block->hashPoFN = outputHash;
-        return true;
-    }
-
-    bool GenerateProofOfFullNodeVector(const uint256& hashBlock, uint256& outputHash, std::vector<uint256>& vPoFNSignatures, const CBlockIndex* pindexPrev, const CChainParams& params)
-    {
-        std::string strRewardAddress = params.NetworkRewardAddress();
-        CTxDestination dest = DecodeDestination(strRewardAddress);
-        CScript rewardScript = GetScriptForDestination(dest);
-        uint256 hashScriptAndBlock = Hash(BEGIN(hashBlock), END(hashBlock), BEGIN(rewardScript), END(rewardScript));
-        int nHeight = pindexPrev->nHeight + 1;
-        arith_uint256 nNextBlockIndex = UintToArith256(hashScriptAndBlock) % nHeight;
-
-        for(int i = 0; i < params.ProofOfFullNodeRounds(); i++ ) {
-            CBlockIndex* pcurrentBlock = mapBlockIndex.at(ArithToUint256(nNextBlockIndex));
-            CBlock blockCurrent;
-            if(!ReadBlockFromDisk(blockCurrent, pcurrentBlock, params.GetConsensus()))
-                return false;
-            uint256 seed;
-            if(blockCurrent.IsProofOfStake()) {
-                CTransactionRef txPOS = blockCurrent.vtx[1];
-                libzerocoin::CoinSpend spend = *TxInToZerocoinSpend(txPOS->vin[0]).get();
-                std::unique_ptr<CStakeInput> stake = std::unique_ptr<CStakeInput>(new ZerocoinStake(spend));
-                arith_uint256 bnTargetPerCoinDay;
-                bnTargetPerCoinDay.SetCompact(blockCurrent.nBits);
-                uint64_t nStakeModifier;
-                stake->GetModifier(nStakeModifier);
-                unsigned int nBlockFromTime = pcurrentBlock->pprev->nTime;
-                unsigned int nTxTime = blockCurrent.nTime;
-                CheckStake(stake->GetUniqueness(), stake->GetValue(), nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime, nTxTime, seed);
-            } else
-                seed = blockCurrent.GetPoWHash();
-            std::default_random_engine rng(UintToArith256(seed).GetLow64());
-            std::shuffle(blockCurrent.vtx.begin(), blockCurrent.vtx.end(), rng);
-            uint256 hashMerKleRoot = BlockMerkleRoot(blockCurrent);
-            vPoFNSignatures.push_back(hashMerKleRoot);
-            nNextBlockIndex = (UintToArith256(hashMerKleRoot) & ((arith_uint256(2)<<64) - 1) ) % nHeight;
-        }
-
-        for(const auto& blockTxHash : vPoFNSignatures)
-            outputHash = Hash(BEGIN(blockTxHash), END(blockTxHash), outputHash.begin(), outputHash.end());
-
-        return true;
-    }
+    return true;
+}
 
 
 }
