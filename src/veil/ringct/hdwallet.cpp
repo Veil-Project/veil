@@ -4046,7 +4046,7 @@ int CHDWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size_t
 
 int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
     CExtKeyAccount *sea, CStoredExtKey *pc, bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet,
-    const CCoinControl *coinControl, std::string &sError)
+    const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs, CAmount nInputValue)
 {
     assert(coinControl);
     if (nRingSize < MIN_RINGSIZE || nRingSize > MAX_RINGSIZE) {
@@ -4071,6 +4071,9 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
     wtx.BindWallet(this);
     wtx.fFromMe = true;
     CMutableTransaction txNew;
+    if (fZerocoinInputs) {
+        txNew = CMutableTransaction(*wtx.tx);
+    }
 
     txNew.nLockTime = 0;
 
@@ -4083,7 +4086,8 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
 
         std::vector<std::pair<MapRecords_t::const_iterator, unsigned int> > setCoins;
         std::vector<COutputR> vAvailableCoins;
-        AvailableAnonCoins(vAvailableCoins, true, coinControl);
+        if (!fZerocoinInputs)
+            AvailableAnonCoins(vAvailableCoins, true, coinControl);
 
         CAmount nValueOutPlain = 0;
         int nChangePosInOut = -1;
@@ -4094,11 +4098,12 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
 
         size_t nSubFeeTries = 100;
         bool pick_new_inputs = true;
-        CAmount nValueIn = 0;
+        CAmount nValueIn = nInputValue;
 
         // Start with no fee and loop until there is enough fee
         while (true) {
-            txNew.vin.clear();
+            if (!fZerocoinInputs)
+                txNew.vin.clear();
             txNew.vpout.clear();
             wtx.fFromMe = true;
 
@@ -4108,7 +4113,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
             }
 
             // Choose coins to use
-            if (pick_new_inputs) {
+            if (!fZerocoinInputs && pick_new_inputs) {
                 nValueIn = 0;
                 setCoins.clear();
                 if (!SelectBlindedCoins(vAvailableCoins, nValueToSelect, setCoins, nValueIn, coinControl)) {
@@ -4153,15 +4158,17 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
 
             size_t nRemainingInputs = setCoins.size();
 
-            for (int k = 0; k < nTxRingSigs; ++k) {
-                size_t nInputs = (k == nTxRingSigs-1 ? nRemainingInputs : nInputsPerSig);
-                CTxIn txin;
-                txin.nSequence = CTxIn::SEQUENCE_FINAL;
-                txin.prevout.n = COutPoint::ANON_MARKER;
-                txin.SetAnonInfo(nInputs, nRingSize);
-                txNew.vin.emplace_back(txin);
+            if (!fZerocoinInputs) {
+                for (int k = 0; k < nTxRingSigs; ++k) {
+                    size_t nInputs = (k == nTxRingSigs - 1 ? nRemainingInputs : nInputsPerSig);
+                    CTxIn txin;
+                    txin.nSequence = CTxIn::SEQUENCE_FINAL;
+                    txin.prevout.n = COutPoint::ANON_MARKER;
+                    txin.SetAnonInfo(nInputs, nRingSize);
+                    txNew.vin.emplace_back(txin);
 
-                nRemainingInputs -= nInputs;
+                    nRemainingInputs -= nInputs;
+                }
             }
 
             vMI.clear();
@@ -4214,48 +4221,55 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
                 }
             }
 
-            std::set<int64_t> setHave; // Anon prev-outputs can only be used once per transaction.
-            size_t nTotalInputs = 0;
-            for (size_t l = 0; l < txNew.vin.size(); ++l) { // Must add real outputs to setHave before picking decoys
-                auto &txin = txNew.vin[l];
-                uint32_t nSigInputs, nSigRingSize;
-                txin.GetAnonInfo(nSigInputs, nSigRingSize);
+            if (!fZerocoinInputs) {
+                std::set<int64_t> setHave; // Anon prev-outputs can only be used once per transaction.
+                size_t nTotalInputs = 0;
+                for (size_t l = 0;
+                     l < txNew.vin.size(); ++l) { // Must add real outputs to setHave before picking decoys
+                    auto &txin = txNew.vin[l];
+                    uint32_t nSigInputs, nSigRingSize;
+                    txin.GetAnonInfo(nSigInputs, nSigRingSize);
 
-                vInputBlinds[l].resize(32 * nSigInputs);
-                std::vector<std::pair<MapRecords_t::const_iterator, unsigned int> >
-                    vCoins(setCoins.begin() + nTotalInputs, setCoins.begin() + nTotalInputs + nSigInputs);
-                nTotalInputs += nSigInputs;
+                    vInputBlinds[l].resize(32 * nSigInputs);
+                    std::vector<std::pair<MapRecords_t::const_iterator, unsigned int> >
+                            vCoins(setCoins.begin() + nTotalInputs, setCoins.begin() + nTotalInputs + nSigInputs);
+                    nTotalInputs += nSigInputs;
 
-                if (0 != PlaceRealOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, vCoins, vInputBlinds[l], sError)) {
-                    return 1; // sError is set
-                }
-            }
-
-            // Fill in dummy signatures for fee calculation.
-            for (size_t l = 0; l < txNew.vin.size(); ++l) {
-                auto &txin = txNew.vin[l];
-                uint32_t nSigInputs, nSigRingSize;
-                txin.GetAnonInfo(nSigInputs, nSigRingSize);
-
-                if (0 != PickHidingOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, sError)) {
-                    return 1; // sError is set
+                    if (0 != PlaceRealOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, vCoins, vInputBlinds[l],
+                                              sError)) {
+                        return 1; // sError is set
+                    }
                 }
 
-                std::vector<uint8_t> vPubkeyMatrixIndices;
 
-                for (size_t k = 0; k < nSigInputs; ++k)
-                for (size_t i = 0; i < nSigRingSize; ++i) {
-                    PutVarInt(vPubkeyMatrixIndices, vMI[l][k][i]);
+                // Fill in dummy signatures for fee calculation.
+                for (size_t l = 0; l < txNew.vin.size(); ++l) {
+                    auto &txin = txNew.vin[l];
+                    uint32_t nSigInputs, nSigRingSize;
+                    txin.GetAnonInfo(nSigInputs, nSigRingSize);
+
+                    if (0 != PickHidingOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, sError)) {
+                        return 1; // sError is set
+                    }
+
+                    std::vector<uint8_t> vPubkeyMatrixIndices;
+
+                    for (size_t k = 0; k < nSigInputs; ++k)
+                        for (size_t i = 0; i < nSigRingSize; ++i) {
+                            PutVarInt(vPubkeyMatrixIndices, vMI[l][k][i]);
+                        }
+
+                    std::vector<uint8_t> vKeyImages(33 * nSigInputs);
+                    txin.scriptData.stack.emplace_back(vKeyImages);
+
+                    txin.scriptWitness.stack.emplace_back(vPubkeyMatrixIndices);
+
+                    std::vector<uint8_t> vDL((1 + (nSigInputs + 1) * nSigRingSize) *
+                                             32 // extra element for C, extra row for commitment row
+                                             + (txNew.vin.size() > 1 ? 33
+                                                                     : 0)); // extra commitment for split value if multiple sigs
+                    txin.scriptWitness.stack.emplace_back(vDL);
                 }
-
-                std::vector<uint8_t> vKeyImages(33 * nSigInputs);
-                txin.scriptData.stack.emplace_back(vKeyImages);
-
-                txin.scriptWitness.stack.emplace_back(vPubkeyMatrixIndices);
-
-                std::vector<uint8_t> vDL((1 + (nSigInputs+1) * nSigRingSize) * 32 // extra element for C, extra row for commitment row
-                    + (txNew.vin.size() > 1 ? 33 : 0)); // extra commitment for split value if multiple sigs
-                txin.scriptWitness.stack.emplace_back(vDL);
             }
 
             nBytes = GetVirtualTransactionSize(txNew);
@@ -4319,9 +4333,11 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
         nValueOutPlain += nFeeRet;
 
         // Remove scriptSigs to eliminate the fee calculation dummy signatures
-        for (auto &txin : txNew.vin) {
-            txin.scriptData.stack[0].resize(0);
-            txin.scriptWitness.stack[1].resize(0);
+        if (!fZerocoinInputs) {
+            for (auto &txin : txNew.vin) {
+                txin.scriptData.stack[0].resize(0);
+                txin.scriptWitness.stack[1].resize(0);
+            }
         }
 
         std::vector<const uint8_t*> vpOutCommits;
@@ -4375,7 +4391,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
             return werrorN(1, "%s: PutVarInt %d failed\n", __func__, nFeeRet);
         }
 
-        if (sign) {
+        if (!fZerocoinInputs && sign) {
             std::vector<CKey> vSplitCommitBlindingKeys(txNew.vin.size()); // input amount commitment when > 1 mlsag
             int rv;
             size_t nTotalInputs = 0;
@@ -4566,7 +4582,8 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
 }
 
 int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
-        size_t nRingSize, size_t nSigs, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
+        size_t nRingSize, size_t nSigs, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs,
+        CAmount nInputValue)
 {
     if (vecSend.size() < 1) {
         return wserrorN(1, sError, __func__, _("Transaction must have at least one recipient."));
@@ -4587,7 +4604,7 @@ int CHDWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vecto
     }
 
     uint32_t nLastHardened = pcC ? pcC->nHGenerated : 0;
-    if (0 != AddAnonInputs(wtx, rtx, vecSend, sea, pcC, sign, nRingSize, nSigs, nFeeRet, coinControl, sError)) {
+    if (0 != AddAnonInputs(wtx, rtx, vecSend, sea, pcC, sign, nRingSize, nSigs, nFeeRet, coinControl, sError, fZerocoinInputs, nInputValue)) {
         // sError will be set
         if (pcC) {
             pcC->nHGenerated = nLastHardened; // reset
@@ -9904,18 +9921,15 @@ bool CHDWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLeve
             }
 
             if (address) {
-                scriptZerocoinSpend = GetScriptForDestination(*address);
-                if (nChange) {
-                    // Reserve a new key pair from key pool
-                    CPubKey vchPubKey;
-                    assert(reserveKey.GetReservedKey(vchPubKey)); // should never fail
-                    scriptChange = GetScriptForDestination(vchPubKey.GetID());
-                }
-            } else {
-                // Reserve a new key pair from key pool
-                CPubKey vchPubKey;
-                assert(reserveKey.GetReservedKey(vchPubKey)); // should never fail
-                scriptZerocoinSpend = GetScriptForDestination(vchPubKey.GetID());
+                CTempRecipient r;
+                if (address->type() == typeid(CStealthAddress))
+                    r.nType = OUTPUT_RINGCT;
+                else
+                    r.nType = OUTPUT_STANDARD;
+                r.SetAmount(nValue);
+                r.fSubtractFeeFromAmount = false;
+                r.address = *address;
+                vecSend.push_back(r);
             }
 
             //add change output if we are spending too much (only applies to spending multiple at once)
@@ -9928,9 +9942,6 @@ bool CHDWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLeve
                         receipt.SetStatus("Failed to create mint", nStatus);
                         return false;
                     }
-                } else {
-                    CTxOut txOutChange(nValueSelected - nValue, scriptChange);
-                    txNew.vpout.emplace_back(txOutChange.GetSharedPtr());
                 }
             }
 
@@ -9976,9 +9987,10 @@ bool CHDWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLeve
             std::string sError;
             CCoinControl coinControl;
 
-            if (0 != AddStandardInputs(wtxNew, rtx, vecSend, false, nFeeRet, &coinControl, sError, true)) {
+            if (0 != AddAnonInputs(wtxNew, rtx, vecSend, false, 4, 32, nFeeRet, &coinControl, sError, true, nValueSelected)) {
                 return false;
             }
+
             AddOutputRecordMetaData(rtx, vecSend);
 
             CMutableTransaction mtx(*wtxNew.tx);
@@ -10110,6 +10122,10 @@ bool CHDWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTran
             return error(strFailReason.c_str());
         }
 
+        if (isZCSpendChange) {
+            txNew.vpout.emplace_back(outMint.GetSharedPtr());
+        }
+
         //store as CZerocoinMint for later use
         LogPrintf("CHDWallet::%s: new mint %s\n", __func__, dMint.ToString());
         vDMints.emplace_back(dMint);
@@ -10143,7 +10159,9 @@ bool CHDWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTran
         return false;
     }
 
-    txNew = CMutableTransaction(*wtx.tx);
+    if (!isZCSpendChange)
+        txNew = CMutableTransaction(*wtx.tx);
+
     return true;
 }
 
