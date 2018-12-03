@@ -156,9 +156,9 @@ BudgetParams::BudgetParams(std::string strNetwork)
         founderAddress = "3KQmyaDqehG9fcyQ3o8uTUujLgX1zp9LDJ";
         labAddress = "3BJPMh1UU9r3RVH4ihLDTYfJj8BSPe1iRc";
     } else if (strNetwork == "test") {
-        budgetAddress = "2NCMc2apMAx5vY6wyYM8UyqCmfx2vpFmm1J";
-        founderAddress = "2N7WZtWTdoFQjheviiGn4smykiwxNbHYdci";
-        labAddress = "2N2iEAT5o7TY9yrz6Li4j91j5L59sLqdFSf";
+        budgetAddress = "mxd3ciTteXZAna4q2as6z69mL6F7EncYjr";
+        founderAddress = "mhurm1WXr8QXxMZXzJRH61TSjcaDviKfqY";
+        labAddress = "mw4P7NPXLVdCCZME8EGqTxbD2b4nF8sg1S";
     } else if (strNetwork == "regtest") {
         budgetAddress = "2NCMc2apMAx5vY6wyYM8UyqCmfx2vpFmm1J";
         founderAddress = "2N7WZtWTdoFQjheviiGn4smykiwxNbHYdci";
