@@ -198,7 +198,8 @@ static UniValue getnewbasecoinaddress(const JSONRPCRequest& request)
 
     pwallet->SetAddressBook(dest, label, "receive");
 
-    return EncodeDestination(dest);
+    bool fBech32 = true;
+    return EncodeDestination(dest, fBech32);
 }
 
 static UniValue getrawchangeaddress(const JSONRPCRequest& request)
