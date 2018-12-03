@@ -333,22 +333,22 @@ UniValue importaddress(const JSONRPCRequest& request)
 
 UniValue importprunedfunds(const JSONRPCRequest& request)
 {
-    throw JSONRPCError(RPC_INVALID_REQUEST, "This rpc call is not implemented in veil yet.");
-//    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-//    CWallet* const pwallet = wallet.get();
-//    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
-//        return NullUniValue;
-//    }
-//
-//    if (request.fHelp || request.params.size() != 2)
-//        throw std::runtime_error(
-//            "importprunedfunds\n"
-//            "\nImports funds without rescan. Corresponding address or script must previously be included in wallet. Aimed towards pruned wallets. The end-user is responsible to import additional transactions that subsequently spend the imported outputs or rescan after the point in the blockchain the transaction is included.\n"
-//            "\nArguments:\n"
-//            "1. \"rawtransaction\" (string, required) A raw transaction in hex funding an already-existing address in wallet\n"
-//            "2. \"txoutproof\"     (string, required) The hex output from gettxoutproof that contains the transaction\n"
-//        );
-//
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    //todo fix this call to work with veildatahash
+    if (request.fHelp || request.params.size() != 9999)
+        throw std::runtime_error(
+            "importprunedfunds\n"
+            "\nImports funds without rescan. Corresponding address or script must previously be included in wallet. Aimed towards pruned wallets. The end-user is responsible to import additional transactions that subsequently spend the imported outputs or rescan after the point in the blockchain the transaction is included.\n"
+            "\nArguments:\n"
+            "1. \"rawtransaction\" (string, required) A raw transaction in hex funding an already-existing address in wallet\n"
+            "2. \"txoutproof\"     (string, required) The hex output from gettxoutproof that contains the transaction\n"
+        );
+
 //    CMutableTransaction tx;
 //    if (!DecodeHexTx(tx, request.params[0].get_str()))
 //        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
@@ -391,8 +391,8 @@ UniValue importprunedfunds(const JSONRPCRequest& request)
 //        pwallet->AddToWallet(wtx, false);
 //        return NullUniValue;
 //    }
-//
-//    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No addresses in wallet correspond to included transaction");
+
+    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "No addresses in wallet correspond to included transaction");
 }
 
 UniValue removeprunedfunds(const JSONRPCRequest& request)
