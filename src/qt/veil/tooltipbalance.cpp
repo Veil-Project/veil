@@ -5,16 +5,17 @@
 #include <QPropertyAnimation>
 #include <QPropertyAnimation>
 #include <QTimer>
+#include <qt/bitcoinunits.h>
 
-TooltipBalance::TooltipBalance(QWidget *parent, int nZerocoinBalance, int nRingBalance) :
+TooltipBalance::TooltipBalance(QWidget *parent, int unit, int64_t nZerocoinBalance, int64_t nRingBalance) :
     QWidget(parent),
     ui(new Ui::TooltipBalance)
 {
     ui->setupUi(this);
 
     // TODO: Load me..
-    ui->textZero->setText(QString::fromStdString(std::to_string(nZerocoinBalance) + " Veil"));
-    ui->textRing->setText(QString::fromStdString(std::to_string(nRingBalance) + " Veil"));
+    ui->textZero->setText(BitcoinUnits::formatWithUnit(unit, nZerocoinBalance, false, BitcoinUnits::separatorAlways));
+    ui->textRing->setText(BitcoinUnits::formatWithUnit(unit, nRingBalance, false, BitcoinUnits::separatorAlways));
 
     QTimer::singleShot(3500, this, SLOT(hide()));
 
