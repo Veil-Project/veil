@@ -4860,6 +4860,9 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
 
     //Load zerocoin mint hashes to memory
     walletInstance->zTracker->Init();
+    walletInstance->getZWallet()->LoadMintPoolFromDB();
+    walletInstance->getZWallet()->GenerateMintPool();
+    walletInstance->getZWallet()->SyncWithChain();
 
     return walletInstance;
 }
