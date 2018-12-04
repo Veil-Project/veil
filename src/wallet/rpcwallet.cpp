@@ -4172,6 +4172,9 @@ UniValue getaddressinfo(const JSONRPCRequest& request)
             ret.pushKV("hdkeypath", meta->hdKeypath);
             ret.pushKV("hdseedid", meta->hd_seed_id.GetHex());
             ret.pushKV("hdmasterkeyid", meta->hd_seed_id.GetHex());
+            if (meta->UsesTwoSeeds())
+                ret.pushKV("hdmasterkeyid_r", meta->hd_seed_id_r.GetHex());
+
         }
     }
 
@@ -4419,7 +4422,14 @@ void AddKeypathToMap(const CWallet* pwallet, const CKeyID& keyID, std::map<CPubK
         CKey key;
         pwallet->GetKey(meta.hd_seed_id, key);
         CExtKey masterKey;
-        masterKey.SetSeed(key.begin(), key.size());
+        //Veil: use full 512bit seed
+        if (!meta.hd_seed_id_r.IsNull()) {
+            CKey key2;
+            pwallet->GetKey(meta.hd_seed_id_r, key2);
+            masterKey.SetSeedFromKeys(key, key2);
+        } else {
+            masterKey.SetSeed(key.begin(), key.size());
+        }
         // Add to map
         keypath.insert(keypath.begin(), ReadLE32(masterKey.key.GetPubKey().GetID().begin()));
     } else { // Single pubkeys get the master fingerprint of themselves

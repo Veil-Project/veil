@@ -751,12 +751,21 @@ UniValue dumpwallet(const JSONRPCRequest& request)
 
     // add the base58check encoded extended master if the wallet uses HD
     CKeyID seed_id = pwallet->GetHDChain().seed_id;
+    CKeyID seed_id_r = pwallet->GetHDChain().seed_id_r;
     if (!seed_id.IsNull())
     {
         CKey seed;
         if (pwallet->GetKey(seed_id, seed)) {
+            CKey seed2;
+            bool is512Seed = !seed_id_r.IsNull();
+            if (!pwallet->GetKey(seed_id_r, seed2))
+                throw JSONRPCError(RPC_DATABASE_ERROR, "failed to get second key for 512bit seed");
+
             CExtKey masterKey;
-            masterKey.SetSeed(seed.begin(), seed.size());
+            if (is512Seed)
+                masterKey.SetSeedFromKeys(seed, seed2);
+            else
+                masterKey.SetSeed(seed.begin(), seed.size());
 
             file << "# extended private masterkey: " << EncodeExtKey(masterKey) << "\n\n";
         }

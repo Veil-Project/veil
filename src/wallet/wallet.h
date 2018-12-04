@@ -72,6 +72,8 @@ static const bool DEFAULT_WALLET_RBF = false;
 static const bool DEFAULT_WALLETBROADCAST = true;
 static const bool DEFAULT_DISABLE_WALLET = false;
 
+typedef std::vector<std::pair<uint32_t, bool> > BIP32Path;
+
 class CBlockIndex;
 class CCoinControl;
 class COutput;
@@ -847,7 +849,7 @@ public:
 
     void LoadKeyPool(int64_t nIndex, const CKeyPool &keypool) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void MarkPreSplitKeys();
-    void DeriveNewExtKey(WalletBatch& batch, CKeyMetadata& metadata, CExtKey& extKey, bool interal, int nAccount);
+    CExtKey DeriveBIP32Path(const BIP32Path& vPath);
 
     // Map from Key ID to key metadata.
     std::map<CKeyID, CKeyMetadata> mapKeyMetadata;
@@ -1024,7 +1026,7 @@ public:
     bool SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount);
 
     // zerocoin
-    bool GetDeterministicSeed(uint256& seed);
+    bool GetZerocoinSeed(uint256 &seed);
 
     OutputType TransactionChangeType(OutputType change_type, const std::vector<CRecipient>& vecSend);
 
@@ -1211,7 +1213,7 @@ public:
     static bool Verify(std::string wallet_file, bool salvage_wallet, std::string& error_string, std::string& warning_string);
 
     /* Initializes the wallet, returns a new CWallet instance or a null pointer in case of an error */
-    static std::shared_ptr<CWallet> CreateWalletFromFile(const std::string& name, const fs::path& path, uint64_t wallet_creation_flags = 0, CPubKey* pseed = nullptr);
+    static std::shared_ptr<CWallet> CreateWalletFromFile(const std::string& name, const fs::path& path, uint64_t wallet_creation_flags = 0, uint512* pseed = nullptr);
 
     /**
      * Initializes a new HD wallet with a random seed that is also used to derive a mnemonic.
@@ -1221,7 +1223,7 @@ public:
      * @param mnemonic      This string will contain the new mnemonic after this function returns
      * @return              Returns true if the wallet was created without error
      */
-    static bool CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic, const std::string& strLanguage, CPubKey* seed);
+    static bool CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic, const std::string& strLanguage, uint512* seed);
 
     /**
      * Initializes an HD wallet from a user-specified mnemonic.
@@ -1232,7 +1234,7 @@ public:
      * @param fBadSeed      Indicates if the mnemonic generated an invalid seed
      * @return              Returns true if the wallet was created without error
      */
-    static bool CreateHDWalletFromMnemonic(const std::string& name, const fs::path& path, const std::string& mnemonic, bool& fBadSeed, CPubKey& pubkeySeed);
+    static bool CreateHDWalletFromMnemonic(const std::string& name, const fs::path& path, const std::string& mnemonic, bool& fBadSeed, uint512& seed);
 
     /**
      * Wallet post-init setup
@@ -1250,23 +1252,27 @@ public:
     virtual bool IsHDEnabled() const;
 
     /* Generates a new HD seed and mnemonic (will not be activated) */
-    CPubKey GenerateNewMnemonicSeed(std::string &mnemonic, const std::string& strLanguage);
+    uint512 GenerateNewMnemonicSeed(std::string &mnemonic, const std::string& strLanguage);
 
     /* Set the current HD seed using a mnemonic (if the mnemonic generates
        an invalid seed this function returns false). */
-    bool SetHDSeedFromMnemonic(const std::string &mnemonic, CPubKey& pubkeySeed);
+    bool SetHDSeedFromMnemonic(const std::string &mnemonic, uint512& seed);
 
     /* Generates a new HD seed (will not be activated) */
     CPubKey GenerateNewSeed();
 
     /* Derives a new HD seed (will not be activated) */
     CPubKey DeriveNewSeed(const CKey& key);
+    void DeriveNewSeed(const uint512& bip39seed);
 
     /* Set the current HD seed (will reset the chain child index counters)
        Sets the seed's version based on the current wallet version (so the
        caller must ensure the current wallet version is correct before calling
        this function). */
     void SetHDSeed(const CPubKey& key);
+
+    //Veil: Set the wallet seed with 512 bit entropy (coming from bip39 seed)
+    void SetHDSeed_512(const uint512& hashSeed);
 
     /**
      * Blocks until the wallet state is up-to-date to /at least/ the current

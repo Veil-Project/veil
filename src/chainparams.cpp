@@ -236,6 +236,8 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
         nBIP44ID = 0x800002ba;
+        nRingCTAccount = 20000;
+        nZerocoinAccount = 100000;
 
         //sv for "stealth veil"
         bech32Prefixes[STEALTH_ADDRESS].assign("sv","sv"+2);

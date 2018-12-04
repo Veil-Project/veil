@@ -72,7 +72,7 @@ void TutorialWidget::on_next_triggered(){
                         {
                             mnemonic = "";
                             std::string strWalletFile = "wallet.dat";
-                            CWallet::CreateNewHDWallet(strWalletFile, GetWalletDir(), mnemonic, this->strLanguageSelection.toStdString(), &pkSeed);
+                            CWallet::CreateNewHDWallet(strWalletFile, GetWalletDir(), mnemonic, this->strLanguageSelection.toStdString(), &seed);
 
                             std::stringstream ss(mnemonic);
                             std::istream_iterator<std::string> begin(ss);
@@ -126,8 +126,8 @@ void TutorialWidget::on_next_triggered(){
                     }
 
                     bool fBadSeed = false;
-                    CPubKey pubKey;
-                    CWallet::CreateHDWalletFromMnemonic(strWalletFile, GetWalletDir(), mnemonic, fBadSeed, pubKey);
+                    uint512 seed_local;
+                    CWallet::CreateHDWalletFromMnemonic(strWalletFile, GetWalletDir(), mnemonic, fBadSeed, seed_local);
                     if (fBadSeed) {
                         tutorialMnemonicRevealed = new TutorialMnemonicRevealed(this);
                         ui->QStackTutorialContainer->addWidget(tutorialMnemonicRevealed);

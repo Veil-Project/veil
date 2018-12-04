@@ -31,6 +31,8 @@ typedef byte_array<64> long_hash;
 typedef byte_array<32> hash_digest;
 typedef std::initializer_list<data_slice> loaf;
 
+long_hash pkcs5_pbkdf2_hmac_sha512(data_slice passphrase, data_slice salt, size_t iterations);
+
 dictionary string_to_lexicon(const std::string& strLanguage);
 
 /**
@@ -61,6 +63,7 @@ bool validate_mnemonic(const word_list& mnemonic, const dictionary_list& lexicon
 * Convert a mnemonic with no passphrase to a wallet-generation seed.
 */
 long_hash decode_mnemonic(const word_list& mnemonic);
+long_hash decode_mnemonic(const std::string& mnemonic);
 
 /**
 * Convert a mnemonic and passphrase to a wallet-generation seed.

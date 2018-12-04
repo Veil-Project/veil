@@ -254,103 +254,75 @@ CPubKey CWallet::GenerateNewKey(WalletBatch &batch, bool internal)
     return pubkey;
 }
 
-void CWallet::DeriveNewExtKey(WalletBatch& batch, CKeyMetadata& metadata, CExtKey& extKey, bool interal, int nAccount)
+#define BIP44_PURPOSE 0x8000002C
+
+// Veil:
+// Pass in {[0, true], [0, false], [0, false]} to match default bip44 matching
+// the same derivation used here https://iancoleman.io/bip39/
+CExtKey CWallet::DeriveBIP32Path(const BIP32Path& vPath)
 {
-    // for now we use a fixed keypath scheme of m/0'/0'/k
-    CKey seed;                     //seed (256bit)
-    CExtKey masterKey;             //hd master key
-    CExtKey purposeKey;            //key at m/44
-    CExtKey accountKey;            //key at m/0'
-    CExtKey chainChildKey;         //key at m/0'/0' (external) or m/0'/1' (internal)
-    CExtKey childKey;              //key at m/0'/0'/<n>'
+    CKey seed1;                     //seed (512bit) stored between two keys
+    CKey seed2;
+    CExtKey keyMaster;             //hd master key
+    CExtKey keyPurpose;            //key at m/44'
+    CExtKey keyCoin;               //key at m/44'/coinid'
 
     // try to get the seed
-    if (!GetKey(hdChain.seed_id, seed))
+    if (!GetKey(hdChain.seed_id, seed1))
         throw std::runtime_error(std::string(__func__) + ": seed not found");
 
-    masterKey.SetSeed(seed.begin(), seed.size());
-
-    // derive m/0'
-    // use hardened derivation (child keys >= 0x80000000 are hardened after bip32)
-    masterKey.Derive(purposeKey, (uint32_t)0x8000002C);
-    purposeKey.Derive(accountKey, Params().BIP44ID());
-
-    // derive m/0'/0' (external chain) OR m/0'/1' (internal chain)
-    assert(internal ? CanSupportFeature(FEATURE_HD_SPLIT) : true);
-    accountKey.Derive(chainChildKey, Params().BIP44ID()+(internal ? 1 : 0));
-
-    // always derive hardened keys
-    // childIndex | BIP32_HARDENED_KEY_LIMIT = derive childIndex in hardened child-index-range
-    // example: 1 | BIP32_HARDENED_KEY_LIMIT == 0x80000001 == 2147483649
-    metadata.hd_seed_id = hdChain.seed_id;
-    if (internal) {
-        chainChildKey.Derive(childKey, nAccount | Params().BIP44ID());
-        extKey = childKey;
-        metadata.hdKeypath = "m/0'/1'/" + std::to_string(nAccount) + "'";
-        if (hdChain.nInternalChainCounter > nAccount)
-            return;
-        hdChain.nInternalChainCounter = nAccount + 1;
+    // veil default is 512 bit seed
+    if (hdChain.Is512BitSeed()) {
+        if (!GetKey(hdChain.seed_id_r, seed2))
+            throw std::runtime_error(std::string(__func__) + ": seed2 not found");
+        keyMaster.SetSeedFromKeys(seed1, seed2);
     } else {
-        chainChildKey.Derive(childKey, nAccount | Params().BIP44ID());
-        extKey = childKey;
-        metadata.hdKeypath = "m/0'/0'/" + std::to_string(nAccount) + "'";
-        if (hdChain.nExternalChainCounter > nAccount)
-            return;
-        hdChain.nExternalChainCounter = nAccount + 1;
+        keyMaster.SetSeed(seed1.begin(), seed1.size());
     }
-    // update the chain model in the database
-    if (!batch.WriteHDChain(hdChain))
-        throw std::runtime_error(std::string(__func__) + ": Writing HD chain model failed");
+    seed1.Clear();
+    seed2.Clear();
+
+    // Automatically derive m/44'/slip44_coinid then build the rest of the request from there
+    keyMaster.Derive(keyPurpose, BIP44_PURPOSE);
+    keyPurpose.Derive(keyCoin, Params().BIP44ID());
+
+    for (auto p : vPath) {
+        uint32_t nAccount = p.first;
+        bool fHardened = p.second;
+        if (fHardened)
+            nAccount |= BIP32_HARDENED_KEY_LIMIT;
+        keyCoin.Derive(keyCoin, nAccount);
+    }
+
+    return keyCoin;
 }
 
 void CWallet::DeriveNewChildKey(WalletBatch &batch, CKeyMetadata& metadata, CKey& secret, bool internal)
 {
-    // for now we use a fixed keypath scheme of m/0'/0'/k
-    CKey seed;                     //seed (256bit)
-    CExtKey masterKey;             //hd master key m;
-    CExtKey purposeKey;            //key at m/44'
-    CExtKey veilMasterKey;         //key at m/44'/119'
-    CExtKey accountKey;            //key at m/44'/119'/0'/
-    CExtKey chainChildKey;         //key at m/44'/119'/0'/0' (external) or m/44'/119'/1' (internal)
-    CExtKey childKey;              //key at m/44'/119'/0'/<n>'
-
-    // try to get the seed
-    if (!GetKey(hdChain.seed_id, seed))
-        throw std::runtime_error(std::string(__func__) + ": seed not found");
-
-    masterKey.SetSeed(seed.begin(), seed.size());
-
-    // derive m/0'
-    // use hardened derivation (child keys >= 0x80000000 are hardened after bip32)
-    //masterKey.Derive(masterKey, Params().BIP44ID());
-    masterKey.Derive(purposeKey, (uint32_t)0x8000002C);
-    purposeKey.Derive(veilMasterKey, Params().BIP44ID());
-    veilMasterKey.Derive(accountKey, 0);
-    //LogPrintf("Account Key %s\n", HexStr(accountKey.key.GetPubKey()));
-
-    // derive m/0'/0' (external chain) OR m/0'/1' (internal chain)
-    assert(internal ? CanSupportFeature(FEATURE_HD_SPLIT) : true);
-    accountKey.Derive(chainChildKey, Params().BIP44ID()+(internal ? 1 : 0));
-    //LogPrintf("Chain child Key %s\n", HexStr(chainChildKey.key.GetPubKey()));
+    // Derive keys according to BIP44/32. Derive each stage hardened.
+    // Internal: m/44'/slip44id'/0'/0'/d'
+    // External: m/44'/slip44id'/0'/1'/d'
+    BIP32Path vPath = {{0, true}, {static_cast<uint32_t>(internal), true}};
+    CExtKey accountKey = DeriveBIP32Path(vPath);
 
     // derive child key at next index, skip keys already known to the wallet
+    CExtKey childKey;
     do {
-        // always derive hardened keys
-        // childIndex | BIP32_HARDENED_KEY_LIMIT = derive childIndex in hardened child-index-range
-        // example: 1 | BIP32_HARDENED_KEY_LIMIT == 0x80000001 == 2147483649
         if (internal) {
-            chainChildKey.Derive(childKey, hdChain.nInternalChainCounter | Params().BIP44ID());
-            metadata.hdKeypath = strprintf("m/44/%d/0'/1'/%d'", (Params().BIP44ID() - BIP32_HARDENED_KEY_LIMIT), hdChain.nInternalChainCounter);
+            accountKey.Derive(childKey, hdChain.nInternalChainCounter | BIP32_HARDENED_KEY_LIMIT);
+            metadata.hdKeypath = strprintf("m/44'/%d'/0'/1'/%d'", (Params().BIP44ID() - BIP32_HARDENED_KEY_LIMIT), hdChain.nInternalChainCounter);
             hdChain.nInternalChainCounter++;
         } else {
-            chainChildKey.Derive(childKey, hdChain.nExternalChainCounter | Params().BIP44ID());
-            metadata.hdKeypath = strprintf("m/44/%d/0'/0'/%d'", (Params().BIP44ID() - BIP32_HARDENED_KEY_LIMIT), hdChain.nExternalChainCounter);
+            accountKey.Derive(childKey, hdChain.nExternalChainCounter | BIP32_HARDENED_KEY_LIMIT);
+            metadata.hdKeypath = strprintf("m/44'/%d'/0'/0'/%d'", (Params().BIP44ID() - BIP32_HARDENED_KEY_LIMIT), hdChain.nExternalChainCounter);
             hdChain.nExternalChainCounter++;
         }
     } while (HaveKey(childKey.key.GetPubKey().GetID()));
+
     secret = childKey.key;
     //LogPrintf("Final Key %s=%s\n", metadata.hdKeypath, HexStr(secret.GetPubKey()));
     metadata.hd_seed_id = hdChain.seed_id;
+    metadata.hd_seed_id_r = hdChain.seed_id_r;
     // update the chain model in the database
     if (!batch.WriteHDChain(hdChain))
         throw std::runtime_error(std::string(__func__) + ": Writing HD chain model failed");
@@ -385,9 +357,7 @@ bool CWallet::AddKeyPubKeyWithDB(WalletBatch &batch, const CKey& secret, const C
     }
 
     if (!IsCrypted()) {
-        return batch.WriteKey(pubkey,
-                                                 secret.GetPrivKey(),
-                                                 mapKeyMetadata[pubkey.GetID()]);
+        return batch.WriteKey(pubkey, secret.GetPrivKey(), mapKeyMetadata[pubkey.GetID()]);
     }
     return true;
 }
@@ -1461,7 +1431,7 @@ CAmount CWallet::GetChange(const CTransaction& tx) const
     return nChange;
 }
 
-CPubKey CWallet::GenerateNewMnemonicSeed(std::string &mnemonic, const std::string& strLanguage)
+uint512 CWallet::GenerateNewMnemonicSeed(std::string &mnemonic, const std::string& strLanguage)
 {
     assert(!IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
     CKey key;
@@ -1485,26 +1455,19 @@ CPubKey CWallet::GenerateNewMnemonicSeed(std::string &mnemonic, const std::strin
         mnemonic += " ";
     }
 
-    return DeriveNewSeed(key);
+    auto blob_512 = decode_mnemonic(mnemonic_words);
+    uint512 seed512;
+    memcpy(seed512.begin(), blob_512.begin(), blob_512.size());
+
+    return seed512;
 }
 
-bool CWallet::SetHDSeedFromMnemonic(const std::string &mnemonic, CPubKey& pubkeySeed)
+bool CWallet::SetHDSeedFromMnemonic(const std::string &mnemonic, uint512& seed)
 {
     assert(!IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
-    std::stringstream ss(mnemonic);
-    std::istream_iterator<std::string> begin(ss);
-    std::istream_iterator<std::string> end;
-    std::vector<std::string> mnemonicWordList(begin, end);
-    std::vector<unsigned char> keyData = key_from_mnemonic(mnemonicWordList);
-
-    CKey key;
-    key.Set(keyData.data(), keyData.data() + keyData.size(), true);
-    if (!key.IsValid())
-        return false;
-    CPubKey seed = DeriveNewSeed(key);
-    LogPrintf("%s: Mnemonic Seed = %s\n", __func__, HexStr(seed));
-    SetHDSeed(seed);
-    pubkeySeed = seed;
+    auto blob_512 = decode_mnemonic(mnemonic);
+    memcpy(seed.begin(), blob_512.begin(), blob_512.size());
+    SetHDSeed_512(seed);
     return true;
 }
 
@@ -1584,6 +1547,27 @@ CPubKey CWallet::DeriveNewSeed(const CKey& key)
     }
 
     return seed;
+}
+
+void CWallet::SetHDSeed_512(const uint512& hashSeed)
+{
+    LOCK(cs_wallet);
+    CHDChain newHdChain;
+    newHdChain.nVersion = CHDChain::VERSION_HD_CHAIN_SPLIT;
+
+    // Encapsulate the 512 seed data into two keys. This allows for databasing the keys without modifying the encryption and databasing scheme
+    CKey key1;
+    key1.Set(hashSeed.begin(), hashSeed.begin()+32, false);
+    CKey key2;
+    key2.Set(hashSeed.begin()+32, hashSeed.begin()+64, false);
+
+    // Add seeds to the keystore
+    DeriveNewSeed(key1);
+    DeriveNewSeed(key2);
+
+    newHdChain.seed_id = key1.GetPubKey().GetID();
+    newHdChain.seed_id_r = key2.GetPubKey().GetID();
+    SetHDChain(newHdChain, false);
 }
 
 void CWallet::SetHDSeed(const CPubKey& seed)
@@ -4517,7 +4501,7 @@ bool CWallet::Verify(std::string wallet_file, bool salvage_wallet, std::string& 
     return WalletBatch::VerifyDatabaseFile(wallet_path, warning_string, error_string);
 }
 
-std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, const fs::path& path, uint64_t wallet_creation_flags, CPubKey* pseed)
+std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, const fs::path& path, uint64_t wallet_creation_flags, uint512* pseed)
 {
     const std::string& walletFile = name;
 
@@ -4653,12 +4637,12 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
             walletInstance->SetWalletFlag(WALLET_FLAG_DISABLE_PRIVATE_KEYS);
         } else {
             // generate a new seed
-            CPubKey seed;
-            if (pseed)
-                seed = *pseed;
-            else
-                seed = walletInstance->GenerateNewSeed();
-            walletInstance->SetHDSeed(seed);
+            if (pseed) {
+                walletInstance->SetHDSeed_512(*pseed);
+            } else {
+                CPubKey seed = walletInstance->GenerateNewSeed();
+                walletInstance->SetHDSeed(seed);
+            }
         }
 
         // Top up the keypool
@@ -4867,7 +4851,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     return walletInstance;
 }
 
-bool CWallet::CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic, const std::string& strLanguage, CPubKey* seed)
+bool CWallet::CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic, const std::string& strLanguage, uint512* seed)
 {
     const std::string& walletFile = name;
 
@@ -4888,17 +4872,15 @@ bool CWallet::CreateNewHDWallet(const std::string& name, const fs::path& path, s
     walletInstance->SetMinVersion(FEATURE_LATEST);
     walletInstance->SetMaxVersion(FEATURE_LATEST);
 
-    // generate a new seed
-    CPubKey seedLocal = walletInstance->GenerateNewMnemonicSeed(mnemonic, strLanguage);
-    LogPrintf("%s: Mnemonic Seed = %s\n", __func__, HexStr(seedLocal));
-    walletInstance->SetHDSeed(seedLocal);
+    // generate a new seed - (note: not saved to db here, that is done elsewhere)
+    uint512 seedLocal = walletInstance->GenerateNewMnemonicSeed(mnemonic, strLanguage);
     *seed = seedLocal;
 
     walletInstance->ChainStateFlushed(chainActive.GetLocator());
     return true;
 }
 
-bool CWallet::CreateHDWalletFromMnemonic(const std::string& name, const fs::path& path, const std::string& mnemonic, bool& fBadSeed, CPubKey& pubkeySeed)
+bool CWallet::CreateHDWalletFromMnemonic(const std::string& name, const fs::path& path, const std::string& mnemonic, bool& fBadSeed, uint512& seed)
 {
     // Rescan the chain to get any transactions belonging to this wallet
     gArgs.SoftSetBoolArg("-rescan", true);
@@ -4924,7 +4906,7 @@ bool CWallet::CreateHDWalletFromMnemonic(const std::string& name, const fs::path
     walletInstance->SetMaxVersion(FEATURE_LATEST);
 
     // import seed
-    if (!walletInstance->SetHDSeedFromMnemonic(mnemonic, pubkeySeed)) {
+    if (!walletInstance->SetHDSeedFromMnemonic(mnemonic, seed)) {
         fBadSeed = true;
         return true;
     }
@@ -5830,20 +5812,12 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
     return true;
 }
 
-bool CWallet::GetDeterministicSeed(uint256& seedOut)
+bool CWallet::GetZerocoinSeed(uint256 &seedOut)
 {
-    WalletBatch db(*database);
-    std::string strErr;
+    //The zerocoin master seed is derived from a specific BIP32 Account of the wallet's masterseed
+    CExtKey masterKey = DeriveBIP32Path({{0, true}, {Params().BIP32_Zerocoin_Account(), true}});
+    seedOut = masterKey.key.GetPrivKey_256();
 
-    CKey seed;                     //seed (256bit)
-    CExtKey masterKey;             //hd master key
-
-    // try to get the seed
-    if (!GetKey(hdChain.seed_id, seed)) {
-        return error("seed not found\n");
-    }
-
-    seedOut = seed.GetPrivKey_256();
     return true;
 }
 

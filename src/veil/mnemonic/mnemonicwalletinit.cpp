@@ -19,7 +19,7 @@ bool MnemonicWalletInit::Open() const
 
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
         bool fNewSeed = false;
-        CPubKey pubkeySeed;
+        uint512 hashMasterKey;
         fs::path walletPath = fs::absolute(walletFile, GetWalletDir());
         if ((walletFile == "" && !fs::exists(walletPath / "wallet.dat")) || !fs::exists(walletPath)) {
             fNewSeed = true;
@@ -31,26 +31,20 @@ bool MnemonicWalletInit::Open() const
             if (!strSeedPhraseArg.empty())
                 initOption = MnemonicWalletInitFlags::IMPORT_MNEMONIC;
 
-          //  if (initOption == MnemonicWalletInitFlags::INVALID_MNEMONIC && !InitNewWalletPrompt(initOption))
-            std::string strLanguage = "english";
+            std::string strMessage = "english";
             if (initOption == MnemonicWalletInitFlags::INVALID_MNEMONIC) {
-                if (!GetWalletMnemonicLanguage(strLanguage, initOption))
+                // Language only routes to GUI. It returns with the filled out mnemonic in strMessage
+                if (!GetWalletMnemonicLanguage(strMessage, initOption))
                     return false;
-                std::stringstream ss(strLanguage);
-                std::istream_iterator<std::string> begin(ss);
-                std::istream_iterator<std::string> end;
-                std::vector<std::string> mnemonicWordList(begin, end);
-                std::vector<unsigned char> keyData = key_from_mnemonic(mnemonicWordList);
 
-                CKey key;
-                key.Set(keyData.data(), keyData.data() + keyData.size(), true);
-                if (!key.IsValid())
-                    return error("%s: Key not valid\n", __func__);
-                pubkeySeed = key.GetPubKey();
-                LogPrintf("%s: GUI loaded seed %s\n", __func__, HexStr(pubkeySeed));
+                // The mnemonic phrase now needs to be converted to the final wallet seed (note: different than the phrase seed)
+                std::string strMnemonic = strMessage;
+                auto hashRet = decode_mnemonic(strMnemonic);
+                memcpy(hashMasterKey.begin(), hashRet.begin(), hashRet.size());
+                //LogPrintf("%s: GUI loaded seed %s\n", __func__, hashMasterKey.GetHex());
             } else if (initOption == MnemonicWalletInitFlags::NEW_MNEMONIC) {
                 std::string mnemonic;
-                if (!CWallet::CreateNewHDWallet(walletFile, walletPath, mnemonic, strLanguage, &pubkeySeed))
+                if (!CWallet::CreateNewHDWallet(walletFile, walletPath, mnemonic, strMessage, &hashMasterKey))
                     return false;
                 if (!DisplayWalletMnemonic(mnemonic))
                     return false;
@@ -60,7 +54,7 @@ bool MnemonicWalletInit::Open() const
                 if (importMnemonic.empty() && !GetWalletMnemonic(importMnemonic))
                     return false;
                 do {
-                    ret = CWallet::CreateHDWalletFromMnemonic(walletFile, walletPath, importMnemonic, fBadSeed, pubkeySeed);
+                    ret = CWallet::CreateHDWalletFromMnemonic(walletFile, walletPath, importMnemonic, fBadSeed, hashMasterKey);
                     if (!ret || (fBadSeed && !RetryWalletMnemonic(importMnemonic)))
                         return false;
                 } while (fBadSeed);
@@ -69,19 +63,15 @@ bool MnemonicWalletInit::Open() const
             }
         }
 
-        std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(walletFile, walletPath, 0, fNewSeed ? &pubkeySeed : nullptr);
+        std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(walletFile, walletPath, 0, nullptr);
         if (!pwallet) {
             return false;
         }
 
-        //Extract masterkey for HD wallet from account 1 m/0/0/1
+        //Extract masterkey for HD wallet from account m/44'/slip44id'/0'/x
         CExtKey extKey;
-        if (fNewSeed) {
-            WalletBatch walletdb(pwallet->GetDBHandle());
-            CKeyMetadata metadata;
-            pwallet->DeriveNewExtKey(walletdb, metadata, extKey, false, 1);
-            LogPrintf("%s: Loading key %s %s for hdwallet\n", __func__, metadata.hdKeypath, HexStr(extKey.key.GetPubKey()));
-        }
+        if (fNewSeed)
+            extKey = pwallet->DeriveBIP32Path({{0, true}, {Params().BIP32_RingCT_Account(), true}});
 
         CHDWallet *phdwallet = (CHDWallet *) pwallet.get();
         if (!phdwallet->Initialise(fNewSeed ? &extKey : nullptr))

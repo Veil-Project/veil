@@ -26,7 +26,7 @@ CzWallet::CzWallet(CWallet* wallet)
     }
 
     uint256 seed;
-    if (!wallet->GetDeterministicSeed(seed)) {
+    if (!wallet->GetZerocoinSeed(seed)) {
         LogPrintf("%s: failed to get deterministic seed\n", __func__);
         return;
     }
