@@ -105,7 +105,10 @@ public:
     bool IsBech32Prefix(const std::vector<unsigned char> &vchPrefixIn, CChainParams::Base58Type &rtype) const;
     bool IsBech32Prefix(const char *ps, size_t slen, CChainParams::Base58Type &rtype) const;
 
+    /** BIP32, BIP39, BIP44 **/
     uint32_t BIP44ID() const { return nBIP44ID; }
+    uint32_t BIP32_RingCT_Account() const { return nRingCTAccount; }
+    uint32_t BIP32_Zerocoin_Account() const { return nZerocoinAccount; }
 
     /** Zerocoin **/
     libzerocoin::ZerocoinParams* Zerocoin_Params() const;
@@ -117,13 +120,12 @@ public:
     int Zerocoin_DefaultSpendSecurity() const { return nDefaultSecurityLevel; }
     int Zerocoin_RequiredStakeDepth() const { return nZerocoinRequiredStakeDepth; }
 
+    /** Consensus params **/
     int LAST_POW_BLOCK() const { return nLastPOWBlock; }
     int HeightPoSStart() const { return nHeightPoSStart; }
     int KernelModulus() const { return nKernelModulus; }
     int CoinbaseMaturity() const { return nCoinbaseMaturity; }
     int HeightSupplyCreationStop() const { return nHeightSupplyCreationStop; }
-
-    /**PoFN**/
     int ProofOfFullNodeRounds() const {return nProofOfFullNodeRounds; }
 
 protected:
@@ -143,6 +145,8 @@ protected:
     std::string bech32_hrp;
     std::string strNetworkID;
     uint32_t nBIP44ID;
+    uint32_t nRingCTAccount;
+    uint32_t nZerocoinAccount;
     CBlock genesis;
     std::vector<SeedSpec6> vFixedSeeds;
     bool fDefaultConsistencyChecks;

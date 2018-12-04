@@ -330,6 +330,14 @@ void CExtKey::SetSeed(const unsigned char *seed, unsigned int nSeedLen)
     memset(vchFingerprint, 0, sizeof(vchFingerprint));
 };
 
+void CExtKey::SetSeedFromKeys(const CKey& key1, const CKey& key2)
+{
+    std::vector<unsigned char> vch(64);
+    memcpy(vch.data(), key1.begin(), key1.size());
+    memcpy(vch.data()+32, key2.begin(), key2.size());
+    SetSeed(vch.data(), vch.size());
+}
+
 int CExtKey::SetKeyCode(const unsigned char *pkey, const unsigned char *pcode)
 {
     key.Set(pkey, true);

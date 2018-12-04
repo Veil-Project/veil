@@ -209,8 +209,13 @@ bool validate_mnemonic(const word_list& mnemonic, const dictionary_list& lexicon
 long_hash decode_mnemonic(const word_list& mnemonic)
 {
     const auto sentence = boost::join(mnemonic, " ");
+    return decode_mnemonic(sentence);
+}
+
+long_hash decode_mnemonic(const std::string& mnemonic)
+{
     const std::string salt(passphrase_prefix);
-    return pkcs5_pbkdf2_hmac_sha512(to_chunk(sentence), to_chunk(salt),
+    return pkcs5_pbkdf2_hmac_sha512(to_chunk(mnemonic), to_chunk(salt),
                                     hmac_iterations);
 }
 

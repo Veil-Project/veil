@@ -10,6 +10,8 @@
 #include <util.h>
 #include <utilstrencodings.h>
 #include <test/test_veil.h>
+#include <veil/mnemonic/mnemonic.h>
+#include <veil/mnemonic/arrayslice.h>
 
 #include <string>
 #include <vector>
@@ -87,6 +89,14 @@ TestVector test3 =
      "xprv9uPDJpEQgRQfDcW7BkF7eTya6RPxXeJCqCJGHuCJ4GiRVLzkTXBAJMu2qaMWPrS7AANYqdq6vcBcBUdJCVVFceUvJFjaPdGZ2y9WACViL4L",
       0);
 
+
+//template <typename Source>
+//data_chunk make_chunk(const Source& bytes)
+//{
+//    return data_chunk(std::begin(bytes), std::end(bytes));
+//}
+
+
 static void RunTest(const TestVector &test) {
     std::vector<unsigned char> seed = ParseHex(test.strHexMaster);
     CExtKey key;
@@ -135,6 +145,90 @@ static void RunTest(const TestVector &test) {
         BOOST_CHECK(pubCheck == pubkeyNew);
         BOOST_CHECK(privCheck == keyNew);
     }
+//
+//    std::string passphrase = "mnemonic";
+//    std::string strMnemonic = "enrich truck hurt draft mask frost kick struggle jump cave purse pave cave auto penalty february west balcony bid please bag cattle aim audit";
+//    auto hash = pkcs5_pbkdf2_hmac_sha512(make_chunk(strMnemonic), make_chunk(passphrase), 2048);
+//    std::cout << "fullhash: " << HexStr(hash) << std::endl;
+//
+//    uint256 priv1;
+//    uint256 priv2;
+//    memcpy(priv1.begin(), hash.begin(), 32);
+//    memcpy(priv2.begin(), hash.begin()+32, 32);
+//
+//    std::cout << "hash1: " << priv1.GetHex() << std::endl;
+//    std::cout << "hash2: " << priv2.GetHex() << std::endl;
+//
+//    uint512 hashSeed;
+//    memcpy(hashSeed.begin(), hash.data(), hash.size());
+//
+//    CKey key1;
+//    key1.Set(hashSeed.begin(), hashSeed.begin()+32, false);
+//    CKey key2;
+//    key2.Set(hashSeed.begin()+32, hashSeed.begin()+64, false);
+//
+//    std::cout << "key1: " << key1.GetPrivKey_256() << std::endl;
+//    std::cout << "key22: " << key2.GetPrivKey_256() << std::endl;
+//
+//    std::vector<unsigned char> vchFullKey(64);
+//    memcpy(vchFullKey.data(), priv1.begin(), 32);
+//    memcpy(vchFullKey.data()+32, priv2.begin(), 32);
+//    std::cout << "reconstructed: " << HexStr(vchFullKey) << std::endl;
+//    CExtKey keyMaster;
+//    keyMaster.SetSeed(hash.data(), hash.size());
+//    std::vector<unsigned char> vch;
+//    for (int i = 0; i < 32; i++)
+//        vch.emplace_back(keyMaster.chaincode[i]);
+//
+//    uint32_t nPurpose = 0x8000002C;
+//
+//    std::cout << "chaincode: " << HexStr(vch) << std::endl;
+//    std::cout << "masterprivkey1: " << keyMaster.key.GetPrivKey_256().GetHex() << std::endl;
+//
+//    CExtKey keyMaster2;
+//    keyMaster2.SetSeedFromKeys(key1, key2);
+//    std::cout << "masterprivkey2: " << keyMaster2.key.GetPrivKey_256().GetHex() << std::endl;
+//
+//    uint32_t harden = 0x80000000;
+//    uint32_t coin_code = 0x80000001;
+//
+//    CExtKey keyPurpose;
+//    keyMaster.Derive(keyPurpose, nPurpose | harden);
+//
+//    CExtKey keyBitcoin;
+//    keyPurpose.Derive(keyBitcoin, coin_code);
+
+//    std::cout << "m/44'/1' pubkey: " << HexStr(keyBitcoin.key.GetPubKey()) << std::endl;
+//    std::cout << "m/44/0 privkey:: " << keyBitcoin.key.GetPrivKey_256().GetHex() << std::endl;
+//
+//    CExtKey keyAccount;
+//    keyBitcoin.Derive(keyAccount, 0 | harden);
+//
+//    std::cout << "m/44'/1'/0' pubkey: " << HexStr(keyAccount.key.GetPubKey()) << std::endl;
+//    std::cout << "m/44/0/0  privkey: " << keyAccount.key.GetPrivKey_256().GetHex() << std::endl;
+//
+//    CExtKey keyChild;
+//    keyAccount.Derive(keyChild, 0);
+//
+//    std::cout << "m/44'/1'/0'/0 pubkey: " << HexStr(keyChild.key.GetPubKey()) << std::endl;
+//    std::cout << "m/44/0/0/0  privkey: " << keyChild.key.GetPrivKey_256().GetHex() << std::endl;
+//
+//
+//    CExtKey keyFinal;
+//    keyChild.Derive(keyFinal, 0);
+//    std::cout << "m/44'/1'/0'/0/0 pubkey: " << HexStr(keyFinal.key.GetPubKey()) << std::endl;
+//    std::cout << "m/44/0/0/0  privkey: " << keyFinal.key.GetPrivKey_256().GetHex() << std::endl;
+
+//    BIP32Path path;
+//    path.emplace_back(std::make_pair(nPurpose, true));
+//    path.emplace_back(std::make_pair(coin_code, false));
+//    path.emplace_back(std::make_pair(0, true));
+//    path.emplace_back(std::make_pair(0, false));
+//    path.emplace_back(std::make_pair(1, false));
+//
+//    CExtKey keyTest = GetExtKey(keyMaster, path);
+  //  std::cout << "m/44/0/0/0  pubkey: " << HexStr(keyTest.key.GetPubKey()) << std::endl;
+   // std::cout << "m/44/0/0/0  privkey: " << keyTest.key.GetPrivKey_256().GetHex() << std::endl;
 }
 
 BOOST_FIXTURE_TEST_SUITE(bip32_tests, BasicTestingSetup)

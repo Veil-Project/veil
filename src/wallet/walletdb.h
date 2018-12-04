@@ -65,6 +65,7 @@ public:
     uint32_t nExternalChainCounter;
     uint32_t nInternalChainCounter;
     CKeyID seed_id; //!< seed hash160
+    CKeyID seed_id_r; //!< seed hash160 if the wallet uses 512bit seed saved to two keys
 
     static const int VERSION_HD_BASE        = 1;
     static const int VERSION_HD_CHAIN_SPLIT = 2;
@@ -79,6 +80,7 @@ public:
         READWRITE(this->nVersion);
         READWRITE(nExternalChainCounter);
         READWRITE(seed_id);
+        READWRITE(seed_id_r);
         if (this->nVersion >= VERSION_HD_CHAIN_SPLIT)
             READWRITE(nInternalChainCounter);
     }
@@ -89,7 +91,10 @@ public:
         nExternalChainCounter = 0;
         nInternalChainCounter = 0;
         seed_id.SetNull();
+        seed_id_r.SetNull();
     }
+
+    bool Is512BitSeed() const { return !seed_id_r.IsNull(); }
 };
 
 class CKeyMetadata
@@ -102,6 +107,7 @@ public:
     int64_t nCreateTime; // 0 means unknown
     std::string hdKeypath; //optional HD/bip32 keypath
     CKeyID hd_seed_id; //id of the HD seed used to derive this key
+    CKeyID hd_seed_id_r; //if the key is derived using 512 bit seed, two keys are needed
 
     CKeyMetadata()
     {
@@ -123,6 +129,7 @@ public:
         {
             READWRITE(hdKeypath);
             READWRITE(hd_seed_id);
+            READWRITE(hd_seed_id_r);
         }
     }
 
@@ -132,7 +139,10 @@ public:
         nCreateTime = 0;
         hdKeypath.clear();
         hd_seed_id.SetNull();
+        hd_seed_id_r.SetNull();
     }
+
+    bool UsesTwoSeeds() const { return !hd_seed_id_r.IsNull(); }
 };
 
 /** Access to the wallet database.

@@ -10,7 +10,7 @@
 
 #include <QWidget>
 #include <QDialog>
-#include <pubkey.h>
+#include <uint256.h>
 
 namespace Ui {
 class TutorialWidget;
@@ -27,7 +27,7 @@ public:
     MnemonicWalletInitFlags GetSelection() const { return selection; }
     void SetLanguageSelection(QString strLanguage) { this->strLanguageSelection = strLanguage; }
     std::string GetLanguageSelection() const;
-    CPubKey GetSeed() const { return pkSeed; }
+    uint512 GetSeed() const { return seed; }
     std::string GetMnemonic() const {return mnemonic; }
 
 private Q_SLOTS:
@@ -49,7 +49,7 @@ private:
     TutorialCreateWalletWidget *tutorialCreateWallet;
 
     QString strLanguageSelection;
-    CPubKey pkSeed;
+    uint512 seed;
     std::string mnemonic;
 
     void loadLeftContainer(QString imgPath, QString topMessage,  QString bottomMessage);
