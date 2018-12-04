@@ -288,6 +288,7 @@ void RandomizeSecurityLevel(int& nSecurityLevel)
 //Compute how many coins were added to an accumulator up to the end height
 int ComputeAccumulatedCoins(int nHeightEnd, libzerocoin::CoinDenomination denom)
 {
+    LOCK(cs_main);
     CBlockIndex* pindex = chainActive[GetZerocoinStartHeight()];
     int n = 0;
     while (pindex->nHeight < nHeightEnd) {
@@ -302,29 +303,34 @@ int AddBlockMintsToAccumulator(const libzerocoin::PublicCoin& coin, const int nH
                            libzerocoin::Accumulator* accumulator, bool isWitness)
 {
     // if this block contains mints of the denomination that is being spent, then add them to the witness
+    if (!pindex->MintedDenomination(coin.getDenomination()))
+        return 0;
+
     int nMintsAdded = 0;
-    if (pindex->MintedDenomination(coin.getDenomination())) {
+    int nHeight = pindex->nHeight;
+    list<PublicCoin> listPubcoins;
+    //Do not keep cs_main locked during modular exponentiation (unless this is already locked from the validation)
+    {
+        LOCK(cs_main);
         //grab mints from this block
         CBlock block;
-        if(!ReadBlockFromDisk(block, pindex, Params().GetConsensus()))
+        if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus()))
             return error("%s: failed to read block from disk while adding pubcoins to witness", __func__);
 
-        list<PublicCoin> listPubcoins;
-
-        if(!BlockToPubcoinList(block, listPubcoins))
+        if (!BlockToPubcoinList(block, listPubcoins))
             return error("%s: failed to get zerocoin mintlist from block %n\n", __func__, pindex->nHeight);
+    }
 
-        //add the mints to the witness
-        for (const PublicCoin& pubcoin : listPubcoins) {
-            if (pubcoin.getDenomination() != coin.getDenomination())
-                continue;
+    //add the mints to the witness
+    for (const PublicCoin& pubcoin : listPubcoins) {
+        if (pubcoin.getDenomination() != coin.getDenomination())
+            continue;
 
-            if (isWitness && pindex->nHeight == nHeightMintAdded && pubcoin.getValue() == coin.getValue())
-                continue;
+        if (isWitness && nHeight == nHeightMintAdded && pubcoin.getValue() == coin.getValue())
+            continue;
 
-            accumulator->increment(pubcoin.getValue());
-            ++nMintsAdded;
-        }
+        accumulator->increment(pubcoin.getValue());
+        ++nMintsAdded;
     }
 
     return nMintsAdded;
@@ -344,58 +350,51 @@ bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator
         int nSecurityLevel, int& nMintsAdded, string& strError, CBlockIndex* pindexCheckpoint)
 {
     LogPrintf("%s: generating\n", __func__);
-    int nLockAttempts = 0;
-    while (nLockAttempts < 100) {
-        TRY_LOCK(cs_main, lockMain);
-        if(!lockMain) {
-            MilliSleep(50);
-            nLockAttempts++;
-            continue;
+    CBlockIndex* pindex = nullptr;
+    CBigNum bnAccValue = 0;
+    int nAccStartHeight = 0;
+    int nHeightStop = 0;
+    int nHeightMintAdded = 0;
+    {
+        LOCK(cs_main);
+
+        uint256 txid;
+        if (!pzerocoinDB->ReadCoinMint(coin.getValue(), txid))
+            return error("%s failed to read mint from db", __func__);
+
+        CTransactionRef txMinted;
+        uint256 hashBlock;
+        if (!GetTransaction(txid, txMinted, Params().GetConsensus(), hashBlock, true))
+            return error("%s failed to read tx %s", __func__, txid.GetHex());
+
+        int nHeightTest;
+        if (!IsBlockHashInChain(hashBlock, nHeightTest))
+            return error("%s: mint tx %s is not in chain", __func__, txid.GetHex());
+
+        nHeightMintAdded = mapBlockIndex[hashBlock]->nHeight;
+
+        //get the checkpoint added at the next multiple of 10
+        int nHeightCheckpoint = nHeightMintAdded + (10 - (nHeightMintAdded % 10));
+
+        //the height to start accumulating coins to add to witness
+        int nAccStartHeight = nHeightMintAdded - (nHeightMintAdded % 10);
+
+        //Get the accumulator that is right before the cluster of blocks containing our mint was added to the accumulator
+        if (GetAccumulatorValue(nHeightCheckpoint, coin.getDenomination(), bnAccValue)) {
+            accumulator.setValue(bnAccValue);
+            witness.resetValue(accumulator, coin);
         }
 
-        break;
+        //add the pubcoins from the blockchain up to the next checksum starting from the block
+        pindex = chainActive[nHeightCheckpoint - 10];
+        int nChainHeight = chainActive.Height();
+        nHeightStop = nChainHeight % 10;
+        nHeightStop = nChainHeight - nHeightStop - 20; // at least two checkpoints deep
+
+        //If looking for a specific checkpoint
+        if (pindexCheckpoint)
+            nHeightStop = pindexCheckpoint->nHeight - 10;
     }
-    if (nLockAttempts == 100)
-        return error("%s: could not get lock on cs_main", __func__);
-
-    uint256 txid;
-    if (!pzerocoinDB->ReadCoinMint(coin.getValue(), txid))
-        return error("%s failed to read mint from db", __func__);
-
-    CTransactionRef txMinted;
-    uint256 hashBlock;
-    if (!GetTransaction(txid, txMinted, Params().GetConsensus(), hashBlock, true))
-        return error("%s failed to read tx %s", __func__, txid.GetHex());
-
-    int nHeightTest;
-    if (!IsBlockHashInChain(hashBlock, nHeightTest))
-        return error("%s: mint tx %s is not in chain", __func__, txid.GetHex());
-
-    int nHeightMintAdded = mapBlockIndex[hashBlock]->nHeight;
-
-    //get the checkpoint added at the next multiple of 10
-    int nHeightCheckpoint = nHeightMintAdded + (10 - (nHeightMintAdded % 10));
-
-    //the height to start accumulating coins to add to witness
-    int nAccStartHeight = nHeightMintAdded - (nHeightMintAdded % 10);
-
-    //Get the accumulator that is right before the cluster of blocks containing our mint was added to the accumulator
-    CBigNum bnAccValue = 0;
-    if (GetAccumulatorValue(nHeightCheckpoint, coin.getDenomination(), bnAccValue)) {
-        accumulator.setValue(bnAccValue);
-        witness.resetValue(accumulator, coin);
-    }
-
-    //add the pubcoins from the blockchain up to the next checksum starting from the block
-    CBlockIndex* pindex = chainActive[nHeightCheckpoint - 10];
-    int nChainHeight = chainActive.Height();
-    int nHeightStop = nChainHeight % 10;
-    nHeightStop = nChainHeight - nHeightStop - 20; // at least two checkpoints deep
-
-    //If looking for a specific checkpoint
-    if (pindexCheckpoint)
-        nHeightStop = pindexCheckpoint->nHeight - 10;
-
     //Iterate through the chain and calculate the witness
     int nCheckpointsAdded = 0;
     nMintsAdded = 0;
@@ -403,22 +402,28 @@ bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator
     libzerocoin::Accumulator witnessAccumulator = accumulator;
 
     while (pindex) {
-        if (pindex->nHeight != nAccStartHeight && pindex->pprev->mapAccumulatorHashes != pindex->mapAccumulatorHashes)
-            ++nCheckpointsAdded;
+        {
+            LOCK(cs_main);
+            if (pindex->nHeight != nAccStartHeight &&
+                pindex->pprev->mapAccumulatorHashes != pindex->mapAccumulatorHashes)
+                ++nCheckpointsAdded;
 
-        //If the security level is satisfied, or the stop height is reached, then initialize the accumulator from here
-        bool fSecurityLevelSatisfied = (nSecurityLevel != 100 && nCheckpointsAdded >= nSecurityLevel);
-        if (pindex->nHeight >= nHeightStop || fSecurityLevelSatisfied) {
+            //If the security level is satisfied, or the stop height is reached, then initialize the accumulator from here
+            bool fSecurityLevelSatisfied = (nSecurityLevel != 100 && nCheckpointsAdded >= nSecurityLevel);
+            if (pindex->nHeight >= nHeightStop || fSecurityLevelSatisfied) {
 
-            bnAccValue = 0;
-            uint256 nCheckpointSpend = chainActive[pindex->nHeight + 10]->GetAccumulatorHash(coin.getDenomination());
-            if (!GetAccumulatorValueFromDB(nCheckpointSpend, coin.getDenomination(), bnAccValue) || bnAccValue == 0)
-                return error("%s : failed to find checksum in database for accumulator", __func__);
+                bnAccValue = 0;
+                uint256 nCheckpointSpend = chainActive[pindex->nHeight + 10]->GetAccumulatorHash(
+                        coin.getDenomination());
+                if (!GetAccumulatorValueFromDB(nCheckpointSpend, coin.getDenomination(), bnAccValue) || bnAccValue == 0)
+                    return error("%s : failed to find checksum in database for accumulator", __func__);
 
-            accumulator.setValue(bnAccValue);
-            break;
+                accumulator.setValue(bnAccValue);
+                break;
+            }
         }
 
+        //Do not lock cs_main here so that computation does not leave everything else bound up
         nMintsAdded += AddBlockMintsToAccumulator(coin, nHeightMintAdded, pindex, &witnessAccumulator, true);
         pindex = chainActive.Next(pindex);
     }
