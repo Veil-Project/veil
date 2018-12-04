@@ -1,7 +1,3 @@
-//
-// Created by digitalstorm on 10/25/18.
-//
-
 #ifndef VEIL_BLIND_H
 #define VEIL_BLIND_H
 
