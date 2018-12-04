@@ -51,6 +51,7 @@
 #include <veil/budget.h>
 #include <veil/zerocoin/zchain.h>
 #include <veil/proofofstake/kernel.h>
+#include <veil/ringct/blind.h>
 
 #include <wallet/wallet.h>
 
@@ -2246,8 +2247,34 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         CAmount txfee = 0;
         CAmount nTxValueIn = 0;
         CAmount nTxValueOut = 0;
-        if (tx.IsCoinBase()) {
+        if (tx.IsCoinBase() && !tx.HasBlindedValues()) {
             nTxValueOut += tx.GetValueOut();
+        } else if (tx.IsCoinBase()) {
+            // Check tx with blinded values
+            for (auto& pout : tx.vpout) {
+                // Check non-blind txouts
+                if (!(pout->IsType(OUTPUT_CT) || pout->IsType(OUTPUT_RINGCT))) {
+                    if (!pout->IsType(OUTPUT_STANDARD)) {
+                        return state.DoS(100, error("ConnectBlock(): invalid txout type in coinbase\n",
+                                                    REJECT_INVALID, "bad-cb-txout"));
+                    } else {
+                        nTxValueOut += pout->GetValue();
+                        continue;
+                    }
+                }
+
+                if (pout->IsType(OUTPUT_RINGCT))
+                    state.fHasAnonOutput = true;
+
+                // Use max values in range proofs, so we know the max value out
+                int nExponent, nMantissa;
+                CAmount nMin, nMax;
+                if (GetRangeProofInfo(*(pout->GetPRangeproof()), nExponent, nMantissa, nMin, nMax) != 0)
+                    return state.DoS(100, error("ConnectBlock(): couldn't get range proof info\n",
+                                                REJECT_INVALID, "bad-range-proof"));
+                else
+                    nTxValueOut += nMax;
+            }
         } else {
             if (tx.IsZerocoinSpend()) {
                 int nHeightTx = 0;
@@ -2462,6 +2489,39 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     // Check that the block's miner did not create more coins than allowed
     CAmount nCreated = nBlockValueOut - nBlockValueIn;
+
+    // Check change doesn't exceed fees and that only PoFN blocks have blind txouts
+    if ((block.fProofOfFullNode || block.hashPoFN != uint256()) && block.vtx[1]->HasBlindedValues()) {
+        // This should consist only of block fees, so it should be <= nFees
+        CAmount nBlindFeePayout = 0;
+        for (auto& pout : block.vtx[1]->vpout) {
+            // Check that the max value doesn't exceed the creation limit, so we can
+            // be sure the block doesn't generate generate more than it should
+            if (!(pout->IsType(OUTPUT_CT) || pout->IsType(OUTPUT_RINGCT)))
+                continue;
+
+            if (pout->IsType(OUTPUT_RINGCT))
+                state.fHasAnonOutput = true;
+
+            int nExponent, nMantissa;
+            CAmount nMin, nMax;
+            if (GetRangeProofInfo(*(pout->GetPRangeproof()), nExponent, nMantissa, nMin, nMax) != 0)
+                return state.DoS(100, error("ConnectBlock(): couldn't get range proof info\n",
+                                            REJECT_INVALID, "bad-range-proof"));
+            else {
+                nCreated += nMax;
+                nBlindFeePayout += nMax;
+            }
+        }
+
+        if (nBlindFeePayout > nFees)
+            return state.DoS(100, error("ConnectBlock(): blind fee payout is too large\n",
+                                        REJECT_INVALID, "bad-cs-amount"));
+    } else if (block.IsProofOfStake() && block.vtx[1]->HasBlindedValues()) {
+        return state.DoS(100, error("ConnectBlock(): coinstake without proof of full node has blinded values\n",
+                                    REJECT_INVALID, "bad-cs-txout"));
+    }
+
     if (nCreated > nCreationLimit) {
         LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__, FormatMoney(nBlockReward),
                 FormatMoney(networkReward), FormatMoney(nFounderPayment), FormatMoney(nBudgetPayment),
