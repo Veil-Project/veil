@@ -13,6 +13,11 @@
   <property name="windowTitle">
    <string>Coin Selection</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">background-color:white;
+color:#707070;
+font-size:13.5px;</string>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <layout class="QHBoxLayout" name="horizontalLayoutTop" stretch="0,0,0,0">
@@ -472,6 +477,20 @@
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">QPushButton{
+border-radius: 6px;
+color: #FFFFFF;
+font-size: 16px;
+background-color:#105aef;
+line-height:10px;
+padding:8 20 8 20;
+}
+
+QPushButton:hover {
+background-color:#0e45b4;
+}</string>
      </property>
      <property name="orientation">
       <enum>Qt::Horizontal</enum>

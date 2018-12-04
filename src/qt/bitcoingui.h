@@ -67,6 +67,9 @@ public:
     */
     void setClientModel(ClientModel *clientModel);
 
+    /** Show debug window */
+    void showDebugWindow();
+
 #ifdef ENABLE_WALLET
     /** Set the wallet model.
         The wallet model represents a veil wallet, and offers access to the list of transactions, address book and sending
@@ -280,8 +283,6 @@ private Q_SLOTS:
     void optionsClicked();
     /** Show about dialog */
     void aboutClicked();
-    /** Show debug window */
-    void showDebugWindow();
     /** Show debug window and set focus to the console */
     void showDebugWindowActivateConsole();
     /** Show help message dialog */

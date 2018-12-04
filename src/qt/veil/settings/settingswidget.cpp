@@ -120,9 +120,7 @@ void SettingsWidget::onFaqClicked(){
 
 void SettingsWidget::onAdvanceClicked(){
     try {
-        mainWindow->getGUI()->showHide(true);
-        SettingsAdvance *dialog = new SettingsAdvance(mainWindow->getGUI());
-        openDialogWithOpaqueBackgroundFullScreen(dialog, mainWindow->getGUI());
+        mainWindow->getGUI()->showDebugWindow();
     } catch (std::exception e) {
         qDebug() << e.what();
     }

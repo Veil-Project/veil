@@ -145,3 +145,4 @@ moc_*
 *.includes
 ui_*
 CMakeLists.txt
+*.moc
