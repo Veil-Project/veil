@@ -149,9 +149,10 @@ public:
         READWRITE(mapAccumulatorHashes);
         READWRITE(hashMerkleRoot);
         READWRITE(hashWitnessMerkleRoot);
-        READWRITE(hashPoFN);
-        if (IsProofOfStake())
+        if (IsProofOfStake()) {
+            READWRITE(hashPoFN);
             READWRITE(vchBlockSig);
+        }
     }
 
     void SetNull()
