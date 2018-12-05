@@ -1,5 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2018 The PIVX developers
+// Copyright (c) 2018 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -64,6 +66,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/filesystem.hpp>
 #include <boost/bind.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/thread.hpp>
@@ -399,6 +402,7 @@ void SetupServerArgs()
             "(default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=%u = automatically prune block files to stay under the specified target size in MiB)", MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024), false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-resync", "Delete blockchain folders and resync from scratch", false, OptionsCategory::OPTIONS);
 #ifndef WIN32
     gArgs.AddArg("-sysperms", "Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)", false, OptionsCategory::OPTIONS);
 #else
@@ -1431,6 +1435,42 @@ bool AppInitMain()
     }
 
     // ********************************************************* Step 7: load block chain
+
+    // If user wants to resync, delete blockchain data
+    if (gArgs.GetArg("-resync", false)) {
+        uiInterface.InitMessage(_("Preparing for resync..."));
+        // Delete the local blockchain folders to force a resync from scratch to get a consitent blockchain-state
+        boost::filesystem::path blocksDir = GetDataDir() / "blocks";
+        boost::filesystem::path chainstateDir = GetDataDir() / "chainstate";
+        boost::filesystem::path txindexdir = GetDataDir() / "indexes";
+        boost::filesystem::path zerocoinDir = GetDataDir() / "zerocoin";
+
+        LogPrintf("Deleting blockchain folders blocks, chainstate, sporks and zerocoin\n");
+        // We delete in 4 individual steps in case one of the folder is missing already
+        try {
+            if (boost::filesystem::exists(blocksDir)){
+                boost::filesystem::remove_all(blocksDir);
+                LogPrintf("-resync: folder deleted: %s\n", blocksDir.string().c_str());
+            }
+
+            if (boost::filesystem::exists(chainstateDir)){
+                boost::filesystem::remove_all(chainstateDir);
+                LogPrintf("-resync: folder deleted: %s\n", chainstateDir.string().c_str());
+            }
+
+            if (boost::filesystem::exists(txindexdir)){
+                boost::filesystem::remove_all(txindexdir);
+                LogPrintf("-resync: folder deleted: %s\n", txindexdir.string().c_str());
+            }
+
+            if (boost::filesystem::exists(zerocoinDir)){
+                boost::filesystem::remove_all(zerocoinDir);
+                LogPrintf("-resync: folder deleted: %s\n", zerocoinDir.string().c_str());
+            }
+        } catch (boost::filesystem::filesystem_error& error) {
+            LogPrintf("Failed to delete blockchain folders %s\n", error.what());
+        }
+    }
 
     fReindex = gArgs.GetBoolArg("-reindex", false);
     bool fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
