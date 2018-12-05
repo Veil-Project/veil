@@ -4223,8 +4223,8 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     if (!AcceptBlockHeader(block, state, chainparams, &pindex, block.fProofOfStake, block.fProofOfFullNode))
         return error("%s: AcceptBlockHeader failed for block %s", __func__, block.GetHash().GetHex());
 
-    //! Validate Proof of Stake
-    if (block.fProofOfStake) {
+    //! Validate Proof of Stake (skip if a reindex is in progress)
+    if (!fReindex && block.fProofOfStake) {
         if (!block.IsProofOfStake())
             return state.DoS(100, error("%s: Blockheader marked as PoS but block is not PoS", __func__));
         
