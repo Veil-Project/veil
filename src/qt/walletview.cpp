@@ -19,6 +19,8 @@
 #include <qt/transactionview.h>
 #include <qt/walletmodel.h>
 
+#include <qt/veil/qtutils.h>
+
 #include <interfaces/node.h>
 #include <ui_interface.h>
 
@@ -262,9 +264,12 @@ void WalletView::encryptWallet(bool status)
 {
     if(!walletModel)
         return;
-    AskPassphraseDialog dlg(status ? AskPassphraseDialog::Encrypt : AskPassphraseDialog::Decrypt, this);
-    dlg.setModel(walletModel);
-    dlg.exec();
+
+    gui->showHide(true);
+    AskPassphraseDialog *dlg = new AskPassphraseDialog(status ? AskPassphraseDialog::Encrypt : AskPassphraseDialog::Decrypt, gui);
+    dlg->setModel(walletModel);
+
+    openDialogWithOpaqueBackground(dlg, gui, 4);
 
     updateEncryptionStatus();
 }
@@ -290,9 +295,11 @@ void WalletView::backupWallet()
 
 void WalletView::changePassphrase()
 {
-    AskPassphraseDialog dlg(AskPassphraseDialog::ChangePass, this);
-    dlg.setModel(walletModel);
-    dlg.exec();
+
+    gui->showHide(true);
+    AskPassphraseDialog *dlg = new AskPassphraseDialog(AskPassphraseDialog::ChangePass, gui);
+    dlg->setModel(walletModel);
+    openDialogWithOpaqueBackground(dlg, gui, 4);
 }
 
 void WalletView::unlockWallet()
@@ -302,9 +309,10 @@ void WalletView::unlockWallet()
     // Unlock wallet when requested by wallet model
     if (walletModel->getEncryptionStatus() == WalletModel::Locked)
     {
-        AskPassphraseDialog dlg(AskPassphraseDialog::Unlock, this);
-        dlg.setModel(walletModel);
-        dlg.exec();
+        gui->showHide(true);
+        AskPassphraseDialog *dlg = new AskPassphraseDialog(AskPassphraseDialog::Unlock, gui);
+        dlg->setModel(walletModel);
+        openDialogWithOpaqueBackground(dlg, gui, 4);
     }
 }
 

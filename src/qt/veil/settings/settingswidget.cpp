@@ -69,12 +69,12 @@ SettingsWidget::SettingsWidget(WalletView *parent) :
 
     //Network
     //ui->btnNetwork
-    ui->btnNetwork->setProperty("cssClass" , "btn-text-settings");
-    connect(ui->btnNetwork,SIGNAL(clicked()),this,SLOT(onNetworkClicked()));
+    //ui->btnNetwork->setProperty("cssClass" , "btn-text-settings");
+    //connect(ui->btnNetwork,SIGNAL(clicked()),this,SLOT(onNetworkClicked()));
 
     //Display
     //ui->btnDisplay
-    ui->btnDisplay->setProperty("cssClass" , "btn-text-settings");
+    //ui->btnDisplay->setProperty("cssClass" , "btn-text-settings");
     //connect(ui->btnBackup,SIGNAL(clicked()),this,SLOT(onBackupClicked()));
 
     //Reset Options
@@ -140,9 +140,10 @@ void SettingsWidget::onResetOptionClicked(){
 
 void SettingsWidget::onPreferenceClicked(){
     try {
-        mainWindow->getGUI()->showHide(true);
-        SettingsPreferences *dialog = new SettingsPreferences(mainWindow->getGUI());
-        openDialogWithOpaqueBackground(dialog, mainWindow->getGUI());
+        mainWindow->getGUI()->optionsClicked();
+        //mainWindow->getGUI()->showHide(true);
+        //SettingsPreferences *dialog = new SettingsPreferences();
+        //openDialogWithOpaqueBackground(dialog, mainWindow->getGUI());
     } catch (std::exception e) {
         qDebug() << e.what();
     }
@@ -150,9 +151,10 @@ void SettingsWidget::onPreferenceClicked(){
 
 void SettingsWidget::onBackupClicked(){
     try {
-        mainWindow->getGUI()->showHide(true);
-        SettingsBackup *dialog = new SettingsBackup(mainWindow->getGUI());
-        openDialogWithOpaqueBackground(dialog, mainWindow->getGUI());
+        mainWindow->backupWallet();
+        //mainWindow->getGUI()->showHide(true);
+        //SettingsBackup *dialog = new SettingsBackup(mainWindow->getGUI());
+        //openDialogWithOpaqueBackground(dialog, mainWindow->getGUI());
     } catch (std::exception e) {
         qDebug() << e.what();
     }
@@ -191,10 +193,7 @@ void SettingsWidget::onNetworkClicked(){
 
 void SettingsWidget::onChangePasswordClicked(){
     try {
-        mainWindow->getGUI()->showHide(true);
-        SettingsChangePassword *dialog = new SettingsChangePassword(mainWindow->getGUI());
-        openDialogWithOpaqueBackground(dialog, mainWindow->getGUI());
-        dialog->activateWindow();
+        mainWindow->changePassphrase();
     } catch (std::exception e) {
         qDebug() << e.what();
     }

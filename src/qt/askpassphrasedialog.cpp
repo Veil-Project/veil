@@ -27,6 +27,21 @@ AskPassphraseDialog::AskPassphraseDialog(Mode _mode, QWidget *parent) :
 {
     ui->setupUi(this);
 
+    ui->labelTitle->setProperty("cssClass" , "title-dialog");
+
+    ui->passEdit1->setPlaceholderText("Enter current password ");
+    ui->passEdit1->setAttribute(Qt::WA_MacShowFocusRect, 0);
+    ui->passEdit1->setProperty("cssClass" , "edit-primary");
+
+    ui->passEdit2->setPlaceholderText("Enter new password ");
+    ui->passEdit2->setAttribute(Qt::WA_MacShowFocusRect, 0);
+    ui->passEdit2->setProperty("cssClass" , "edit-primary");
+
+    ui->passEdit3->setPlaceholderText("Confirm password");
+    ui->passEdit3->setAttribute(Qt::WA_MacShowFocusRect, 0);
+    ui->passEdit3->setProperty("cssClass" , "edit-primary");
+
+
     ui->passEdit1->setMinimumSize(ui->passEdit1->sizeHint());
     ui->passEdit2->setMinimumSize(ui->passEdit2->sizeHint());
     ui->passEdit3->setMinimumSize(ui->passEdit3->sizeHint());
@@ -47,6 +62,7 @@ AskPassphraseDialog::AskPassphraseDialog(Mode _mode, QWidget *parent) :
             ui->passLabel1->hide();
             ui->passEdit1->hide();
             setWindowTitle(tr("Encrypt wallet"));
+            ui->labelTitle->setText(tr("Encrypt wallet"));
             break;
         case Unlock: // Ask passphrase
             ui->warningLabel->setText(tr("This operation needs your wallet passphrase to unlock the wallet."));
@@ -55,6 +71,7 @@ AskPassphraseDialog::AskPassphraseDialog(Mode _mode, QWidget *parent) :
             ui->passLabel3->hide();
             ui->passEdit3->hide();
             setWindowTitle(tr("Unlock wallet"));
+            ui->labelTitle->setText(tr("Unlock wallet"));
             break;
         case Decrypt:   // Ask passphrase
             ui->warningLabel->setText(tr("This operation needs your wallet passphrase to decrypt the wallet."));
@@ -63,9 +80,11 @@ AskPassphraseDialog::AskPassphraseDialog(Mode _mode, QWidget *parent) :
             ui->passLabel3->hide();
             ui->passEdit3->hide();
             setWindowTitle(tr("Decrypt wallet"));
+            ui->labelTitle->setText(tr("Decrypt wallet"));
             break;
         case ChangePass: // Ask old passphrase + new passphrase x2
             setWindowTitle(tr("Change passphrase"));
+            ui->labelTitle->setText(tr("Change passphrase"));
             ui->warningLabel->setText(tr("Enter the old passphrase and new passphrase to the wallet."));
             break;
     }
@@ -74,6 +93,13 @@ AskPassphraseDialog::AskPassphraseDialog(Mode _mode, QWidget *parent) :
     connect(ui->passEdit1, SIGNAL(textChanged(QString)), this, SLOT(textChanged()));
     connect(ui->passEdit2, SIGNAL(textChanged(QString)), this, SLOT(textChanged()));
     connect(ui->passEdit3, SIGNAL(textChanged(QString)), this, SLOT(textChanged()));
+
+    // Buttons.
+    ui->btnSave->setProperty("cssClass" , "btn-text-primary");
+    ui->btnEsc->setProperty("cssClass" , "btn-text-primary-inactive");
+    ui->btnSave->setEnabled(false);
+    connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(close()));
+    connect(ui->btnSave,SIGNAL(clicked()),this, SLOT(accept()));
 }
 
 AskPassphraseDialog::~AskPassphraseDialog()
@@ -215,7 +241,7 @@ void AskPassphraseDialog::textChanged()
         acceptable = !ui->passEdit1->text().isEmpty() && !ui->passEdit2->text().isEmpty() && !ui->passEdit3->text().isEmpty();
         break;
     }
-    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(acceptable);
+    ui->btnSave->setEnabled(acceptable);
 }
 
 bool AskPassphraseDialog::event(QEvent *event)

@@ -34,6 +34,12 @@
    </property>
    <item>
     <widget class="QFrame" name="frame">
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>320</height>
+      </size>
+     </property>
      <property name="autoFillBackground">
       <bool>false</bool>
      </property>
@@ -51,7 +57,10 @@
       <enum>QFrame::Raised</enum>
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
+      <property name="spacing">
+       <number>12</number>
+      </property>
+      <item alignment="Qt::AlignHCenter">
        <widget class="QLabel" name="labelTitle">
         <property name="maximumSize">
          <size>
@@ -86,56 +95,72 @@
         </property>
        </spacer>
       </item>
-      <item alignment="Qt::AlignHCenter">
-       <widget class="QPushButton" name="btnFolder">
-        <property name="minimumSize">
-         <size>
-          <width>300</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>300</width>
-          <height>16777215</height>
-         </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">padding:8;
-border:0;
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout">
+        <item>
+         <widget class="QPushButton" name="btnFolder">
+          <property name="minimumSize">
+           <size>
+            <width>300</width>
+            <height>35</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>300</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="layoutDirection">
+           <enum>Qt::RightToLeft</enum>
+          </property>
+          <property name="styleSheet">
+           <string notr="true">padding:8px;
+border:none;
 font-size:18px;
 border-bottom:1px solid #bababa;
-background-image: url(&quot;:/icons/ic-folder&quot;) ;
-background-repeat:no-repeat;
-background-position:right center;</string>
-        </property>
-        <property name="text">
-         <string>Select destination folder</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <spacer name="verticalSpacer">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>10</height>
-         </size>
-        </property>
-       </spacer>
+margin-left:20px;</string>
+          </property>
+          <property name="text">
+           <string>Select destination folder</string>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="pushButton">
+          <property name="styleSheet">
+           <string notr="true">background-color:transparent;
+border:none;</string>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset resource="../../veil.qrc">
+            <normaloff>:/icons/ic-folder-svg</normaloff>:/icons/ic-folder-svg</iconset>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>20</width>
+            <height>20</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item alignment="Qt::AlignHCenter">
        <widget class="QLineEdit" name="editPassword">
         <property name="minimumSize">
          <size>
           <width>300</width>
-          <height>0</height>
+          <height>30</height>
          </size>
         </property>
         <property name="maximumSize">
@@ -151,29 +176,13 @@ background-position:right center;</string>
          <set>Qt::AlignCenter</set>
         </property>
        </widget>
-      </item>
-      <item>
-       <spacer name="verticalSpacer_3">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>10</height>
-         </size>
-        </property>
-       </spacer>
       </item>
       <item alignment="Qt::AlignHCenter">
        <widget class="QLineEdit" name="editConfirm">
         <property name="minimumSize">
          <size>
           <width>300</width>
-          <height>0</height>
+          <height>30</height>
          </size>
         </property>
         <property name="maximumSize">
@@ -190,7 +199,7 @@ background-position:right center;</string>
         </property>
        </widget>
       </item>
-      <item>
+      <item alignment="Qt::AlignHCenter">
        <widget class="QLabel" name="errorMessage">
         <property name="styleSheet">
          <string notr="true">color:#fd1337;</string>
@@ -284,6 +293,8 @@ background-position:right center;</string>
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../veil.qrc"/>
+ </resources>
  <connections/>
 </ui>

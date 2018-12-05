@@ -669,6 +669,7 @@ RES_ICONS = \
   qt/res/icons/ic-copy.svg \
   qt/res/icons/ic-add-account.svg \
   qt/res/icons/ic-reset-options.svg \
+  qt/res/icons/ic-locked.svg \
   qt/res/icons/verify.png
 
 BITCOIN_QT_BASE_CPP = \

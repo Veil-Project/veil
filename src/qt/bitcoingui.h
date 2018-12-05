@@ -248,8 +248,15 @@ private:
 public Q_SLOTS:
     bool handlePaymentRequest(const SendCoinsRecipient& recipient);
 
+    /** Show configuration dialog */
+    void optionsClicked();
+
     /** Show incoming transaction notification for new transactions. */
     void incomingTransaction(const QString& date, int unit, const CAmount& amount, const QString& type, const QString& address, const QString& label, const QString& walletName);
+
+    /** Encrypt every wallet **/
+    void encryptWallet(bool encrypt);
+
 #endif // ENABLE_WALLET
 
 private:
@@ -279,8 +286,6 @@ private Q_SLOTS:
     /** Show open dialog */
     void openClicked();
 #endif // ENABLE_WALLET
-    /** Show configuration dialog */
-    void optionsClicked();
     /** Show about dialog */
     void aboutClicked();
     /** Show debug window and set focus to the console */

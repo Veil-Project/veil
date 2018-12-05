@@ -17,7 +17,7 @@ TutorialMnemonicRevealed::TutorialMnemonicRevealed(QWidget *parent) :
 
 
             label->setStyleSheet(
-                        "QLineEdit{border-bottom:1px solid #707070;background-color:#fff;padding-left:8px;padding-right:8px;padding-top:7px;padding-bottom:7px;margin:8px;}");
+                        "QLineEdit{border-bottom:1px solid #707070;background-color:#fff;margin-right:6px;margin-left:6px;padding-left:2px;padding-right:2px;padding-top:7px;padding-bottom:7px;margin:8px;}");
 
             // TODO: Complete this with the available words..
             QStringList wordList;

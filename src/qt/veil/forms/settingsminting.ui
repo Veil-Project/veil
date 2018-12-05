@@ -589,7 +589,7 @@ font-size:16px;</string>
 font-size:22px;</string>
                   </property>
                   <property name="text">
-                   <string>0 zVeil</string>
+                   <string>0.00 zVeil</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
@@ -649,7 +649,7 @@ font-size:16px;</string>
 font-size:22px;</string>
                   </property>
                   <property name="text">
-                   <string>50.738 Veil</string>
+                   <string>0.00 Veil</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>

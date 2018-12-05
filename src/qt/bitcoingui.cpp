@@ -610,6 +610,7 @@ bool BitcoinGUI::addWallet(WalletModel *walletModel)
 
     // only supports one wallet
     balance->setWalletModel(walletModel);
+    veilStatusBar->setWalletModel(walletModel);
 
     return walletFrame->addWallet(walletModel);
 }
@@ -1268,6 +1269,18 @@ void BitcoinGUI::setEncryptionStatus(int status)
         encryptWalletAction->setEnabled(false); // TODO: decrypt currently not supported
         break;
     }
+}
+
+void BitcoinGUI::encryptWallet(bool encrypt){
+    if (!walletFrame) {
+        return;
+    }
+    WalletView * const walletView = walletFrame->currentWalletView();
+    if (!walletView) {
+        return;
+    }
+    walletView->encryptWallet(encrypt);
+
 }
 
 void BitcoinGUI::updateWalletStatus()
