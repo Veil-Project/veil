@@ -5,6 +5,7 @@
 #include "veil/proofoffullnode/proofoffullnode.h"
 
 #include <random>
+#include <tinyformat.h>
 #include "arith_uint256.h"
 #include "consensus/merkle.h"
 #include "veil/proofofstake/kernel.h"
@@ -36,10 +37,11 @@ bool GenerateProofOfFullNodeVector(const uint256& hashUniqueToOwner, const uint2
     //Commit the owner to the previous block of the chain
     uint256 hashCommitToChain = Hash(hashUniqueToOwner.begin(), hashUniqueToOwner.end(), hashUniqueToBlock.begin(), hashUniqueToBlock.end());
     uint32_t nCommitNumber = UintToArith256(hashCommitToChain).GetLow32();
+    //LogPrintf("%s: hashCommitToChain=%s CommitNumber=%d\n", __func__, hashCommitToChain.GetHex(), nCommitNumber);
 
     // Use the commitment hash to get a random previous block in the chain
     uint32_t nHeightBlockCheck = nCommitNumber % pindexPrev->nHeight;
-
+    //LogPrintf("%s: nHeightBlockCheck=%d\n", __func__, nHeightBlockCheck);
     std::vector<uint256> vProofs;
     for (int i = 0; i < Params().ProofOfFullNodeRounds(); i++ ) {
         auto pindexCheck = pindexPrev->GetAncestor(nHeightBlockCheck);
@@ -58,19 +60,28 @@ bool GenerateProofOfFullNodeVector(const uint256& hashUniqueToOwner, const uint2
         for (auto& txin : txMutate.vin)
             txin.nSequence = nCommitNumber;
         uint256 hashMutatedTx = txMutate.GetHash();
+      //  LogPrintf("%s: hashMutatedTx=%s\n", __func__, hashMutatedTx.GetHex());
 
         // Strengthen commitment to owner, chain, and mutation
         uint256 seed = Hash(hashMutatedTx.begin(), hashMutatedTx.end(), hashCommitToChain.begin(), hashCommitToChain.end());
-
+        //LogPrintf("%s: seed=%s\n", __func__, seed.GetHex());
         // Use the seed to randomly shuffle the block's transactions and construct a mutated merkle root that contains mutated tx
-        std::default_random_engine rng(UintToArith256(seed).GetLow64());
         CTransaction tx(txMutate);
         block.vtx.emplace_back(MakeTransactionRef(tx));
-        std::shuffle(block.vtx.begin(), block.vtx.end(), rng);
+        auto vtxMutate = block.vtx;
+        vtxMutate.clear();
+        for (auto& t : block.vtx) {
+            if (t->GetHash() < seed)
+                vtxMutate.insert(vtxMutate.begin(), t);
+            else
+                vtxMutate.emplace_back(t);
+        }
+        block.vtx = vtxMutate;
 
         // Bind with mutated merkle root
         uint256 hashMutatedRoot = BlockMerkleRoot(block);
         hashMutatedRoot = Hash(hashMutatedRoot.begin(), hashMutatedRoot.end(), seed.begin(), seed.end());
+        //LogPrintf("%s: hashMutatedRoot=%s\n", __func__, hashMutatedRoot.GetHex());
         vProofs.emplace_back(hashMutatedRoot);
         nHeightBlockCheck = UintToArith256(hashMutatedRoot).GetLow32() % pindexPrev->nHeight;
     }
