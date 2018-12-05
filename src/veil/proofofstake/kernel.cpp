@@ -24,12 +24,14 @@ using namespace std;
 bool stakeTargetHit(arith_uint256 hashProofOfStake, int64_t nValueIn, arith_uint256 bnTargetPerCoinDay)
 {
     //get the stake weight - weight is equal to coin amount
-    arith_uint256 bnCoinDayWeight = arith_uint256(nValueIn);
-    CBigNum bnTarget(bnCoinDayWeight);
-    bnTarget = bnTarget * CBigNum(bnTargetPerCoinDay);
+    arith_uint256 bnTarget = arith_uint256(nValueIn) * bnTargetPerCoinDay;
+
+    //Double check for overflow, give max value if overflow
+    if (bnTargetPerCoinDay > bnTarget)
+        bnTarget = ~arith_uint256();
 
     // Now check if proof-of-stake hash meets target protocol
-    return hashProofOfStake < bnTarget.getarith_uint256();
+    return hashProofOfStake < bnTarget;
 }
 
 bool CheckStake(const CDataStream& ssUniqueID, CAmount nValueIn, const uint64_t nStakeModifier, const uint256& bnTarget,
