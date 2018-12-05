@@ -687,7 +687,7 @@ public:
             CReserveKey* reservekey, int64_t& nFeeRet, std::string& strFailReason, const CCoinControl* coinControl = NULL,
             const bool isZCSpendChange = false);
 
-    std::string MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
+    std::string MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints, bool fAllowBasecoin,
             const CCoinControl* coinControl = NULL) override;
 
     /**

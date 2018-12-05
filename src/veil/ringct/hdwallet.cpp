@@ -4822,7 +4822,7 @@ int CHDWallet::GetDefaultConfidentialChain(CHDWalletDB *pwdb, CExtKeyAccount *&s
 
 int CHDWallet::MakeDefaultAccount(CExtKey* extKeyMaster)
 {
-    WalletLogPrintf("Generating initial master key and account from random data.\n");
+    WalletLogPrintf("RingCTWallet: Generating initial master key and account from %s\n", extKeyMaster ? "mnemonic seed" : "random number generator");
 
     LOCK(cs_wallet);
     CHDWalletDB wdb(GetDBHandle(), "r+");
@@ -10019,11 +10019,11 @@ bool CHDWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLeve
     return true;
 }
 
-string CHDWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDeterministicMint>& vDMints, const CCoinControl* coinControl)
+string CHDWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDeterministicMint>& vDMints, bool fAllowBasecoin, const CCoinControl* coinControl)
 {
     // If not enough stealth inputs, then use basecoins
-    if (GetAnonBalance() < nValue)
-        return CWallet::MintZerocoin(nValue, wtxNew, vDMints, coinControl);
+    if (GetAnonBalance() < nValue && fAllowBasecoin)
+        return CWallet::MintZerocoin(nValue, wtxNew, vDMints, fAllowBasecoin, coinControl);
 
     // Check amount
     if (nValue <= 0)

@@ -34,13 +34,15 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
 
     UniValue params = request.params;
 
-    if (request.fHelp || params.size() < 1 || params.size() > 2)
+    if (request.fHelp || params.size() < 1 || params.size() > 3)
         throw std::runtime_error(
                 "mintzerocoin amount ( utxos )\n"
                 "\nMint the specified zerocoin amount\n"
                 "\nArguments:\n"
                 "1. amount      (numeric, required) Enter an amount of veil to convert to zerocoin\n"
-                "2. utxos       (string, optional) A json array of objects.\n"
+                "2. allowbasecoin (bool, optional) Whether to allow transparent, non-private, coins to be included (WARNING: "
+                "setting to true will result in loss of privacy and can reveal information about your wallet to the public!!\n"
+                "3. utxos       (string, optional) A json array of objects.\n"
                 "                   Each object needs the txid (string) and vout (numeric)\n"
                 "  [\n"
                 "    {\n"
@@ -62,7 +64,7 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
                 "  }\n"
                 "  ,...\n"
                 "]\n" +
-                HelpExampleCli("mintzerocoin", "50") +
+                HelpExampleCli("mintzerocoin", "false, 50") +
                 "\nMint 13 from a specific output\n" +
                 HelpExampleCli("mintzerocoin", "13 \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
                 "\nAs a json rpc call\n" +
@@ -87,8 +89,12 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
     std::string strError;
     std::vector<COutPoint> vOutpts;
 
-    if (params.size() == 2) {
-        UniValue outputs = params[1].get_array();
+    bool fAllowBasecoin = false;
+    if (params.size() > 1)
+        fAllowBasecoin = params[1].get_bool();
+
+    if (params.size() > 2) {
+        UniValue outputs = params[2].get_array();
         for (unsigned int idx = 0; idx < outputs.size(); idx++) {
             const UniValue& output = outputs[idx];
             if (!output.isObject())
@@ -110,7 +116,7 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
         }
         strError = pwallet->MintZerocoinFromOutPoint(nAmount, wtx, vDMints, vOutpts);
     } else {
-        strError = pwallet->MintZerocoin(nAmount, wtx, vDMints);
+        strError = pwallet->MintZerocoin(nAmount, wtx, vDMints, fAllowBasecoin);
     }
 
     if (strError != "")
