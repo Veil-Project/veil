@@ -2406,7 +2406,7 @@ CAmount CWallet::GetMintableBalance(std::vector<COutput>& vMintableCoins) const
     vMintableCoins.clear();
     CAmount balance = 0;
     std::vector<COutput> vCoins;
-    AvailableCoins(vCoins, true);
+    AvailableCoins(vCoins, true, nullptr, 1, MAX_MONEY, 0, Params().CoinbaseMaturity()+1);
     for (const COutput& coin : vCoins) {
         CTxDestination address;
         if (coin.fSpendable) {
@@ -3420,7 +3420,6 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
             uint256 hashTxOut = txNew.GetOutputsHash();
             CTxIn in;
             {
-                LOCK(cs_wallet);
                 if (!stakeInput->CreateTxIn(this, in, hashTxOut)) {
                     LogPrintf("%s : failed to create TxIn\n", __func__);
                     txNew.vin.clear();
