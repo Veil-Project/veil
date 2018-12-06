@@ -74,6 +74,10 @@ struct COrphanTx {
 };
 static CCriticalSection g_cs_orphans;
 std::map<uint256, COrphanTx> mapOrphanTransactions GUARDED_BY(g_cs_orphans);
+std::map<int, CBlock> mapStagedBlocks;
+static int nStagedCacheSize = 0;
+static constexpr int STAGING_CACHE_SIZE = 1000000 * 20; //20mb cache
+static constexpr int ASK_FOR_BLOCKS = 30; //How many blocks to ask for at once
 
 void EraseOrphansFor(NodeId peer);
 
@@ -539,6 +543,10 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
         // Bootstrap quickly by guessing a parent of our best tip is the forking point.
         // Guessing wrong in either direction is not a problem.
         state->pindexLastCommonBlock = chainActive[std::min(state->pindexBestKnownBlock->nHeight, chainActive.Height())];
+        if (!state->pindexLastCommonBlock->nChainTx) {
+            if (state->pindexLastCommonBlock->nHeight > chainActive.Height())
+                state->pindexLastCommonBlock = chainActive.Tip();
+        }
     }
 
     // If the peer reorganized, our previous pindexLastCommonBlock may not be an ancestor
@@ -559,7 +567,7 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
         // Read up to 128 (or more, if more blocks than that are needed) successors of pindexWalk (towards
         // pindexBestKnownBlock) into vToFetch. We fetch 128, because CBlockIndex::GetAncestor may be as expensive
         // as iterating over ~100 CBlockIndex* entries anyway.
-        int nToFetch = std::min(nMaxHeight - pindexWalk->nHeight, std::max<int>(count - vBlocks.size(), 128));
+        int nToFetch = std::min(nMaxHeight - pindexWalk->nHeight, std::max<int>(count - vBlocks.size(), ASK_FOR_BLOCKS));
         vToFetch.resize(nToFetch);
         pindexWalk = state->pindexBestKnownBlock->GetAncestor(pindexWalk->nHeight + nToFetch);
         vToFetch[nToFetch - 1] = pindexWalk;
@@ -576,9 +584,15 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
                 // We consider the chain that this peer is on invalid.
                 return;
             }
-            if (!State(nodeid)->fHaveWitness && IsWitnessEnabled(pindex->pprev, consensusParams)) {
-                // We wouldn't download this block or its descendants from this peer.
-                return;
+//            if (!State(nodeid)->fHaveWitness && IsWitnessEnabled(pindex->pprev, consensusParams)) {
+//                // We wouldn't download this block or its descendants from this peer.
+//                return;
+//            }
+
+            // Don't ask for a block that is already held in staging
+            if (mapStagedBlocks.count(pindexWalk->nHeight)) {
+                if (mapStagedBlocks.at(pindexWalk->nHeight).GetHash() == pindexWalk->GetBlockHash())
+                    return;
             }
             if (pindex->nStatus & BLOCK_HAVE_DATA || chainActive.Contains(pindex)) {
                 if (pindex->nChainTx)
@@ -2798,14 +2812,73 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 //                return true;
 //            }
         }
-        bool fNewBlock = false;
-        ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
-        if (fNewBlock) {
-            pfrom->nLastBlockTime = GetTime();
-        } else {
+
+        bool fProcessBlock = false;
+        int nHeightNext = 0;
+        {
             LOCK(cs_main);
-            mapBlockSource.erase(pblock->GetHash());
+            if (mapBlockIndex.count(pblock->hashPrevBlock)) {
+                nHeightNext = chainActive.Height() + 1;
+                CBlockIndex* pindex = mapBlockIndex.at(pblock->hashPrevBlock);
+
+                //We need the full block data to process it
+                if (pblock->hashPrevBlock == Params().GenesisBlock().GetHash() || pindex->nChainTx > 0) {
+                    fProcessBlock = true;
+
+                } else if (forceProcessing && pindex->nHeight - nHeightNext < ASK_FOR_BLOCKS && nHeightNext < pindex->nHeight) {
+                    //Keep a few blocks cached so we don't fetch them over and over
+                    CDataStream ss(SER_DISK, PROTOCOL_VERSION);
+                    ss << *pblock;
+                    int nSizeBlock = ss.size();
+                    if (nStagedCacheSize < STAGING_CACHE_SIZE) {
+                        nStagedCacheSize += nSizeBlock;
+                        mapStagedBlocks.emplace(pindex->nHeight, *pblock);
+                        LogPrint(BCLog::NET, "stagin block %s (%d) because only have prevheader and not prev block\n",
+                                 pblock->GetHash().ToString(), pindex->nHeight);
+                    }
+                }
+            } else {
+                LogPrint(BCLog::NET, "skipping block %s because do not have prev\n", pblock->GetHash().ToString());
+            }
         }
+
+        if (fProcessBlock) {
+            bool fNewBlock = false;
+            ProcessNewBlock(chainparams, pblock, forceProcessing, &fNewBlock);
+            if (fNewBlock) {
+                pfrom->nLastBlockTime = GetTime();
+
+            } else {
+                LOCK(cs_main);
+                mapBlockSource.erase(pblock->GetHash());
+            }
+        } else {
+            // Process any of the blocks that have been staged, if it is next
+            while (mapStagedBlocks.count(nHeightNext)) {
+                CBlock blockStaged = mapStagedBlocks.at(nHeightNext);
+                std::shared_ptr<CBlock> pblockStaged = std::make_shared<CBlock>();
+                *pblockStaged = blockStaged;
+
+                if (mapBlockIndex.at(pblockStaged->hashPrevBlock)->nChainTx) {
+                    LogPrint(BCLog::NET, "processing staged block %s\n", blockStaged.GetHash().GetHex());
+                    bool fNewBlock = false;
+                    ProcessNewBlock(chainparams, pblockStaged, true, &fNewBlock);
+                    mapStagedBlocks.erase(nHeightNext);
+                    nHeightNext++;
+                } else {
+                    break;
+                }
+            }
+        }
+
+        //Clean up any stale staged blocks
+        std::vector<int> vErase;
+        for (const auto& p : mapStagedBlocks) {
+            if (p.first < nHeightNext)
+                vErase.emplace_back(p.first);
+        }
+        for (auto i : vErase)
+            mapStagedBlocks.erase(i);
     }
 
 
