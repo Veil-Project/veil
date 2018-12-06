@@ -96,7 +96,7 @@ public:
         painter->setPen(foreground);
         QRect boundingRect;
 
-        if (message == "Mined") {
+        if (message == "Mined" || message == "Basecoin mined" || message == "CT mined") {
             address = "  " + message + " on " + address;
         }else if (address == ""){
             // Tx type

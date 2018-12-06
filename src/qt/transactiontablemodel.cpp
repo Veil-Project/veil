@@ -128,7 +128,7 @@ public:
             {
                 // Find transaction in wallet
                 interfaces::WalletTx wtx = wallet.getWalletTx(hash);
-                if(!wtx.tx)
+                if(!wtx.tx && !wtx.is_record)
                 {
                     qWarning() << "TransactionTablePriv::updateWallet: Warning: Got CT_NEW, but transaction is not in wallet";
                     break;
@@ -345,15 +345,31 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
     switch(wtx->type)
     {
     case TransactionRecord::RecvWithAddress:
-        return tr("Received with");
+        return tr("Basecoin received with");
     case TransactionRecord::RecvFromOther:
-        return tr("Received from");
+        return tr("Basecoin received from");
     case TransactionRecord::SendToAddress:
     case TransactionRecord::SendToOther:
-        return tr("Sent to");
+        return tr("Basecoin sent to");
     case TransactionRecord::SendToSelf:
-        return tr("Payment to yourself");
+        return tr("Basecoin payment to yourself");
     case TransactionRecord::Generated:
+        return tr("Basecoin mined");
+    case TransactionRecord::CTRecvWithAddress:
+        return tr("CT received with");
+    case TransactionRecord::CTSendToAddress:
+        return tr("CT sent to");
+    case TransactionRecord::CTSendToSelf:
+        return tr("CT payment to yourself");
+    case TransactionRecord::CTGenerated:
+        return tr("CT mined");
+    case TransactionRecord::RingCTRecvWithAddress:
+        return tr("Received with");
+    case TransactionRecord::RingCTSendToAddress:
+        return tr("Sent to");
+    case TransactionRecord::RingCTSendToSelf:
+        return tr("Payment to yourself");
+    case TransactionRecord::RingCTGenerated:
         return tr("Mined");
     case TransactionRecord::ZeroCoinMint:
         return tr("Zerocoin Mint");
@@ -377,13 +393,19 @@ QVariant TransactionTableModel::txAddressDecoration(const TransactionRecord *wtx
     switch(wtx->type)
     {
     case TransactionRecord::Generated:
+    case TransactionRecord::CTGenerated:
+    case TransactionRecord::RingCTGenerated:
         //return QIcon(":/icons/tx_mined");
         return QIcon(":/icons/ic-mined-svg");//:/icons/ic-transcation-6-6-svg");//ic-progress-6-6-complete-14x14");//ic-progress-10-10");
     case TransactionRecord::RecvWithAddress:
     case TransactionRecord::RecvFromOther:
+    case TransactionRecord::CTRecvWithAddress:
+    case TransactionRecord::RingCTRecvWithAddress:
         return QIcon(":/icons/ic-received-svg");//":/icons/tx_input");
     case TransactionRecord::SendToAddress:
     case TransactionRecord::SendToOther:
+    case TransactionRecord::CTSendToAddress:
+    case TransactionRecord::RingCTSendToAddress:
         return QIcon(":/icons/ic-sent-svg");//":/icons/tx_output");
     default:
         return QIcon(":/icons/ic-received-svg");//(":/icons/tx_inout");
@@ -405,6 +427,12 @@ QString TransactionTableModel::formatTxToAddress(const TransactionRecord *wtx, b
     case TransactionRecord::RecvWithAddress:
     case TransactionRecord::SendToAddress:
     case TransactionRecord::Generated:
+    case TransactionRecord::CTRecvWithAddress:
+    case TransactionRecord::CTSendToAddress:
+    case TransactionRecord::CTGenerated:
+    case TransactionRecord::RingCTRecvWithAddress:
+    case TransactionRecord::RingCTSendToAddress:
+    case TransactionRecord::RingCTGenerated:
         return lookupAddress(wtx->address, tooltip) + watchAddress;
     case TransactionRecord::SendToOther:
         return QString::fromStdString(wtx->address) + watchAddress;
@@ -422,6 +450,12 @@ QVariant TransactionTableModel::addressColor(const TransactionRecord *wtx) const
     case TransactionRecord::RecvWithAddress:
     case TransactionRecord::SendToAddress:
     case TransactionRecord::Generated:
+    case TransactionRecord::CTRecvWithAddress:
+    case TransactionRecord::CTSendToAddress:
+    case TransactionRecord::CTGenerated:
+    case TransactionRecord::RingCTRecvWithAddress:
+    case TransactionRecord::RingCTSendToAddress:
+    case TransactionRecord::RingCTGenerated:
         {
         QString label = walletModel->getAddressTableModel()->labelForAddress(QString::fromStdString(wtx->address));
         if(label.isEmpty())

@@ -1,4 +1,5 @@
 // Copyright (c) 2018 The Bitcoin Core developers
+// Copyright (c) 2018 The Particl developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -31,6 +32,10 @@ class CWallet;
 enum class FeeReason;
 enum class OutputType;
 struct CRecipient;
+
+class CHDWallet;
+class CTransactionRecord;
+typedef std::map<uint256, CTransactionRecord> MapRecords_t;
 
 namespace interfaces {
 
@@ -369,6 +374,9 @@ struct WalletTx
     bool is_coinstake;
     bool is_my_zerocoin_mint;
     bool is_my_zerocoin_spend;
+    bool is_record=false;
+    MapRecords_t::const_iterator irtx;
+    CHDWallet *veilWallet;
 };
 
 //! Updated transaction status.
