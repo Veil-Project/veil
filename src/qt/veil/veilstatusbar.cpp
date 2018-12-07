@@ -3,6 +3,7 @@
 
 #include <qt/bitcoingui.h>
 #include <qt/walletmodel.h>
+#include <qt/veil/qtutils.h>
 #include <iostream>
 
 VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
@@ -16,6 +17,7 @@ VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
 
     connect(ui->btnLock, SIGNAL(clicked()), this, SLOT(onBtnLockClicked()));
     connect(ui->btnSync, SIGNAL(clicked()), this, SLOT(onBtnSyncClicked()));
+    connect(ui->checkStacking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
 }
 
 void VeilStatusBar::updateSyncStatus(QString status){
@@ -24,6 +26,17 @@ void VeilStatusBar::updateSyncStatus(QString status){
 
 void VeilStatusBar::onBtnSyncClicked(){
     mainWindow->showModalOverlay();
+}
+
+void VeilStatusBar::onCheckStakingClicked(bool res){
+    // Miner starts here..
+    GenerateBitcoins(res, 1, nullptr);
+    if(res){
+        openToastDialog("Miner started", mainWindow);
+    }else{
+        openToastDialog("Miner stopped", mainWindow);
+    }
+
 }
 
 void VeilStatusBar::onBtnLockClicked(){

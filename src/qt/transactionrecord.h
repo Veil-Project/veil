@@ -112,6 +112,16 @@ public:
     {
     }
 
+    TransactionRecord(uint256 _hash, qint64 _time,
+                      Type _type, const std::string &_address,
+                      const CAmount& _debit, const CAmount& _credit,
+                        const CAmount& _fee, int _outputsSize, int _inputsSize, int _confirmations):
+
+            hash(_hash), time(_time), type(_type), address(_address), debit(_debit), credit(_credit),
+            idx(0), fee(_fee), outputsSize(_outputsSize), inputsSize(_inputsSize), confirmations(_confirmations)
+    {
+    }
+
     /** Decompose CWallet transaction to model transaction records.
      */
     static bool showTransaction();
@@ -125,6 +135,11 @@ public:
     std::string address;
     CAmount debit;
     CAmount credit;
+    CAmount fee;
+    int outputsSize = 0;
+    int inputsSize = 0;
+    int confirmations = 0;
+
     /**@}*/
 
     /** Subtransaction index, for sort key */
@@ -139,6 +154,14 @@ public:
     /** Return the unique identifier for this transaction (part) */
     QString getTxHash() const;
 
+    uint256 getHash(){ return this->hash; }
+    CAmount getAmount(){ return this->credit - this->debit; }
+    CAmount getFee(){return this->fee;}
+    int getOutputsSize() {return this->outputsSize;}
+    int getInputsSize() {return this->inputsSize;}
+    int getConfirmations() {return this->confirmations;}
+    std::string getAddress() {return this->address;}
+
     /** Return the output index of the subtransaction  */
     int getOutputIndex() const;
 
@@ -149,6 +172,8 @@ public:
     /** Return whether a status update is needed.
      */
     bool statusUpdateNeeded(int numBlocks) const;
+
+
 };
 
 #endif // BITCOIN_QT_TRANSACTIONRECORD_H

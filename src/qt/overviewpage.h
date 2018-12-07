@@ -12,6 +12,7 @@
 
 class ClientModel;
 class TransactionFilterProxy;
+class TransactionRecord;
 class TxViewDelegate;
 class PlatformStyle;
 class WalletModel;

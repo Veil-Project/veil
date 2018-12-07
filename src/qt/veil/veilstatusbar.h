@@ -2,6 +2,7 @@
 #define VEILSTATUSBAR_H
 
 #include <QWidget>
+#include <miner.h>
 
 class BitcoinGUI;
 class WalletModel;
@@ -24,6 +25,7 @@ public:
 private Q_SLOTS:
     void onBtnSyncClicked();
     void onBtnLockClicked();
+    void onCheckStakingClicked(bool res);
 
 private:
     Ui::VeilStatusBar *ui;

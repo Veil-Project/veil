@@ -303,7 +303,7 @@ void AddressesWidget::onNewAddressClicked(){
     if(ui->btnContacts->isChecked()){
         widget = new AddressNewContact(mainWindow->getGUI());
     } else {
-        widget = new AddressReceive(mainWindow->getGUI());
+        widget = new AddressReceive(mainWindow->getGUI(), this->walletModel);
     }
     widget->setWindowFlags(Qt::CustomizeWindowHint);
     widget->setAttribute(Qt::WA_TranslucentBackground, true);

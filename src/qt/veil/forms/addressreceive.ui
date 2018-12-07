@@ -105,7 +105,7 @@
         <property name="sizeHint" stdset="0">
          <size>
           <width>20</width>
-          <height>20</height>
+          <height>10</height>
          </size>
         </property>
        </spacer>
@@ -147,6 +147,9 @@
       </item>
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout">
+        <property name="spacing">
+         <number>0</number>
+        </property>
         <item>
          <spacer name="horizontalSpacer">
           <property name="orientation">
@@ -164,7 +167,7 @@
          <widget class="QLabel" name="labelAddress">
           <property name="styleSheet">
            <string notr="true">color:#707070;
-font-size:18px;</string>
+font-size:16px;</string>
           </property>
           <property name="text">
            <string>Invalid Address</string>
@@ -200,22 +203,6 @@ padding:4;</string>
          </spacer>
         </item>
        </layout>
-      </item>
-      <item>
-       <spacer name="verticalSpacer_3">
-        <property name="orientation">
-         <enum>Qt::Vertical</enum>
-        </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
-        </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>10</height>
-         </size>
-        </property>
-       </spacer>
       </item>
       <item alignment="Qt::AlignHCenter">
        <widget class="QLineEdit" name="editDescription">

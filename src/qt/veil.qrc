@@ -292,6 +292,7 @@
         <file alias="ic-add-account-svg">res/icons/ic-add-account.svg</file>
         <file alias="ic-reset-options-svg">res/icons/ic-reset-options.svg</file>
         <file alias="ic-locked-svg">res/icons/ic-locked.svg</file>
+        <file alias="ic-unlocked-svg">res/icons/ic-unlocked.svg</file>
     </qresource>
     <qresource prefix="/movies">
         <file alias="spinner-000">res/movies/spinner-000.png</file>

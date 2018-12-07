@@ -191,7 +191,7 @@ QLabel { color: rgb(40,40,40);  }</string>
                    <string notr="true">font-size:16px;</string>
                   </property>
                   <property name="text">
-                   <string>Attempting to spend veils that are affected by not-yet-displayed transactions will not be accepted by the network.</string>
+                   <string>Attempting to spend veil that are affected by not-yet-displayed transactions will not be accepted by the network.</string>
                   </property>
                   <property name="textFormat">
                    <enum>Qt::RichText</enum>

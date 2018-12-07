@@ -783,6 +783,11 @@ public:
         return vpout.size();
     }
 
+    size_t GetNumVInps() const
+    {
+        return vin.size();
+    }
+
     bool IsCoinStake() const;
 
     bool IsZerocoinSpend() const;

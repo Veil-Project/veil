@@ -1,9 +1,32 @@
 #include <qt/veil/addressreceive.h>
 #include <qt/veil/forms/ui_addressreceive.h>
-#include <QPixmap>
 
-AddressReceive::AddressReceive(QWidget *parent) :
+#include <qt/guiconstants.h>
+#include <qt/guiutil.h>
+#include <qt/optionsmodel.h>
+#include <qt/platformstyle.h>
+#include <interfaces/node.h>
+#include <qt/walletview.h>
+#include <qt/walletmodel.h>
+#include <key_io.h>
+#include <wallet/wallet.h>
+
+#include <QPixmap>
+#include <QIcon>
+#include <QClipboard>
+#include <QMimeData>
+#include <QImage>
+#include <QLabel>
+#include <QPainter>
+#include <qt/veil/qtutils.h>
+
+#ifdef USE_QRCODE
+#include <qrencode.h>
+#endif
+
+AddressReceive::AddressReceive(QWidget *parent, WalletModel* _walletModel) :
     QDialog(parent),
+    walletModel(_walletModel),
     ui(new Ui::AddressReceive)
 {
     ui->setupUi(this);
@@ -19,23 +42,103 @@ AddressReceive::AddressReceive(QWidget *parent) :
     ui->editDescription->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->editDescription->setProperty("cssClass" , "edit-primary");
 
-    // QR Image
+    generateNewAddress();
 
-    QPixmap qrImg(200,
-                  200
-                  );
+    connect(ui->btnCopy, SIGNAL(clicked()),this, SLOT(on_btnCopyAddress_clicked()));
 
-    qrImg.load(":/icons/qr");
-    ui->imgQR->setPixmap(
-                qrImg.scaled(
-                    200,
-                    200,
-                    Qt::KeepAspectRatio)
-                );
+}
 
+void AddressReceive::on_btnCopyAddress_clicked() {
+    GUIUtil::setClipboard(qAddress);
+    openToastDialog("Address copied", this);
+}
+
+void AddressReceive::generateNewAddress(){
     // Address
+    interfaces::Wallet& wallet = walletModel->wallet();
+    // Generate a new address to associate with given label
+    if(!walletModel->wallet().getKeyFromPool(false /* internal */, newKey))
+    {
+        WalletModel::UnlockContext ctx(walletModel->requestUnlock());
+        if(!ctx.isValid())
+        {
+            // TODO: Check if the wallet is locked or not
+            // Unlock wallet failed or was cancelled
+            //editStatus = WALLET_UNLOCK_FAILURE;
+            //return QString();
+        }
+        if(!wallet.getKeyFromPool(false /* internal */, newKey))
+        {
+            // TODO: Generation fail
+            //editStatus = KEY_GENERATION_FAILURE;
+            //return QString();
+        }
+    }
+    wallet.learnRelatedScripts(newKey, OutputType::BECH32);
+    std::string strAddress;
+    strAddress = EncodeDestination(GetDestinationForKey(newKey, OutputType::BECH32));
 
-    ui->labelAddress->setText("VN6i46dytMPVhV1JMGZFuQBh7BZZ6nNLox");
+    qAddress =  QString::fromStdString(strAddress);
+
+    // set address
+    ui->labelAddress->setText(qAddress);
+
+    SendCoinsRecipient info;
+    info.address = qAddress;
+
+    QString uri = GUIUtil::formatBitcoinURI(info);
+    ui->imgQR->setText("No address");
+#ifdef USE_QRCODE
+    ui->imgQR->setText("");
+    if(!uri.isEmpty())
+    {
+        // limit URI length
+        if (uri.length() > MAX_URI_LENGTH)
+        {
+            ui->imgQR->setText(tr("Resulting URI too long, try to reduce the text for label / message."));
+        } else {
+            QRcode *code = QRcode_encodeString(uri.toUtf8().constData(), 0, QR_ECLEVEL_L, QR_MODE_8, 1);
+            if (!code)
+            {
+                ui->imgQR->setText(tr("Error encoding URI into QR Code."));
+                return;
+            }
+            QImage qrImage = QImage(code->width + 8, code->width + 8, QImage::Format_RGB32);
+            qrImage.fill(0xffffff);
+            unsigned char *p = code->data;
+            for (int y = 0; y < code->width; y++)
+            {
+                for (int x = 0; x < code->width; x++)
+                {
+                    qrImage.setPixel(x + 4, y + 4, ((*p & 1) ? 0x004377 : 0xffffff));
+                    p++;
+                }
+            }
+            QRcode_free(code);
+
+            int qrImageSize = 200;
+
+            QImage qrAddrImage = QImage(qrImageSize, qrImageSize,  QImage::Format_RGB32);//QR_IMAGE_SIZE, QR_IMAGE_SIZE+20, QImage::Format_RGB32);
+            qrAddrImage.fill(0xffffff);
+            QPainter painter(&qrAddrImage);
+            painter.drawImage(0, 0, qrImage.scaled(qrImageSize,qrImageSize));//QR_IMAGE_SIZE, QR_IMAGE_SIZE));
+            QFont font = GUIUtil::fixedPitchFont();
+            QRect paddedRect = qrAddrImage.rect();
+
+            // calculate ideal font size
+            qreal font_size = GUIUtil::calculateIdealFontSize(paddedRect.width() - 20, info.address, font);
+            font.setPointSizeF(font_size);
+
+            painter.setFont(font);
+            paddedRect.setHeight(qrImageSize);//QR_IMAGE_SIZE+12);
+            //painter.drawText(paddedRect, Qt::AlignBottom|Qt::AlignCenter, info.address);
+            painter.end();
+
+            ui->imgQR->setPixmap(QPixmap::fromImage(qrAddrImage));
+            //ui->btnSaveAs->setEnabled(true);
+        }
+    }
+#endif
 }
 
 void AddressReceive::onEscapeClicked(){

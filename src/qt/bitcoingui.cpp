@@ -1021,17 +1021,24 @@ void BitcoinGUI::message(const QString &title, const QString &message, unsigned 
 
     // Display message
     if (style & CClientUIInterface::MODAL) {
-        // Check for buttons, use OK as default, if none was supplied
-        QMessageBox::StandardButton buttons;
-        if (!(buttons = (QMessageBox::StandardButton)(style & CClientUIInterface::BTN_MASK)))
-            buttons = QMessageBox::Ok;
 
-        showNormalIfMinimized();
-        QMessageBox mBox(static_cast<QMessageBox::Icon>(nMBoxIcon), strTitle, message, buttons, this);
-        mBox.setTextFormat(Qt::PlainText);
-        int r = mBox.exec();
-        if (ret != nullptr)
-            *ret = r == QMessageBox::Ok;
+        if(style == CClientUIInterface::MSG_WARNING){
+            openToastDialog(message, this);
+            if (ret != nullptr)
+                *ret = true;
+        } else {
+            // Check for buttons, use OK as default, if none was supplied
+            QMessageBox::StandardButton buttons;
+            if (!(buttons = (QMessageBox::StandardButton)(style & CClientUIInterface::BTN_MASK)))
+                buttons = QMessageBox::Ok;
+
+            showNormalIfMinimized();
+            QMessageBox mBox(static_cast<QMessageBox::Icon>(nMBoxIcon), strTitle, message, buttons, this);
+            mBox.setTextFormat(Qt::PlainText);
+            int r = mBox.exec();
+            if (ret != nullptr)
+                *ret = r == QMessageBox::Ok;
+        }
     }
     else
         notificator->notify(static_cast<Notificator::Class>(nNotifyIcon), strTitle, message);

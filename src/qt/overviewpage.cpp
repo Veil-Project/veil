@@ -17,6 +17,7 @@
 #include <qt/walletmodel.h>
 #include <qt/veil/settings/settingsfaq.h>
 #include <qt/veil/transactiondetaildialog.h>
+#include <qt/transactionrecord.h>
 
 #include <QAbstractItemDelegate>
 #include <QPainter>
@@ -214,19 +215,22 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
 void OverviewPage::handleTransactionClicked(const QModelIndex &index)
 {
 
-    ui->listTransactions->setCurrentIndex(index);
-
     if(filter)
         Q_EMIT transactionClicked(filter->mapToSource(index));
 
+    QModelIndex selectedIndex = filter->mapToSource(index);
+
+    ui->listTransactions->setCurrentIndex(selectedIndex);
+
+    TransactionRecord *rec = static_cast<TransactionRecord*>(selectedIndex.internalPointer());
+
     mainWindow->getGUI()->showHide(true);
-    TransactionDetailDialog *dialog = new TransactionDetailDialog();
+    TransactionDetailDialog *dialog = new TransactionDetailDialog(nullptr, rec, this->walletModel);
     openDialogWithOpaqueBackground(dialog, mainWindow->getGUI(), 4);
 
     // Back to regular status
-    QModelIndex targetIdx = filter->mapFromSource(index);
-    ui->listTransactions->scrollTo(targetIdx);
-    ui->listTransactions->setCurrentIndex(targetIdx);
+    ui->listTransactions->scrollTo(selectedIndex);
+    ui->listTransactions->setCurrentIndex(selectedIndex);
     ui->listTransactions->setFocus();
 
 }

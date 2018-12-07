@@ -166,9 +166,14 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
 
         if (fAllFromMe && fAllToMe) {
             // Payment to self
+            CAmount nTxFee = nDebit - wtx.tx->GetValueOut();
             CAmount nChange = wtx.change;
-            parts.append(TransactionRecord(hash, nTime, TransactionRecord::SendToSelf, "",
-                    -(nDebit - nChange), nCredit - nChange));
+            parts.append(
+                    TransactionRecord(
+                            hash, nTime, TransactionRecord::SendToSelf, "",
+                    -(nDebit - nChange), nCredit - nChange, nTxFee, wtx.tx->GetNumVOuts(), wtx.tx->GetNumVOuts(), 0
+                    )
+            );
             parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
         } else if (fAllFromMe || wtx.tx->IsZerocoinMint()) {
             //
@@ -183,6 +188,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 TransactionRecord sub(hash, nTime);
                 sub.idx = nOut;
                 sub.involvesWatchAddress = involvesWatchAddress;
+                sub.fee = nTxFee;
 
                 if(wtx.txout_is_mine[nOut]) {
                     // Ignore parts sent to self, as this is usually the change
@@ -298,6 +304,7 @@ void TransactionRecord::updateStatus(const interfaces::WalletTxStatus& wtx, int 
         }
     }
     status.needsUpdate = false;
+    this->confirmations = status.depth;
 }
 
 bool TransactionRecord::statusUpdateNeeded(int numBlocks) const

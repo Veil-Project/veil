@@ -169,14 +169,21 @@ background:transparent;
           </property>
          </widget>
         </item>
-        <item>
+        <item alignment="Qt::AlignRight">
          <widget class="QPushButton" name="btnLock">
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="layoutDirection">
+           <enum>Qt::LeftToRight</enum>
+          </property>
           <property name="text">
            <string/>
           </property>
           <property name="icon">
            <iconset resource="../../veil.qrc">
-            <normaloff>:/icons/ic-locked-svg</normaloff>:/icons/ic-locked-svg</iconset>
+            <normaloff>:/icons/ic-locked-svg</normaloff>
+            <selectedoff>:/icons/ic-unlocked-svg</selectedoff>:/icons/ic-locked-svg</iconset>
           </property>
           <property name="iconSize">
            <size>
@@ -193,8 +200,6 @@ background:transparent;
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../../veil.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>
