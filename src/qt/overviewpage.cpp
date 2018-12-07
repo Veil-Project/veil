@@ -191,6 +191,8 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
     for (int i = 0 ; i < ui->comboSort->count() ; ++i) {
        ui->comboSort->setItemData(i, Qt::AlignRight, Qt::TextAlignmentRole);
     }
+    // TODO: Uncomment this for the ordering..
+    ui->comboSort->setVisible(false);
 
     this->setContentsMargins(0,0,0,0);
 

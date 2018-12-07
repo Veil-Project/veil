@@ -71,11 +71,15 @@
           <height>16777215</height>
          </size>
         </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
         <property name="styleSheet">
-         <string notr="true">padding:8;
-border:0;
+         <string notr="true">padding:8px;
+border:none;
 font-size:16px;
-border-bottom:1px solid #bababa;</string>
+border-bottom:1px solid #bababa;
+color:#bababa;</string>
         </property>
         <property name="text">
          <string>Select file</string>
@@ -113,8 +117,9 @@ border-bottom:1px solid #bababa;</string>
          </size>
         </property>
         <property name="styleSheet">
-         <string notr="true">padding:8;
-border:0;
+         <string notr="true">color:#bababa;
+padding:8px;
+border:none;
 font-size:16px;
 border-bottom:1px solid #bababa;</string>
         </property>

@@ -12,6 +12,8 @@
 #include <QDialog>
 #include <uint256.h>
 
+class WalletModel;
+
 namespace Ui {
 class TutorialWidget;
 }
@@ -23,6 +25,7 @@ class TutorialWidget : public QDialog
 public:
     explicit TutorialWidget(QWidget *parent = nullptr);
     ~TutorialWidget();
+
     bool ShutdownRequested() const { return shutdown; }
     MnemonicWalletInitFlags GetSelection() const { return selection; }
     void SetLanguageSelection(QString strLanguage) { this->strLanguageSelection = strLanguage; }
@@ -38,6 +41,8 @@ private:
     Ui::TutorialWidget *ui;
     QWidget* parent;
     int position = 0;
+
+    QStringList wordList;
 
     bool shutdown = true;
     MnemonicWalletInitFlags selection;

@@ -19,10 +19,13 @@
 //#include "sendconfirmation.h"
 
 #include <qt/veil/unlockpassworddialog.h>
+#include <veil/mnemonic/mnemonic.h>
 #include <qt/veil/qtutils.h>
 #include <QDebug>
 #include <QGraphicsOpacityEffect>
 #include <QPropertyAnimation>
+#include <QCompleter>
+#include <QAbstractItemView>
 
 
 
@@ -163,7 +166,13 @@ void SettingsWidget::onBackupClicked(){
 void SettingsWidget::onRestoreClicked(){
     try {
         mainWindow->getGUI()->showHide(true);
-        SettingsRestore *dialog = new SettingsRestore(mainWindow->getGUI());
+        // TODO: Complete this with the specific language words
+        dictionary dic = string_to_lexicon("english");
+        QStringList wordList;
+        for(unsigned long i=0; i< dic.size() ; i++){
+            wordList << dic[i];
+        }
+        SettingsRestore *dialog = new SettingsRestore(wordList, mainWindow->getGUI());
         openDialogWithOpaqueBackgroundFullScreen(dialog, mainWindow->getGUI());
     } catch (std::exception e) {
         qDebug() << e.what();

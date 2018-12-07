@@ -12,7 +12,7 @@ class SettingsRestoreSeed : public QWidget
     Q_OBJECT
 
 public:
-    explicit SettingsRestoreSeed(QWidget *parent = nullptr);
+    explicit SettingsRestoreSeed(QStringList wordList, QWidget *parent = nullptr);
     ~SettingsRestoreSeed();
 
 private:

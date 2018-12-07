@@ -14,11 +14,11 @@ void CCoinControl::SetNull()
     fAllowWatchOnly = false;
     m_avoid_partial_spends = gArgs.GetBoolArg("-avoidpartialspends", DEFAULT_AVOIDPARTIALSPENDS);
     setSelected.clear();
-    m_feerate.reset();
+    //m_feerate.reset();
     fOverrideFeeRate = false;
     m_confirm_target.reset();
     m_signal_bip125_rbf.reset();
-    m_fee_mode = FeeEstimateMode::UNSET;
+    //m_fee_mode = FeeEstimateMode::UNSET;
 
     nCoinType = OUTPUT_STANDARD;
     fHaveAnonOutputs = false;

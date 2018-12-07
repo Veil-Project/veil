@@ -15,7 +15,7 @@ class TutorialMnemonicRevealed : public QWidget
     Q_OBJECT
 
 public:
-    explicit TutorialMnemonicRevealed(QWidget *parent = nullptr);
+    explicit TutorialMnemonicRevealed(QStringList wordList, QWidget *parent = nullptr);
     ~TutorialMnemonicRevealed();
 
     std::list<QString> getOrderedStrings();

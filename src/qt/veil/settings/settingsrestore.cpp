@@ -3,8 +3,9 @@
 #include <qt/veil/settings/settingsrestoreseed.h>
 #include <qt/veil/settings/settingsrestorefile.h>
 
-SettingsRestore::SettingsRestore(QWidget *parent) :
+SettingsRestore::SettingsRestore(QStringList _wordList, QWidget *parent) :
     QDialog(parent),
+    wordList(_wordList),
     ui(new Ui::SettingsRestore)
 {
     ui->setupUi(this);
@@ -16,12 +17,18 @@ SettingsRestore::SettingsRestore(QWidget *parent) :
     connect(ui->btnSeed,SIGNAL(clicked()),this, SLOT(onSeedClicked()));
     ui->stackedWidget->setContentsMargins(0,0,0,0);
 
-    restoreSeed = new SettingsRestoreSeed(this);
+    restoreFile = new SettingsRestoreFile(this, this);
+    restoreSeed = new SettingsRestoreSeed(wordList, this);
 
+    ui->stackedWidget->addWidget(restoreFile);
     ui->stackedWidget->addWidget(restoreSeed);
     ui->stackedWidget->setCurrentWidget(restoreSeed);
     ui->btnSeed->setStyleSheet("color: #105aef;font-size: 20px;font-weight: light;background-color: transparent;border: 0;background-image: url(':/icons/ic-title');background-repeat: no-repeat;background-position: center bottom;padding: 10 0 10 0;");
     ui->btnFile->setStyleSheet("color: #bababa;font-size:20px;font-weight:light;background-color:transparent;border:0;padding:10 0 10 0;background-image:none;");
+}
+
+void SettingsRestore::acceptFile(){
+    this->accept();
 }
 
 void SettingsRestore::changeScreen(QWidget *widget){
@@ -29,16 +36,12 @@ void SettingsRestore::changeScreen(QWidget *widget){
 }
 
 void SettingsRestore::onFileClicked(){
-    restoreFile = new SettingsRestoreFile(this);
-    ui->stackedWidget->addWidget(restoreFile);
     ui->btnFile->setStyleSheet("color: #105aef;font-size: 20px;font-weight: light;background-color: transparent;border: 0;background-image: url(':/icons/ic-title');background-repeat: no-repeat;background-position: center bottom;padding: 10 0 10 0;");
     ui->btnSeed->setStyleSheet("color: #bababa;font-size:20px;font-weight:light;background-color:transparent;border:0;padding:10 0 10 0;background-image:none;");
     changeScreen(restoreFile);
 }
 
 void SettingsRestore::onSeedClicked(){
-    restoreSeed = new SettingsRestoreSeed(this);
-    ui->stackedWidget->addWidget(restoreSeed);
     ui->btnSeed->setStyleSheet("color: #105aef;font-size: 20px;font-weight: light;background-color: transparent;border: 0;background-image: url(':/icons/ic-title');background-repeat: no-repeat;background-position: center bottom;padding: 10 0 10 0;");
     ui->btnFile->setStyleSheet("color: #bababa;font-size:20px;font-weight:light;background-color:transparent;border:0;padding:10 0 10 0;");
 

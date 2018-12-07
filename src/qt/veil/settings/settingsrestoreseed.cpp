@@ -2,8 +2,10 @@
 #include <qt/veil/forms/ui_settingsrestoreseed.h>
 #include <QLineEdit>
 #include <QString>
+#include <QCompleter>
+#include <QAbstractItemView>
 
-SettingsRestoreSeed::SettingsRestoreSeed(QWidget *parent) :
+SettingsRestoreSeed::SettingsRestoreSeed(QStringList wordList, QWidget *parent) :
     QWidget(parent),
     ui(new Ui::SettingsRestoreSeed)
 {
@@ -15,7 +17,42 @@ SettingsRestoreSeed::SettingsRestoreSeed(QWidget *parent) :
             editWord->setAttribute(Qt::WA_MacShowFocusRect, 0);
             editWord->setAlignment(Qt::AlignHCenter);
             editWord->setProperty("cssClass" , "edit-seed");
-            //editWord->setStyleSheet("QLineEdit{border:0px;border-bottom:1px solid #707070;background-color:#fff;padding-left:8px;padding-right:8px;padding-top:7px;padding-bottom:7px;margin:8px;}");
+            QCompleter *completer = new QCompleter(wordList, this);
+            completer->setCaseSensitivity(Qt::CaseInsensitive);
+            editWord->setCompleter(completer);
+
+            QAbstractItemView *popup = completer->popup();
+            popup->setStyleSheet("QListView"
+                                 "{"
+                                 "border-style: none;"
+                                 "background-color: #ffffff;"
+                                 "padding:0px;"
+                                 "font-size:14px;"
+                                 "border-radius:6px;"
+                                 "}"
+                                 ""
+                                 "QListView::item"
+                                 "{"
+                                 "    border-style: none;"
+                                 "    background-color: #ffffff;"
+                                 "font-size:14px;"
+                                 "    border-radius:3px;"
+                                 "}"
+                                 ""
+                                 "QListView::item:checked"
+                                 "{"
+                                 "    border-style: none;"
+                                 "    background-color: #105aef;"
+                                 "    border-radius:2px;"
+                                 "}"
+                                 ""
+                                 "QListView::item:hover"
+                                 "{"
+                                 "    border-style: none;"
+                                 "    background-color: #bababa;"
+                                 "}"
+            );
+
             ui->gridLayout->addWidget(editWord, i, j);
         }
     }
