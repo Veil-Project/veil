@@ -22,6 +22,7 @@
 #include <random.h>
 #include <reverse_iterator.h>
 #include <scheduler.h>
+#include <shutdown.h>
 #include <tinyformat.h>
 #include <txmempool.h>
 #include <ui_interface.h>
@@ -76,8 +77,9 @@ static CCriticalSection g_cs_orphans;
 std::map<uint256, COrphanTx> mapOrphanTransactions GUARDED_BY(g_cs_orphans);
 std::map<int, CBlock> mapStagedBlocks;
 static int nStagedCacheSize = 0;
-static constexpr int STAGING_CACHE_SIZE = 1000000 * 20; //20mb cache
-static constexpr int ASK_FOR_BLOCKS = 30; //How many blocks to ask for at once
+static constexpr int STAGING_CACHE_SIZE = 1000000 * 100; //100mb cache
+static constexpr int ASK_FOR_BLOCKS = 10; //How many blocks to ask for at once
+static CCriticalSection cs_staging;
 
 void EraseOrphansFor(NodeId peer);
 
@@ -590,9 +592,12 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
 //            }
 
             // Don't ask for a block that is already held in staging
-            if (mapStagedBlocks.count(pindexWalk->nHeight)) {
-                if (mapStagedBlocks.at(pindexWalk->nHeight).GetHash() == pindexWalk->GetBlockHash())
-                    return;
+            {
+                LOCK(cs_staging);
+                if (mapStagedBlocks.count(pindex->nHeight)) {
+                    if (mapStagedBlocks.at(pindex->nHeight).GetHash() == pindex->GetBlockHash())
+                        continue;
+                }
             }
             if (pindex->nStatus & BLOCK_HAVE_DATA || chainActive.Contains(pindex)) {
                 if (pindex->nChainTx)
@@ -1391,6 +1396,77 @@ inline void static SendBlockTransactions(const CBlock& block, const BlockTransac
     connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::BLOCKTXN, resp));
 }
 
+void ProcessStaging()
+{
+    while (true) {
+        if (ShutdownRequested() || !IsInitialBlockDownload())
+            return;
+        boost::this_thread::interruption_point();
+
+        {
+            LOCK(cs_staging);
+            if (mapStagedBlocks.empty()) {
+                MilliSleep(50);
+                continue;
+            }
+        }
+
+        // Process any of the blocks that have been staged, if it is next
+        int nHeightNext;
+        {
+            LOCK(cs_main);
+            nHeightNext = chainActive.Height() + 1;
+        }
+
+        while (true) {
+            if (ShutdownRequested())
+                return;
+            boost::this_thread::interruption_point();
+
+            {
+                LOCK(cs_main);
+                if (chainActive.Height() >= nHeightNext)
+                    nHeightNext++;
+            }
+
+            std::shared_ptr<CBlock> pblockStaged = std::make_shared<CBlock>();
+            {
+                LOCK(cs_staging);
+                if (!mapStagedBlocks.count(nHeightNext))
+                    break;
+                CBlock blockStaged = mapStagedBlocks.at(nHeightNext);
+                *pblockStaged = blockStaged;
+            }
+
+            bool fProcessNext;
+            {
+                LOCK(cs_main);
+                fProcessNext = mapBlockIndex.at(pblockStaged->hashPrevBlock)->nChainTx > 0;
+            }
+            if (!fProcessNext)
+                break;
+
+            LogPrint(BCLog::NET, "processing staged block %s\n", pblockStaged->GetHash().GetHex());
+            bool fNewBlock = false;
+            ProcessNewBlock(Params(), pblockStaged, true, &fNewBlock);
+            mapStagedBlocks.erase(nHeightNext);
+            nHeightNext++;
+        }
+
+        {
+            LOCK(cs_staging);
+            //Clean up any stale staged blocks
+            std::vector<int> vErase;
+            for (const auto& p : mapStagedBlocks) {
+                if (p.first < nHeightNext)
+                    vErase.emplace_back(p.first);
+            }
+            for (auto i : vErase)
+                mapStagedBlocks.erase(i);
+        }
+    }
+}
+
 bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::vector<CBlockHeader>& headers, const CChainParams& chainparams, bool punish_duplicate_invalid)
 {
     const CNetMsgMaker msgMaker(pfrom->GetSendVersion());
@@ -1574,7 +1650,7 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
                     uint32_t nFetchFlags = GetFetchFlags(pfrom);
                     vGetData.push_back(CInv(MSG_BLOCK | nFetchFlags, pindex->GetBlockHash()));
                     MarkBlockAsInFlight(pfrom->GetId(), pindex->GetBlockHash(), pindex);
-                    LogPrint(BCLog::NET, "Requesting block %s from  peer=%d\n",
+                    LogPrint(BCLog::NET, "After processing headers, Requesting block %s from  peer=%d\n",
                             pindex->GetBlockHash().ToString(), pfrom->GetId());
                 }
                 if (vGetData.size() > 1) {
@@ -2819,22 +2895,23 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             LOCK(cs_main);
             if (mapBlockIndex.count(pblock->hashPrevBlock)) {
                 nHeightNext = chainActive.Height() + 1;
-                CBlockIndex* pindex = mapBlockIndex.at(pblock->hashPrevBlock);
+                CBlockIndex* pindexPrev = mapBlockIndex.at(pblock->hashPrevBlock);
 
                 //We need the full block data to process it
-                if (pblock->hashPrevBlock == Params().GenesisBlock().GetHash() || pindex->nChainTx > 0) {
+                if (pblock->hashPrevBlock == Params().GenesisBlock().GetHash() || pindexPrev->nChainTx > 0) {
                     fProcessBlock = true;
 
-                } else if (forceProcessing && pindex->nHeight - nHeightNext < ASK_FOR_BLOCKS && nHeightNext < pindex->nHeight) {
+                } else if (forceProcessing && pindexPrev->nHeight - nHeightNext < ASK_FOR_BLOCKS && nHeightNext < pindexPrev->nHeight) {
                     //Keep a few blocks cached so we don't fetch them over and over
                     CDataStream ss(SER_DISK, PROTOCOL_VERSION);
                     ss << *pblock;
                     int nSizeBlock = ss.size();
                     if (nStagedCacheSize < STAGING_CACHE_SIZE) {
+                        LOCK(cs_staging);
                         nStagedCacheSize += nSizeBlock;
-                        mapStagedBlocks.emplace(pindex->nHeight, *pblock);
+                        mapStagedBlocks.emplace(pindexPrev->nHeight+1, *pblock);
                         LogPrint(BCLog::NET, "stagin block %s (%d) because only have prevheader and not prev block\n",
-                                 pblock->GetHash().ToString(), pindex->nHeight);
+                                 pblock->GetHash().ToString(), pindexPrev->nHeight+1);
                     }
                 }
             } else {
@@ -2852,33 +2929,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 LOCK(cs_main);
                 mapBlockSource.erase(pblock->GetHash());
             }
-        } else {
-            // Process any of the blocks that have been staged, if it is next
-            while (mapStagedBlocks.count(nHeightNext)) {
-                CBlock blockStaged = mapStagedBlocks.at(nHeightNext);
-                std::shared_ptr<CBlock> pblockStaged = std::make_shared<CBlock>();
-                *pblockStaged = blockStaged;
-
-                if (mapBlockIndex.at(pblockStaged->hashPrevBlock)->nChainTx) {
-                    LogPrint(BCLog::NET, "processing staged block %s\n", blockStaged.GetHash().GetHex());
-                    bool fNewBlock = false;
-                    ProcessNewBlock(chainparams, pblockStaged, true, &fNewBlock);
-                    mapStagedBlocks.erase(nHeightNext);
-                    nHeightNext++;
-                } else {
-                    break;
-                }
-            }
         }
-
-        //Clean up any stale staged blocks
-        std::vector<int> vErase;
-        for (const auto& p : mapStagedBlocks) {
-            if (p.first < nHeightNext)
-                vErase.emplace_back(p.first);
-        }
-        for (auto i : vErase)
-            mapStagedBlocks.erase(i);
     }
 
 
@@ -3399,6 +3450,7 @@ public:
 };
 }
 
+static std::map<uint256, int32_t> mapRequestedBlocks;
 bool PeerLogicValidation::SendMessages(CNode* pto)
 {
     const Consensus::Params& consensusParams = Params().GetConsensus();
@@ -3896,16 +3948,35 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
         // Message: getdata (blocks)
         //
         std::vector<CInv> vGetData;
-        if (!pto->fClient && ((fFetch && !pto->m_limited_node) || !IsInitialBlockDownload()) && state.nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
+        bool fRequest = true;
+        {
+            LOCK(cs_staging);
+            if (mapStagedBlocks.size() > 50)
+                fRequest = false;
+        }
+
+        if (!pto->fClient && fRequest && ((fFetch && !pto->m_limited_node) || !IsInitialBlockDownload()) && state.nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
             std::vector<const CBlockIndex*> vToDownload;
             NodeId staller = -1;
             FindNextBlocksToDownload(pto->GetId(), MAX_BLOCKS_IN_TRANSIT_PER_PEER - state.nBlocksInFlight, vToDownload, staller, consensusParams);
             for (const CBlockIndex *pindex : vToDownload) {
                 uint32_t nFetchFlags = GetFetchFlags(pto);
-                vGetData.push_back(CInv(MSG_BLOCK | nFetchFlags, pindex->GetBlockHash()));
-                MarkBlockAsInFlight(pto->GetId(), pindex->GetBlockHash(), pindex);
-                LogPrint(BCLog::NET, "Requesting block %s (%d) peer=%d\n", pindex->GetBlockHash().ToString(),
-                    pindex->nHeight, pto->GetId());
+
+                fRequest = true;
+                CInv inv(MSG_BLOCK | nFetchFlags, pindex->GetBlockHash());
+                auto mi = mapRequestedBlocks.find(inv.hash);
+                if (mi != mapRequestedBlocks.end()) {
+                    if (GetTime() - mi->second < 5)
+                        fRequest = false;
+                }
+
+                if (fRequest) {
+                    vGetData.push_back(inv);
+                    mapRequestedBlocks.emplace(inv.hash, GetTime());
+                    MarkBlockAsInFlight(pto->GetId(), pindex->GetBlockHash(), pindex);
+                    LogPrint(BCLog::NET, "Requesting block %s (%d) peer=%d\n", pindex->GetBlockHash().ToString(),
+                             pindex->nHeight, pto->GetId());
+                }
             }
             if (state.nBlocksInFlight == 0 && staller != -1) {
                 if (State(staller)->nStallingSince == 0) {

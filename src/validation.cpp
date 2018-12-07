@@ -2092,6 +2092,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
     }
 
+    bool fSkipComputation = false;
+    CBlockIndex* pcheckpoint = Checkpoints::GetLastCheckpoint(chainparams.Checkpoints());
+    if (pcheckpoint && pindex->nHeight < pcheckpoint->nHeight)
+        fSkipComputation = true;
+
     int64_t nTime1 = GetTimeMicros(); nTimeCheck += nTime1 - nTimeStart;
     LogPrint(BCLog::BENCH, "    - Sanity checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime1 - nTimeStart), nTimeCheck * MICRO, nTimeCheck * MILLI / nBlocksTotal);
 
@@ -2212,7 +2217,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     txdata.reserve(block.vtx.size()); // Required so that pointers to individual PrecomputedTransactionData don't get invalidated
 
     //Do not accept PoW blocks after the last pow height
-    if (pindex->nHeight > Params().LAST_POW_BLOCK() && !block.IsProofOfStake())
+    if (pindex->nHeight > chainparams.LAST_POW_BLOCK() && !block.IsProofOfStake())
         return state.DoS(100, error("%s: Proof of Work block added after the last allowed PoW height", __func__), REJECT_INVALID, "pow-after-cutoff");
 
     pindex->nNetworkRewardReserve = pindex->pprev ? pindex->pprev->nNetworkRewardReserve : 0;
@@ -2305,7 +2310,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
                     setSerialsInBlock.emplace(spend->getCoinSerialNumber());
                     mapSpends.emplace(*spend, tx.GetHash());
-                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex))
+                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, fSkipComputation))
                         return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
                                                     tx.GetHash().GetHex()), REJECT_INVALID);
                 }
@@ -2472,7 +2477,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
 
     //Check proof of full node
-    if (block.fProofOfFullNode || block.hashPoFN != uint256()) {
+    if (!fSkipComputation && (block.fProofOfFullNode || block.hashPoFN != uint256())) {
         if (!block.IsProofOfStake())
             return state.DoS(100, error("%s: block marked as proof of full node that is not proof of stake", __func__));
 
@@ -2591,8 +2596,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     if (!pzerocoinDB->WriteCoinSpendBatch(mapSpends)) return state.Error(("Failed to record coin serials to database"));
     if (!pzerocoinDB->WriteCoinMintBatch(mapMints)) return state.Error(("Failed to record new mints to database"));
 
-    //Record accumulator checksums
-    DatabaseChecksums(mapAccumulators);
+    //Record accumulator checksums - if they have been updated, which happens every ten blocks
+    if (pindex->nHeight > 10 && pindex->nHeight % 10 == 0)
+        DatabaseChecksums(mapAccumulators);
 
     if (!WriteUndoDataForBlock(blockundo, state, pindex, chainparams))
         return false;
@@ -3880,7 +3886,8 @@ bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::Publ
     return true;
 }
 
-bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock, CBlockIndex* pindex)
+bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock,
+        CBlockIndex* pindex, bool fSkipSignatureVerify)
 {
     if (!spend.HasValidSignature())
         return error("%s: zeorcoin spend does not have a valid signature", __func__);
@@ -3906,15 +3913,17 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
 
     //Check the signature of the spend
     // Skip signature verification during initial block download
-    CBigNum bnAccumulatorValue;
-    if (!pzerocoinDB->ReadAccumulatorValue(spend.getAccumulatorChecksum(), bnAccumulatorValue))
-        return error("%s: Cannot find accumulator checkpoint in zerocoinDB\n", __func__);
-    libzerocoin::Accumulator accumulator(Params().Zerocoin_Params(), spend.getDenomination(), bnAccumulatorValue);
+    if (!fSkipSignatureVerify) {
+        CBigNum bnAccumulatorValue;
+        if (!pzerocoinDB->ReadAccumulatorValue(spend.getAccumulatorChecksum(), bnAccumulatorValue))
+            return error("%s: Cannot find accumulator checkpoint in zerocoinDB\n", __func__);
+        libzerocoin::Accumulator accumulator(Params().Zerocoin_Params(), spend.getDenomination(), bnAccumulatorValue);
 
-    //Check that the coin has been accumulated
-    std::string strError;
-    if (!spend.Verify(accumulator, strError, true))
-        return error("CheckZerocoinSpend(): zerocoin spend did not verify");
+        //Check that the coin has been accumulated
+        std::string strError;
+        if (!spend.Verify(accumulator, strError, true))
+            return error("CheckZerocoinSpend(): zerocoin spend did not verify");
+    }
 
     return true;
 }
