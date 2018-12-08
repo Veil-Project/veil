@@ -59,6 +59,7 @@ public:
         EXT_SECRET_KEY,
 
         STEALTH_ADDRESS,
+        BASE_ADDRESS, //Used in Bech32
         EXT_KEY_HASH,
         EXT_ACC_HASH,
         EXT_PUBLIC_KEY_BTC,
@@ -95,7 +96,8 @@ public:
     const std::vector<std::string>& DNSSeeds() const { return vSeeds; }
     const std::vector<unsigned char>& Base58Prefix(Base58Type type) const { return base58Prefixes[type]; }
     const std::vector<unsigned char>& Bech32Prefix(Base58Type type) const { return bech32Prefixes[type]; }
-    const std::string& Bech32HRP() const { return bech32_hrp; }
+    const std::string& Bech32HRPStealth() const { return bech32_hrp_stealth; }
+    const std::string& Bech32HRPBase() const {return bech32_hrp_base; }
     const std::vector<SeedSpec6>& FixedSeeds() const { return vFixedSeeds; }
     const CCheckpointData& Checkpoints() const { return checkpointData; }
     const ChainTxData& TxData() const { return chainTxData; }
@@ -145,7 +147,8 @@ protected:
     std::vector<std::string> vSeeds;
     std::vector<unsigned char> base58Prefixes[MAX_BASE58_TYPES];
     std::vector<unsigned char> bech32Prefixes[MAX_BASE58_TYPES];
-    std::string bech32_hrp;
+    std::string bech32_hrp_stealth;
+    std::string bech32_hrp_base;
     std::string strNetworkID;
     uint32_t nBIP44ID;
     uint32_t nRingCTAccount;
