@@ -974,6 +974,6 @@ add_executable(veil
         COPYING
         INSTALL.md
         Makefile.am
-        README.md src/test/proofofstaketests.cpp)
+        README.md src/test/proofofstaketests.cpp src/veil/mnemonic/generateseed.h src/veil/mnemonic/generateseed.cpp)
 
 qt5_use_modules(veil Core Widgets Gui)

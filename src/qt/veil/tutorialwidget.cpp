@@ -7,6 +7,7 @@
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 #include <veil/mnemonic/mnemonic.h>
+#include <veil/mnemonic/generateseed.h>
 #include <qt/veil/qtutils.h>
 
 TutorialWidget::TutorialWidget(QWidget *parent) :
@@ -81,16 +82,15 @@ void TutorialWidget::on_next_triggered(){
                     switch (tutorialCreateWallet->GetButtonClicked()) {
                         case 1:
                         {
+                            //Generate mnemonic phrase from fresh entropy
                             mnemonic = "";
-                            std::string strWalletFile = "wallet.dat";
-                            CWallet::CreateNewHDWallet(strWalletFile, GetWalletDir(), mnemonic, this->strLanguageSelection.toStdString(), &seed);
+                            veil::GenerateNewMnemonicSeed(mnemonic, strLanguageSelection.toStdString());
 
                             std::stringstream ss(mnemonic);
                             std::istream_iterator<std::string> begin(ss);
                             std::istream_iterator<std::string> end;
                             mnemonicWordList.clear();
                             mnemonicWordList = std::vector<std::string>(begin, end);
-                            std::vector<unsigned char> keyData = key_from_mnemonic(mnemonicWordList);
 
                             tutorialMnemonicCode = new TutorialMnemonicCode(mnemonicWordList, this);
                             ui->QStackTutorialContainer->addWidget(tutorialMnemonicCode);
@@ -133,18 +133,18 @@ void TutorialWidget::on_next_triggered(){
                         else
                             mnemonic += " " + q_word.toStdString();
                     }
-
-                    bool fBadSeed = false;
-                    uint512 seed_local;
-                    CWallet::CreateHDWalletFromMnemonic(strWalletFile, GetWalletDir(), mnemonic, fBadSeed, seed_local);
-                    if (fBadSeed) {
-                        //tutorialMnemonicRevealed = new TutorialMnemonicRevealed(wordList,this);
-                        //ui->QStackTutorialContainer->addWidget(tutorialMnemonicRevealed);
-                        qWidget = tutorialMnemonicRevealed;
-                        loadLeftContainer(":/icons/img-start-confirm","Bad seed phrase \n Try again","");
-                        ui->QStackTutorialContainer->setCurrentWidget(qWidget);
-                        return;
-                    }
+//
+//                    bool fBadSeed = false;
+//                    uint512 seed_local;
+//                    CWallet::CreateHDWalletFromMnemonic(strWalletFile, GetWalletDir(), mnemonic, fBadSeed, seed_local);
+//                    if (fBadSeed) {
+//                        //tutorialMnemonicRevealed = new TutorialMnemonicRevealed(wordList,this);
+//                        //ui->QStackTutorialContainer->addWidget(tutorialMnemonicRevealed);
+//                        qWidget = tutorialMnemonicRevealed;
+//                        loadLeftContainer(":/icons/img-start-confirm","Bad seed phrase \n Try again","");
+//                        ui->QStackTutorialContainer->setCurrentWidget(qWidget);
+//                        return;
+//                    }
 
                     createPassword = new CreatePassword(this);
                     ui->QStackTutorialContainer->addWidget(createPassword);

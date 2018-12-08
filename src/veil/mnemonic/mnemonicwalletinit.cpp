@@ -7,6 +7,7 @@
 #include <wallet/walletutil.h>
 #include <veil/ringct/hdwallet.h>
 #include "mnemonic.h"
+#include "generateseed.h"
 
 const WalletInitInterface& g_wallet_init_interface = MnemonicWalletInit();
 
@@ -24,46 +25,46 @@ bool MnemonicWalletInit::Open() const
         if ((walletFile == "" && !fs::exists(walletPath / "wallet.dat")) || !fs::exists(walletPath)) {
             fNewSeed = true;
             unsigned int initOption = MnemonicWalletInitFlags::INVALID_MNEMONIC;
-            //Have to check startup args because daemon is not interactive
+            /** check startup args because daemon is not interactive **/
             if (gArgs.GetBoolArg("-generateseed", false))
                 initOption = MnemonicWalletInitFlags::NEW_MNEMONIC;
+
             std::string strSeedPhraseArg = gArgs.GetArg("-importseed", "");
             if (!strSeedPhraseArg.empty())
                 initOption = MnemonicWalletInitFlags::IMPORT_MNEMONIC;
 
+            /**If no startup args, then launch prompt **/
             std::string strMessage = "english";
             if (initOption == MnemonicWalletInitFlags::INVALID_MNEMONIC) {
                 // Language only routes to GUI. It returns with the filled out mnemonic in strMessage
                 if (!GetWalletMnemonicLanguage(strMessage, initOption))
                     return false;
-
                 // The mnemonic phrase now needs to be converted to the final wallet seed (note: different than the phrase seed)
-                std::string strMnemonic = strMessage;
-                auto hashRet = decode_mnemonic(strMnemonic);
-                memcpy(hashMasterKey.begin(), hashRet.begin(), hashRet.size());
-                //LogPrintf("%s: GUI loaded seed %s\n", __func__, hashMasterKey.GetHex());
-            } else if (initOption == MnemonicWalletInitFlags::NEW_MNEMONIC) {
+                strSeedPhraseArg = strMessage;
+                //LogPrintf("%s: mnemonic phrase: %s\n", __func__, strSeedPhraseArg);
+                initOption = MnemonicWalletInitFlags::IMPORT_MNEMONIC;
+            }
+
+            /** Create a new mnemonic - this should only be triggered via daemon **/
+            if (initOption == MnemonicWalletInitFlags::NEW_MNEMONIC) {
                 std::string mnemonic;
-                if (!CWallet::CreateNewHDWallet(walletFile, walletPath, mnemonic, strMessage, &hashMasterKey))
-                    return false;
+                veil::GenerateNewMnemonicSeed(mnemonic, strMessage);
                 if (!DisplayWalletMnemonic(mnemonic))
                     return false;
-            } else if (initOption == MnemonicWalletInitFlags::IMPORT_MNEMONIC) {
-                std::string importMnemonic = strSeedPhraseArg;
-                bool ret, fBadSeed;
-                if (importMnemonic.empty() && !GetWalletMnemonic(importMnemonic))
-                    return false;
-                do {
-                    ret = CWallet::CreateHDWalletFromMnemonic(walletFile, walletPath, importMnemonic, fBadSeed, hashMasterKey);
-                    if (!ret || (fBadSeed && !RetryWalletMnemonic(importMnemonic)))
-                        return false;
-                } while (fBadSeed);
+                strSeedPhraseArg = mnemonic;
+                initOption = MnemonicWalletInitFlags::IMPORT_MNEMONIC;
+            }
 
-                LogPrintf("Successfully imported wallet seed\n");
+            /** Convert the mnemonic phrase to the final seed used for the wallet **/
+            if (initOption == MnemonicWalletInitFlags::IMPORT_MNEMONIC) {
+                // Convert the BIP39 mnemonic phrase into the final 512bit wallet seed
+                auto hashRet = decode_mnemonic(strSeedPhraseArg);
+                memcpy(hashMasterKey.begin(), hashRet.begin(), hashRet.size());
+                //LogPrintf("%s: Staging for loading seed %s\n", __func__, hashMasterKey.GetHex());
             }
         }
 
-        std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(walletFile, walletPath, 0, nullptr);
+        std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(walletFile, walletPath, 0, fNewSeed ? &hashMasterKey : nullptr);
         if (!pwallet) {
             return false;
         }

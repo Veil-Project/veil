@@ -212,9 +212,10 @@ BITCOIN_CORE_H = \
   veil/dictionary.h \
   veil/invalid.h \
   veil/mintpool.h \
-  veil/mnemonic.h \
-  veil/mnemonicwalletinit.h \
-  veil/walletinitflags.h \
+  veil/mnemonic/generateseed.h \
+  veil/mnemonic/mnemonic.h \
+  veil/mnemonic/mnemonicwalletinit.h \
+  veil/mnemonic/walletinitflags.h \
   veil/zchain.h \
   veil/ztracker.h \
   veil/zwallet.h \
@@ -317,6 +318,7 @@ libbitcoin_wallet_a_SOURCES = \
   veil/ringct/blind.cpp \
   veil/ringct/stealth.cpp \
   veil/mnemonic/dictionary.cpp \
+  veil/mnemonic/generateseed.cpp \
   veil/mnemonic/mnemonic.cpp \
   veil/mnemonic/mnemonicwalletinit.cpp \
   wallet/coincontrol.cpp \
