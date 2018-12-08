@@ -53,8 +53,8 @@ border:none;</string>
      </property>
      <property name="maximumSize">
       <size>
-       <width>300</width>
-       <height>40</height>
+       <width>400</width>
+       <height>80</height>
       </size>
      </property>
      <property name="styleSheet">
@@ -89,13 +89,17 @@ border:1px solid #bababa;
          <string notr="true">font-size:16px;
 color:#ffffff;
 text-align:center;
+padding:6px;
 </string>
         </property>
         <property name="text">
-         <string>25.280 Veil</string>
+         <string>None</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
+        </property>
+        <property name="wordWrap">
+         <bool>true</bool>
         </property>
        </widget>
       </item>
