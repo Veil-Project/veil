@@ -1431,37 +1431,6 @@ CAmount CWallet::GetChange(const CTransaction& tx) const
     return nChange;
 }
 
-uint512 CWallet::GenerateNewMnemonicSeed(std::string &mnemonic, const std::string& strLanguage)
-{
-    assert(!IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
-    CKey key;
-    key.MakeNewKey(true);
-
-    std::vector<unsigned char> keyData;
-    const unsigned char *ptrKeyData = key.begin();
-    for (int i = 0; ptrKeyData != key.end(); i++) {
-        unsigned char byte = *ptrKeyData;
-        keyData.push_back(byte);
-        ptrKeyData++;
-    }
-
-    word_list mnemonic_words = create_mnemonic(keyData, string_to_lexicon(strLanguage));
-    for (auto it = mnemonic_words.begin(); it != mnemonic_words.end();) {
-        const auto word = *it;
-        mnemonic += word;
-        ++it;
-        if (it == mnemonic_words.end())
-            break;
-        mnemonic += " ";
-    }
-
-    auto blob_512 = decode_mnemonic(mnemonic_words);
-    uint512 seed512;
-    memcpy(seed512.begin(), blob_512.begin(), blob_512.size());
-
-    return seed512;
-}
-
 bool CWallet::SetHDSeedFromMnemonic(const std::string &mnemonic, uint512& seed)
 {
     assert(!IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
@@ -1562,8 +1531,10 @@ void CWallet::SetHDSeed_512(const uint512& hashSeed)
     key2.Set(hashSeed.begin()+32, hashSeed.begin()+64, false);
 
     // Add seeds to the keystore
-    DeriveNewSeed(key1);
-    DeriveNewSeed(key2);
+    if (!mapKeyMetadata.count(key1.GetPubKey().GetID())) {
+        DeriveNewSeed(key1);
+        DeriveNewSeed(key2);
+    }
 
     newHdChain.seed_id = key1.GetPubKey().GetID();
     newHdChain.seed_id_r = key2.GetPubKey().GetID();
@@ -4848,70 +4819,6 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     walletInstance->getZWallet()->SyncWithChain();
 
     return walletInstance;
-}
-
-bool CWallet::CreateNewHDWallet(const std::string& name, const fs::path& path, std::string& mnemonic, const std::string& strLanguage, uint512* seed)
-{
-    const std::string& walletFile = name;
-
-    uiInterface.InitMessage(_("Generating wallet..."));
-
-    int64_t nStart = GetTimeMillis();
-    bool fFirstRun = true;
-
-    std::shared_ptr<CWallet> walletInstance(new CWallet(name, WalletDatabase::Create(path)), ReleaseWallet);
-    DBErrors nLoadWalletRet = walletInstance->LoadWallet(fFirstRun);
-
-    if (nLoadWalletRet != DBErrors::LOAD_OK)
-    {
-        InitError(strprintf(_("Error generating %s"), walletFile));
-        return false;
-    }
-
-    walletInstance->SetMinVersion(FEATURE_LATEST);
-    walletInstance->SetMaxVersion(FEATURE_LATEST);
-
-    // generate a new seed - (note: not saved to db here, that is done elsewhere)
-    uint512 seedLocal = walletInstance->GenerateNewMnemonicSeed(mnemonic, strLanguage);
-    *seed = seedLocal;
-
-    walletInstance->ChainStateFlushed(chainActive.GetLocator());
-    return true;
-}
-
-bool CWallet::CreateHDWalletFromMnemonic(const std::string& name, const fs::path& path, const std::string& mnemonic, bool& fBadSeed, uint512& seed)
-{
-    // Rescan the chain to get any transactions belonging to this wallet
-    gArgs.SoftSetBoolArg("-rescan", true);
-
-    const std::string& walletFile = name;
-    fBadSeed = false;
-
-    uiInterface.InitMessage(_("Generating wallet..."));
-
-    int64_t nStart = GetTimeMillis();
-    bool fFirstRun = true;
-
-    std::shared_ptr<CWallet> walletInstance(new CWallet(name, WalletDatabase::Create(path)), ReleaseWallet);
-    DBErrors nLoadWalletRet = walletInstance->LoadWallet(fFirstRun);
-
-    if (nLoadWalletRet != DBErrors::LOAD_OK)
-    {
-        InitError(strprintf(_("Error generating %s"), walletFile));
-        return false;
-    }
-
-    walletInstance->SetMinVersion(FEATURE_LATEST);
-    walletInstance->SetMaxVersion(FEATURE_LATEST);
-
-    // import seed
-    if (!walletInstance->SetHDSeedFromMnemonic(mnemonic, seed)) {
-        fBadSeed = true;
-        return true;
-    }
-
-    walletInstance->ChainStateFlushed(chainActive.GetLocator());
-    return true;
 }
 
 void CWallet::postInitProcess()
