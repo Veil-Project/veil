@@ -11,6 +11,7 @@
 #include <key_io.h>
 #include <wallet/wallet.h>
 
+#include <QString>
 #include <QPixmap>
 #include <QIcon>
 #include <QClipboard>
@@ -45,7 +46,15 @@ AddressReceive::AddressReceive(QWidget *parent, WalletModel* _walletModel) :
     generateNewAddress();
 
     connect(ui->btnCopy, SIGNAL(clicked()),this, SLOT(on_btnCopyAddress_clicked()));
+    connect(ui->btnSave, SIGNAL(clicked()),this, SLOT(onBtnSaveClicked()));
 
+}
+
+void AddressReceive::onBtnSaveClicked(){
+    std::string label = ui->editDescription->text().toUtf8().constData();
+    interfaces::Wallet& wallet = walletModel->wallet();
+    wallet.setAddressBook(dest, label, "receive");
+    accept();
 }
 
 void AddressReceive::on_btnCopyAddress_clicked() {
@@ -56,6 +65,7 @@ void AddressReceive::on_btnCopyAddress_clicked() {
 void AddressReceive::generateNewAddress(){
     // Address
     interfaces::Wallet& wallet = walletModel->wallet();
+
     // Generate a new address to associate with given label
     if(!walletModel->wallet().getKeyFromPool(false /* internal */, newKey))
     {
@@ -76,7 +86,9 @@ void AddressReceive::generateNewAddress(){
     }
     wallet.learnRelatedScripts(newKey, OutputType::BECH32);
     std::string strAddress;
-    strAddress = EncodeDestination(GetDestinationForKey(newKey, OutputType::BECH32));
+    dest = GetDestinationForKey(newKey, OutputType::BECH32);
+    bool fBech32 = true;
+    strAddress = EncodeDestination(dest, fBech32);
 
     qAddress =  QString::fromStdString(strAddress);
 

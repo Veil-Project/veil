@@ -1,9 +1,11 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.10)
 project(veil)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 11)
 
 include_directories(src)
+include_directories(src/bench)
+include_directories(src/compat)
 include_directories(src/consensus)
 include_directories(src/crypto)
 include_directories(src/crypto/ctaes)
@@ -23,7 +25,8 @@ include_directories(src/libzerocoin)
 include_directories(src/policy)
 include_directories(src/primitives)
 include_directories(src/qt)
-include_directories(src/qt/test)
+include_directories(src/qt/veil)
+include_directories(src/qt/veil/settings)
 include_directories(src/rpc)
 include_directories(src/script)
 include_directories(src/secp256k1/contrib)
@@ -45,60 +48,42 @@ include_directories(src/test)
 include_directories(src/univalue/include)
 include_directories(src/univalue/lib)
 include_directories(src/veil)
+include_directories(src/veil/mnemonic)
+include_directories(src/veil/proofoffullnode)
+include_directories(src/veil/proofofstake)
 include_directories(src/veil/qt)
-include_directories(src/veil/qt/forms)
+include_directories(src/veil/ringct)
+include_directories(src/veil/zerocoin)
 include_directories(src/wallet)
 include_directories(src/wallet/test)
 include_directories(src/zmq)
 
-find_package( Qt5Core REQUIRED )
-find_package( Qt5Widgets REQUIRED )
-find_package( Qt5Gui REQUIRED )
-
 add_executable(veil
-        src/veil/proofoffullnode/proofoffullnode.cpp
-        src/veil/proofoffullnode/proofoffullnode.h
-        src/veil/ringct/extkey.cpp
-        src/veil/ringct/extkey.h
-        src/veil/ringct/hdwallet.cpp
-        src/veil/ringct/hdwallet.h
-        src/veil/ringct/hdwalletdb.cpp
-        src/veil/ringct/hdwalletdb.h
-        src/veil/ringct/keyutil.cpp
-        src/veil/ringct/keyutil.h
-        src/veil/ringct/rpchdwallet.cpp
-        src/veil/ringct/rpchdwallet.h
-        src/veil/ringct/stealth.cpp
-        src/veil/ringct/stealth.h
-        src/veil/ringct/types.h
-        src/qt/veil/qtutils.cpp
-        src/qt/veil/qtutils.h
-        src/qt/veil/receivewidget.cpp
-        src/qt/veil/receivewidget.h
-        src/qt/veil/sendconfirmation.cpp
-        src/qt/veil/sendconfirmation.h
-        src/qt/veil/sendcontroldialog.cpp
-        src/qt/veil/sendcontroldialog.h
-        src/qt/veil/toast.cpp
-        src/qt/veil/toast.h
-        src/qt/veil/tooltipbalance.cpp
-        src/qt/veil/tooltipbalance.h
-        src/qt/veil/transactiondetaildialog.cpp
-        src/qt/veil/transactiondetaildialog.h
-        src/qt/veil/tutorialcreatewalletwidget.cpp
-        src/qt/veil/tutorialcreatewalletwidget.h
-        src/qt/veil/tutoriallanguageswidget.cpp
-        src/qt/veil/tutoriallanguageswidget.h
-        src/qt/veil/tutorialmnemoniccode.cpp
-        src/qt/veil/tutorialmnemoniccode.h
-        src/qt/veil/tutorialmnemonicrevealed.cpp
-        src/qt/veil/tutorialmnemonicrevealed.h
-        src/qt/veil/tutorialwidget.cpp
-        src/qt/veil/tutorialwidget.h
-        src/qt/veil/unlockpassworddialog.cpp
-        src/qt/veil/unlockpassworddialog.h
-        src/qt/veil/veilstatusbar.cpp
-        src/qt/veil/veilstatusbar.h
+        src/bench/base58.cpp
+        src/bench/bech32.cpp
+        src/bench/bench.cpp
+        src/bench/bench.h
+        src/bench/bench_veil.cpp
+        src/bench/block_assemble.cpp
+        src/bench/ccoins_caching.cpp
+        src/bench/checkblock.cpp
+        src/bench/checkqueue.cpp
+        src/bench/coin_selection.cpp
+        src/bench/crypto_hash.cpp
+        src/bench/examples.cpp
+        src/bench/lockedpool.cpp
+        src/bench/mempool_eviction.cpp
+        src/bench/merkle_root.cpp
+        src/bench/prevector.cpp
+        src/bench/rollingbloom.cpp
+        src/bench/verify_script.cpp
+        src/compat/byteswap.h
+        src/compat/endian.h
+        src/compat/glibc_compat.cpp
+        src/compat/glibc_sanity.cpp
+        src/compat/glibcxx_sanity.cpp
+        src/compat/sanity.h
+        src/compat/strnlen.cpp
         src/consensus/consensus.h
         src/consensus/merkle.cpp
         src/consensus/merkle.h
@@ -183,11 +168,9 @@ add_executable(veil
         src/crypto/sha256_sse4.cpp
         src/crypto/sha256_sse41.cpp
         src/crypto/sha512.cpp
-        src/wallet/rpczerocoin.cpp
         src/crypto/sha512.h
         src/index/base.cpp
         src/index/base.h
-        #src/index/timestampindex.h
         src/index/txindex.cpp
         src/index/txindex.h
         src/interfaces/handler.cpp
@@ -368,45 +351,102 @@ add_executable(veil
         src/policy/rbf.h
         src/primitives/block.cpp
         src/primitives/block.h
-        src/wallet/deterministicmint.cpp
-        src/wallet/deterministicmint.h
         src/primitives/transaction.cpp
         src/primitives/transaction.h
         src/primitives/zerocoin.cpp
         src/primitives/zerocoin.h
-        src/qt/forms/addressbookpage.ui
-        src/qt/forms/askpassphrasedialog.ui
-        src/qt/forms/coincontroldialog.ui
-        src/qt/forms/debugwindow.ui
-        src/qt/forms/editaddressdialog.ui
-        src/qt/forms/helpmessagedialog.ui
-        src/qt/forms/intro.ui
-        src/qt/forms/modaloverlay.ui
-        src/qt/forms/openuridialog.ui
-        src/qt/forms/optionsdialog.ui
-        src/qt/forms/overviewpage.ui
-        src/qt/forms/receivecoinsdialog.ui
-        src/qt/forms/receiverequestdialog.ui
-        src/qt/forms/sendcoinsdialog.ui
-        src/qt/forms/sendcoinsentry.ui
-        src/qt/forms/signverifymessagedialog.ui
-        src/qt/forms/transactiondescdialog.ui
-        src/qt/test/addressbooktests.cpp
-        src/qt/test/addressbooktests.h
-        src/qt/test/compattests.cpp
-        src/qt/test/compattests.h
-        src/qt/test/paymentrequestdata.h
-        src/qt/test/paymentservertests.cpp
-        src/qt/test/paymentservertests.h
-        src/qt/test/rpcnestedtests.cpp
-        src/qt/test/rpcnestedtests.h
-        src/qt/test/test_main.cpp
-        src/qt/test/uritests.cpp
-        src/qt/test/uritests.h
-        src/qt/test/util.cpp
-        src/qt/test/util.h
-        src/qt/test/wallettests.cpp
-        src/qt/test/wallettests.h
+        src/qt/veil/settings/settingsadvance.cpp
+        src/qt/veil/settings/settingsadvance.h
+        src/qt/veil/settings/settingsadvanceconsole.cpp
+        src/qt/veil/settings/settingsadvanceconsole.h
+        src/qt/veil/settings/settingsadvanceinformation.cpp
+        src/qt/veil/settings/settingsadvanceinformation.h
+        src/qt/veil/settings/settingsadvancenetwork.cpp
+        src/qt/veil/settings/settingsadvancenetwork.h
+        src/qt/veil/settings/settingsadvancepeers.cpp
+        src/qt/veil/settings/settingsadvancepeers.h
+        src/qt/veil/settings/settingsbackup.cpp
+        src/qt/veil/settings/settingsbackup.h
+        src/qt/veil/settings/settingschangepassword.cpp
+        src/qt/veil/settings/settingschangepassword.h
+        src/qt/veil/settings/settingsfaq.cpp
+        src/qt/veil/settings/settingsfaq.h
+        src/qt/veil/settings/settingsfaq01.cpp
+        src/qt/veil/settings/settingsfaq01.h
+        src/qt/veil/settings/settingsfaq02.cpp
+        src/qt/veil/settings/settingsfaq02.h
+        src/qt/veil/settings/settingsfaq03.cpp
+        src/qt/veil/settings/settingsfaq03.h
+        src/qt/veil/settings/settingsfaq04.cpp
+        src/qt/veil/settings/settingsfaq04.h
+        src/qt/veil/settings/settingsfaq05.cpp
+        src/qt/veil/settings/settingsfaq05.h
+        src/qt/veil/settings/settingsfaq06.cpp
+        src/qt/veil/settings/settingsfaq06.h
+        src/qt/veil/settings/settingsfaq07.cpp
+        src/qt/veil/settings/settingsfaq07.h
+        src/qt/veil/settings/settingsfaq08.cpp
+        src/qt/veil/settings/settingsfaq08.h
+        src/qt/veil/settings/settingsfaq09.cpp
+        src/qt/veil/settings/settingsfaq09.h
+        src/qt/veil/settings/settingsfaq10.cpp
+        src/qt/veil/settings/settingsfaq10.h
+        src/qt/veil/settings/settingsfaq11.cpp
+        src/qt/veil/settings/settingsfaq11.h
+        src/qt/veil/settings/settingsminting.cpp
+        src/qt/veil/settings/settingsminting.h
+        src/qt/veil/settings/settingsnetwork.cpp
+        src/qt/veil/settings/settingsnetwork.h
+        src/qt/veil/settings/settingspreferences.cpp
+        src/qt/veil/settings/settingspreferences.h
+        src/qt/veil/settings/settingsrestore.cpp
+        src/qt/veil/settings/settingsrestore.h
+        src/qt/veil/settings/settingsrestorefile.cpp
+        src/qt/veil/settings/settingsrestorefile.h
+        src/qt/veil/settings/settingsrestoreseed.cpp
+        src/qt/veil/settings/settingsrestoreseed.h
+        src/qt/veil/settings/settingswidget.cpp
+        src/qt/veil/settings/settingswidget.h
+        src/qt/veil/addresseswidget.cpp
+        src/qt/veil/addresseswidget.h
+        src/qt/veil/addressnewcontact.cpp
+        src/qt/veil/addressnewcontact.h
+        src/qt/veil/addressreceive.cpp
+        src/qt/veil/addressreceive.h
+        src/qt/veil/balance.cpp
+        src/qt/veil/balance.h
+        src/qt/veil/createpassword.cpp
+        src/qt/veil/createpassword.h
+        src/qt/veil/mainwindow.cpp
+        src/qt/veil/mainwindow.h
+        src/qt/veil/qtutils.cpp
+        src/qt/veil/qtutils.h
+        src/qt/veil/receivewidget.cpp
+        src/qt/veil/receivewidget.h
+        src/qt/veil/sendconfirmation.cpp
+        src/qt/veil/sendconfirmation.h
+        src/qt/veil/sendcontroldialog.cpp
+        src/qt/veil/sendcontroldialog.h
+        src/qt/veil/toast.cpp
+        src/qt/veil/toast.h
+        src/qt/veil/tooltipbalance.cpp
+        src/qt/veil/tooltipbalance.h
+        src/qt/veil/transactiondetaildialog.cpp
+        src/qt/veil/transactiondetaildialog.h
+        src/qt/veil/tutorialcreatewalletwidget.cpp
+        src/qt/veil/tutorialcreatewalletwidget.h
+        src/qt/veil/tutoriallanguageswidget.cpp
+        src/qt/veil/tutoriallanguageswidget.h
+        src/qt/veil/tutorialmnemoniccode.cpp
+        src/qt/veil/tutorialmnemoniccode.h
+        src/qt/veil/tutorialmnemonicrevealed.cpp
+        src/qt/veil/tutorialmnemonicrevealed.h
+        src/qt/veil/tutorialwidget.cpp
+        src/qt/veil/tutorialwidget.h
+        src/qt/veil/unlockpassworddialog.cpp
+        src/qt/veil/unlockpassworddialog.h
+        src/qt/veil/veilstatusbar.cpp
+        src/qt/veil/veilstatusbar.h
         src/qt/addressbookpage.cpp
         src/qt/addressbookpage.h
         src/qt/addresstablemodel.cpp
@@ -486,6 +526,8 @@ add_executable(veil
         src/qt/signverifymessagedialog.h
         src/qt/splashscreen.cpp
         src/qt/splashscreen.h
+        src/qt/splashscreenveil.cpp
+        src/qt/splashscreenveil.h
         src/qt/trafficgraphwidget.cpp
         src/qt/trafficgraphwidget.h
         src/qt/transactiondesc.cpp
@@ -687,6 +729,7 @@ add_executable(veil
         src/test/policyestimator_tests.cpp
         src/test/pow_tests.cpp
         src/test/prevector_tests.cpp
+        src/test/proofofstaketests.cpp
         src/test/raii_event_tests.cpp
         src/test/random_tests.cpp
         src/test/reverselock_tests.cpp
@@ -732,14 +775,59 @@ add_executable(veil
         src/univalue/test/object.cpp
         src/univalue/test/test_json.cpp
         src/univalue/test/unitester.cpp
-        src/veil/qt/forms/ui_mnemonicdialog.h
-        src/veil/qt/forms/ui_mnemonicdisplay.h
+        src/veil/mnemonic/arrayslice.h
+        src/veil/mnemonic/dictionary.cpp
+        src/veil/mnemonic/dictionary.h
+        src/veil/mnemonic/generateseed.cpp
+        src/veil/mnemonic/generateseed.h
+        src/veil/mnemonic/mnemonic.cpp
+        src/veil/mnemonic/mnemonic.h
+        src/veil/mnemonic/mnemonicwalletinit.cpp
+        src/veil/mnemonic/mnemonicwalletinit.h
+        src/veil/mnemonic/walletinitflags.h
+        src/veil/proofoffullnode/proofoffullnode.cpp
+        src/veil/proofoffullnode/proofoffullnode.h
+        src/veil/proofofstake/blockvalidation.cpp
+        src/veil/proofofstake/blockvalidation.h
+        src/veil/proofofstake/kernel.cpp
+        src/veil/proofofstake/kernel.h
+        src/veil/proofofstake/stakeinput.cpp
+        src/veil/proofofstake/stakeinput.h
         src/veil/qt/mnemonicdialog.cpp
         src/veil/qt/mnemonicdialog.h
         src/veil/qt/mnemonicdisplay.cpp
         src/veil/qt/mnemonicdisplay.h
-        src/veil/proofofstake/blockvalidation.cpp
-        src/veil/proofofstake/blockvalidation.h
+        src/veil/ringct/anon.cpp
+        src/veil/ringct/anon.h
+        src/veil/ringct/blind.cpp
+        src/veil/ringct/blind.h
+        src/veil/ringct/extkey.cpp
+        src/veil/ringct/extkey.h
+        src/veil/ringct/hdwallet.cpp
+        src/veil/ringct/hdwallet.h
+        src/veil/ringct/hdwalletdb.cpp
+        src/veil/ringct/hdwalletdb.h
+        src/veil/ringct/keyutil.cpp
+        src/veil/ringct/keyutil.h
+        src/veil/ringct/rpchdwallet.cpp
+        src/veil/ringct/rpchdwallet.h
+        src/veil/ringct/stealth.cpp
+        src/veil/ringct/stealth.h
+        src/veil/ringct/types.h
+        src/veil/zerocoin/accumulatormap.cpp
+        src/veil/zerocoin/accumulatormap.h
+        src/veil/zerocoin/accumulators.cpp
+        src/veil/zerocoin/accumulators.h
+        src/veil/zerocoin/denomination_functions.cpp
+        src/veil/zerocoin/denomination_functions.h
+        src/veil/zerocoin/mintpool.cpp
+        src/veil/zerocoin/mintpool.h
+        src/veil/zerocoin/zchain.cpp
+        src/veil/zerocoin/zchain.h
+        src/veil/zerocoin/ztracker.cpp
+        src/veil/zerocoin/ztracker.h
+        src/veil/zerocoin/zwallet.cpp
+        src/veil/zerocoin/zwallet.h
         src/veil/budget.cpp
         src/veil/budget.h
         src/veil/dandelioninventory.cpp
@@ -758,6 +846,8 @@ add_executable(veil
         src/wallet/crypter.h
         src/wallet/db.cpp
         src/wallet/db.h
+        src/wallet/deterministicmint.cpp
+        src/wallet/deterministicmint.h
         src/wallet/feebumper.cpp
         src/wallet/feebumper.h
         src/wallet/fees.cpp
@@ -767,6 +857,7 @@ add_executable(veil
         src/wallet/rpcdump.cpp
         src/wallet/rpcwallet.cpp
         src/wallet/rpcwallet.h
+        src/wallet/rpczerocoin.cpp
         src/wallet/wallet.cpp
         src/wallet/wallet.h
         src/wallet/walletdb.cpp
@@ -782,35 +873,17 @@ add_executable(veil
         src/zmq/zmqpublishnotifier.h
         src/zmq/zmqrpc.cpp
         src/zmq/zmqrpc.h
-        src/veil/zerocoin/denomination_functions.cpp
-        src/veil/zerocoin/denomination_functions.h
-        src/veil/zerocoin/mintpool.cpp
-        src/veil/zerocoin/mintpool.h
-        src/veil/zerocoin/zchain.cpp
-        src/veil/zerocoin/zchain.h
-        src/veil/zerocoin/ztracker.cpp
-        src/veil/zerocoin/ztracker.h
-        src/veil/zerocoin/zwallet.cpp
-        src/veil/zerocoin/zwallet.h
-        src/veil/zerocoin/accumulatormap.cpp
-        src/veil/zerocoin/accumulatormap.h
-        src/veil/zerocoin/accumulators.cpp
-        src/veil/zerocoin/accumulators.h
         src/addrdb.cpp
         src/addrdb.h
         src/addrman.cpp
         src/addrman.h
         src/amount.h
-        src/veil/ringct/anon.cpp
-        src/veil/ringct/anon.h
         src/arith_uint256.cpp
         src/arith_uint256.h
         src/base58.cpp
         src/base58.h
         src/bech32.cpp
         src/bech32.h
-        src/veil/ringct/blind.cpp
-        src/veil/ringct/blind.h
         src/blockencodings.cpp
         src/blockencodings.h
         src/bloom.cpp
@@ -850,8 +923,6 @@ add_executable(veil
         src/indirectmap.h
         src/init.cpp
         src/init.h
-        src/veil/proofofstake/kernel.cpp
-        src/veil/proofofstake/kernel.h
         src/key.cpp
         src/key.h
         src/key_io.cpp
@@ -861,12 +932,6 @@ add_executable(veil
         src/limitedmap.h
         src/logging.cpp
         src/logging.h
-        src/Makefile.am
-        src/Makefile.bench.include
-        src/Makefile.leveldb.include
-        src/Makefile.qt.include
-        src/Makefile.qttest.include
-        src/Makefile.test.include
         src/memusage.h
         src/merkleblock.cpp
         src/merkleblock.h
@@ -904,8 +969,6 @@ add_executable(veil
         src/shutdown.cpp
         src/shutdown.h
         src/span.h
-        src/veil/proofofstake/stakeinput.cpp
-        src/veil/proofofstake/stakeinput.h
         src/streams.h
         src/sync.cpp
         src/sync.h
@@ -936,18 +999,6 @@ add_executable(veil
         src/utiltime.cpp
         src/utiltime.h
         src/validation.cpp
-        src/qt/veil/addresseswidget.cpp
-        src/qt/veil/addresseswidget.h
-        src/qt/veil/addressnewcontact.cpp
-        src/qt/veil/addressnewcontact.h
-        src/qt/veil/addressreceive.cpp
-        src/qt/veil/addressreceive.h
-        src/qt/veil/balance.cpp
-        src/qt/veil/balance.h
-        src/qt/veil/createpassword.cpp
-        src/qt/veil/createpassword.h
-        src/qt/veil/mainwindow.cpp
-        src/qt/veil/mainwindow.h
         src/validation.h
         src/validationinterface.cpp
         src/validationinterface.h
@@ -959,21 +1010,4 @@ add_executable(veil
         src/versionbits.h
         src/walletinitinterface.h
         src/warnings.cpp
-        src/warnings.h
-        src/veil/mnemonic/arrayslice.h
-        src/veil/mnemonic/dictionary.cpp
-        src/veil/mnemonic/dictionary.h
-        src/veil/mnemonic/mnemonic.cpp
-        src/veil/mnemonic/mnemonic.h
-        src/veil/mnemonic/mnemonicwalletinit.cpp
-        src/veil/mnemonic/mnemonicwalletinit.h
-        src/veil/mnemonic/walletinitflags.h
-        autogen.sh
-        configure.ac
-        CONTRIBUTING.md
-        COPYING
-        INSTALL.md
-        Makefile.am
-        README.md src/test/proofofstaketests.cpp src/veil/mnemonic/generateseed.h src/veil/mnemonic/generateseed.cpp)
-
-qt5_use_modules(veil Core Widgets Gui)
+        src/warnings.h)

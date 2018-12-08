@@ -1,8 +1,21 @@
 #include <qt/veil/addressnewcontact.h>
 #include <qt/veil/forms/ui_addressnewcontact.h>
 
-AddressNewContact::AddressNewContact(QWidget *parent) :
+#include <qt/guiconstants.h>
+#include <qt/guiutil.h>
+#include <qt/optionsmodel.h>
+#include <qt/platformstyle.h>
+#include <interfaces/node.h>
+#include <qt/walletview.h>
+#include <qt/walletmodel.h>
+#include <key_io.h>
+#include <wallet/wallet.h>
+
+#include <QString>
+
+AddressNewContact::AddressNewContact(QWidget *parent, WalletModel* _walletModel) :
     QDialog(parent),
+    walletModel(_walletModel),
     ui(new Ui::AddressNewContact)
 {
     ui->setupUi(this);
@@ -19,10 +32,24 @@ AddressNewContact::AddressNewContact(QWidget *parent) :
     ui->editAddress->setPlaceholderText("Enter address");
     ui->editAddress->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->editAddress->setProperty("cssClass" , "edit-primary");
+
+    connect(ui->btnSave,SIGNAL(clicked()),this, SLOT(onBtnSaveClicked()));
 }
 
 void AddressNewContact::onEscapeClicked(){
     close();
+}
+
+void AddressNewContact::onBtnSaveClicked(){
+    std::string label = ui->editContactName->text().toUtf8().constData();
+    std::string qAddress = ui->editAddress->text().toUtf8().constData();
+
+    // TODO: Validate address
+
+    interfaces::Wallet& wallet = walletModel->wallet();
+    CTxDestination dest = DecodeDestination(qAddress);
+    wallet.setAddressBook(dest, label, "send");
+    accept();
 }
 
 AddressNewContact::~AddressNewContact()

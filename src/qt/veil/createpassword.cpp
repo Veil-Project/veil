@@ -25,8 +25,9 @@ QString CreatePassword::getPasswordRepeat(){
 bool CreatePassword::isValid(){
     QString text1 = ui->editPassword->text();
     QString text2 = ui->editPasswordRepeat->text();
-    bool pass1 =  text1.size() > 0 || (!text1.isEmpty());
-    bool pass2 = text2.size() > 0 || (!text2.isEmpty());
+    // TODO: Is empty password ok?
+    bool pass1 =  true;//text1.size() > 0 || (!text1.isEmpty());
+    bool pass2 = true; //text2.size() > 0 || (!text2.isEmpty());
 
     if(text1 != text2){
         pass2 = false;

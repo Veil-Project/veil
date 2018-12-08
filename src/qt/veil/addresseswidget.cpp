@@ -24,7 +24,7 @@
 #include <QSortFilterProxyModel>
 
 #define DECORATION_SIZE 54
-#define NUM_ITEMS 3
+#define NUM_ITEMS 5
 
 class AddressViewDelegate : public QAbstractItemDelegate
 {
@@ -300,15 +300,20 @@ void AddressesWidget::onButtonChanged() {
 void AddressesWidget::onNewAddressClicked(){
     mainWindow->showHide(true);
     QDialog *widget;
+    std::string toast;
     if(ui->btnContacts->isChecked()){
-        widget = new AddressNewContact(mainWindow->getGUI());
+        widget = new AddressNewContact(mainWindow->getGUI(), this->walletModel);
+        toast = "Contact created";
     } else {
         widget = new AddressReceive(mainWindow->getGUI(), this->walletModel);
+        toast = "Address created";
     }
     widget->setWindowFlags(Qt::CustomizeWindowHint);
     widget->setAttribute(Qt::WA_TranslucentBackground, true);
 
-    openDialogWithOpaqueBackground(widget, mainWindow->getGUI());
+    if(openDialogWithOpaqueBackground(widget, mainWindow->getGUI())){
+        openToastDialog(QString::fromStdString(toast), mainWindow->getGUI());
+    }
 }
 
 void AddressesWidget::setModel(AddressTableModel *_model)

@@ -23,12 +23,14 @@ public:
 private Q_SLOTS:
     void onEscapeClicked();
     void on_btnCopyAddress_clicked();
+    void onBtnSaveClicked();
 private:
     Ui::AddressReceive *ui;
     WalletModel *walletModel;
 
     CPubKey newKey;
     QString qAddress;
+    CTxDestination dest;
 
     void generateNewAddress();
 };
