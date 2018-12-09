@@ -365,6 +365,16 @@ bool WalletModel::changePassphrase(const SecureString &oldPass, const SecureStri
     return m_wallet->changeWalletPassphrase(oldPass, newPass);
 }
 
+void WalletModel::setStakingEnabled(bool fEnableStaking)
+{
+    m_wallet->setStakingEnabled(fEnableStaking);
+}
+
+bool WalletModel::isStakingEnabled()
+{
+    return m_wallet->isStakingEnabled();
+}
+
 // Handlers for core signals
 static void NotifyUnload(WalletModel* walletModel)
 {

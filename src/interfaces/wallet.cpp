@@ -150,6 +150,8 @@ public:
     {
         return m_wallet.ChangeWalletPassphrase(old_wallet_passphrase, new_wallet_passphrase);
     }
+    void setStakingEnabled(bool fEnableStaking) override { m_wallet.SetStakingEnabled(fEnableStaking); }
+    bool isStakingEnabled() override { return m_wallet.IsStakingEnabled(); }
     void abortRescan() override { m_wallet.AbortRescan(); }
     bool backupWallet(const std::string& filename) override { return m_wallet.BackupWallet(filename); }
     std::string getWalletName() override { return m_wallet.GetName(); }

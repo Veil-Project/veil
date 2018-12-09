@@ -251,6 +251,10 @@ public:
     // Get default change type.
     virtual OutputType getDefaultChangeType() = 0;
 
+    // Enable or disable staking
+    virtual void setStakingEnabled(bool fEnableStaking) = 0;
+    virtual bool isStakingEnabled() = 0;
+
     //! Register handler for unload message.
     using UnloadFn = std::function<void()>;
     virtual std::unique_ptr<Handler> handleUnload(UnloadFn fn) = 0;

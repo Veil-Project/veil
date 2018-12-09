@@ -26,6 +26,7 @@
 #include <validationinterface.h>
 #include <key_io.h>
 #include <wallet/wallet.h>
+#include <shutdown.h>
 
 #include <veil/budget.h>
 #include <veil/proofoffullnode/proofoffullnode.h>
@@ -691,7 +692,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         if (fProofOfStake) {
             //Need wallet if this is for proof of stake
             auto pwallet = GetMainWallet();
-            if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL)) {
+            if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || !pwallet->IsStakingEnabled()) {
                 MilliSleep(5000);
                 continue;
             }
@@ -798,16 +799,20 @@ void static ThreadBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript)
 
 void ThreadStakeMiner()
 {
-    boost::this_thread::interruption_point();
-    try {
-        std::shared_ptr<CReserveScript> coinbase_script;
-        bool fProofOfFullNode = true;
-        BitcoinMiner(coinbase_script, true, fProofOfFullNode);
+    while (true) {
         boost::this_thread::interruption_point();
-    } catch (std::exception& e) {
-        LogPrintf("ThreadStakeMiner() exception");
-    } catch (...) {
-        LogPrintf("ThreadStakeMiner() exception");
+        if (ShutdownRequested())
+            break;
+        try {
+            std::shared_ptr<CReserveScript> coinbase_script;
+            bool fProofOfFullNode = true;
+            BitcoinMiner(coinbase_script, true, fProofOfFullNode);
+            boost::this_thread::interruption_point();
+        } catch (std::exception& e) {
+            LogPrintf("ThreadStakeMiner() exception");
+        } catch (...) {
+            LogPrintf("ThreadStakeMiner() exception");
+        }
     }
 
     LogPrintf("ThreadStakeMiner exiting\n");

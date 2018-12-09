@@ -663,6 +663,7 @@ protected:
     bool fBackupMints;
     std::unique_ptr<CzTracker> zTracker;
     bool fUnlockForStakingOnly = false;
+    bool fStakingEnabled = true;
 
     WalletBatch *encrypted_batch = nullptr;
 
@@ -928,6 +929,8 @@ public:
     void ListLockedCoins(std::vector<COutPoint>& vOutpts) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     bool IsUnlockedForStakingOnly() const { return fUnlockForStakingOnly; }
+    void SetStakingEnabled(bool fStakingEnabled) { this->fStakingEnabled = fStakingEnabled; }
+    bool IsStakingEnabled() const { return fStakingEnabled; }
 
     /*
      * Rescan abort properties

@@ -1276,6 +1276,8 @@ void BitcoinGUI::setEncryptionStatus(int status)
         encryptWalletAction->setEnabled(false); // TODO: decrypt currently not supported
         break;
     }
+
+    veilStatusBar->updateStakingCheckbox();
 }
 
 void BitcoinGUI::encryptWallet(bool encrypt){
