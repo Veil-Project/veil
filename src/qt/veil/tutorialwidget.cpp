@@ -133,26 +133,12 @@ void TutorialWidget::on_next_triggered(){
                         else
                             mnemonic += " " + q_word.toStdString();
                     }
-//
-//                    bool fBadSeed = false;
-//                    uint512 seed_local;
-//                    CWallet::CreateHDWalletFromMnemonic(strWalletFile, GetWalletDir(), mnemonic, fBadSeed, seed_local);
-//                    if (fBadSeed) {
-//                        //tutorialMnemonicRevealed = new TutorialMnemonicRevealed(wordList,this);
-//                        //ui->QStackTutorialContainer->addWidget(tutorialMnemonicRevealed);
-//                        qWidget = tutorialMnemonicRevealed;
-//                        loadLeftContainer(":/icons/img-start-confirm","Bad seed phrase \n Try again","");
-//                        ui->QStackTutorialContainer->setCurrentWidget(qWidget);
-//                        return;
-//                    }
 
                     createPassword = new CreatePassword(this);
                     ui->QStackTutorialContainer->addWidget(createPassword);
                     qWidget = createPassword;
                     loadLeftContainer(":/icons/img-start-password","Encrypt your wallet","");
                 } else {
-                    //tutorialMnemonicRevealed = new TutorialMnemonicRevealed(wordList, this);
-                    //ui->QStackTutorialContainer->addWidget(tutorialMnemonicRevealed);
                     qWidget = tutorialMnemonicRevealed;
                     loadLeftContainer(":/icons/img-start-confirm","Confirm your \n seed phrase","");
                 }
@@ -165,6 +151,24 @@ void TutorialWidget::on_next_triggered(){
                     accept();
                     return;
                 } else {
+                    // Check mnemonic first
+                    std::list<QString> q_word_list = tutorialMnemonicRevealed->getOrderedStrings();
+                    std::string mnemonicTest;
+                    for (QString &q_word : q_word_list) {
+                        if (mnemonicTest.empty())
+                            mnemonicTest = q_word.toStdString();
+                        else
+                            mnemonicTest += " " + q_word.toStdString();
+                    }
+
+                    if(mnemonicTest != mnemonic){
+                        openToastDialog(
+                                QString::fromStdString("Invalid mnemonic, please write the words on the same order as before"),
+                                this
+                        );
+                        return;
+                    }
+
                     createPassword = new CreatePassword(this);
                     ui->QStackTutorialContainer->addWidget(createPassword);
                     qWidget = createPassword;

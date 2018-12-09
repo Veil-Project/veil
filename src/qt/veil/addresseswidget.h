@@ -17,6 +17,7 @@ class AddressViewDelegate;
 class AddressSortFilterProxyModel;
 class AddressTableModel;
 class WalletView;
+struct AddressTableEntry;
 
 namespace Ui {
 class AddressesWidget;

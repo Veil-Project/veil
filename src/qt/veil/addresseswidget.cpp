@@ -4,6 +4,7 @@
 
 #include <qt/veil/addressreceive.h>
 #include <qt/veil/addressnewcontact.h>
+#include <qt/addresstablemodel.cpp>
 #include <qt/bitcoinunits.h>
 #include <qt/clientmodel.h>
 #include <qt/guiconstants.h>
@@ -43,6 +44,9 @@ public:
     {
         painter->save();
 
+        //AddressTableEntry *rec = static_cast<AddressTableEntry*>(index.internalPointer());
+        //std::cout << "address: " << rec->address.toUtf8().constData() << std::endl;
+        //std::cout << "label: " << rec->label.toUtf8().constData() << std::endl;
         //
         QRect mainRect = option.rect;
         int xspace = 6;

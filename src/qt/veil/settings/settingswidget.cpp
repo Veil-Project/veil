@@ -104,7 +104,7 @@ void SettingsWidget::onLockWalletClicked(){
     try {
         mainWindow->getGUI()->showHide(true);
         UnlockPasswordDialog *dialog = new UnlockPasswordDialog(mainWindow->getGUI());
-        openDialogWithOpaqueBackground(dialog, mainWindow->getGUI());
+        openDialogWithOpaqueBackground(dialog, mainWindow->getGUI(), 4);
     } catch (std::exception e) {
         qDebug() << e.what();
     }
