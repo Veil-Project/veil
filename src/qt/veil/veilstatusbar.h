@@ -21,6 +21,7 @@ public:
 
     void updateSyncStatus(QString status);
     void setWalletModel(WalletModel *model);
+    void updateStakingCheckbox();
 
 private Q_SLOTS:
     void onBtnSyncClicked();

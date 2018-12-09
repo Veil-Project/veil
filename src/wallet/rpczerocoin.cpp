@@ -72,11 +72,11 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
-    if (params.size() == 1) {
-        RPCTypeCheck(params, boost::assign::list_of(UniValue::VNUM));
-    } else {
-        RPCTypeCheck(params, boost::assign::list_of(UniValue::VNUM)(UniValue::VARR));
-    }
+//    if (params.size() == 1) {
+//        RPCTypeCheck(params, boost::assign::list_of(UniValue::VNUM));
+//    } else {
+//        RPCTypeCheck(params, boost::assign::list_of(UniValue::VNUM)(UniValue::VARR));
+//    }
 
     int64_t nTime = GetTimeMillis();
 

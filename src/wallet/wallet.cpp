@@ -477,7 +477,7 @@ bool CWallet::LoadWatchOnly(const CScript &dest)
     return CCryptoKeyStore::AddWatchOnly(dest);
 }
 
-bool CWallet::Unlock(const SecureString& strWalletPassphrase)
+bool CWallet::Unlock(const SecureString& strWalletPassphrase, bool fUnlockForStakingOnly)
 {
     CCrypter crypter;
     CKeyingMaterial _vMasterKey;
@@ -493,6 +493,7 @@ bool CWallet::Unlock(const SecureString& strWalletPassphrase)
             if (CCryptoKeyStore::Unlock(_vMasterKey))
                 return true;
         }
+        this->fUnlockForStakingOnly = fUnlockForStakingOnly;
     }
     return false;
 }
@@ -775,7 +776,7 @@ bool CWallet::WalletEncryption(const SecureString& strWalletPassphrase)
         encrypted_batch = nullptr;
 
         Lock();
-        Unlock(strWalletPassphrase);
+        Unlock(strWalletPassphrase, false);
 
         // if we are using HD, replace the HD seed with a new one
         if (CWallet::IsHDEnabled()) {

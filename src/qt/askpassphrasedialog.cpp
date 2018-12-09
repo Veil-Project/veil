@@ -127,6 +127,8 @@ void AskPassphraseDialog::accept()
     newpass1.assign(ui->passEdit2->text().toStdString().c_str());
     newpass2.assign(ui->passEdit3->text().toStdString().c_str());
 
+    bool fUnlockForStakingOnly = false;
+
     secureClearPassFields();
 
     switch(mode)
@@ -179,7 +181,7 @@ void AskPassphraseDialog::accept()
         }
         } break;
     case Unlock:
-        if(!model->setWalletLocked(false, oldpass))
+        if(!model->setWalletLocked(false, fUnlockForStakingOnly, oldpass))
         {
             QMessageBox::critical(this, tr("Wallet unlock failed"),
                                   tr("The passphrase entered for the wallet decryption was incorrect."));

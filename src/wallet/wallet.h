@@ -662,6 +662,8 @@ protected:
 
     bool fBackupMints;
     std::unique_ptr<CzTracker> zTracker;
+    bool fUnlockForStakingOnly = false;
+    bool fStakingEnabled = true;
 
     WalletBatch *encrypted_batch = nullptr;
 
@@ -926,6 +928,10 @@ public:
     void UnlockAllCoins() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void ListLockedCoins(std::vector<COutPoint>& vOutpts) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
+    bool IsUnlockedForStakingOnly() const { return fUnlockForStakingOnly; }
+    void SetStakingEnabled(bool fStakingEnabled) { this->fStakingEnabled = fStakingEnabled; }
+    bool IsStakingEnabled() const { return fStakingEnabled; }
+
     /*
      * Rescan abort properties
      */
@@ -978,7 +984,7 @@ public:
     int64_t nRelockTime = 0;
 
     virtual int ExtKeyUnlock(const CKeyingMaterial &vMKey) {return 0;};
-    virtual bool Unlock(const SecureString& strWalletPassphrase);
+    virtual bool Unlock(const SecureString& strWalletPassphrase, bool fUnlockForStakingOnly);
     bool ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase);
 
     void GetKeyBirthTimes(std::map<CTxDestination, int64_t> &mapKeyBirth) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
