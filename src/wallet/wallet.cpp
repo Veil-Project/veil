@@ -4398,7 +4398,7 @@ void CWallet::AutoZeromint()
         nAutoMintStartupTime = GetAdjustedTime();
     }
     else {
-        LogPrintf("CWallet::AutoZeromint(): Nothing minted because either not enough funds available or the requested denomination size (%d) is not yet reached.\n", nPreferredDenom);
+        WalletLogPrintf("CWallet::AutoZeromint(): Nothing minted because either not enough funds available or the requested denomination size (%d) is not yet reached.\n", nPreferredDenom);
     }
 }
 

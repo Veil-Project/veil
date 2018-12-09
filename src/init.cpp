@@ -1830,5 +1830,8 @@ bool AppInitMain()
     if (gArgs.GetBoolArg("-staking", true))
         threadGroup.create_thread(&ThreadStakeMiner);
 
+    //Start block staging thread
+    threadGroup.create_thread(&ProcessStaging);
+
     return true;
 }
