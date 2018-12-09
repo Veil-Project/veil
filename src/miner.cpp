@@ -703,7 +703,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 fMintableCoins = pwallet->MintableCoins();
             }
 
-            while (pwallet->IsLocked() || !fMintableCoins || IsInitialBlockDownload()) {
+            while ((pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) || !fMintableCoins || IsInitialBlockDownload()) {
                 // Do a separate 1 minute check here to ensure fMintableCoins is updated
                 if (!fMintableCoins) {
                     if (GetTime() - nMintableLastCheck > 1 * 60) // 1 minute check time

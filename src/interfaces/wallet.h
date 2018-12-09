@@ -61,10 +61,13 @@ public:
     virtual bool lock() = 0;
 
     //! Unlock wallet.
-    virtual bool unlock(const SecureString& wallet_passphrase) = 0;
+    virtual bool unlock(const SecureString& wallet_passphrase, bool fUnlockForStakingOnly) = 0;
 
     //! Return whether wallet is locked.
     virtual bool isLocked() = 0;
+
+    //! Return whether wallet is unlocked for staking only.
+    virtual bool isUnlockedForStakingOnly() = 0;
 
     //! Change wallet passphrase.
     virtual bool changeWalletPassphrase(const SecureString& old_wallet_passphrase,

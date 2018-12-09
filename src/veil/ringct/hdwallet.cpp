@@ -600,7 +600,7 @@ bool CHDWallet::EncryptWallet(const SecureString &strWalletPassphrase)
 
         if (!Lock())
             WalletLogPrintf("%s: ERROR: Lock wallet failed!\n", __func__);
-        if (!Unlock(strWalletPassphrase))
+        if (!Unlock(strWalletPassphrase, false))
             WalletLogPrintf("%s: ERROR: Unlock wallet failed!\n", __func__);
         if (!Lock())
             WalletLogPrintf("%s: ERROR: Lock wallet failed!\n", __func__);
@@ -629,7 +629,7 @@ bool CHDWallet::Lock()
     return CCryptoKeyStore::Lock();
 };
 
-bool CHDWallet::Unlock(const SecureString &strWalletPassphrase)
+bool CHDWallet::Unlock(const SecureString &strWalletPassphrase, bool fUnlockForStakingOnly)
 {
     if (!IsCrypted()) {
         return werror("%s: Wallet is not encrypted.\n", __func__);
@@ -673,6 +673,8 @@ bool CHDWallet::Unlock(const SecureString &strWalletPassphrase)
         if (!fFoundKey) {
             return false;
         }
+
+        this->fUnlockForStakingOnly = fUnlockForStakingOnly;
 
         if (fWasUnlocked) {
             return true;

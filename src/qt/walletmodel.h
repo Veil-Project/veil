@@ -132,7 +132,8 @@ public:
     {
         Unencrypted,  // !wallet->IsCrypted()
         Locked,       // wallet->IsCrypted() && wallet->IsLocked()
-        Unlocked      // wallet->IsCrypted() && !wallet->IsLocked()
+        Unlocked,      // wallet->IsCrypted() && !wallet->IsLocked()
+        UnlockedForStakingOnly,      // wallet->IsCrypted() && !wallet->IsLocked() && wallet->UnlockedForStakingOnly()
     };
 
     OptionsModel *getOptionsModel();
@@ -166,7 +167,7 @@ public:
     // Wallet encryption
     bool setWalletEncrypted(bool encrypted, const SecureString &passphrase);
     // Passphrase only needed when unlocking
-    bool setWalletLocked(bool locked, const SecureString &passPhrase=SecureString());
+    bool setWalletLocked(bool locked, bool fUnlockForStakingOnly, const SecureString &passPhrase=SecureString());
     bool changePassphrase(const SecureString &oldPass, const SecureString &newPass);
 
     // RAI object for unlocking wallet, returned by requestUnlock()

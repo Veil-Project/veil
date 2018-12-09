@@ -389,7 +389,7 @@ public:
     bool IsLocked() const override;
     bool EncryptWallet(const SecureString &strWalletPassphrase);
     bool Lock() override;
-    bool Unlock(const SecureString &strWalletPassphrase) override;
+    bool Unlock(const SecureString &strWalletPassphrase, bool fUnlockForStakingOnly) override;
 
 
     isminetype HaveAddress(const CTxDestination &dest);
