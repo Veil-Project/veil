@@ -49,7 +49,6 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 continue;
             }
 
-            std::cout << "Set flags" << std::endl;
             nFlags |= r.nFlags;
 
             if (r.vPath.size() > 0)
