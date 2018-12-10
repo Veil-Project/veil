@@ -307,16 +307,18 @@ void AddressesWidget::onNewAddressClicked(){
     std::string toast;
     if(ui->btnContacts->isChecked()){
         widget = new AddressNewContact(mainWindow->getGUI(), this->walletModel);
-        toast = "Contact created";
+        toast = "Contact";
     } else {
         widget = new AddressReceive(mainWindow->getGUI(), this->walletModel);
-        toast = "Address created";
+        toast = "Address";
     }
     widget->setWindowFlags(Qt::CustomizeWindowHint);
     widget->setAttribute(Qt::WA_TranslucentBackground, true);
 
     if(openDialogWithOpaqueBackground(widget, mainWindow->getGUI())){
-        openToastDialog(QString::fromStdString(toast), mainWindow->getGUI());
+        openToastDialog(QString::fromStdString(toast + " Created"), mainWindow->getGUI());
+    }else{
+        openToastDialog(QString::fromStdString(toast + " Creation Failed"), mainWindow->getGUI());
     }
 }
 

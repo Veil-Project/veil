@@ -48,8 +48,9 @@ void AddressNewContact::onBtnSaveClicked(){
 
     interfaces::Wallet& wallet = walletModel->wallet();
     CTxDestination dest = DecodeDestination(qAddress);
-    wallet.setAddressBook(dest, label, "send");
-    accept();
+    if(wallet.setAddressBook(dest, label, "send")){
+        accept();
+    }else close();
 }
 
 AddressNewContact::~AddressNewContact()

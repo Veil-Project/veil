@@ -5,7 +5,6 @@
 #include <qt/walletmodel.h>
 #include <qt/veil/qtutils.h>
 #include <iostream>
-#include <qt5/QtCore/qnamespace.h>
 
 VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
     QWidget(parent),
@@ -42,7 +41,7 @@ void VeilStatusBar::onCheckStakingClicked(bool res)
     WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
     if (res){
         if (lockState == WalletModel::Locked) {
-            openToastDialog("Must Unlock Wallet Before Staking Can Be Enabled", mainWindow);
+            openToastDialog("Must unlock wallet before staking can be enabled", mainWindow);
             fBlockNextStakeCheckSignal = true;
             ui->checkStacking->setCheckState(Qt::CheckState::Unchecked);
         } else {
