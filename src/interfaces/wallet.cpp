@@ -1,4 +1,5 @@
 // Copyright (c) 2018 The Bitcoin Core developers
+// Copyright (c) 2018 The Particl developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -100,6 +101,21 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
     return result;
 }
 
+//! Construct wallet tx struct.
+WalletTx MakeWalletTx(CHDWallet& wallet, MapRecords_t::const_iterator irtx)
+{
+    WalletTx result;
+    result.is_record = true;
+    result.irtx = irtx;
+    result.time = irtx->second.GetTxTime();
+    result.veilWallet = &wallet;
+
+    result.is_coinbase = false;
+    result.is_coinstake = false;
+
+    return result;
+}
+
 //! Construct wallet tx status struct.
 WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
 {
@@ -116,6 +132,26 @@ WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
     result.is_abandoned = wtx.isAbandoned();
     result.is_coinbase = wtx.IsCoinBase();
     result.is_in_main_chain = wtx.IsInMainChain();
+    return result;
+}
+
+WalletTxStatus MakeWalletTxStatus(CHDWallet &wallet, const uint256 &hash, const CTransactionRecord &rtx)
+{
+    WalletTxStatus result;
+    auto mi = ::mapBlockIndex.find(rtx.blockHash);
+
+    CBlockIndex* block = mi != ::mapBlockIndex.end() ? mi->second : nullptr;
+    result.block_height = (block ? block->nHeight : std::numeric_limits<int>::max()),
+
+            result.blocks_to_maturity = 0;
+    result.depth_in_main_chain = wallet.GetDepthInMainChain(rtx.blockHash, rtx.nIndex);
+    result.time_received = rtx.nTimeReceived;
+    result.lock_time = 0; // TODO
+    result.is_final = true; // TODO
+    result.is_trusted = wallet.IsTrusted(hash, rtx.blockHash);
+    result.is_abandoned = rtx.IsAbandoned();
+    result.is_coinbase = false;
+    result.is_in_main_chain = result.depth_in_main_chain > 0;
     return result;
 }
 
@@ -297,6 +333,15 @@ public:
         if (mi != m_wallet.mapWallet.end()) {
             return MakeWalletTx(m_wallet, mi->second);
         }
+
+        if (m_shared_wallet.get()) {
+            CHDWallet *phdwallet = (CHDWallet*)(m_shared_wallet.get());
+            const auto mi = phdwallet->mapRecords.find(txid);
+            if (mi != phdwallet->mapRecords.end()) {
+                return MakeWalletTx(*phdwallet, mi);
+            }
+        }
+
         return {};
     }
     std::vector<WalletTx> getWalletTxs() override
@@ -306,6 +351,12 @@ public:
         result.reserve(m_wallet.mapWallet.size());
         for (const auto& entry : m_wallet.mapWallet) {
             result.emplace_back(MakeWalletTx(m_wallet, entry.second));
+        }
+        if (m_shared_wallet.get()) {
+            CHDWallet *phdwallet = (CHDWallet*)(m_shared_wallet.get());
+            for (auto mi = phdwallet->mapRecords.begin(); mi != phdwallet->mapRecords.end(); mi++) {
+                result.emplace_back(MakeWalletTx(*phdwallet, mi));
+            }
         }
         return result;
     }
@@ -348,6 +399,21 @@ public:
             tx_status = MakeWalletTxStatus(mi->second);
             return MakeWalletTx(m_wallet, mi->second);
         }
+
+        if (m_shared_wallet.get()) {
+            CHDWallet *phdwallet = (CHDWallet*)(m_shared_wallet.get());
+            auto mi = phdwallet->mapRecords.find(txid);
+            if (mi != phdwallet->mapRecords.end())
+            {
+                num_blocks = ::chainActive.Height();
+                adjusted_time = GetAdjustedTime();
+                in_mempool = phdwallet->InMempool(mi->first);
+                order_form = {};
+                tx_status = MakeWalletTxStatus(*phdwallet, mi->first, mi->second);
+                return MakeWalletTx(*phdwallet, mi);
+            }
+        }
+
         return {};
     }
     WalletBalances getBalances() override

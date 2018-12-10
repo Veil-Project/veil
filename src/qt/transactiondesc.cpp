@@ -1,4 +1,5 @@
 // Copyright (c) 2011-2018 The Bitcoin Core developers
+// Copyright (c) 2018 The Particl developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -19,6 +20,8 @@
 #include <wallet/db.h>
 #include <wallet/wallet.h>
 #include <policy/policy.h>
+
+#include <rpc/server.h>
 
 #include <stdint.h>
 #include <string>
@@ -69,6 +72,47 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     strHTML += "<br>";
 
     strHTML += "<b>" + tr("Date") + ":</b> " + (nTime ? GUIUtil::dateTimeStr(nTime) : "") + "<br>";
+
+    // TODO: Add HTML info for CT and RingCT transactions without using RPC
+    if (wtx.is_record)
+    {
+//        strHTML += "<b>" + tr("Transaction ID") + ":</b> " + QString::fromStdString(wtx.irtx->first.ToString()) + "<br>";
+//
+//        JSONRPCRequest request;
+//        QByteArray encodedName = QUrl::toPercentEncoding(QString::fromStdString(wallet.getWalletName()));
+//        request.URI = "/wallet/"+std::string(encodedName.constData(), encodedName.length());
+//        request.fHelp = false;
+//        request.fSkipBlock = true;
+//        UniValue params(UniValue::VARR);
+//        params.push_back(wtx.irtx->first.ToString());
+//        request.params = params;
+//        UniValue rv = gettransaction(request);
+//
+//        if (!rv["hex"].isNull())
+//            strHTML += "<b>" + tr("Transaction total size") + ":</b> " + QString::number(rv["hex"].get_str().length() / 2) + " bytes<br>";
+//
+//        strHTML += "<b>" + tr("Confirmations") + ":</b> " + QString::number(rv["confirmations"].get_int()) + "<br>";
+//
+//        if (!rv["blockhash"].isNull())
+//        {
+//            strHTML += "<b>" + tr("Block hash") + ":</b> " + QString::fromStdString(rv["blockhash"].get_str()) + "<br>";
+//            strHTML += "<b>" + tr("Block index") + ":</b> " + QString::number(rv["blockindex"].get_int()) + "<br>";
+//            strHTML += "<b>" + tr("Block time") + ":</b> " + GUIUtil::dateTimeStr(rv["blocktime"].get_int()) + "<br>";
+//        };
+//
+//        strHTML += "<b>Details:</b><br>";
+//        strHTML += "<p>";
+//
+//        std::string sDetails = rv["details"].write(1);
+//        part::ReplaceStrInPlace(sDetails, "\n", "<br>");
+//
+//        strHTML += QString::fromStdString(sDetails);
+//
+//        strHTML += "</p>";
+//
+//        strHTML += "</font></html>";
+//        return strHTML;
+    };
 
     //
     // From

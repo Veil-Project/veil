@@ -658,7 +658,7 @@ public:
 
     bool ProcessPlaceholder(CHDWalletDB *pwdb, const CTransaction &tx, CTransactionRecord &rtx);
     bool AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
-        const CBlockIndex *pIndex, int posInBlock, bool fFlushOnClose=true);
+        const CBlockIndex *pIndex, int posInBlock, bool fAlreadyScanned, bool fFlushOnClose=true);
 
     std::vector<uint256> ResendRecordTransactionsBefore(int64_t nTime, CConnman *connman) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     void ResendWalletTransactions(int64_t nBestBlockTime, CConnman *connman) override EXCLUSIVE_LOCKS_REQUIRED(cs_main);

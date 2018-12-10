@@ -7429,7 +7429,7 @@ bool CHDWallet::CommitTransaction(CWalletTx &wtxNew, CTransactionRecord &rtx,
 
         WalletLogPrintf("CommitTransaction:\n%s", wtxNew.tx->ToString()); /* Continued */
 
-        AddToRecord(rtx, *wtxNew.tx, nullptr, -1);
+        AddToRecord(rtx, *wtxNew.tx, nullptr, -1, false);
 
         if (fBroadcastTransactions) {
             // Broadcast
@@ -8400,7 +8400,7 @@ bool CHDWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBloc
 
             if (fExisted || fIsMine || fIsFromMe) {
                 CTransactionRecord rtx;
-                bool rv = AddToRecord(rtx, tx, pIndex, posInBlock, false);
+                bool rv = AddToRecord(rtx, tx, pIndex, posInBlock, true, false);
                 return rv;
             }
 
@@ -8818,7 +8818,7 @@ bool CHDWallet::ProcessPlaceholder(CHDWalletDB *pwdb, const CTransaction &tx, CT
 }
 
 bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
-    const CBlockIndex *pIndex, int posInBlock, bool fFlushOnClose)
+    const CBlockIndex *pIndex, int posInBlock, bool fAlreadyScanned, bool fFlushOnClose)
 {
     AssertLockHeld(cs_wallet);
     CHDWalletDB wdb(*database, "r+", fFlushOnClose);
@@ -8828,6 +8828,14 @@ bool CHDWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
     // Inserts only if not exists, returns tx inserted or tx found
     std::pair<MapRecords_t::iterator, bool> ret = mapRecords.insert(std::make_pair(txhash, rtxIn));
     CTransactionRecord &rtx = ret.first->second;
+
+    // When sending a transaction, we have to scan for owned outputs. If we don't, there is a race condition that causes
+    // payments to yourself to sometimes go unrecognized.
+    mapValue_t mapNarr;
+    size_t nCT = 0, nRingCT = 0;
+    if (ScanForOwnedOutputs(tx, nCT, nRingCT, mapNarr) && !fAlreadyScanned) {
+        rtx.nFlags |= ORF_OWNED;
+    }
 
     bool fUpdated = false;
     if (pIndex) {
