@@ -6,6 +6,7 @@
 
 class BitcoinGUI;
 class WalletModel;
+class QPushButton;
 
 namespace Ui {
 class VeilStatusBar;
@@ -19,7 +20,9 @@ public:
     explicit VeilStatusBar(QWidget *parent = 0, BitcoinGUI* gui = 0);
     ~VeilStatusBar();
 
+    bool getSyncStatusVisible();
     void updateSyncStatus(QString status);
+    void setSyncStatusVisible(bool fVisible);
     void setWalletModel(WalletModel *model);
     void updateStakingCheckbox();
 

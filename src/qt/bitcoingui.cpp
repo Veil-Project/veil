@@ -53,6 +53,7 @@
 #include <QMessageBox>
 #include <QMimeData>
 #include <QProgressDialog>
+#include <QPushButton>
 #include <QSettings>
 #include <QShortcut>
 #include <QStackedWidget>
@@ -865,24 +866,24 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
                 updateHeadersSyncProgressLabel();
                 return;
             }
-            progressBarLabel->setText(tr("Synchronizing with network..."));
+            veilStatusBar->updateSyncStatus(tr("Synchronizing with network..."));
             updateHeadersSyncProgressLabel();
             break;
         case BlockSource::DISK:
             if (header) {
-                progressBarLabel->setText(tr("Indexing blocks on disk..."));
+                veilStatusBar->updateSyncStatus(tr("Indexing blocks on disk..."));
             } else {
-                progressBarLabel->setText(tr("Processing blocks on disk..."));
+                veilStatusBar->updateSyncStatus(tr("Processing blocks on disk..."));
             }
             break;
         case BlockSource::REINDEX:
-            progressBarLabel->setText(tr("Reindexing blocks on disk..."));
+            veilStatusBar->updateSyncStatus(tr("Reindexing blocks on disk..."));
             break;
         case BlockSource::NONE:
             if (header) {
                 return;
             }
-            progressBarLabel->setText(tr("Connecting to peers..."));
+            veilStatusBar->updateSyncStatus(tr("Connecting to peers..."));
             break;
     }
 
@@ -907,13 +908,15 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
         }
 #endif // ENABLE_WALLET
 
-        progressBarLabel->setVisible(false);
         progressBar->setVisible(false);
+        progressBarLabel->setVisible(false);
+        veilStatusBar->setSyncStatusVisible(false);
     }
     else
     {
         QString timeBehindText = GUIUtil::formatNiceTimeOffset(secs);
 
+        veilStatusBar->setSyncStatusVisible(true);
         progressBarLabel->setVisible(true);
         progressBar->setFormat(tr("%1 behind").arg(timeBehindText));
         progressBar->setMaximum(1000000000);
@@ -1197,6 +1200,9 @@ bool BitcoinGUI::eventFilter(QObject *object, QEvent *event)
     {
         // Prevent adding text from setStatusTip(), if we currently use the status bar for displaying other stuff
         if (progressBarLabel->isVisible() || progressBar->isVisible())
+            return true;
+
+        if (veilStatusBar->getSyncStatusVisible())
             return true;
     }
     return QMainWindow::eventFilter(object, event);

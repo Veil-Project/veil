@@ -20,8 +20,18 @@ VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
     connect(ui->checkStacking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
 }
 
+bool VeilStatusBar::getSyncStatusVisible()
+{
+    ui->btnSync->isVisible();
+}
+
 void VeilStatusBar::updateSyncStatus(QString status){
     ui->btnSync->setText(status);
+}
+
+void VeilStatusBar::setSyncStatusVisible(bool fVisible)
+{
+    ui->btnSync->setVisible(fVisible);
 }
 
 void VeilStatusBar::onBtnSyncClicked(){
