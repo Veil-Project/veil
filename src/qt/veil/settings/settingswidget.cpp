@@ -63,25 +63,10 @@ SettingsWidget::SettingsWidget(WalletView *parent) :
     //Preferences
     //ui->btnPreference
     ui->btnPreferences->setProperty("cssClass" , "btn-text-settings");
-     connect(ui->btnPreferences,SIGNAL(clicked()),this,SLOT(onPreferenceClicked()));
+    connect(ui->btnPreferences,SIGNAL(clicked()),this,SLOT(onPreferenceClicked()));
 
-    //Minting
-    //ui->btnMinting
-     ui->btnMinting->setProperty("cssClass" , "btn-text-settings");
+    ui->btnMinting->setProperty("cssClass" , "btn-text-settings");
     connect(ui->btnMinting,SIGNAL(clicked()),this,SLOT(onMintingClicked()));
-
-    //Network
-    //ui->btnNetwork
-    //ui->btnNetwork->setProperty("cssClass" , "btn-text-settings");
-    //connect(ui->btnNetwork,SIGNAL(clicked()),this,SLOT(onNetworkClicked()));
-
-    //Display
-    //ui->btnDisplay
-    //ui->btnDisplay->setProperty("cssClass" , "btn-text-settings");
-    //connect(ui->btnBackup,SIGNAL(clicked()),this,SLOT(onBackupClicked()));
-
-    //Reset Options
-    //ui->btnResetOptions
 
     //FAQ
     ui->btnFaq->setProperty("cssClass" , "btn-text-settings");
@@ -183,7 +168,7 @@ void SettingsWidget::onRestoreClicked(){
 void SettingsWidget::onMintingClicked(){
     try {
         mainWindow->getGUI()->showHide(true);
-        SettingsMinting *dialog = new SettingsMinting(mainWindow->getGUI());
+        SettingsMinting *dialog = new SettingsMinting(mainWindow->getGUI(), this->walletModel);
         openDialogWithOpaqueBackgroundFullScreen(dialog, mainWindow->getGUI());
     } catch (std::exception e) {
         qDebug() << e.what();
@@ -230,6 +215,11 @@ void SettingsWidget::hideEvent(QHideEvent *event){
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
     connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
+}
+
+
+void SettingsWidget::setWalletModel(WalletModel *model){
+    this->walletModel = model;
 }
 
 SettingsWidget::~SettingsWidget()

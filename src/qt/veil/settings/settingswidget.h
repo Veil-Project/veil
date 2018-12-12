@@ -3,7 +3,9 @@
 
 #include <QWidget>
 #include <qt/walletview.h>
+#include <qt/walletmodel.h>
 
+class WalletModel;
 class WalletView;
 
 namespace Ui {
@@ -21,6 +23,8 @@ public:
     virtual void showEvent(QShowEvent *event) override;
     virtual void hideEvent(QHideEvent *event) override;
 
+    void setWalletModel(WalletModel *model);
+
 private Q_SLOTS:
     void onResetOptionClicked();
     void onLockWalletClicked();
@@ -35,6 +39,7 @@ private Q_SLOTS:
 private:
     Ui::SettingsWidget *ui;
     WalletView *mainWindow;
+    WalletModel *walletModel;
 
     void openDialog(QDialog *dialog);
 };

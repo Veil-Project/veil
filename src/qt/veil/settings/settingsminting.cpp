@@ -2,8 +2,15 @@
 #include <qt/veil/forms/ui_settingsminting.h>
 
 #include <util.h>
+#include <qt/bitcoinunits.h>
+#include <qt/guiconstants.h>
+#include <qt/guiutil.h>
+#include <qt/optionsmodel.h>
+#include <QIntValidator>
 
-SettingsMinting::SettingsMinting(QWidget *parent) :
+#include <QString>
+
+SettingsMinting::SettingsMinting(QWidget *parent, WalletModel *walletModel) :
     QDialog(parent),
     ui(new Ui::SettingsMinting)
 {
@@ -21,9 +28,12 @@ SettingsMinting::SettingsMinting(QWidget *parent) :
     ui->editAmount->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->editAmount->setProperty("cssClass" , "edit-primary");
 
-    ui->labelZVeilBalance->setText("0.00 zVeil");
-
-    ui->labelConvertable->setText("0.00 Veil");
+    // Balance
+    interfaces::Wallet& wallet = walletModel->wallet();
+    interfaces::WalletBalances balances = wallet.getBalances();
+    int unit = walletModel->getOptionsModel()->getDisplayUnit();
+    ui->labelZVeilBalance->setText(BitcoinUnits::formatWithUnit(unit, balances.zerocoin_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelConvertable->setText(BitcoinUnits::formatWithUnit(unit, balances.balance, false, BitcoinUnits::separatorAlways));
 
     switch (nPreferredDenom){
         case 10:
@@ -40,13 +50,24 @@ SettingsMinting::SettingsMinting(QWidget *parent) :
             break;
     }
 
+    //
+    ui->errorMessage->setVisible(false);
+
+    ui->editAmount->setValidator(new QIntValidator(0, 100000000000, this) );
+
     connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(close()));
     connect(ui->radioButton10, SIGNAL(toggled(bool)), this, SLOT(onCheck10Clicked(bool)));
     connect(ui->radioButton100, SIGNAL(toggled(bool)), this, SLOT(onCheck100Clicked(bool)));
     connect(ui->radioButton1000, SIGNAL(toggled(bool)), this, SLOT(onCheck1000Clicked(bool)));
     connect(ui->radioButton100000, SIGNAL(toggled(bool)), this, SLOT(onCheck100000Clicked(bool)));
+    connect(ui->editAmount, SIGNAL(textChanged(const QString &)), this, SLOT(mintAmountChange(const QString &)));
+
 }
 
+
+void SettingsMinting::mintAmountChange(const QString &amount){
+
+}
 
 void SettingsMinting::onCheck10Clicked(bool res) {
     if(res && nPreferredDenom != 10){

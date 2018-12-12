@@ -706,6 +706,9 @@ background-color:transparent;</string>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
               </property>
+              <property name="placeholderText">
+               <string>Enter Amount</string>
+              </property>
              </widget>
             </item>
             <item>
