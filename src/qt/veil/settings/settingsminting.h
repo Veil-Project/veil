@@ -17,6 +17,10 @@ public:
     ~SettingsMinting();
 private Q_SLOTS:
     void onEscapeClicked();
+    void onCheck10Clicked(bool res);
+    void onCheck100Clicked(bool res);
+    void onCheck1000Clicked(bool res);
+    void onCheck100000Clicked(bool res);
 private:
     Ui::SettingsMinting *ui;
 };

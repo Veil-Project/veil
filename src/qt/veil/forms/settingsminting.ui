@@ -194,7 +194,7 @@ border:none;
             <string/>
            </property>
            <property name="icon">
-            <iconset resource="../../veil.qrc">
+            <iconset>
              <normaloff>:/icons/ic-close-svg</normaloff>:/icons/ic-close-svg</iconset>
            </property>
            <property name="iconSize">
@@ -293,143 +293,52 @@ font-size:18px;</string>
              </spacer>
             </item>
             <item alignment="Qt::AlignHCenter">
-             <widget class="QCheckBox" name="checkBox10">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
+             <widget class="QGroupBox" name="groupBox_2">
+              <property name="title">
+               <string/>
               </property>
-              <property name="maximumSize">
-               <size>
-                <width>300</width>
-                <height>16777215</height>
-               </size>
+              <property name="flat">
+               <bool>false</bool>
               </property>
-              <property name="styleSheet">
-               <string notr="true">color:#707070;
-font-size:16px;</string>
+              <property name="checkable">
+               <bool>false</bool>
               </property>
-              <property name="text">
-               <string>10</string>
+              <property name="checked">
+               <bool>false</bool>
               </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="verticalSpacer">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item alignment="Qt::AlignHCenter">
-             <widget class="QCheckBox" name="checkBox100">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>300</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">color:#707070;
-font-size:16px;</string>
-              </property>
-              <property name="text">
-               <string>100</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_3">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item alignment="Qt::AlignHCenter">
-             <widget class="QCheckBox" name="checkBox1000">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>300</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">color:#707070;
-font-size:16px;</string>
-              </property>
-              <property name="text">
-               <string>1000</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_4">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeType">
-               <enum>QSizePolicy::Fixed</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-            <item alignment="Qt::AlignHCenter">
-             <widget class="QCheckBox" name="checkBox100000">
-              <property name="minimumSize">
-               <size>
-                <width>100</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>300</width>
-                <height>16777215</height>
-               </size>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">color:#707070;
-font-size:16px;</string>
-              </property>
-              <property name="text">
-               <string>100000</string>
-              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_7">
+               <property name="spacing">
+                <number>24</number>
+               </property>
+               <item>
+                <widget class="QRadioButton" name="radioButton10">
+                 <property name="text">
+                  <string>10</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton100">
+                 <property name="text">
+                  <string>100</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton1000">
+                 <property name="text">
+                  <string>1000</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QRadioButton" name="radioButton100000">
+                 <property name="text">
+                  <string>100000</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
              </widget>
             </item>
             <item>
@@ -446,47 +355,7 @@ font-size:16px;</string>
              </spacer>
             </item>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_4">
-              <item>
-               <spacer name="horizontalSpacer_4">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item>
-               <widget class="QPushButton" name="btnSave">
-                <property name="focusPolicy">
-                 <enum>Qt::NoFocus</enum>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">padding-right:20px;</string>
-                </property>
-                <property name="text">
-                 <string>SAVE</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_3">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
+             <layout class="QHBoxLayout" name="horizontalLayout_4"/>
             </item>
            </layout>
           </widget>
@@ -920,8 +789,6 @@ font-size:18px;</string>
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../../veil.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

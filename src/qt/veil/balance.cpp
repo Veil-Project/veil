@@ -134,58 +134,56 @@ void Balance::setWalletModel(WalletModel *model){
     // TODO: QR.. add transparent background..
 
     QString uri = GUIUtil::formatBitcoinURI(info);
-//    ui->labelQr->setText("No address");
-//#ifdef USE_QRCODE
-//    ui->labelQr->setText("");
-//    if(!uri.isEmpty())
-//    {
-//        // limit URI length
-//        if (uri.length() > MAX_URI_LENGTH)
-//        {
-//            ui->labelQr->setText(tr("Resulting URI too long, try to reduce the text for label / message."));
-//        } else {
-//            QRcode *code = QRcode_encodeString(uri.toUtf8().constData(), 0, QR_ECLEVEL_L, QR_MODE_8, 1);
-//            if (!code)
-//            {
-//                ui->labelQr->setText(tr("Error encoding URI into QR Code."));
-//                return;
-//            }
-//            QImage qrImage = QImage(code->width + 8, code->width + 8, QImage::Format_RGB32);
-//            qrImage.fill(0x00ffffff);
-//            unsigned char *p = code->data;
-//            for (int y = 0; y < code->width; y++)
-//            {
-//                for (int x = 0; x < code->width; x++)
-//                {
-//                    qrImage.setPixel(x + 4, y + 4, ((*p & 1) ? 0x004377 : 0x00ffffff));
-//                    p++;
-//                }
-//            }
-//            QRcode_free(code);
-//
-//            int qrImageSize = 150;
-//
-//            QImage qrAddrImage = QImage(qrImageSize, qrImageSize,  QImage::Format_RGB32);//QR_IMAGE_SIZE, QR_IMAGE_SIZE+20, QImage::Format_RGB32);
-//            qrAddrImage.fill(0x00ffffff);
-//            QPainter painter(&qrAddrImage);
-//            painter.drawImage(0, 0, qrImage.scaled(qrImageSize,qrImageSize));//QR_IMAGE_SIZE, QR_IMAGE_SIZE));w
-//            QFont font = GUIUtil::fixedPitchFont();
-//            QRect paddedRect = qrAddrImage.rect();
-//
-//            // calculate ideal font size
-//            qreal font_size = GUIUtil::calculateIdealFontSize(paddedRect.width() - 20, info.address, font);
-//            font.setPointSizeF(font_size);
-//
-//            painter.setFont(font);
-//            paddedRect.setHeight(qrImageSize);//QR_IMAGE_SIZE+12);
-//            //painter.drawText(paddedRect, Qt::AlignBottom|Qt::AlignCenter, info.address);
-//            painter.end();
-//
-//            ui->labelQr->setPixmap(QPixmap::fromImage(qrAddrImage));
-//            //ui->btnSaveAs->setEnabled(true);
-//        }
-//    }
-//#endif
+    ui->labelQr->setText("No address");
+#ifdef USE_QRCODE
+    ui->labelQr->setText("");
+    if(!uri.isEmpty()){
+        // limit URI length
+        if (uri.length() > MAX_URI_LENGTH){
+            ui->labelQr->setText(tr("Resulting URI too long, try to reduce the text for label / message."));
+        } else {
+            QRcode *code = QRcode_encodeString(uri.toUtf8().constData(), 0, QR_ECLEVEL_L, QR_MODE_8, 1);
+            if (!code){
+                ui->labelQr->setText(tr("Error encoding URI into QR Code."));
+                return;
+            }
+
+            int qrImageSize = 150;
+
+            QPixmap transparent(qrImageSize, qrImageSize);
+            transparent.fill(Qt::transparent);
+            QPainter pain;
+            pain.begin(&transparent);
+            pain.setCompositionMode(QPainter::CompositionMode_Source);
+            //pain.drawPixmap(0, 0, QPixmap::fromImage(image));
+            pain.setCompositionMode(QPainter::CompositionMode_DestinationIn);
+            pain.fillRect(transparent.rect(), QColor(0, 0, 0, 50));
+            pain.end();
+            QImage image = transparent.toImage().convertToFormat(QImage::Format_ARGB32);
+
+            QImage qrImage = QImage(code->width + 8, code->width + 8, QImage::Format_RGB32);
+            qrImage.fill(0x00ffffff);
+            unsigned char *p = code->data;
+            for (int y = 0; y < code->width; y++){
+                for (int x = 0; x < code->width; x++){
+                    qrImage.setPixel(x + 4, y + 4, ((*p & 1) ? 0x004377 : 0x00ffffff));
+                    p++;
+                }
+            }
+            QRcode_free(code);
+
+            QPainter painter(&image);
+            painter.setCompositionMode(QPainter::CompositionMode_DestinationIn);
+            painter.fillRect(QPixmap::fromImage(image).rect(), QColor(0, 0, 0, 30));
+            painter.setCompositionMode(QPainter::CompositionMode_Source);
+            painter.drawPixmap(0, 0, QPixmap::fromImage(qrImage.scaled(qrImageSize,qrImageSize).convertToFormat(QImage::Format_ARGB32)));
+            //QFont font = GUIUtil::fixedPitchFont();
+            painter.end();
+            ui->labelQr->setPixmap(QPixmap::fromImage(image));
+            repaint();
+        }
+    }
+#endif
 }
 
 void Balance::setBalance(const interfaces::WalletBalances& balances){
