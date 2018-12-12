@@ -146,3 +146,4 @@ moc_*
 ui_*
 CMakeLists.txt
 *.moc
+/.project

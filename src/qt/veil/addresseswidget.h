@@ -64,6 +64,7 @@ private:
 
     void initAddressesView();
     virtual void resizeEvent(QResizeEvent* event);
+    void reloadTab(bool _isOnMyAddresses);
     void showList(bool show);
 };
 

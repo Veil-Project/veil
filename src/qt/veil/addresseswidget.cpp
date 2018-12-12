@@ -178,6 +178,7 @@ AddressesWidget::AddressesWidget(const PlatformStyle *platformStyle, WalletView 
     connect(ui->btnMyAddresses,SIGNAL(clicked()),this,SLOT(onMyAddressClicked()));
     connect(ui->btnContacts,SIGNAL(clicked()),this,SLOT(onContactsClicked()));
     connect(ui->btnAdd,SIGNAL(clicked()),this,SLOT(onNewAddressClicked()));
+    connect(ui->btnAddIcon,SIGNAL(clicked()),this,SLOT(onNewAddressClicked()));
 }
 
 class CustomDelegateAddresses : public QStyledItemDelegate
@@ -271,24 +272,16 @@ void AddressesWidget::resizeEvent(QResizeEvent* event)
 }
 
 void AddressesWidget::onMyAddressClicked(){
-    isOnMyAddresses = true;
-    if(this->model->rowCount(QModelIndex()) == 0){
-        onForeground();
-        this->ui->empty->setVisible(true);
-    } else{
-        onForeground();
-    }
-    onButtonChanged();
+    reloadTab(true);
 }
 
 void AddressesWidget::onContactsClicked(){
-    isOnMyAddresses = false;
-    if(this->model->rowCount(QModelIndex()) == 0){
-        onForeground();
-        this->ui->empty->setVisible(true);
-    } else{
-        onForeground();
-    }
+    reloadTab(false);
+}
+
+void AddressesWidget::reloadTab(bool _isOnMyAddresses) {
+    isOnMyAddresses = _isOnMyAddresses;
+    onForeground();
     onButtonChanged();
 }
 
@@ -317,6 +310,8 @@ void AddressesWidget::onNewAddressClicked(){
 
     if(openDialogWithOpaqueBackground(widget, mainWindow->getGUI())){
         openToastDialog(QString::fromStdString(toast + " Created"), mainWindow->getGUI());
+        // if it's the first one created, display it without having to reload
+        onForeground();
     }else{
         openToastDialog(QString::fromStdString(toast + " Creation Failed"), mainWindow->getGUI());
     }
@@ -360,13 +355,9 @@ void AddressesWidget::setModel(AddressTableModel *_model)
 void AddressesWidget::onForeground(){
     if(walletModel){
         interfaces::Wallet& wallet = walletModel->wallet();
-        if(wallet.getAddresses().size() > 0){
-            ui->empty->setVisible(false);
-            showList(true);
-        }else{
-            ui->empty->setVisible(true);
-            showList(false);
-        }
+        const size_t listsize = wallet.getAddresses(!isOnMyAddresses).size();
+        ui->empty->setVisible(listsize == 0);
+        showList(listsize > 0);
     }
 }
 
