@@ -2285,6 +2285,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             }
         } else {
             if (tx.IsZerocoinSpend()) {
+                // Skip signature verification if it's already been done or if the block height is below a checkpoint height
+                bool fSkipSigVerify = block.fSignaturesVerified ? true : fSkipComputation;
                 int nHeightTx = 0;
                 uint256 txid = tx.GetHash();
                 if (IsTransactionInChain(txid, nHeightTx, Params().GetConsensus(), pindex)) {
@@ -2313,7 +2315,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
                     setSerialsInBlock.emplace(spend->getCoinSerialNumber());
                     mapSpends.emplace(*spend, tx.GetHash());
-                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, fSkipComputation))
+                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, fSkipSigVerify))
                         return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
                                                     tx.GetHash().GetHex()), REJECT_INVALID);
                 }
@@ -3893,7 +3895,7 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
         CBlockIndex* pindex, bool fSkipSignatureVerify)
 {
     if (!spend.HasValidSignature())
-        return error("%s: zeorcoin spend does not have a valid signature", __func__);
+        return error("%s: zerocoin spend does not have a valid signature", __func__);
 
     libzerocoin::SpendType expectedType = libzerocoin::SpendType::SPEND;
     if (tx.IsCoinStake())
