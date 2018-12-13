@@ -7,13 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>218</width>
-    <height>168</height>
+    <height>218</height>
    </rect>
   </property>
   <property name="maximumSize">
    <size>
     <width>218</width>
-    <height>168</height>
+    <height>218</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -28,13 +28,13 @@
      <property name="minimumSize">
       <size>
        <width>200</width>
-       <height>150</height>
+       <height>200</height>
       </size>
      </property>
      <property name="maximumSize">
       <size>
        <width>200</width>
-       <height>150</height>
+       <height>200</height>
       </size>
      </property>
      <property name="styleSheet">
@@ -97,7 +97,7 @@ background-color:transparent;</string>
            <string/>
           </property>
           <property name="icon">
-           <iconset resource="../../veil.qrc">
+           <iconset>
             <normaloff>:/icons/ic-information-svg</normaloff>:/icons/ic-information-svg</iconset>
           </property>
           <property name="iconSize">
@@ -119,7 +119,7 @@ text-align:center;
 padding-bottom:4px;</string>
         </property>
         <property name="text">
-         <string>25.280 Veil</string>
+         <string>0.00 Veil</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -149,10 +149,34 @@ color:#707070;
 text-align:center;</string>
         </property>
         <property name="text">
-         <string>25.280 Veil</string>
+         <string>0.00 Veil</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
+      </item>
+      <item alignment="Qt::AlignHCenter">
+       <widget class="QLabel" name="label">
+        <property name="styleSheet">
+         <string notr="true">color:#105aef;
+font-size:12px;
+text-align:center;</string>
+        </property>
+        <property name="text">
+         <string>Basecoin</string>
+        </property>
+       </widget>
+      </item>
+      <item alignment="Qt::AlignHCenter">
+       <widget class="QLabel" name="textBasecoin">
+        <property name="styleSheet">
+         <string notr="true">font-size:14px;
+color:#707070;
+text-align:center;</string>
+        </property>
+        <property name="text">
+         <string>0.00 Veil</string>
         </property>
        </widget>
       </item>
@@ -161,8 +185,6 @@ text-align:center;</string>
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../../veil.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

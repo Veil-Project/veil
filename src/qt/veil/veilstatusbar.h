@@ -35,6 +35,8 @@ private:
     Ui::VeilStatusBar *ui;
     BitcoinGUI* mainWindow;
     WalletModel *walletModel;
+
+    bool preparingFlag = false;
 };
 
 #endif // VEILSTATUSBAR_H

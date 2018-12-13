@@ -19,9 +19,15 @@ public:
     ~TutorialMnemonicRevealed();
 
     std::list<QString> getOrderedStrings();
+
+private Q_SLOTS:
+    void textChanged(const QString &text);
+
 private:
     Ui::TutorialMnemonicRevealed *ui;
     std::list<QLineEdit*> editList;
+
+    QStringList wordList;
 };
 
 #endif // TUTORIALMNEMONICREVEALED_H

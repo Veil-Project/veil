@@ -24,11 +24,15 @@
 
 #include <veil/ringct/stealth.h>               // For CTxDestination
 #include <veil/ringct/extkey.h>
+#include <wallet/deterministicmint.h>
 
 class CCoinControl;
 class CFeeRate;
 class CKey;
 class CWallet;
+class CWalletTx;
+class CDeterministicMint;
+
 enum class FeeReason;
 enum class OutputType;
 struct CRecipient;
@@ -98,6 +102,13 @@ public:
 
     //! Return whether wallet has private key.
     virtual bool isSpendable(const CTxDestination& dest) = 0;
+
+    virtual std::string mintZerocoin(
+            CAmount nValue,
+            std::vector<CDeterministicMint>& vDMints,
+            bool fAllowBasecoin,
+            const CCoinControl* coinControl
+    ) = 0;
 
     //! Return whether wallet has watch only keys.
     virtual bool haveWatchOnly() = 0;

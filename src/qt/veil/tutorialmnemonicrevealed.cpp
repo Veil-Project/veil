@@ -6,8 +6,14 @@
 #include <QAbstractItemView>
 #include <iostream>
 
-TutorialMnemonicRevealed::TutorialMnemonicRevealed(QStringList wordList, QWidget *parent) :
+QString editLineCorrectCss = "QLineEdit{border-bottom:1px solid #707070;background-color:#fff;margin-right:6px;margin-left:6px;padding-left:2px;padding-right:2px;padding-top:7px;padding-bottom:7px;margin:8px;}";
+QString editLineInvalidCss = "QLineEdit{border-bottom:1px solid red;background-color:#fff;margin-right:6px;margin-left:6px;padding-left:2px;padding-right:2px;padding-top:7px;padding-bottom:7px;margin:8px;}";
+
+
+
+TutorialMnemonicRevealed::TutorialMnemonicRevealed(QStringList _wordList, QWidget *parent) :
     QWidget(parent),
+    wordList(_wordList),
     ui(new Ui::TutorialMnemonicRevealed)
 {
     ui->setupUi(this);
@@ -17,8 +23,7 @@ TutorialMnemonicRevealed::TutorialMnemonicRevealed(QStringList wordList, QWidget
             QLineEdit* label = new QLineEdit(this);
             label->setAttribute(Qt::WA_MacShowFocusRect, 0);
 
-            label->setStyleSheet(
-                        "QLineEdit{border-bottom:1px solid #707070;background-color:#fff;margin-right:6px;margin-left:6px;padding-left:2px;padding-right:2px;padding-top:7px;padding-bottom:7px;margin:8px;}");
+            label->setStyleSheet(editLineCorrectCss);
 
 
             QCompleter *completer = new QCompleter(wordList, this);
@@ -57,12 +62,28 @@ TutorialMnemonicRevealed::TutorialMnemonicRevealed(QStringList wordList, QWidget
                                  "}"
             );
 
+            connect(label, SIGNAL(textChanged(const QString &)), this, SLOT(textChanged(const QString &)));
+
             ui->gridLayoutMnemonic->addWidget(label, i, j);
             editList.push_back(label);
         }
     }
 
 }
+
+void TutorialMnemonicRevealed::textChanged(const QString &text){
+
+    QObject *senderObj = sender();
+    QLineEdit* label = static_cast<QLineEdit*>(senderObj);
+    if(wordList.contains(text)){
+        label->setStyleSheet(editLineCorrectCss);
+    }else{
+        label->setStyleSheet(editLineInvalidCss);
+    }
+
+}
+
+
 
 std::list<QString> TutorialMnemonicRevealed::getOrderedStrings(){
     std::list<QString> list;
