@@ -168,7 +168,7 @@ void SettingsWidget::onRestoreClicked(){
 void SettingsWidget::onMintingClicked(){
     try {
         mainWindow->getGUI()->showHide(true);
-        SettingsMinting *dialog = new SettingsMinting(mainWindow->getGUI(), this->walletModel);
+        SettingsMinting *dialog = new SettingsMinting(mainWindow->getGUI(), mainWindow , this->walletModel);
         openDialogWithOpaqueBackgroundFullScreen(dialog, mainWindow->getGUI());
     } catch (std::exception e) {
         qDebug() << e.what();

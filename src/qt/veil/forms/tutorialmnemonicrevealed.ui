@@ -204,11 +204,12 @@ order to confirm your backup is accurate</string>
         <property name="maximumSize">
          <size>
           <width>16777215</width>
-          <height>40</height>
+          <height>50</height>
          </size>
         </property>
         <property name="styleSheet">
-         <string notr="true">color:#bababa;</string>
+         <string notr="true">color:#bababa;
+padding-top:3px;</string>
         </property>
         <property name="text">
          <string>Ensure your screen is not being watched 

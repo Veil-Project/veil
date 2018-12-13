@@ -198,6 +198,17 @@ public:
     bool getPubKey(const CKeyID& address, CPubKey& pub_key) override { return m_wallet.GetPubKey(address, pub_key); }
     bool getPrivKey(const CKeyID& address, CKey& key) override { return m_wallet.GetKey(address, key); }
     bool isSpendable(const CTxDestination& dest) override { return IsMine(m_wallet, dest) & ISMINE_SPENDABLE; }
+
+    std::string mintZerocoin(
+            CAmount nValue,
+            std::vector<CDeterministicMint>& vDMints,
+            bool fAllowBasecoin,
+            const CCoinControl* coinControl
+    ) override {
+        CWalletTx wtx(&m_wallet, nullptr);
+        return m_wallet.MintZerocoin(nValue, wtx ,  vDMints, fAllowBasecoin,coinControl);
+    }
+
     bool haveWatchOnly() override { return m_wallet.HaveWatchOnly(); };
     bool setAddressBook(const CTxDestination& dest, const std::string& name, const std::string& purpose) override
     {
