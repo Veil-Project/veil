@@ -68,9 +68,9 @@ can then be controlled by group membership.
 ### macOS
 
 Binary:              `/usr/local/bin/bitcoind`  
-Configuration file:  `~/Library/Application Support/Bitcoin/bitcoin.conf`  
-Data directory:      `~/Library/Application Support/Bitcoin`  
-Lock file:           `~/Library/Application Support/Bitcoin/.lock`  
+Configuration file:  `~/Library/Application Support/Veil/veil.conf`  
+Data directory:      `~/Library/Application Support/Veil`  
+Lock file:           `~/Library/Application Support/Veil/.lock`  
 
 Installing Service Configuration
 -----------------------------------

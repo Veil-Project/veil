@@ -21,7 +21,6 @@ QList<BitcoinUnits::Unit> BitcoinUnits::availableUnits()
     unitlist.append(VEIL);
     unitlist.append(mVEIL);
     unitlist.append(uVEIL);
-    unitlist.append(SAT);
     return unitlist;
 }
 

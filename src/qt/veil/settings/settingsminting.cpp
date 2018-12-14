@@ -147,8 +147,8 @@ void SettingsMinting::onCheck1000Clicked(bool res){
 }
 
 void SettingsMinting::onCheck100000Clicked(bool res){
-    if(res && nPreferredDenom != 100000){
-        nPreferredDenom = 1000000;
+    if(res && nPreferredDenom != 10000){
+        nPreferredDenom = 10000;
     }
 }
 
