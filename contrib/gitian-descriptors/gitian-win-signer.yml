@@ -9,7 +9,7 @@ packages:
 - "libssl1.0-dev"
 - "autoconf"
 remotes:
-- "url": "https://github.com/4x13/veil-detached-sigs.git"
+- "url": "https://github.com/Veil-Project/veil-detached-sigs.git"
   "dir": "signature"
 files:
 - "osslsigncode-1.7.1.tar.gz"
