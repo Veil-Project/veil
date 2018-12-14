@@ -2448,7 +2448,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         // Veil: check for dandelion
         int64_t nTimeStemPhase = 0;
-        if (strCommand == NetMsgType::TX_DAND)
+        if (strCommand == NetMsgType::TX_DAND && !fEnableDandelion) {
+            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::REJECT, strCommand, REJECT_DANDELION, std::string("Received tx_dand after opting out of dandelion")));
+            LOCK(cs_main);
+            Misbehaving(pfrom->GetId(), 1);
+            return false;
+        } else if (strCommand == NetMsgType::TX_DAND)
             vRecv >> nTimeStemPhase;
 
         CInv inv(MSG_TX, tx.GetHash(), nTimeStemPhase);

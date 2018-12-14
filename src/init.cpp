@@ -419,6 +419,7 @@ void SetupServerArgs()
     gArgs.AddArg("-dns", strprintf("Allow DNS lookups for -addnode, -seednode and -connect (default: %u)", DEFAULT_NAME_LOOKUP), false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-dnsseed", "Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect used)", false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-enablebip61", strprintf("Send reject messages per BIP61 (default: %u)", DEFAULT_ENABLE_BIP61), false, OptionsCategory::CONNECTION);
+    gArgs.AddArg("-exchangesandservicesmode", "Opt out of staking, zerocoin automint, and dandelion (default: 0)", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-externalip=<ip>", "Specify your own public address", false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-forcednsseed", strprintf("Always query for peer addresses via DNS lookup (default: %u)", DEFAULT_FORCEDNSSEED), false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-listen", "Accept connections from outside (default: 1 if no -proxy or -connect)", false, OptionsCategory::CONNECTION);
@@ -1474,6 +1475,7 @@ bool AppInitMain()
 
     fReindex = gArgs.GetBoolArg("-reindex", false);
     bool fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
+    fEnableZeromint = !gArgs.GetBoolArg("-exchangesandservicesmode", false);
 
     // cache size calculations
     int64_t nTotalCache = (gArgs.GetArg("-dbcache", nDefaultDbCache) << 20);
@@ -1702,6 +1704,12 @@ bool AppInitMain()
         nLocalServices = ServiceFlags(nLocalServices | NODE_WITNESS);
     }
 
+    fEnableDandelion = !gArgs.GetBoolArg("-exchangesandservicesmode", false);
+    if (!fEnableDandelion) {
+        // Let other nodes know you opted out of dandelion, so you won't receive stem phase messages.
+        nLocalServices = ServiceFlags(nLocalServices | NODE_DANDELION_OPT_OUT);
+    }
+
     // ********************************************************* Step 11: import blocks
 
     if (!CheckDiskSpace() && !CheckDiskSpace(0, true))
@@ -1827,7 +1835,7 @@ bool AppInitMain()
     g_wallet_init_interface.Start(scheduler);
 
     //Start staking thread last
-    if (gArgs.GetBoolArg("-staking", true))
+    if (gArgs.GetBoolArg("-staking", true) && !gArgs.GetBoolArg("-exchangesandservicesmode", false))
         threadGroup.create_thread(&ThreadStakeMiner);
 
     //Start block staging thread

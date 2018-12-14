@@ -84,6 +84,9 @@ const int64_t nStartupTime = GetTime();
 const char * const BITCOIN_CONF_FILENAME = "veil.conf";
 const char * const BITCOIN_PID_FILENAME = "veild.pid";
 
+// Always use Dandelion unless in exchange mode
+bool fEnableDandelion = true;
+
 // Automatic Zerocoin minting
 bool fEnableZeromint = true;
 int nZeromintPercentage = 100;

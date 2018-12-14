@@ -58,6 +58,10 @@ include_directories(src/wallet)
 include_directories(src/wallet/test)
 include_directories(src/zmq)
 
+find_package( Qt5Core REQUIRED )
+find_package( Qt5Widgets REQUIRED )
+find_package( Qt5Gui REQUIRED )
+
 add_executable(veil
         src/bench/base58.cpp
         src/bench/bech32.cpp
@@ -1011,3 +1015,5 @@ add_executable(veil
         src/walletinitinterface.h
         src/warnings.cpp
         src/warnings.h)
+
+qt5_use_modules(veil Core Widgets Gui)

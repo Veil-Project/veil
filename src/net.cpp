@@ -2037,9 +2037,15 @@ void CConnman::ThreadMessageHandler()
                 pnode->AddRef();
             }
         }
-        {
+        if (fEnableDandelion) {
+            std::vector<CNode*> vDandelionNodes;
+            for (CNode* pnode : vNodesCopy) {
+                if (pnode->nServices & NODE_DANDELION_OPT_OUT)
+                    continue;
+                vDandelionNodes.push_back(pnode);
+            }
             LOCK(veil::dandelion.cs);
-            veil::dandelion.Process(vNodesCopy);
+            veil::dandelion.Process(vDandelionNodes);
         }
 
         bool fMoreWork = false;

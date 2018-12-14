@@ -77,6 +77,10 @@ bool MnemonicWalletInit::Open() const
         CHDWallet *phdwallet = (CHDWallet *) pwallet.get();
         if (!phdwallet->Initialise(fNewSeed ? &extKey : nullptr))
             return false;
+
+        if (gArgs.GetBoolArg("-exchangesandservicesmode", false))
+            pwallet->SetStakingEnabled(false);
+
         AddWallet(pwallet);
     }
 

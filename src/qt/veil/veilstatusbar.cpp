@@ -49,9 +49,10 @@ void VeilStatusBar::onCheckStakingClicked(bool res)
 
     // Miner thread starts in init.cpp, but staking enabled flag is checked each iteration of the miner, so can be enabled or disabled here
     WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
-    if (res) {
-        if (lockState == WalletModel::Locked) {
-            openToastDialog("Must unlock wallet before staking can be enabled", mainWindow);
+    if (res){
+        if (gArgs.GetBoolArg("-exchangesandservicesmode", false) || lockState == WalletModel::Locked) {
+            QString dialogMsg = gArgs.GetBoolArg("-exchangesandservicesmode", false) ? "Staking is disabled in exchange mode" : "Must unlock wallet before staking can be enabled";
+            openToastDialog(dialogMsg, mainWindow);
             fBlockNextStakeCheckSignal = true;
             ui->checkStacking->setCheckState(Qt::CheckState::Unchecked);
         } else {
@@ -61,7 +62,7 @@ void VeilStatusBar::onCheckStakingClicked(bool res)
         openToastDialog("Miner stopped", mainWindow);
     }
 
-    if (lockState != WalletModel::Locked)
+    if (!gArgs.GetBoolArg("-exchangesandservicesmode", false) && lockState != WalletModel::Locked)
         this->walletModel->setStakingEnabled(res);
 }
 
