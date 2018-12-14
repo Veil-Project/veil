@@ -33,6 +33,7 @@
 #include <veil/dandelioninventory.h>
 
 #include <memory>
+#include <veil/zerocoin/zchain.h>
 
 #if defined(NDEBUG)
 # error "Veil cannot be compiled without assertions."
@@ -1396,6 +1397,35 @@ inline void static SendBlockTransactions(const CBlock& block, const BlockTransac
     connman->PushMessage(pfrom, msgMaker.Make(nSendFlags, NetMsgType::BLOCKTXN, resp));
 }
 
+bool GetZerocoinSpendProofs(const CTxIn &txin, std::vector<libzerocoin::SerialNumberSoKProof> &proofsOut)
+{
+    auto newSpend = TxInToZerocoinSpend(txin);
+    //see if we have record of the accumulator used in the spend tx
+    CBigNum bnAccumulatorValue = 0;
+    if (!pzerocoinDB->ReadAccumulatorValue(newSpend->getAccumulatorChecksum(),
+                                           bnAccumulatorValue)) {
+        uint256 nChecksum = newSpend->getAccumulatorChecksum();
+        LogPrintf("%s: Zerocoinspend could not find accumulator associated with checksum %s\n",
+                __func__, HexStr(BEGIN(nChecksum), END(nChecksum)));
+        return false;
+    }
+
+    libzerocoin::Accumulator accumulator(Params().Zerocoin_Params(), newSpend->getDenomination(), bnAccumulatorValue);
+
+    //Check that the coin has been accumulated
+    std::string strError;
+    if (!newSpend->Verify(accumulator, strError, false)) {
+        LogPrintf("%s: Zerocoinspend could not verify. Details: %s\n", __func__, strError);
+        return false;
+    }
+
+    libzerocoin::SerialNumberSoKProof proof(newSpend->getSmallSoK(), newSpend->getCoinSerialNumber(),
+                               newSpend->getSerialComm(), newSpend->getHashSig());
+    proofsOut.push_back(proof);
+
+    return true;
+}
+
 void ProcessStaging()
 {
     while (true) {
@@ -1403,11 +1433,73 @@ void ProcessStaging()
             return;
         boost::this_thread::interruption_point();
 
+        std::map<int, CBlock> mapStagedBlocksCopy;
         {
             LOCK(cs_staging);
             if (mapStagedBlocks.empty()) {
                 MilliSleep(50);
                 continue;
+            }
+
+            mapStagedBlocksCopy = mapStagedBlocks;
+        }
+
+        // Perform batch verification for all staged blocks (that haven't yet been verified) to speed up getting blocks
+        std::vector<CBigNum> vBlockSerials;
+        std::vector<libzerocoin::SerialNumberSoKProof> vProofs;
+        std::set<int> setRemoveBlocks;
+        for (auto &blockPair : mapStagedBlocksCopy) {
+            // Signatures for this block have already been verified, skip
+            if (blockPair.second.fSignaturesVerified)
+                continue;
+
+            bool fSkipBlock = false;
+            std::vector<libzerocoin::SerialNumberSoKProof> vProofsTemp;
+
+            for (auto &tx : blockPair.second.vtx) {
+                if (tx->IsZerocoinSpend()) {
+                    for (auto &txin : tx->vin) {
+                        libzerocoin::CoinSpend spend = *(TxInToZerocoinSpend(txin));
+                        if (!GetZerocoinSpendProofs(txin, vProofsTemp) || count(vBlockSerials.begin(),
+                                vBlockSerials.end(), spend.getCoinSerialNumber())) {
+                            setRemoveBlocks.insert(blockPair.first);
+                            fSkipBlock = true;
+                            break;
+                        }
+
+                        vBlockSerials.emplace_back(spend.getCoinSerialNumber());
+                    }
+                }
+
+                if (fSkipBlock)
+                    break;
+            }
+
+            // If no problems were encountered when getting the zerocoin spend proofs, add to proofs to verify
+            if (!fSkipBlock) {
+                vProofs.insert(vProofs.end(), vProofsTemp.begin(), vProofsTemp.end());
+            }
+        }
+
+        for (auto blockHeight : setRemoveBlocks) {
+            mapStagedBlocksCopy.erase(blockHeight);
+        }
+
+        // Now verify the batched spends
+        bool fVerificationSuccess = true;
+        if (!vProofs.empty()){
+            if(!libzerocoin::SerialNumberSoKProof::BatchVerify(vProofs)) {
+                fVerificationSuccess = false;
+            }
+        }
+
+        if (fVerificationSuccess) {
+            LOCK(cs_staging);
+            for (auto &blockPair : mapStagedBlocksCopy) {
+                if (!mapStagedBlocks.count(blockPair.first))
+                    continue;
+
+                mapStagedBlocks[blockPair.first].fSignaturesVerified = true;
             }
         }
 

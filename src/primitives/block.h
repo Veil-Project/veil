@@ -128,6 +128,7 @@ public:
 
     // memory only
     mutable bool fChecked;
+    mutable bool fSignaturesVerified;
 
     CBlock()
     {
