@@ -2,9 +2,9 @@ OpenBSD build guide
 ======================
 (updated for OpenBSD 6.3)
 
-This guide describes how to build bitcoind and command-line utilities on OpenBSD.
+This guide describes how to build veild and command-line utilities on OpenBSD.
 
-OpenBSD is most commonly used as a server OS, so this guide does not contain instructions for building the GUI.
+OpenBSD is most commonly used as a server OS, so this guide does not contain instructions for building the Qt GUI.
 
 Preparation
 -------------
@@ -12,12 +12,12 @@ Preparation
 Run the following as root to install the base dependencies for building:
 
 ```bash
-pkg_add git gmake libevent libtool boost
+pkg_add git gmake libevent libtool boost gmp
 pkg_add autoconf # (select highest version, e.g. 2.69)
 pkg_add automake # (select highest version, e.g. 1.15)
 pkg_add python # (select highest version, e.g. 3.6)
 
-git clone https://github.com/bitcoin/bitcoin.git
+git clone https://github.com/Veil-Project/veil.git
 ```
 
 See [dependencies.md](dependencies.md) for a complete overview.
@@ -98,7 +98,7 @@ This, unfortunately, in some cases not enough to compile some `.cpp` files in th
 (see issue [#6658](https://github.com/bitcoin/bitcoin/issues/6658)).
 If your user is in the `staff` group the limit can be raised with:
 
-    ulimit -d 3000000
+    ulimit -d 4000000
 
 The change will only affect the current shell and processes spawned by it. To
 make the change system-wide, change `datasize-cur` and `datasize-max` in
