@@ -1,5 +1,5 @@
-Bitcoin Core integration/staging tree
-=====================================
+Veil integration/staging tree
+=============================
 
 [![Build Status](https://travis-ci.org/Veil-Project/veil.svg?branch=master)](https://travis-ci.org/Veil-Project/veil)
 
