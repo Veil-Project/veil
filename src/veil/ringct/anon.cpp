@@ -9,7 +9,7 @@
 #include <secp256k1_mlsag.h>
 
 #include <veil/ringct/blind.h>
-#include <rctindex.h>
+#include <veil/ringct/rctindex.h>
 #include <txdb.h>
 #include <util.h>
 #include <validation.h>

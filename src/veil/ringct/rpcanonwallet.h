@@ -2,7 +2,7 @@
 #define VEIL_RPCHDWALLET_H
 
 class CRPCTable;
-class CHDWallet;
+class AnonWallet;
 class JSONRPCRequest;
 
 void RegisterHDWalletRPCCommands(CRPCTable &t);

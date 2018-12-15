@@ -22,7 +22,7 @@
 #include <ui_interface.h>
 #include <uint256.h>
 #include <validation.h>
-#include <veil/ringct/hdwallet.h>
+#include <veil/ringct/anonwallet.h>
 #include <veil/zerocoin/zchain.h>
 #include <wallet/feebumper.h>
 #include <wallet/fees.h>
@@ -61,24 +61,76 @@ public:
 //! Construct wallet tx struct.
 WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
 {
+    std::list<COutputEntry> listReceived;
+    std::list<COutputEntry> listSent;
+    CAmount nFee;
+    wtx.GetAmounts(listReceived, listSent, nFee, ISMINE_ALL);
+
     WalletTx result;
     result.tx = wtx.tx;
     result.txin_is_mine.reserve(wtx.tx->vin.size());
+    bool fInputsFromMe = false;
     for (const auto& txin : wtx.tx->vin) {
-        result.txin_is_mine.emplace_back(wallet.IsMine(txin));
+        auto inputmine = wallet.IsMine(txin);
+        result.txin_is_mine.emplace_back(inputmine);
+        if (inputmine)
+            fInputsFromMe = true;
     }
     result.txout_is_mine.reserve(wtx.tx->vpout.size());
     result.txout_address.reserve(wtx.tx->vpout.size());
     result.txout_address_is_mine.reserve(wtx.tx->vpout.size());
-    for (const auto& txout : wtx.tx->vpout) {
-        result.txout_is_mine.emplace_back(wallet.IsMine(txout.get()));
+    for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
+        auto txout = wtx.tx->vpout[i];
+        auto ismine = wallet.IsMine(txout.get());
+        result.txout_is_mine.emplace_back(ismine);
         result.txout_address.emplace_back();
         CScript scriptPubKey;
+        auto fAddressIsMine = ismine;
         if (txout->GetScriptPubKey(scriptPubKey)) {
             result.txout_address_is_mine.emplace_back(
                     ExtractDestination(scriptPubKey, result.txout_address.back()) ?
                     IsMine(wallet, result.txout_address.back()) :
                     ISMINE_NO);
+        } else {
+            if (txout->nVersion == OUTPUT_DATA && fInputsFromMe)
+                fAddressIsMine = ISMINE_SPENDABLE;
+            result.txout_address_is_mine.emplace_back(fAddressIsMine);
+        }
+        if (!txout->IsStandardOutput()) {
+            bool found = false;
+            if (txout->nVersion == OUTPUT_DATA) {
+                //Likely the fee for ringct
+                auto dataout = (CTxOutData*)txout.get();
+                CAmount nFee;
+                if (dataout->GetCTFee(nFee)) {
+                    found = true;
+                    result.map_anon_value_out.emplace(i, nFee);
+                    result.ct_fee.first = i;
+                    result.ct_fee.second = nFee;
+                }
+            } else {
+                for (const COutputEntry& entry : listSent) {
+                    if (entry.vout == (int)i) {
+                        found = true;
+                        result.map_anon_value_out.emplace(i, entry.amount);
+                        result.is_anon_send = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    for (const COutputEntry& entry : listReceived) {
+                        if (entry.vout == (int)i) {
+                            result.map_anon_value_out.emplace(i, entry.amount);
+                            found = true;
+                            result.is_anon_recv = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            //Add a dummy, not sure what else to do here...
+            if (!found)
+                result.map_anon_value_out.emplace(i, -1);
         }
     }
     result.credit = wtx.GetCredit(ISMINE_ALL);
@@ -100,7 +152,7 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
 
     return result;
 }
-
+/*
 //! Construct wallet tx struct.
 WalletTx MakeWalletTx(CHDWallet& wallet, MapRecords_t::const_iterator irtx)
 {
@@ -115,7 +167,7 @@ WalletTx MakeWalletTx(CHDWallet& wallet, MapRecords_t::const_iterator irtx)
 
     return result;
 }
-
+*/
 //! Construct wallet tx status struct.
 WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
 {
@@ -134,7 +186,7 @@ WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
     result.is_in_main_chain = wtx.IsInMainChain();
     return result;
 }
-
+/*
 WalletTxStatus MakeWalletTxStatus(CHDWallet &wallet, const uint256 &hash, const CTransactionRecord &rtx)
 {
     WalletTxStatus result;
@@ -154,7 +206,7 @@ WalletTxStatus MakeWalletTxStatus(CHDWallet &wallet, const uint256 &hash, const 
     result.is_in_main_chain = result.depth_in_main_chain > 0;
     return result;
 }
-
+*/
 //! Construct wallet TxOut struct.
 WalletTxOut MakeWalletTxOut(CWallet& wallet, const CWalletTx& wtx, int n, int depth)
 {
@@ -173,11 +225,12 @@ public:
 
     bool encryptWallet(const SecureString& wallet_passphrase) override
     {
-        CHDWallet * pHDWallet = (CHDWallet *) &m_wallet;
-        return pHDWallet->EncryptWallet(wallet_passphrase);
+        //AnonWallet * pHDWallet = (AnonWallet *) &m_wallet;
+        //return pHDWallet->EncryptWallet(wallet_passphrase);
+        return m_wallet.EncryptWallet(wallet_passphrase);
     }
     bool isCrypted() override { return m_wallet.IsCrypted(); }
-    bool lock() override { return m_wallet.Lock(); }
+    bool lock() override { return m_wallet.LockWallet(); }
     bool unlock(const SecureString& wallet_passphrase, bool fUnlockForStakingOnly) override { return m_wallet.Unlock(wallet_passphrase, fUnlockForStakingOnly); }
     bool isLocked() override { return m_wallet.IsLocked(); }
     bool isUnlockedForStakingOnly() override { return m_wallet.IsUnlockedForStakingOnly(); }
@@ -354,7 +407,7 @@ public:
         if (mi != m_wallet.mapWallet.end()) {
             return MakeWalletTx(m_wallet, mi->second);
         }
-
+/*
         if (m_shared_wallet.get()) {
             CHDWallet *phdwallet = (CHDWallet*)(m_shared_wallet.get());
             const auto mi = phdwallet->mapRecords.find(txid);
@@ -362,7 +415,7 @@ public:
                 return MakeWalletTx(*phdwallet, mi);
             }
         }
-
+*/
         return {};
     }
     std::vector<WalletTx> getWalletTxs() override
@@ -373,12 +426,14 @@ public:
         for (const auto& entry : m_wallet.mapWallet) {
             result.emplace_back(MakeWalletTx(m_wallet, entry.second));
         }
+        /*
         if (m_shared_wallet.get()) {
             CHDWallet *phdwallet = (CHDWallet*)(m_shared_wallet.get());
             for (auto mi = phdwallet->mapRecords.begin(); mi != phdwallet->mapRecords.end(); mi++) {
                 result.emplace_back(MakeWalletTx(*phdwallet, mi));
             }
         }
+         */
         return result;
     }
     bool tryGetTxStatus(const uint256& txid,
@@ -420,7 +475,7 @@ public:
             tx_status = MakeWalletTxStatus(mi->second);
             return MakeWalletTx(m_wallet, mi->second);
         }
-
+/*
         if (m_shared_wallet.get()) {
             CHDWallet *phdwallet = (CHDWallet*)(m_shared_wallet.get());
             auto mi = phdwallet->mapRecords.find(txid);
@@ -434,33 +489,31 @@ public:
                 return MakeWalletTx(*phdwallet, mi);
             }
         }
-
+*/
         return {};
     }
     WalletBalances getBalances() override
     {
         WalletBalances result;
-        CHDWallet* pWallet = reinterpret_cast<CHDWallet*>(&m_wallet);
-        CHDWalletBalances balances;
-        if (!pWallet->GetBalances(balances))
-            return result;
+        BalanceList walletBalances;
+        m_wallet.GetBalances(walletBalances);
 
-        result.balance = balances.nVeil;
-        result.unconfirmed_balance = balances.nVeilUnconf;
-        result.immature_balance = balances.nVeilImmature;
-        result.ct_balance = balances.nCT;
-        result.ct_unconfirmed_balance = balances.nCTUnconf;
-        result.ct_immature_balance = balances.nCTImmature;
-        result.ring_ct_balance = balances.nRingCT;
-        result.ring_ct_unconfirmed_balance = balances.nRingCTUnconf;
-        result.ring_ct_immature_balance = balances.nRingCTImmature;
-        result.zerocoin_balance = m_wallet.GetZerocoinBalance(true);
-        result.zerocoin_unconfirmed_balance = m_wallet.GetUnconfirmedZerocoinBalance();
-        result.zerocoin_immature_balance = m_wallet.GetImmatureZerocoinBalance();
-        result.have_watch_only = balances.nVeilWatchOnly || balances.nVeilWatchOnlyUnconf;
+        result.balance = walletBalances.nVeil;
+        result.unconfirmed_balance = walletBalances.nVeilUnconf;
+        result.immature_balance = walletBalances.nVeilImmature;
+        result.ct_balance = walletBalances.nCT;
+        result.ct_unconfirmed_balance = walletBalances.nCTUnconf;
+        result.ct_immature_balance = walletBalances.nCTImmature;
+        result.ring_ct_balance = walletBalances.nRingCT;
+        result.ring_ct_unconfirmed_balance = walletBalances.nRingCTUnconf;
+        result.ring_ct_immature_balance = walletBalances.nRingCTImmature;
+        result.zerocoin_balance = walletBalances.nZerocoin;
+        result.zerocoin_unconfirmed_balance = walletBalances.nZerocoinUnconf;
+        result.zerocoin_immature_balance = walletBalances.nZerocoinImmature;
+        result.have_watch_only = walletBalances.nVeilWatchOnly || walletBalances.nVeilWatchOnlyUnconf;
         if (result.have_watch_only) {
-            result.watch_only_balance = balances.nVeilWatchOnly;
-            result.unconfirmed_watch_only_balance = balances.nVeilWatchOnlyUnconf;
+            result.watch_only_balance = walletBalances.nVeilWatchOnly;
+            result.unconfirmed_watch_only_balance = walletBalances.nVeilWatchOnlyUnconf;
             result.immature_watch_only_balance = m_wallet.GetImmatureWatchOnlyBalance();
         }
         return result;
@@ -487,6 +540,11 @@ public:
         LOCK2(::cs_main, m_wallet.cs_wallet);
         return m_wallet.IsMine(txin);
     }
+    isminetype txoutbaseIsMine(const CTxOutBase* txout) override
+    {
+        LOCK2(::cs_main, m_wallet.cs_wallet);
+        return m_wallet.IsMine(txout);
+    }
     isminetype txoutIsMine(const CTxOut& txout) override
     {
         LOCK2(::cs_main, m_wallet.cs_wallet);
@@ -501,6 +559,11 @@ public:
     {
         LOCK2(::cs_main, m_wallet.cs_wallet);
         return m_wallet.GetCredit(txout, filter);
+    }
+    CAmount getAnonCredit(const COutPoint& outpoint, isminefilter filter) override
+    {
+        LOCK2(::cs_main, m_wallet.cs_wallet);
+        return m_wallet.GetAnonCredit(outpoint, filter);
     }
     CoinsList listCoins() override
     {

@@ -807,14 +807,14 @@ add_executable(veil
         src/veil/ringct/blind.h
         src/veil/ringct/extkey.cpp
         src/veil/ringct/extkey.h
-        src/veil/ringct/hdwallet.cpp
-        src/veil/ringct/hdwallet.h
-        src/veil/ringct/hdwalletdb.cpp
-        src/veil/ringct/hdwalletdb.h
+        src/veil/ringct/anonwallet.cpp
+        src/veil/ringct/anonwallet.h
+        src/veil/ringct/anonwalletdb.cpp
+        src/veil/ringct/anonwalletdb.h
         src/veil/ringct/keyutil.cpp
         src/veil/ringct/keyutil.h
-        src/veil/ringct/rpchdwallet.cpp
-        src/veil/ringct/rpchdwallet.h
+        src/veil/ringct/rpcanonwallet.cpp
+        src/veil/ringct/rpcanonwallet.h
         src/veil/ringct/stealth.cpp
         src/veil/ringct/stealth.h
         src/veil/ringct/types.h
@@ -963,7 +963,7 @@ add_executable(veil
         src/pubkey.h
         src/random.cpp
         src/random.h
-        src/rctindex.h
+        src/veil/ringct/rctindex.h
         src/rest.cpp
         src/reverse_iterator.h
         src/reverselock.h
@@ -1014,6 +1014,6 @@ add_executable(veil
         src/versionbits.h
         src/walletinitinterface.h
         src/warnings.cpp
-        src/warnings.h)
+        src/warnings.h src/veil/zerocoin/spendreceipt.h src/veil/ringct/temprecipient.h src/veil/ringct/temprecipient.cpp src/veil/zerocoin/spendreceipt.cpp src/veil/ringct/outputrecord.cpp src/veil/ringct/outputrecord.h src/wallet/walletbalances.h)
 
 qt5_use_modules(veil Core Widgets Gui)

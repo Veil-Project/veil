@@ -211,10 +211,10 @@ public:
 };
 
 /** Access to the wallet database */
-class CHDWalletDB : public WalletBatch
+class AnonWalletDB : public WalletBatch
 {
 public:
-    CHDWalletDB(WalletDatabase& dbw, const char* pszMode = "r+", bool _fFlushOnClose = true) : WalletBatch(dbw, pszMode, _fFlushOnClose)
+    AnonWalletDB(WalletDatabase& dbw, const char* pszMode = "r+", bool _fFlushOnClose = true) : WalletBatch(dbw, pszMode, _fFlushOnClose)
     {
     }
 
@@ -349,25 +349,13 @@ public:
     bool ReadStealthAddress(CStealthAddress &sxAddr);
     bool EraseStealthAddress(const CStealthAddress &sxAddr);
 
-
-
     bool ReadNamedExtKeyId(const std::string &name, CKeyID &identifier, uint32_t nFlags=DB_READ_UNCOMMITTED);
     bool WriteNamedExtKeyId(const std::string &name, const CKeyID &identifier);
 
-    bool ReadExtKey(const CKeyID &identifier, CStoredExtKey &ek32, uint32_t nFlags=DB_READ_UNCOMMITTED);
-    bool WriteExtKey(const CKeyID &identifier, const CStoredExtKey &ek32);
+    bool ReadExtKey(const CKeyID &identifier, CKeyID& idAccount, BIP32Path& vPath);
+    bool WriteExtKey(const CKeyID& idAccount, const CKeyID &idNew, const BIP32Path& vPath);
 
-    bool ReadExtAccount(const CKeyID &identifier, CExtKeyAccount &ekAcc, uint32_t nFlags=DB_READ_UNCOMMITTED);
-    bool WriteExtAccount(const CKeyID &identifier, const CExtKeyAccount &ekAcc);
-
-    bool ReadExtKeyPack(const CKeyID &identifier, const uint32_t nPack, std::vector<CEKAKeyPack> &ekPak, uint32_t nFlags=DB_READ_UNCOMMITTED);
-    bool WriteExtKeyPack(const CKeyID &identifier, const uint32_t nPack, const std::vector<CEKAKeyPack> &ekPak);
-
-    bool ReadExtStealthKeyPack(const CKeyID &identifier, const uint32_t nPack, std::vector<CEKAStealthKeyPack> &aksPak, uint32_t nFlags=DB_READ_UNCOMMITTED);
-    bool WriteExtStealthKeyPack(const CKeyID &identifier, const uint32_t nPack, const std::vector<CEKAStealthKeyPack> &aksPak);
-
-    bool ReadExtStealthKeyChildPack(const CKeyID &identifier, const uint32_t nPack, std::vector<CEKASCKeyPack> &asckPak, uint32_t nFlags=DB_READ_UNCOMMITTED);
-    bool WriteExtStealthKeyChildPack(const CKeyID &identifier, const uint32_t nPack, const std::vector<CEKASCKeyPack> &asckPak);
+    bool WriteAccountCounter(const CKeyID& idAccount, const uint32_t& nCount);
 
     bool ReadFlag(const std::string &name, int32_t &nValue, uint32_t nFlags=DB_READ_UNCOMMITTED);
     bool WriteFlag(const std::string &name, int32_t nValue);

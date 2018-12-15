@@ -9,7 +9,7 @@
 #include <coins.h>
 #include <dbwrapper.h>
 #include <chain.h>
-#include <rctindex.h>
+#include <veil/ringct/rctindex.h>
 #include <primitives/block.h>
 #include <libzerocoin/Coin.h>
 #include <libzerocoin/CoinSpend.h>

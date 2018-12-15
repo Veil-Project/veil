@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <wallet/wallet.h>
-#include <veil/ringct/hdwallet.h>
+#include <veil/ringct/anonwallet.h>
 #include <veil/budget.h>
 
 #include <checkpoints.h>
@@ -256,6 +256,19 @@ CPubKey CWallet::GenerateNewKey(WalletBatch &batch, bool internal)
 
 #define BIP44_PURPOSE 0x8000002C
 
+CExtKey DeriveKeyFromPath(const CExtKey& keyAccount, const BIP32Path& vPath)
+{
+    CExtKey keyDerive = keyAccount;
+    for (auto p : vPath) {
+        uint32_t nAccount = p.first;
+        bool fHardened = p.second;
+        if (fHardened)
+            nAccount |= BIP32_HARDENED_KEY_LIMIT;
+        keyDerive.Derive(keyDerive, nAccount);
+    }
+    return keyDerive;
+}
+
 // Veil:
 // Pass in {[0, true], [0, false], [0, false]} to match default bip44 matching
 // the same derivation used here https://iancoleman.io/bip39/
@@ -286,15 +299,7 @@ CExtKey CWallet::DeriveBIP32Path(const BIP32Path& vPath)
     keyMaster.Derive(keyPurpose, BIP44_PURPOSE);
     keyPurpose.Derive(keyCoin, Params().BIP44ID());
 
-    for (auto p : vPath) {
-        uint32_t nAccount = p.first;
-        bool fHardened = p.second;
-        if (fHardened)
-            nAccount |= BIP32_HARDENED_KEY_LIMIT;
-        keyCoin.Derive(keyCoin, nAccount);
-    }
-
-    return keyCoin;
+    return DeriveKeyFromPath(keyCoin, vPath);
 }
 
 void CWallet::DeriveNewChildKey(WalletBatch &batch, CKeyMetadata& metadata, CKey& secret, bool internal)
@@ -477,25 +482,73 @@ bool CWallet::LoadWatchOnly(const CScript &dest)
     return CCryptoKeyStore::AddWatchOnly(dest);
 }
 
+bool CWallet::LockWallet()
+{
+    zwalletMain->Lock();
+    pAnonWalletMain->Lock();
+    return CCryptoKeyStore::Lock();
+}
+
+bool CWallet::UnlockZerocoinWallet()
+{
+    CKey keyZerocoinMaster;
+    if (!GetZerocoinSeed(keyZerocoinMaster))
+        return error("%s: failed to derive zerocoin master key");
+    auto seedID = keyZerocoinMaster.GetPubKey().GetID();
+    if (seedID != zwalletMain->GetMasterSeedID())
+        return error("%s: derived zerocoin key %s does not match expected key %s", __func__, seedID.GetHex(), zwalletMain->GetMasterSeedID().GetHex());
+    zwalletMain->SetMasterSeed(keyZerocoinMaster);
+    LogPrintf("%s: cwallet set zerocoin masterseed to %s\n", __func__, keyZerocoinMaster.GetPubKey().GetID().GetHex());
+    return true;
+}
+
+bool CWallet::UnlockAnonWallet()
+{
+    CExtKey keyAnonMaster;
+    if (!GetAnonWalletSeed(keyAnonMaster))
+        return error("%s: failed to derive anon wallet master seed", __func__);
+
+    auto idSeedDB = pAnonWalletMain->GetMasterID();
+    auto idDerived = keyAnonMaster.key.GetPubKey().GetID();
+    if (idDerived != idSeedDB)
+        return error("%s: derived anon wallet key %s does not match expected key %s", __func__, idDerived.GetHex(), idSeedDB.GetHex());
+
+    pAnonWalletMain->SetMasterKey(keyAnonMaster);
+    return true;
+}
+
 bool CWallet::Unlock(const SecureString& strWalletPassphrase, bool fUnlockForStakingOnly)
 {
     CCrypter crypter;
     CKeyingMaterial _vMasterKey;
 
+    bool fSuccess = false;
     {
         LOCK(cs_wallet);
+        this->fUnlockForStakingOnly = fUnlockForStakingOnly;
         for (const MasterKeyMap::value_type& pMasterKey : mapMasterKeys)
         {
             if(!crypter.SetKeyFromPassphrase(strWalletPassphrase, pMasterKey.second.vchSalt, pMasterKey.second.nDeriveIterations, pMasterKey.second.nDerivationMethod))
                 return false;
             if (!crypter.Decrypt(pMasterKey.second.vchCryptedKey, _vMasterKey))
                 continue; // try another master key
-            if (CCryptoKeyStore::Unlock(_vMasterKey))
-                return true;
+            if (!CCryptoKeyStore::Unlock(_vMasterKey))
+                continue;
+
+            fSuccess = true;
+            break;
         }
-        this->fUnlockForStakingOnly = fUnlockForStakingOnly;
+
+        WalletBatch walletdb(*database);
+        if (!walletdb.LoadHDChain(hdChain))
+            return error("%s: failed to load hd chain from database", __func__);
+        if (!UnlockZerocoinWallet())
+            return error("%s: failed to unlock zerocoin wallet", __func__);
+        if (!UnlockAnonWallet())
+            return error("%s: failed to unlock anon wallet", __func__);
     }
-    return false;
+
+    return fSuccess;
 }
 
 bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase)
@@ -680,6 +733,10 @@ bool CWallet::IsSpent(const uint256& hash, unsigned int n) const
                 return true; // Spent
         }
     }
+
+    if (setAnonTx.count(hash))
+        return pAnonWalletMain->IsSpent(hash, n);
+
     return false;
 }
 
@@ -707,7 +764,7 @@ void CWallet::AddToSpends(const uint256& wtxid)
         AddToSpends(txin.prevout, wtxid);
 }
 
-bool CWallet::WalletEncryption(const SecureString& strWalletPassphrase)
+bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
 {
     if (IsCrypted())
         return false;
@@ -775,16 +832,16 @@ bool CWallet::WalletEncryption(const SecureString& strWalletPassphrase)
         delete encrypted_batch;
         encrypted_batch = nullptr;
 
-        Lock();
-        Unlock(strWalletPassphrase, false);
+        CCryptoKeyStore::Lock();
+        CWallet::Unlock(strWalletPassphrase, false);
 
         // if we are using HD, replace the HD seed with a new one
-        if (CWallet::IsHDEnabled()) {
-            SetHDSeed(GenerateNewSeed());
-        }
+//        if (CWallet::IsHDEnabled()) {
+//            SetHDSeed(GenerateNewSeed());
+//        }
 
         NewKeyPool();
-        Lock();
+        CCryptoKeyStore::Lock();
 
         // Need to completely rewrite the wallet file; if we don't, bdb might keep
         // bits of the unencrypted private key in slack space in the database file.
@@ -910,6 +967,7 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
     WalletBatch batch(*database, "r+", fFlushOnClose);
 
     uint256 hash = wtxIn.GetHash();
+    bool fHaveAnonRecord = setAnonTx.count(hash);
 
     // Inserts only if not already there, returns tx inserted or tx found
     std::pair<std::map<uint256, CWalletTx>::iterator, bool> ret = mapWallet.insert(std::make_pair(hash, wtxIn));
@@ -921,6 +979,12 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
         wtx.nOrderPos = IncOrderPosNext(&batch);
         wtx.m_it_wtxOrdered = wtxOrdered.insert(std::make_pair(wtx.nOrderPos, &wtx));
         wtx.nTimeSmart = ComputeTimeSmart(wtx);
+        if (fHaveAnonRecord) {
+            wtx.mapValue.emplace("anon", "");
+            CTransactionRecord rtx;
+            if (!pAnonWalletMain->AddToRecord(rtx, *mapWallet.at(hash).tx, nullptr, 0, false))
+                return error("%s: FIXME! Failed to add anon tx record", __func__);
+        }
         AddToSpends(hash);
     }
 
@@ -956,6 +1020,11 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
         // TODO: Store all versions of the transaction, instead of just one.
         if (wtxIn.tx->HasWitness() && !wtx.tx->HasWitness()) {
             wtx.SetTx(wtxIn.tx);
+            fUpdated = true;
+        }
+        // Make sure wtx has knowledge that there is an anon txrecord associated with it
+        if (wtxIn.mapValue.count("anon") != wtx.mapValue.count("anon")) {
+            wtx.mapValue["anon"] = "";
             fUpdated = true;
         }
     }
@@ -1006,6 +1075,9 @@ void CWallet::LoadToWallet(const CWalletTx& wtxIn)
             }
         }
     }
+    //Link to tx record within anon wallet
+    if (wtx.mapValue.count("anon"))
+        setAnonTx.emplace(hash);
 }
 
 bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate)
@@ -1014,10 +1086,29 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
     {
         AssertLockHeld(cs_wallet);
 
+        //Check if Anon Wallet has this
+        bool fAnonRecord = false;
+        if (tx.HasBlindedValues()) {
+            pAnonWalletMain->AddToWalletIfInvolvingMe(ptx, pIndex, posInBlock, fUpdate);
+
+            //If a tx record was added to anon wallet, give knowledge of that to the main wallet
+            if (pAnonWalletMain->mapRecords.count(tx.GetHash())) {
+                setAnonTx.emplace(tx.GetHash());
+                fAnonRecord = true;
+            } else {
+                LogPrintf("%s: FXIME 1104 not in maprecord!\n", __func__);
+            }
+        }
+
         if (pIndex != nullptr) {
             for (const CTxIn& txin : tx.vin) {
                 if (txin.scriptSig.IsZerocoinSpend() || tx.IsCoinBase())
                     continue;
+
+                //Anon wallet tx already added above
+                if (txin.IsAnonInput())
+                    continue;
+
                 std::pair<TxSpends::const_iterator, TxSpends::const_iterator> range = mapTxSpends.equal_range(txin.prevout);
                 while (range.first != range.second) {
                     if (range.first->second != tx.GetHash()) {
@@ -1032,8 +1123,9 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
         }
 
         bool fExisted = mapWallet.count(tx.GetHash()) != 0;
+
         if (fExisted && !fUpdate) return false;
-        if (fExisted || IsMine(tx) || IsFromMe(tx))
+        if (fExisted || IsMine(tx) || IsFromMe(tx) || fAnonRecord)
         {
             /* Check if any keys in the wallet keypool that were supposed to be unused
              * have appeared in a new transaction. If so, remove those keys from the keypool.
@@ -1043,8 +1135,10 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
 
             // loop though all outputs
             for (const CTxOutBaseRef& pOut : tx.vpout) {
+                //Anon tx already added above
                 if (!pOut->IsStandardOutput())
                     continue;
+
                 auto txout = *pOut->GetStandardOutput();
                 // extract addresses and check if they match with an unused keypool key
                 std::vector<CKeyID> vAffected;
@@ -1285,6 +1379,13 @@ void CWallet::BlockUntilSyncedToCurrentChain() {
     SyncWithValidationInterfaceQueue();
 }
 
+isminetype CWallet::IsMine(const CTxDestination& dest) const
+{
+    if (dest.type() == typeid(CStealthAddress))
+        return pAnonWalletMain->HaveAddress(dest);
+
+    return ::IsMine(*this, dest);
+}
 
 isminetype CWallet::IsMine(const CTxIn &txin) const
 {
@@ -1324,11 +1425,83 @@ isminetype CWallet::IsMine(const CTxOut& txout) const
     return ::IsMine(*this, txout.scriptPubKey);
 }
 
+isminetype CWallet::IsMine(const CTxOutBase *txout) const
+{
+    switch (txout->nVersion)
+    {
+        case OUTPUT_STANDARD:
+        {
+            CTxOut out;
+            txout->GetTxOut(out);
+            return IsMine(out);
+        }
+        case OUTPUT_CT:
+        case OUTPUT_RINGCT:
+        case OUTPUT_DATA:
+        {
+            return pAnonWalletMain->IsMine(txout);
+        }
+        default:
+            return ISMINE_NO;
+    }
+}
+
+CAmount CWallet::GetCredit(const CTxOutBase *txout, const isminefilter &filter) const
+{
+    switch (txout->nVersion)
+    {
+        case OUTPUT_STANDARD:
+        {
+            CTxOut out;
+            txout->GetTxOut(out);
+            return GetCredit(out, filter);
+        }
+        case OUTPUT_CT:
+        case OUTPUT_RINGCT:
+        case OUTPUT_DATA:
+        {
+            //todo: this does not work
+            //return pAnonWalletMain->GetCredit(txout, filter);
+            return 0;
+        }
+        default:
+            return 0;
+    }
+    return 0;
+}
+
 CAmount CWallet::GetCredit(const CTxOut& txout, const isminefilter& filter) const
 {
     if (!MoneyRange(txout.nValue))
         throw std::runtime_error(std::string(__func__) + ": value out of range");
     return ((IsMine(txout) & filter) ? txout.nValue : 0);
+}
+
+CAmount CWallet::GetAnonCredit(const COutPoint& outpoint, const isminefilter& filter) const
+{
+    return pAnonWalletMain->GetCredit(outpoint, filter);
+}
+
+bool CWallet::IsChange(const CTxOutBase *txout) const
+{
+    switch(txout->GetType())
+    {
+        case OUTPUT_STANDARD:
+        {
+            CTxOut out;
+            if (!txout->GetTxOut(out))
+                return false;
+            return IsChange(out);
+        }
+        case OUTPUT_CT:
+        case OUTPUT_RINGCT:
+        case OUTPUT_DATA:
+        {
+            return pAnonWalletMain->IsChange(txout);
+        }
+        default:
+            return 0;
+    }
 }
 
 bool CWallet::IsChange(const CTxOut& txout) const
@@ -1362,9 +1535,18 @@ CAmount CWallet::GetChange(const CTxOut& txout) const
 
 bool CWallet::IsMine(const CTransaction& tx) const
 {
-    for (const CTxOutBaseRef& pOut : tx.vpout)
-        if (IsMine(pOut.get()))
-            return true;
+    for (const CTxOutBaseRef& pOut : tx.vpout) {
+        auto type = pOut->GetType();
+        if (type == OUTPUT_STANDARD || type == OUTPUT_CT) {
+            //Standard output and output ct both use normal pubkey
+            return ::IsMine(*this, *pOut->GetPScriptPubKey());
+        } else if (type == OUTPUT_RINGCT || type == OUTPUT_DATA ) {
+            return pAnonWalletMain->IsMine(pOut.get());
+        } else {
+            return ISMINE_NO;
+        }
+    }
+
     return false;
 }
 
@@ -1409,12 +1591,19 @@ bool CWallet::IsAllFromMe(const CTransaction& tx, const isminefilter& filter) co
 CAmount CWallet::GetCredit(const CTransaction& tx, const isminefilter& filter) const
 {
     CAmount nCredit = 0;
-    for (auto const pOut : tx.vpout)
+    for (const auto& pOut : tx.vpout)
     {
+        //todo: currentyl GetCredit(CTxOutBase, filter) only returns basecoin, so has to call on whole tx below
         nCredit += GetCredit(pOut.get(), filter);
         if (!MoneyRange(nCredit))
             throw std::runtime_error(std::string(__func__) + ": value out of range");
     }
+    if (tx.HasBlindedValues()) {
+        auto nCreditAnon = pAnonWalletMain->GetCredit(tx, filter);
+        LogPrintf("********* credit from anon=%s\n", FormatMoney(nCreditAnon));
+        nCredit += nCreditAnon;
+    }
+
     return nCredit;
 }
 
@@ -1690,13 +1879,29 @@ void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
     }
 
     // Sent/received.
+    auto hashTx = tx->GetHash();
     for (unsigned int i = 0; i < tx->vpout.size(); ++i)
     {
-        CTxOut txout;
-        if (!tx->vpout[i]->GetTxOut(txout))
-            continue;
+        auto pout = tx->vpout[i];
+        isminetype fIsMine = pwallet->IsMine(pout.get());
 
-        isminetype fIsMine = pwallet->IsMine(txout);
+        CTxOut txout;
+        if (!pout->GetTxOut(txout)) {
+            //Anon output
+            const AnonWallet* pwalletAnon = pwallet->GetAnonWallet_const();
+            COutputRecord record;
+            if (pwalletAnon->GetOutputRecord(COutPoint(hashTx, i), record)) {
+                CTxDestination dest;
+                record.GetDestination(dest);
+                COutputEntry output = {dest, record.GetAmount(), (int)i};
+                if (record.IsSend())
+                    listSent.emplace_back(output);
+                else
+                    listReceived.emplace_back(output);
+            }
+            continue;
+        }
+
         // Only need to handle txouts if AT LEAST one of these is true:
         //   1) they debit from us (sent)
         //   2) the output is to us (received)
@@ -1954,7 +2159,7 @@ CAmount CWalletTx::GetDebit(const isminefilter& filter) const
     return debit;
 }
 
-CAmount CWalletTx::GetCredit(const isminefilter& filter) const
+CAmount CWalletTx::GetCredit(const isminefilter& filter, bool fResetCache) const
 {
     // Must wait until coinbase is safely deep enough in the chain before valuing it
     if (IsCoinBase() && GetBlocksToMaturity() > 0)
@@ -1964,18 +2169,22 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter) const
     if (filter & ISMINE_SPENDABLE)
     {
         // GetBalance can assume transactions in mapWallet won't change
-        if (fCreditCached)
+        if (fCreditCached && !fResetCache) {
             credit += nCreditCached;
+            LogPrintf("%s: 2176 using cached credit of %s\n", __func__, FormatMoney(credit));
+        }
+
         else
         {
             nCreditCached = pwallet->GetCredit(*tx, ISMINE_SPENDABLE);
             fCreditCached = true;
             credit += nCreditCached;
+            LogPrintf("%s: 2184 using non-cached credit of %d\n", __func__, credit);
         }
     }
     if (filter & ISMINE_WATCH_ONLY)
     {
-        if (fWatchCreditCached)
+        if (fWatchCreditCached && !fResetCache)
             credit += nWatchCreditCached;
         else
         {
@@ -2029,7 +2238,14 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache, const isminefilter& filter
     uint256 hashTx = GetHash();
     for (unsigned int i = 0; i < tx->GetNumVOuts(); i++) {
         if (!pwallet->IsSpent(hashTx, i)) {
-            nCredit += pwallet->GetCredit(tx->vpout[i].get(), filter);
+            auto* pout = tx->vpout[i].get();
+            if (pout->IsStandardOutput()) {
+                CTxOut out;
+                if (pout->GetTxOut(out))
+                    nCredit += pwallet->GetCredit(out, filter);
+            } else {
+                nCredit += pwallet->GetAnonCredit(COutPoint(hashTx, i), filter);
+            }
             if (!MoneyRange(nCredit))
                 throw std::runtime_error(std::string(__func__) + " : value out of range");
         }
@@ -2193,6 +2409,34 @@ CAmount CWallet::GetBalance(const isminefilter& filter, const int min_depth) con
     return nTotal;
 }
 
+bool CWallet::GetBalances(BalanceList& bal)
+{
+    LOCK2(cs_main, cs_wallet);
+    for (const auto &item : mapWallet) {
+        const CWalletTx &wtx = item.second;
+        bal.nVeilImmature += wtx.GetImmatureCredit();
+
+        if (wtx.IsTrusted()) {
+            bal.nVeil += wtx.GetAvailableCredit();
+            bal.nVeilWatchOnly += wtx.GetAvailableCredit(true, ISMINE_WATCH_ONLY);
+        } else {
+            if (wtx.GetDepthInMainChain() == 0 && wtx.InMempool()) {
+                bal.nVeilUnconf += wtx.GetAvailableCredit();
+                bal.nVeilWatchOnlyUnconf += wtx.GetAvailableCredit(true, ISMINE_WATCH_ONLY);
+            }
+        }
+    }
+
+    pAnonWalletMain->GetBalances(bal);
+
+    //todo: this creates more iteration than is needed calling three different times
+    bal.nZerocoin = GetZerocoinBalance(true);
+    bal.nZerocoinUnconf = GetUnconfirmedZerocoinBalance();
+    bal.nZerocoinImmature = GetImmatureZerocoinBalance();
+
+    return true;
+}
+
 // Get a Map pairing the Denominations with the amount of Zerocoin for each Denomination
 std::map<libzerocoin::CoinDenomination, CAmount> CWallet::GetMyZerocoinDistribution() const
 {
@@ -2222,6 +2466,9 @@ bool CWallet::GetMintFromStakeHash(const uint256& hashStake, CZerocoinMint& mint
 
 bool CWallet::GetMint(const uint256& hashSerial, CZerocoinMint& mint)
 {
+    if (zwalletMain->HasEmptySeed())
+        return error("%s: zerocoin wallet's seed is not loaded", __func__);
+
     if (!zTracker->HasSerialHash(hashSerial))
         return error("%s: serialhash %s is not in tracker", __func__, hashSerial.GetHex());
 
@@ -3472,6 +3719,10 @@ bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
             // Take key pair from key pool so it won't be used again
             reservekey.KeepKey();
 
+
+            if (wtxNew.tx->HasBlindedValues())
+                setAnonTx.emplace(wtxNew.tx->GetHash());
+
             // Add tx to wallet, because if it has change it's also ours,
             // otherwise just for transaction history.
             AddToWallet(wtxNew);
@@ -3479,6 +3730,11 @@ bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
             // Notify that old coins are spent
             if (!wtxNew.tx->IsZerocoinSpend()) {
                 for (const CTxIn &txin : wtxNew.tx->vin) {
+                    if (!mapWallet.count(txin.prevout.hash)) {
+                        LogPrintf("%s: %s ***** FIXMEEEEEEEEEEEEEEEEEEEEE Notify that anon input has been spend\n", __func__, __LINE__);
+                        continue;
+                    }
+
                     CWalletTx &coin = mapWallet.at(txin.prevout.hash);
                     coin.BindWallet(this);
                     NotifyTransactionChanged(this, coin.GetHash(), CT_UPDATED);
@@ -3731,7 +3987,6 @@ bool CWallet::TopUpKeyPool(unsigned int kpSize)
 
         if (!CWallet::IsHDEnabled() || !CanSupportFeature(FEATURE_HD_SPLIT))
         {
-            LogPrintf("%s 3724 HD =%d\n", __func__, CWallet::IsHDEnabled());
             // don't create extra internal keys
             missingInternal = 0;
         }
@@ -3951,7 +4206,8 @@ std::set< std::set<CTxDestination> > CWallet::GetAddressGroupings()
                 if(!IsMine(txin)) /* If this input isn't mine, ignore it */
                     continue;
                 CScript scriptCheck;
-                if (!mapWallet.at(txin.prevout.hash).tx->vpout[txin.prevout.n]->GetScriptPubKey(scriptCheck))
+                auto mi = mapWallet.find(txin.prevout.hash);
+                if (mi == mapWallet.end() || !mi->second.tx->vpout[txin.prevout.n]->GetScriptPubKey(scriptCheck))
                     continue;
                 if(!ExtractDestination(scriptCheck, address))
                     continue;
@@ -4496,7 +4752,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     bool fFirstRun = true;
     // TODO: Can't use std::make_shared because we need a custom deleter but
     // should be possible to use std::allocate_shared.
-    std::shared_ptr<CWallet> walletInstance(std::shared_ptr<CWallet>(new CHDWallet(name, WalletDatabase::Create(path)), ReleaseWallet));
+    std::shared_ptr<CWallet> walletInstance(std::shared_ptr<CWallet>(new CWallet(name, WalletDatabase::Create(path)), ReleaseWallet));
 
     fs::path backupDir = GetDataDir() / "backups";
     if (!fs::exists(backupDir)) {
@@ -4732,8 +4988,30 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
 
     walletInstance->m_last_block_processed = chainActive.Tip();
 
+    //Load zerocoin wallet
     CzWallet* zwallet = new CzWallet(walletInstance.get());
     walletInstance->setZWallet(zwallet);
+    if (fFirstRun || pseed) {
+        CKey keyTemp;
+        if (!walletInstance->GetZerocoinSeed(keyTemp))
+            throw std::runtime_error(strprintf("%s: could not get zerocoin seed on wallet load", __func__));
+        zwallet->SetMasterSeed(keyTemp);
+        LogPrintf("Set zerocoin master seed to keyid %s\n", keyTemp.GetPubKey().GetID().GetHex());
+    }
+
+    //Load Anon wallet
+    AnonWallet* pAnonWallet = new AnonWallet(walletInstance, "anonwallet", walletInstance->database);
+    if (fFirstRun || pseed) {
+        CExtKey extMasterAnon;
+        if (!walletInstance->GetAnonWalletSeed(extMasterAnon))
+            throw std::runtime_error(strprintf("%s: could not get anon wallet seed on wallet load", __func__));
+        assert(pAnonWallet->Initialise(&extMasterAnon));
+        LogPrintf("%s: loaded new Anon wallet", __func__);
+    } else {
+        assert(pAnonWallet->Initialise());
+    }
+
+    walletInstance->SetAnonWallet(pAnonWallet);
 
     if (chainActive.Tip() && chainActive.Tip() != pindexRescan)
     {
@@ -4815,9 +5093,23 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
 
     //Load zerocoin mint hashes to memory
     walletInstance->zTracker->Init();
-    walletInstance->getZWallet()->LoadMintPoolFromDB();
-    walletInstance->getZWallet()->GenerateMintPool();
-    walletInstance->getZWallet()->SyncWithChain();
+    CKey keyZerocoin;
+    zwallet->LoadMintPoolFromDB();
+    if (!walletInstance->IsLocked()) {
+        assert(walletInstance->GetZerocoinSeed(keyZerocoin));
+        zwallet = walletInstance->getZWallet();
+        auto idExpect = zwallet->GetMasterSeedID();
+        assert(keyZerocoin.GetPubKey().GetID() == idExpect);
+        zwallet->SetMasterSeed(keyZerocoin);
+        zwallet->GenerateMintPool();
+        zwallet->SyncWithChain();
+
+        CExtKey extMasterAnon;
+        if (!walletInstance->GetAnonWalletSeed(extMasterAnon))
+            throw std::runtime_error(strprintf("%s: could not get anon wallet seed on wallet load", __func__));
+        AnonWallet* anonwallet = walletInstance->GetAnonWallet();
+        assert(anonwallet->SetMasterKey(extMasterAnon));
+    }
 
     return walletInstance;
 }
@@ -5106,8 +5398,15 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     if (nValue <= 0)
         return _("Invalid amount");
 
-    if (nValue + Params().Zerocoin_MintFee() > GetBalance())
-        return _("Insufficient funds");
+    CAmount nValueRequired = nValue + Params().Zerocoin_MintFee();
+
+    // User must specifically request to use basecoin, or else must have the anon balance for it
+    if (nValueRequired > pAnonWalletMain->GetAnonBalance()) {//todo should this be total anon balance (including blind)
+        if (!fAllowBasecoin)
+            return _("Insufficient RingCT Funds");
+    }
+    if (fAllowBasecoin && nValueRequired > GetBalance())
+        return _("Insufficient Basecoin Funds");
 
     CReserveKey reserveKey(this);
     int64_t nFeeRequired;
@@ -5120,7 +5419,8 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
 
     string strError;
     CMutableTransaction txNew;
-    if (!CreateZerocoinMintTransaction(nValue, txNew, vDMints, &reserveKey, nFeeRequired, strError, coinControl)) {
+    std::vector<CTempRecipient> vecSend;
+    if (!CreateZerocoinMintTransaction(nValue, txNew, vDMints, &reserveKey, nFeeRequired, strError, vecSend, fAllowBasecoin, coinControl)) {
         if (nValue + nFeeRequired > GetBalance())
             return strprintf(_("Error: This transaction requires a transaction fee of at least %s because of its amount, "
                                "complexity, or use of recently received funds!"), FormatMoney(nFeeRequired).c_str());
@@ -5364,6 +5664,9 @@ bool CWallet::CreateZOutPut(libzerocoin::CoinDenomination denomination, CTxOut& 
     auto zerocoinParams = Params().Zerocoin_Params();
     libzerocoin::PrivateCoin coin(zerocoinParams, denomination, false);
 
+    if (zwalletMain->HasEmptySeed())
+        return error("%s: Zerocoin seed is not loaded!", __func__);
+
     zwalletMain->GenerateDeterministicZerocoin(denomination, coin, dMint);
 
     libzerocoin::PublicCoin pubCoin = coin.getPublicCoin();
@@ -5382,7 +5685,7 @@ bool CWallet::CreateZOutPut(libzerocoin::CoinDenomination denomination, CTxOut& 
 
 bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransaction& txNew,
         std::vector<CDeterministicMint>& vDMints, CReserveKey* reservekey, int64_t& nFeeRet, std::string& strFailReason,
-        const CCoinControl* coinControl, const bool isZCSpendChange)
+        std::vector<CTempRecipient>& vecSend, bool isBasecoin, const CCoinControl* coinControl, const bool isZCSpendChange)
 {
     if (IsLocked()) {
         strFailReason = "Error: Wallet locked, unable to create transaction!";
@@ -5417,11 +5720,23 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
             return error(strFailReason.c_str());
         }
 
-        txNew.vpout.emplace_back(outMint.GetSharedPtr());
+        if (isZCSpendChange || isBasecoin) {
+            txNew.vpout.emplace_back(outMint.GetSharedPtr());
+        }
 
         //store as CZerocoinMint for later use
         LogPrintf("%s: new mint %s\n", __func__, dMint.ToString());
         vDMints.emplace_back(dMint);
+
+        //Fill out a temp recipient, which is what ringct code uses to eventually convert this into an output
+        CTempRecipient tempRecipient;
+        tempRecipient.nType = OUTPUT_STANDARD;
+        tempRecipient.SetAmount(outMint.nValue);
+        tempRecipient.fSubtractFeeFromAmount = false;
+        tempRecipient.scriptPubKey = outMint.scriptPubKey;
+        tempRecipient.fScriptSet = true;
+        tempRecipient.fZerocoin = true;
+        vecSend.emplace_back(tempRecipient);
     }
 
     // calculate fee
@@ -5435,9 +5750,8 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
     std::set<CInputCoin> setCoins;
     if (isZCSpendChange) {
         nValueIn = nValue;
-    } else {
-        // select UTXO's to use
-
+    } else if (isBasecoin) {
+        /** select basecoin UTXO's to use**/
         CCoinControl defaultCoinControl;
         if (coinControl == NULL)
             coinControl = &defaultCoinControl;
@@ -5460,6 +5774,28 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         // Fill vin
         for (const CInputCoin& coin: setCoins)
             txNew.vin.push_back(CTxIn(coin.outpoint.hash, coin.outpoint.n));
+    } else {
+        /** Select RingCT Inputs **/
+        // create output variables for add anon inputs
+        CTransactionRef tx_new;
+        CWalletTx wtx(this, tx_new);
+
+        // default parameters for ring sig
+        size_t nRingSize = Params().DefaultRingSize(); // TODO: default size?
+        size_t nInputsPerSig = 32;
+
+        // protecting against nullptr dereference
+        CCoinControl cControl;
+        if (coinControl)
+            cControl = *coinControl;
+
+        CTransactionRecord rtx;
+        std::string sError;
+        if (0 != pAnonWalletMain->AddAnonInputs(wtx, rtx, vecSend, true, nRingSize, nInputsPerSig, nFeeRet, &cControl, sError)) {
+            strFailReason = sError;
+            return false;
+        }
+        return true;
     }
 
     //any change that is less than 0.0100000 will be ignored and given as an extra fee
@@ -5481,7 +5817,6 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
     if (!isZCSpendChange) {
         int nIn = 0;
         for (const CInputCoin& coin : setCoins) {
-            // TODO: verify that the hash type is correct
             if (!SignSignature(*this, coin.txout.scriptPubKey, txNew, nIn++, coin.txout.nValue, SIGHASH_ALL)) {
                 strFailReason = "Signing transaction failed";
                 return false;
@@ -5499,8 +5834,8 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
     // Check available funds
     int nStatus = ZTRX_FUNDS_PROBLEMS;
     CAmount nzBalance = GetZerocoinBalance(true);
-    if (nValue > GetZerocoinBalance(true)) {
-        receipt.SetStatus("You don't have enough Zerocoins in your wallet", nStatus);
+    if (nValue > nzBalance) {
+        receipt.SetStatus(strprintf("You don't have enough Zerocoins in your wallet. Balance: %s", FormatMoney(nzBalance)), nStatus);
         return false;
     }
 
@@ -5600,16 +5935,6 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
         return false;
     }
 
-    for (const auto& mint : vSelectedMints) {
-        if (mint.GetVersion() < libzerocoin::PrivateCoin::PUBKEY_VERSION) {
-            if (nSecurityLevel < 100) {
-                nStatus = ZSPEND_V1_SEC_LEVEL;
-                receipt.SetStatus("Version 1 require a security level of 100 to successfully spend.", nStatus);
-                return false;
-            }
-        }
-    }
-
     if ((static_cast<int>(vSelectedMints.size()) > Params().Zerocoin_MaxSpendsPerTransaction())) {
         receipt.SetStatus("Failed to find coin set amongst held coins with less than maxNumber of Spends", nStatus);
         return false;
@@ -5617,6 +5942,7 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
 
     // Create change if needed
     nStatus = ZTRX_CHANGE;
+    std::vector<CTempRecipient> vecSend;
 
     CMutableTransaction txNew;
     wtxNew.BindWallet(this);
@@ -5641,68 +5967,60 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 return false;
             }
 
+            // Veil: Check whether to basecoin address or to stealth
+            bool fStealthOutput = address->type() == typeid(CStealthAddress);
+
             if (address) {
-                scriptZerocoinSpend = GetScriptForDestination(*address);
-                if (nChange) {
-                    // Reserve a new key pair from key pool
-                    CPubKey vchPubKey;
-                    assert(reserveKey.GetReservedKey(vchPubKey)); // should never fail
-                    scriptChange = GetScriptForDestination(vchPubKey.GetID());
+                if (fStealthOutput) {
+                    CTempRecipient r;
+                    if (address->type() == typeid(CStealthAddress))
+                        r.nType = OUTPUT_RINGCT;
+                    else
+                        r.nType = OUTPUT_STANDARD;
+                    r.SetAmount(nValue);
+                    r.fSubtractFeeFromAmount = false;
+                    r.address = *address;
+                    vecSend.emplace_back(r);
+                } else {
+                    scriptZerocoinSpend = GetScriptForDestination(*address);
+//                    if (nChange) {
+//                        // Reserve a new key pair from key pool
+//                        CPubKey vchPubKey;
+//                        assert(reserveKey.GetReservedKey(vchPubKey)); // should never fail
+//                        scriptChange = GetScriptForDestination(vchPubKey.GetID());
+//                    }
                 }
-            } else {
-                // Reserve a new key pair from key pool
-                CPubKey vchPubKey;
-                assert(reserveKey.GetReservedKey(vchPubKey)); // should never fail
-                scriptZerocoinSpend = GetScriptForDestination(vchPubKey.GetID());
             }
 
             //add change output if we are spending too much (only applies to spending multiple at once)
             if (nChange) {
-                //mint change as zerocoins
-                if (fMintChange) {
-                    CAmount nFeeRet = 0;
-                    std::string strFailReason = "";
-                    if (!CreateZerocoinMintTransaction(nChange, txNew, vNewMints, &reserveKey, nFeeRet, strFailReason, NULL, true)) {
-                        receipt.SetStatus("Failed to create mint", nStatus);
-                        return false;
-                    }
-                } else {
-                    CTxOut txOutChange(nValueSelected - nValue, scriptChange);
-                    txNew.vpout.emplace_back(txOutChange.GetSharedPtr());
+                //mint change as zerocoins and RingCT
+                CAmount nFeeRet = 0;
+                std::string strFailReason = "";
+                bool fAllowBasecoin = false; // A spend we ALWAYS want to mint change and then remainder of dust change in RingCT
+                if (!CreateZerocoinMintTransaction(nChange, txNew, vNewMints, &reserveKey, nFeeRet, strFailReason,
+                        vecSend, fAllowBasecoin, nullptr, true)) {
+                    receipt.SetStatus("Failed to create mint", nStatus);
+                    return false;
                 }
             }
 
             //add output to veil address to the transaction (the actual primary spend taking place)
-            CTxOut txOutZerocoinSpend(nValue, scriptZerocoinSpend);
-            txNew.vpout.emplace_back(txOutZerocoinSpend.GetSharedPtr());
-
-            //hash with only the output info in it to be used in Signature of Knowledge
-            uint256 hashTxOut = txNew.GetOutputsHash();
-
-            //add all of the mints to the transaction as inputs
-            for (CZerocoinMint mint : vSelectedMints) {
-                CTxIn newTxIn;
-                if (!MintToTxIn(mint, nSecurityLevel, hashTxOut, newTxIn, receipt, libzerocoin::SpendType::SPEND))
-                    return false;
-                txNew.vin.push_back(newTxIn);
-            }
-
-            // Limit size
-            unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION);
-            if (nBytes >= MAX_ZEROCOIN_TX_SIZE) {
-                receipt.SetStatus(strprintf("In rare cases, a spend with 7 coins exceeds our maximum allowable transaction size, "
-                                  "please retry spend using 6 or less coins. Size=%d", nBytes), ZTX_TOO_LARGE);
-                return error("%s: %s", __func__, receipt.GetStatusMessage());
-            }
-
-            //now that all inputs have been added, add full tx hash to zerocoinspend records and write to db
-            uint256 txHash = txNew.GetHash();
-            for (CZerocoinSpend spend : receipt.GetSpends()) {
-                spend.SetTxHash(txHash);
-
-                if (!WalletBatch(*this->database).WriteZerocoinSpendSerialEntry(spend)) {
-                    receipt.SetStatus("Failed to write coin serial number into wallet", nStatus);
+            if (!fStealthOutput) {
+                CTxOut txOutZerocoinSpend(nValue, scriptZerocoinSpend);
+                txNew.vpout.emplace_back(txOutZerocoinSpend.GetSharedPtr());
+            } else {
+                for (const auto& out: txNew.vpout) {
+                    CTempRecipient tempRecipient;
+                    tempRecipient.nType = OUTPUT_STANDARD;
+                    tempRecipient.fScriptSet = true;
+                    tempRecipient.fZerocoin = true;
+                    tempRecipient.SetAmount(out->GetValue());
+                    tempRecipient.fSubtractFeeFromAmount = false;
+                    tempRecipient.scriptPubKey = *out->GetPScriptPubKey();
+                    receipt.AddTempRecipient(tempRecipient);
                 }
+                txNew.vpout.clear();
             }
 
             CTransactionRef txRef = std::shared_ptr<CTransaction>(new CTransaction(txNew));
@@ -5712,6 +6030,52 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
             wtxNew.fFromMe = true;
             wtxNew.fTimeReceivedIsTxTime = true;
             wtxNew.nTimeReceived = GetAdjustedTime();
+
+            if (fStealthOutput) {
+                CAmount nFeeRet;
+                std::string sError;
+                CCoinControl coinControl;
+
+                CTransactionRecord rtx;
+                if (0 != pAnonWalletMain->AddAnonInputs(wtxNew, rtx, vecSend, false, 4, 32, nFeeRet, &coinControl, sError, true,
+                                       nValueSelected)) {
+                    return false;
+                }
+
+                pAnonWalletMain->AddOutputRecordMetaData(rtx, vecSend);
+            }
+
+            CMutableTransaction mtx(*wtxNew.tx);
+
+            //hash with only the output info in it to be used in Signature of Knowledge
+            uint256 hashTxOut = wtxNew.tx->GetOutputsHash();
+
+            //add all of the mints to the transaction as inputs
+            for (CZerocoinMint& mint : vSelectedMints) {
+                CTxIn newTxIn;
+                if (!MintToTxIn(mint, nSecurityLevel, hashTxOut, newTxIn, receipt, libzerocoin::SpendType::SPEND))
+                    return false;
+                mtx.vin.push_back(newTxIn);
+            }
+
+            // Limit size
+            unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION);
+            if (nBytes >= MAX_ZEROCOIN_TX_SIZE) {
+                receipt.SetStatus(strprintf("In rare cases, a spend with 7 coins exceeds our maximum allowable transaction size, "
+                                            "please retry spend using 6 or less coins. Size=%d", nBytes), ZTX_TOO_LARGE);
+                return error("%s: %s", __func__, receipt.GetStatusMessage());
+            }
+
+            //now that all inputs have been added, add full tx hash to zerocoinspend records and write to db
+            uint256 txHash = txNew.GetHash();
+            for (CZerocoinSpend& spend : receipt.GetSpends()) {
+                spend.SetTxHash(txHash);
+                if (!WalletBatch(*this->database).WriteZerocoinSpendSerialEntry(spend))
+                    receipt.SetStatus("Failed to write coin serial number into wallet", nStatus);
+            }
+
+            txRef = std::shared_ptr<CTransaction>(new CTransaction(mtx));
+            wtxNew.SetTx(txRef);
         }
     }
 
@@ -5719,11 +6083,30 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
     return true;
 }
 
-bool CWallet::GetZerocoinSeed(uint256 &seedOut)
+bool CWallet::GetZerocoinSeed(CKey& keyZerocoinMaster)
 {
+    if (IsLocked())
+        return error("%s: getting zerocoin seed while wallet is locked", __func__);
+
     //The zerocoin master seed is derived from a specific BIP32 Account of the wallet's masterseed
-    CExtKey masterKey = DeriveBIP32Path({{0, true}, {Params().BIP32_Zerocoin_Account(), true}});
-    seedOut = masterKey.key.GetPrivKey_256();
+    BIP32Path vPath;
+    vPath.emplace_back(std::make_pair(0, true));
+    vPath.emplace_back(std::make_pair(Params().BIP32_Zerocoin_Account(), true));
+    CExtKey masterKey = DeriveBIP32Path(vPath);
+    keyZerocoinMaster = masterKey.key;
+
+    return true;
+}
+
+bool CWallet::GetAnonWalletSeed(CExtKey& keyMaster)
+{
+    if (IsLocked())
+        return error("%s: getting anon wallet seed while wallet is locked", __func__);
+
+    BIP32Path vPath;
+    vPath.emplace_back(std::make_pair(0, true));
+    vPath.emplace_back(std::make_pair(Params().BIP32_RingCT_Account(), true));
+    keyMaster = DeriveBIP32Path(vPath);
 
     return true;
 }

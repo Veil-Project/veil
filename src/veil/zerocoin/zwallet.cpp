@@ -18,19 +18,32 @@ CzWallet::CzWallet(CWallet* wallet)
 
     nCountLastUsed = 0;
 
+    //Read master seed hash from DB, make sure the correct one is loaded
+    bool fFirstRun = true;
+    CKeyID seedID;
+    if (walletdb.ReadCurrentSeedHash(seedID)) {
+        fFirstRun = false;
+        seedMasterID = seedID;
+    }
+
     //Don't try to do anything if the wallet is locked.
     if (wallet->IsLocked()) {
-        seedMaster = uint256();
+        mapMasterSeeds.clear();
         this->mintPool = CMintPool();
         return;
     }
 
-    uint256 seed;
-    if (!wallet->GetZerocoinSeed(seed)) {
-        LogPrintf("%s: failed to get deterministic seed\n", __func__);
-        return;
+    //! Load zerocoin master seed from wallet
+    CKey keySeed;
+    if (!wallet->GetZerocoinSeed(keySeed)) {
+        throw std::runtime_error(strprintf("%s: failed to get zerocoin masterseed, using zerocoin could result in losing funds!\n", __func__));
     }
-    seedMaster = seed;
+    CKeyID idNew = keySeed.GetPubKey().GetID();
+    if (!fFirstRun && idNew != seedMasterID) {
+        throw std::runtime_error(strprintf("%s: Failed to load correct zerocoin master key. Looking for ID %s but got %s\n",
+                __func__, seedMasterID.GetHex(), idNew.GetHex()));
+    }
+    mapMasterSeeds.emplace(seedMasterID, keySeed);
 
     if (!walletdb.ReadZCount(nCountLastUsed)) {
         nCountLastUsed = 0;
@@ -39,13 +52,21 @@ CzWallet::CzWallet(CWallet* wallet)
     this->mintPool = CMintPool(nCountLastUsed);
 }
 
-bool CzWallet::SetMasterSeed(const uint256& seedMaster, bool fResetCount)
+bool CzWallet::GetMasterSeed(CKey& key) const
 {
+    if (seedMasterID == uint160() || !mapMasterSeeds.count(seedMasterID))
+        return false;
+    key = mapMasterSeeds.at(seedMasterID);
+    return true;
+}
 
+void CzWallet::SetMasterSeed(const CKey& keyMaster, bool fResetCount)
+{
     WalletBatch walletdb(*walletDatabase);
-    auto pwalletMain = GetMainWallet();
 
-    this->seedMaster = seedMaster;
+    seedMasterID = keyMaster.GetPubKey().GetID();
+    mapMasterSeeds.emplace(seedMasterID, keyMaster);
+    walletdb.WriteCurrentSeedHash(seedMasterID);
 
     nCountLastUsed = 0;
 
@@ -55,13 +76,11 @@ bool CzWallet::SetMasterSeed(const uint256& seedMaster, bool fResetCount)
         nCountLastUsed = 0;
 
     mintPool.Reset();
-
-    return true;
 }
 
 void CzWallet::Lock()
 {
-    seedMaster = uint256();
+    mapMasterSeeds.clear();
 }
 
 void CzWallet::AddToMintPool(const std::pair<uint256, uint32_t>& pMint, bool fVerbose)
@@ -72,9 +91,8 @@ void CzWallet::AddToMintPool(const std::pair<uint256, uint32_t>& pMint, bool fVe
 //Add the next 20 mints to the mint pool
 void CzWallet::GenerateMintPool(uint32_t nCountStart, uint32_t nCountEnd)
 {
-
     //Is locked
-    if (seedMaster == uint256())
+    if (mapMasterSeeds.empty())
         return;
 
     uint32_t n = nCountLastUsed + 1;
@@ -88,7 +106,11 @@ void CzWallet::GenerateMintPool(uint32_t nCountStart, uint32_t nCountEnd)
 
     bool fFound;
 
-    uint256 hashSeed = Hash(seedMaster.begin(), seedMaster.end());
+    if (!mapMasterSeeds.count(seedMasterID)) {
+        LogPrintf("%s: do not have master seed with ID %s loaded!", __func__, seedMasterID.GetHex());
+        return;
+    }
+
     LogPrintf("%s : n=%d nStop=%d\n", __func__, n, nStop - 1);
     for (uint32_t i = n; i < nStop; ++i) {
         if (ShutdownRequested())
@@ -107,7 +129,7 @@ void CzWallet::GenerateMintPool(uint32_t nCountStart, uint32_t nCountEnd)
         if(fFound)
             continue;
 
-        uint512 seedZerocoin = GetZerocoinSeed(i);
+        uint512 seedZerocoin = GetZerocoinSeed(seedMasterID, i);
         CBigNum bnValue;
         CBigNum bnSerial;
         CBigNum bnRandomness;
@@ -115,7 +137,7 @@ void CzWallet::GenerateMintPool(uint32_t nCountStart, uint32_t nCountEnd)
         SeedToZerocoin(seedZerocoin, bnValue, bnSerial, bnRandomness, key);
 
         mintPool.Add(bnValue, i);
-        WalletBatch(*walletDatabase).WriteMintPoolPair(hashSeed, GetPubCoinHash(bnValue), i);
+        WalletBatch(*walletDatabase).WriteMintPoolPair(seedMasterID, GetPubCoinHash(bnValue), i);
         LogPrintf("%s : %s count=%d\n", __func__, bnValue.GetHex().substr(0, 6), i);
     }
 }
@@ -123,10 +145,9 @@ void CzWallet::GenerateMintPool(uint32_t nCountStart, uint32_t nCountEnd)
 // pubcoin hashes are stored to db so that a full accounting of mints belonging to the seed can be tracked without regenerating
 bool CzWallet::LoadMintPoolFromDB()
 {
-    map<uint256, vector<pair<uint256, uint32_t> > > mapMintPool = WalletBatch(*walletDatabase).MapMintPool();
+    std::map<CKeyID, std::vector<std::pair<uint256, uint32_t> > > mapMintPool = WalletBatch(*walletDatabase).MapMintPool();
 
-    uint256 hashSeed = Hash(seedMaster.begin(), seedMaster.end());
-    for (auto& pair : mapMintPool[hashSeed])
+    for (auto& pair : mapMintPool[seedMasterID])
         mintPool.Add(pair);
 
     return true;
@@ -260,11 +281,14 @@ bool CzWallet::SetMintSeen(const CBigNum& bnValue, const int& nHeight, const uin
 {
     if (!mintPool.Has(bnValue))
         return error("%s: value not in pool", __func__);
-    pair<uint256, uint32_t> pMint = mintPool.Get(bnValue);
+    std::pair<uint256, uint32_t> pMint = mintPool.Get(bnValue);
     auto pwalletmain = GetMainWallet();
 
     // Regenerate the mint
-    uint512 seedZerocoin = GetZerocoinSeed(pMint.second);
+    if (!mapMasterSeeds.count(seedMasterID))
+        return error("%s: Do not have master seed in mapmasterseeds", __func__);
+
+    uint512 seedZerocoin = GetZerocoinSeed(seedMasterID, pMint.second);
     CBigNum bnValueGen;
     CBigNum bnSerial;
     CBigNum bnRandomness;
@@ -275,13 +299,12 @@ bool CzWallet::SetMintSeen(const CBigNum& bnValue, const int& nHeight, const uin
     if (bnValueGen != bnValue)
         return error("%s: generated pubcoin and expected value do not match!", __func__);
 
-    // Create mint object and database it
-    uint256 hashSeed = Hash(seedMaster.begin(), seedMaster.end());
+    // Create mint object and database it);
     uint256 hashSerial = GetSerialHash(bnSerial);
     uint256 hashPubcoin = GetPubCoinHash(bnValue);
     uint256 nSerial = bnSerial.getuint256();
     uint256 hashStake = Hash(nSerial.begin(), nSerial.end());
-    CDeterministicMint dMint(PrivateCoin::CURRENT_VERSION, pMint.second, hashSeed, hashSerial, hashPubcoin, hashStake);
+    CDeterministicMint dMint(PrivateCoin::CURRENT_VERSION, pMint.second, seedMasterID, hashSerial, hashPubcoin, hashStake);
     dMint.SetDenomination(denom);
     dMint.SetHeight(nHeight);
     dMint.SetTxHash(txid);
@@ -387,10 +410,10 @@ void CzWallet::SeedToZerocoin(const uint512& seedZerocoin, CBigNum& bnValue, CBi
     }
 }
 
-uint512 CzWallet::GetZerocoinSeed(uint32_t n)
+uint512 CzWallet::GetZerocoinSeed(const CKeyID& keyID, uint32_t n)
 {
     CDataStream ss(SER_GETHASH, 0);
-    ss << seedMaster << n;
+    ss << mapMasterSeeds.at(keyID).GetPrivKey_256() << n;
     uint512 zerocoinSeed = Hash512(ss.begin(), ss.end());
     return zerocoinSeed;
 }
@@ -404,18 +427,25 @@ void CzWallet::UpdateCount()
 
 void CzWallet::GenerateDeterministicZerocoin(CoinDenomination denom, PrivateCoin& coin, CDeterministicMint& dMint, bool fGenerateOnly)
 {
+    // Prevent creating mints to a null seed
+    if (this->HasEmptySeed())
+        throw std::runtime_error("Trying to create new deterministic mint, but master seed is not loaded!");
+
     while (true) {
-        GenerateMint(nCountLastUsed + 1, denom, coin, dMint);
+        GenerateMint(seedMasterID, nCountLastUsed + 1, denom, coin, dMint);
         if (coin.getPublicCoin().validate())
             break;
     }
 }
 
-void CzWallet::GenerateMint(const uint32_t& nCount, const CoinDenomination denom, PrivateCoin& coin, CDeterministicMint& dMint)
+void CzWallet::GenerateMint(const CKeyID& seedID, const uint32_t& nCount, const CoinDenomination denom, PrivateCoin& coin, CDeterministicMint& dMint)
 {
     auto zerocoinParams = Params().Zerocoin_Params();
 
-    uint512 seedZerocoin = GetZerocoinSeed(nCount);
+    if (!mapMasterSeeds.count(seedID))
+        throw std::runtime_error(strprintf("%s: no matching masterseed with ID %s", __func__, seedID.GetHex()));
+
+    uint512 seedZerocoin = GetZerocoinSeed(seedID, nCount);
     CBigNum bnValue;
     CBigNum bnSerial;
     CBigNum bnRandomness;
@@ -425,7 +455,7 @@ void CzWallet::GenerateMint(const uint32_t& nCount, const CoinDenomination denom
     coin.setPrivKey(key.GetPrivKey());
     coin.setVersion(PrivateCoin::CURRENT_VERSION);
 
-    uint256 hashSeed = Hash(seedMaster.begin(), seedMaster.end());
+    uint160 hashSeed = seedID;
     uint256 hashSerial = GetSerialHash(bnSerial);
     uint256 nSerial = bnSerial.getuint256();
     uint256 hashStake = Hash(nSerial.begin(), nSerial.end());
@@ -437,16 +467,16 @@ void CzWallet::GenerateMint(const uint32_t& nCount, const CoinDenomination denom
 bool CzWallet::RegenerateMint(const CDeterministicMint& dMint, CZerocoinMint& mint)
 {
     //Check that the seed is correct    todo:handling of incorrect, or multiple seeds
-    uint256 hashSeed = Hash(seedMaster.begin(), seedMaster.end());
-    if (hashSeed != dMint.GetSeedHash())
-        return error("%s: master seed does not match!\ndmint:\n %s \nhashSeed: %s\nseed: %s", __func__, dMint.ToString(), hashSeed.GetHex(), seedMaster.GetHex());
+    CKeyID hashSeed = static_cast<CKeyID>(dMint.GetSeedHash());
+    if (mapMasterSeeds.count(hashSeed) == 0)
+        return error("%s: master seed does not match!\ndmint:\n %s \nhashSeed: %s\n", __func__, dMint.ToString(), hashSeed.GetHex());
 
     //Generate the coin
     auto zerocoinParams = Params().Zerocoin_Params();
 
     PrivateCoin coin(zerocoinParams, dMint.GetDenomination(), false);
     CDeterministicMint dMintDummy;
-    GenerateMint(dMint.GetCount(), dMint.GetDenomination(), coin, dMintDummy);
+    GenerateMint(hashSeed, dMint.GetCount(), dMint.GetDenomination(), coin, dMintDummy);
 
     //Fill in the zerocoinmint object's details
     CBigNum bnValue = coin.getPublicCoin().getValue();

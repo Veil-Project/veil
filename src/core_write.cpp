@@ -178,8 +178,6 @@ void OutputToJSON(uint256 &txid, int i,
             CAmount nValue;
             if (s->GetCTFee(nValue))
                 entry.pushKV("ct_fee", ValueFromAmount(nValue));
-            if (s->GetDevFundCfwd(nValue))
-                entry.pushKV("dev_fund_cfwd", ValueFromAmount(nValue));
         }
             break;
         case OUTPUT_CT:

@@ -5,7 +5,7 @@
 #include <util.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
-#include <veil/ringct/hdwallet.h>
+#include <veil/ringct/anonwallet.h>
 #include "mnemonic.h"
 #include "generateseed.h"
 
@@ -68,15 +68,6 @@ bool MnemonicWalletInit::Open() const
         if (!pwallet) {
             return false;
         }
-
-        //Extract masterkey for HD wallet from account m/44'/slip44id'/0'/x
-        CExtKey extKey;
-        if (fNewSeed)
-            extKey = pwallet->DeriveBIP32Path({{0, true}, {Params().BIP32_RingCT_Account(), true}});
-
-        CHDWallet *phdwallet = (CHDWallet *) pwallet.get();
-        if (!phdwallet->Initialise(fNewSeed ? &extKey : nullptr))
-            return false;
 
         if (gArgs.GetBoolArg("-exchangesandservicesmode", false))
             pwallet->SetStakingEnabled(false);

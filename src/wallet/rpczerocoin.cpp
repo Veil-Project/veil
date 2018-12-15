@@ -116,7 +116,7 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
         }
         strError = pwallet->MintZerocoinFromOutPoint(nAmount, wtx, vDMints, vOutpts);
     } else {
-        strError = pwallet->MintZerocoin(nAmount, wtx, vDMints, fAllowBasecoin);
+        strError = pwallet->MintZerocoin(nAmount, wtx, vDMints, fAllowBasecoin, nullptr);
     }
 
     if (strError != "")
@@ -1067,13 +1067,16 @@ UniValue generatemintlist(const JSONRPCRequest& request)
 
     int nCount = params[0].get_int();
     int nRange = params[1].get_int();
+    if (pwallet->getZWallet()->HasEmptySeed())
+        throw JSONRPCError(RPC_WALLET_ERROR, "Zerocoin seed is not loaded");
 
+    CKeyID seedID = pwallet->getZWallet()->GetMasterSeedID();
     UniValue arrRet(UniValue::VARR);
     for (int i = nCount; i < nCount + nRange; i++) {
         libzerocoin::CoinDenomination denom = libzerocoin::CoinDenomination::ZQ_TEN;
         libzerocoin::PrivateCoin coin(Params().Zerocoin_Params(), denom, false);
         CDeterministicMint dMint;
-        pwallet->getZWallet()->GenerateMint(i, denom, coin, dMint);
+        pwallet->getZWallet()->GenerateMint(seedID, i, denom, coin, dMint);
         UniValue obj(UniValue::VOBJ);
         obj.push_back(Pair("count", i));
         obj.push_back(Pair("value", coin.getPublicCoin().getValue().GetHex()));
@@ -1105,6 +1108,8 @@ UniValue deterministiczerocoinstate(const JSONRPCRequest& request)
     UniValue obj(UniValue::VOBJ);
     int nCount, nCountLastUsed;
     zwallet->GetState(nCount, nCountLastUsed);
+    CKeyID seedID = zwallet->GetMasterSeedID();
+    obj.push_back(Pair("zerocoin_master_seed", seedID.GetHex()));
     obj.push_back(Pair("count", nCount));
     obj.push_back(Pair("mintpool_count", nCountLastUsed));
 
@@ -1116,12 +1121,15 @@ void static SearchThread(CzWallet* zwallet, int nCountStart, int nCountEnd)
     LogPrintf("%s: start=%d end=%d\n", __func__, nCountStart, nCountEnd);
     WalletBatch walletdb(zwallet->GetDBHandle());
     try {
-        uint256 seedMaster = zwallet->GetMasterSeed();
-        uint256 hashSeed = Hash(seedMaster.begin(), seedMaster.end());
+        CKey keyMaster;
+        if (!zwallet->GetMasterSeed(keyMaster))
+            return;
+
+        CKeyID hashSeed = keyMaster.GetPubKey().GetID();
         for(int i = nCountStart; i < nCountEnd; i++) {
             boost::this_thread::interruption_point();
             CDataStream ss(SER_GETHASH, 0);
-            ss << seedMaster << i;
+            ss << keyMaster.GetPrivKey_256() << i;
             uint512 zerocoinSeed = Hash512(ss.begin(), ss.end());
 
             CBigNum bnValue;

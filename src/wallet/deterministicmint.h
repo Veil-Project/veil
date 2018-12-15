@@ -11,7 +11,7 @@ class CDeterministicMint
 private:
     uint8_t nVersion;
     uint32_t nCount;
-    uint256 hashSeed;
+    uint160 hashSeed;
     uint256 hashSerial;
     uint256 hashStake;
     uint256 hashPubcoin;
@@ -22,12 +22,12 @@ private:
 
 public:
     CDeterministicMint();
-    CDeterministicMint(uint8_t nVersion, const uint32_t& nCount, const uint256& hashSeed, const uint256& hashSerial, const uint256& hashPubcoin, const uint256& hashStake);
+    CDeterministicMint(uint8_t nVersion, const uint32_t& nCount, const uint160& hashSeed, const uint256& hashSerial, const uint256& hashPubcoin, const uint256& hashStake);
 
     libzerocoin::CoinDenomination GetDenomination() const { return denom; }
     uint32_t GetCount() const { return nCount; }
     int GetHeight() const { return nHeight; }
-    uint256 GetSeedHash() const { return hashSeed; }
+    uint160 GetSeedHash() const { return hashSeed; }
     uint256 GetSerialHash() const { return hashSerial; }
     uint256 GetStakeHash() const { return hashStake; }
     uint256 GetPubcoinHash() const { return hashPubcoin; }

@@ -92,12 +92,7 @@ endif
 .PHONY: FORCE check-symbols check-security
 # bitcoin core #
 BITCOIN_CORE_H = \
-  accumulators.h \
-  accumulatorcheckpoints.h \
-  accumulatorcheckpoints.json.h \
-  accumulatormap.h \
   addrdb.h \
-  rctindex.h \
   addrman.h \
   base58.h \
   bech32.h \
@@ -128,19 +123,10 @@ BITCOIN_CORE_H = \
   index/txindex.h \
   indirectmap.h \
   init.h \
-  anon.h \
-  blind.h \
   interfaces/handler.h \
   interfaces/node.h \
   interfaces/wallet.h \
-  veil/proofofstake/kernel.h \
   key.h \
-  veil/ringct/stealth.h \
-  veil/ringct/mnemonic.h \
-  veil/ringct/types.h \
-  veil/ringct/keyutil.h \
-  veil/ringct/hdwalletdb.h \
-  veil/ringct/hdwallet.h \
   key_io.h \
   keystore.h \
   dbwrapper.h \
@@ -180,7 +166,6 @@ BITCOIN_CORE_H = \
   script/sign.h \
   script/standard.h \
   shutdown.h \
-  stakeinput.h \
   streams.h \
   support/allocators/secure.h \
   support/allocators/zeroafterfree.h \
@@ -203,24 +188,38 @@ BITCOIN_CORE_H = \
   validation.h \
   validationinterface.h \
   versionbits.h \
-  veil/arrayslice.h \
-  veil/proofoffullnode/proofoffullnode.h \
-  veil/proofofstake/blockvalidation.h \
   veil/budget.h \
   veil/dandelioninventory.h \
+  veil/proofoffullnode/proofoffullnode.h \
+  veil/proofofstake/kernel.h \
+  veil/proofofstake/blockvalidation.h \
+  veil/proofofstake/stakeinput.h \
+  veil/ringct/anon.h \
+  veil/ringct/blind.h \
+  veil/ringct/extkey.h \
+  veil/ringct/anonwallet.h \
+  veil/ringct/anonwallet.h \
+  veil/ringct/keyutil.h \
+  veil/ringct/outputrecord.h \
+  veil/ringct/rctindex.h \
+  veil/ringct/rpcanonwallet.h \
+  veil/ringct/stealth.h \
+  veil/ringct/temprecipient.h \
+  veil/ringct/types.h \
+  veil/zerocoin/accumulators.h \
+  veil/zerocoin/accumulatormap.h \
   veil/zerocoin/denomination_functions.h \
-  veil/dictionary.h \
-  veil/invalid.h \
-  veil/mintpool.h \
+  veil/zerocoin/spendreceipt.h \
+  veil/zerocoin/mintpool.h \
+  veil/mnemonic/arrayslice.h \
+  veil/mnemonic/dictionary.h \
   veil/mnemonic/generateseed.h \
   veil/mnemonic/mnemonic.h \
   veil/mnemonic/mnemonicwalletinit.h \
   veil/mnemonic/walletinitflags.h \
-  veil/zchain.h \
-  veil/ztracker.h \
-  veil/zwallet.h \
-  veil/ringct/extkey.h \
-  veil/rpchdwallet.h \
+  veil/zerocoin/zchain.h \
+  veil/zerocoin/ztracker.h \
+  veil/zerocoin/zwallet.h \
   walletinitinterface.h \
   wallet/coincontrol.h \
   wallet/crypter.h \
@@ -230,6 +229,7 @@ BITCOIN_CORE_H = \
   wallet/init.h \
   wallet/rpcwallet.h \
   wallet/wallet.h \
+  wallet/walletbalances.h \
   wallet/walletdb.h \
   wallet/walletutil.h \
   wallet/coinselection.h \
@@ -338,12 +338,15 @@ libbitcoin_wallet_a_SOURCES = \
   primitives/zerocoin.cpp \
   veil/zerocoin/denomination_functions.cpp \
   veil/zerocoin/mintpool.cpp \
+  veil/zerocoin/spendreceipt.cpp \
   veil/zerocoin/zchain.cpp \
   veil/zerocoin/ztracker.cpp \
   veil/zerocoin/zwallet.cpp \
-  veil/ringct/hdwalletdb.cpp \
-  veil/ringct/hdwallet.cpp \
-  veil/ringct/rpchdwallet.cpp \
+  veil/ringct/temprecipient.cpp \
+  veil/ringct/anonwalletdb.cpp \
+  veil/ringct/anonwallet.cpp \
+  veil/ringct/outputrecord.cpp \
+  veil/ringct/rpcanonwallet.cpp \
   veil/proofofstake/stakeinput.cpp \
   $(BITCOIN_CORE_H)
 

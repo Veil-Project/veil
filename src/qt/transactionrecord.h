@@ -95,7 +95,9 @@ public:
         ZeroCoinSpendRemint,
         ZeroCoinSpendSelf,
         ZeroCoinRecv,
-        ZeroCoinStake
+        ZeroCoinStake,
+        RingCTRecv,
+        RingCTSend
     };
 
     /** Number of confirmation recommended for accepting a transaction */

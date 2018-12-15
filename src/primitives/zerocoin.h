@@ -230,21 +230,4 @@ public:
     };
 };
 
-class CZerocoinSpendReceipt
-{
-private:
-    std::string strStatusMessage;
-    int nStatus;
-    int nNeededSpends;
-    std::vector<CZerocoinSpend> vSpends;
-
-public:
-    void AddSpend(const CZerocoinSpend& spend);
-    std::vector<CZerocoinSpend> GetSpends();
-    void SetStatus(std::string strStatus, int nStatus, int nNeededSpends = 0);
-    std::string GetStatusMessage();
-    int GetStatus();
-    int GetNeededSpends();
-};
-
 #endif //PIVX_ZEROCOIN_H

@@ -48,12 +48,16 @@ public:
 
     CKey scan_secret;       // Better to store the scan secret here as it's needed often
     CKeyID spend_secret_id; // store the spend secret in a keystore
-    //CKey spend_secret;
-    //uint32_t index;
+    std::set<CKeyID> setStealthDestinations; // KeyID's that this address has recvd with
 
+    void AddStealthDestination(const CKeyID& id) { setStealthDestinations.emplace(id); }
+    CKeyID GetID() const;
     bool SetEncoded(const std::string &encodedAddress);
     std::string Encoded(bool fBech32=false) const;
     std::string ToString(bool fBech32=false) const {return Encoded(fBech32);};
+    uint256 GetHash() const;
+    void SetNull();
+
 
     int FromRaw(const uint8_t *p, size_t nSize);
     int ToRaw(std::vector<uint8_t> &raw) const;
@@ -84,6 +88,7 @@ public:
         s << scan_pubkey;
         s << spend_pubkey;
         s << label;
+        s << setStealthDestinations;
 
         bool fHaveScanSecret = scan_secret.IsValid();
         s << fHaveScanSecret;
@@ -93,6 +98,7 @@ public:
     template <typename Stream>
     void Unserialize(Stream &s)
     {
+        SetNull();
         s >> options;
 
         s >> number_signatures;
@@ -102,6 +108,7 @@ public:
         s >> scan_pubkey;
         s >> spend_pubkey;
         s >> label;
+        s >> setStealthDestinations;
 
         bool fHaveScanSecret;
         s >> fHaveScanSecret;

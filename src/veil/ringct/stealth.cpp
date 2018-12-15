@@ -1,5 +1,6 @@
 // Copyright (c) 2014 The ShadowCoin developers
 // Copyright (c) 2017 The Particl developers
+// Copyright (c) 2018 The Veil developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
@@ -52,6 +53,31 @@ bool CStealthAddress::SetEncoded(const std::string &encodedAddress)
 
     return 0 == FromRaw(p, raw.size()-1);
 };
+
+// Veil
+uint256 CStealthAddress::GetHash() const
+{
+    return Hash(scan_pubkey.begin(), scan_pubkey.end(), spend_pubkey.begin(), spend_pubkey.end());
+}
+
+CKeyID CStealthAddress::GetID() const
+{
+    return CKeyID(Hash160(scan_pubkey.begin(), scan_pubkey.end()));
+}
+
+void CStealthAddress::SetNull()
+{
+    options = 0;
+    prefix.number_bits = 0;
+    prefix.bitfield = 0;
+    number_signatures = 0;
+    scan_pubkey.clear();
+    spend_pubkey.clear();
+    label.clear();
+    scan_secret.Clear();
+    spend_secret_id = CKeyID();
+    setStealthDestinations.clear();
+}
 
 int CStealthAddress::FromRaw(const uint8_t *p, size_t nSize)
 {

@@ -34,7 +34,7 @@
 #include <wallet/deterministicmint.h>
 #include <veil/dandelioninventory.h>
 
-#include <veil/ringct/hdwallet.h>
+#include <veil/ringct/anonwallet.h>
 
 #include <stdint.h>
 
@@ -931,7 +931,7 @@ static UniValue getbalance(const JSONRPCRequest& request)
     if (!account_value.isNull()) {
 
         const std::string& account_param = account_value.get_str();
-        const std::string* account = account_param != "*" ? &account_param : nullptr;
+        //const std::string* account = account_param != "*" ? &account_param : nullptr;
 
         if (!IsDeprecatedRPCEnabled("accounts") && account_param != "*") {
             throw JSONRPCError(RPC_METHOD_DEPRECATED, "dummy first argument must be excluded or set to \"*\".");
@@ -2208,35 +2208,41 @@ static UniValue gettransaction(const JSONRPCRequest& request)
             filter = filter | ISMINE_WATCH_ONLY;
 
     UniValue entry(UniValue::VOBJ);
+
+    CAmount nCreditAnon = 0;
+    CAmount nDebitAnon = 0;
     auto it = pwallet->mapWallet.find(hash);
-    if (it == pwallet->mapWallet.end()) {
-        CHDWallet *phdw = GetHDWallet(pwallet);
-        MapRecords_t::const_iterator mri = phdw->mapRecords.find(hash);
-
-        if (mri != phdw->mapRecords.end()) {
-            const CTransactionRecord &rtx = mri->second;
-
-            std::cout << "block hash of rct is " << rtx.blockHash.GetHex() << "\n";
-
-            CStoredTransaction stx;
-            if (CHDWalletDB(phdw->GetDBHandle()).ReadStoredTx(hash, stx)) { // TODO: cache / use mapTempWallet
-                std::string strHex = EncodeHexTx(*(stx.tx.get()), RPCSerializationFlags());
-                entry.pushKV("hex", strHex);
+    if (it != pwallet->mapWallet.end()) {
+        CWalletTx& tx = it->second;
+        LogPrintf("%s: 2217\n", __func__);
+        if (tx.tx->HasBlindedValues()) {
+            LogPrintf("%s: 2219\n", __func__);
+            auto* pwalletAnon = pwallet->GetAnonWallet();
+            if (pwalletAnon->IsMine(*tx.tx)) {
+                LogPrintf("%s: 2222\n", __func__);
+                nCreditAnon = pwalletAnon->GetCredit(*tx.tx, ISMINE_SPENDABLE);
+                nDebitAnon = pwalletAnon->GetDebit(*tx.tx, ISMINE_SPENDABLE);
             }
-
-            return entry;
         }
-
-        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid or non-wallet transaction id");
     }
     const CWalletTx& wtx = it->second;
 
-    CAmount nCredit = wtx.GetCredit(filter);
-    CAmount nDebit = wtx.GetDebit(filter);
-    CAmount nNet = nCredit - nDebit;
-    CAmount nFee = (wtx.IsFromMe(filter) ? wtx.tx->GetValueOut() - nDebit : 0);
+    CAmount nCreditBase = wtx.GetCredit(filter);
+    CAmount nDebitBase = wtx.GetDebit(filter);
+    CAmount nCreditTotal = nCreditBase;
+    CAmount nDebitTotal = nDebitBase;
+    CAmount nNet = nCreditTotal - nDebitTotal;
+
+    bool fFromMe = false;
+    if (nDebitTotal > 0)
+        fFromMe = true;
+    CAmount nFee = (fFromMe ? nCreditTotal - nDebitTotal : 0);
 
     entry.pushKV("amount", ValueFromAmount(nNet - nFee));
+    entry.pushKV("creditbase", ValueFromAmount(nCreditBase));
+    entry.pushKV("debitbase", ValueFromAmount(nDebitBase));
+    entry.pushKV("creditanon", ValueFromAmount(nCreditAnon));
+    entry.pushKV("debitanon", ValueFromAmount(nDebitAnon));
     if (wtx.IsFromMe(filter))
         entry.pushKV("fee", ValueFromAmount(nFee));
 
@@ -2606,7 +2612,7 @@ static UniValue encryptwallet(const JSONRPCRequest& request)
             "encryptwallet <passphrase>\n"
             "Encrypts the wallet with <passphrase>.");
 
-    if (!((CHDWallet *)pwallet)->EncryptWallet(strWalletPass)) {
+    if (!pwallet->EncryptWallet(strWalletPass)) {
         throw JSONRPCError(RPC_WALLET_ENCRYPTION_FAILED, "Error: Failed to encrypt the wallet.");
     }
 
@@ -2975,9 +2981,6 @@ static UniValue loadwallet(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet loading failed.");
     }
 
-    if (!((CHDWallet*)wallet.get())->Initialise())
-        throw JSONRPCError(RPC_WALLET_ERROR, "Wallet initialise failed.");
-
     AddWallet(wallet);
 
     wallet->postInitProcess();
@@ -3031,9 +3034,6 @@ static UniValue createwallet(const JSONRPCRequest& request)
     if (!wallet) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet creation failed.");
     }
-
-    if (!((CHDWallet*)wallet.get())->Initialise())
-        throw JSONRPCError(RPC_WALLET_ERROR, "Wallet initialise failed.");
 
     AddWallet(wallet);
 
@@ -4021,6 +4021,19 @@ public:
         obj.pushKV("isstealthaddress", true);
         obj.pushKV("prefix_num_bits", sxAddr.prefix.number_bits);
         obj.pushKV("prefix_bitfield", strprintf("0x%04x", sxAddr.prefix.bitfield));
+        auto pwalletAnon = pwallet->GetAnonWallet();
+        if (pwalletAnon->HaveStealthAddress(sxAddr)) {
+            CStealthAddress stealthAddress;
+            if (pwalletAnon->GetStealthAddress(sxAddr.GetID(), stealthAddress)) {
+                UniValue arr(UniValue::VARR);
+                for (const auto& stealthDest : stealthAddress.setStealthDestinations) {
+                    arr.push_back(stealthDest.GetHex());
+                }
+                if (arr.size())
+                    obj.pushKV("stealth_destinations", arr);
+            }
+
+        }
         return obj;
     }
 
@@ -4144,7 +4157,8 @@ UniValue getaddressinfo(const JSONRPCRequest& request)
     CScript scriptPubKey = GetScriptForDestination(dest);
     ret.pushKV("scriptPubKey", HexStr(scriptPubKey.begin(), scriptPubKey.end()));
 
-    isminetype mine = IsMine(*pwallet, dest);
+    //isminetype mine = IsMine(*pwallet, dest);
+    isminetype mine = pwallet->IsMine(dest);
     ret.pushKV("ismine", bool(mine & ISMINE_SPENDABLE));
     ret.pushKV("iswatchonly", bool(mine & ISMINE_WATCH_ONLY));
     UniValue detail = DescribeWalletAddress(pwallet, dest);

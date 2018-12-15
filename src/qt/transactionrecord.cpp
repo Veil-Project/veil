@@ -31,7 +31,7 @@ bool TransactionRecord::showTransaction()
 QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interfaces::WalletTx& wtx)
 {
     QList<TransactionRecord> parts;
-
+/*
     if (wtx.is_record && wtx.veilWallet)
     {
         const CTransactionRecord &rtx = wtx.irtx->second;
@@ -153,11 +153,12 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         parts.append(sub);
         return parts;
     }
-
+*/
     int64_t nTime = wtx.time;
     CAmount nCredit = wtx.credit;
     CAmount nDebit = wtx.debit;
-    CAmount nNet = nCredit - nDebit;
+    CAmount nNet = nCredit - nDebit - wtx.ct_fee.second;
+
     uint256 hash = wtx.tx->GetHash();
     std::map<std::string, std::string> mapValue = wtx.value_map;
 
@@ -182,10 +183,18 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             const auto& pOut = wtx.tx->vpout[nOut];
             isminetype mine = wtx.txout_is_mine[nOut];
 
-            // Process ringct and stealth elsewhere
             CTxOut txout;
-            if (!pOut->GetTxOut(txout))
+            if (!pOut->GetTxOut(txout)) {
+                //Anon output lets just assume ringct change
+                if (pOut->nVersion == OUTPUT_RINGCT) {
+                    TransactionRecord sub(hash, nTime);
+                    sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
+                    sub.type = TransactionRecord::RingCTSendToSelf;
+                    sub.idx = parts.size();
+                    parts.append(sub);
+                }
                 continue;
+            }
 
             // change that was reminted as zerocoins
             if (txout.IsZerocoinMint()) {
@@ -249,32 +258,50 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         // Credit
         //
         for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
-            CTxOut txout;
-            if (!wtx.tx->vpout[i]->GetTxOut(txout))
-                continue;
             isminetype mine = wtx.txout_is_mine[i];
-            if (mine) {
-                TransactionRecord sub(hash, nTime);
-                CTxDestination address;
-                sub.idx = i; // vout index
-                sub.credit = txout.nValue;
-                sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
-                if (wtx.txout_address_is_mine[i]) {
-                    // Received by Bitcoin Address
-                    sub.type = TransactionRecord::RecvWithAddress;
-                    sub.address = EncodeDestination(wtx.txout_address[i]);
-                } else {
-                    // Received by IP connection (deprecated features), or a multisignature or other non-simple transaction
-                    sub.type = TransactionRecord::RecvFromOther;
-                    sub.address = mapValue["from"];
-                }
-                if (wtx.is_coinbase) {
-                    // Generated
-                    sub.type = TransactionRecord::Generated;
-                }
+            if (!mine)
+                continue;
 
-                parts.append(sub);
+            TransactionRecord sub(hash, nTime);
+            sub.idx = i;
+            sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
+
+            CTxOut txout;
+            if (!wtx.tx->vpout[i]->GetTxOut(txout)) {
+                //Anon type
+                if (wtx.tx->vpout[i]->nVersion == OUTPUT_DATA) //probably fee
+                    continue;
+
+                //LogPrintf("%s: 148 ringctrevc credit=%d\n", __func__, wtx.map_anon_value_out.at(i));
+                sub.type = TransactionRecord::RingCTRecv;
+                auto it = wtx.map_anon_value_out.find(i);
+                if (it != wtx.map_anon_value_out.end()) {
+                    //Make sure this is not a dummy
+                    if (it->second == -1)
+                        continue;
+                    sub.credit = it->second;
+                    parts.append(sub);
+                }
+                continue;
             }
+
+            CTxDestination address;
+            sub.credit = txout.nValue;
+            if (wtx.txout_address_is_mine[i]) {
+                // Received by Bitcoin Address
+                sub.type = TransactionRecord::RecvWithAddress;
+                sub.address = EncodeDestination(wtx.txout_address[i]);
+            } else {
+                // Received by IP connection (deprecated features), or a multisignature or other non-simple transaction
+                sub.type = TransactionRecord::RecvFromOther;
+                sub.address = mapValue["from"];
+            }
+            if (wtx.is_coinbase) {
+                // Generated
+                sub.type = TransactionRecord::Generated;
+            }
+
+            parts.append(sub);
         }
     } else {
         bool involvesWatchAddress = false;
@@ -283,6 +310,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             if (mine & ISMINE_WATCH_ONLY) involvesWatchAddress = true;
             if (fAllFromMe > mine) fAllFromMe = mine;
         }
+
 
         isminetype fAllToMe = ISMINE_SPENDABLE;
         for (isminetype mine : wtx.txout_is_mine) {
@@ -293,10 +321,16 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         if (fAllFromMe && fAllToMe) {
             // Payment to self
             CAmount nTxFee = nDebit - wtx.tx->GetValueOut();
+            if (wtx.ct_fee.second != 0)
+                nTxFee = wtx.ct_fee.second;
             CAmount nChange = wtx.change;
+            auto recordType = TransactionRecord::SendToSelf;
+            if (wtx.is_anon_send || wtx.is_anon_recv)
+                recordType = TransactionRecord::RingCTSendToSelf;
+
             parts.append(
                     TransactionRecord(
-                            hash, nTime, TransactionRecord::SendToSelf, "",
+                            hash, nTime, recordType, "",
                     -(nDebit - nChange), nCredit - nChange, nTxFee, wtx.tx->GetNumVOuts(), wtx.tx->GetNumVOuts(), 0
                     )
             );
@@ -306,11 +340,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             // Debit
             //
             CAmount nTxFee = nDebit - wtx.tx->GetValueOut();
+            if (wtx.ct_fee.second != 0)
+                nTxFee = wtx.ct_fee.second;
 
             for (unsigned int nOut = 0; nOut < wtx.tx->vpout.size(); nOut++) {
-                CTxOut txout;
-                if (!wtx.tx->vpout[nOut]->GetTxOut(txout))
-                    continue;
                 TransactionRecord sub(hash, nTime);
                 sub.idx = nOut;
                 sub.involvesWatchAddress = involvesWatchAddress;
@@ -319,6 +352,22 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 if(wtx.txout_is_mine[nOut]) {
                     // Ignore parts sent to self, as this is usually the change
                     // from a transaction sent back to our own address.
+                    continue;
+                }
+
+                CTxOut txout;
+                if (!wtx.tx->vpout[nOut]->GetTxOut(txout)) {
+                    //Anon type
+                    sub.type = TransactionRecord::RingCTSend;
+                    auto it = wtx.map_anon_value_out.find(nOut);
+                    if (it != wtx.map_anon_value_out.end()) {
+                        auto nValue = it->second;
+                        //Double check this is not a dummy
+                        if (nValue != -1) {
+                            sub.debit = -nValue;
+                            parts.append(sub);
+                        }
+                    }
                     continue;
                 }
 

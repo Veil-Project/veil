@@ -128,7 +128,7 @@ public:
             {
                 // Find transaction in wallet
                 interfaces::WalletTx wtx = wallet.getWalletTx(hash);
-                if(!wtx.tx && !wtx.is_record)
+                if(!wtx.tx /*&& !wtx.is_record*/)
                 {
                     qWarning() << "TransactionTablePriv::updateWallet: Warning: Got CT_NEW, but transaction is not in wallet";
                     break;
@@ -383,6 +383,10 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
         return tr("Received Zerocoin");
     case TransactionRecord::ZeroCoinStake:
         return tr("Zerocoin Stake");
+    case TransactionRecord::RingCTRecv:
+        return tr("Received RingCT");
+    case TransactionRecord::RingCTSend:
+        return tr("Sent RingCT");
     default:
         return QString();
     }

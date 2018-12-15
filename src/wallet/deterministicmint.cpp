@@ -9,7 +9,7 @@ CDeterministicMint::CDeterministicMint()
     SetNull();
 }
 
-CDeterministicMint::CDeterministicMint(uint8_t nVersion, const uint32_t& nCount, const uint256& hashSeed, const uint256& hashSerial, const uint256& hashPubcoin, const uint256& hashStake)
+CDeterministicMint::CDeterministicMint(uint8_t nVersion, const uint32_t& nCount, const uint160& hashSeed, const uint256& hashSerial, const uint256& hashPubcoin, const uint256& hashStake)
 {
     SetNull();
     this->nVersion = nVersion;
@@ -24,7 +24,7 @@ void CDeterministicMint::SetNull()
 {
     nVersion = PrivateCoin::CURRENT_VERSION;
     nCount = 0;
-    hashSeed = uint256();
+    hashSeed = uint160();
     hashSerial = uint256();
     hashStake = uint256();
     hashPubcoin = uint256();

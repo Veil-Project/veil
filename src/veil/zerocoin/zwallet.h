@@ -13,7 +13,8 @@ class CDeterministicMint;
 class CzWallet
 {
 private:
-    uint256 seedMaster;
+    std::map<CKeyID, CKey> mapMasterSeeds; //Should usually only have one master seed, but occasionally user may have added another
+    CKeyID seedMasterID; //The currently active master seed
     uint32_t nCountLastUsed;
     std::shared_ptr<WalletDatabase> walletDatabase;
     CMintPool mintPool;
@@ -22,10 +23,12 @@ public:
     CzWallet(CWallet* wallet);
 
     void AddToMintPool(const std::pair<uint256, uint32_t>& pMint, bool fVerbose);
-    uint256 GetMasterSeed() { return seedMaster; }
+    bool HasEmptySeed() const { return mapMasterSeeds.empty() || mapMasterSeeds.count(seedMasterID) == 0; }
+    bool GetMasterSeed(CKey& key) const;
+    CKeyID GetMasterSeedID() { return seedMasterID; }
     void SyncWithChain(bool fGenerateMintPool = true);
     void GenerateDeterministicZerocoin(libzerocoin::CoinDenomination denom, libzerocoin::PrivateCoin& coin, CDeterministicMint& dMint, bool fGenerateOnly = false);
-    void GenerateMint(const uint32_t& nCount, const libzerocoin::CoinDenomination denom, libzerocoin::PrivateCoin& coin, CDeterministicMint& dMint);
+    void GenerateMint(const CKeyID& seedID, const uint32_t& nCount, const libzerocoin::CoinDenomination denom, libzerocoin::PrivateCoin& coin, CDeterministicMint& dMint);
     WalletDatabase& GetDBHandle() { return *walletDatabase; }
     void GetState(int& nCount, int& nLastGenerated);
     bool RegenerateMint(const CDeterministicMint& dMint, CZerocoinMint& mint);
@@ -37,10 +40,10 @@ public:
     void UpdateCount();
     void Lock();
     void SeedToZerocoin(const uint512& seed, CBigNum& bnValue, CBigNum& bnSerial, CBigNum& bnRandomness, CKey& key);
-    bool SetMasterSeed(const uint256& seedMaster, bool fResetCount = false);
+    void SetMasterSeed(const CKey& keyMaster, bool fResetCount = false);
 
 private:
-    uint512 GetZerocoinSeed(uint32_t n);
+    uint512 GetZerocoinSeed(const CKeyID& keyID, uint32_t n);
 };
 
 

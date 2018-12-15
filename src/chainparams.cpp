@@ -290,6 +290,9 @@ public:
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 2000000;
         nHeightSupplyCreationStop = 300000000;
+
+        /** RingCT/Stealth **/
+        nDefaultRingSize = 11;
     }
 };
 
@@ -366,6 +369,8 @@ public:
 
         bech32Prefixes[STEALTH_ADDRESS].assign("tps","tps"+3);
         nBIP44ID = 0x80000001;
+        nRingCTAccount = 20000;
+        nZerocoinAccount = 100000;
 
         bech32_hrp = "tv";
 
@@ -416,6 +421,9 @@ public:
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 2000000;
         nHeightSupplyCreationStop = 300000000;
+
+        /** RingCT/Stealth **/
+        nDefaultRingSize = 11;
     }
 };
 

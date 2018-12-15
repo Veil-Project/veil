@@ -1,5 +1,6 @@
 // Copyright (c) 2018 The Bitcoin Core developers
 // Copyright (c) 2018 The Particl developers
+// Copyright (c) 2018 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -36,10 +37,6 @@ class CDeterministicMint;
 enum class FeeReason;
 enum class OutputType;
 struct CRecipient;
-
-class CHDWallet;
-class CTransactionRecord;
-typedef std::map<uint256, CTransactionRecord> MapRecords_t;
 
 namespace interfaces {
 
@@ -228,6 +225,7 @@ public:
     virtual isminetype txinIsMine(const CTxIn& txin) = 0;
 
     //! Return whether transaction output belongs to wallet.
+    virtual isminetype txoutbaseIsMine(const CTxOutBase* txout) = 0;
     virtual isminetype txoutIsMine(const CTxOut& txout) = 0;
 
     //! Return debit amount if transaction input belongs to wallet.
@@ -235,6 +233,9 @@ public:
 
     //! Return credit amount if transaction input belongs to wallet.
     virtual CAmount getCredit(const CTxOut& txout, isminefilter filter) = 0;
+
+    //! Return credit amount if transaction input belongs to wallet and it is an anon input
+    virtual CAmount getAnonCredit(const COutPoint& outpoint, isminefilter filter) = 0;
 
     //! Return AvailableCoins + LockedCoins grouped by wallet address.
     //! (put change in one group with wallet address)
@@ -386,9 +387,11 @@ struct WalletTx
     bool is_coinstake;
     bool is_my_zerocoin_mint;
     bool is_my_zerocoin_spend;
-    bool is_record=false;
-    MapRecords_t::const_iterator irtx;
-    CHDWallet *veilWallet;
+    bool is_anon_send;
+    bool is_anon_recv;
+    std::map<unsigned int, CAmount> map_anon_value_out;
+    std::map<unsigned int, CAmount> map_anon_value_in;
+    std::pair<int, CAmount> ct_fee;
 };
 
 //! Updated transaction status.

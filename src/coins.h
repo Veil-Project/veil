@@ -13,7 +13,7 @@
 #include <memusage.h>
 #include <serialize.h>
 #include <uint256.h>
-#include <rctindex.h>
+#include <veil/ringct/rctindex.h>
 
 #include <assert.h>
 #include <stdint.h>

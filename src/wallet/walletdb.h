@@ -238,6 +238,7 @@ public:
 
     //! write the hdchain model (external chain child index counter)
     bool WriteHDChain(const CHDChain& chain);
+    bool LoadHDChain(CHDChain& chain);
 
     bool WriteWalletFlags(const uint64_t flags);
     //! Begin a new transaction
@@ -272,18 +273,13 @@ public:
     bool WriteZerocoinSpendSerialEntry(const CZerocoinSpend& zerocoinSpend);
     bool EraseZerocoinSpendSerialEntry(const CBigNum& serialEntry);
     bool ReadZerocoinSpendSerialEntry(const CBigNum& bnSerial);
-    bool WriteCurrentSeedHash(const uint256& hashSeed);
-    bool ReadCurrentSeedHash(uint256& hashSeed);
-    bool WriteZSeed(const uint256 &hashSeed, const std::vector<unsigned char> &seed);
-    bool ReadZSeed(const uint256 &hashSeed, std::vector<unsigned char> &seed);
-    bool ReadZSeed_deprecated(uint256 &seed);
-    bool EraseZSeed();
-    bool EraseZSeed_deprecated();
+    bool WriteCurrentSeedHash(const CKeyID& hashSeed);
+    bool ReadCurrentSeedHash(CKeyID& hashSeed);
 
     bool WriteZCount(const uint32_t &nCount);
     bool ReadZCount(uint32_t &nCount);
-    std::map<uint256, std::vector<std::pair<uint256, uint32_t> > > MapMintPool();
-    bool WriteMintPoolPair(const uint256& hashMasterSeed, const uint256& hashPubcoin, const uint32_t& nCount);
+    std::map<CKeyID, std::vector<std::pair<uint256, uint32_t> > > MapMintPool();
+    bool WriteMintPoolPair(const CKeyID& hashMasterSeed, const uint256& hashPubcoin, const uint32_t& nCount);
 protected:
     BerkeleyBatch m_batch;
     WalletDatabase& m_database;

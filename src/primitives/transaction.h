@@ -362,7 +362,6 @@ public:
 
     virtual bool GetCTFee(CAmount &nFee) const { return false; };
     virtual bool SetCTFee(CAmount &nFee) { return false; };
-    virtual bool GetDevFundCfwd(CAmount &nCfwd) const { return false; };
 
     std::string ToString() const;
 };
@@ -594,31 +593,6 @@ public:
         vData.push_back(DO_FEE);
         return (0 == PutVarInt(vData, nFee));
     }
-
-    bool GetDevFundCfwd(CAmount &nCfwd) const override
-    {
-        if (vData.size() < 5)
-            return false;
-
-        size_t ofs = 4; // first 4 bytes will be height
-        while (ofs < vData.size())
-        {
-            if (vData[ofs] == DO_VOTE)
-            {
-                ofs += 5;
-                continue;
-            };
-            if (vData[ofs] == DO_DEV_FUND_CFWD)
-            {
-                ofs++;
-                size_t nb;
-                return (0 == GetVarInt(vData, ofs, (uint64_t&)nCfwd, nb));
-            };
-            break;
-        };
-
-        return false;
-    };
     bool SetScriptPubKey(const CScript& scriptPubKey) override { return false; }
 };
 

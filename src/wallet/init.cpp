@@ -16,7 +16,7 @@
 #include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
-#include <veil/ringct/hdwallet.h>
+#include <veil/ringct/anonwallet.h>
 #include <veil/zerocoin/zwallet.h>
 
 void WalletInit::AddWalletOptions() const
@@ -203,9 +203,6 @@ bool WalletInit::Open() const
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
         std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(walletFile, fs::absolute(walletFile, GetWalletDir()));
         if (!pwallet)
-            return false;
-
-        if (!((CHDWallet*)pwallet.get())->Initialise())
             return false;
 
         bool fEnableZPivBackups = gArgs.GetBoolArg("-backupzerocoin", true);

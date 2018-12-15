@@ -52,7 +52,6 @@
 #include <walletinitinterface.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <veil/ringct/hdwallet.h>
 #include <veil/ringct/anon.h>
 
 #ifndef WIN32
@@ -60,7 +59,7 @@
 #endif
 
 #ifdef ENABLE_WALLET
-#include <veil/ringct/hdwallet.h>
+#include <veil/ringct/anonwallet.h>
 #endif
 
 #include <boost/algorithm/string/classification.hpp>

@@ -745,6 +745,11 @@ bool WalletBatch::WriteHDChain(const CHDChain& chain)
     return WriteIC(std::string("hdchain"), chain);
 }
 
+bool WalletBatch::LoadHDChain(CHDChain& chain)
+{
+    return m_batch.Read(std::string("hdchain"), chain);
+}
+
 bool WalletBatch::WriteWalletFlags(const uint64_t flags)
 {
     return WriteIC(std::string("flags"), flags);
@@ -899,53 +904,14 @@ bool WalletBatch::UnarchiveZerocoinMint(const uint256& hashPubcoin, CZerocoinMin
     return true;
 }
 
-bool WalletBatch::WriteCurrentSeedHash(const uint256& hashSeed)
+bool WalletBatch::WriteCurrentSeedHash(const CKeyID& hashSeed)
 {
     return WriteIC(std::string("seedhash"), hashSeed);
 }
 
-bool WalletBatch::ReadCurrentSeedHash(uint256& hashSeed)
+bool WalletBatch::ReadCurrentSeedHash(CKeyID& hashSeed)
 {
     return m_batch.Read(std::string("seedhash"), hashSeed);
-}
-
-bool WalletBatch::WriteZSeed(const uint256 &hashSeed, const std::vector<unsigned char> &seed)
-{
-    if (!WriteCurrentSeedHash(hashSeed))
-        return error("%s: failed to write current seed hash", __func__);
-
-    return WriteIC(std::make_pair(std::string("dzs"), hashSeed), seed);
-}
-
-bool WalletBatch::EraseZSeed()
-{
-    uint256 hash;
-    if(!ReadCurrentSeedHash(hash)){
-        return error("Failed to read a current seed hash");
-    }
-    if(!WriteZSeed(hash, ToByteVector(uint256()))) {
-        return error("Failed to write empty seed to wallet");
-    }
-    if(!WriteCurrentSeedHash(uint256())) {
-        return error("Failed to write empty seedHash");
-    }
-
-    return true;
-}
-
-bool WalletBatch::EraseZSeed_deprecated()
-{
-    return EraseIC(std::string("dzs"));
-}
-
-bool WalletBatch::ReadZSeed(const uint256 &hashSeed, std::vector<unsigned char> &seed)
-{
-    return m_batch.Read(std::make_pair(std::string("dzs"), hashSeed), seed);
-}
-
-bool WalletBatch::ReadZSeed_deprecated(uint256 &seed)
-{
-    return m_batch.Read(std::string("dzs"), seed);
 }
 
 bool WalletBatch::WriteZCount(const uint32_t &nCount)
@@ -958,15 +924,15 @@ bool WalletBatch::ReadZCount(uint32_t &nCount)
     return m_batch.Read(std::string("dzc"), nCount);
 }
 
-bool WalletBatch::WriteMintPoolPair(const uint256& hashMasterSeed, const uint256& hashPubcoin, const uint32_t& nCount)
+bool WalletBatch::WriteMintPoolPair(const CKeyID& hashMasterSeed, const uint256& hashPubcoin, const uint32_t& nCount)
 {
     return WriteIC(std::make_pair(std::string("mintpool"), hashPubcoin), std::make_pair(hashMasterSeed, nCount));
 }
 
 //! map with hashMasterSeed as the key, paired with vector of hashPubcoins and their count
-std::map<uint256, std::vector<std::pair<uint256, uint32_t> > > WalletBatch::MapMintPool()
+std::map<CKeyID, std::vector<std::pair<uint256, uint32_t> > > WalletBatch::MapMintPool()
 {
-    std::map<uint256, std::vector<std::pair<uint256, uint32_t> > > mapPool;
+    std::map<CKeyID, std::vector<std::pair<uint256, uint32_t> > > mapPool;
 
     try {
         int nMinVersion = 0;
@@ -1001,7 +967,7 @@ std::map<uint256, std::vector<std::pair<uint256, uint32_t> > > WalletBatch::MapM
                 uint256 hashPubcoin;
                 ssKey >> hashPubcoin;
 
-                uint256 hashMasterSeed;
+                CKeyID hashMasterSeed;
                 ssValue >> hashMasterSeed;
 
                 uint32_t nCount;

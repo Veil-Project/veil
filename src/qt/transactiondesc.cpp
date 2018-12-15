@@ -74,7 +74,7 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
     strHTML += "<b>" + tr("Date") + ":</b> " + (nTime ? GUIUtil::dateTimeStr(nTime) : "") + "<br>";
 
     // TODO: Add HTML info for CT and RingCT transactions without using RPC
-    if (wtx.is_record)
+    if (/*wtx.is_record*/false)
     {
 //        strHTML += "<b>" + tr("Transaction ID") + ":</b> " + QString::fromStdString(wtx.irtx->first.ToString()) + "<br>";
 //
@@ -280,12 +280,18 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
                 }
             }
             mine = wtx.txout_is_mine.begin();
-            for (const auto& pout : wtx.tx->vpout) {
+            auto hashTx = wtx.tx->GetHash();
+            for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
+                const auto& pout = wtx.tx->vpout[i];
                 if (*(mine++)) {
                     CTxOut txout;
-                    if (!pout->GetTxOut(txout))
-                        continue;
-                    strHTML += "<b>" + tr("Credit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, wallet.getCredit(txout, ISMINE_ALL)) + "<br>";
+                    if (pout->GetTxOut(txout)) {
+                        strHTML += "<b>" + tr("Credit") + ":</b> " +
+                                   BitcoinUnits::formatHtmlWithUnit(unit, wallet.getCredit(txout, ISMINE_ALL)) + "<br>";
+                    } else {
+                        strHTML += "<b>" + tr("Credit") + ":</b> " +
+                                   BitcoinUnits::formatHtmlWithUnit(unit, wallet.getAnonCredit(COutPoint(hashTx, i), ISMINE_ALL)) + "<br>";
+                    }
                 }
             }
         }
@@ -341,13 +347,20 @@ QString TransactionDesc::toHTML(interfaces::Node& node, interfaces::Wallet& wall
         for (const CTxIn& txin : wtx.tx->vin)
             if(wallet.txinIsMine(txin))
                 strHTML += "<b>" + tr("Debit") + ":</b> " + BitcoinUnits::formatHtmlWithUnit(unit, -wallet.getDebit(txin, ISMINE_ALL)) + "<br>";
-        for (const auto& pout : wtx.tx->vpout) {
+        auto hashTx = wtx.tx->GetHash();
+        for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
+            auto pout = wtx.tx->vpout[i];
             CTxOut txout;
-            if (!pout->GetTxOut(txout))
-                continue;
-            if (wallet.txoutIsMine(txout))
-                strHTML += "<b>" + tr("Credit") + ":</b> " +
-                           BitcoinUnits::formatHtmlWithUnit(unit, wallet.getCredit(txout, ISMINE_ALL)) + "<br>";
+            if (pout->GetTxOut(txout)) {
+                if (wallet.txoutbaseIsMine(pout.get()))
+                    strHTML += "<b>" + tr("Credit") + ":</b> " +
+                               BitcoinUnits::formatHtmlWithUnit(unit, wallet.getCredit(txout, ISMINE_ALL)) + "<br>";
+            } else {
+                if (wallet.txoutbaseIsMine(pout.get()))
+                    strHTML += "<b>" + tr("Credit") + ":</b> " +
+                               BitcoinUnits::formatHtmlWithUnit(unit, wallet.getAnonCredit(COutPoint(hashTx, i), ISMINE_ALL)) + "<br>";
+            }
+
         }
 
         strHTML += "<br><b>" + tr("Transaction") + ":</b><br>";

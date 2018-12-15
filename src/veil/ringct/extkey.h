@@ -489,20 +489,18 @@ class CEKAStealthKey
 {
 public:
     CEKAStealthKey() {};
-    CEKAStealthKey(uint32_t nScanParent_, uint32_t nScanKey_, const CKey &scanSecret_,
-                   uint32_t nSpendParent_, uint32_t nSpendKey_, const CPubKey &pkSpendSecret,
+    CEKAStealthKey(uint32_t nScanKey_, const CKey &scanSecret_, uint32_t nSpendKey_, const CPubKey &pkSpendSecret,
                    uint8_t nPrefixBits_, uint32_t nPrefix_)
     {
         // Spend secret is not stored
         nFlags = 0;
-        nScanParent = nScanParent_;
         nScanKey = nScanKey_;
         skScan = scanSecret_;
         CPubKey pk = skScan.GetPubKey();
         pkScan.resize(pk.size());
         memcpy(&pkScan[0], pk.begin(), pk.size());
 
-        akSpend = CEKAKey(nSpendParent_, nSpendKey_);
+        //akSpend = CEKAKey(nSpendParent_, nSpendKey_);
         pk = pkSpendSecret;
         pkSpend.resize(pk.size());
         memcpy(&pkSpend[0], pk.begin(), pk.size());
@@ -527,7 +525,6 @@ public:
     {
         s << nFlags;
         s << sLabel;
-        s << nScanParent;
         s << nScanKey;
         s << skScan;
         s << akSpend;
@@ -541,7 +538,6 @@ public:
     {
         s >> nFlags;
         s >> sLabel;
-        s >> nScanParent;
         s >> nScanKey;
         s >> skScan;
         s >> akSpend;
@@ -553,7 +549,6 @@ public:
 
     uint8_t nFlags; // options of CStealthAddress
     std::string sLabel;
-    uint32_t nScanParent; // vExtKeys
     uint32_t nScanKey;
     CKey skScan;
     CEKAKey akSpend;
