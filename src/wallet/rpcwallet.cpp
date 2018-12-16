@@ -1975,11 +1975,11 @@ UniValue listtransactions(const JSONRPCRequest& request)
     // ret is newest to oldest
 
     if (nFrom > (int)ret.size())
-        nFrom = ret.size();
+        nFrom = retReversed.size();
     if ((nFrom + nCount) > (int)ret.size())
-        nCount = ret.size() - nFrom;
+        nCount = retReversed.size() - nFrom;
 
-    std::vector<UniValue> arrTmp = ret.getValues();
+    std::vector<UniValue> arrTmp = retReversed.getValues();
 
     std::vector<UniValue>::iterator first = arrTmp.begin();
     std::advance(first, nFrom);
@@ -1991,11 +1991,11 @@ UniValue listtransactions(const JSONRPCRequest& request)
 
     std::reverse(arrTmp.begin(), arrTmp.end()); // Return oldest to newest
 
-    ret.clear();
-    ret.setArray();
-    ret.push_backV(arrTmp);
+    retReversed.clear();
+    retReversed.setArray();
+    retReversed.push_backV(arrTmp);
 
-    return ret;
+    return retReversed;
 }
 
 static UniValue listsinceblock(const JSONRPCRequest& request)
