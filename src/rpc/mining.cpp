@@ -522,24 +522,8 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
         nStart = GetTime();
         fLastTemplateSupportsSegwit = fSupportsSegwit;
 
-        std::shared_ptr<CReserveScript> coinbaseScript = std::make_shared<CReserveScript>();
-
-        std::string address = "";
-        address = gArgs.GetArg("-miningaddress", "");
-
-        if (address.empty()) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid mining address. Add a miningaddress into your veil.conf");
-        }
-
-        // Create new block
-        CTxDestination destination = DecodeDestination(address);
-        if (!IsValidDestination(destination)) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid mining address");
-        }
-
-        coinbaseScript->reserveScript = GetScriptForDestination(destination);
-
-        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript, fSupportsSegwit);
+        CScript scriptDummy = CScript() << OP_TRUE;
+        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, fSupportsSegwit, false, false);
         if (!pblocktemplate)
             throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
 
@@ -558,16 +542,6 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     const bool fPreSegWit = false;
 
     UniValue aCaps(UniValue::VARR); aCaps.push_back("proposal");
-
-    UniValue coinbasetxn(UniValue::VOBJ);
-    for (const auto& it : pblock->vtx) {
-        const CTransaction& tx = *it;
-        uint256 txHash = tx.GetHash();
-        coinbasetxn.pushKV("data", EncodeHexTx(tx));
-        coinbasetxn.pushKV("txid", txHash.GetHex());
-        coinbasetxn.pushKV("hash", tx.GetWitnessHash().GetHex());
-        break;
-    }
 
     UniValue mapaccumulatorhashes(UniValue::VOBJ);
     for (auto& it : pblock->mapAccumulatorHashes)
@@ -707,11 +681,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
         result.pushKV("default_witness_commitment", HexStr(pblocktemplate->vchCoinbaseCommitment.begin(), pblocktemplate->vchCoinbaseCommitment.end()));
     }
 
-    result.pushKV("coinbasetxn", coinbasetxn);
     result.pushKV("accumulatorhashes", mapaccumulatorhashes);
-    result.pushKV("veildatahash", pblock->hashVeilData.GetHex());
-    result.pushKV("witnessmerkleroothash", pblock->hashWitnessMerkleRoot.GetHex());
-    result.pushKV("merkleroothash", pblock->hashMerkleRoot.GetHex());
     result.pushKV("proofoffullnodehash", pblock->hashPoFN.GetHex());
 
     return result;

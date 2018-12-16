@@ -22,12 +22,25 @@ struct CVeilBlockData
 
     std::map<libzerocoin::CoinDenomination , uint256> mapAccumulatorHashes;
 
+    CVeilBlockData(){
+        SetNull();
+    }
+
     CVeilBlockData(const uint256& hashMerkleRootTmp, const uint256& hashWitnessMerkleRootTmp, const std::map<libzerocoin::CoinDenomination , uint256> mapAccumulatorHashesTmp, const uint256& hashPoFNTmp)
     {
+        SetNull();
         this->hashMerkleRoot= hashMerkleRootTmp;
         this->hashWitnessMerkleRoot = hashWitnessMerkleRootTmp;
         this->mapAccumulatorHashes = mapAccumulatorHashesTmp;
         this->hashPoFN = hashPoFNTmp;
+    }
+
+    void SetNull()
+    {
+        hashMerkleRoot = uint256();
+        hashWitnessMerkleRoot = uint256();
+        hashPoFN = uint256();
+        mapAccumulatorHashes.clear();
     }
 
     ADD_SERIALIZE_METHODS;
