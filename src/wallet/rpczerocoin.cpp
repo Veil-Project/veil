@@ -233,30 +233,30 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
         nValueIn += libzerocoin::ZerocoinDenominationToAmount(spend.GetDenomination());
     }
 
-    CAmount nValueOut = 0;
+//    CAmount nValueOut = 0;
     UniValue vout(UniValue::VARR);
-    for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
-        const auto& pout = wtx.tx->vpout[i];
-        UniValue out(UniValue::VOBJ);
-        out.push_back(Pair("value", ValueFromAmount(pout->GetValue())));
-        nValueOut += pout->GetValue();
-
-        CTxDestination dest;
-        if (pout->IsZerocoinMint())
-            out.push_back(Pair("address", "zerocoinmint"));
-        else if(pout->IsStandardOutput() && ExtractDestination(*pout->GetPScriptPubKey(), dest))
-            out.push_back(Pair("address", EncodeDestination(dest)));
-        vout.push_back(out);
-    }
-
-    //construct JSON to return
+//    for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
+//        const auto& pout = wtx.tx->vpout[i];
+//        UniValue out(UniValue::VOBJ);
+//        out.push_back(Pair("value", ValueFromAmount(pout->GetValue())));
+//        nValueOut += pout->GetValue();
+//
+//        CTxDestination dest;
+//        if (pout->IsZerocoinMint())
+//            out.push_back(Pair("address", "zerocoinmint"));
+//        else if(pout->IsStandardOutput() && ExtractDestination(*pout->GetPScriptPubKey(), dest))
+//            out.push_back(Pair("address", EncodeDestination(dest)));
+//        vout.push_back(out);
+//    }
+//
+//    //construct JSON to return
     UniValue ret(UniValue::VOBJ);
-    ret.push_back(Pair("txid", wtx.tx->GetHash().ToString()));
-    ret.push_back(Pair("bytes", (int)::GetSerializeSize(*wtx.tx, SER_NETWORK, CTransaction::CURRENT_VERSION)));
-    ret.push_back(Pair("fee", ValueFromAmount(nValueIn - nValueOut)));
-    ret.push_back(Pair("duration_millis", (GetTimeMillis() - nTimeStart)));
-    ret.push_back(Pair("spends", arrSpends));
-    ret.push_back(Pair("outputs", vout));
+//    ret.push_back(Pair("txid", wtx.tx->GetHash().ToString()));
+//    ret.push_back(Pair("bytes", (int)::GetSerializeSize(*wtx.tx, SER_NETWORK, CTransaction::CURRENT_VERSION)));
+//    ret.push_back(Pair("fee", ValueFromAmount(nValueIn - nValueOut)));
+//    ret.push_back(Pair("duration_millis", (GetTimeMillis() - nTimeStart)));
+//    ret.push_back(Pair("spends", arrSpends));
+//    ret.push_back(Pair("outputs", vout));
 
     return ret;
 }

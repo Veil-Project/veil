@@ -1443,15 +1443,17 @@ bool CheckOutputValue(const CTempRecipient &r, const CTxOutBase *txbout, CAmount
     return true;
 }
 
-void InspectOutputs(std::vector<CTempRecipient> &vecSend,
-    CAmount &nValue, size_t &nSubtractFeeFromAmount, bool &fOnlyStandardOutputs)
+void InspectOutputs(std::vector<CTempRecipient> &vecSend, bool fZerocoinInputs, CAmount &nValue,
+        size_t &nSubtractFeeFromAmount, bool &fOnlyStandardOutputs, bool& fSkipFee)
 {
     nValue = 0;
     nSubtractFeeFromAmount = 0;
     fOnlyStandardOutputs = true;
+    fSkipFee = true;
 
     for (auto &r : vecSend) {
         nValue += r.nAmount;
+        fSkipFee = fSkipFee && (fZerocoinInputs && !r.fZerocoin);
         if (r.nType != OUTPUT_STANDARD && r.nType != OUTPUT_DATA) {
             fOnlyStandardOutputs = false;
         }
@@ -1637,8 +1639,8 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
     nFeeRet = 0;
     CAmount nValue;
     size_t nSubtractFeeFromAmount;
-    bool fOnlyStandardOutputs;
-    InspectOutputs(vecSend, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs);
+    bool fOnlyStandardOutputs, fSkipFee;
+    InspectOutputs(vecSend, false, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
 
     if (0 != ExpandTempRecipients(vecSend, sError)) {
         return 1; // sError is set
@@ -2096,8 +2098,8 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
     nFeeRet = 0;
     CAmount nValue;
     size_t nSubtractFeeFromAmount;
-    bool fOnlyStandardOutputs;
-    InspectOutputs(vecSend, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs);
+    bool fOnlyStandardOutputs, fSkipFee;
+    InspectOutputs(vecSend, false, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
 
     if (0 != ExpandTempRecipients(vecSend, sError))
         return 1; // sError is set
@@ -2669,8 +2671,8 @@ int AnonWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size_
 }
 
 int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
-    bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet, const CCoinControl *coinControl,
-    std::string &sError, bool fZerocoinInputs, CAmount nInputValue)
+        bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet, const CCoinControl *coinControl,
+        std::string &sError, bool fZerocoinInputs, CAmount nInputValue)
 {
     assert(coinControl);
     if (nRingSize < MIN_RINGSIZE || nRingSize > MAX_RINGSIZE) {
@@ -2684,8 +2686,8 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
     nFeeRet = 0;
     CAmount nValue;
     size_t nSubtractFeeFromAmount;
-    bool fOnlyStandardOutputs;
-    InspectOutputs(vecSend, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs);
+    bool fOnlyStandardOutputs, fSkipFee;
+    InspectOutputs(vecSend, fZerocoinInputs, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
 
     if (0 != ExpandTempRecipients(vecSend, sError)) {
         return 1; // sError is set
@@ -2939,6 +2941,9 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                 }
             }
 
+            if (fSkipFee)
+                break;
+
             // Try to reduce change to include necessary fee
             if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
                 auto &r = vecSend[nChangePosInOut];
@@ -3049,10 +3054,12 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     CKeyID idk = anonOutput.pubkey.GetID();
                     CKey key;
                     if (!GetKey(idk, key))
-                        return wserrorN(1, sError, __func__, _("No key for anonoutput, %s"), HexStr(anonOutput.pubkey.begin(), anonOutput.pubkey.end()));
+                        return wserrorN(1, sError, __func__, _("No key for anonoutput, %s"), HexStr(anonOutput.pubkey.begin(),
+                                anonOutput.pubkey.end()));
 
                     // Keyimage is required for the tx hash
-                    if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], anonOutput.pubkey.begin(), key.begin()))) {
+                    if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], anonOutput.pubkey.begin(),
+                            key.begin()))) {
                         return wserrorN(1, sError, __func__, _("secp256k1_get_keyimage failed %d"), rv);
                     }
                 }
@@ -3081,32 +3088,34 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
 
                 std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
 
-                for (size_t k = 0; k < nSigInputs; ++k)
-                for (size_t i = 0; i < nCols; ++i) {
-                    int64_t nIndex = vMI[l][k][i];
+                for (size_t k = 0; k < nSigInputs; ++k) {
+                    for (size_t i = 0; i < nCols; ++i) {
+                        int64_t nIndex = vMI[l][k][i];
 
-                    CAnonOutput ao;
-                    if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
-                        return wserrorN(1, sError, __func__, _("Anon output not found in db, %d"), nIndex);
-                    }
-
-                    memcpy(&vm[(i+k*nCols)*33], ao.pubkey.begin(), 33);
-                    vCommitments.push_back(ao.commitment);
-                    vpInCommits[i+k*nCols] = vCommitments.back().data;
-
-                    if (i == vSecretColumns[l]) {
-                        CKeyID idk = ao.pubkey.GetID();
-                        if (!GetKey(idk, vsk[k])) {
-                            return wserrorN(1, sError, __func__, _("No key for anonoutput, %s"), HexStr(ao.pubkey.begin(), ao.pubkey.end()));
+                        CAnonOutput ao;
+                        if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
+                            return wserrorN(1, sError, __func__, _("Anon output not found in db, %d"), nIndex);
                         }
-                        vpsk[k] = vsk[k].begin();
 
-                        vpBlinds.push_back(&vInputBlinds[l][k * 32]);
-                        /*
-                        // Keyimage is required for the tx hash
-                        if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], &vm[(i+k*nCols)*33], vpsk[k])))
-                            return errorN(1, sError, __func__, _("secp256k1_get_keyimage failed %d").c_str(), rv);
-                        */
+                        memcpy(&vm[(i + k * nCols) * 33], ao.pubkey.begin(), 33);
+                        vCommitments.push_back(ao.commitment);
+                        vpInCommits[i + k * nCols] = vCommitments.back().data;
+
+                        if (i == vSecretColumns[l]) {
+                            CKeyID idk = ao.pubkey.GetID();
+                            if (!GetKey(idk, vsk[k])) {
+                                return wserrorN(1, sError, __func__, _("No key for anonoutput, %s"),
+                                                HexStr(ao.pubkey.begin(), ao.pubkey.end()));
+                            }
+                            vpsk[k] = vsk[k].begin();
+
+                            vpBlinds.push_back(&vInputBlinds[l][k * 32]);
+                            /*
+                            // Keyimage is required for the tx hash
+                            if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], &vm[(i+k*nCols)*33], vpsk[k])))
+                                return errorN(1, sError, __func__, _("secp256k1_get_keyimage failed %d").c_str(), rv);
+                            */
+                        }
                     }
                 }
 
@@ -3120,9 +3129,8 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     vDL.resize((1 + (nSigInputs+1) * nSigRingSize) * 32); // extra element for C, extra row for commitment row
                     vpBlinds.insert(vpBlinds.end(), vpOutBlinds.begin(), vpOutBlinds.end());
 
-                    if (0 != (rv = secp256k1_prepare_mlsag(&vm[0], blindSum,
-                        vpOutCommits.size(), vpOutCommits.size(), nCols, nRows,
-                        &vpInCommits[0], &vpOutCommits[0], &vpBlinds[0]))) {
+                    if (0 != (rv = secp256k1_prepare_mlsag(&vm[0], blindSum, vpOutCommits.size(), vpOutCommits.size(),
+                            nCols, nRows, &vpInCommits[0], &vpOutCommits[0], &vpBlinds[0]))) {
                         return wserrorN(1, sError, __func__, _("secp256k1_prepare_mlsag failed %d"), rv);
                     }
                 } else {
@@ -3135,9 +3143,8 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                             vpAllBlinds.push_back(vSplitCommitBlindingKeys[k].begin());
                         }
 
-                        if (!secp256k1_pedersen_blind_sum(secp256k1_ctx_blind,
-                            vSplitCommitBlindingKeys[l].begin_nc(), &vpAllBlinds[0],
-                            vpAllBlinds.size(), vpOutBlinds.size())) {
+                        if (!secp256k1_pedersen_blind_sum(secp256k1_ctx_blind, vSplitCommitBlindingKeys[l].begin_nc(),
+                                &vpAllBlinds[0], vpAllBlinds.size(), vpOutBlinds.size())) {
                             return wserrorN(1, sError, __func__, "secp256k1_pedersen_blind_sum failed.");
                         }
                     } else {
@@ -3155,9 +3162,8 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     nTotalInputs += nSigInputs;
 
                     secp256k1_pedersen_commitment splitInputCommit;
-                    if (!secp256k1_pedersen_commit(secp256k1_ctx_blind,
-                        &splitInputCommit, (uint8_t*)vSplitCommitBlindingKeys[l].begin(),
-                        nCommitValue, secp256k1_generator_h)) {
+                    if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &splitInputCommit,
+                            (uint8_t*)vSplitCommitBlindingKeys[l].begin(), nCommitValue, secp256k1_generator_h)) {
                         return wserrorN(1, sError, __func__, "secp256k1_pedersen_commit failed.");
                     }
 
@@ -3166,9 +3172,8 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
 
                     vpBlinds.emplace_back(vSplitCommitBlindingKeys[l].begin());
                     const uint8_t *pSplitCommit = splitInputCommit.data;
-                    if (0 != (rv = secp256k1_prepare_mlsag(&vm[0], blindSum,
-                        1, 1, nCols, nRows,
-                        &vpInCommits[0], &pSplitCommit, &vpBlinds[0]))) {
+                    if (0 != (rv = secp256k1_prepare_mlsag(&vm[0], blindSum, 1, 1, nCols, nRows, &vpInCommits[0],
+                            &pSplitCommit, &vpBlinds[0]))) {
                         return wserrorN(1, sError, __func__, _("secp256k1_prepare_mlsag failed %d"), rv);
                     }
 
@@ -3177,8 +3182,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
 
                 uint256 hashOutputs = txNew.GetOutputsHash();
                 if (0 != (rv = secp256k1_generate_mlsag(secp256k1_ctx_blind, &vKeyImages[0], &vDL[0], &vDL[32],
-                    randSeed, hashOutputs.begin(), nCols, nRows, vSecretColumns[l],
-                    &vpsk[0], &vm[0]))) {
+                    randSeed, hashOutputs.begin(), nCols, nRows, vSecretColumns[l], &vpsk[0], &vm[0]))) {
                     return wserrorN(1, sError, __func__, _("secp256k1_generate_mlsag failed %d"), rv);
                 }
 
