@@ -789,7 +789,7 @@ RES_MOVIES = $(wildcard $(srcdir)/qt/res/movies/spinner-*.png)
 RES_CSS = \
   qt/res/css/main.css
 
-BITCOIN_RC = qt/res/veil-qt-res.rc
+BITCOIN_RC = qt/res/bitcoin-qt-res.rc
 
 BITCOIN_QT_INCLUDES = -DQT_NO_KEYWORDS
 
