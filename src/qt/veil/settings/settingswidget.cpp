@@ -76,7 +76,6 @@ SettingsWidget::SettingsWidget(WalletView *parent) :
     ui->btnAdvance->setProperty("cssClass" , "btn-text-settings");
     connect(ui->btnAdvance,SIGNAL(clicked()),this,SLOT(onAdvanceClicked()));
 
-    connect(ui->btnResetOptions,SIGNAL(clicked()),this,SLOT(onResetOptionClicked()));
     connect(ui->checkBoxStaking, SIGNAL(clicked(bool)), this, SLOT(onLockWalletClicked()));
 
 }

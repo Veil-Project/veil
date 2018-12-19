@@ -83,45 +83,6 @@ background-color:white;</string>
           </property>
          </spacer>
         </item>
-        <item>
-         <widget class="QPushButton" name="btnResetOptions">
-          <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">color: #707070;
-font-size:18px;
-font-weight:light;	
-background-color:transparent;
-border:none;
-padding:4 4 4 4;</string>
-          </property>
-          <property name="text">
-           <string>Reset Options</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QPushButton" name="pushButton">
-          <property name="styleSheet">
-           <string notr="true">background-color:transparent;
-border:none;</string>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="../../veil.qrc">
-            <normaloff>:/icons/ic-reset-options-svg</normaloff>:/icons/ic-reset-options-svg</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>32</width>
-            <height>32</height>
-           </size>
-          </property>
-         </widget>
-        </item>
        </layout>
       </item>
       <item>
@@ -649,8 +610,6 @@ border:0;</string>
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../../veil.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

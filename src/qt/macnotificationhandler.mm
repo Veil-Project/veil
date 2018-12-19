@@ -13,7 +13,7 @@
 - (NSString *)__bundleIdentifier
 {
     if (self == [NSBundle mainBundle]) {
-        return @"org.bitcoinfoundation.Veil-Qt";
+        return @"org.veil.Veil-Qt";
     } else {
         return [self __bundleIdentifier];
     }
