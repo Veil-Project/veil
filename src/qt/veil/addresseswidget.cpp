@@ -267,7 +267,7 @@ void AddressesWidget::hideEvent(QHideEvent *event){
     a->start(QPropertyAnimation::DeleteWhenStopped);
     connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
 
-    if(menu){
+    if(menu != nullptr){
         menu->hide();
     }
 }

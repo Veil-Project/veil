@@ -55,16 +55,16 @@ private Q_SLOTS:
 
 private:
     Ui::AddressesWidget *ui;
-    WalletView *mainWindow;
-    ClientModel *clientModel;
-    WalletModel *walletModel;
-    AddressViewDelegate *addressViewDelegate;
-    AddressTableModel *model;
+    WalletView *mainWindow = nullptr;
+    ClientModel *clientModel = nullptr;
+    WalletModel *walletModel = nullptr;
+    AddressViewDelegate *addressViewDelegate = nullptr;
+    AddressTableModel *model = nullptr;
 
-    AddressSortFilterProxyModel *proxyModel;
-    AddressSortFilterProxyModel *proxyModelSend;
+    AddressSortFilterProxyModel *proxyModel = nullptr;
+    AddressSortFilterProxyModel *proxyModelSend = nullptr;
 
-    AddressesMenu *menu;
+    AddressesMenu *menu = nullptr;
 
     bool isOnMyAddresses;
 

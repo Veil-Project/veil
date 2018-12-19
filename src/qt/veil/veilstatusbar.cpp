@@ -20,17 +20,15 @@ VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
     connect(ui->checkStacking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
 }
 
-bool VeilStatusBar::getSyncStatusVisible()
-{
-    ui->btnSync->isVisible();
+bool VeilStatusBar::getSyncStatusVisible() {
+    return ui->btnSync->isVisible();
 }
 
 void VeilStatusBar::updateSyncStatus(QString status){
     ui->btnSync->setText(status);
 }
 
-void VeilStatusBar::setSyncStatusVisible(bool fVisible)
-{
+void VeilStatusBar::setSyncStatusVisible(bool fVisible) {
     ui->btnSync->setVisible(fVisible);
 }
 
@@ -39,8 +37,7 @@ void VeilStatusBar::onBtnSyncClicked(){
 }
 
 bool fBlockNextStakeCheckSignal = false;
-void VeilStatusBar::onCheckStakingClicked(bool res)
-{
+void VeilStatusBar::onCheckStakingClicked(bool res) {
     // When our own dialog internally changes the checkstate, block signal from executing
     if (fBlockNextStakeCheckSignal) {
         fBlockNextStakeCheckSignal = false;
@@ -55,8 +52,6 @@ void VeilStatusBar::onCheckStakingClicked(bool res)
             openToastDialog(dialogMsg, mainWindow);
             fBlockNextStakeCheckSignal = true;
             ui->checkStacking->setCheckState(Qt::CheckState::Unchecked);
-        } else {
-            openToastDialog("Miner started", mainWindow);
         }
     } else {
         openToastDialog("Miner stopped", mainWindow);
