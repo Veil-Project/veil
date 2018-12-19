@@ -13,7 +13,7 @@
 
 #include <stdint.h>
 
-#include <veil/ringct/hdwallet.h>
+#include <veil/ringct/anonwallet.h>
 
 
 /* Return positive answer if transaction should be shown in list.
