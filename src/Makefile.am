@@ -224,6 +224,7 @@ BITCOIN_CORE_H = \
   wallet/coincontrol.h \
   wallet/crypter.h \
   wallet/db.h \
+  wallet/deterministicmint.h \
   wallet/feebumper.h \
   wallet/fees.h \
   wallet/init.h \
