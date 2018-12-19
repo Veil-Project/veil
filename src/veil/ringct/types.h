@@ -1,6 +1,10 @@
+// Copyright (c) 2015 The ShadowCoin developers
+// Copyright (c) 2017 The Particl developers
+// Distributed under the MIT/X11 software license, see the accompanying
+// file license.txt or http://www.opensource.org/licenses/mit-license.php.
+
 #ifndef VEIL_TYPES_H
 #define VEIL_TYPES_H
-
 
 typedef std::vector<uint8_t> ec_point;
 

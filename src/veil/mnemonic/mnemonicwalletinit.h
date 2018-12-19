@@ -1,3 +1,7 @@
+// Copyright (c) 2018 The VEIL developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #ifndef VEIL_MNEMONICWALLETINIT_H
 #define VEIL_MNEMONICWALLETINIT_H
 

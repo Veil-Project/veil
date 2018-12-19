@@ -1,3 +1,6 @@
+// Copyright (c) 2017-2018 The PIVX developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #include <logging.h>
 #include "mintpool.h"
 #include "util.h"

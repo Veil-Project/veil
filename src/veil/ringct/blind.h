@@ -1,3 +1,6 @@
+// Copyright (c) 2017-2018 The Particl Core developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #ifndef VEIL_BLIND_H
 #define VEIL_BLIND_H
 

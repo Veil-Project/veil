@@ -1,3 +1,7 @@
+// Copyright (c) 2017 The Particl developers
+// Distributed under the MIT/X11 software license, see the accompanying
+// file license.txt or http://www.opensource.org/licenses/mit-license.php.
+
 #ifndef VEIL_KEYUTIL_H
 #define VEIL_KEYUTIL_H
 
