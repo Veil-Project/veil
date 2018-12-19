@@ -46,7 +46,7 @@ std::string CTxIn::ToString() const
 void CTxOutBase::SetValue(int64_t value)
 {
     // convenience function intended for use with CTxOutStandard only
-    assert(nVersion == OUTPUT_STANDARD);
+    if (nVersion != OUTPUT_STANDARD) return;
     ((CTxOutStandard*) this)->nValue = value;
 }
 
