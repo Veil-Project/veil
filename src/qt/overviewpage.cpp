@@ -195,8 +195,8 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
     for (int i = 0 ; i < ui->comboSort->count() ; ++i) {
        ui->comboSort->setItemData(i, Qt::AlignRight, Qt::TextAlignmentRole);
     }
-    // TODO: Uncomment this for the ordering..
-    //ui->comboSort->setVisible(false);
+    // combo selection:
+    connect(ui->comboSort,SIGNAL(currentIndexChanged(const QString&)),this,SLOT(sortTxes(const QString&)));
 
     this->setContentsMargins(0,0,0,0);
 
@@ -214,7 +214,6 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
 
     // start with displaying the "out of sync" warnings
     showOutOfSyncWarning(true);
-    // TODO: This should be the sync status..
     //connect(ui->labelWalletStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
     //connect(ui->labelTransactionsStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
 }
@@ -241,6 +240,14 @@ void OverviewPage::handleTransactionClicked(const QModelIndex &index)
     ui->listTransactions->setCurrentIndex(rselectedIndex);
     ui->listTransactions->setFocus();
 
+}
+
+void OverviewPage::sortTxes(const QString& selectedStr){
+    if(selectedStr == "Date") {
+        filter->sort(TransactionTableModel::Date, Qt::DescendingOrder);
+    }else if(selectedStr == "Amount"){
+        filter->sort(TransactionTableModel::Amount, Qt::DescendingOrder);
+    }
 }
 
 void OverviewPage::handleOutOfSyncWarningClicks()
