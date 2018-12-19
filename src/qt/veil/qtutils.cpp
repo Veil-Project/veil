@@ -21,20 +21,24 @@ void openDialogFullScreen(QWidget *parent, QWidget * dialog){
     dialog->resize(parent->width(),parent->height());
 }
 
-bool openDialogWithOpaqueBackground(QDialog *widget, BitcoinGUI *gui, int posX){
+bool openDialogWithOpaqueBackgroundY(QDialog *widget, BitcoinGUI *gui, double posX, int posY){
     widget->setWindowFlags(Qt::CustomizeWindowHint);
     widget->setAttribute(Qt::WA_TranslucentBackground, true);
     QPropertyAnimation* animation = new QPropertyAnimation(widget, "pos");
     animation->setDuration(300);
     int xPos = gui->width() / posX ;
     animation->setStartValue(QPoint(xPos, gui->height()));
-    animation->setEndValue(QPoint(xPos, gui->height() / 5));
+    animation->setEndValue(QPoint(xPos, gui->height() / posY));//- (gui->height()) / posY  ));
     animation->setEasingCurve(QEasingCurve::OutQuad);
     animation->start(QAbstractAnimation::DeleteWhenStopped);
     widget->activateWindow();
     bool res = widget->exec();
     gui->showHide(false);
     return res;
+}
+
+bool openDialogWithOpaqueBackground(QDialog *widget, BitcoinGUI *gui, double posX){
+    return openDialogWithOpaqueBackgroundY(widget, gui, posX, 5);
 }
 
 void openDialogWithOpaqueBackgroundFullScreen(QDialog *widget, BitcoinGUI *gui){

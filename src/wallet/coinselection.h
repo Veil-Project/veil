@@ -22,7 +22,7 @@ public:
             throw std::invalid_argument("tx should not be null");
 
         if (i >= tx->GetNumVOuts())
-            throw std::out_of_range("The output index is out of range, num out: " + tx->GetNumVOuts());
+            throw std::out_of_range("The output index is out of range");
 
         outpoint = COutPoint(tx->GetHash(), i);
         assert(tx->vpout[i]->IsStandardOutput());

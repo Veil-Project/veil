@@ -55,10 +55,14 @@ public:
             selectedRect.setLeft(0);
             painter->fillRect(selectedRect, QColor("#CEDDFB"));
             foreground = QColor("#575756");
-        }else{
+        }else if(option.state & QStyle::State_MouseOver){
+            QRect selectedRect = option.rect;
+            selectedRect.setLeft(0);
+            painter->fillRect(selectedRect, QColor("#F4F4F4"));
+            foreground = QColor("#575756");
+        } else{
             foreground = option.palette.color(QPalette::Text);
         }
-
 
         int decorationSize = DECORATION_SIZE - 36;
         int halfheightIcon = ( mainRect.height()) / 3.1;
@@ -206,6 +210,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
     connect(ui->listTransactions, SIGNAL(clicked(QModelIndex)), this, SLOT(handleTransactionClicked(QModelIndex)));
 
     connect(ui->btnGoFaq,SIGNAL(clicked()),this,SLOT(onFaqClicked()));
+    connect(ui->btnGoHowToObtainVeil,SIGNAL(clicked()),this,SLOT(onHowFaqClicked()));
 
     // start with displaying the "out of sync" warnings
     showOutOfSyncWarning(true);
@@ -227,12 +232,13 @@ void OverviewPage::handleTransactionClicked(const QModelIndex &index)
     TransactionRecord *rec = static_cast<TransactionRecord*>(selectedIndex.internalPointer());
 
     mainWindow->getGUI()->showHide(true);
-    TransactionDetailDialog *dialog = new TransactionDetailDialog(nullptr, rec, this->walletModel);
-    openDialogWithOpaqueBackground(dialog, mainWindow->getGUI(), 4);
+    TransactionDetailDialog *dialog = new TransactionDetailDialog(mainWindow->getGUI(), rec, this->walletModel);
+    openDialogWithOpaqueBackgroundY(dialog, mainWindow->getGUI(), 4.5, 5);
 
     // Back to regular status
-    ui->listTransactions->scrollTo(selectedIndex);
-    ui->listTransactions->setCurrentIndex(selectedIndex);
+    QModelIndex rselectedIndex = filter->mapToSource(index);
+    ui->listTransactions->scrollTo(rselectedIndex);
+    ui->listTransactions->setCurrentIndex(rselectedIndex);
     ui->listTransactions->setFocus();
 
 }
@@ -353,3 +359,10 @@ void OverviewPage::onFaqClicked(){
     SettingsFaq *dialog = new SettingsFaq(mainWindow->getGUI());
     openDialogWithOpaqueBackgroundFullScreen(dialog, mainWindow->getGUI());
 }
+
+
+void OverviewPage::onHowFaqClicked(){
+    mainWindow->getGUI()->showHide(true);
+    SettingsFaq *dialog = new SettingsFaq(mainWindow->getGUI(), true);
+    openDialogWithOpaqueBackgroundFullScreen(dialog, mainWindow->getGUI());
+};

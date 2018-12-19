@@ -231,7 +231,7 @@ border:none;</string>
            <string/>
           </property>
           <property name="icon">
-           <iconset resource="../../veil.qrc">
+           <iconset>
             <normaloff>:/icons/ic-add-account-svg</normaloff>:/icons/ic-add-account-svg</iconset>
           </property>
           <property name="iconSize">
@@ -287,7 +287,7 @@ border:none;</string>
             <string/>
            </property>
            <property name="pixmap">
-            <pixmap resource="../../veil.qrc">:/icons/img-empty-addresses</pixmap>
+            <pixmap>:/icons/img-empty-addresses</pixmap>
            </property>
           </widget>
          </item>
@@ -356,6 +356,9 @@ border:none;</string>
       </item>
       <item>
        <widget class="QListView" name="listAddresses">
+        <property name="mouseTracking">
+         <bool>true</bool>
+        </property>
         <property name="styleSheet">
          <string notr="true">QListView { 
 background: transparent;
@@ -411,6 +414,9 @@ QListView::text {
       </item>
       <item>
        <widget class="QListView" name="listContacts">
+        <property name="mouseTracking">
+         <bool>true</bool>
+        </property>
         <property name="styleSheet">
          <string notr="true">QListView { 
 background: transparent;
@@ -469,8 +475,6 @@ QListView::text {
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../../veil.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

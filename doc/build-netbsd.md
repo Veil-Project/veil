@@ -2,9 +2,9 @@ NetBSD build guide
 ======================
 (updated for NetBSD 7.0)
 
-This guide describes how to build bitcoind and command-line utilities on NetBSD.
+This guide describes how to build veild and command-line utilities on NetBSD.
 
-This guide does not contain instructions for building the GUI.
+This guide does not contain instructions for building the Qt GUI.
 
 Preparation
 -------------
@@ -21,11 +21,13 @@ gmake
 libevent
 libtool
 python27
+gmp
+
 ```
 
 Download the source code:
 ```
-git clone https://github.com/bitcoin/bitcoin
+git clone https://github.com/Veil-Project/veil
 ```
 
 See [dependencies.md](dependencies.md) for a complete overview.

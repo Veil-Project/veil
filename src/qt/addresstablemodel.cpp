@@ -405,8 +405,7 @@ bool AddressTableModel::removeRows(int row, int count, const QModelIndex &parent
         // Also refuse to remove receiving addresses.
         return false;
     }
-    walletModel->wallet().delAddressBook(DecodeDestination(rec->address.toStdString()));
-    return true;
+    return walletModel->wallet().delAddressBook(DecodeDestination(rec->address.toStdString()));
 }
 
 QString AddressTableModel::labelForAddress(const QString &address) const

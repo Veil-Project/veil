@@ -1,7 +1,7 @@
 Dependencies
 ============
 
-These are the dependencies currently used by Bitcoin Core. You can find instructions for installing them in the `build-*.md` file for your platform.
+These are the dependencies currently used by Veil. You can find instructions for installing them in the `build-*.md` file for your platform.
 
 | Dependency | Version used | Minimum required | CVEs | Shared | [Bundled Qt library](https://doc.qt.io/qt-5/configure-options.html) |
 | --- | --- | --- | --- | --- | --- |
@@ -28,3 +28,4 @@ These are the dependencies currently used by Bitcoin Core. You can find instruct
 | xkbcommon |  |  |  |  | [Yes](https://github.com/bitcoin/bitcoin/blob/master/depends/packages/qt.mk#L86) (Linux only) |
 | ZeroMQ | [4.2.3](https://github.com/zeromq/libzmq/releases) |  | No |  |  |
 | zlib | [1.2.11](https://zlib.net/) |  |  |  | No |
+| libgmp-dev |

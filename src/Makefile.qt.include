@@ -156,6 +156,8 @@ QT_FORMS_UI = \
   qt/veil/forms/unlockpassworddialog.ui \
   qt/veil/forms/veilstatusbar.ui \
   qt/veil/forms/transactiondetaildialog.ui \
+  qt/veil/forms/addressesmenu.ui \
+  qt/veil/forms/updateaddress.ui \
   veil/qt/forms/mnemonicdialog.ui \
   veil/qt/forms/mnemonicdisplay.ui
 
@@ -250,6 +252,8 @@ QT_MOC_CPP = \
   qt/veil/moc_unlockpassworddialog.cpp \
   qt/veil/moc_veilstatusbar.cpp \
   qt/veil/moc_transactiondetaildialog.cpp \
+  qt/veil/moc_addressesmenu.cpp \
+  qt/veil/moc_updateaddress.cpp \
   veil/qt/moc_mnemonicdialog.cpp \
   veil/qt/moc_mnemonicdisplay.cpp
 
@@ -374,6 +378,8 @@ BITCOIN_QT_H = \
   qt/veil/unlockpassworddialog.h \
   qt/veil/veilstatusbar.h \
   qt/veil/transactiondetaildialog.h \
+  qt/veil/addressesmenu.h \
+  qt/veil/updateaddress.h \
   veil/qt/mnemonicdialog.h \
   veil/qt/mnemonicdisplay.h
 
@@ -671,6 +677,7 @@ RES_ICONS = \
   qt/res/icons/ic-reset-options.svg \
   qt/res/icons/ic-locked.svg \
   qt/res/icons/ic-unlocked.svg \
+  qt/res/icons/ic-menu.svg \
   qt/res/icons/verify.png
 
 BITCOIN_QT_BASE_CPP = \
@@ -771,6 +778,8 @@ BITCOIN_QT_WALLET_CPP = \
   qt/veil/unlockpassworddialog.cpp \
   qt/veil/veilstatusbar.cpp \
   qt/veil/transactiondetaildialog.cpp \
+  qt/veil/addressesmenu.cpp \
+  qt/veil/updateaddress.cpp \
   veil/qt/mnemonicdialog.cpp \
   veil/qt/mnemonicdisplay.cpp
 

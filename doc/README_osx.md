@@ -95,3 +95,5 @@ build process to remain somewhat deterministic. Here's how it works:
   using the script that is also included there. Detached signatures are available from this [repository](https://github.com/bitcoin-core/bitcoin-detached-sigs).
 - Builders feed the unsigned app + detached signature back into Gitian. It
   uses the pre-built tools to recombine the pieces into a deterministic dmg.
+  
+  You can also obtain the correct SDK file here; [MacOSX10.11.sdk.tar.gz](https://dl.dropboxusercontent.com/s/guon6ye5ciktqsk/MacOSX10.11.sdk.tar.gz)

@@ -269,7 +269,12 @@ public:
     }
     bool delAddressBook(const CTxDestination& dest) override
     {
-        return m_wallet.DelAddressBook(dest);
+        // Don't delete my addresses in any circumstance..
+        if(!IsMine(m_wallet, dest)){
+            return m_wallet.DelAddressBook(dest);
+        }
+        std::cout << "Wallet trying to remove a receiving address.. this cannot happen" << std::endl;
+        return false;
     }
     bool getAddress(const CTxDestination& dest,
         std::string* name,

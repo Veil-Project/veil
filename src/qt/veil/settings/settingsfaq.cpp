@@ -14,7 +14,7 @@
 #include <qt/guiutil.h>
 
 
-SettingsFaq::SettingsFaq(QWidget *parent) :
+SettingsFaq::SettingsFaq(QWidget *parent, bool howToObtainVeil) :
     QDialog(parent),
     ui(new Ui::SettingsFaq)
 {
@@ -52,6 +52,11 @@ SettingsFaq::SettingsFaq(QWidget *parent) :
 
     ui->stackedWidget->addWidget(faq01);
     ui->stackedWidget->setCurrentWidget(faq01);
+
+    if(howToObtainVeil){
+        ui->stackedWidget->addWidget(faq07);
+        ui->stackedWidget->setCurrentWidget(faq07);
+    }
 }
 
 void SettingsFaq::changeScreen(QWidget *widget){

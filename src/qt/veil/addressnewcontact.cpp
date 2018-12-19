@@ -33,6 +33,8 @@ AddressNewContact::AddressNewContact(QWidget *parent, WalletModel* _walletModel)
     ui->editAddress->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->editAddress->setProperty("cssClass" , "edit-primary");
 
+    ui->errorMessage->setVisible(false);
+
     connect(ui->btnSave,SIGNAL(clicked()),this, SLOT(onBtnSaveClicked()));
 }
 
@@ -44,10 +46,14 @@ void AddressNewContact::onBtnSaveClicked(){
     std::string label = ui->editContactName->text().toUtf8().constData();
     std::string qAddress = ui->editAddress->text().toUtf8().constData();
 
-    // TODO: Validate address
+    CTxDestination dest = DecodeDestination(qAddress);
+    if (!IsValidDestination(dest)) {
+        ui->errorMessage->setText("Invalid address");
+        ui->errorMessage->setVisible(true);
+        return;
+    }
 
     interfaces::Wallet& wallet = walletModel->wallet();
-    CTxDestination dest = DecodeDestination(qAddress);
     if(wallet.setAddressBook(dest, label, "send")){
         accept();
     }else close();

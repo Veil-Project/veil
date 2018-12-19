@@ -14,7 +14,8 @@ class BitcoinGUI;
 
 void openDialog(QWidget * dialog);
 void openDialogFullScreen(QWidget *parent, QWidget * dialog);
-bool openDialogWithOpaqueBackground(QDialog *widget, BitcoinGUI *gui, int posX = 3);
+bool openDialogWithOpaqueBackgroundY(QDialog *widget, BitcoinGUI *gui, double posX = 3, int posY = 5);
+bool openDialogWithOpaqueBackground(QDialog *widget, BitcoinGUI *gui, double posX = 3);
 void openDialogWithOpaqueBackgroundFullScreen(QDialog *widget, BitcoinGUI *gui);
 
 

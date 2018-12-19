@@ -1,7 +1,7 @@
-Fuzz-testing Bitcoin Core
-==========================
+Fuzz-testing Veil
+=================
 
-A special test harness `test_bitcoin_fuzzy` is provided to provide an easy
+A special test harness `test_veil_fuzzy` is provided to provide an easy
 entry point for fuzzers and the like. In this document we'll describe how to
 use it with AFL.
 
@@ -20,7 +20,7 @@ export AFLPATH=$PWD
 Instrumentation
 ----------------
 
-To build Bitcoin Core using AFL instrumentation (this assumes that the
+To build Veil using AFL instrumentation (this assumes that the
 `AFLPATH` was set as above):
 ```
 ./configure --disable-ccache --disable-shared --enable-tests CC=${AFLPATH}/afl-gcc CXX=${AFLPATH}/afl-g++
@@ -65,7 +65,7 @@ Fuzzing
 
 To start the actual fuzzing use:
 ```
-$AFLPATH/afl-fuzz -i ${AFLIN} -o ${AFLOUT} -m52 -- test/test_bitcoin_fuzzy
+$AFLPATH/afl-fuzz -i ${AFLIN} -o ${AFLOUT} -m52 -- test/test_veil_fuzzy
 ```
 
 You may have to change a few kernel parameters to test optimally - `afl-fuzz`

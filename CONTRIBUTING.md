@@ -1,7 +1,7 @@
-Contributing to Bitcoin Core
-============================
+Contributing to Veil
+====================
 
-The Bitcoin Core project operates an open contributor model where anyone is
+The Veil project operates an open contributor model where anyone is
 welcome to contribute towards development in the form of peer review, testing
 and patches. This document explains the practical process and guidelines for
 contributing.
@@ -15,25 +15,16 @@ merging pull requests as well as a "lead maintainer" who is responsible for the
 release cycle, overall merging, moderation and appointment of maintainers.
 
 If you're looking for somewhere to start contributing, check out the
-[good first issue](https://github.com/bitcoin/bitcoin/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
-list.
+[good first issue](https://github.com/Veil-Project/veil/issues)
 
 Communication Channels
 ----------------------
 
-Most communication about Bitcoin Core development happens on IRC, in the
-#bitcoin-core-dev channel on Freenode. The easiest way to participate on IRC is
-with the web client, [webchat.freenode.net](https://webchat.freenode.net/). Chat
-history logs can be found
-on [botbot.me](https://botbot.me/freenode/bitcoin-core-dev/).
+Most communication about Veil development happens on Discord, https://discord.gg/XwuC8Nu.
+The easiest way to participate on Discord is by joining. #community-development
 
 Discussion about code base improvements happens in GitHub issues and on pull
 requests.
-
-The developer
-[mailing list](https://lists.linuxfoundation.org/mailman/listinfo/bitcoin-dev)
-should be used to discuss complicated or controversial changes before working on
-a patch set.
 
 
 Contributor Workflow
@@ -97,13 +88,13 @@ the pull request affects. Valid areas as:
 
 Examples:
 
-    Consensus: Add new opcode for BIP-XXXX OP_CHECKAWESOMESIG
+    Consensus: Add new opcode for VIP-XXXX OP_CHECKAWESOMESIG
     Net: Automatically create hidden service, listen on Tor
     Qt: Add feed bump button
     Trivial: Fix typo in init.cpp
 
 Note that translations should not be submitted as pull requests, please see
-[Translation Process](https://github.com/bitcoin/bitcoin/blob/master/doc/translation_process.md) 
+[Translation Process](https://github.com/Veil-Project/veil/blob/master/doc/translation_process.md) 
 for more information on helping with translations.
 
 If a pull request is not to be considered for merging (yet), please
@@ -295,7 +286,7 @@ about:
 Release Policy
 --------------
 
-The project leader is the release manager for each Bitcoin Core release.
+The project leader is the release manager for each Veil release.
 
 Copyright
 ---------

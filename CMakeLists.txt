@@ -58,9 +58,7 @@ include_directories(src/wallet)
 include_directories(src/wallet/test)
 include_directories(src/zmq)
 
-find_package( Qt5Core REQUIRED )
-find_package( Qt5Widgets REQUIRED )
-find_package( Qt5Gui REQUIRED )
+find_package(Qt5 REQUIRED COMPONENTS Widgets Core Gui)
 
 add_executable(veil
         src/bench/base58.cpp

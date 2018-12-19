@@ -25,7 +25,7 @@ class SettingsFaq : public QDialog
     Q_OBJECT
 
 public:
-    explicit SettingsFaq(QWidget *parent = nullptr);
+    explicit SettingsFaq(QWidget *parent = nullptr, bool howToObtainVeil = false);
     ~SettingsFaq();
 private Q_SLOTS:
     void onEscapeClicked();

@@ -27,13 +27,6 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
 
     setStyleSheet(GUIUtil::loadStyleSheet());
 
-    //ui->addressBookButton->setIcon(platformStyle->SingleColorIcon(":/icons/address-book"));
-    //ui->pasteButton->setIcon(platformStyle->SingleColorIcon(":/icons/editpaste"));
-    //ui->deleteButton->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
-    //ui->deleteButton_is->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
-    //ui->deleteButton_s->setIcon(platformStyle->SingleColorIcon(":/icons/remove"));
-
-
     ui->payTo->setPlaceholderText("Enter address");
     ui->payTo->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->payTo->setProperty("cssClass" , "edit-primary");
@@ -62,7 +55,7 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
     ui->payTo_is->setFont(GUIUtil::fixedPitchFont());
 
     // Connect signals
-    connect(ui->payAmount, SIGNAL(valueChanged()), this, SIGNAL(payAmountChanged()));
+    //connect(ui->payAmount, SIGNAL(valueChanged()), this, SIGNAL(payAmountChanged()));
     //connect(ui->checkboxSubtractFeeFromAmount, SIGNAL(toggled(bool)), this, SIGNAL(subtractFeeFromAmountChanged()));
     connect(ui->btnRemove, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_is, SIGNAL(clicked()), this, SLOT(deleteClicked()));
@@ -75,24 +68,18 @@ SendCoinsEntry::~SendCoinsEntry()
     delete ui;
 }
 
-void SendCoinsEntry::on_pasteButton_clicked()
-{
-    // Paste text from clipboard into recipient field
-    ui->payTo->setText(QApplication::clipboard()->text());
-}
-
-void SendCoinsEntry::on_addressBookButton_clicked()
-{
-    if(!model)
-        return;
-    AddressBookPage dlg(platformStyle, AddressBookPage::ForSelection, AddressBookPage::SendingTab, this);
-    dlg.setModel(model->getAddressTableModel());
-    if(dlg.exec())
-    {
-        ui->payTo->setText(dlg.getReturnValue());
-        ui->payAmount->setFocus();
-    }
-}
+//void SendCoinsEntry::on_addressBookButton_clicked()
+//{
+//    if(!model)
+//        return;
+//    AddressBookPage dlg(platformStyle, AddressBookPage::ForSelection, AddressBookPage::SendingTab, this);
+//    dlg.setModel(model->getAddressTableModel());
+//    if(dlg.exec())
+//    {
+//        ui->payTo->setText(dlg.getReturnValue());
+//        ui->payAmount->setFocus();
+//    }
+//}
 
 void SendCoinsEntry::on_payTo_textChanged(const QString &address)
 {
@@ -228,6 +215,7 @@ bool SendCoinsEntry::validAmount(QLineEdit* edit, bool valid){
                             "#payTo:focus {"
                             "    border-bottom:1px solid #105aef;"
                             "");
+    return true;
 }
 
 bool SendCoinsEntry::validateEdit(QLineEdit* edit) {

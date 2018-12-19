@@ -107,7 +107,7 @@ border:none;</string>
            <string/>
           </property>
           <property name="icon">
-           <iconset resource="../../veil.qrc">
+           <iconset>
             <normaloff>:/icons/simbol-svg</normaloff>:/icons/simbol-svg</iconset>
           </property>
           <property name="iconSize">
@@ -144,7 +144,7 @@ border:none;</string>
              <string>Total Balance</string>
             </property>
             <property name="icon">
-             <iconset resource="../../veil.qrc">
+             <iconset>
               <normaloff>:/icons/ic-information-svg</normaloff>:/icons/ic-information-svg</iconset>
             </property>
            </widget>
@@ -246,7 +246,7 @@ color: #707070;</string>
 color: #707070;</string>
               </property>
               <property name="text">
-               <string>Inmature</string>
+               <string>Immature</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -362,7 +362,7 @@ color: #004377;</string>
                   <string/>
                  </property>
                  <property name="icon">
-                  <iconset resource="../../veil.qrc">
+                  <iconset>
                    <normaloff>:/icons/ic-copy-blue-svg</normaloff>:/icons/ic-copy-blue-svg</iconset>
                  </property>
                  <property name="iconSize">
@@ -420,8 +420,6 @@ color:#707070;</string>
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../../veil.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

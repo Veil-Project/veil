@@ -103,21 +103,6 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     QAction *clipboardLowOutputAction = new QAction(tr("Copy dust"), this);
     QAction *clipboardChangeAction = new QAction(tr("Copy change"), this);
 
-//    connect(clipboardQuantityAction, SIGNAL(triggered()), this, SLOT(coinControlClipboardQuantity()));
-//    connect(clipboardAmountAction, SIGNAL(triggered()), this, SLOT(coinControlClipboardAmount()));
-//    connect(clipboardFeeAction, SIGNAL(triggered()), this, SLOT(coinControlClipboardFee()));
-//    connect(clipboardAfterFeeAction, SIGNAL(triggered()), this, SLOT(coinControlClipboardAfterFee()));
-//    connect(clipboardBytesAction, SIGNAL(triggered()), this, SLOT(coinControlClipboardBytes()));
-//    connect(clipboardLowOutputAction, SIGNAL(triggered()), this, SLOT(coinControlClipboardLowOutput()));
-//    connect(clipboardChangeAction, SIGNAL(triggered()), this, SLOT(coinControlClipboardChange()));
-
-//    ui->labelCoinControlQuantity->addAction(clipboardQuantityAction);
-//    ui->labelCoinControlAmount->addAction(clipboardAmountAction);
-//    ui->labelCoinControlFee->addAction(clipboardFeeAction);
-//    ui->labelCoinControlAfterFee->addAction(clipboardAfterFeeAction);
-//    ui->labelCoinControlBytes->addAction(clipboardBytesAction);
-//    ui->labelCoinControlLowOutput->addAction(clipboardLowOutputAction);
-//    ui->labelCoinControlChange->addAction(clipboardChangeAction);
 
     // init transaction fee section
     // TODO: remove this..
@@ -624,16 +609,6 @@ void SendCoinsDialog::minimizeFeeSection(bool fMinimize)
     fFeeMinimized = fMinimize;
 }
 
-void SendCoinsDialog::on_buttonChooseFee_clicked()
-{
-    minimizeFeeSection(false);
-}
-
-void SendCoinsDialog::on_buttonMinimizeFee_clicked()
-{
-    updateFeeMinimizedLabel();
-    minimizeFeeSection(true);
-}
 
 void SendCoinsDialog::useAvailableBalance(SendCoinsEntry* entry)
 {
@@ -658,11 +633,6 @@ void SendCoinsDialog::useAvailableBalance(SendCoinsEntry* entry)
     } else {
       entry->setAmount(0);
     }
-}
-
-void SendCoinsDialog::setMinimumFee()
-{
-    //ui->customFee->setValue(model->wallet().getRequiredFee(1000));
 }
 
 void SendCoinsDialog::updateFeeSectionControls()
