@@ -399,7 +399,7 @@ crypto_libbitcoin_crypto_base_a_SOURCES = \
   crypto/x16r/sph_jh.h \
   crypto/x16r/sph_keccak.h \
   crypto/x16r/sph_luffa.h \
-  crypto/x16r/sph_md_helper.c \
+  crypto/x16r/sph_md_helper.h \
   crypto/x16r/sph_shavite.h \
   crypto/x16r/sph_simd.h \
   crypto/x16r/sph_skein.h \
