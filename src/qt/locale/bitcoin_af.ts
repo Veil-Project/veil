@@ -1876,7 +1876,7 @@
     </message>
     </context>
 <context>
-    <name>veil</name>
+    <name>bitcoin</name>
     <message>
         <source>Veil</source>
         <translation>Veil</translation>
