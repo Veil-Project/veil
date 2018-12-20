@@ -3442,19 +3442,19 @@ ROUND_FUN(whirlpool1, old1)
 
 #define RFUN   whirlpool_round
 #define HASH   whirlpool
-#include "crypto/x16r/md_helper.c"
+#include "veil/src/crypto/x16r/md_helper.c"
 #undef RFUN
 #undef HASH
 
 #define RFUN   whirlpool0_round
 #define HASH   whirlpool0
-#include "crypto/x16r/md_helper.c"
+#include "veil/src/crypto/x16r/md_helper.c"
 #undef RFUN
 #undef HASH
 
 #define RFUN   whirlpool1_round
 #define HASH   whirlpool1
-#include "crypto/x16r/md_helper.c"
+#include "veil/src/crypto/x16r/md_helper.c"
 #undef RFUN
 #undef HASH
 
