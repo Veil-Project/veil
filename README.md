@@ -8,15 +8,15 @@ https://veil-project.com
 What is Veil?
 ----------------
 
-Veil is an experimental digital currency that enables instant payments to
-anyone, anywhere in the world. Veil uses peer-to-peer technology to operate
-with no central authority: managing transactions and issuing money are carried
-out collectively by the network. Veil is the name of open source
-software which enables the use of this currency.
+Veil is a cryptocurrency intending to set a new standard in the space of privacy-focused networks. Combining the Zerocoin protocol with RingCT, Veil provides always-on anonymity. Dandelion and Bulletproofs provide for enhanced privacy and decreased data size, respectively, for its network transactions. 
 
-For more information, as well as an immediately useable, binary version of
-the Bitcoin Core software, see https://veil-project.com/get-started/, or read the
-[original specs](https://veil-project.com/specs/).
+Hybrid Proof-of-Work and Proof-of-Stake consensus during its first year provide for fair coin distribution (i.e. no pre-mines or ICOs), highly distributed security, and the opportunity Veil users to earn yield through staking rewards. An enhanced hashing algorithm evolved from X16R—called X16RT—provides additional support for fair distribution through enhanced protection against FPGAs.
+
+Finally, network-encoded budgeting for both operations and a dedicated research & development entity, known as Veil Labs, ensures the internal funding necessary for long-term sustainability.
+
+More information about the Veil Project—including the project roadmap, news, detailed specifications and team member bios—can be found at the project website:
+
+[https://www.veil-project.com](https://www.veil-project.com)
 
 License
 -------
@@ -64,11 +64,6 @@ not straightforward.
 Translations
 ------------
 
-Changes to translations as well as new translations can be submitted to
-[Veil-Project's Transifex page](https://www.transifex.com/veil-project/).
+Translations will be generated through integration with Transifex, i.e. periodically pulled from the Transifex platform, and merged into the git repository. Details of the translation process will be added to this page once integration is complete.
 
-Translations are periodically pulled from Transifex and merged into the git repository. See the
-[translation process](doc/translation_process.md) for details on how this works.
-
-**Important**: We do not accept translation changes as GitHub pull requests because the next
-pull from Transifex would automatically overwrite them again.
+Important: We can not accept translation changes as pull requests, as subsequent pulls from Transifex would automatically overwrite them.
