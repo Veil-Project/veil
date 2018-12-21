@@ -30,6 +30,11 @@ bool COutputRecord::IsReceive() const
     return nFlags & ORF_OWN_ANY;
 }
 
+bool COutputRecord::IsChange() const
+{
+    return nFlags & ORF_CHANGE;
+}
+
 bool COutputRecord::IsSend() const
 {
     if (IsReceive())

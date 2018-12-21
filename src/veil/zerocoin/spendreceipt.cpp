@@ -4,15 +4,29 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <veil/zerocoin/spendreceipt.h>
+#include <veil/ringct/transactionrecord.h>
 
 void CZerocoinSpendReceipt::AddSpend(const CZerocoinSpend& spend)
 {
-    vSpends.emplace_back(spend);
+    int n = vtx.size();
+    if (!mapSpends.count(n))
+        mapSpends.emplace(n, std::vector<CZerocoinSpend>());
+    mapSpends.at(n).emplace_back(spend);
 }
 
-std::vector<CZerocoinSpend> CZerocoinSpendReceipt::GetSpends()
+std::vector<CZerocoinSpend> CZerocoinSpendReceipt::GetSpends(int n)
 {
-    return vSpends;
+    if (!mapSpends.count(n))
+        return std::vector<CZerocoinSpend>();
+    return mapSpends.at(n);
+}
+
+std::vector<CZerocoinSpend> CZerocoinSpendReceipt::GetSpends_back()
+{
+    int n = vtx.size();
+    if (!mapSpends.count(n))
+        return std::vector<CZerocoinSpend>();
+    return mapSpends.at(n);
 }
 
 void CZerocoinSpendReceipt::SetStatus(std::string strStatus, int nStatus, int nNeededSpends)
@@ -22,22 +36,21 @@ void CZerocoinSpendReceipt::SetStatus(std::string strStatus, int nStatus, int nN
     this->nNeededSpends = nNeededSpends;
 }
 
+CTransactionRecord CZerocoinSpendReceipt::GetTransactionRecord(const int n) const
+{
+    if (!mapRecords.count(n))
+        return CTransactionRecord();
+    return mapRecords.at(n);
+}
+
+void CZerocoinSpendReceipt::AddTransaction(CTransactionRef& txRef, const CTransactionRecord& rtx)
+{
+    auto n = vtx.size();
+    mapRecords.emplace(n, rtx);
+    vtx.emplace_back(txRef);
+}
+
 std::string CZerocoinSpendReceipt::GetStatusMessage()
 {
     return strStatusMessage;
-}
-
-int CZerocoinSpendReceipt::GetStatus()
-{
-    return nStatus;
-}
-
-int CZerocoinSpendReceipt::GetNeededSpends()
-{
-    return nNeededSpends;
-}
-
-void CZerocoinSpendReceipt::AddTempRecipient(const CTempRecipient& rec)
-{
-    vRecipients.emplace_back(rec);
 }

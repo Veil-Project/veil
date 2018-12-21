@@ -30,6 +30,7 @@ public:
         fSplitBlindOutput = false;
         fExemptFeeSub = false;
         fZerocoin = false;
+        fZerocoinMint = false;
     };
 
     void SetAmount(CAmount nValue)
@@ -47,6 +48,7 @@ public:
     bool fSplitBlindOutput;
     bool fExemptFeeSub;         // Value too low to sub fee when blinded value split into two outputs
     bool fZerocoin;
+    bool fZerocoinMint;
     CTxDestination address;
     CScript scriptPubKey;
     std::vector<uint8_t> vData;
