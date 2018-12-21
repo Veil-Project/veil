@@ -141,6 +141,8 @@ bool AnonWallet::Initialise(CExtKey* pExtMaster)
                 return error("%s: failed to read masterkey id from db", __func__);
             if (!wdb.ReadNamedExtKeyId("defaultaccount", idDefaultAccount))
                 return error("%s: failed to read defaultaccount id from db", __func__);
+            if (!wdb.ReadNamedExtKeyId("stealthaccount", idStealthAccount))
+                return error("%s: failed to read stealthaccount id from db", __func__);
 
             // Load all accounts, keys, stealth addresses from db
             if (!LoadAccountCounters())
@@ -1293,7 +1295,7 @@ int AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::
     return 0;
 }
 
-void SetCTOutVData(std::vector<uint8_t> &vData, CPubKey &pkEphem, uint32_t nStealthPrefix)
+void SetCTOutVData(std::vector<uint8_t> &vData, const CPubKey &pkEphem, uint32_t nStealthPrefix)
 {
     vData.resize(nStealthPrefix > 0 ? 38 : 33);
 
@@ -1304,6 +1306,14 @@ void SetCTOutVData(std::vector<uint8_t> &vData, CPubKey &pkEphem, uint32_t nStea
     }
 
     return;
+}
+
+void CreateOutputRingCT(OUTPUT_PTR<CTxOutBase> &txbout, const CCmpPubKey& cmpPubKeyTo, const uint32_t& nStealthPrefix, const CPubKey& pkEphem)
+{
+    txbout = MAKE_OUTPUT<CTxOutRingCT>();
+    CTxOutRingCT *txout = (CTxOutRingCT*)txbout.get();
+    txout->pk = cmpPubKeyTo;
+    SetCTOutVData(txout->vData, pkEphem, nStealthPrefix);
 }
 
 int CreateOutput(OUTPUT_PTR<CTxOutBase> &txbout, CTempRecipient &r, std::string &sError)
@@ -1335,13 +1345,7 @@ int CreateOutput(OUTPUT_PTR<CTxOutBase> &txbout, CTempRecipient &r, std::string 
             break;
         case OUTPUT_RINGCT:
             {
-            txbout = MAKE_OUTPUT<CTxOutRingCT>();
-            CTxOutRingCT *txout = (CTxOutRingCT*)txbout.get();
-
-            txout->pk = r.pkTo;
-
-            CPubKey pkEphem = r.sEphem.GetPubKey();
-            SetCTOutVData(txout->vData, pkEphem, r.nStealthPrefix);
+                CreateOutputRingCT(txbout, r.pkTo, r.nStealthPrefix, r.sEphem.GetPubKey());
             }
             break;
         default:
@@ -1479,19 +1483,12 @@ static bool ExpandChangeAddress(AnonWallet *phdw, CTempRecipient &r, std::string
 
         int k, nTries = 24;
         for (k = 0; k < nTries; ++k) {
-            if (StealthSecret(r.sEphem, sx.scan_pubkey, sx.spend_pubkey, sShared, pkSendTo) == 0) {
+            if (StealthSecret(r.sEphem, sx.scan_pubkey, sx.spend_pubkey, sShared, pkSendTo) == 0)
                 break;
-            }
-            // if StealthSecret fails try again with new ephem key
-            /* TODO: Make optional
-            if (0 != pc->DeriveNextKey(sEphem, nChild, true))
-                return errorN(1, sError, __func__, "DeriveNextKey failed.");
-            */
             r.sEphem.MakeNewKey(true);
         }
-        if (k >= nTries) {
+        if (k >= nTries)
             return error("%s: Could not generate receiving public key.", __func__);
-        }
 
         CPubKey pkEphem = r.sEphem.GetPubKey();
         r.pkTo = CPubKey(pkSendTo);
@@ -1747,7 +1744,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 //If no change address is set, then generate a new stealth address to use for change
                 if (!coinControl || (coinControl && coinControl->destChange.type() == typeid(CNoDestination))) {
                     CStealthAddress stealthAddress;
-                    if (!NewStealthKeyFromAccount(idDefaultAccount, stealthAddress, 0, nullptr))
+                    if (!NewStealthKey(stealthAddress, 0, nullptr))
                         return error("%s: failed to generate stealth address to use for change", __func__);
                     r.address = stealthAddress;
                 }
@@ -2685,14 +2682,31 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
     }
 
     nFeeRet = 0;
-    CAmount nValue;
+    CAmount nValueOutAnon;
     size_t nSubtractFeeFromAmount;
-    bool fOnlyStandardOutputs, fSkipFee;
-    InspectOutputs(vecSend, fZerocoinInputs, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
+    bool fOnlyStandardOutputs;
+    bool fSkipFee;
+    InspectOutputs(vecSend, fZerocoinInputs, nValueOutAnon, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
 
-    if (0 != ExpandTempRecipients(vecSend, sError)) {
-        return 1; // sError is set
+    //Need count of zerocoin mint outputs in order to calculate fee correctly
+    int nZerocoinMintOuts = 0;
+    CAmount nValueOutZerocoin = 0;
+    CAmount nFeeZerocoin = 0;
+    for (auto& r : vecSend) {
+        if (r.fZerocoinMint) {
+            nZerocoinMintOuts++;
+            nValueOutZerocoin += r.nAmount;
+            nFeeZerocoin += Params().Zerocoin_MintFee();
+            //Zerocoin mints have to be exact amount, so not eligible to subtract fee
+            r.fExemptFeeSub = true;
+        }
     }
+    fSkipFee = fZerocoinInputs && nZerocoinMintOuts == 0;
+    //If output is going out as zerocoin, then it is being double counted and needs to be subtracted
+    nValueOutAnon -= nValueOutZerocoin;
+
+    if (0 != ExpandTempRecipients(vecSend, sError))
+        return error("%s: ExpendTempRecipients failed: %s", __func__, sError);
 
     wtx.fTimeReceivedIsTxTime = true;
     wtx.BindWallet(pwalletParent.get());
@@ -2707,13 +2721,13 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
     coinControl->fHaveAnonOutputs = true;
     FeeCalculation feeCalc;
     CAmount nFeeNeeded;
+    bool fAlreadyHaveInputs = fZerocoinInputs;
     unsigned int nBytes;
     {
         LOCK2(cs_main, pwalletParent->cs_wallet);
-
         std::vector<std::pair<MapRecords_t::const_iterator, unsigned int> > setCoins;
         std::vector<COutputR> vAvailableCoins;
-        if (!fZerocoinInputs)
+        if (!fAlreadyHaveInputs)
             AvailableAnonCoins(vAvailableCoins, true, coinControl);
 
         CAmount nValueOutPlain = 0;
@@ -2729,26 +2743,25 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
 
         // Start with no fee and loop until there is enough fee
         while (true) {
-            if (!fZerocoinInputs)
+            if (!fAlreadyHaveInputs)
                 txNew.vin.clear();
             txNew.vpout.clear();
             wtx.fFromMe = true;
 
-            CAmount nValueToSelect = nValue;
+            CAmount nValueToSelect = nValueOutAnon;
             if (nSubtractFeeFromAmount == 0) {
                 nValueToSelect += nFeeRet;
             }
 
             // Choose coins to use
-            if (!fZerocoinInputs && pick_new_inputs) {
+            if (!fAlreadyHaveInputs && pick_new_inputs) {
                 nValueIn = 0;
                 setCoins.clear();
-                if (!SelectBlindedCoins(vAvailableCoins, nValueToSelect, setCoins, nValueIn, coinControl)) {
-                    return wserrorN(1, sError, __func__, _("Insufficient funds."));
-                }
+                if (!SelectBlindedCoins(vAvailableCoins, nValueToSelect, setCoins, nValueIn, coinControl))
+                    return error("%s: Insufficient funds.", __func__);
             }
 
-            const CAmount nChange = nValueIn - nValueToSelect;
+            const CAmount nChange = nValueIn - nValueToSelect - nValueOutZerocoin;
 
             // Remove fee outputs from last round
             for (size_t i = 0; i < vecSend.size(); ++i) {
@@ -2768,16 +2781,15 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                 //If no change address is set, then generate a new stealth address to use for change
                 if (!coinControl || ((coinControl && coinControl->destChange.type() == typeid(CNoDestination)))) {
                     CStealthAddress stealthAddress;
-                    if (!NewStealthKeyFromAccount(idDefaultAccount, stealthAddress, 0, nullptr))
-                        return wserrorN(1, sError, __func__, ("failed to generate stealth address to use for change" + sError));
+                    if (!NewStealthKey(stealthAddress, 0, nullptr))
+                        return error("%s: failed to generate stealth address to use for change: %s", __func__, sError);
                     recipient.address = stealthAddress;
                 }
 
-                if (!SetChangeDest(coinControl, recipient, sError)) {
-                    return wserrorN(1, sError, __func__, ("SetChangeDest failed: " + sError));
-                }
+                if (!SetChangeDest(coinControl, recipient, sError))
+                    return error("%s: SetChangeDest failed: %s", __func__, sError);
 
-                if (nChange > ::minRelayTxFee.GetFee(2048)) { // TODO: better output size estimate
+                if ((fSkipFee && nChange) || nChange > ::minRelayTxFee.GetFee(2048)) { // TODO: better output size estimate
                     recipient.SetAmount(nChange);
                 } else {
                     recipient.SetAmount(0);
@@ -2793,7 +2805,8 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
 
             size_t nRemainingInputs = setCoins.size();
 
-            if (!fZerocoinInputs) {
+            //Add blank anon inputs as anon inputs
+            if (!fAlreadyHaveInputs) {
                 for (int k = 0; k < nTxRingSigs; ++k) {
                     size_t nInputs = (k == nTxRingSigs - 1 ? nRemainingInputs : nInputsPerSig);
                     CTxIn txin;
@@ -2812,7 +2825,6 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
             vMI.resize(nTxRingSigs);
             vInputBlinds.resize(nTxRingSigs);
             vSecretColumns.resize(nTxRingSigs);
-
             nValueOutPlain = 0;
             nChangePosInOut = -1;
 
@@ -2825,13 +2837,11 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
             for (size_t i = 0; i < vecSend.size(); ++i) {
                 auto &recipient = vecSend[i];
 
-                recipient.ApplySubFee(nFeeRet, nSubtractFeeFromAmount, fFirst);
+                if (!fSkipFee)
+                    recipient.ApplySubFee(nFeeRet, nSubtractFeeFromAmount, fFirst);
 
                 OUTPUT_PTR<CTxOutBase> txbout;
-
-                if (0 != CreateOutput(txbout, recipient, sError)) {
-                    return 1; // sError will be set
-                }
+                CreateOutput(txbout, recipient, sError);
 
                 if (recipient.nType == OUTPUT_STANDARD) {
                     nValueOutPlain += recipient.nAmount;
@@ -2843,24 +2853,21 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
 
                 recipient.n = txNew.vpout.size();
                 txNew.vpout.push_back(txbout);
-
                 if (recipient.nType == OUTPUT_CT || recipient.nType == OUTPUT_RINGCT) {
                     if (recipient.vBlind.size() != 32) {
                         recipient.vBlind.resize(32);
                         GetStrongRandBytes(&recipient.vBlind[0], 32);
                     }
 
-                    if (0 != AddCTData(txbout.get(), recipient, sError)) {
-                        return 1; // sError will be set
-                    }
+                    if (0 != AddCTData(txbout.get(), recipient, sError))
+                        return error("%s: failed to add CTDATA: %s", __func__, sError);
                 }
             }
 
-            if (!fZerocoinInputs) {
+            if (!fAlreadyHaveInputs) {
                 std::set<int64_t> setHave; // Anon prev-outputs can only be used once per transaction.
                 size_t nTotalInputs = 0;
-                for (size_t l = 0;
-                     l < txNew.vin.size(); ++l) { // Must add real outputs to setHave before picking decoys
+                for (size_t l = 0; l < txNew.vin.size(); ++l) { // Must add real outputs to setHave before picking decoys
                     auto &txin = txNew.vin[l];
                     uint32_t nSigInputs, nSigRingSize;
                     txin.GetAnonInfo(nSigInputs, nSigRingSize);
@@ -2872,10 +2879,9 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
 
                     if (0 != PlaceRealOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, vCoins, vInputBlinds[l],
                                               sError)) {
-                        return 1; // sError is set
+                        return error("%s: failed to place real inputs: %s", __func__, sError); // sError is set
                     }
                 }
-
 
                 // Fill in dummy signatures for fee calculation.
                 for (size_t l = 0; l < txNew.vin.size(); ++l) {
@@ -2883,9 +2889,8 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     uint32_t nSigInputs, nSigRingSize;
                     txin.GetAnonInfo(nSigInputs, nSigRingSize);
 
-                    if (0 != PickHidingOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, sError)) {
-                        return 1; // sError is set
-                    }
+                    if (0 != PickHidingOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, sError))
+                        return error("%s: failed to pick hiding outputs: %s", __func__, sError);
 
                     std::vector<uint8_t> vPubkeyMatrixIndices;
 
@@ -2907,64 +2912,73 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                 }
             }
 
+            if (fSkipFee) {
+                nFeeNeeded = 0;
+                nFeeRet = 0;
+                std::vector<uint8_t> &vData = ((CTxOutData*)txNew.vpout[0].get())->vData;
+                vData.resize(1);
+                if (0 != PutVarInt(vData, 0))
+                    return error("%s: failed to add CTFee of 0 to transaction", __func__);
+                break;
+            }
+
             nBytes = GetVirtualTransactionSize(txNew);
 
             nFeeNeeded = GetMinimumFee(*pwalletParent, nBytes, *coinControl, ::mempool, ::feeEstimator, &feeCalc);
+            if (nFeeZerocoin)
+                nFeeNeeded = std::max(nFeeNeeded, nFeeZerocoin);
 
             // If we made it here and we aren't even able to meet the relay fee on the next pass, give up
             // because we must be at the maximum allowed fee.
-            if (nFeeNeeded < ::minRelayTxFee.GetFee(nBytes)) {
-                return wserrorN(1, sError, __func__, _("Transaction too large for fee policy."));
-            }
+            if (!fSkipFee && nFeeNeeded < ::minRelayTxFee.GetFee(nBytes))
+                return error("%s:Transaction too large for fee policy.", __func__);
+            if (!fSkipFee) {
+                if (nFeeRet >= nFeeNeeded) {
+                    // Reduce fee to only the needed amount if possible. This
+                    // prevents potential overpayment in fees if the coins
+                    // selected to meet nFeeNeeded result in a transaction that
+                    // requires less fee than the prior iteration.
+                    if (nFeeRet > nFeeNeeded && nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
+                        auto &r = vecSend[nChangePosInOut];
 
-            if (nFeeRet >= nFeeNeeded) {
-                // Reduce fee to only the needed amount if possible. This
-                // prevents potential overpayment in fees if the coins
-                // selected to meet nFeeNeeded result in a transaction that
-                // requires less fee than the prior iteration.
-                if (nFeeRet > nFeeNeeded && nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
+                        CAmount extraFeePaid = nFeeRet - nFeeNeeded;
+
+                        r.nAmount += extraFeePaid;
+                        nFeeRet -= extraFeePaid;
+                    }
+                    break; // Done, enough fee included.
+                } else if (!pick_new_inputs) {
+                    // This shouldn't happen, we should have had enough excess
+                    // fee to pay for the new output and still meet nFeeNeeded
+                    // Or we should have just subtracted fee from recipients and
+                    // nFeeNeeded should not have changed
+
+                    if (!nSubtractFeeFromAmount || !(--nSubFeeTries))
+                        return error("%s: Transaction fee and change calculation failed.", __func__);
+                }
+
+                // Try to reduce change to include necessary fee
+                if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
                     auto &r = vecSend[nChangePosInOut];
-
-                    CAmount extraFeePaid = nFeeRet - nFeeNeeded;
-
-                    r.nAmount += extraFeePaid;
-                    nFeeRet -= extraFeePaid;
+                    CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
+                    if (r.nAmount >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
+                        r.nAmount -= additionalFeeNeeded;
+                        nFeeRet += additionalFeeNeeded;
+                        break; // Done, able to increase fee from change
+                    }
                 }
-                break; // Done, enough fee included.
-            } else if (!pick_new_inputs) {
-                // This shouldn't happen, we should have had enough excess
-                // fee to pay for the new output and still meet nFeeNeeded
-                // Or we should have just subtracted fee from recipients and
-                // nFeeNeeded should not have changed
 
-                if (!nSubtractFeeFromAmount || !(--nSubFeeTries)) { // rangeproofs can change size per iteration
-                    return wserrorN(1, sError, __func__, _("Transaction fee and change calculation failed."));
+                // If subtracting fee from recipients, we now know what fee we
+                // need to subtract, we have no reason to reselect inputs
+                if (nSubtractFeeFromAmount > 0) {
+                    pick_new_inputs = false;
                 }
+
+                // Include more fee and try again.
+                nFeeRet = nFeeNeeded;
             }
-
-            if (fSkipFee)
-                break;
-
-            // Try to reduce change to include necessary fee
-            if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
-                auto &r = vecSend[nChangePosInOut];
-
-                CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
-                if (r.nAmount >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
-                    r.nAmount -= additionalFeeNeeded;
-                    nFeeRet += additionalFeeNeeded;
-                    break; // Done, able to increase fee from change
-                }
-            }
-
-            // If subtracting fee from recipients, we now know what fee we
-            // need to subtract, we have no reason to reselect inputs
-            if (nSubtractFeeFromAmount > 0) {
-                pick_new_inputs = false;
-            }
-
-            // Include more fee and try again.
-            nFeeRet = nFeeNeeded;
+            if (fZerocoinInputs)
+                return error("%s: not able to calculate fee!", __func__);
         }
 
         coinControl->nChangePos = nChangePosInOut;
@@ -3002,18 +3016,16 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
             if ((int)i == nChangePosInOut) {
                 // Change amount may have changed
 
-                if (r.nType != OUTPUT_RINGCT) {
-                    return wserrorN(1, sError, __func__, "nChangePosInOut not anon.");
-                }
+                if (r.nType != OUTPUT_RINGCT)
+                    return error("%s: nChangePosInOut not anon.", __func__);
 
                 if (r.vBlind.size() != 32) {
                     r.vBlind.resize(32);
                     GetStrongRandBytes(&r.vBlind[0], 32);
                 }
 
-                if (0 != AddCTData(txNew.vpout[r.n].get(), r, sError)) {
-                    return 1; // sError will be set
-                }
+                if (0 != AddCTData(txNew.vpout[r.n].get(), r, sError))
+                    return error("%s: failed to add CTDATA for change output: %s", __func__, sError);
             }
 
             if (r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT) {
@@ -3022,12 +3034,11 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
             }
         }
 
-
+        //Add actual fee to CT Fee output
         std::vector<uint8_t> &vData = ((CTxOutData*)txNew.vpout[0].get())->vData;
         vData.resize(1);
-        if (0 != PutVarInt(vData, nFeeRet)) {
-            return werrorN(1, "%s: PutVarInt %d failed\n", __func__, nFeeRet);
-        }
+        if (0 != PutVarInt(vData, nFeeRet))
+            return error("%s: PutVarInt %d failed\n", __func__, nFeeRet);
 
         if (!fZerocoinInputs && sign) {
             std::vector<CKey> vSplitCommitBlindingKeys(txNew.vin.size()); // input amount commitment when > 1 mlsag
@@ -3048,21 +3059,17 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     int64_t nIndex = vMI[l][k][i];
 
                     CAnonOutput anonOutput;
-                    if (!pblocktree->ReadRCTOutput(nIndex, anonOutput)) {
-                        return wserrorN(1, sError, __func__, _("Anon output not found in db, %d"), nIndex);
-                    }
+                    if (!pblocktree->ReadRCTOutput(nIndex, anonOutput))
+                        return error("%s: Anon output not found in db, %d", __func__, nIndex);
 
                     CKeyID idk = anonOutput.pubkey.GetID();
                     CKey key;
                     if (!GetKey(idk, key))
-                        return wserrorN(1, sError, __func__, _("No key for anonoutput, %s"), HexStr(anonOutput.pubkey.begin(),
-                                anonOutput.pubkey.end()));
+                        return error("%s: No key for anonoutput, %s", __func__, HexStr(anonOutput.pubkey.begin(), anonOutput.pubkey.end()));
 
                     // Keyimage is required for the tx hash
-                    if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], anonOutput.pubkey.begin(),
-                            key.begin()))) {
-                        return wserrorN(1, sError, __func__, _("secp256k1_get_keyimage failed %d"), rv);
-                    }
+                    if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], anonOutput.pubkey.begin(), key.begin())))
+                        return error("%s: secp256k1_get_keyimage failed %d", __func__, rv);
                 }
             }
 
@@ -3130,9 +3137,10 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     vDL.resize((1 + (nSigInputs+1) * nSigRingSize) * 32); // extra element for C, extra row for commitment row
                     vpBlinds.insert(vpBlinds.end(), vpOutBlinds.begin(), vpOutBlinds.end());
 
-                    if (0 != (rv = secp256k1_prepare_mlsag(&vm[0], blindSum, vpOutCommits.size(), vpOutCommits.size(),
-                            nCols, nRows, &vpInCommits[0], &vpOutCommits[0], &vpBlinds[0]))) {
-                        return wserrorN(1, sError, __func__, _("secp256k1_prepare_mlsag failed %d"), rv);
+                    if (0 != (rv = secp256k1_prepare_mlsag(&vm[0], blindSum,
+                        vpOutCommits.size(), vpOutCommits.size(), nCols, nRows,
+                        &vpInCommits[0], &vpOutCommits[0], &vpBlinds[0]))) {
+                        return error("%s: secp256k1_prepare_mlsag failed %d", __func__, rv);
                     }
                 } else {
                     vDL.resize((1 + (nSigInputs+1) * nSigRingSize) * 32 + 33); // extra element for C extra, extra row for commitment row, split input commitment
@@ -3144,9 +3152,10 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                             vpAllBlinds.push_back(vSplitCommitBlindingKeys[k].begin());
                         }
 
-                        if (!secp256k1_pedersen_blind_sum(secp256k1_ctx_blind, vSplitCommitBlindingKeys[l].begin_nc(),
-                                &vpAllBlinds[0], vpAllBlinds.size(), vpOutBlinds.size())) {
-                            return wserrorN(1, sError, __func__, "secp256k1_pedersen_blind_sum failed.");
+                        if (!secp256k1_pedersen_blind_sum(secp256k1_ctx_blind,
+                            vSplitCommitBlindingKeys[l].begin_nc(), &vpAllBlinds[0],
+                            vpAllBlinds.size(), vpOutBlinds.size())) {
+                            return error("%s: secp256k1_pedersen_blind_sum failed.", __func__);
                         }
                     } else {
                         vSplitCommitBlindingKeys[l].MakeNewKey(true);
@@ -3173,9 +3182,10 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
 
                     vpBlinds.emplace_back(vSplitCommitBlindingKeys[l].begin());
                     const uint8_t *pSplitCommit = splitInputCommit.data;
-                    if (0 != (rv = secp256k1_prepare_mlsag(&vm[0], blindSum, 1, 1, nCols, nRows, &vpInCommits[0],
-                            &pSplitCommit, &vpBlinds[0]))) {
-                        return wserrorN(1, sError, __func__, _("secp256k1_prepare_mlsag failed %d"), rv);
+                    if (0 != (rv = secp256k1_prepare_mlsag(&vm[0], blindSum,
+                        1, 1, nCols, nRows,
+                        &vpInCommits[0], &pSplitCommit, &vpBlinds[0]))) {
+                        return error("%s: secp256k1_prepare_mlsag failed %d", __func__, rv);
                     }
 
                     vpBlinds.pop_back();
@@ -3183,16 +3193,16 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
 
                 uint256 hashOutputs = txNew.GetOutputsHash();
                 if (0 != (rv = secp256k1_generate_mlsag(secp256k1_ctx_blind, &vKeyImages[0], &vDL[0], &vDL[32],
-                    randSeed, hashOutputs.begin(), nCols, nRows, vSecretColumns[l], &vpsk[0], &vm[0]))) {
-                    return wserrorN(1, sError, __func__, _("secp256k1_generate_mlsag failed %d"), rv);
+                    randSeed, hashOutputs.begin(), nCols, nRows, vSecretColumns[l],
+                    &vpsk[0], &vm[0]))) {
+                    return error("%s: secp256k1_generate_mlsag failed %d", __func__, rv);
                 }
 
                 // Validate the mlsag
                 if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind, hashOutputs.begin(), nCols, nRows, &vm[0], &vKeyImages[0], &vDL[0], &vDL[32])))
-                    return wserrorN(1, sError, __func__, _("secp256k1_verify_mlsag failed on initial generation %d"), rv);
+                    return error("%s: secp256k1_verify_mlsag failed on initial generation %d", __func__, rv);
             }
         }
-
 
         rtx.nFee = nFeeRet;
         AddOutputRecordMetaData(rtx, vecSend);
@@ -3203,7 +3213,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
     } // cs_main, pwalletParent->cs_wallet
 
     if (0 != PreAcceptMempoolTx(wtx, sError)) {
-        return 1;
+        return error("%s: preaccept mempool failed", __func__);
     }
 
     LogPrintf("Fee Calculation: Fee:%d Bytes:%u Needed:%d Tgt:%d (requested %d) Reason:\"%s\" Decay %.5f: Estimation: (%g - %g) %.2f%% %.1f/(%.1f %d mem %.1f out) Fail: (%g - %g) %.2f%% %.1f/(%.1f %d mem %.1f out)\n",
@@ -3214,7 +3224,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
               feeCalc.est.fail.start, feeCalc.est.fail.end,
               100 * feeCalc.est.fail.withinTarget / (feeCalc.est.fail.totalConfirmed + feeCalc.est.fail.inMempool + feeCalc.est.fail.leftMempool),
               feeCalc.est.fail.withinTarget, feeCalc.est.fail.totalConfirmed, feeCalc.est.fail.inMempool, feeCalc.est.fail.leftMempool);
-    return 0;
+    return true;
 }
 
 int AnonWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
@@ -3233,7 +3243,7 @@ int AnonWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vect
         }
     }
 
-    if (0 != AddAnonInputs_Inner(wtx, rtx, vecSend, sign, nRingSize, nSigs, nFeeRet, coinControl, sError, fZerocoinInputs, nInputValue)) {
+    if (!AddAnonInputs_Inner(wtx, rtx, vecSend, sign, nRingSize, nSigs, nFeeRet, coinControl, sError, fZerocoinInputs, nInputValue)) {
         return 1;
     }
 
@@ -3251,7 +3261,7 @@ bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
     if (!SetMasterKey(extKeyMaster))
         return error("%s: failed to set master key", __func__);
 
-    //Derive the default account
+    /** Derive the default account**/
     BIP32Path vPathDefaultAccount;
     vPathDefaultAccount.emplace_back(1, true);
     CExtKey keyDefaultAccount = DeriveKeyFromPath(*pkeyMaster, vPathDefaultAccount);
@@ -3265,7 +3275,21 @@ bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
     wdb.WriteAccountCounter(idDefaultAccount, (uint32_t)1);
     wdb.WriteNamedExtKeyId("defaultaccount", idDefaultAccount);
 
+    /** Derive the stealth account**/
+    BIP32Path vPathStealthAccount;
+    vPathStealthAccount.emplace_back(2, true);
+    CExtKey keyStealthAccount = DeriveKeyFromPath(*pkeyMaster, vPathStealthAccount);
+    //Add stealth account to anon wallet state, start at 1
+    idStealthAccount = keyStealthAccount.key.GetPubKey().GetID();
+    mapAccountCounter.emplace(idStealthAccount, 1);
+
+    mapKeyPaths.emplace(idStealthAccount, std::make_pair(idMaster, vPathStealthAccount));
+    wdb.WriteExtKey(idMaster, idStealthAccount, vPathStealthAccount);
+    wdb.WriteAccountCounter(idStealthAccount, (uint32_t)1);
+    wdb.WriteNamedExtKeyId("stealthaccount", idStealthAccount);
+
     LogPrintf("%s: Default account %s\n", __func__, idDefaultAccount.GetHex());
+    LogPrintf("%s: Stealth account %s\n", __func__, idStealthAccount.GetHex());
     LogPrintf("%s: Master account %s\n", __func__, idMaster.GetHex());
 
     if (!wdb.TxnCommit())
@@ -3364,6 +3388,40 @@ bool AnonWallet::LoadAccountCounters()
 
 bool AnonWallet::RegenerateKey(const CKeyID& idKey, CKey& key) const
 {
+    CExtKey keyTemp;
+    if (!RegenerateExtKey(idKey, keyTemp))
+        return false;
+    key = keyTemp.key;
+    return true;
+}
+
+bool AnonWallet::RegenerateAccountExtKey(const CKeyID& idAccount, CExtKey& keyAccount) const
+{
+    if (IsLocked())
+        return error("%s Wallet must be unlocked to derive hardened keys.", __func__);
+
+    if (!mapKeyPaths.count(idAccount))
+        return error("%s: cannot locate keyid %s", __func__, idAccount.GetHex());
+
+    CKeyID idAccountParent = mapKeyPaths.at(idAccount).first;
+    bool fMasterAccount = idAccountParent == idMaster;
+    if (!mapKeyPaths.count(idAccountParent) && !fMasterAccount)
+        return error("%s: Cannot find keypath for account %s", __func__, idAccountParent.GetHex());
+    BIP32Path vPathAccount = mapKeyPaths.at(idAccount).second;
+
+    if (!fMasterAccount) {
+        CExtKey keyParent;
+        if (!RegenerateAccountExtKey(idAccountParent, keyParent))
+            return error("%s: FIXME, could not regenerate account key", __func__);
+        keyAccount = DeriveKeyFromPath(keyParent, vPathAccount);
+    } else {
+        keyAccount = DeriveKeyFromPath(*pkeyMaster, vPathAccount);
+    }
+    return keyAccount.key.GetPubKey().GetID() == idAccount;
+}
+
+bool AnonWallet::RegenerateExtKey(const CKeyID& idKey, CExtKey& extkey) const
+{
     if (IsLocked())
         return error("%s Wallet must be unlocked to derive hardened keys.", __func__);
 
@@ -3371,55 +3429,46 @@ bool AnonWallet::RegenerateKey(const CKeyID& idKey, CKey& key) const
         return error("%s: cannot locate keyid %s", __func__, idKey.GetHex());
 
     CKeyID idAccountFrom = mapKeyPaths.at(idKey).first;
-    if (!mapKeyPaths.count(idAccountFrom))
-        return error("%s: cannot locate account %s\n", __func__, idAccountFrom.GetHex());
-    CKeyID idAccountParent = mapKeyPaths.at(idAccountFrom).first;
-    BIP32Path vPathAccount = mapKeyPaths.at(idAccountFrom).second;
+    if (idAccountFrom == idKey)
+        return error("%s: keyid:%s matches accountid:%s", __func__, idKey.GetHex(), idAccountFrom.GetHex());
 
-    // Here we assume that every account is generated from the master. Easily changed to be expanded in the future.
-    if (idAccountParent != pkeyMaster->key.GetPubKey().GetID())
-        return error("%s: Account parent key is not master! FIXME", __func__);
-
-    // Regenerate account key first
-    CExtKey keyAccount = DeriveKeyFromPath(*pkeyMaster, vPathAccount);
-    BIP32Path vChildPath = mapKeyPaths.at(idKey).second;
+    CExtKey keyAccount;
+    if (!RegenerateAccountExtKey(idAccountFrom, keyAccount))
+        return error("%s: failed to regenerate account %s", __func__, idAccountFrom.GetHex());
 
     // Regenerate child key
-    CExtKey keyNew = DeriveKeyFromPath(keyAccount, vChildPath);
-    key = keyNew.key;
-
-    return idKey == key.GetPubKey().GetID();
+    BIP32Path vChildPath = mapKeyPaths.at(idKey).second;
+    extkey = DeriveKeyFromPath(keyAccount, vChildPath);
+    return idKey == extkey.key.GetPubKey().GetID();
 }
 
 bool AnonWallet::NewKeyFromAccount(const CKeyID &idAccount, CKey& key)
+{
+    CExtKey keyTemp;
+    return NewExtKeyFromAccount(idAccount, keyTemp, key);
+}
+
+bool AnonWallet::NewExtKeyFromAccount(const CKeyID& idAccount, CExtKey& keyDerive, CKey& key)
 {
     if (IsLocked())
         return error("%s Wallet must be unlocked to derive hardened keys.", __func__);
 
     // Double check the account is being tracked
-    auto mi = mapKeyPaths.find(idAccount);
-    if (mi == mapKeyPaths.end())
-        return error("%s Unknown account.", __func__);
-    auto miAccount = mapAccountCounter.find(idAccount);
-    if (miAccount == mapAccountCounter.end())
+    if (!mapAccountCounter.count(idAccount))
         return error("%s Account id not in map of account counters.", __func__);
 
-    // Regenerate account key
-    BIP32Path vPathAccount = mi->second.second;
-    CKeyID idAccountParent = mi->second.first;
-
-    // Here we assume that every account is generated from the master. Easily changed to be expanded in the future.
-    if (idAccountParent != pkeyMaster->key.GetPubKey().GetID())
-        return error("%s: Account parent key is not master! FIXME", __func__);
-    CExtKey keyAccount = DeriveKeyFromPath(*pkeyMaster, vPathAccount);
+    CExtKey keyAccount;
+    if (!RegenerateAccountExtKey(idAccount, keyAccount))
+        return error("%s: failed to regenerate account ext key. ID=%s", __func__, idAccount.GetHex());
 
     BIP32Path vPathNew;
-    vPathNew.emplace_back(miAccount->second++, true);
-    CExtKey keyNew = DeriveKeyFromPath(keyAccount, vPathNew);
+    auto count = mapAccountCounter.at(idAccount)++;
+    vPathNew.emplace_back(count, true);
+    keyDerive = DeriveKeyFromPath(keyAccount, vPathNew);
 
     LOCK(pwalletParent->cs_wallet);
     AnonWalletDB wdb(*walletDatabase, "r+");
-    key = keyNew.key;
+    key = keyDerive.key;
     CKeyID idNew = key.GetPubKey().GetID();
 
     //Record the new key meta data to disk
@@ -3428,24 +3477,49 @@ bool AnonWallet::NewKeyFromAccount(const CKeyID &idAccount, CKey& key)
     //Flush the new key meta data to disk
     if (!wdb.WriteExtKey(idAccount, idNew, vPathNew))
         return error("%s Failed to write new key to disk", __func__);
+    if (!wdb.WriteAccountCounter(idAccount, count))
+        return error("%s Failed to write account counter to disk", __func__);
 
     return true;
 }
 
-bool AnonWallet::NewStealthKeyFromAccount(const CKeyID &idAccount, CStealthAddress& stealthAddress, uint32_t nPrefixBits,
+bool AnonWallet::CreateAccountWithKey(const CExtKey& key)
+{
+    CKeyID idAccount = key.key.GetPubKey().GetID();
+    if (!mapKeyPaths.count(idAccount))
+        return error("%s: keyid is not in mapkeypaths but should be before creating an account", __func__);
+    mapAccountCounter.emplace(idAccount, 1);
+
+    LOCK(pwalletParent->cs_wallet);
+    AnonWalletDB wdb(*walletDatabase, "r+");
+    wdb.WriteAccountCounter(idAccount, (uint32_t)1);
+
+    auto idParent = mapKeyPaths.at(idAccount).first;
+
+    return true;
+}
+
+bool AnonWallet::NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefixBits,
         const char *pPrefix)
 {
     // Scan secrets must be stored uncrypted - always derive hardened keys
     if (IsLocked())
         return error("%s Wallet must be unlocked to derive hardened keys.", __func__);
 
-    // Generate two new keys
-    CKey keyScan, keySpend;
-    if (!NewKeyFromAccount(idDefaultAccount, keyScan))
-        return error("%s: failed to generate key1", __func__);
+    // Generate a new account that is only used to generate the two keys for this stealth address
+    CExtKey keyStealthAddress;
+    CKey key;
+    if (!NewExtKeyFromAccount(idStealthAccount, keyStealthAddress, key))
+        return error("%s: failed to generate stealth account key", __func__);
+    if (!CreateAccountWithKey(keyStealthAddress))
+        return error("%s: failed to create account for stealthkey", __func__);
 
-    if (!NewKeyFromAccount(idDefaultAccount, keySpend))
+    CKeyID idKey = keyStealthAddress.key.GetPubKey().GetID();
+    CKey keyScan, keySpend;
+    if (!NewKeyFromAccount(idKey, keyScan))
         return error("%s: failed to generate key1", __func__);
+    if (!NewKeyFromAccount(idKey, keySpend))
+        return error("%s: failed to generate key2", __func__);
 
     uint32_t nPrefix = 0;
     if (pPrefix) {

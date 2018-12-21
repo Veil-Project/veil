@@ -38,7 +38,7 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
     interfaces::WalletBalances balances = wallet.getBalances();
     int unit = walletModel->getOptionsModel()->getDisplayUnit();
     ui->labelZVeilBalance->setText(BitcoinUnits::formatWithUnit(unit, balances.zerocoin_balance, false, BitcoinUnits::separatorAlways));
-    ui->labelConvertable->setText(BitcoinUnits::formatWithUnit(unit, balances.balance, false, BitcoinUnits::separatorAlways));
+    ui->labelConvertable->setText(BitcoinUnits::formatWithUnit(unit, balances.basecoin_balance, false, BitcoinUnits::separatorAlways));
 
     switch (nPreferredDenom){
         case 10:

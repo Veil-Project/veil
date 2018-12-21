@@ -503,9 +503,9 @@ public:
         BalanceList walletBalances;
         m_wallet.GetBalances(walletBalances);
 
-        result.balance = walletBalances.nVeil;
-        result.unconfirmed_balance = walletBalances.nVeilUnconf;
-        result.immature_balance = walletBalances.nVeilImmature;
+        result.basecoin_balance = walletBalances.nVeil;
+        result.basecoin_unconfirmed_balance = walletBalances.nVeilUnconf;
+        result.basecoin_immature_balance = walletBalances.nVeilImmature;
         result.ct_balance = walletBalances.nCT;
         result.ct_unconfirmed_balance = walletBalances.nCTUnconf;
         result.ct_immature_balance = walletBalances.nCTImmature;
@@ -521,6 +521,13 @@ public:
             result.unconfirmed_watch_only_balance = walletBalances.nVeilWatchOnlyUnconf;
             result.immature_watch_only_balance = m_wallet.GetImmatureWatchOnlyBalance();
         }
+
+        result.total_balance = result.basecoin_balance + result.ct_balance + result.ring_ct_balance + result.zerocoin_balance;
+        result.total_immature_balance = result.basecoin_immature_balance + result.ct_immature_balance +
+                result.ring_ct_immature_balance + result.zerocoin_immature_balance;
+        result.total_unconfirmed_balance = result.basecoin_unconfirmed_balance + result.ct_unconfirmed_balance +
+                result.ring_ct_unconfirmed_balance + result.zerocoin_unconfirmed_balance;
+
         return result;
     }
     bool tryGetBalances(WalletBalances& balances, int& num_blocks) override

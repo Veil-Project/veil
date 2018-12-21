@@ -487,9 +487,12 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
                 } else {
                     // Leave other errors alone, if we try to fix them we might make things worse.
                     fNoncriticalErrors = true; // ... but do warn the user there is something wrong.
+                    /*
                     if (strType == "tx")
                         // Rescan if there is a bad transaction record:
                         gArgs.SoftSetBoolArg("-rescan", true);
+                        */
+                    error("%s: Failed to read a transaction, restart with -rescan=1", __func__);
                 }
             }
             if (!strErr.empty())

@@ -98,7 +98,7 @@ static UniValue getnewaddress(const JSONRPCRequest &request)
     CEKAStealthKey akStealth;
     std::string sError;
     CStealthAddress stealthAddress;
-    if (!pAnonWallet->NewStealthKeyFromAccount(pAnonWallet->GetDefaultAccount(), stealthAddress, num_prefix_bits, sPrefix_num.empty() ? nullptr : sPrefix_num.c_str()))
+    if (!pAnonWallet->NewStealthKey(stealthAddress, num_prefix_bits, sPrefix_num.empty() ? nullptr : sPrefix_num.c_str()))
         throw JSONRPCError(RPC_WALLET_ERROR, _("NewStealthKeyFromAccount failed."));
 
     return stealthAddress.ToString(fBech32);
@@ -524,11 +524,11 @@ static const char *TypeToWord(OutputTypes type)
     switch (type)
     {
         case OUTPUT_STANDARD:
-            return "part";
+            return "basecoin";
         case OUTPUT_CT:
-            return "blind";
+            return "stealth";
         case OUTPUT_RINGCT:
-            return "anon";
+            return "ringct";
         default:
             break;
     }
@@ -560,9 +560,9 @@ static std::string SendHelp(std::shared_ptr<CWallet> pwallet, OutputTypes typeIn
     rv += ")\n";
 
     rv += "\nSend an amount of ";
-    rv += typeIn == OUTPUT_RINGCT ? "anon" : typeIn == OUTPUT_CT ? "blinded" : "";
-    rv += std::string(" part in a") + (typeOut == OUTPUT_RINGCT || typeOut == OUTPUT_CT ? " blinded" : "") + " payment to a given address"
-          + (typeOut == OUTPUT_CT ? " in anon part": "") + ".\n";
+    rv += typeIn == OUTPUT_RINGCT ? "ringct" : typeIn == OUTPUT_CT ? "stealth" : "";
+    rv += std::string(" veil in a") + (typeOut == OUTPUT_RINGCT || typeOut == OUTPUT_CT ? " stealth" : "") + " payment to a given address"
+          + (typeOut == OUTPUT_CT ? " in ringct veil": "") + ".\n";
 
     rv += HelpRequiringPassphrase(pwallet.get());
 
@@ -691,7 +691,7 @@ UniValue sendtypeto(const JSONRPCRequest &request)
     if (request.fHelp || request.params.size() < 3 || request.params.size() > 9)
         throw std::runtime_error(
                 "sendtypeto \"typein\" \"typeout\" [{address: , amount: , narr: , subfee:},...] (\"comment\" \"comment-to\" ringsize inputs_per_sig test_fee coin_control)\n"
-                "\nSend part to multiple outputs.\n"
+                "\nSend basecoin to multiple outputs.\n"
                 + HelpRequiringPassphrase(wallet.get()) +
                 "\nArguments:\n"
                 "1. \"typein\"          (string, required) basecoin/stealth/ringct\n"
@@ -727,7 +727,7 @@ UniValue sendtypeto(const JSONRPCRequest &request)
                 "\nResult:\n"
                 "\"txid\"              (string) The transaction id.\n"
                 "\nExamples:\n"
-                + HelpExampleCli("sendtypeto", "anon part \"[{\\\"address\\\":\\\"PbpVcjgYatnkKgveaeqhkeQBFwjqR7jKBR\\\",\\\"amount\\\":0.1}]\""));
+                + HelpExampleCli("sendtypeto", "ringct basecoin \"[{\\\"address\\\":\\\"PbpVcjgYatnkKgveaeqhkeQBFwjqR7jKBR\\\",\\\"amount\\\":0.1}]\""));
 
     std::string sTypeIn = request.params[0].get_str();
     std::string sTypeOut = request.params[1].get_str();
@@ -746,7 +746,7 @@ UniValue sendtypeto(const JSONRPCRequest &request)
     return SendToInner(req, typeIn, typeOut);
 }
 
-static UniValue createrawparttransaction(const JSONRPCRequest& request)
+static UniValue createrawbasecointransaction(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     if (!EnsureWalletIsAvailable(wallet.get(), request.fHelp))
@@ -754,7 +754,7 @@ static UniValue createrawparttransaction(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 4)
         throw std::runtime_error(
-                "createrawparttransaction [{\"txid\":\"id\",\"vout\":n},...] [{\"address\":amount,\"data\":\"hex\",...}] ( locktime replaceable \"fundfrombalance\" )\n"
+                "createrawbasecointransaction [{\"txid\":\"id\",\"vout\":n},...] [{\"address\":amount,\"data\":\"hex\",...}] ( locktime replaceable \"fundfrombalance\" )\n"
                 "\nCreate a transaction spending the given inputs and creating new confidential outputs.\n"
                 "Outputs can be addresses or data.\n"
                 "Returns hex-encoded raw transaction.\n"
@@ -806,10 +806,10 @@ static UniValue createrawparttransaction(const JSONRPCRequest& request)
                 "  \"amounts\"          (json) Coin values of outputs with blinding factors of blinded outputs.\n"
                 "}\n"
                 "\nExamples:\n"
-                + HelpExampleCli("createrawparttransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"{\\\"address\\\":0.01}\"")
-                + HelpExampleCli("createrawparttransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"{\\\"data\\\":\\\"00010203\\\"}\"")
-                + HelpExampleRpc("createrawparttransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"{\\\"address\\\":0.01}\"")
-                + HelpExampleRpc("createrawparttransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"{\\\"data\\\":\\\"00010203\\\"}\"")
+                + HelpExampleCli("createrawbasecointransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"{\\\"address\\\":0.01}\"")
+                + HelpExampleCli("createrawbasecointransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"{\\\"data\\\":\\\"00010203\\\"}\"")
+                + HelpExampleRpc("createrawbasecointransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"{\\\"address\\\":0.01}\"")
+                + HelpExampleRpc("createrawbasecointransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"{\\\"data\\\":\\\"00010203\\\"}\"")
         );
 
     EnsureWalletIsUnlocked(wallet.get());
@@ -900,10 +900,10 @@ static UniValue createrawparttransaction(const JSONRPCRequest& request)
             if (s == "standard") {
                 nType = OUTPUT_STANDARD;
             } else
-            if (s == "blind") {
+            if (s == "stealth") {
                 nType = OUTPUT_CT;
             } else
-            if (s == "anon") {
+            if (s == "ringct") {
                 nType = OUTPUT_RINGCT;
             } else
             if (s == "data") {
@@ -1842,7 +1842,6 @@ static const CRPCCommand commands[] =
                 //  --------------------- ------------------------            -----------------------         ----------
                 { "wallet",             "getnewaddress",             &getnewaddress,          {"label","num_prefix_bits","prefix_num","bech32","makeV2"} },
 
-                //sendparttopart // normal txn
                 { "wallet",             "sendbasecointostealth", &sendbasecointostealth,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
                 { "wallet",             "sendbasecointoringct", &sendbasecointoringct,                {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
 
@@ -1856,7 +1855,7 @@ static const CRPCCommand commands[] =
 
                 { "wallet",             "sendtypeto",                       &sendtypeto,                    {"typein","typeout","outputs","comment","comment_to","ringsize","inputs_per_sig","test_fee","coincontrol"} },
 
-                { "rawtransactions",    "createrawparttransaction",         &createrawparttransaction,      {"inputs","outputs","locktime","replaceable"} },
+                { "rawtransactions",    "createrawbasecointransaction", &createrawbasecointransaction,      {"inputs","outputs","locktime","replaceable"} },
                 { "rawtransactions",    "fundrawtransactionfrom",           &fundrawtransactionfrom,        {"input_type","hexstring","input_amounts","output_amounts","options"} },
                 { "rawtransactions",    "verifycommitment",                 &verifycommitment,              {"commitment","blind","amount"} },
                 { "rawtransactions",    "verifyrawtransaction",             &verifyrawtransaction,          {"hexstring","prevtxs","returndecoded"} },

@@ -294,9 +294,6 @@ bool CheckBlindOutput(CValidationState &state, const CTxOutCT *p)
 
 bool CheckAnonOutput(CValidationState &state, const CTxOutRingCT *p)
 {
-    if (Params().NetworkIDString() == "main")
-        return state.DoS(100, false, REJECT_INVALID, "AnonOutput in mainnet");
-
     if (p->vData.size() < 33 || p->vData.size() > 33 + 5)
         return state.DoS(100, false, REJECT_INVALID, "bad-rctout-ephem-size");
 
@@ -348,12 +345,15 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     CAmount nValueOut = 0;
     size_t nDataOutputs = 0;
     std::set<CBigNum> setPubCoin;
+    int nZerocoinMints = 0;
     for (const auto &txout : tx.vpout) {
         switch (txout->nVersion) {
             case OUTPUT_STANDARD: {
                 CBigNum bnPubCoin = 0;
                 if (!CheckStandardOutput(state, consensusParams, (CTxOutStandard*) txout.get(), nValueOut, bnPubCoin))
                     return false;
+                if (txout->IsZerocoinMint())
+                    nZerocoinMints++;
 
                 //Keep track of pubcoins so they can be checked for the same value being included twice in one tx
                 if (bnPubCoin != 0) {
@@ -491,7 +491,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         return state.DoS(100, false, REJECT_INVALID, "mixed-input-types");
 
     size_t nRingCTInputs = nRingCT;
-    // GetPlainValueOut adds to nStandard, nCt, nRingCT //todo double check zerocoinmint here
+    // GetPlainValueOut adds to nStandard, nCt, nRingCT
     CAmount nPlainValueOut = tx.GetPlainValueOut(nStandard, nCt, nRingCT);
     state.fHasAnonOutput = nRingCT > nRingCTInputs;
 
@@ -565,6 +565,16 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         if (rv != 1)
             return state.DoS(100, false, REJECT_INVALID, "bad-commitment-sum");
     }
+
+    int nZerocoinMints = 0;
+    for (const auto &txout : tx.vpout) {
+        if (txout->IsZerocoinMint())
+            nZerocoinMints++;
+    }
+
+    CAmount nFeeRequired = nZerocoinMints * ::Params().Zerocoin_MintFee();
+    if (txfee < nFeeRequired)
+        return state.DoS(100, error("%s: Low fee: required=%s paid=%s", __func__, FormatMoney(nFeeRequired), FormatMoney(txfee)), REJECT_INVALID, "low-zerocoinmint-fee");
 
     nValueOut = nPlainValueOut;
     return true;
