@@ -10,6 +10,7 @@
 #include "init.h"
 #include "ui_interface.h"
 #include "veil/zerocoin/zchain.h"
+#include "primitives/zerocoin.h"
 #include "shutdown.h"
 
 using namespace libzerocoin;
@@ -360,7 +361,7 @@ bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator
 
         uint256 txid;
         if (!pzerocoinDB->ReadCoinMint(coin.getValue(), txid))
-            return error("%s failed to read mint from db", __func__);
+            return error("%s failed to find mint %s in blockchain db", __func__, GetPubCoinHash(coin.getValue()).GetHex());
 
         CTransactionRef txMinted;
         uint256 hashBlock;
@@ -375,9 +376,6 @@ bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator
 
         //get the checkpoint added at the next multiple of 10
         int nHeightCheckpoint = nHeightMintAdded + (10 - (nHeightMintAdded % 10));
-
-        //the height to start accumulating coins to add to witness
-        int nAccStartHeight = nHeightMintAdded - (nHeightMintAdded % 10);
 
         //Get the accumulator that is right before the cluster of blocks containing our mint was added to the accumulator
         if (GetAccumulatorValue(nHeightCheckpoint, coin.getDenomination(), bnAccValue)) {

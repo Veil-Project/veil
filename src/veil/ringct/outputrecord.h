@@ -66,6 +66,7 @@ public:
     bool GetStealthID(CKeyID& idStealth) const;
     bool IsReceive() const;
     bool IsSend() const;
+    bool IsChange() const;
     CAmount GetAmount() const;
     void SetValue(const CAmount& nValue) { this->nValue = nValue; }
     CAmount GetRawValue() const { return nValue; }

@@ -337,14 +337,17 @@ struct WalletAddress
 //! Collection of wallet balances.
 struct WalletBalances
 {
-    CAmount balance = 0;
-    CAmount unconfirmed_balance = 0;
-    CAmount immature_balance = 0;
+    CAmount total_balance = 0;
+    CAmount total_unconfirmed_balance = 0;
+    CAmount total_immature_balance = 0;
     bool have_watch_only = false;
     CAmount watch_only_balance = 0;
     CAmount unconfirmed_watch_only_balance = 0;
     CAmount immature_watch_only_balance = 0;
 
+    CAmount basecoin_balance = 0;
+    CAmount basecoin_unconfirmed_balance = 0;
+    CAmount basecoin_immature_balance = 0;
     CAmount ct_balance = 0;
     CAmount ct_unconfirmed_balance = 0;
     CAmount ct_immature_balance = 0;
@@ -357,11 +360,13 @@ struct WalletBalances
 
     bool balanceChanged(const WalletBalances& prev) const
     {
-        return balance != prev.balance || unconfirmed_balance != prev.unconfirmed_balance ||
-               immature_balance != prev.immature_balance || watch_only_balance != prev.watch_only_balance ||
+        return total_balance != prev.total_balance || total_unconfirmed_balance != prev.total_unconfirmed_balance ||
+               total_immature_balance != prev.total_immature_balance || watch_only_balance != prev.watch_only_balance ||
                unconfirmed_watch_only_balance != prev.unconfirmed_watch_only_balance ||
                immature_watch_only_balance != prev.immature_watch_only_balance ||
-               ct_balance != prev.balance || ct_unconfirmed_balance != prev.ct_unconfirmed_balance ||
+               basecoin_balance != prev.basecoin_balance || basecoin_immature_balance != prev.basecoin_immature_balance ||
+               basecoin_unconfirmed_balance != prev.basecoin_unconfirmed_balance ||
+               ct_balance != prev.ct_balance || ct_unconfirmed_balance != prev.ct_unconfirmed_balance ||
                ct_immature_balance != prev.ct_immature_balance || ring_ct_balance != prev.ring_ct_balance ||
                ring_ct_unconfirmed_balance != prev.ring_ct_unconfirmed_balance ||
                ring_ct_immature_balance != prev.ring_ct_immature_balance || zerocoin_balance != prev.zerocoin_balance ||

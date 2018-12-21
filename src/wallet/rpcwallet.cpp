@@ -850,7 +850,6 @@ static UniValue getreceivedbylabel(const JSONRPCRequest& request)
     return ValueFromAmount(nAmount);
 }
 
-
 static UniValue getbalance(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);

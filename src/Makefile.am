@@ -205,6 +205,7 @@ BITCOIN_CORE_H = \
   veil/ringct/rpcanonwallet.h \
   veil/ringct/stealth.h \
   veil/ringct/temprecipient.h \
+  veil/ringct/transactionrecord.h \
   veil/ringct/types.h \
   veil/zerocoin/accumulators.h \
   veil/zerocoin/accumulatormap.h \

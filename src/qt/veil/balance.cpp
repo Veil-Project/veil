@@ -33,7 +33,7 @@ Balance::Balance(QWidget *parent, BitcoinGUI* gui) :
     ui(new Ui::Balance)
 {
     ui->setupUi(this);
-    m_balances.balance = -1;
+    m_balances.total_balance = -1;
     this->ui->containerBalance->setContentsMargins(0,0,0,0);
     this->ui->vLayoutBalance->setContentsMargins(10,10,10,10);
 
@@ -81,7 +81,7 @@ void Balance::onBtnBalanceClicked(){
             unit,
             balances.zerocoin_balance + balances.zerocoin_immature_balance,
             balances.ring_ct_balance + balances.ring_ct_immature_balance,
-            balances.balance + balances.unconfirmed_balance
+            balances.basecoin_balance + balances.basecoin_immature_balance
     );
     tooltip->move(ui->btnBalance->pos().rx()+150,0);
     tooltip->show();
@@ -195,14 +195,14 @@ void Balance::setBalance(const interfaces::WalletBalances& balances){
     int unit = walletModel->getOptionsModel()->getDisplayUnit();
     m_balances = balances;
     // TODO: Change this balance calculation
-    ui->labelBalance->setText(BitcoinUnits::formatWithUnit(unit, balances.balance, false, BitcoinUnits::separatorAlways));
-    ui->labelUnconfirmed->setText(BitcoinUnits::formatWithUnit(unit, balances.unconfirmed_balance, false, BitcoinUnits::separatorAlways));
-    ui->labelImmature->setText(BitcoinUnits::formatWithUnit(unit, balances.immature_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelBalance->setText(BitcoinUnits::formatWithUnit(unit, balances.total_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelUnconfirmed->setText(BitcoinUnits::formatWithUnit(unit, balances.total_unconfirmed_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelImmature->setText(BitcoinUnits::formatWithUnit(unit, balances.total_immature_balance, false, BitcoinUnits::separatorAlways));
     //ui->labelTotal->setText(BitcoinUnits::formatWithUnit(unit, balances.balance + balances.unconfirmed_balance + balances.immature_balance, false, BitcoinUnits::separatorAlways));
 
     // only show immature (newly mined) balance if it's non-zero, so as not to complicate things
     // for the non-mining users
-    bool showImmature = balances.immature_balance != 0;
+    bool showImmature = balances.total_immature_balance != 0;
     //bool showWatchOnlyImmature = balances.immature_watch_only_balance != 0;
 
     // for symmetry reasons also show immature label when the watch-only one is shown
@@ -215,7 +215,7 @@ void Balance::updateDisplayUnit()
 {
     if(walletModel && walletModel->getOptionsModel())
     {
-        if (m_balances.balance != -1) {
+        if (m_balances.total_balance != -1) {
             setBalance(m_balances);
         }
     }

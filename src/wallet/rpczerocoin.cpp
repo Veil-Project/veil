@@ -13,6 +13,7 @@
 #include <validation.h>
 #include <veil/zerocoin/zwallet.h>
 #include <veil/zerocoin/zchain.h>
+#include <veil/ringct/transactionrecord.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
 
@@ -207,56 +208,91 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
         dest = DecodeDestination(params[4].get_str());
     }
 
-    CWalletTx wtx(pwallet, nullptr);
     std::vector<CZerocoinMint> vMintsSelected;
     CZerocoinSpendReceipt receipt;
     bool fSuccess;
 
     if(params.size() == 5) // Spend to supplied destination address
-        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, wtx, receipt, vMintsSelected, fMintChange, fMinimizeChange, &dest);
+        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, &dest);
     else                   // Spend to newly generated local address
-        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, wtx, receipt, vMintsSelected, fMintChange, fMinimizeChange);
+        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange);
 
     if (!fSuccess)
         throw JSONRPCError(RPC_WALLET_ERROR, receipt.GetStatusMessage());
 
     CAmount nValueIn = 0;
-    UniValue arrSpends(UniValue::VARR);
-    for (CZerocoinSpend spend : receipt.GetSpends()) {
-        UniValue obj(UniValue::VOBJ);
-        obj.push_back(Pair("denomination", spend.GetDenomination()));
-        obj.push_back(Pair("pubcoin", spend.GetPubCoin().GetHex()));
-        obj.push_back(Pair("serial", spend.GetSerial().GetHex()));
-        uint256 nChecksum = spend.GetAccumulatorChecksum();
-        obj.push_back(Pair("acc_checksum", HexStr(BEGIN(nChecksum), END(nChecksum))));
-        arrSpends.push_back(obj);
-        nValueIn += libzerocoin::ZerocoinDenominationToAmount(spend.GetDenomination());
+    CAmount nValueOut = 0;
+    UniValue arrtx(UniValue::VARR);
+    UniValue vout(UniValue::VARR);
+    std::vector<CTransactionRef> vtx = receipt.GetTransactions();
+    for (unsigned int j = 0; j < vtx.size(); j++) {
+        const CTransactionRef& tx = vtx[j];
+        CTransactionRecord rtx = receipt.GetTransactionRecord(j);
+        for (unsigned int i = 0; i < tx->vpout.size(); i++) {
+            const auto &pout = tx->vpout[i];
+            UniValue out(UniValue::VOBJ);
+
+            CTxDestination dest;
+            CAmount nValueOutput = 0;
+            if (pout->IsZerocoinMint()) {
+                out.pushKV("type", "zerocoinmint");
+                out.pushKV("address", "zerocoinmint");
+                nValueOutput = pout->GetValue();
+                out.pushKV("value", ValueFromAmount(nValueOutput));
+            } else if (pout->IsStandardOutput() && ExtractDestination(*pout->GetPScriptPubKey(), dest)) {
+                out.pushKV("type", "basecoin");
+                out.pushKV("address", EncodeDestination(dest));
+                nValueOutput = pout->GetValue();
+                out.pushKV("value", ValueFromAmount(nValueOutput));
+            } else {
+                if (pout->nVersion == OUTPUT_RINGCT) {
+                    COutputRecord *record = rtx.GetOutput(i);
+                    auto ismine = pwallet->IsMine(pout.get());
+                    out.pushKV("type", "ringct");
+                    CKeyID idStealth;
+                    if (record->GetStealthID(idStealth))
+                        out.pushKV("stealthID", idStealth.GetHex());
+                    out.pushKV("is_mine", bool(ismine));
+                    if (ismine)
+                        out.pushKV("is_change", record->IsChange());
+                    nValueOutput = record->GetRawValue();
+                    out.pushKV("value", ValueFromAmount(nValueOutput));
+                } else if (pout->nVersion == OUTPUT_DATA) {
+                    CAmount nValue;
+                    CTxOutData *s = (CTxOutData *) pout.get();
+                    if (s->GetCTFee(nValue))
+                        out.pushKV("ct_fee", ValueFromAmount(nValue));
+                }
+            }
+            vout.push_back(out);
+            nValueOut += nValueOutput;
+        }
+
+        UniValue arrSpends(UniValue::VARR);
+        for (const CZerocoinSpend& spend : receipt.GetSpends(j)) {
+            UniValue obj(UniValue::VOBJ);
+            obj.push_back(Pair("denomination", spend.GetDenomination()));
+            obj.push_back(Pair("pubcoin", spend.GetPubCoin().GetHex()));
+            obj.push_back(Pair("serial", spend.GetSerial().GetHex()));
+            uint256 nChecksum = spend.GetAccumulatorChecksum();
+            obj.push_back(Pair("acc_checksum", HexStr(BEGIN(nChecksum), END(nChecksum))));
+            arrSpends.push_back(obj);
+            nValueIn += libzerocoin::ZerocoinDenominationToAmount(spend.GetDenomination());
+        }
+
+        //construct JSON to return
+        UniValue tx_obj(UniValue::VOBJ);
+        tx_obj.push_back(Pair("txid", tx->GetHash().ToString()));
+        tx_obj.push_back(Pair("bytes", (int) ::GetSerializeSize(*tx, SER_NETWORK, CTransaction::CURRENT_VERSION)));
+        tx_obj.push_back(Pair("outputs", vout));
+        tx_obj.push_back(Pair("spends", arrSpends));
+        arrtx.push_back(tx_obj);
     }
 
-//    CAmount nValueOut = 0;
-    UniValue vout(UniValue::VARR);
-//    for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
-//        const auto& pout = wtx.tx->vpout[i];
-//        UniValue out(UniValue::VOBJ);
-//        out.push_back(Pair("value", ValueFromAmount(pout->GetValue())));
-//        nValueOut += pout->GetValue();
-//
-//        CTxDestination dest;
-//        if (pout->IsZerocoinMint())
-//            out.push_back(Pair("address", "zerocoinmint"));
-//        else if(pout->IsStandardOutput() && ExtractDestination(*pout->GetPScriptPubKey(), dest))
-//            out.push_back(Pair("address", EncodeDestination(dest)));
-//        vout.push_back(out);
-//    }
-//
-//    //construct JSON to return
     UniValue ret(UniValue::VOBJ);
-//    ret.push_back(Pair("txid", wtx.tx->GetHash().ToString()));
-//    ret.push_back(Pair("bytes", (int)::GetSerializeSize(*wtx.tx, SER_NETWORK, CTransaction::CURRENT_VERSION)));
-//    ret.push_back(Pair("fee", ValueFromAmount(nValueIn - nValueOut)));
-//    ret.push_back(Pair("duration_millis", (GetTimeMillis() - nTimeStart)));
-//    ret.push_back(Pair("spends", arrSpends));
-//    ret.push_back(Pair("outputs", vout));
+    ret.push_back(Pair("fee", ValueFromAmount(nValueIn - nValueOut)));
+    ret.push_back(Pair("duration_millis", (GetTimeMillis() - nTimeStart)));
+    ret.push_back(Pair("transactions", arrtx));
 
     return ret;
 }
@@ -450,7 +486,6 @@ UniValue DoZerocoinSpend(CWallet* pwallet, const CAmount nAmount, bool fMintChan
 {
     int64_t nTimeStart = GetTimeMillis();
     CTxDestination dest; // Optional sending address. Dummy initialization here.
-    CWalletTx wtx(pwallet, nullptr);
     CZerocoinSpendReceipt receipt;
     bool fSuccess;
 
@@ -459,16 +494,16 @@ UniValue DoZerocoinSpend(CWallet* pwallet, const CAmount nAmount, bool fMintChan
         dest = CBitcoinAddress(address_str).Get();
         if(!address.IsValid())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid VEIL address");
-        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, wtx, receipt, vMintsSelected, fMintChange, fMinimizeChange, &dest);
+        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, &dest);
     } else                   // Spend to newly generated local address
-        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, wtx, receipt, vMintsSelected, fMintChange, fMinimizeChange);
+        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange);
 
     if (!fSuccess)
         throw JSONRPCError(RPC_WALLET_ERROR, receipt.GetStatusMessage());
 
     CAmount nValueIn = 0;
     UniValue arrSpends(UniValue::VARR);
-    for (CZerocoinSpend spend : receipt.GetSpends()) {
+    for (const CZerocoinSpend& spend : receipt.GetSpends_back()) {
         UniValue obj(UniValue::VOBJ);
         obj.push_back(Pair("denomination", spend.GetDenomination()));
         obj.push_back(Pair("pubcoin", spend.GetPubCoin().GetHex()));
@@ -481,24 +516,26 @@ UniValue DoZerocoinSpend(CWallet* pwallet, const CAmount nAmount, bool fMintChan
 
     CAmount nValueOut = 0;
     UniValue vout(UniValue::VARR);
-    for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
-        const auto& pout = wtx.tx->vpout[i];
+    std::vector<CTransactionRef> vtx = receipt.GetTransactions();
+
+    for (unsigned int i = 0; i < vtx[0]->vpout.size(); i++) {
+        const auto &pout = vtx[0]->vpout[i];
         UniValue out(UniValue::VOBJ);
         out.push_back(Pair("value", ValueFromAmount(pout->GetValue())));
         nValueOut += pout->GetValue();
 
         CTxDestination dest;
-        if(pout->IsZerocoinMint())
+        if (pout->IsZerocoinMint())
             out.push_back(Pair("address", "zerocoinmint"));
-        else if(pout->IsStandardOutput() && ExtractDestination(*pout->GetPScriptPubKey(), dest))
+        else if (pout->IsStandardOutput() && ExtractDestination(*pout->GetPScriptPubKey(), dest))
             out.push_back(Pair("address", CBitcoinAddress(dest).ToString()));
         vout.push_back(out);
     }
 
     //construct JSON to return
     UniValue ret(UniValue::VOBJ);
-    ret.push_back(Pair("txid", wtx.tx->GetHash().ToString()));
-    ret.push_back(Pair("bytes", (int)::GetSerializeSize(*wtx.tx, SER_NETWORK, CTransaction::CURRENT_VERSION)));
+    ret.push_back(Pair("txid", vtx[0]->GetHash().ToString()));
+    ret.push_back(Pair("bytes", (int) ::GetSerializeSize(*vtx[0], SER_NETWORK, CTransaction::CURRENT_VERSION)));
     ret.push_back(Pair("fee", ValueFromAmount(nValueIn - nValueOut)));
     ret.push_back(Pair("duration_millis", (GetTimeMillis() - nTimeStart)));
     ret.push_back(Pair("spends", arrSpends));
