@@ -28,7 +28,7 @@ packages:
 - "python-setuptools"
 - "fonts-tuffy"
 remotes:
-- "url": "https://github.com/Veil-Project/veil.git"
+- "url": "https://github.com/paddingtonsoftware/veil.git"
   "dir": "veil"
 files:
 - "MacOSX10.11.sdk.tar.gz"
