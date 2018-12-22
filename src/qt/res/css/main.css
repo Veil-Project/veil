@@ -49,7 +49,7 @@ QStackedWidget{
 QLineEdit{
     background-color: #fff;
     background: #fff;
-    selection-background-color: #fff;
+    selection-background-color: #8bc3f5;
     border: 2px solid rgb(33, 255, 231);
 }
 
