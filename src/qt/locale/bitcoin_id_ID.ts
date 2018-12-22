@@ -240,7 +240,7 @@
     </message>
 </context>
 <context>
-    <name>VeilGUI</name>
+    <name>BitcoinGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>Pesan &amp;penanda...</translation>
@@ -1854,10 +1854,10 @@
     <name>WalletView</name>
     </context>
 <context>
-    <name>Veil-core</name>
+    <name>bitcoin-core</name>
     <message>
-        <source>Veil Core</source>
-        <translation>Veil Core</translation>
+        <source>Veil</source>
+        <translation>Veil</translation>
     </message>
     <message>
         <source>Corrupted block database detected</source>
