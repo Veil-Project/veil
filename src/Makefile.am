@@ -198,7 +198,8 @@ BITCOIN_CORE_H = \
   veil/ringct/blind.h \
   veil/ringct/extkey.h \
   veil/ringct/anonwallet.h \
-  veil/ringct/anonwallet.h \
+  veil/ringct/anonwalletdb.h \
+  veil/ringct/hdwallet.h \
   veil/ringct/keyutil.h \
   veil/ringct/outputrecord.h \
   veil/ringct/rctindex.h \
@@ -225,6 +226,7 @@ BITCOIN_CORE_H = \
   wallet/coincontrol.h \
   wallet/crypter.h \
   wallet/db.h \
+  wallet/deterministicmint.h \
   wallet/feebumper.h \
   wallet/fees.h \
   wallet/init.h \
