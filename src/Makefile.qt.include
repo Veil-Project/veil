@@ -483,6 +483,7 @@ RES_ICONS = \
   qt/res/icons/ic-folder@2x.png \
   qt/res/icons/ic-nav-address@3x.png \
   qt/res/icons/bg_splash@2x.png \
+  qt/res/icons/img-balance-logo.svg \
   qt/res/icons/img_balance_logo.png \
   qt/res/icons/simbol@2x.png \
   qt/res/icons/banner-top@3x.png \
@@ -798,7 +799,7 @@ RES_MOVIES = $(wildcard $(srcdir)/qt/res/movies/spinner-*.png)
 RES_CSS = \
   qt/res/css/main.css
 
-BITCOIN_RC = qt/res/veil-qt-res.rc
+BITCOIN_RC = qt/res/bitcoin-qt-res.rc
 
 BITCOIN_QT_INCLUDES = -DQT_NO_KEYWORDS
 
