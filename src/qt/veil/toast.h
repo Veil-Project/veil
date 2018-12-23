@@ -1,5 +1,5 @@
-#ifndef TOOLTIPBALANCE_H
-#define TOOLTIPBALANCE_H
+#ifndef TOAST_H
+#define TOAST_H
 
 #include <QWidget>
 
@@ -22,4 +22,4 @@ private:
     Ui::Toast *ui;
 };
 
-#endif // TOOLTIPBALANCE_H
+#endif // TOAST_H
