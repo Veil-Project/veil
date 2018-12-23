@@ -43,7 +43,7 @@ After creating the VM, we need to configure it.
 
 ![](figs/system_settings.png)
 
-- Go to the `Network` tab. Adapter 1 should be attached to `NAT`.
+- Go to the `Network` tab. Adapter 1 should be attached to `NAT`. (NOTE: This only applied to Ethernet connected computers. If you are using wifi, you may need to switch to 'Bridged Network' mode and then once you have the VM up and running, do ifconfig inside the VM to obtain the VM's IP and update your SSH connection to allow for that IP address)
 
 ![](figs/network_settings.png)
 
