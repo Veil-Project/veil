@@ -228,7 +228,7 @@
     </message>
 </context>
 <context>
-    <name>VeilGUI</name>
+    <name>BitcoinGUI</name>
     <message>
         <source>Sign &amp;message...</source>
         <translation>Arwyddo &amp;neges...</translation>
@@ -1036,9 +1036,9 @@
     </message>
     </context>
 <context>
-    <name>Veil-core</name>
+    <name>bitcoin-core</name>
     <message>
-        <source>Veil Core</source>
+        <source>Veil</source>
         <translation>Craidd Veil</translation>
     </message>
     <message>
