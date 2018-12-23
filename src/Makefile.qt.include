@@ -477,7 +477,7 @@ RES_ICONS = \
   qt/res/icons/ic-folder@2x.png \
   qt/res/icons/ic-nav-address@3x.png \
   qt/res/icons/bg_splash@2x.png \
-  qt/res/icons/img_balance_logo.png \
+  qt/res/icons/img_balance_logo.svg \
   qt/res/icons/simbol@2x.png \
   qt/res/icons/banner-top@3x.png \
   qt/res/icons/img-logo-bittrex@3x.png \
