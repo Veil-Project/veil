@@ -232,7 +232,7 @@ border:none;</string>
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>:/icons/ic-add-account-svg</normaloff>:/icons/ic-add-account-svg</iconset>
+            <normaloff>:/icons/ic-add-account-png</normaloff>:/icons/ic-add-account-png</iconset>
           </property>
           <property name="iconSize">
            <size>

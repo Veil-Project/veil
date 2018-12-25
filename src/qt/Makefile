@@ -1241,7 +1241,7 @@ qrc_veil.cpp: veil.qrc \
 		res/icons/ic-close@3x.png \
 		res/icons/ic-update-address@3x.png \
 		res/icons/img-start-wallet@2x.png \
-		res/icons/ic-nav-transactions.svg \
+		res/icons/ic-nav-transactions.png \
 		res/icons/img-start-wallet@3x.png \
 		res/icons/banner-top@2x.png \
 		res/icons/banner-top@3x.png \
@@ -1272,9 +1272,9 @@ qrc_veil.cpp: veil.qrc \
 		res/icons/ic-progress-7-10.png \
 		res/icons/ic-nav-exchange.png \
 		res/icons/ic-progress-3-10.png \
-		res/icons/ic-nav-addresses.svg \
+		res/icons/ic-nav-addresses.png \
 		res/icons/ic-nav-addresses@3x.png \
-		res/icons/ic-nav-receive.svg \
+		res/icons/ic-nav-receive.png \
 		res/icons/ic-nav-exchange@2x.png \
 		res/icons/img-logo-binance@3x.png \
 		res/icons/img-logo-bittrex.png \
@@ -1285,9 +1285,9 @@ qrc_veil.cpp: veil.qrc \
 		res/icons/img-logo-coinbase@2x.png \
 		res/icons/ic-progress-6-10.png \
 		res/icons/ic-nav-receive@2x.png \
-		res/icons/ic-nav-send.svg \
+		res/icons/ic-nav-send.png \
 		res/icons/ic-progress-2-10.png \
-		res/icons/ic-nav-settings.svg \
+		res/icons/ic-nav-settings.png \
 		res/icons/bitcoin.ico \
 		res/icons/img_splash.jpg \
 		res/icons/bitcoin_testnet.ico \
@@ -1299,7 +1299,7 @@ qrc_veil.cpp: veil.qrc \
 		res/icons/ic-progress-9-10.png \
 		res/icons/ic-progress-5-10.png \
 		res/icons/img-logo-bittrex@2x.png \
-		res/icons/ic-nav-overview.svg \
+		res/icons/ic-nav-overview.png \
 		res/icons/ic-nav-send@3x.png \
 		res/icons/ic-transaction-completed.png \
 		res/icons/ic-nav-address@2x.png \

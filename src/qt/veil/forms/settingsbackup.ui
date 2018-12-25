@@ -143,7 +143,7 @@ border:none;</string>
           </property>
           <property name="icon">
            <iconset resource="../../veil.qrc">
-            <normaloff>:/icons/ic-folder-svg</normaloff>:/icons/ic-folder-svg</iconset>
+            <normaloff>:/icons/ic-folder-png</normaloff>:/icons/ic-folder-png</iconset>
           </property>
           <property name="iconSize">
            <size>

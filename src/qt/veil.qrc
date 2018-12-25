@@ -123,27 +123,27 @@
         <file>res/icons/ic-nav-address@2x.png</file>
         <file>res/icons/ic-nav-address@3x.png</file>
         <file>res/icons/ic-nav-addresses.png</file>
-        <file alias="ic-nav-addresses-svg">res/icons/ic-nav-addresses.svg</file>
+        <file alias="ic-nav-addresses-png">res/icons/ic-nav-addresses.png</file>
         <file>res/icons/ic-nav-addresses@2x.png</file>
         <file>res/icons/ic-nav-addresses@3x.png</file>
         <file>res/icons/ic-nav-exchange.png</file>
         <file>res/icons/ic-nav-exchange@2x.png</file>
         <file>res/icons/ic-nav-exchange@3x.png</file>
-        <file>res/icons/ic-nav-overview.svg</file>
+        <file>res/icons/ic-nav-overview.png</file>
         <file>res/icons/ic-nav-receive.png</file>
-        <file alias="ic-nav-receive-svg">res/icons/ic-nav-receive.svg</file>
+        <file alias="ic-nav-receive-png">res/icons/ic-nav-receive.png</file>
         <file>res/icons/ic-nav-receive@2x.png</file>
         <file>res/icons/ic-nav-receive@3x.png</file>
         <file>res/icons/ic-nav-send.png</file>
-        <file alias="ic-nav-send-svg">res/icons/ic-nav-send.svg</file>
+        <file alias="ic-nav-send-png">res/icons/ic-nav-send.png</file>
         <file>res/icons/ic-nav-send@2x.png</file>
         <file>res/icons/ic-nav-send@3x.png</file>
         <file>res/icons/ic-nav-settings.png</file>
-        <file alias="ic-nav-settings-svg">res/icons/ic-nav-settings.svg</file>
+        <file alias="ic-nav-settings-png">res/icons/ic-nav-settings.png</file>
         <file>res/icons/ic-nav-settings@2x.png</file>
         <file>res/icons/ic-nav-settings@3x.png</file>
         <file alias="ic-nav-transactions">res/icons/ic-nav-transactions.png</file>
-        <file alias="ic-nav-transactions-svg">res/icons/ic-nav-transactions.svg</file>
+        <file alias="ic-nav-transactions-png">res/icons/ic-nav-transactions.png</file>
         <file alias="ic-nav-transactions2">res/icons/ic-nav-transactions@2x.png</file>
         <file alias="ic-nav-transactions3">res/icons/ic-nav-transactions@3x.png</file>
         <file alias="ic-navigation-addresses">res/icons/ic-navigation-addresses.png</file>
@@ -206,7 +206,7 @@
         <file alias="ic-switch-on">res/icons/ic-switch-on.png</file>
         <file alias="ic-switch-on2">res/icons/ic-switch-on@2x.png</file>
         <file alias="ic-switch-on3">res/icons/ic-switch-on@3x.png</file>
-        <file alias="ic-title">res/icons/point.svg</file>
+        <file alias="ic-title">res/icons/point.png</file>
         <file>res/icons/ic-transaction-completed.png</file>
         <file alias="ic-update-address">res/icons/ic-update-address.png</file>
         <file alias="ic-update-address2">res/icons/ic-update-address@2x.png</file>
@@ -263,37 +263,37 @@
         <file alias="ic-settings">res/icons/ic-settings.png</file>
         <file alias="ic-settings2">res/icons/ic-settings@2x.png</file>
         <file alias="ic-settings3">res/icons/ic-settings@3x.png</file>
-        <file alias="ic-settings-svg2">res/icons/ic-settings.svg</file>
-        <file alias="ic-information-svg">res/icons/ic-information.svg</file>
-        <file alias="ic-receive-svg2">res/icons/ic-receive.svg</file>
-        <file alias="ic-send-svg2">res/icons/ic-send.svg</file>
-        <file alias="ic-switch-off-svg">res/icons/ic-switch-off.svg</file>
-        <file alias="ic-switch-on-svg">res/icons/ic-switch-on.svg</file>
-        <file alias="ic-transactions-svg2">res/icons/ic-transactions.svg</file>
-        <file alias="ic-addresses-svg2">res/icons/ic-addresses.svg</file>
+        <file alias="ic-settings-png2">res/icons/ic-settings.png</file>
+        <file alias="ic-information-png">res/icons/ic-information.png</file>
+        <file alias="ic-receive-png2">res/icons/ic-receive.png</file>
+        <file alias="ic-send-png2">res/icons/ic-send.png</file>
+        <file alias="ic-switch-off-png">res/icons/ic-switch-off.png</file>
+        <file alias="ic-switch-on-png">res/icons/ic-switch-on.png</file>
+        <file alias="ic-transactions-png2">res/icons/ic-transactions.png</file>
+        <file alias="ic-addresses-png2">res/icons/ic-addresses.png</file>
         <file alias="ic-progress-6-6-complete-14x14">res/icons/ic-progress-6-6-complete-14x14.png</file>
         <file alias="img-wallet">res/icons/img-wallet.png</file>
         <file alias="img-wallet3">res/icons/img-wallet@3x.png</file>
         <file alias="img-wallet2">res/icons/img-wallet@2x.png</file>
-        <file alias="img-banner-top-svg">res/icons/img-banner-top.svg</file>
-        <file alias="ic-folder-svg">res/icons/ic-folder.svg</file>
-        <file alias="img-empty-addresses">res/icons/img-empty-addresses.svg</file>
-        <file alias="img-veil-logo-small-svg">res/icons/img-veil-logo-small.svg</file>
-        <file alias="ic-close-white-svg">res/icons/ic-close-white.svg</file>
-        <file alias="img-balance-logo-svg-1">res/icons/img-balance-logo.svg</file>
-        <file alias="ic-transcation-6-6-svg">res/icons/ic-transaction-6-6.svg</file>
-        <file alias="ic-sent-svg">res/icons/ic_sent.svg</file>
-        <file alias="ic-received-svg">res/icons/ic_received.svg</file>
-        <file alias="ic-mint-svg">res/icons/ic_mint.svg</file>
-        <file alias="ic-mined-svg">res/icons/ic_mined.svg</file>
-        <file alias="ic-copy-blue-svg">res/icons/ic-copy.svg</file>
-        <file alias="ic-close-svg">res/icons/ic-close.svg</file>
-        <file alias="simbol-svg">res/icons/simbol.svg</file>
-        <file alias="ic-add-account-svg">res/icons/ic-add-account.svg</file>
-        <file alias="ic-reset-options-svg">res/icons/ic-reset-options.svg</file>
-        <file alias="ic-locked-svg">res/icons/ic-locked.svg</file>
-        <file alias="ic-unlocked-svg">res/icons/ic-unlocked.svg</file>
-        <file alias="ic-menu-svg">res/icons/ic-menu.svg</file>
+        <file alias="img-banner-top-png">res/icons/img-banner-top.png</file>
+        <file alias="ic-folder-png">res/icons/ic-folder.png</file>
+        <file alias="img-empty-addresses">res/icons/img-empty-addresses.png</file>
+        <file alias="img-veil-logo-small-png">res/icons/img-veil-logo-small.png</file>
+        <file alias="ic-close-white-png">res/icons/ic-close-white.png</file>
+        <file alias="img-balance-logo-png-1">res/icons/img-balance-logo.png</file>
+        <file alias="ic-transcation-6-6-png">res/icons/ic-transaction-6-6.png</file>
+        <file alias="ic-sent-png">res/icons/ic_sent.png</file>
+        <file alias="ic-received-png">res/icons/ic_received.png</file>
+        <file alias="ic-mint-png">res/icons/ic_mint.png</file>
+        <file alias="ic-mined-png">res/icons/ic_mined.png</file>
+        <file alias="ic-copy-blue-png">res/icons/ic-copy.png</file>
+        <file alias="ic-close-png">res/icons/ic-close.png</file>
+        <file alias="simbol-png">res/icons/simbol.png</file>
+        <file alias="ic-add-account-png">res/icons/ic-add-account.png</file>
+        <file alias="ic-reset-options-png">res/icons/ic-reset-options.png</file>
+        <file alias="ic-locked-png">res/icons/ic-locked.png</file>
+        <file alias="ic-unlocked-png">res/icons/ic-unlocked.png</file>
+        <file alias="ic-menu-png">res/icons/ic-menu.png</file>
     </qresource>
     <qresource prefix="/movies">
         <file alias="spinner-000">res/movies/spinner-000.png</file>
@@ -337,11 +337,11 @@
         <file alias="main">res/css/main.css</file>
     </qresource>
     <qresource prefix="/">
-        <file>res/icons/ic-addresses.svg</file>
-        <file>res/icons/img-banner-top.svg</file>
-        <file>res/icons/ic-folder.svg</file>
-        <file>res/icons/img-empty-addresses.svg</file>
-        <file>res/icons/img-veil-logo-small.svg</file>
-        <file>res/icons/ic-close-white.svg</file>
+        <file>res/icons/ic-addresses.png</file>
+        <file>res/icons/img-banner-top.png</file>
+        <file>res/icons/ic-folder.png</file>
+        <file>res/icons/img-empty-addresses.png</file>
+        <file>res/icons/img-veil-logo-small.png</file>
+        <file>res/icons/ic-close-white.png</file>
     </qresource>
 </RCC>
