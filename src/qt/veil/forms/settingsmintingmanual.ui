@@ -95,7 +95,7 @@ font-size:16px;</string>
 font-size:22px;</string>
             </property>
             <property name="text">
-             <string>0 zVeil</string>
+             <string>0 Zerocoin Veil</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -288,7 +288,7 @@ border:1px solid #0e45b4;
 font-size:18px;</string>
         </property>
         <property name="text">
-         <string>Minting Zerocoin Veil anonymizes your Basecoin Veil by removing transaction history, making transactions untraceable.</string>
+         <string>Minting Zerocoin veil anonymizes your Basecoin veil by removing transaction history, making transactions untraceable.</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -356,7 +356,7 @@ font-size:18px;</string>
 font-size:18px;</string>
         </property>
         <property name="text">
-         <string>Amount of Basecoin Veil to mint into Zerocoin Veil</string>
+         <string>Amount of Basecoin veil to mint into Zerocoin veil</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
