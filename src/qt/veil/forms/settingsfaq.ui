@@ -537,7 +537,7 @@ margin:0px;</string>
 }</string>
                   </property>
                   <property name="text">
-                   <string>Why is my VEIL unspendable?</string>
+                   <string>Why are my veil unspendable?</string>
                   </property>
                  </widget>
                 </item>
@@ -588,7 +588,7 @@ margin:0px;</string>
 }</string>
                   </property>
                   <property name="text">
-                   <string>How do I spend Basecoin VEIL 
+                   <string>How do I spend Basecoin veil? 
 (dust/change)?</string>
                   </property>
                  </widget>
@@ -743,7 +743,7 @@ Address / Exchange or Service mode?</string>
 }</string>
                   </property>
                   <property name="text">
-                   <string>How do I stake VEIL and earn
+                   <string>How do I stake veil and earn
  staking rewards?</string>
                   </property>
                  </widget>
@@ -795,7 +795,7 @@ Address / Exchange or Service mode?</string>
 }</string>
                   </property>
                   <property name="text">
-                   <string>How do I mine VEIL?</string>
+                   <string>How do I mine veil?</string>
                   </property>
                  </widget>
                 </item>
@@ -846,7 +846,7 @@ Address / Exchange or Service mode?</string>
 }</string>
                   </property>
                   <property name="text">
-                   <string>What is the VEIL Bounty Program?</string>
+                   <string>What is the Veil Bounty Program?</string>
                   </property>
                  </widget>
                 </item>
@@ -888,7 +888,7 @@ Address / Exchange or Service mode?</string>
 }</string>
                   </property>
                   <property name="text">
-                   <string>Contact VEIL Support for help</string>
+                   <string>Contact Veil Support for help</string>
                   </property>
                  </widget>
                 </item>
