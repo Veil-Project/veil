@@ -79,7 +79,7 @@ font-size:20px;
 padding-left:30px;</string>
           </property>
           <property name="text">
-           <string>Transaction Detaill</string>
+           <string>Transaction Details</string>
           </property>
           <property name="alignment">
            <set>Qt::AlignCenter</set>
@@ -209,7 +209,7 @@ border:0px;
         <item>
          <widget class="QLabel" name="textAmount">
           <property name="text">
-           <string>0 Veil</string>
+           <string>0 veil</string>
           </property>
          </widget>
         </item>
@@ -433,7 +433,7 @@ background-position:center;</string>
            <item>
             <widget class="QLabel" name="textFee">
              <property name="text">
-              <string>0.00 Veil</string>
+              <string>0.00 veil</string>
              </property>
             </widget>
            </item>
