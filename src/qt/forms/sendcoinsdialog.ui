@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Send Coins</string>
+   <string>Send Veil</string>
   </property>
   <property name="styleSheet">
    <string notr="true">border:none;
