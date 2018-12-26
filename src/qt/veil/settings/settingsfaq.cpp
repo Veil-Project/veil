@@ -54,8 +54,10 @@ SettingsFaq::SettingsFaq(QWidget *parent, bool howToObtainVeil) :
     ui->stackedWidget->setCurrentWidget(faq01);
 
     if(howToObtainVeil){
+        faq07 = new SettingsFaq07(this);
         ui->stackedWidget->addWidget(faq07);
         ui->stackedWidget->setCurrentWidget(faq07);
+        ui->radioButton_07->setChecked(true);
     }
 }
 
@@ -69,15 +71,19 @@ void SettingsFaq::onEscapeClicked(){
 
 
 void SettingsFaq::onRadioButton01Clicked(){
-    faq01 = new SettingsFaq01(this);
-    ui->stackedWidget->addWidget(faq01);
+    if(!faq01) {
+        faq01 = new SettingsFaq01(this);
+        ui->stackedWidget->addWidget(faq01);
+    }
 
     changeScreen(faq01);
 }
 
 void SettingsFaq::onRadioButton02Clicked(){
-    faq02 = new SettingsFaq02(this);
-    ui->stackedWidget->addWidget(faq02);
+    if(!faq02) {
+        faq02 = new SettingsFaq02(this);
+        ui->stackedWidget->addWidget(faq02);
+    }
 
     changeScreen(faq02);
 }
@@ -85,64 +91,82 @@ void SettingsFaq::onRadioButton02Clicked(){
 
 
 void SettingsFaq::onRadioButton03Clicked(){
-    faq03 = new SettingsFaq03(this);
-    ui->stackedWidget->addWidget(faq03);
+    if(!faq03) {
+        faq03 = new SettingsFaq03(this);
+        ui->stackedWidget->addWidget(faq03);
+    }
 
     changeScreen(faq03);
 }
 
 void SettingsFaq::onRadioButton04Clicked(){
-    faq04 = new SettingsFaq04(this);
-    ui->stackedWidget->addWidget(faq04);
+    if(!faq04) {
+        faq04 = new SettingsFaq04(this);
+        ui->stackedWidget->addWidget(faq04);
+    }
 
     changeScreen(faq04);
 }
 
 void SettingsFaq::onRadioButton05Clicked(){
-    faq05 = new SettingsFaq05(this);
-    ui->stackedWidget->addWidget(faq05);
+    if(!faq05) {
+        faq05 = new SettingsFaq05(this);
+        ui->stackedWidget->addWidget(faq05);
+    }
 
     changeScreen(faq05);
 }
 
 void SettingsFaq::onRadioButton06Clicked(){
-    faq06 = new SettingsFaq06(this);
-    ui->stackedWidget->addWidget(faq06);
+    if(!faq06) {
+        faq06 = new SettingsFaq06(this);
+        ui->stackedWidget->addWidget(faq06);
+    }
 
     changeScreen(faq06);
 }
 
 void SettingsFaq::onRadioButton07Clicked(){
-    faq07 = new SettingsFaq07(this);
-    ui->stackedWidget->addWidget(faq07);
+    if(!faq07) {
+        faq07 = new SettingsFaq07(this);
+        ui->stackedWidget->addWidget(faq07);
+    }
 
     changeScreen(faq07);
 }
 
 void SettingsFaq::onRadioButton08Clicked(){
-    faq08 = new SettingsFaq08(this);
-    ui->stackedWidget->addWidget(faq08);
+    if(!faq08) {
+        faq08 = new SettingsFaq08(this);
+        ui->stackedWidget->addWidget(faq08);
+    }
 
     changeScreen(faq08);
 }
 
 void SettingsFaq::onRadioButton09Clicked(){
-    faq09 = new SettingsFaq09(this);
-    ui->stackedWidget->addWidget(faq09);
+    if(!faq09) {
+        faq09 = new SettingsFaq09(this);
+        ui->stackedWidget->addWidget(faq09);
+    }
 
     changeScreen(faq09);
 }
 
 void SettingsFaq::onRadioButton10Clicked(){
-    faq10 = new SettingsFaq10(this);
-    ui->stackedWidget->addWidget(faq10);
+    if(!faq10) {
+        faq10 = new SettingsFaq10(this);
+        ui->stackedWidget->addWidget(faq10);
+    }
 
     changeScreen(faq10);
 }
 
 void SettingsFaq::onRadioButton11Clicked(){
-    faq11 = new SettingsFaq11(this);
-    ui->stackedWidget->addWidget(faq11);
+    if(!faq11) {
+        faq11 = new SettingsFaq11(this);
+        ui->stackedWidget->addWidget(faq11);
+    }
 
     changeScreen(faq11);
 }
