@@ -33,13 +33,13 @@ color:#707070;</string>
       <string notr="true">font-weight:200;</string>
      </property>
      <property name="text">
-      <string>“VEIL wallets can automatically generate receiving addresses and QR codes which contain the receiving addresses.
+      <string>“Veil wallets can automatically generate receiving addresses and QR codes which contain the receiving addresses.
 
-You can share your QR code with others so they can send VEIL to you, and others can send their QR code to you so you can send VEIL to them.
+You can share your QR code with others so they can send veil to you, and others can send their QR code to you so you can send veil to them.
 
-The VEIL mobile app allows you to use your mobile device’s camera to scan QR codes, and send VEIL to the wallet that generated the QR code.
+The Veil mobile app allows you to use your mobile device’s camera to scan QR codes, and send veil to the wallet that generated the QR code.
 
-There are also many QR code scanning mobile apps that can scan a VEIL QR Code and show you the address as text. This text address can be manually copied to clipboard and pasted in the ”Enter receiving VEIL address” field of your wallet’s Send tab.”					</string>
+There are also many QR code scanning mobile apps that can scan a Veil QR Code and show you the address as text. This text address can be manually copied to clipboard and pasted in the 'Enter receiving Veil address' field of your walletâ€™s Send tab.”					</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
