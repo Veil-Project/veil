@@ -226,7 +226,7 @@ font-size: 24px;
    color: #707070;</string>
                 </property>
                 <property name="text">
-                 <string>Inmature</string>
+                 <string>Immature</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
