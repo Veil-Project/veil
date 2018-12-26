@@ -119,7 +119,7 @@ text-align:center;
 padding-bottom:4px;</string>
         </property>
         <property name="text">
-         <string>0.00 Veil</string>
+         <string>0.00 veil</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -149,7 +149,7 @@ color:#707070;
 text-align:center;</string>
         </property>
         <property name="text">
-         <string>0.00 Veil</string>
+         <string>0.00 veil</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
