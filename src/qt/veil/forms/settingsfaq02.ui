@@ -49,7 +49,7 @@ color:#707070;</string>
       <string notr="true">font-weight:200;</string>
      </property>
      <property name="text">
-      <string>“Veil can be purchased from the following exchanges and services (as of 22/10/2018):or an exchange, merchant, or other services, please see here.”</string>
+      <string>“Veil can be purchased from the following exchanges and services (as of 22/10/2018):or an exchange, merchant, or other services, please see here.â€</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
@@ -376,7 +376,7 @@ Trading fee: 0.25%.
       <string notr="true">font-weight:200;</string>
      </property>
      <property name="text">
-      <string>Veil can also be obtained by Staking, Mining, or through the VEIL Bounty Program.”	</string>
+      <string>Veil can also be obtained by mining, staking, or through the Veil Bounty Program.”	</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
