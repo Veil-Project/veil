@@ -33,9 +33,9 @@ color:#707070;</string>
       <string notr="true">font-weight:200;</string>
      </property>
      <property name="text">
-      <string>“Zerocoin VEIL is used automatically when spending.
+      <string>“Zerocoin veil are used automatically when spending.
 
-To spend Basecoin VEIL, follow these instructions:
+To spend Basecoin veil, follow these instructions:
 
     1. Navigate to the Send tab.
     2. Click the Coin Control button.
