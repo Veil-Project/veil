@@ -147,7 +147,7 @@ font-weight:bold;
 color:#FFFFFF;</string>
         </property>
         <property name="text">
-         <string>Backup your recoveryseed phrase</string>
+         <string>Backup your recovery seed phrase</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
