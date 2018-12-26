@@ -401,7 +401,7 @@ font-size:18px;
 font-weight:bold;</string>
           </property>
           <property name="text">
-           <string>Block chain</string>
+           <string>Blockchain</string>
           </property>
          </widget>
         </item>
