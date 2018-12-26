@@ -115,7 +115,7 @@ margin-top:24px</string>
             <enum>Qt::StrongFocus</enum>
            </property>
            <property name="toolTip">
-            <string>The Bitcoin address to send the payment to</string>
+            <string>The Veil address to send the payment to</string>
            </property>
            <property name="styleSheet">
             <string notr="true">#payTo {   
