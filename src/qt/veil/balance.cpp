@@ -37,14 +37,14 @@ Balance::Balance(QWidget *parent, BitcoinGUI* gui) :
     this->ui->containerBalance->setContentsMargins(0,0,0,0);
     this->ui->vLayoutBalance->setContentsMargins(10,10,10,10);
 
-    // Address
+//    Address
 //    QPixmap pixAddress(ui->copyAddress->width(),ui->copyAddress->height());
-//    pixAddress.load(":/icons/ic-copy-blue-svg");
+//    pixAddress.load(":/icons/ic-copy-blue-png");
 //    QIcon ButtonIcon(pixAddress);
 //    ui->copyAddress->setIcon(ButtonIcon);
 //    ui->copyAddress->setIconSize(QSize(20, 20));
 
-    // Load address qr..
+//  Load address qr..
     QPixmap qrImg(ui->labelQr->width(),
                   ui->labelQr->height()
                   );

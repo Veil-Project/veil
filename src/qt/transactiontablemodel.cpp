@@ -400,19 +400,19 @@ QVariant TransactionTableModel::txAddressDecoration(const TransactionRecord *wtx
     case TransactionRecord::CTGenerated:
     case TransactionRecord::RingCTGenerated:
         //return QIcon(":/icons/tx_mined");
-        return QIcon(":/icons/ic-mined-svg");//:/icons/ic-transcation-6-6-svg");//ic-progress-6-6-complete-14x14");//ic-progress-10-10");
+        return QIcon(":/icons/ic-mined-png");//:/icons/ic-transcation-6-6-png");//ic-progress-6-6-complete-14x14");//ic-progress-10-10");
     case TransactionRecord::RecvWithAddress:
     case TransactionRecord::RecvFromOther:
     case TransactionRecord::CTRecvWithAddress:
     case TransactionRecord::RingCTRecvWithAddress:
-        return QIcon(":/icons/ic-received-svg");//":/icons/tx_input");
+        return QIcon(":/icons/ic-received-png");//":/icons/tx_input");
     case TransactionRecord::SendToAddress:
     case TransactionRecord::SendToOther:
     case TransactionRecord::CTSendToAddress:
     case TransactionRecord::RingCTSendToAddress:
-        return QIcon(":/icons/ic-sent-svg");//":/icons/tx_output");
+        return QIcon(":/icons/ic-sent-png");//":/icons/tx_output");
     default:
-        return QIcon(":/icons/ic-received-svg");//(":/icons/tx_inout");
+        return QIcon(":/icons/ic-received-png");//(":/icons/tx_inout");
     }
 }
 

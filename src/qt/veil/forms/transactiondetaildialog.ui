@@ -120,7 +120,7 @@ border:0px;
           </property>
           <property name="icon">
            <iconset resource="../../veil.qrc">
-            <normaloff>:/icons/ic-close-svg</normaloff>:/icons/ic-close-svg</iconset>
+            <normaloff>:/icons/ic-close-png</normaloff>:/icons/ic-close-png</iconset>
           </property>
           <property name="iconSize">
            <size>

@@ -199,7 +199,6 @@ BITCOIN_CORE_H = \
   veil/ringct/extkey.h \
   veil/ringct/anonwallet.h \
   veil/ringct/anonwalletdb.h \
-  veil/ringct/hdwallet.h \
   veil/ringct/keyutil.h \
   veil/ringct/outputrecord.h \
   veil/ringct/rctindex.h \

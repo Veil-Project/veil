@@ -108,7 +108,7 @@ border:none;</string>
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>:/icons/simbol-svg</normaloff>:/icons/simbol-svg</iconset>
+            <normaloff>:/icons/simbol-png</normaloff>:/icons/simbol-png</iconset>
           </property>
           <property name="iconSize">
            <size>
@@ -145,7 +145,7 @@ border:none;</string>
             </property>
             <property name="icon">
              <iconset>
-              <normaloff>:/icons/ic-information-svg</normaloff>:/icons/ic-information-svg</iconset>
+              <normaloff>:/icons/ic-information-png</normaloff>:/icons/ic-information-png</iconset>
             </property>
            </widget>
           </item>
@@ -363,7 +363,7 @@ color: #004377;</string>
                  </property>
                  <property name="icon">
                   <iconset>
-                   <normaloff>:/icons/ic-copy-blue-svg</normaloff>:/icons/ic-copy-blue-svg</iconset>
+                   <normaloff>:/icons/ic-copy-blue-png</normaloff>:/icons/ic-copy-blue-png</iconset>
                  </property>
                  <property name="iconSize">
                   <size>

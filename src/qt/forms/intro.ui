@@ -119,7 +119,7 @@ border:none;</string>
            </property>
            <property name="icon">
             <iconset resource="../veil.qrc">
-             <normaloff>:/icons/simbol-svg</normaloff>:/icons/simbol-svg</iconset>
+             <normaloff>:/icons/simbol-png</normaloff>:/icons/simbol-png</iconset>
            </property>
            <property name="iconSize">
             <size>
@@ -387,7 +387,7 @@ margin-right:24px;
               </property>
               <property name="icon">
                <iconset resource="../veil.qrc">
-                <normaloff>:/icons/ic-folder-svg</normaloff>:/icons/ic-folder-svg</iconset>
+                <normaloff>:/icons/ic-folder-png</normaloff>:/icons/ic-folder-png</iconset>
               </property>
              </widget>
             </item>

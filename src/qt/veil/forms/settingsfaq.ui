@@ -93,7 +93,7 @@
         </property>
         <property name="styleSheet">
          <string notr="true">#frame{
-border-image: url(&quot;:/icons/img-banner-top-svg&quot;) 0 0 0 0 stretch stretch;
+border-image: url(&quot;:/icons/img-banner-top-png&quot;) 0 0 0 0 stretch stretch;
     padding:10px;
     margin:0px;
     border-top-right-radius: 20px;
@@ -209,7 +209,7 @@ background-position: center;
                </property>
                <property name="icon">
                 <iconset resource="../../veil.qrc">
-                 <normaloff>:/icons/ic-close-white-svg</normaloff>:/icons/ic-close-white-svg</iconset>
+                 <normaloff>:/icons/ic-close-white-png</normaloff>:/icons/ic-close-white-png</iconset>
                </property>
                <property name="iconSize">
                 <size>

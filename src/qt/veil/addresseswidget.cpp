@@ -70,7 +70,7 @@ public:
             selectedRect.setLeft(0);
             painter->fillRect(selectedRect, QColor("#F4F4F4"));
             foreground = QColor("#575756");
-            QIcon icon(":/icons/ic-menu-svg");
+            QIcon icon(":/icons/ic-menu-png");
             QRect mainRect2 = option.rect;
             QRect decorationRect(mainRect2.topRight(), QSize(42, 42));
             QRect iconRect = decorationRect;
