@@ -133,7 +133,7 @@ border-bottom:1px solid #bababa;</string>
 font-size:16px;</string>
         </property>
         <property name="text">
-         <string>Launch VEIL on system startup</string>
+         <string>Launch Veil wallet on system startup</string>
         </property>
        </widget>
       </item>

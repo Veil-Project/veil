@@ -35,13 +35,13 @@ color:#707070;</string>
      <property name="text">
       <string>Single Non-Autominting Address
 
-The Single Non-Autominting Address allows users to avoid automatic minting of Basecoin VEIL into Zerocoin VEIL by keeping Basecoin VEIL inside it. To designate an address as their Single Non-Autominting Address, right-click/hold a transaction and convert it. The default wallet mode only allows one such address.
+The Single Non-Autominting Address allows users to avoid automatic minting of Basecoin veil into Zerocoin veil by keeping Basecoin veil inside it. To designate an address as their Single Non-Autominting Address, right-click/hold a transaction and convert it. The default wallet mode only allows one such address.
 
 Exchange or Service mode
 
-Exchanges, merchants, and other services may want to avoid the Zerocoin autominting and/or staking process. By enabling Exchange or Service mode, the wallet will no longer automint or stake, with the advantage of only requiring ~6 minutes for received VEIL to become spendable again. It is highly discouraged for normal users to activate this mode due to the inability to stake and the relatively less anonymous RingCT transaction method.
+Exchanges, merchants, and other services may want to avoid the Zerocoin autominting and/or staking process. By enabling Exchange or Service mode, the wallet will no longer automint or stake, with the advantage of only requiring ~6 minutes for received veil to become spendable again. It is highly discouraged for normal users to activate this mode due to the inability to stake and the relatively less anonymous RingCT transaction method.
 
-To change to Exchange or Service mode, follow these instructions:
+“To change to Exchange or Service mode, follow these instructions:
 
 1. Go to Settings&gt;Open Configuration File
 2. Enter the following as a new line in the veil.config file: exchange-or-service=1

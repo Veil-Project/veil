@@ -187,7 +187,7 @@ font-size:16px;</string>
      <property name="text">
       <string>When restoring with Wallet File, navigate to your wallet file and input the password used to encrypt it.
 
-When restoring up with Recovery Seed Phrase, please enter words one at a time instead of copying and pasting it.</string>
+When restoring up with Recovery Seed Phrase, please enter words one at a time instead of copying and pasting them.</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
