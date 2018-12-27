@@ -33,9 +33,9 @@ color:#707070;</string>
       <string notr="true">font-weight:200;</string>
      </property>
      <property name="text">
-      <string>“Anyone can earn VEIL through the VEIL Bounty Program. A wide variety of tasks can be performed to earn VEIL, ranging from traditional bounty tasks, high reward contests, bug bounty, dev bounty, and adopting VEIL as a merchant or service.
+      <string>“Anyone can earn veil through the Veil Bounty Program. A wide variety of tasks can be performed to earn veil, ranging from traditional bounty tasks, high reward contests, bug bounty, dev bounty, and adopting Veil as a merchant or service.
 
-For the latest information, please see the Official VEIL Bounty Program thread on the BitcoinTalk forum.”					</string>
+For the latest information, please see the Official Veil Bounty Program thread on the BitcoinTalk forum.”					</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>

@@ -102,7 +102,7 @@ font-size:16px;
 font-weight:bold;</string>
            </property>
            <property name="text">
-            <string>This is your VEIL receiving address</string>
+            <string>This is your Veil receiving address</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>
@@ -139,7 +139,7 @@ font-size:16px;</string>
            </property>
            <property name="text">
             <string>A sender can copy the address or scan the 
-QR code to send you VEIL</string>
+QR code to send you veil</string>
            </property>
            <property name="alignment">
             <set>Qt::AlignCenter</set>

@@ -178,7 +178,7 @@
            <item alignment="Qt::AlignRight">
             <widget class="QLabel" name="textAmount">
              <property name="text">
-              <string>0.01 Veil</string>
+              <string>0.01 veil</string>
              </property>
             </widget>
            </item>
@@ -221,7 +221,7 @@
            <item alignment="Qt::AlignRight">
             <widget class="QLabel" name="textFee">
              <property name="text">
-              <string>0.01 Veil</string>
+              <string>0.01 veil</string>
              </property>
             </widget>
            </item>
