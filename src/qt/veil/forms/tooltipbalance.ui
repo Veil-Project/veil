@@ -98,7 +98,7 @@ background-color:transparent;</string>
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>:/icons/ic-information-svg</normaloff>:/icons/ic-information-svg</iconset>
+            <normaloff>:/icons/ic-information-png</normaloff>:/icons/ic-information-png</iconset>
           </property>
           <property name="iconSize">
            <size>

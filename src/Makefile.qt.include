@@ -393,7 +393,7 @@ RES_ICONS = \
   qt/res/icons/img-logo-binance@2x.png \
   qt/res/icons/ic-nav-transactions@2x.png \
   qt/res/icons/ic-nav-exchange@2x.png \
-  qt/res/icons/ic-nav-send.svg \
+  qt/res/icons/ic-nav-send.png \
   qt/res/icons/img-start-wallet@2x.png \
   qt/res/icons/ic-progress-6-10@2x.png \
   qt/res/icons/ic-copy-small@2x.png \
@@ -412,7 +412,7 @@ RES_ICONS = \
   qt/res/icons/ic-reset-options@2x.png \
   qt/res/icons/ic-send-address@3x.png \
   qt/res/icons/ic-navigation-addresses@2x.png \
-  qt/res/icons/ic-nav-receive.svg \
+  qt/res/icons/ic-nav-receive.png \
   qt/res/icons/ic-send-address.png \
   qt/res/icons/img-start-logo.png \
   qt/res/icons/ic-progress-6-10@3x.png \
@@ -427,10 +427,10 @@ RES_ICONS = \
   qt/res/icons/ic-add-blue.png \
   qt/res/icons/ic-copy-dark.png \
   qt/res/icons/Banner_inicio.png \
-  qt/res/icons/ic-nav-transactions.svg \
+  qt/res/icons/ic-nav-transactions.png \
   qt/res/icons/ic-arrow-down.png \
   qt/res/icons/ic-navigation-receive@2x.png \
-  qt/res/icons/point.svg \
+  qt/res/icons/point.png \
   qt/res/icons/ic-add@2x.png \
   qt/res/icons/qr.png \
   qt/res/icons/ic-add-account-blue@3x.png \
@@ -483,7 +483,7 @@ RES_ICONS = \
   qt/res/icons/ic-folder@2x.png \
   qt/res/icons/ic-nav-address@3x.png \
   qt/res/icons/bg_splash@2x.png \
-  qt/res/icons/img-balance-logo.svg \
+  qt/res/icons/img-balance-logo.png \
   qt/res/icons/img_balance_logo.png \
   qt/res/icons/simbol@2x.png \
   qt/res/icons/banner-top@3x.png \
@@ -504,7 +504,7 @@ RES_ICONS = \
   qt/res/icons/ic-add-blue@3x.png \
   qt/res/icons/ic-progress-9-10@2x.png \
   qt/res/icons/ic-nav-exchange.png \
-  qt/res/icons/ic-nav-addresses.svg \
+  qt/res/icons/ic-nav-addresses.png \
   qt/res/icons/logo_splash.png \
   qt/res/icons/img-start-password@3x.png \
   qt/res/icons/img-start-logo@2x.png \
@@ -521,7 +521,7 @@ RES_ICONS = \
   qt/res/icons/img-start-confirm.png \
   qt/res/icons/img-start-password@2x.png \
   qt/res/icons/img-start-logo@3x.png \
-  qt/res/icons/ic-nav-overview.svg \
+  qt/res/icons/ic-nav-overview.png \
   qt/res/icons/img-start-wallet.png \
   qt/res/icons/img-logo-coinbase.png \
   qt/res/icons/ic-arrow-right@2x.png \
@@ -553,7 +553,7 @@ RES_ICONS = \
   qt/res/icons/ic-progress-9-10.png \
   qt/res/icons/ic-add.png \
   qt/res/icons/img_splash.jpg \
-  qt/res/icons/ic-nav-settings.svg \
+  qt/res/icons/ic-nav-settings.png \
   qt/res/icons/ic-progress-5-10.png \
   qt/res/icons/ic-add-account.png \
   qt/res/icons/ic-progress-5-10@2x.png \
@@ -645,40 +645,40 @@ RES_ICONS = \
   qt/res/icons/ic-settings.png \
   qt/res/icons/ic-settings@2x.png \
   qt/res/icons/ic-settings@3x.png \
-  qt/res/icons/ic-settings.svg \
+  qt/res/icons/ic-settings.png \
   qt/res/icons/ic-progress-6-6-complete-14x14.png \
-  qt/res/icons/ic-switch-on.svg \
-  qt/res/icons/ic-switch-off.svg \
-  qt/res/icons/ic-addresses.svg \
-  qt/res/icons/ic-transactions.svg \
-  qt/res/icons/ic-send.svg \
-  qt/res/icons/ic-receive.svg \
-  qt/res/icons/ic-information.svg \
+  qt/res/icons/ic-switch-on.png \
+  qt/res/icons/ic-switch-off.png \
+  qt/res/icons/ic-addresses.png \
+  qt/res/icons/ic-transactions.png \
+  qt/res/icons/ic-send.png \
+  qt/res/icons/ic-receive.png \
+  qt/res/icons/ic-information.png \
   qt/res/icons/logo-splash@3x.png \
   qt/res/icons/logo-splash@2x.png \
   qt/res/icons/logo-splash.png \
   qt/res/icons/img-wallet.png \
   qt/res/icons/img-wallet@2x.png \
   qt/res/icons/img-wallet@3x.png \
-  qt/res/icons/img-banner-top.svg \
-  qt/res/icons/ic-folder.svg \
-  qt/res/icons/img-empty-addresses.svg \
-  qt/res/icons/img-veil-logo-small.svg \
-  qt/res/icons/ic-close-white.svg \
-  qt/res/icons/ic_sent.svg \
-  qt/res/icons/ic_received.svg \
-  qt/res/icons/ic_mint.svg \
-  qt/res/icons/ic_mined.svg \
-  qt/res/icons/ic-transaction-6-6.svg \
-  qt/res/icons/simbol.svg \
-  qt/res/icons/point.svg \
-  qt/res/icons/ic-close.svg \
-  qt/res/icons/ic-copy.svg \
-  qt/res/icons/ic-add-account.svg \
-  qt/res/icons/ic-reset-options.svg \
-  qt/res/icons/ic-locked.svg \
-  qt/res/icons/ic-unlocked.svg \
-  qt/res/icons/ic-menu.svg \
+  qt/res/icons/img-banner-top.png \
+  qt/res/icons/ic-folder.png \
+  qt/res/icons/img-empty-addresses.png \
+  qt/res/icons/img-veil-logo-small.png \
+  qt/res/icons/ic-close-white.png \
+  qt/res/icons/ic_sent.png \
+  qt/res/icons/ic_received.png \
+  qt/res/icons/ic_mint.png \
+  qt/res/icons/ic_mined.png \
+  qt/res/icons/ic-transaction-6-6.png \
+  qt/res/icons/simbol.png \
+  qt/res/icons/point.png \
+  qt/res/icons/ic-close.png \
+  qt/res/icons/ic-copy.png \
+  qt/res/icons/ic-add-account.png \
+  qt/res/icons/ic-reset-options.png \
+  qt/res/icons/ic-locked.png \
+  qt/res/icons/ic-unlocked.png \
+  qt/res/icons/ic-menu.png \
   qt/res/icons/verify.png
 
 BITCOIN_QT_BASE_CPP = \

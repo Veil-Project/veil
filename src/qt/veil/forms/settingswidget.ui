@@ -299,14 +299,14 @@ border:0px;</string>
 }
 
 #checkBoxStaking {
-background-image: url(&quot;:/icons/ic-switch-off-svg&quot;) ;
+background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
 background-repeat:no-repeat;
 background-position:left center;
 padding:4 4 8 30px;
 }
 
 #checkBoxStaking:checked {
-background-image: url(&quot;:/icons/ic-switch-on-svg&quot;) ;
+background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
 }</string>
               </property>
               <property name="text">
@@ -371,14 +371,14 @@ border:0;</string>
 }
 
 #checkBoxLock {
-background-image: url(&quot;:/icons/ic-switch-off-svg&quot;) ;
+background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
 background-repeat:no-repeat;
 background-position:left center;
 padding:4 4 8 30px;
 }
 
 #checkBoxLock:checked {
-background-image: url(&quot;:/icons/ic-switch-on-svg&quot;) ;
+background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
 }</string>
               </property>
               <property name="text">

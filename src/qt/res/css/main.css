@@ -648,7 +648,7 @@ QRadioButton[cssClass~="radio-button-faq"]::indicator {
 }
 
 #btnBalance{
-    /*background-image: url(":/icons/ic-information-svg") ; */
+    /*background-image: url(":/icons/ic-information-png") ; */
     background-repeat:no-repeat;
     background-position:right center;
     background-color: transparent;

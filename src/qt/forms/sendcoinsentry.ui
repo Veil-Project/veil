@@ -264,7 +264,7 @@ padding:0px;</string>
             </property>
             <property name="icon">
              <iconset resource="../veil.qrc">
-              <normaloff>:/icons/ic-close-svg</normaloff>:/icons/ic-close-svg</iconset>
+              <normaloff>:/icons/ic-close-png</normaloff>:/icons/ic-close-png</iconset>
             </property>
            </widget>
           </item>

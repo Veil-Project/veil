@@ -286,7 +286,7 @@ void BitcoinGUI::createActions()
 {
     QActionGroup *tabGroup = new QActionGroup(this);
 
-    QIcon iconTxes(":/icons/ic-transactions-svg2");
+    QIcon iconTxes(":/icons/ic-transactions-png2");
     // TODO: remove this..
     if(iconTxes.isNull()){
         std::cout << "null image" << std::endl;
@@ -299,8 +299,8 @@ void BitcoinGUI::createActions()
     overviewAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_1));
     tabGroup->addAction(overviewAction);
 
-    QIcon iconSend(":/icons/ic-send-svg2");
-    //iconSend.addFile(":/icons/ic-send-svg2", QSize(iconsSize,iconsSize));
+    QIcon iconSend(":/icons/ic-send-png2");
+    //iconSend.addFile(":/icons/ic-send-png2", QSize(iconsSize,iconsSize));
     sendCoinsAction = new QAction(iconSend,tr("&Send"), this);
     sendCoinsAction->setStatusTip(tr("Send"));
     sendCoinsAction->setToolTip(sendCoinsAction->statusTip());
@@ -308,8 +308,8 @@ void BitcoinGUI::createActions()
     sendCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_2));
     tabGroup->addAction(sendCoinsAction);
 
-    QIcon iconReceive(":/icons/ic-receive-svg2");
-    //iconReceive.addFile(":/icons/ic-receive-svg2", QSize(iconsSize,iconsSize));
+    QIcon iconReceive(":/icons/ic-receive-png2");
+    //iconReceive.addFile(":/icons/ic-receive-png2", QSize(iconsSize,iconsSize));
     receiveCoinsAction = new QAction(iconReceive,tr("&Receive"), this);
     receiveCoinsAction->setStatusTip(tr("Receive"));
     receiveCoinsAction->setToolTip(receiveCoinsAction->statusTip());
@@ -318,8 +318,8 @@ void BitcoinGUI::createActions()
     tabGroup->addAction(receiveCoinsAction);
 
 
-    QIcon iconAddress(":/icons/ic-addresses-svg2");
-    //iconAddress.addFile(":/icons/ic-addresses-svg2", QSize(iconsSize,iconsSize));
+    QIcon iconAddress(":/icons/ic-addresses-png2");
+    //iconAddress.addFile(":/icons/ic-addresses-png2", QSize(iconsSize,iconsSize));
     addressesAction = new QAction(iconAddress,tr("&Addresses"), this);
     addressesAction->setStatusTip(tr("Addresses Overview"));
     addressesAction->setToolTip(addressesAction->statusTip());
@@ -327,8 +327,8 @@ void BitcoinGUI::createActions()
     receiveCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));
     tabGroup->addAction(addressesAction);
 
-    QIcon icon(":/icons/ic-settings-svg2");
-    //icon.addFile(":/icons/ic-settings-svg2", QSize(iconsSize,iconsSize));
+    QIcon icon(":/icons/ic-settings-png2");
+    //icon.addFile(":/icons/ic-settings-png2", QSize(iconsSize,iconsSize));
     settingsAction = new QAction(icon,tr("&Settings"), this);
     settingsAction->setStatusTip(tr("Settings"));
     settingsAction->setToolTip(settingsAction->statusTip());

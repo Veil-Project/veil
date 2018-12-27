@@ -44,17 +44,17 @@ private Q_SLOTS:
 
 private:
     Ui::SettingsFaq *ui;
-    SettingsFaq01 *faq01;
-    SettingsFaq02 *faq02;
-    SettingsFaq03 *faq03;
-    SettingsFaq04 *faq04;
-    SettingsFaq05 *faq05;
-    SettingsFaq06 *faq06;
-    SettingsFaq07 *faq07;
-    SettingsFaq08 *faq08;
-    SettingsFaq09 *faq09;
-    SettingsFaq10 *faq10;
-    SettingsFaq11 *faq11;
+    SettingsFaq01 *faq01 = nullptr;
+    SettingsFaq02 *faq02 = nullptr;
+    SettingsFaq03 *faq03 = nullptr;
+    SettingsFaq04 *faq04 = nullptr;
+    SettingsFaq05 *faq05 = nullptr;
+    SettingsFaq06 *faq06 = nullptr;
+    SettingsFaq07 *faq07 = nullptr;
+    SettingsFaq08 *faq08 = nullptr;
+    SettingsFaq09 *faq09 = nullptr;
+    SettingsFaq10 *faq10 = nullptr;
+    SettingsFaq11 *faq11 = nullptr;
 };
 
 #endif // SETTINGSFAQ_H
