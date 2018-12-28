@@ -41,7 +41,7 @@
 # endif
 #endif
 
-//static int count = 64;
+/*static int count = 64;*/
 static int count = 32;
 static secp256k1_context *ctx = NULL;
 

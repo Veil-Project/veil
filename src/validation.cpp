@@ -647,11 +647,22 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
     // Check for conflicts with in-memory transactions
     std::set<uint256> setConflicts;
+    bool fHasAnonInputs = false;
+    bool fHasStandardInputs = false;
+    bool fHasZerocoinInputs = false;
+    bool fHasBasecoinInputs = false;
     for (const CTxIn &txin : tx.vin)
     {
-        if (txin.IsAnonInput() || txin.scriptSig.IsZerocoinSpend()) {
+        if (txin.IsAnonInput()) {
+            fHasAnonInputs = true;
             continue;
         }
+
+        fHasStandardInputs = true;
+        if (txin.scriptSig.IsZerocoinSpend()) {
+            continue;
+        }
+        fHasBasecoinInputs = true;
 
         auto itConflicting = pool.mapNextTx.find(txin.prevout);
         if (itConflicting != pool.mapNextTx.end())
@@ -691,6 +702,14 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
         }
     }
+
+    // Only allow anon input or standard inputs, but not both
+    if (fHasAnonInputs && fHasStandardInputs)
+        return state.Invalid(error("%s: tx mixes anon and standard inputs", __func__, REJECT_INVALID, "txn-mixed-anon-inputs"));
+
+    // Zerocoinspend should not be mixed with basecoin inputs
+    if (fHasBasecoinInputs && fHasZerocoinInputs)
+        return state.Invalid(error("%s: tx mixes zerocoin and basecoin inputs", __func__, REJECT_INVALID, "txn-mixed-zerocoin-inputs"));
 
     {
         CCoinsView dummy;

@@ -1737,7 +1737,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
             if (nChange > 0) {
                 // Fill an output to ourself
                 CTempRecipient r;
-                r.nType = OUTPUT_RINGCT;
+                r.nType = OUTPUT_CT;
                 r.fChange = true;
                 r.SetAmount(nChange);
 
