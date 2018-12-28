@@ -11,13 +11,6 @@
 #include <qt/veil/settings/settingsfaq.h>
 #include <qt/veil/settings/settingsadvance.h>
 #include <qt/guiutil.h>
-
-//#include "sendcontroldialog.h"
-//#include "addressreceive.h"
-//#include "addressnewcontact.h"
-
-//#include "sendconfirmation.h"
-
 #include <qt/veil/unlockpassworddialog.h>
 #include <veil/mnemonic/mnemonic.h>
 #include <qt/veil/qtutils.h>
@@ -51,9 +44,9 @@ SettingsWidget::SettingsWidget(WalletView *parent) :
     connect(ui->btnBackup,SIGNAL(clicked()),this,SLOT(onBackupClicked()));
 
     //Restore
-    //ui->btnRestore
-    ui->btnRestore->setProperty("cssClass" , "btn-text-settings");
-     connect(ui->btnRestore,SIGNAL(clicked()),this,SLOT(onRestoreClicked()));
+    // No restore implemented on the backend for now for now.
+    //ui->btnRestore->setProperty("cssClass" , "btn-text-settings");
+    //connect(ui->btnRestore,SIGNAL(clicked()),this,SLOT(onRestoreClicked()));
 
     //Password
     //ui->btnPassword

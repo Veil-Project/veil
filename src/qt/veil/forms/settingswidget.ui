@@ -115,8 +115,8 @@ background-color:white;</string>
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>777</width>
-           <height>571</height>
+           <width>791</width>
+           <height>544</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -163,44 +163,6 @@ border:0;</string>
           </item>
           <item>
            <widget class="QLabel" name="label">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>1</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:#bababa;</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btnRestore">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>32</height>
-             </size>
-            </property>
-            <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
-            </property>
-            <property name="styleSheet">
-             <string notr="true"> text-align: left;
-  color: #575756;
-background-color:transparent;
-border:0;</string>
-            </property>
-            <property name="text">
-             <string>Restore Wallet</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_2">
             <property name="maximumSize">
              <size>
               <width>16777215</width>
