@@ -16,6 +16,7 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QDoubleValidator>
 
 SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *parent) :
     QStackedWidget(parent),
@@ -32,6 +33,7 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
     ui->payTo->setProperty("cssClass" , "edit-primary");
 
     ui->payAmount->setPlaceholderText("Amount to send");
+    ui->payAmount->setValidator(new QDoubleValidator(0, 100000000000, 7, this) );
     ui->payAmount->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->payAmount->setProperty("cssClass" , "edit-primary");
 
