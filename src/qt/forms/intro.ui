@@ -327,7 +327,7 @@ background-color:transparent;
                </size>
               </property>
               <property name="focusPolicy">
-               <enum>Qt::NoFocus</enum>
+               <enum>Qt::StrongFocus</enum>
               </property>
               <property name="styleSheet">
                <string notr="true">padding:8px;
@@ -540,8 +540,6 @@ margin-right:24px;
    </item>
   </layout>
  </widget>
- <resources>
-  <include location="../veil.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

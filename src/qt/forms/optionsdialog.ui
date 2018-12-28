@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>569</width>
+    <width>581</width>
     <height>440</height>
    </rect>
   </property>
@@ -33,7 +33,7 @@ border:none;</string>
       <string notr="true"/>
      </property>
      <property name="currentIndex">
-      <number>4</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tabMain">
       <property name="styleSheet">
@@ -320,20 +320,6 @@ padding:9px;
              <string>Expert</string>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_2">
-             <item>
-              <widget class="QCheckBox" name="coinControlFeatures">
-               <property name="toolTip">
-                <string>Whether to show coin control features or not.</string>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">padding-top:16px;
- background-color:transparent;</string>
-               </property>
-               <property name="text">
-                <string>Enable coin &amp;control features</string>
-               </property>
-              </widget>
-             </item>
              <item>
               <widget class="QCheckBox" name="spendZeroConfChange">
                <property name="toolTip">
@@ -1100,7 +1086,7 @@ padding:9px;
           <string>&amp;Reset Options</string>
          </property>
          <property name="icon">
-          <iconset resource="../veil.qrc">
+          <iconset>
            <normaloff>:/icons/ic-reset-options</normaloff>:/icons/ic-reset-options</iconset>
          </property>
          <property name="autoDefault">
@@ -1261,8 +1247,6 @@ background-color:#0e45b4;
    <header>qt/qvaluecombobox.h</header>
   </customwidget>
  </customwidgets>
- <resources>
-  <include location="../veil.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

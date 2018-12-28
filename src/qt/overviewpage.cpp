@@ -210,7 +210,6 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
     connect(ui->listTransactions, SIGNAL(clicked(QModelIndex)), this, SLOT(handleTransactionClicked(QModelIndex)));
 
     connect(ui->btnGoFaq,SIGNAL(clicked()),this,SLOT(onFaqClicked()));
-    connect(ui->btnGoHowToObtainVeil,SIGNAL(clicked()),this,SLOT(onHowFaqClicked()));
 
     // start with displaying the "out of sync" warnings
     showOutOfSyncWarning(true);
@@ -366,10 +365,3 @@ void OverviewPage::onFaqClicked(){
     SettingsFaq *dialog = new SettingsFaq(mainWindow->getGUI());
     openDialogWithOpaqueBackgroundFullScreen(dialog, mainWindow->getGUI());
 }
-
-
-void OverviewPage::onHowFaqClicked(){
-    mainWindow->getGUI()->showHide(true);
-    SettingsFaq *dialog = new SettingsFaq(mainWindow->getGUI(), true);
-    openDialogWithOpaqueBackgroundFullScreen(dialog, mainWindow->getGUI());
-};

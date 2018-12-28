@@ -172,7 +172,7 @@
               <property name="frameShadow">
                <enum>QFrame::Raised</enum>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout" stretch="2,0,0,0,1,0,0,3">
+              <layout class="QVBoxLayout" name="verticalLayout" stretch="2,0,0,0,1,0,3">
                <property name="sizeConstraint">
                 <enum>QLayout::SetDefaultConstraint</enum>
                </property>
@@ -228,83 +228,6 @@
                   </size>
                  </property>
                 </spacer>
-               </item>
-               <item>
-                <widget class="QFrame" name="frame">
-                 <property name="minimumSize">
-                  <size>
-                   <width>40</width>
-                   <height>50</height>
-                  </size>
-                 </property>
-                 <property name="styleSheet">
-                  <string notr="true"/>
-                 </property>
-                 <property name="frameShape">
-                  <enum>QFrame::StyledPanel</enum>
-                 </property>
-                 <property name="frameShadow">
-                  <enum>QFrame::Raised</enum>
-                 </property>
-                 <layout class="QHBoxLayout" name="horizontalLayout_5">
-                  <item>
-                   <spacer name="horizontalSpacer_4">
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>317</width>
-                      <height>20</height>
-                     </size>
-                    </property>
-                   </spacer>
-                  </item>
-                  <item>
-                   <widget class="QPushButton" name="btnGoHowToObtainVeil">
-                    <property name="minimumSize">
-                     <size>
-                      <width>205</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="focusPolicy">
-                     <enum>Qt::NoFocus</enum>
-                    </property>
-                    <property name="styleSheet">
-                     <string notr="true">#btnGoHowToObtainVeil {
-border-radius: 6px;
-color: #FFFFFF;
-font-size: 16px;
-background-color:#105aef;
-line-height:10px;
-padding:8 20 8 20;
-}
-
-#btnGoHowToObtainVeil:hover {
-background-color:#0e45b4;
-}</string>
-                    </property>
-                    <property name="text">
-                     <string>How to obtain Veil</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <spacer name="horizontalSpacer_5">
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>318</width>
-                      <height>20</height>
-                     </size>
-                    </property>
-                   </spacer>
-                  </item>
-                 </layout>
-                </widget>
                </item>
                <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="3,1,3">
