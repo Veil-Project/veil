@@ -604,18 +604,6 @@ static UniValue sendbasecointostealth(const JSONRPCRequest& request)
     return SendToInner(request, OUTPUT_STANDARD, OUTPUT_CT);
 };
 
-static UniValue sendbasecointoringct(const JSONRPCRequest& request)
-{
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    if (!EnsureWalletIsAvailable(wallet.get(), request.fHelp))
-        return NullUniValue;
-    if (request.fHelp || request.params.size() < 2 || request.params.size() > 6)
-        throw std::runtime_error(SendHelp(wallet, OUTPUT_STANDARD, OUTPUT_RINGCT));
-
-    return SendToInner(request, OUTPUT_STANDARD, OUTPUT_RINGCT);
-};
-
-
 static UniValue sendstealthtobasecoin(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1843,11 +1831,9 @@ static const CRPCCommand commands[] =
                 { "wallet",             "getnewaddress",             &getnewaddress,          {"label","num_prefix_bits","prefix_num","bech32","makeV2"} },
 
                 { "wallet",             "sendbasecointostealth", &sendbasecointostealth,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
-                { "wallet",             "sendbasecointoringct", &sendbasecointoringct,                {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
 
                 { "wallet",             "sendstealthtobasecoin", &sendstealthtobasecoin,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
                 { "wallet",             "sendstealthtostealth", &sendstealthtostealth,              {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
-                { "wallet",             "sendstealthtoringct", &sendstealthtoringct,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
 
                 { "wallet",             "sendringcttobasecoin", &sendringcttobasecoin,                {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
                 { "wallet",             "sendringcttostealth", &sendringcttostealth,               {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
