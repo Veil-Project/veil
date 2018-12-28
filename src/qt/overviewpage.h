@@ -60,7 +60,6 @@ private Q_SLOTS:
     void handleOutOfSyncWarningClicks();
     void sortTxes(const QString& selectedStr);
     void onFaqClicked();
-    void onHowFaqClicked();
 };
 
 #endif // BITCOIN_QT_OVERVIEWPAGE_H
