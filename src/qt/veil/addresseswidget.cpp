@@ -227,9 +227,9 @@ void AddressesWidget::handleAddressClicked(const QModelIndex &index){
 
     listView->setCurrentIndex(index);
     QRect rect = listView->visualRect(index);
-    QPoint pos = listView->mapToGlobal(rect.center());
-    pos.setY(pos.y() - (DECORATION_SIZE * 2) );
-    pos.setX(pos.x() - (DECORATION_SIZE / 2));
+    QPoint pos = rect.topRight();
+    pos.setX(pos.x() - (DECORATION_SIZE * 2));
+    pos.setY(pos.y() + (DECORATION_SIZE));
     const QString constType = type;
     if(!this->menu) this->menu = new AddressesMenu(constType , index, this, this->mainWindow, this->model);
     else {
