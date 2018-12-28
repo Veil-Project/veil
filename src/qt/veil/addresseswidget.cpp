@@ -216,25 +216,28 @@ void AddressesWidget::setWalletModel(WalletModel *model)
 
 void AddressesWidget::handleAddressClicked(const QModelIndex &index){
     QListView *listView;
+    QModelIndex updatedIndex;
     QString type;
     if (isOnMyAddresses){
         listView = ui->listAddresses;
         type = AddressTableModel::Receive;
+        updatedIndex = proxyModel->mapToSource(index);
     }else{
         listView = ui->listContacts;
         type = AddressTableModel::Send;
+        updatedIndex = proxyModelSend->mapToSource(index);
     }
 
-    listView->setCurrentIndex(index);
+    listView->setCurrentIndex(updatedIndex);
     QRect rect = listView->visualRect(index);
     QPoint pos = rect.topRight();
     pos.setX(pos.x() - (DECORATION_SIZE * 2));
     pos.setY(pos.y() + (DECORATION_SIZE));
     const QString constType = type;
-    if(!this->menu) this->menu = new AddressesMenu(constType , index, this, this->mainWindow, this->model);
+    if(!this->menu) this->menu = new AddressesMenu(constType , updatedIndex, this, this->mainWindow, this->model);
     else {
         this->menu->hide();
-        this->menu->setInitData(index, this->model, constType);
+        this->menu->setInitData(updatedIndex, this->model, constType);
     }
     menu->move(pos);
     menu->show();
