@@ -346,6 +346,8 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     size_t nDataOutputs = 0;
     std::set<CBigNum> setPubCoin;
     int nZerocoinMints = 0;
+    int nRingCTOut = 0;
+    int nCTOut = 0;
     for (const auto &txout : tx.vpout) {
         switch (txout->nVersion) {
             case OUTPUT_STANDARD: {
@@ -367,10 +369,12 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
             case OUTPUT_CT:
                 if (!CheckBlindOutput(state, (CTxOutCT*) txout.get()))
                     return false;
+                nCTOut++;
                 break;
             case OUTPUT_RINGCT:
                 if (!CheckAnonOutput(state, (CTxOutRingCT*) txout.get()))
                     return false;
+                nRingCTOut++;
                 break;
             case OUTPUT_DATA:
                 if (!CheckDataOutput(state, (CTxOutData*) txout.get()))
@@ -388,8 +392,13 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
     if (nDataOutputs > 1 + nStandardOutputs) // extra 1 for ct fee output
         return state.DoS(100, false, REJECT_INVALID, "too-many-data-outputs");
 
+    // Explicitly ban using both ringct and ct outputs at the same time.
+    if (nRingCTOut && nCTOut)
+        return state.DoS(100, false, REJECT_INVALID, "bad-txns-both-ringctout-and-ctout");
+
     std::set<COutPoint> vInOutPoints;
     std::set<uint256> setZerocoinSpendHashes;
+    int nAnonIn = 0;
     for (const auto& txin : tx.vin) {
         if (txin.scriptSig.IsZerocoinSpend()) {
             //Veil: Cheap check here by hashing the entire script. This could be worked around, so still needs
@@ -404,7 +413,13 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
 
         if (!txin.IsAnonInput() && !vInOutPoints.insert(txin.prevout).second)
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputs-duplicate");
+        if (txin.IsAnonInput())
+            nAnonIn++;
     }
+
+    //Only allow ringct outputs if there are anon inputs
+    if (nRingCTOut && !nAnonIn)
+        return state.DoS(100, false, REJECT_INVALID, "bad-txns-ringct-output-no-anonin");
 
     if (tx.IsCoinBase()) {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
@@ -443,7 +458,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     }
 
     std::vector<const secp256k1_pedersen_commitment*> vpCommitsIn, vpCommitsOut;
-    size_t nStandard = 0, nCt = 0, nRingCT = 0, nZerocoin = 0;
+    size_t nBasecoin = 0, nCt = 0, nRingCT = 0, nZerocoin = 0;
     nValueIn = 0;
     for (unsigned int i = 0; i < tx.vin.size(); ++i) {
         if (tx.vin[i].IsAnonInput()) {
@@ -478,7 +493,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
             if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn))
                 return state.DoS(100, false, REJECT_INVALID, "bad-txns-inputvalues-outofrange");
 
-            nStandard++;
+            nBasecoin++;
         } else if (coin.nType == OUTPUT_CT) {
             vpCommitsIn.push_back(&coin.commitment);
             nCt++;
@@ -487,12 +502,12 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         }
     }
 
-    if ((nStandard > 0) + (nCt > 0) + (nRingCT > 0) + (nZerocoin > 0) > 1)
+    if ((nBasecoin > 0) + (nCt > 0) + (nRingCT > 0) + (nZerocoin > 0) > 1)
         return state.DoS(100, false, REJECT_INVALID, "mixed-input-types");
 
     size_t nRingCTInputs = nRingCT;
     // GetPlainValueOut adds to nStandard, nCt, nRingCT
-    CAmount nPlainValueOut = tx.GetPlainValueOut(nStandard, nCt, nRingCT);
+    CAmount nPlainValueOut = tx.GetPlainValueOut(nBasecoin, nCt, nRingCT);
     state.fHasAnonOutput = nRingCT > nRingCTInputs;
 
     txfee = 0;
@@ -501,8 +516,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         // Tally transaction fees
         if (nCt > 0 || nRingCT > 0) {
             if (!tx.GetCTFee(txfee))
-                return state.DoS(100, error("%s: bad-fee-output", __func__),
-                                 REJECT_INVALID, "bad-fee-output");
+                return state.DoS(100, error("%s: bad-fee-output", __func__), REJECT_INVALID, "bad-fee-output");
         } else {
             txfee = nValueIn - nPlainValueOut;
 
@@ -526,7 +540,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         }
     }
 
-    if (nCt > 0 && nRingCT == 0) {
+    if (nCt > 0) {
         nPlainValueOut += txfee;
 
         if (!MoneyRange(nPlainValueOut))

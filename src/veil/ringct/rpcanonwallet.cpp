@@ -321,7 +321,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     }
 
     auto nv = nRingSizeOfs;
-    size_t nRingSize = 4; // TODO: default size?
+    size_t nRingSize = Params().DefaultRingSize();
     if (request.params.size() > nv) {
         nRingSize = request.params[nv].get_int();
     }
