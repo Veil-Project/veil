@@ -355,7 +355,7 @@ static UniValue setlabel(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-static UniValue setbasecoinaddress(const JSONRPCRequest& request)
+static UniValue setnonautomintaddress(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CWallet* const pwallet = wallet.get();
@@ -366,17 +366,17 @@ static UniValue setbasecoinaddress(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
-                "setbasecoinaddress \"address\" \"foverride\"\n"
-                "\nSets the given address to act as the basecoin address."
-                "\nCoins associated with the basecoin address will not be automatically minted into zerocoin."
-                "\nOnly one wallet address can be marked as a basecoin address.\n"
+                "setnonautomintaddress \"address\" \"foverride\"\n"
+                "\nSets the given address to act as the Non Autominting address."
+                "\nCoins associated with this address will not be automatically minted into zerocoin."
+                "\nOnly one wallet address can be marked as a Non Autominting address.\n"
                 "\nArguments:\n"
-                "1. \"address\"         (string, required) The veil address to be marked as the basecoin address.\n"
-                "2. \"foverride\"       (boolean, optional, default=false) Replace a pre-existing basecoin address.\n"
+                "1. \"address\"         (string, required) The veil address to be marked as the non autominting address.\n"
+                "2. \"foverride\"       (boolean, optional, default=false) Replace a pre-existing non autominting address.\n"
                 "\nExamples:\n"
-                + HelpExampleCli("setbasecoinaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\"")
-                + HelpExampleCli("setbasecoinaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" true")
-                + HelpExampleRpc("setbasecoinaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\", true")
+                + HelpExampleCli("setnonautomintaddress", "\"3tXztk3KJLggw33NaHxFcJJVTdR2kNu63tW6kxq5PM4b6MTNkMizhd7jnEWKSKSRagDALVxy3Ns3EYuu86JjpLPnaL481PHtqsqRSwN\"")
+                + HelpExampleCli("setnonautomintaddress", "\"3tXztk3KJLggw33NaHxFcJJVTdR2kNu63tW6kxq5PM4b6MTNkMizhd7jnEWKSKSRagDALVxy3Ns3EYuu86JjpLPnaL481PHtqsqRSwN\" true")
+                + HelpExampleRpc("setnonautomintaddress", "\"3tXztk3KJLggw33NaHxFcJJVTdR2kNu63tW6kxq5PM4b6MTNkMizhd7jnEWKSKSRagDALVxy3Ns3EYuu86JjpLPnaL481PHtqsqRSwN\", true")
         );
 
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -4830,7 +4830,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "lockunspent",                      &lockunspent,                   {"unlock","transactions"} },
     { "wallet",             "sendmany",                         &sendmany,                      {"fromaccount|dummy","amounts","minconf","comment","subtractfeefrom","replaceable","conf_target","estimate_mode"} },
     { "wallet",             "sendtoaddress",                    &sendtoaddress,                 {"address","amount","comment","comment_to","subtractfeefromamount","replaceable","conf_target","estimate_mode", "useDandelion"} },
-    { "wallet",             "setbasecoinaddress",               &setbasecoinaddress,            {"address","foverride"} },
+    { "wallet",             "setnonautomintaddress",            &setnonautomintaddress,         {"address","foverride"} },
     { "wallet",             "settxfee",                         &settxfee,                      {"amount"} },
     { "wallet",             "signmessage",                      &signmessage,                   {"address","message"} },
     { "wallet",             "signrawtransactionwithwallet",     &signrawtransactionwithwallet,  {"hexstring","prevtxs","sighashtype"} },
