@@ -2228,10 +2228,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && nScriptCheckThreads ? &scriptcheckqueue : nullptr);
 
-    // todo VEIL-89: the other bitcoin code doesn't access the main wallet here so we'll probably want to shift the
-    // zerocoin processing elsewhere eventually
-    auto pwalletMain = GetMainWallet();
-
     std::vector<int> prevheights;
     CAmount nFees = 0;
     int nInputs = 0;
@@ -2596,8 +2592,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     pindex->nAnonOutputs = view.nLastRCTOutput;
 
     // Record zerocoin serials
-    //TODO : VEIL-89
     std::set<uint256> setAddedTx;
+    // todo VEIL-89: the other bitcoin code doesn't access the main wallet here so we'll probably want to shift the
+    // zerocoin processing elsewhere eventually
+    auto pwalletMain = GetMainWallet();
     if (pwalletMain) {
         for (auto pSpend: mapSpends) {
             // Send signal to wallet if this is ours
