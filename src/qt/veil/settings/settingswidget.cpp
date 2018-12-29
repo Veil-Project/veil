@@ -34,9 +34,7 @@ SettingsWidget::SettingsWidget(WalletView *parent) :
 
     ui->title->setProperty("cssClass" , "title");
     ui->titleOptions->setProperty("cssClass" , "title");
-    ui->labelUnlock->setProperty("cssClass" , "btn-text-settings");
     ui->labelStacking->setProperty("cssClass" , "btn-text-settings");
-    ui->checkBoxLock->setProperty("cssClass" , "btn-check");
     ui->checkBoxStaking->setProperty("cssClass" , "btn-check");
 
     //Backup
@@ -69,13 +67,52 @@ SettingsWidget::SettingsWidget(WalletView *parent) :
     ui->btnAdvance->setProperty("cssClass" , "btn-text-settings");
     connect(ui->btnAdvance,SIGNAL(clicked()),this,SLOT(onAdvanceClicked()));
 
-    connect(ui->checkBoxStaking, SIGNAL(clicked(bool)), this, SLOT(onLockWalletClicked()));
-
+    connect(ui->checkBoxStaking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
 }
 
 void SettingsWidget::openDialog(QDialog *dialog){
     openDialogWithOpaqueBackground(dialog, mainWindow->getGUI());
 }
+
+bool checkChangedManually = false;
+void SettingsWidget::onCheckStakingClicked(bool res) {
+    if(checkChangedManually){
+        checkChangedManually = false;
+        return;
+    }
+    bool error = false;
+    try {
+        if(!res){
+            if(walletModel->getEncryptionStatus() == WalletModel::Unencrypted){
+                mainWindow->encryptWallet(true);
+            }else if (walletModel->getEncryptionStatus() != WalletModel::Locked){
+                if (walletModel->setWalletLocked(true, false)){
+                    openToastDialog("Wallet locked", mainWindow->getGUI());
+                }else{
+                    openToastDialog("Wallet not locked", mainWindow->getGUI());
+                    error = true;
+                }
+            }
+        }else{
+            mainWindow->getGUI()->showHide(true);
+            UnlockPasswordDialog *dialog = new UnlockPasswordDialog(mainWindow->getWalletModel(), mainWindow->getGUI());
+            if(openDialogWithOpaqueBackground(dialog, mainWindow->getGUI(), 4)){
+                openToastDialog("Wallet unlocked for staking", mainWindow->getGUI());
+            }else{
+                openToastDialog("Wallet not unlocked for staking", mainWindow->getGUI());
+                error = true;
+            }
+        }
+    } catch (std::exception e) {
+        qDebug() << e.what();
+        error = true;
+    }
+    if(error){
+        checkChangedManually = true;
+        ui->checkBoxStaking->setChecked(!res);
+    }
+}
+
 
 void SettingsWidget::onLockWalletClicked(){
     try {
@@ -212,6 +249,7 @@ void SettingsWidget::hideEvent(QHideEvent *event){
 
 void SettingsWidget::setWalletModel(WalletModel *model){
     this->walletModel = model;
+    ui->checkBoxStaking->setChecked(walletModel->getEncryptionStatus() != WalletModel::Locked);
 }
 
 SettingsWidget::~SettingsWidget()
