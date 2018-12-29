@@ -67,7 +67,6 @@ SettingsWidget::SettingsWidget(WalletView *parent) :
     ui->btnAdvance->setProperty("cssClass" , "btn-text-settings");
     connect(ui->btnAdvance,SIGNAL(clicked()),this,SLOT(onAdvanceClicked()));
 
-    connect(ui->checkBoxStaking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
 }
 
 void SettingsWidget::openDialog(QDialog *dialog){
@@ -250,6 +249,7 @@ void SettingsWidget::hideEvent(QHideEvent *event){
 void SettingsWidget::setWalletModel(WalletModel *model){
     this->walletModel = model;
     ui->checkBoxStaking->setChecked(walletModel->getEncryptionStatus() != WalletModel::Locked);
+    connect(ui->checkBoxStaking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
 }
 
 SettingsWidget::~SettingsWidget()
