@@ -40,7 +40,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "sendtoaddress", 5 , "replaceable" },
     { "sendtoaddress", 6 , "conf_target" },
     { "sendtoaddress", 9 , "useDandelion" },
-    { "setbasecoinaddress", 1, "foverride"},
+    { "setnonautomintaddress", 1, "foverride"},
     { "settxfee", 0, "amount" },
     { "sethdseed", 0, "newkeypool" },
     { "getreceivedbyaddress", 1, "minconf" },
