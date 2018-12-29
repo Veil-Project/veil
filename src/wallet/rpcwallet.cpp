@@ -202,6 +202,59 @@ static UniValue getnewbasecoinaddress(const JSONRPCRequest& request)
     return EncodeDestination(dest, fBech32);
 }
 
+static UniValue getnewminingaddress(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+                "getnewminingaddress\n"
+                "\nReturns a new Veil address to be used to as a mining address.\n"
+                "If 'label' is specified, it is added to the address book \n"
+                "so mining payments received with the address will be associated with 'label'.\n"
+                "\nArguments:\n"
+                "1. \"label\"          (string, optional) The label name for the address to be linked to. If not provided, the default label \"\" is used. It can also be set to the empty string \"\" to represent the default label. The label does not need to exist, it will be created if there is no label by the given name.\n"
+                "\nResult:\n"
+                "\"address\"    (string) The new veil address\n"
+                "\nExamples:\n"
+                + HelpExampleCli("getnewminingaddress", "")
+                + HelpExampleRpc("getnewminingaddress", "")
+        );
+
+    if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: Private keys are disabled for this wallet");
+    }
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    // Parse the label first so we don't generate a key if there's an error
+    std::string label;
+    if (!request.params[0].isNull())
+        label = LabelFromValue(request.params[0]);
+
+    if (!pwallet->IsLocked()) {
+        pwallet->TopUpKeyPool();
+    }
+
+    // Generate a new key that is added to wallet
+    CPubKey newKey;
+    if (!pwallet->GetKeyFromPool(newKey)) {
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+    }
+
+    CKeyID dest = newKey.GetID();
+
+    pwallet->SetAddressBook(dest, label, "receive");
+
+    bool fBech32 = false;
+    return EncodeDestination(dest, fBech32);
+}
+
 static UniValue getrawchangeaddress(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -302,7 +355,7 @@ static UniValue setlabel(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
-static UniValue setbasecoinaddress(const JSONRPCRequest& request)
+static UniValue setnonautomintaddress(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CWallet* const pwallet = wallet.get();
@@ -313,17 +366,17 @@ static UniValue setbasecoinaddress(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
-                "setbasecoinaddress \"address\" \"foverride\"\n"
-                "\nSets the given address to act as the basecoin address."
-                "\nCoins associated with the basecoin address will not be automatically minted into zerocoin."
-                "\nOnly one wallet address can be marked as a basecoin address.\n"
+                "setnonautomintaddress \"address\" \"foverride\"\n"
+                "\nSets the given address to act as the Non Autominting address."
+                "\nCoins associated with this address will not be automatically minted into zerocoin."
+                "\nOnly one wallet address can be marked as a Non Autominting address.\n"
                 "\nArguments:\n"
-                "1. \"address\"         (string, required) The veil address to be marked as the basecoin address.\n"
-                "2. \"foverride\"       (boolean, optional, default=false) Replace a pre-existing basecoin address.\n"
+                "1. \"address\"         (string, required) The veil address to be marked as the non autominting address.\n"
+                "2. \"foverride\"       (boolean, optional, default=false) Replace a pre-existing non autominting address.\n"
                 "\nExamples:\n"
-                + HelpExampleCli("setbasecoinaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\"")
-                + HelpExampleCli("setbasecoinaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\" true")
-                + HelpExampleRpc("setbasecoinaddress", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XX\", true")
+                + HelpExampleCli("setnonautomintaddress", "\"3tXztk3KJLggw33NaHxFcJJVTdR2kNu63tW6kxq5PM4b6MTNkMizhd7jnEWKSKSRagDALVxy3Ns3EYuu86JjpLPnaL481PHtqsqRSwN\"")
+                + HelpExampleCli("setnonautomintaddress", "\"3tXztk3KJLggw33NaHxFcJJVTdR2kNu63tW6kxq5PM4b6MTNkMizhd7jnEWKSKSRagDALVxy3Ns3EYuu86JjpLPnaL481PHtqsqRSwN\" true")
+                + HelpExampleRpc("setnonautomintaddress", "\"3tXztk3KJLggw33NaHxFcJJVTdR2kNu63tW6kxq5PM4b6MTNkMizhd7jnEWKSKSRagDALVxy3Ns3EYuu86JjpLPnaL481PHtqsqRSwN\", true")
         );
 
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -4751,7 +4804,8 @@ static const CRPCCommand commands[] =
     { "wallet",             "encryptwallet",                    &encryptwallet,                 {"passphrase"} },
     { "wallet",             "getaddressinfo",                   &getaddressinfo,                {"address"} },
     { "wallet",             "getbalance",                       &getbalance,                    {"account|dummy","minconf","include_watchonly"} },
-    { "wallet",             "getnewbasecoinaddress",            &getnewbasecoinaddress,       {"label|account","address_type"} },
+    { "wallet",             "getnewbasecoinaddress",            &getnewbasecoinaddress,         {"label|account","address_type"} },
+    { "wallet",             "getnewminingaddress",              &getnewminingaddress,           {"label"} },
     { "wallet",             "getrawchangeaddress",              &getrawchangeaddress,           {"address_type"} },
     { "wallet",             "getreceivedbyaddress",             &getreceivedbyaddress,          {"address","minconf"} },
     { "wallet",             "gettransaction",                   &gettransaction,                {"txid","include_watchonly"} },
@@ -4776,7 +4830,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "lockunspent",                      &lockunspent,                   {"unlock","transactions"} },
     { "wallet",             "sendmany",                         &sendmany,                      {"fromaccount|dummy","amounts","minconf","comment","subtractfeefrom","replaceable","conf_target","estimate_mode"} },
     { "wallet",             "sendtoaddress",                    &sendtoaddress,                 {"address","amount","comment","comment_to","subtractfeefromamount","replaceable","conf_target","estimate_mode", "useDandelion"} },
-    { "wallet",             "setbasecoinaddress",               &setbasecoinaddress,            {"address","foverride"} },
+    { "wallet",             "setnonautomintaddress",            &setnonautomintaddress,         {"address","foverride"} },
     { "wallet",             "settxfee",                         &settxfee,                      {"amount"} },
     { "wallet",             "signmessage",                      &signmessage,                   {"address","message"} },
     { "wallet",             "signrawtransactionwithwallet",     &signrawtransactionwithwallet,  {"hexstring","prevtxs","sighashtype"} },

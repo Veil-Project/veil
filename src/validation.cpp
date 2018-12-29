@@ -647,11 +647,22 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
     // Check for conflicts with in-memory transactions
     std::set<uint256> setConflicts;
+    bool fHasAnonInputs = false;
+    bool fHasStandardInputs = false;
+    bool fHasZerocoinInputs = false;
+    bool fHasBasecoinInputs = false;
     for (const CTxIn &txin : tx.vin)
     {
-        if (txin.IsAnonInput() || txin.scriptSig.IsZerocoinSpend()) {
+        if (txin.IsAnonInput()) {
+            fHasAnonInputs = true;
             continue;
         }
+
+        fHasStandardInputs = true;
+        if (txin.scriptSig.IsZerocoinSpend()) {
+            continue;
+        }
+        fHasBasecoinInputs = true;
 
         auto itConflicting = pool.mapNextTx.find(txin.prevout);
         if (itConflicting != pool.mapNextTx.end())
@@ -691,6 +702,14 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
         }
     }
+
+    // Only allow anon input or standard inputs, but not both
+    if (fHasAnonInputs && fHasStandardInputs)
+        return state.Invalid(error("%s: tx mixes anon and standard inputs", __func__, REJECT_INVALID, "txn-mixed-anon-inputs"));
+
+    // Zerocoinspend should not be mixed with basecoin inputs
+    if (fHasBasecoinInputs && fHasZerocoinInputs)
+        return state.Invalid(error("%s: tx mixes zerocoin and basecoin inputs", __func__, REJECT_INVALID, "txn-mixed-zerocoin-inputs"));
 
     {
         CCoinsView dummy;
@@ -2238,6 +2257,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     CAmount nBlockValueIn = 0;
     CAmount nBlockValueOut = 0;
+    int64_t nTimeZerocoinSpendCheck = 0;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2288,6 +2308,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             }
         } else {
             if (tx.IsZerocoinSpend()) {
+                int64_t nTimeSpendCheck = GetTimeMicros();
                 // Skip signature verification if it's already been done or if the block height is below a checkpoint height
                 bool fSkipSigVerify = block.fSignaturesVerified ? true : fSkipComputation;
                 int nHeightTx = 0;
@@ -2322,6 +2343,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                         return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
                                                     tx.GetHash().GetHex()), REJECT_INVALID);
                 }
+                nTimeZerocoinSpendCheck += GetTimeMicros() - nTimeSpendCheck;
             }
 
             if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee, nTxValueIn, nTxValueOut))
@@ -2475,6 +2497,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
 
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(), MILLI * (nTime3 - nTime2), MILLI * (nTime3 - nTime2) / block.vtx.size(), nInputs <= 1 ? 0 : MILLI * (nTime3 - nTime2) / (nInputs-1), nTimeConnect * MICRO, nTimeConnect * MILLI / nBlocksTotal);
+
+    if (!mapSpends.empty())
+        LogPrint(BCLog::BENCH, "      - Check zerocoin spends: %.2fms\n", MILLI * nTimeZerocoinSpendCheck);
 
     CAmount networkReward = pindex->nNetworkRewardReserve > Params().MaxNetworkReward() ? Params().MaxNetworkReward() : pindex->nNetworkRewardReserve;
     pindex->nNetworkRewardReserve -= networkReward;
@@ -3874,9 +3899,6 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
                 return error("Block contains zerocoins that spend more than are in the available supply to spend");
         }
     }
-
-    for (auto& denom : libzerocoin::zerocoinDenomList)
-        LogPrint(BCLog::ZEROCOINDB, "%s coins for denomination %d pubcoin %s\n", __func__, denom, pindex->mapZerocoinSupply.at(denom));
 
     return true;
 }

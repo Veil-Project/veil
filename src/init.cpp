@@ -543,10 +543,15 @@ void SetupServerArgs()
 
 std::string LicenseInfo()
 {
-    const std::string URL_SOURCE_CODE = "<https://github.com/bitcoin/bitcoin>";
-    const std::string URL_WEBSITE = "<https://bitcoincore.org>";
+    const std::string URL_SOURCE_CODE = "<https://github.com/veil-project/veil>";
+    const std::string URL_WEBSITE = "<https://veil-project.com>";
 
-    return CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2009, COPYRIGHT_YEAR) + " ") + "\n" +
+    return  CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2009, COPYRIGHT_YEAR) + " ") + "\n" +
+            "Copyright (C) 2009-2018 The Bitcoin Core developers" + "\n"
+            "Copyright (C) 2009-2018 Bitcoin Developers" + "\n" +
+            "Copyright (C) 2015-2018 PIVX Developers" + "\n" +
+            "Copyright (C) 2017-2018 The Particl Developers" + "\n" +
+            "Copyright (C) 2018 The Veil Developers" + "\n" +
            "\n" +
            strprintf(_("Please contribute if you find %s useful. "
                        "Visit %s for further information about the software."),
