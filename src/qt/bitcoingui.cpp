@@ -8,11 +8,11 @@
 #include <qt/clientmodel.h>
 #include <qt/guiconstants.h>
 #include <qt/guiutil.h>
-#include <qt/modaloverlay.h>
 #include <qt/networkstyle.h>
 #include <qt/notificator.h>
 #include <qt/openuridialog.h>
 #include <qt/optionsdialog.h>
+#include <qt/modaloverlay.h>
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
 #include <qt/rpcconsole.h>
@@ -1261,15 +1261,15 @@ void BitcoinGUI::setEncryptionStatus(int status)
     veilStatusBar->updateStakingCheckbox();
 }
 
-void BitcoinGUI::encryptWallet(bool encrypt){
+bool BitcoinGUI::encryptWallet(bool encrypt){
     if (!walletFrame) {
-        return;
+        return false;
     }
     WalletView * const walletView = walletFrame->currentWalletView();
     if (!walletView) {
-        return;
+        return false;
     }
-    walletView->encryptWallet(encrypt);
+    return walletView->encryptWallet(encrypt);
 
 }
 
@@ -1381,6 +1381,10 @@ void BitcoinGUI::showModalOverlay()
 {
     if (modalOverlay) //&& (modalOverlay->isLayerVisible()))
         modalOverlay->toggleVisibility();
+}
+
+void BitcoinGUI::resizeModalOverlay(){
+    modalOverlay->resizeOp();
 }
 
 static bool ThreadSafeMessageBox(BitcoinGUI *gui, const std::string& message, const std::string& caption, unsigned int style)

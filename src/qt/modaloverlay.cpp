@@ -192,6 +192,22 @@ void ModalOverlay::showHide(bool hide, bool userRequested)
     layerIsVisible = !hide;
 }
 
+void ModalOverlay::resizeOp(){
+    if(isVisible()){
+        QColor bg("#000000");
+        bg.setAlpha(200);
+        QPalette palette;
+        palette.setColor(QPalette::Window, bg);
+        op->setAutoFillBackground(true);
+        op->setPalette(palette);
+        op->setWindowFlags(Qt::CustomizeWindowHint);
+        op->move(0,0);
+        op->show();
+        op->activateWindow();
+        op->resize(parentWidget()->parentWidget()->width(), parentWidget()->parentWidget()->height());
+    }
+}
+
 void ModalOverlay::closeClicked()
 {
     showHide(true);

@@ -17,7 +17,6 @@ VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
 
     connect(ui->btnLock, SIGNAL(clicked()), this, SLOT(onBtnLockClicked()));
     connect(ui->btnSync, SIGNAL(clicked()), this, SLOT(onBtnSyncClicked()));
-    connect(ui->checkStacking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
 }
 
 bool VeilStatusBar::getSyncStatusVisible() {
@@ -39,6 +38,7 @@ void VeilStatusBar::onBtnSyncClicked(){
 bool fBlockNextStakeCheckSignal = false;
 void VeilStatusBar::onCheckStakingClicked(bool res) {
     // When our own dialog internally changes the checkstate, block signal from executing
+    if(!this->preparingFlag) return;
     if (fBlockNextStakeCheckSignal) {
         fBlockNextStakeCheckSignal = false;
         return;
@@ -70,7 +70,15 @@ void VeilStatusBar::onBtnLockClicked()
         return;
     }
 
-    mainWindow->encryptWallet(walletModel->getEncryptionStatus() != WalletModel::Locked);
+    if(walletModel->getEncryptionStatus() == WalletModel::Unlocked || walletModel->getEncryptionStatus() == WalletModel::UnlockedForStakingOnly){
+        if (walletModel->setWalletLocked(true, false)){
+            openToastDialog("Wallet locked", mainWindow);
+        }else{
+            openToastDialog("Wallet not locked", mainWindow);
+        }
+    }else{
+        mainWindow->encryptWallet(walletModel->getEncryptionStatus() != WalletModel::Locked);
+    }
     fBlockNextBtnLockSignal = true;
     updateStakingCheckbox();
 }
@@ -80,6 +88,7 @@ void VeilStatusBar::setWalletModel(WalletModel *model)
     this->preparingFlag = false;
     this->walletModel = model;
     updateStakingCheckbox();
+    connect(ui->checkStacking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
     this->preparingFlag = true;
 }
 

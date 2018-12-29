@@ -13,12 +13,14 @@
 
 #include <QString>
 
-UpdateAddress::UpdateAddress(const QModelIndex &_index, QWidget *parent,  WalletModel* _walletModel,
+UpdateAddress::UpdateAddress(const QModelIndex &_index, QString addressStr, std::string _addressPurpose, QWidget *parent,  WalletModel* _walletModel,
                              AddressTableModel *_model) :
     QDialog(parent),
     walletModel(_walletModel),
     index(_index),
     model(_model),
+    address(addressStr),
+    addressPurpose(_addressPurpose),
     ui(new Ui::UpdateAddress)
 {
     ui->setupUi(this);
@@ -34,11 +36,7 @@ UpdateAddress::UpdateAddress(const QModelIndex &_index, QWidget *parent,  Wallet
     ui->editLabel->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->editLabel->setProperty("cssClass" , "edit-primary");
 
-    //
-    auto address = this->model->index(index.row(), AddressTableModel::Address, index);
-    addressStr = this->model->data(address, Qt::DisplayRole).toString();
     ui->lblAddress->setText(addressStr);
-
     connect(ui->btnSave,SIGNAL(clicked()),this, SLOT(onBtnSaveClicked()));
 }
 
@@ -49,8 +47,8 @@ void UpdateAddress::onEscapeClicked(){
 void UpdateAddress::onBtnSaveClicked(){
     std::string label = ui->editLabel->text().toUtf8().constData();
     interfaces::Wallet& wallet = walletModel->wallet();
-    CTxDestination dest = DecodeDestination(addressStr.toUtf8().constData());
-    if(wallet.setAddressBook(dest, label, "receive")){
+    CTxDestination dest = DecodeDestination(address.toUtf8().constData());
+    if(wallet.setAddressBook(dest, label, addressPurpose)){
         accept();
     }else close();
 }
