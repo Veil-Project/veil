@@ -108,7 +108,10 @@ public:
     void resizeEvent(QResizeEvent* event) override{
         QMainWindow::resizeEvent(event);
         showHide(opEnabled);
+        resizeModalOverlay();
     }
+
+    void resizeModalOverlay();
 
 protected:
     void changeEvent(QEvent *e);
