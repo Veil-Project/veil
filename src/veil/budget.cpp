@@ -76,7 +76,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
     } else if (nBlockHeight >= 1 && nBlockHeight <= 518399) {
 
         nBlockReward = 50;
-        if((nBlockHeight % nBlocksPerPeriod) == 0 || nBlockHeight == 1) {
+        if((nBlockHeight % nBlocksPerPeriod) == 0 || (Params().NetworkIDString() == "test" && nBlockHeight == 1)) {
             nFounderPayment = 10 * nBlocksPerPeriod;
             nLabPayment = 10 * nBlocksPerPeriod;
             nBudgetPayment = 30 * nBlocksPerPeriod;
