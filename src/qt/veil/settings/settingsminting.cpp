@@ -22,7 +22,6 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
     ui->setupUi(this);
     ui->btnEsc->setProperty("cssClass" , "btn-text-primary-inactive");
 
-
     ui->btnSendMint->setProperty("cssClass" , "btn-text-primary");
     ui->btnSendMint->setText("MINT");
 
@@ -114,7 +113,7 @@ void SettingsMinting::mintzerocoins(){
     std::string strError;
     std::vector<COutPoint> vOutpts;
 
-    bool fAllowBasecoin = false;
+    bool fAllowBasecoin = ui->useBasecoin->isChecked();
 
     strError = wallet.mintZerocoin(nAmount, vDMints, fAllowBasecoin, NULL);
     std::cout << "mint: " << strError << std::endl;
