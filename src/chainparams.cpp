@@ -241,11 +241,11 @@ public:
         nRingCTAccount = 20000;
         nZerocoinAccount = 100000;
 
-        //sv for "stealth veil"
+        //sv for "stealth veil" & bv for "basecoin veil"
         bech32Prefixes[STEALTH_ADDRESS].assign("sv","sv"+2);
-
-        //bv for "basecoin veil"
-        bech32_hrp = "bv";
+        bech32Prefixes[BASE_ADDRESS].assign("bv", "bv"+2);
+        bech32_hrp_stealth = "sv";
+        bech32_hrp_base = "bv";
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
@@ -372,11 +372,13 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
         bech32Prefixes[STEALTH_ADDRESS].assign("tps","tps"+3);
+        bech32Prefixes[BASE_ADDRESS].assign("tv", "tv"+2);
         nBIP44ID = 0x80000001;
         nRingCTAccount = 20000;
         nZerocoinAccount = 100000;
 
-        bech32_hrp = "tv";
+        bech32_hrp_stealth = "tps";
+        bech32_hrp_base = "tv";
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = false;
@@ -504,7 +506,7 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
-        bech32_hrp = "bcrt";
+        bech32_hrp_stealth = "bcrt";
 
         /* enable fallback fee on regtest */
         m_fallback_fee_enabled = true;
