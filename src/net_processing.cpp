@@ -79,7 +79,7 @@ std::map<uint256, COrphanTx> mapOrphanTransactions GUARDED_BY(g_cs_orphans);
 std::map<int, CBlock> mapStagedBlocks;
 static int nStagedCacheSize = 0;
 static constexpr int STAGING_CACHE_SIZE = 1000000 * 100; //100mb cache
-static constexpr int ASK_FOR_BLOCKS = 10; //How many blocks to ask for at once
+static constexpr int ASK_FOR_BLOCKS = 50; //How many blocks to ask for at once
 static CCriticalSection cs_staging;
 
 void EraseOrphansFor(NodeId peer);
@@ -2375,6 +2375,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         LOCK(cs_main);
         if (IsInitialBlockDownload() && !pfrom->fWhitelisted) {
             LogPrint(BCLog::NET, "Ignoring getheaders from peer=%d because node is in initial block download\n", pfrom->GetId());
+            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexBestHeader), uint256()));;
             return true;
         }
 
@@ -4065,6 +4066,11 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                 if (mi != mapRequestedBlocks.end()) {
                     if (GetTime() - mi->second < 5)
                         fRequest = false;
+                } else if (mapBlockSource.count(inv.hash)) {
+                    // Already have this block, so consider it requested
+                    bool fHaveInStaging = false;
+                    mapRequestedBlocks.emplace(inv.hash, GetTime());
+                    fRequest = false;
                 }
 
                 if (fRequest) {
