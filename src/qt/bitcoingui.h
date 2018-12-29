@@ -267,7 +267,7 @@ public Q_SLOTS:
     void incomingTransaction(const QString& date, int unit, const CAmount& amount, const QString& type, const QString& address, const QString& label, const QString& walletName);
 
     /** Encrypt every wallet **/
-    void encryptWallet(bool encrypt);
+    bool encryptWallet(bool encrypt);
 
 #endif // ENABLE_WALLET
 

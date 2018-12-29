@@ -67,6 +67,9 @@ void TutorialWidget::on_next_triggered(){
     switch (position) {
         case 0:
             {
+
+                strLanguageSelection = QString::fromStdString(tutorialLanguageWidget->GetLanguageSelection());
+
                 tutorialCreateWallet = new TutorialCreateWalletWidget(this);
                 ui->QStackTutorialContainer->addWidget(tutorialCreateWallet);
                 qWidget = tutorialCreateWallet;

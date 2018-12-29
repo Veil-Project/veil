@@ -261,18 +261,20 @@ void WalletView::updateEncryptionStatus()
     Q_EMIT encryptionStatusChanged();
 }
 
-void WalletView::encryptWallet(bool status)
+bool WalletView::encryptWallet(bool status)
 {
     if(!walletModel)
-        return;
+        return false;
 
     gui->showHide(true);
     AskPassphraseDialog *dlg = new AskPassphraseDialog(status ? AskPassphraseDialog::Encrypt : AskPassphraseDialog::Decrypt, gui);
     dlg->setModel(walletModel);
 
-    openDialogWithOpaqueBackground(dlg, gui, 4);
+    bool res = openDialogWithOpaqueBackground(dlg, gui, 4);
 
     updateEncryptionStatus();
+
+    return res;
 }
 
 void WalletView::backupWallet()

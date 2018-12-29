@@ -1261,15 +1261,15 @@ void BitcoinGUI::setEncryptionStatus(int status)
     veilStatusBar->updateStakingCheckbox();
 }
 
-void BitcoinGUI::encryptWallet(bool encrypt){
+bool BitcoinGUI::encryptWallet(bool encrypt){
     if (!walletFrame) {
-        return;
+        return false;
     }
     WalletView * const walletView = walletFrame->currentWalletView();
     if (!walletView) {
-        return;
+        return false;
     }
-    walletView->encryptWallet(encrypt);
+    return walletView->encryptWallet(encrypt);
 
 }
 

@@ -83,7 +83,12 @@ void SettingsWidget::onCheckStakingClicked(bool res) {
     try {
         if(!res){
             if(walletModel->getEncryptionStatus() == WalletModel::Unencrypted){
-                mainWindow->encryptWallet(true);
+                if (mainWindow->encryptWallet(true)){
+                    openToastDialog("Wallet encrypted", mainWindow->getGUI());
+                }else{
+                    openToastDialog("Wallet not encrypted", mainWindow->getGUI());
+                    error = true;
+                }
             }else if (walletModel->getEncryptionStatus() != WalletModel::Locked){
                 if (walletModel->setWalletLocked(true, false)){
                     openToastDialog("Wallet locked", mainWindow->getGUI());
@@ -91,6 +96,8 @@ void SettingsWidget::onCheckStakingClicked(bool res) {
                     openToastDialog("Wallet not locked", mainWindow->getGUI());
                     error = true;
                 }
+            }else{
+                error = true;
             }
         }else{
             mainWindow->getGUI()->showHide(true);
