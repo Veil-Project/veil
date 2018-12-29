@@ -177,7 +177,7 @@ public:
 
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
-        consensus.nDgwPastBlocks = 10; // number of blocks to average in Dark Gravity Wave
+        consensus.nDgwPastBlocks = 30; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 1916; // 95% of 2016
@@ -291,7 +291,7 @@ public:
         nCoinbaseMaturity = 100;
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 2000000;
-        nHeightSupplyCreationStop = 300000000;
+        nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
@@ -426,7 +426,7 @@ public:
         nCoinbaseMaturity = 10;
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 2000000;
-        nHeightSupplyCreationStop = 300000000;
+        nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
