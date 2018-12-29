@@ -711,6 +711,16 @@ background-color:transparent;</string>
               </property>
              </widget>
             </item>
+            <item alignment="Qt::AlignHCenter">
+             <widget class="QCheckBox" name="useBasecoin">
+              <property name="enabled">
+               <bool>true</bool>
+              </property>
+              <property name="text">
+               <string>Use Basecoin</string>
+              </property>
+             </widget>
+            </item>
             <item>
              <widget class="QLabel" name="errorMessage">
               <property name="styleSheet">
