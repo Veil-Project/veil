@@ -291,7 +291,7 @@ public:
         nCoinbaseMaturity = 100;
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 2000000;
-        nHeightSupplyCreationStop = 300000000;
+        nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
@@ -426,7 +426,7 @@ public:
         nCoinbaseMaturity = 10;
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 2000000;
-        nHeightSupplyCreationStop = 300000000;
+        nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
