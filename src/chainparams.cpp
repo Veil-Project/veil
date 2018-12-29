@@ -228,6 +228,8 @@ public:
         assert(genesis.hashVeilData == uint256S("0x3e683ad346b50576bb9b36cd94879c6950e7bf0ae41ddb421603bbab8e48f14d"));
 
         vSeeds.emplace_back("veilseed.presstab.pw");
+        vSeeds.emplace_back("veil.seed.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
+        vSeeds.emplace_back("veil.seed2.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,70);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -358,6 +360,8 @@ public:
         vSeeds.clear();
 
         vSeeds.emplace_back("veilseedtestnet.presstab.pw");
+        vSeeds.emplace_back("veil-testnet.seed.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
+        vSeeds.emplace_back("veil-testnet.seed2.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
         vSeeds.emplace_back("45.34.187.118", "45.34.187.118"); // blondfrogs single IP
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
