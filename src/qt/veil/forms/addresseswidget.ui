@@ -399,13 +399,19 @@ QListView::text {
          <bool>true</bool>
         </property>
         <property name="selectionMode">
-         <enum>QAbstractItemView::NoSelection</enum>
+         <enum>QAbstractItemView::SingleSelection</enum>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectRows</enum>
         </property>
         <property name="movement">
          <enum>QListView::Free</enum>
         </property>
         <property name="resizeMode">
          <enum>QListView::Adjust</enum>
+        </property>
+        <property name="layoutMode">
+         <enum>QListView::SinglePass</enum>
         </property>
         <property name="viewMode">
          <enum>QListView::ListMode</enum>

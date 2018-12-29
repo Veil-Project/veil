@@ -36,6 +36,7 @@ private Q_SLOTS:
     void onNetworkClicked();
     void onFaqClicked();
     void onAdvanceClicked();
+    void onCheckStakingClicked(bool res);
 private:
     Ui::SettingsWidget *ui;
     WalletView *mainWindow;

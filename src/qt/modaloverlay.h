@@ -28,6 +28,8 @@ public:
     explicit ModalOverlay(QWidget *parent, BitcoinGUI *btcGui);
     ~ModalOverlay();
 
+    void resizeOp();
+
 public Q_SLOTS:
     void tipUpdate(int count, const QDateTime& blockDate, double nVerificationProgress);
     void setKnownBestHeight(int count, const QDateTime& blockDate);

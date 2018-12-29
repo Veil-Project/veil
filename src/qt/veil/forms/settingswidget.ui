@@ -115,8 +115,8 @@ background-color:white;</string>
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>777</width>
-           <height>571</height>
+           <width>791</width>
+           <height>544</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -163,44 +163,6 @@ border:0;</string>
           </item>
           <item>
            <widget class="QLabel" name="label">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>1</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:#bababa;</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="btnRestore">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>32</height>
-             </size>
-            </property>
-            <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
-            </property>
-            <property name="styleSheet">
-             <string notr="true"> text-align: left;
-  color: #575756;
-background-color:transparent;
-border:0;</string>
-            </property>
-            <property name="text">
-             <string>Restore Wallet</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_2">
             <property name="maximumSize">
              <size>
               <width>16777215</width>
@@ -311,78 +273,6 @@ background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
               </property>
               <property name="text">
                <string>Staking</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_5">
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>1</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:#bababa;</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_4">
-            <property name="topMargin">
-             <number>5</number>
-            </property>
-            <property name="bottomMargin">
-             <number>5</number>
-            </property>
-            <item>
-             <widget class="QLabel" name="labelUnlock">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>32</height>
-               </size>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">text-align: left;
-color: #575756;
-background-color:transparent;
-border:0;</string>
-              </property>
-              <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:14pt;&quot;&gt;Unlock Wallet Fully&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="checkBoxLock">
-              <property name="focusPolicy">
-               <enum>Qt::NoFocus</enum>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">#checkBoxLock::indicator {
-    border: 0;
-    background: none;
-}
-
-#checkBoxLock {
-background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
-background-repeat:no-repeat;
-background-position:left center;
-padding:4 4 8 30px;
-}
-
-#checkBoxLock:checked {
-background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
-}</string>
-              </property>
-              <property name="text">
-               <string>Locked</string>
               </property>
              </widget>
             </item>

@@ -62,7 +62,7 @@
          <string notr="true"/>
         </property>
         <property name="text">
-         <string>Update Address</string>
+         <string>Edit Address Label</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -88,7 +88,7 @@
       <item alignment="Qt::AlignHCenter">
        <widget class="QLabel" name="label">
         <property name="text">
-         <string>You can update the address label</string>
+         <string>You can edit the stored label of an address</string>
         </property>
        </widget>
       </item>

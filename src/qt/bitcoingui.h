@@ -48,6 +48,8 @@ class QProgressBar;
 class QProgressDialog;
 QT_END_NAMESPACE
 
+bool opEnabled = false;
+
 /**
   Bitcoin GUI main class. This class represents the main window of the Bitcoin UI. It communicates with both the client and
   wallet models to give the user an up-to-date view of the current core state.
@@ -85,6 +87,7 @@ public:
         if(!op) op = new QLabel(this);
         if(!show){
             op->setVisible(false);
+            opEnabled = false;
         }else{
             QColor bg("#000000");
             bg.setAlpha(200);
@@ -98,8 +101,17 @@ public:
             op->activateWindow();
             op->resize(width(), height());
             op->setVisible(true);
+            opEnabled = true;
         }
     }
+
+    void resizeEvent(QResizeEvent* event) override{
+        QMainWindow::resizeEvent(event);
+        showHide(opEnabled);
+        resizeModalOverlay();
+    }
+
+    void resizeModalOverlay();
 
 protected:
     void changeEvent(QEvent *e);
@@ -255,7 +267,7 @@ public Q_SLOTS:
     void incomingTransaction(const QString& date, int unit, const CAmount& amount, const QString& type, const QString& address, const QString& label, const QString& walletName);
 
     /** Encrypt every wallet **/
-    void encryptWallet(bool encrypt);
+    bool encryptWallet(bool encrypt);
 
 #endif // ENABLE_WALLET
 

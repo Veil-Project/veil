@@ -2,6 +2,7 @@
 #include <qt/veil/forms/ui_unlockpassworddialog.h>
 #include <qt/walletmodel.h>
 #include <qt/guiconstants.h>
+#include <qt/veil/qtutils.h>
 
 UnlockPasswordDialog::UnlockPasswordDialog(WalletModel* model, QWidget *parent) :
     QDialog(parent),
@@ -18,11 +19,15 @@ UnlockPasswordDialog::UnlockPasswordDialog(WalletModel* model, QWidget *parent) 
     connect(ui->btnCancel,SIGNAL(clicked()),this, SLOT(onEscapeClicked()));
     connect(ui->btnSave,SIGNAL(clicked()),this, SLOT(onUnlockClicked()));
 
+    ui->labelTitle->setText("Unlock Wallet For Staking");
+    ui->labelDescription->setText("Enter your password to turn on staking.");
+    ui->errorMessage->setText("");
 }
 
 void UnlockPasswordDialog::onEscapeClicked(){
     close();
 }
+
 
 void UnlockPasswordDialog::onUnlockClicked()
 {
@@ -30,15 +35,14 @@ void UnlockPasswordDialog::onUnlockClicked()
     secureString.reserve(MAX_PASSPHRASE_SIZE);
     secureString.assign(ui->editPassword->text().toStdString().c_str());
     if (!walletModel->setWalletLocked(false, /*fUnlockForStakingOnly*/true, secureString)) {
-        //todo: give some type of error message to try again
+        close();
     } else {
         //Remove password text for form
         ui->editPassword->setText("");
-        close();
+        accept();
     }
 }
 
-UnlockPasswordDialog::~UnlockPasswordDialog()
-{
+UnlockPasswordDialog::~UnlockPasswordDialog() {
     delete ui;
 }

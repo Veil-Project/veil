@@ -40,7 +40,13 @@ void AddressesMenu::on_btnEditAddress_clicked(){
     QString addressStr = this->model->data(address, Qt::DisplayRole).toString();
 
     this->mainWindow->getGUI()->showHide(true);
-    UpdateAddress *updateAddress = new UpdateAddress(index, this->mainWindow->getGUI(), mainWindow->getWalletModel(), model);
+    std::string purpose;
+    if(AddressTableModel::Receive == type){
+        purpose = "receive";
+    }else{
+        purpose = "send";
+    }
+    UpdateAddress *updateAddress = new UpdateAddress(index, addressStr, purpose, this->mainWindow->getGUI(), mainWindow->getWalletModel(), model);
     if(openDialogWithOpaqueBackground(updateAddress, this->mainWindow->getGUI(), 3)){
         openToastDialog("Label Updated", this->mainWindow->getGUI());
     }
