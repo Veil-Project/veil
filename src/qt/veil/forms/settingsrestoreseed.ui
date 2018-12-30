@@ -55,7 +55,7 @@
 font-size:16px;</string>
        </property>
        <property name="text">
-        <string>Enter 24 words recorvery phrase*</string>
+        <string>Enter your 24 word recovery phrase*</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>
