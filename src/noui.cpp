@@ -58,6 +58,7 @@ static bool noui_DisplayWalletMnemonic(std::string& mnemonic)
 static bool noui_InitNewWallet(std::string& mnemonic, unsigned int& flag)
 {
     switch (flag) {
+        case MnemonicWalletInitFlags::SELECT_LANGUAGE:
         case MnemonicWalletInitFlags::PROMPT_MNEMONIC:
         {
             return noui_ThreadSafeQuestion("", "To import existing seed phrase restart wallet with -importseed= . To generate a new seed start wallet with -generateseed=1 ", "New Wallet Load Detected: ", -1);
