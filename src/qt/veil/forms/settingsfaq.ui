@@ -310,7 +310,7 @@ QScrollBar:vertical {
               <x>0</x>
               <y>0</y>
               <width>400</width>
-              <height>546</height>
+              <height>501</height>
              </rect>
             </property>
             <property name="maximumSize">
@@ -847,48 +847,6 @@ Address / Exchange or Service mode?</string>
                   </property>
                   <property name="text">
                    <string>What is the Veil Bounty Program?</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QRadioButton" name="radioButton_11">
-                  <property name="maximumSize">
-                   <size>
-                    <width>390</width>
-                    <height>16777215</height>
-                   </size>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true">#radioButton_11 {
-    border-radius: 0;
-    border:  0;
-    background-color:#ffffff;
-    color: #707070;
-    font-size: 18px;
-    padding:10 30 10 30;
-    text-align:center !important;
-}
-
-#radioButton_11:checked {
-    border:  0;
-     background-color:rgba(16,90,239,0.2);
-    color: #707070;
-}
-
-#radioButton_11:unchecked {
-    border:  0;
-    background-color:white;
-    color: #707070;
-}
-
-#radioButton_11::indicator {
-    width:                  0px;
-    height:                 0px;
-    border-radius:          0px;
-}</string>
-                  </property>
-                  <property name="text">
-                   <string>Contact Veil Support for help</string>
                   </property>
                  </widget>
                 </item>
