@@ -493,7 +493,7 @@ bool CWallet::UnlockZerocoinWallet()
 {
     CKey keyZerocoinMaster;
     if (!GetZerocoinSeed(keyZerocoinMaster))
-        return error("%s: failed to derive zerocoin master key");
+        return error("%s: failed to derive zerocoin master key", __func__);
     auto seedID = keyZerocoinMaster.GetPubKey().GetID();
     if (seedID != zwalletMain->GetMasterSeedID())
         return error("%s: derived zerocoin key %s does not match expected key %s", __func__, seedID.GetHex(), zwalletMain->GetMasterSeedID().GetHex());
