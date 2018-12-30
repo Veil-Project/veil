@@ -789,9 +789,9 @@ void static ThreadBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript)
         BitcoinMiner(coinbaseScript);
         boost::this_thread::interruption_point();
     } catch (std::exception& e) {
-        LogPrintf("ThreadBitcoinMiner() exception");
-    } catch (...) {
-        LogPrintf("ThreadBitcoinMiner() exception");
+        LogPrintf("ThreadBitcoinMiner() exception\n");
+    } catch (boost::thread_interrupted) {
+        LogPrintf("ThreadBitcoinMiner() interrupted\n");
     }
 
     LogPrintf("ThreadBitcoinMiner exiting\n");
@@ -809,18 +809,27 @@ void ThreadStakeMiner()
             BitcoinMiner(coinbase_script, true, fProofOfFullNode);
             boost::this_thread::interruption_point();
         } catch (std::exception& e) {
-            LogPrintf("ThreadStakeMiner() exception");
-        } catch (...) {
-            LogPrintf("ThreadStakeMiner() exception");
+            LogPrintf("ThreadStakeMiner() exception\n");
+        } catch (boost::thread_interrupted) {
+            LogPrintf("ThreadStakeMiner() interrupted\n");
         }
     }
 
     LogPrintf("ThreadStakeMiner exiting\n");
 }
 
+boost::thread_group* pthreadGroupPoW;
+void LinkPoWThreadGroup(void* pthreadgroup)
+{
+    pthreadGroupPoW = (boost::thread_group*)pthreadgroup;
+}
+
 void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScript> coinbaseScript)
 {
-    static boost::thread_group* minerThreads = NULL;
+    if (!pthreadGroupPoW) {
+        error("%s: pthreadGroupPoW is null! Cannot mine.", __func__);
+        return;
+    }
     fGenerateBitcoins = fGenerate;
 
     if (nThreads < 0) {
@@ -828,17 +837,15 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
         nThreads = 1;
     }
 
-    if (minerThreads != NULL) {
-        minerThreads->interrupt_all();
-        delete minerThreads;
-        minerThreads = NULL;
+    // Close any active mining threads before starting new threads
+    if (pthreadGroupPoW->size() > 0) {
+        pthreadGroupPoW->interrupt_all();
+        pthreadGroupPoW->join_all();
     }
 
     if (nThreads == 0 || !fGenerate)
         return;
-
-    minerThreads = new boost::thread_group();
     for (int i = 0; i < nThreads; i++)
-        minerThreads->create_thread(boost::bind(&ThreadBitcoinMiner, coinbaseScript));
+        pthreadGroupPoW->create_thread(boost::bind(&ThreadBitcoinMiner, coinbaseScript));
 
 }

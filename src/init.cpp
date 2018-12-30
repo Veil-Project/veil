@@ -176,6 +176,9 @@ static std::unique_ptr<CCoinsViewErrorCatcher> pcoinscatcher;
 static std::unique_ptr<ECCVerifyHandle> globalVerifyHandle;
 
 static boost::thread_group threadGroup;
+static boost::thread_group threadGroupStaking;
+static boost::thread_group threadGroupPoWMining;
+static boost::thread_group threadGroupStaging;
 static CScheduler scheduler;
 
 void Interrupt()
@@ -225,6 +228,12 @@ void Shutdown()
 
     // After everything has been shut down, but before things get flushed, stop the
     // CScheduler/checkqueue threadGroup
+    threadGroupPoWMining.interrupt_all();
+    threadGroupPoWMining.join_all();
+    threadGroupStaking.interrupt_all();
+    threadGroupStaking.join_all();
+    threadGroupStaging.interrupt_all();
+    threadGroupStaging.join_all();
     threadGroup.interrupt_all();
     threadGroup.join_all();
 
@@ -1840,10 +1849,12 @@ bool AppInitMain()
 
     //Start staking thread last
     if (gArgs.GetBoolArg("-staking", true) && !gArgs.GetBoolArg("-exchangesandservicesmode", false))
-        threadGroup.create_thread(&ThreadStakeMiner);
+        threadGroupStaking.create_thread(&ThreadStakeMiner);
 
     //Start block staging thread
-    threadGroup.create_thread(&ProcessStaging);
+    threadGroupStaging.create_thread(&ThreadStaging);
+
+    LinkPoWThreadGroup(&threadGroupPoWMining);
 
     return true;
 }
