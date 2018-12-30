@@ -231,6 +231,7 @@ public:
     bool SetChangeDest(const CCoinControl *coinControl, CTempRecipient &r, std::string &sError);
 
     /** Update wallet after successful transaction */
+    bool SaveRecord(const uint256& txid, const CTransactionRecord& rtx);
     int AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
             CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs);
     int AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,

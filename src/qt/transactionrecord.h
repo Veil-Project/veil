@@ -96,8 +96,12 @@ public:
         ZeroCoinSpendSelf,
         ZeroCoinRecv,
         ZeroCoinStake,
-        RingCTRecv,
-        RingCTSend
+        ConvertBasecoinToCT,
+        ConvertBasecoinToRingCT,
+        ConvertCtToRingCT,
+        ConvertCtToBasecoin,
+        ConvertRingCtToCt,
+        ConvertRingCtToBasecoin
     };
 
     /** Number of confirmation recommended for accepting a transaction */

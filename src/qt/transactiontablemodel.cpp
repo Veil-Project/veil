@@ -364,13 +364,25 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
     case TransactionRecord::CTGenerated:
         return tr("CT mined");
     case TransactionRecord::RingCTRecvWithAddress:
-        return tr("Received with");
+        return tr("Received with RingCT Address");
     case TransactionRecord::RingCTSendToAddress:
-        return tr("Sent to");
+        return tr("Sent RingCT to");
     case TransactionRecord::RingCTSendToSelf:
-        return tr("Payment to yourself");
+        return tr("RingCT Payment to yourself");
     case TransactionRecord::RingCTGenerated:
         return tr("Mined");
+    case TransactionRecord::ConvertBasecoinToCT:
+        return tr("Converted Basecoin To CT");
+    case TransactionRecord::ConvertBasecoinToRingCT:
+        return tr("Converted Basecoin To RingCT");
+    case TransactionRecord::ConvertCtToBasecoin:
+        return tr("Converted CT To Basecoin");
+    case TransactionRecord::ConvertCtToRingCT:
+        return tr("Converted CT To RingCT");
+    case TransactionRecord::ConvertRingCtToBasecoin:
+        return tr("Converted RingCT To Basecoin");
+    case TransactionRecord::ConvertRingCtToCt:
+        return tr("Converted RingCT To CT");
     case TransactionRecord::ZeroCoinMint:
         return tr("Zerocoin Mint");
     case TransactionRecord::ZeroCoinSpend:
@@ -383,10 +395,6 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
         return tr("Received Zerocoin");
     case TransactionRecord::ZeroCoinStake:
         return tr("Zerocoin Stake");
-    case TransactionRecord::RingCTRecv:
-        return tr("Received RingCT");
-    case TransactionRecord::RingCTSend:
-        return tr("Sent RingCT");
     default:
         return QString();
     }
@@ -440,6 +448,7 @@ QString TransactionTableModel::formatTxToAddress(const TransactionRecord *wtx, b
         return lookupAddress(wtx->address, tooltip) + watchAddress;
     case TransactionRecord::SendToOther:
         return QString::fromStdString(wtx->address) + watchAddress;
+    case TransactionRecord::RingCTSendToSelf:
     case TransactionRecord::SendToSelf:
     default:
         return tr("(n/a)") + watchAddress;
