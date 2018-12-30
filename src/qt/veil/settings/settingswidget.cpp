@@ -101,7 +101,7 @@ void SettingsWidget::onCheckStakingClicked(bool res) {
             }
         }else{
             mainWindow->getGUI()->showHide(true);
-            UnlockPasswordDialog *dialog = new UnlockPasswordDialog(mainWindow->getWalletModel(), mainWindow->getGUI());
+            UnlockPasswordDialog *dialog = new UnlockPasswordDialog(/*fUnlockForStakingOnly*/true, mainWindow->getWalletModel(), mainWindow->getGUI());
             if(openDialogWithOpaqueBackground(dialog, mainWindow->getGUI(), 4)){
                 openToastDialog("Wallet unlocked for staking", mainWindow->getGUI());
             }else{
@@ -123,7 +123,7 @@ void SettingsWidget::onCheckStakingClicked(bool res) {
 void SettingsWidget::onLockWalletClicked(){
     try {
         mainWindow->getGUI()->showHide(true);
-        UnlockPasswordDialog *dialog = new UnlockPasswordDialog(mainWindow->getWalletModel(), mainWindow->getGUI());
+        UnlockPasswordDialog *dialog = new UnlockPasswordDialog(/*fUnlockForStakingOnly*/false, mainWindow->getWalletModel(), mainWindow->getGUI());
         openDialogWithOpaqueBackground(dialog, mainWindow->getGUI(), 4);
     } catch (std::exception e) {
         qDebug() << e.what();
