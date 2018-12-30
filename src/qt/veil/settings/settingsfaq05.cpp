@@ -7,9 +7,9 @@ SettingsFaq05::SettingsFaq05(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->label_2->setText("Zerocoin VEIL is used automatically when spending.<br><br>"
+    ui->label_2->setText("Zerocoin veil is used automatically when spending.<br><br>"
 
-                         "<font color=#105aef>To spend Basecoin VEIL, follow these instructions:</font><br><br>"
+                         "<font color=#105aef>To spend Basecoin veil, follow these instructions:</font><br><br>"
 
                             "1. Navigate to the Send tab.<br>"
                             "2. Click the Coin Control button.<br>"
