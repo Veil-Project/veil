@@ -392,14 +392,19 @@ public:
                 {42, uint256S("37cf752dfcda2c1c3f1a1a3ff3b7ef47c40d0e06f8c16e058a3b04cfa1566acb")},
                 {1600, uint256S("66959ef58a234711c64c5f609f6b44a597b02ccfedea6557e1ee08fe792fb747")},
                 {3000, uint256S("eac7585e03c690e7b12da0d330e7dc8cdb60c24d300f50712dd7b6e3583f5cad")},
+                {3300, uint256S("0f273634343a8aeebe80305a21663749288f351e59da263242dd7846ce375ee3")},
+                {4400, uint256S("6455521644d55f58000a32d285017f288d05388c868d4fc40bbdce70a4b1debd")},
+                {7000, uint256S("4894c80ccfc672a9e91d5ebfb5b5f1510a96486e3c0792dff77fcb642ef59f23")},
+                {8700, uint256S("74f188b3dc86c00f97fdd216af7a4f416042b67ac0b9b899deb5b46cdb4b1f50")},
+                {9100, uint256S("cbc788271338f927d9c1499d0c24489b518496c704028595d247971cb7795446")},
             }
         };
 
         chainTxData = ChainTxData{
             // Data from rpc: getchaintxstats 4096 0000000000000037a8cd3e06cd5edbfe9dd1dbcc5dacab279376ef7cfc2b4c75
-            /* nTime    */ 1544201440,
-            /* nTxCount */ 5318,
-            /* dTxRate  */ 0.0228
+            /* nTime    */ 1546202591,
+            /* nTxCount */ 15397,
+            /* dTxRate  */ 0.0034
         };
 
         /* enable fallback fee on testnet */
