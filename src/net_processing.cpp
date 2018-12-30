@@ -1426,6 +1426,26 @@ bool GetZerocoinSpendProofs(const CTxIn &txin, std::vector<libzerocoin::SerialNu
     return true;
 }
 
+void ThreadStaging()
+{
+    while (true) {
+        boost::this_thread::interruption_point();
+        try {
+            LogPrintf("ThreadStaging() start\n");
+            ProcessStaging();
+            boost::this_thread::interruption_point();
+        } catch (std::exception& e) {
+            LogPrintf("ThreadStaging() exception\n");
+        } catch (boost::thread_interrupted) {
+            LogPrintf("ThreadStaging() interrupted\n");
+        }
+
+        if (ShutdownRequested() || !IsInitialBlockDownload())
+            break;
+    }
+    LogPrintf("ThreadStaging exiting\n");
+}
+
 void ProcessStaging()
 {
     while (true) {
