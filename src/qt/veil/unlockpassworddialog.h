@@ -14,7 +14,7 @@ class UnlockPasswordDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit UnlockPasswordDialog(WalletModel* model, QWidget *parent = nullptr);
+    explicit UnlockPasswordDialog(bool fForStakingOnly, WalletModel* model, QWidget *parent = nullptr);
     ~UnlockPasswordDialog();
 private Q_SLOTS:
     void onEscapeClicked();
@@ -22,6 +22,7 @@ private Q_SLOTS:
 private:
     Ui::UnlockPasswordDialog *ui;
     WalletModel* walletModel;
+    bool fForStakingOnly;
 };
 
 #endif // UNLOCKPASSWORDDIALOG_H

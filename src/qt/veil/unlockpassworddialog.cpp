@@ -4,12 +4,14 @@
 #include <qt/guiconstants.h>
 #include <qt/veil/qtutils.h>
 
-UnlockPasswordDialog::UnlockPasswordDialog(WalletModel* model, QWidget *parent) :
+UnlockPasswordDialog::UnlockPasswordDialog(bool fForStakingOnly, WalletModel* model, QWidget *parent) :
     QDialog(parent),
     ui(new Ui::UnlockPasswordDialog)
 {
     ui->setupUi(this);
     this->walletModel = model;
+    this->fForStakingOnly = fForStakingOnly;
+
     ui->labelTitle->setProperty("cssClass" , "title-dialog");
     ui->btnSave->setProperty("cssClass" , "btn-text-primary");
     ui->btnCancel->setProperty("cssClass" , "btn-text-primary-inactive");
@@ -19,8 +21,15 @@ UnlockPasswordDialog::UnlockPasswordDialog(WalletModel* model, QWidget *parent) 
     connect(ui->btnCancel,SIGNAL(clicked()),this, SLOT(onEscapeClicked()));
     connect(ui->btnSave,SIGNAL(clicked()),this, SLOT(onUnlockClicked()));
 
-    ui->labelTitle->setText("Unlock Wallet For Staking");
-    ui->labelDescription->setText("Enter your password to turn on staking.");
+    QString strUnlockTitle = "Unlock Wallet For Staking";
+    QString strDescripton = "Enter password to unlock wallet for staking only";
+    if (!fForStakingOnly) {
+        strUnlockTitle = "Unlock Wallet";
+        strDescripton = "Enter password to unlock wallet";
+    }
+
+    ui->labelTitle->setText(strUnlockTitle);
+    ui->labelDescription->setText(strDescripton);
     ui->errorMessage->setText("");
 }
 
@@ -34,7 +43,7 @@ void UnlockPasswordDialog::onUnlockClicked()
     SecureString secureString;
     secureString.reserve(MAX_PASSPHRASE_SIZE);
     secureString.assign(ui->editPassword->text().toStdString().c_str());
-    if (!walletModel->setWalletLocked(false, /*fUnlockForStakingOnly*/true, secureString)) {
+    if (!walletModel->setWalletLocked(false, fForStakingOnly, secureString)) {
         close();
     } else {
         //Remove password text for form
