@@ -76,6 +76,17 @@ public:
         return nTotal;
     };
 
+    OutputTypes GetInputType() const
+    {
+        if (nFlags & ORF_BASECOIN_IN)
+            return OutputTypes::OUTPUT_STANDARD;
+        else if (nFlags & ORF_ANON_IN)
+            return OutputTypes::OUTPUT_RINGCT;
+        else if (nFlags & ORF_BLIND_IN)
+            return OutputTypes::OUTPUT_CT;
+        return OutputTypes::OUTPUT_NULL;
+    }
+
     //mutable uint32_t nCacheFlags;
     bool InMempool() const;
     bool IsTrusted() const;

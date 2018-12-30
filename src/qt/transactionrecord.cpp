@@ -1,5 +1,6 @@
 // Copyright (c) 2011-2018 The Bitcoin Core developers
 // Copyright (c) 2011-2018 The Particl developers
+// Copyright (c) 2018 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -31,18 +32,18 @@ bool TransactionRecord::showTransaction()
 QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interfaces::WalletTx& wtx)
 {
     QList<TransactionRecord> parts;
-/*
-    if (wtx.is_record && wtx.veilWallet)
-    {
-        const CTransactionRecord &rtx = wtx.irtx->second;
 
-        const uint256 &hash = wtx.irtx->first;
-        int64_t nTime = rtx.GetTxTime();
+    if (wtx.tx->HasBlindedValues()) {
+        const CTransactionRecord &rtx = wtx.rtx;
+
+        const uint256 &hash = wtx.tx->GetHash();
+        int64_t nTime = wtx.time;
         TransactionRecord sub(hash, nTime);
 
         CTxDestination address = CNoDestination();
         uint8_t nFlags = 0;
         OutputTypes outputType = OutputTypes::OUTPUT_NULL;
+        OutputTypes inputType = rtx.GetInputType();
         for (const auto &r : rtx.vout)
         {
             if (r.nFlags & ORF_CHANGE) {
@@ -60,11 +61,11 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                         LogPrintf("%s: Warning, malformed vPath.\n", __func__);
                     } else
                     {
-                        uint32_t sidx;
-                        memcpy(&sidx, &r.vPath[1], 4);
-                        CStealthAddress sx;
-                        if (wtx.veilWallet->GetStealthByIndex(sidx, sx))
-                            address = sx;
+//                        uint32_t sidx;
+//                        memcpy(&sidx, &r.vPath[1], 4);
+//                        CStealthAddress sx;
+//                        if (wtx.veilWallet->GetStealthByIndex(sidx, sx))
+//                            address = sx;
                     };
                 };
             } else
@@ -83,32 +84,60 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             };
 
             if (nFlags & ORF_OWNED)
-                sub.credit += r.nValue;
+                sub.credit += r.GetRawValue();
             if (nFlags & ORF_FROM)
-                sub.debit -= r.nValue;
+                sub.debit -= r.GetRawValue();
         };
 
         if (address.type() != typeid(CNoDestination))
             sub.address = CBitcoinAddress(address).ToString();
 
-
         if (sub.debit != 0)
-            sub.debit -= rtx.nFee;
+            sub.debit -= wtx.ct_fee.second;
 
         if (nFlags & ORF_OWNED && nFlags & ORF_FROM) {
-            switch (outputType) {
-                case OUTPUT_STANDARD:
-                    sub.type = TransactionRecord::SendToSelf;
-                    break;
-                case OUTPUT_CT:
-                    sub.type = TransactionRecord::CTSendToSelf;
-                    break;
-                case OUTPUT_RINGCT:
-                    sub.type = TransactionRecord::RingCTSendToSelf;
-                    break;
-                default:
-                    sub.type = TransactionRecord::SendToSelf;
-                    break;
+            if (inputType != outputType) {
+                /** Type Conversion **/
+                switch (inputType) {
+                    case OUTPUT_STANDARD:
+                        // converting basecoins
+                        if (outputType == OUTPUT_CT)
+                            sub.type = TransactionRecord::ConvertBasecoinToCT;
+                        else if (outputType == OUTPUT_RINGCT)
+                            sub.type = TransactionRecord::ConvertBasecoinToRingCT;
+                        break;
+                    case OUTPUT_CT:
+                        if (outputType == OUTPUT_RINGCT)
+                            sub.type = TransactionRecord::ConvertCtToRingCT;
+                        else if (outputType == OUTPUT_STANDARD)
+                            sub.type = TransactionRecord::ConvertCtToBasecoin;
+                        break;
+                    case OUTPUT_RINGCT:
+                        if (outputType == OUTPUT_CT)
+                            sub.type = TransactionRecord::ConvertRingCtToCt;
+                        else if (outputType == OUTPUT_STANDARD)
+                            sub.type = TransactionRecord::ConvertRingCtToBasecoin;
+                        break;
+                    default:
+                        sub.type = TransactionRecord::SendToSelf;
+                        break;
+                }
+            } else {
+                /** Send to Self **/
+                switch (outputType) {
+                    case OUTPUT_STANDARD:
+                        sub.type = TransactionRecord::SendToSelf;
+                        break;
+                    case OUTPUT_CT:
+                        sub.type = TransactionRecord::CTSendToSelf;
+                        break;
+                    case OUTPUT_RINGCT:
+                        sub.type = TransactionRecord::RingCTSendToSelf;
+                        break;
+                    default:
+                        sub.type = TransactionRecord::SendToSelf;
+                        break;
+                }
             }
         } else if (nFlags & ORF_OWNED && wtx.is_coinbase) {
             switch (outputType) {
@@ -125,7 +154,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     sub.type = TransactionRecord::Generated;
                     break;
             }
-        }else if (nFlags & ORF_OWNED) {
+        } else if (nFlags & ORF_OWNED) {
             switch (outputType) {
                 case OUTPUT_STANDARD:
                     sub.type = TransactionRecord::RecvWithAddress;
@@ -147,13 +176,13 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 sub.type = TransactionRecord::CTSendToAddress;
             else
                 sub.type = TransactionRecord::SendToAddress;
-        };
+        }
 
         sub.involvesWatchAddress = nFlags & ORF_OWN_WATCH;
         parts.append(sub);
         return parts;
     }
-*/
+
     int64_t nTime = wtx.time;
     CAmount nCredit = wtx.credit;
     CAmount nDebit = wtx.debit;
@@ -273,11 +302,11 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     continue;
 
                 //LogPrintf("%s: 148 ringctrevc credit=%d\n", __func__, wtx.map_anon_value_out.at(i));
-                sub.type = TransactionRecord::RingCTRecv;
+                sub.type = TransactionRecord::RingCTRecvWithAddress;
                 auto it = wtx.map_anon_value_out.find(i);
                 if (it != wtx.map_anon_value_out.end()) {
                     //Make sure this is not a dummy
-                    if (it->second == -1)
+                    if (it->second == DUMMY_VALUE)
                         continue;
                     sub.credit = it->second;
                     parts.append(sub);
@@ -358,15 +387,15 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 CTxOut txout;
                 if (!wtx.tx->vpout[nOut]->GetTxOut(txout)) {
                     //Anon type
-                    sub.type = TransactionRecord::RingCTSend;
+                    sub.type = TransactionRecord::RingCTSendToAddress;
                     auto it = wtx.map_anon_value_out.find(nOut);
                     if (it != wtx.map_anon_value_out.end()) {
                         auto nValue = it->second;
                         //Double check this is not a dummy
-                        if (nValue != -1) {
-                            sub.debit = -nValue;
-                            parts.append(sub);
-                        }
+                        if (nValue == DUMMY_VALUE)
+                            continue;
+                        sub.debit = -nValue;
+                        parts.append(sub);
                     }
                     continue;
                 }
