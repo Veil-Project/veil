@@ -54,7 +54,7 @@ void VeilStatusBar::onCheckStakingClicked(bool res) {
             ui->checkStacking->setCheckState(Qt::CheckState::Unchecked);
         }
     } else {
-        openToastDialog("Miner stopped", mainWindow);
+        openToastDialog("Staking disabled", mainWindow);
     }
 
     if (!gArgs.GetBoolArg("-exchangesandservicesmode", false) && lockState != WalletModel::Locked)
