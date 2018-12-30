@@ -47,8 +47,8 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
         ui->textInputs->setText(QString::fromStdString(std::to_string(rec->getInputsSize())));
         ui->textConfirmations->setText(QString::fromStdString(std::to_string(rec->getConfirmations())));
         ui->textSend->setText(QString::fromStdString((rec->getAddress())));
-        ui->textSize->setText("0.00 Kb");
-        ui->textDate->setText("25/10/18");
+        ui->textSize->setText("n/a Kb");
+        ui->textDate->setText("n/a");
     }
 }
 
