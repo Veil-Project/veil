@@ -654,7 +654,7 @@ border:1px solid #0e45b4;
 font-size:18px;</string>
               </property>
               <property name="text">
-               <string>Minting Zerocoin Veil anonymizes your Basecoin veil by removing transaction history, making transactions untraceable.</string>
+               <string>Minting Zerocoin veil anonymizes your Basecoin veil by removing transaction history, making transactions untraceable.</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
