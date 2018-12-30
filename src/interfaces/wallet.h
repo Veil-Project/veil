@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include <veil/ringct/transactionrecord.h>
 #include <veil/ringct/stealth.h>               // For CTxDestination
 #include <veil/ringct/extkey.h>
 #include <wallet/deterministicmint.h>
@@ -50,6 +51,8 @@ struct WalletTxStatus;
 
 using WalletOrderForm = std::vector<std::pair<std::string, std::string>>;
 using WalletValueMap = std::map<std::string, std::string>;
+
+#define DUMMY_VALUE -78917411
 
 //! Interface for accessing a wallet.
 class Wallet
@@ -397,6 +400,7 @@ struct WalletTx
     std::map<unsigned int, CAmount> map_anon_value_out;
     std::map<unsigned int, CAmount> map_anon_value_in;
     std::pair<int, CAmount> ct_fee;
+    CTransactionRecord rtx;
 };
 
 //! Updated transaction status.

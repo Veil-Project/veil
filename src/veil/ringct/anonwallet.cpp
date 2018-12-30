@@ -629,7 +629,7 @@ CAmount AnonWallet::GetCredit(const COutPoint& outpoint, const isminefilter& fil
     }
     auto nValue = outRecord->GetAmount();
     if (!MoneyRange(nValue)) {
-        LogPrintf("%s: FIXME: txRecord value outpoint %s is too high!", __func__, outpoint.ToString());
+        LogPrintf("%s: FIXME: txRecord value %s outpoint %s is too high!", __func__, FormatMoney(nValue), outpoint.ToString());
         return 0;
     }
 
@@ -1097,8 +1097,10 @@ void AnonWallet::AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CT
             COutputRecord rec;
 
             rec.n = r.n;
-            if (r.fChange && HaveAddress(r.address))
+            if (r.fChange)
                 rec.nFlags |= ORF_CHANGE;
+            if (r.isMine)
+                rec.nFlags |= ORF_OWNED;
             rec.nType = r.nType;
             rec.SetValue(r.nAmount);
             rec.sNarration = r.sNarration;
@@ -1110,10 +1112,12 @@ void AnonWallet::AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CT
             rec.n = r.n;
             rec.nType = r.nType;
             rec.SetValue(r.nAmount);
-            rec.nFlags |= ORF_FROM;
-            rec.scriptPubKey = r.scriptPubKey;
-            if (r.fChange && HaveAddress(r.address))
+            if (r.fChange)
                 rec.nFlags |= ORF_CHANGE;
+            if (r.isMine)
+                rec.nFlags |= ORF_OWNED;
+
+            rec.scriptPubKey = r.scriptPubKey;
             rec.sNarration = r.sNarration;
 
             ParseAddressForMetaData(r.address, rec);
@@ -1125,9 +1129,10 @@ void AnonWallet::AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CT
             rec.n = r.n;
             rec.nType = r.nType;
             rec.SetValue(r.nAmount);
-            rec.nFlags |= ORF_FROM;
-            if (r.fChange && HaveAddress(r.address))
+            if (r.fChange)
                 rec.nFlags |= ORF_CHANGE;
+            if (r.isMine)
+                rec.nFlags |= ORF_OWNED;
             rec.sNarration = r.sNarration;
 
             ParseAddressForMetaData(r.address, rec);
@@ -1630,6 +1635,15 @@ int PreAcceptMempoolTx(CWalletTx &wtx, std::string &sError)
     return 0;
 }
 
+bool AnonWallet::SaveRecord(const uint256& txid, const CTransactionRecord& rtx)
+{
+    AnonWalletDB wdb(*walletDatabase);
+    if (!wdb.WriteTxRecord(txid, rtx))
+        return error("%s: failed to write tx record\n", __func__);
+    mapRecords.emplace(txid, rtx);
+    return true;
+}
+
 int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
         bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs)
 {
@@ -1740,6 +1754,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 r.nType = OUTPUT_CT;
                 r.fChange = true;
                 r.SetAmount(nChange);
+                r.isMine = true;
 
                 //If no change address is set, then generate a new stealth address to use for change
                 if (!coinControl || (coinControl && coinControl->destChange.type() == typeid(CNoDestination))) {
@@ -1799,6 +1814,8 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
             bool fFirst = true;
             for (size_t i = 0; i < vecSend.size(); ++i) {
                 auto &r = vecSend[i];
+                if (this->HaveAddress(r.address))
+                    r.isMine = true;
 
                 r.ApplySubFee(nFeeRet, nSubtractFeeFromAmount, fFirst);
 
@@ -2015,7 +2032,12 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
         }
 
         rtx.nFee = nFeeRet;
+        rtx.nFlags |= ORF_FROM; //Set from me
+        rtx.nFlags |= ORF_BASECOIN_IN;
         AddOutputRecordMetaData(rtx, vecSend);
+
+        //save record
+        SaveRecord(txNew.GetHash(), rtx);
 
         // Embed the constructed transaction data in wtxNew.
         wtx.SetTx(MakeTransactionRef(std::move(txNew)));
@@ -2487,6 +2509,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
 
 
         rtx.nFee = nFeeRet;
+        rtx.nFlags |= ORF_BLIND_IN;
         AddOutputRecordMetaData(rtx, vecSend);
 
         // Embed the constructed transaction data in wtxNew.
@@ -2497,6 +2520,9 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
     if (0 != PreAcceptMempoolTx(wtx, sError)) {
         return 1;
     }
+
+    //save record
+    SaveRecord(txNew.GetHash(), rtx);
 
     LogPrintf("Fee Calculation: Fee:%d Bytes:%u Needed:%d Tgt:%d (requested %d) Reason:\"%s\" Decay %.5f: Estimation: (%g - %g) %.2f%% %.1f/(%.1f %d mem %.1f out) Fail: (%g - %g) %.2f%% %.1f/(%.1f %d mem %.1f out)\n",
               nFeeRet, nBytes, nFeeNeeded, feeCalc.returnedTarget, feeCalc.desiredTarget, StringForFeeReason(feeCalc.reason), feeCalc.est.decay,
@@ -3205,7 +3231,11 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
         }
 
         rtx.nFee = nFeeRet;
+        rtx.nFlags |= ORF_ANON_IN;
         AddOutputRecordMetaData(rtx, vecSend);
+
+        //save record
+        SaveRecord(txNew.GetHash(), rtx);
 
         // Embed the constructed transaction data in wtxNew.
         wtx.SetTx(MakeTransactionRef(std::move(txNew)));
@@ -4632,8 +4662,10 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
     }
 
     CStoredTransaction stx;
-    if (!wdb.ReadStoredTx(txhash, stx))
+    if (!wdb.ReadStoredTx(txhash, stx)) {
+        LogPrintf("%s:%s no stored tx\n", __func__, __LINE__);
         stx.vBlinds.clear();
+    }
 
     for (size_t i = 0; i < tx.vpout.size(); ++i) {
         const auto &txout = tx.vpout[i];

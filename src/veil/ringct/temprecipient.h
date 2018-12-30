@@ -50,6 +50,7 @@ public:
     bool fZerocoin;
     bool fZerocoinMint;
     CTxDestination address;
+    bool isMine;
     CScript scriptPubKey;
     std::vector<uint8_t> vData;
     std::vector<uint8_t> vBlind;

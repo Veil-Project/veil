@@ -68,6 +68,14 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
 
     WalletTx result;
     result.tx = wtx.tx;
+    auto txid = wtx.tx->GetHash();
+    if (wtx.tx->HasBlindedValues()) {
+        auto panonwallet = wallet.GetAnonWallet();
+        if (panonwallet->mapRecords.count(txid)) {
+            result.rtx = panonwallet->mapRecords.at(txid);
+        }
+    }
+
     result.txin_is_mine.reserve(wtx.tx->vin.size());
     bool fInputsFromMe = false;
     for (const auto& txin : wtx.tx->vin) {
@@ -96,6 +104,8 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
                 fAddressIsMine = ISMINE_SPENDABLE;
             result.txout_address_is_mine.emplace_back(fAddressIsMine);
         }
+
+        /** RingCT/CT/Data Output **/
         if (!txout->IsStandardOutput()) {
             bool found = false;
             if (txout->nVersion == OUTPUT_DATA) {
@@ -130,7 +140,7 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
             }
             //Add a dummy, not sure what else to do here...
             if (!found)
-                result.map_anon_value_out.emplace(i, -1);
+                result.map_anon_value_out.emplace(i, DUMMY_VALUE);
         }
     }
     result.credit = wtx.GetCredit(ISMINE_ALL);
@@ -186,8 +196,8 @@ WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
     result.is_in_main_chain = wtx.IsInMainChain();
     return result;
 }
-/*
-WalletTxStatus MakeWalletTxStatus(CHDWallet &wallet, const uint256 &hash, const CTransactionRecord &rtx)
+
+WalletTxStatus MakeWalletTxStatus(AnonWallet* pAnonWallet, const uint256 &hash, const CTransactionRecord &rtx)
 {
     WalletTxStatus result;
     auto mi = ::mapBlockIndex.find(rtx.blockHash);
@@ -196,17 +206,17 @@ WalletTxStatus MakeWalletTxStatus(CHDWallet &wallet, const uint256 &hash, const 
     result.block_height = (block ? block->nHeight : std::numeric_limits<int>::max()),
 
             result.blocks_to_maturity = 0;
-    result.depth_in_main_chain = wallet.GetDepthInMainChain(rtx.blockHash, rtx.nIndex);
+    result.depth_in_main_chain = pAnonWallet->GetDepthInMainChain(rtx.blockHash, rtx.nIndex);
     result.time_received = rtx.nTimeReceived;
     result.lock_time = 0; // TODO
     result.is_final = true; // TODO
-    result.is_trusted = wallet.IsTrusted(hash, rtx.blockHash);
+    result.is_trusted = pAnonWallet->IsTrusted(hash, rtx.blockHash);
     result.is_abandoned = rtx.IsAbandoned();
     result.is_coinbase = false;
     result.is_in_main_chain = result.depth_in_main_chain > 0;
     return result;
 }
-*/
+
 //! Construct wallet TxOut struct.
 WalletTxOut MakeWalletTxOut(CWallet& wallet, const CWalletTx& wtx, int n, int depth)
 {
@@ -412,15 +422,7 @@ public:
         if (mi != m_wallet.mapWallet.end()) {
             return MakeWalletTx(m_wallet, mi->second);
         }
-/*
-        if (m_shared_wallet.get()) {
-            CHDWallet *phdwallet = (CHDWallet*)(m_shared_wallet.get());
-            const auto mi = phdwallet->mapRecords.find(txid);
-            if (mi != phdwallet->mapRecords.end()) {
-                return MakeWalletTx(*phdwallet, mi);
-            }
-        }
-*/
+
         return {};
     }
     std::vector<WalletTx> getWalletTxs() override
