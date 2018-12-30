@@ -542,15 +542,16 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
         return;
     }
 
+    int nBestHeight = chainActive.Height();
     if (state->pindexLastCommonBlock == nullptr) {
         // Bootstrap quickly by guessing a parent of our best tip is the forking point.
         // Guessing wrong in either direction is not a problem.
-        state->pindexLastCommonBlock = chainActive[std::min(state->pindexBestKnownBlock->nHeight, chainActive.Height())];
-        if (!state->pindexLastCommonBlock->nChainTx) {
-            if (state->pindexLastCommonBlock->nHeight > chainActive.Height())
-                state->pindexLastCommonBlock = chainActive.Tip();
-        }
+        state->pindexLastCommonBlock = chainActive[std::min(state->pindexBestKnownBlock->nHeight, nBestHeight)];
     }
+
+    // Our last full block cannot be beyond the chain tip
+    if (state->pindexLastCommonBlock->nHeight > nBestHeight)
+        state->pindexLastCommonBlock = chainActive.Tip();
 
     // If the peer reorganized, our previous pindexLastCommonBlock may not be an ancestor
     // of its current tip anymore. Go back enough to fix that.
@@ -563,8 +564,9 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
     // Never fetch further than the best block we know the peer has, or more than BLOCK_DOWNLOAD_WINDOW + 1 beyond the last
     // linked block we have in common with this peer. The +1 is so we can detect stalling, namely if we would be able to
     // download that next block if the window were 1 larger.
-    int nWindowEnd = state->pindexLastCommonBlock->nHeight + BLOCK_DOWNLOAD_WINDOW;
+    int nWindowEnd = state->pindexLastCommonBlock->nHeight + ASK_FOR_BLOCKS;
     int nMaxHeight = std::min<int>(state->pindexBestKnownBlock->nHeight, nWindowEnd + 1);
+    nMaxHeight = std::min(nMaxHeight, chainActive.Height() + ASK_FOR_BLOCKS);
     NodeId waitingfor = -1;
     while (pindexWalk->nHeight < nMaxHeight) {
         // Read up to 128 (or more, if more blocks than that are needed) successors of pindexWalk (towards
@@ -592,8 +594,8 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
 //                return;
 //            }
 
-            // Don't ask for a block that is already held in staging
-            {
+            // Don't ask for a block that is already held in staging, unless it is the next block
+            if (pindex->nHeight != nBestHeight + 1) {
                 LOCK(cs_staging);
                 if (mapStagedBlocks.count(pindex->nHeight)) {
                     if (mapStagedBlocks.at(pindex->nHeight).GetHash() == pindex->GetBlockHash())
@@ -1402,12 +1404,10 @@ bool GetZerocoinSpendProofs(const CTxIn &txin, std::vector<libzerocoin::SerialNu
     auto newSpend = TxInToZerocoinSpend(txin);
     //see if we have record of the accumulator used in the spend tx
     CBigNum bnAccumulatorValue = 0;
-    if (!pzerocoinDB->ReadAccumulatorValue(newSpend->getAccumulatorChecksum(),
-                                           bnAccumulatorValue)) {
-        uint256 nChecksum = newSpend->getAccumulatorChecksum();
-        LogPrintf("%s: Zerocoinspend could not find accumulator associated with checksum %s\n",
-                __func__, HexStr(BEGIN(nChecksum), END(nChecksum)));
-        return false;
+    {
+        LOCK(cs_main);
+        if (!pzerocoinDB->ReadAccumulatorValue(newSpend->getAccumulatorChecksum(), bnAccumulatorValue))
+            return false;
     }
 
     libzerocoin::Accumulator accumulator(Params().Zerocoin_Params(), newSpend->getDenomination(), bnAccumulatorValue);
@@ -1426,12 +1426,39 @@ bool GetZerocoinSpendProofs(const CTxIn &txin, std::vector<libzerocoin::SerialNu
     return true;
 }
 
+void ThreadStaging()
+{
+    while (true) {
+        boost::this_thread::interruption_point();
+        try {
+            LogPrintf("ThreadStaging() start\n");
+            ProcessStaging();
+            boost::this_thread::interruption_point();
+        } catch (std::exception& e) {
+            LogPrintf("ThreadStaging() exception\n");
+        } catch (boost::thread_interrupted) {
+            LogPrintf("ThreadStaging() interrupted\n");
+        }
+
+        if (ShutdownRequested() || !IsInitialBlockDownload())
+            break;
+    }
+    LogPrintf("ThreadStaging exiting\n");
+}
+
 void ProcessStaging()
 {
     while (true) {
         if (ShutdownRequested() || !IsInitialBlockDownload())
             return;
         boost::this_thread::interruption_point();
+
+        // Process any of the blocks that have been staged, if it is next
+        int nHeightNext;
+        {
+            LOCK(cs_main);
+            nHeightNext = chainActive.Height() + 1;
+        }
 
         std::map<int, CBlock> mapStagedBlocksCopy;
         {
@@ -1448,7 +1475,14 @@ void ProcessStaging()
         std::vector<CBigNum> vBlockSerials;
         std::vector<libzerocoin::SerialNumberSoKProof> vProofs;
         std::set<int> setRemoveBlocks;
+        int nBestHeight = nHeightNext -1;
+        int nHaveCheckpointHeight = 10 - (nBestHeight % 10) + nBestHeight;
         for (auto &blockPair : mapStagedBlocksCopy) {
+            // Likely do not have the accumulator checkpoint so cannot verify
+            if (blockPair.first > nHaveCheckpointHeight) {
+                setRemoveBlocks.insert(blockPair.first);
+                continue;
+            }
             // Signatures for this block have already been verified, skip
             if (blockPair.second.fSignaturesVerified)
                 continue;
@@ -1487,7 +1521,9 @@ void ProcessStaging()
 
         // Now verify the batched spends
         bool fVerificationSuccess = true;
-        if (!vProofs.empty()){
+        // Probably not worth verifying if it is only one proof
+        if (vProofs.size() > 1) {
+            LogPrintf("%s: Batch verifying %d zeroknowledge proofs\n", __func__, vProofs.size());
             if(!libzerocoin::SerialNumberSoKProof::BatchVerify(vProofs)) {
                 fVerificationSuccess = false;
             }
@@ -1501,13 +1537,6 @@ void ProcessStaging()
 
                 mapStagedBlocks[blockPair.first].fSignaturesVerified = true;
             }
-        }
-
-        // Process any of the blocks that have been staged, if it is next
-        int nHeightNext;
-        {
-            LOCK(cs_main);
-            nHeightNext = chainActive.Height() + 1;
         }
 
         while (true) {
@@ -1540,8 +1569,13 @@ void ProcessStaging()
 
             LogPrint(BCLog::NET, "processing staged block %s\n", pblockStaged->GetHash().GetHex());
             bool fNewBlock = false;
-            ProcessNewBlock(Params(), pblockStaged, true, &fNewBlock);
+            if (!ProcessNewBlock(Params(), pblockStaged, true, &fNewBlock))
+                error("Staging thread failed to process block\n");
             mapStagedBlocks.erase(nHeightNext);
+
+            // If there is a new accumulator checkpoint, jump out so that we can try the next round  of batch zkproof batch verification
+            if (nHeightNext % 10 == 0)
+                break;
             nHeightNext++;
         }
 
@@ -2999,7 +3033,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 if (pblock->hashPrevBlock == Params().GenesisBlock().GetHash() || pindexPrev->nChainTx > 0) {
                     fProcessBlock = true;
 
-                } else if (forceProcessing && pindexPrev->nHeight - nHeightNext < ASK_FOR_BLOCKS && nHeightNext < pindexPrev->nHeight) {
+                } else if (forceProcessing && pindexPrev->nHeight - nHeightNext < ASK_FOR_BLOCKS + 10 && nHeightNext < pindexPrev->nHeight) {
                     //Keep a few blocks cached so we don't fetch them over and over
                     CDataStream ss(SER_DISK, PROTOCOL_VERSION);
                     ss << *pblock;
@@ -3008,9 +3042,15 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                         LOCK(cs_staging);
                         nStagedCacheSize += nSizeBlock;
                         mapStagedBlocks.emplace(pindexPrev->nHeight+1, *pblock);
-                        LogPrint(BCLog::NET, "stagin block %s (%d) because only have prevheader and not prev block\n",
+                        LogPrint(BCLog::NET, "staging block %s (%d) because only have prevheader and not prev block\n",
                                  pblock->GetHash().ToString(), pindexPrev->nHeight+1);
+                    } else {
+                        LogPrint(BCLog::NET, "staging area full, discarding block %s (%d)\n",
+                                pblock->GetHash().ToString(), pindexPrev->nHeight+1);
                     }
+                } else {
+                    LogPrint(BCLog::NET, "skipping block %s (%d)\n  force=%d\n  heightcalc=%d\n  nHeightNext=%d\n  pindexprevheight=%d\n",
+                             pblock->GetHash().ToString(), pindexPrev->nHeight+1, forceProcessing, pindexPrev->nHeight - nHeightNext, nHeightNext, pindexPrev->nHeight);
                 }
             } else {
                 LogPrint(BCLog::NET, "skipping block %s because do not have prev\n", pblock->GetHash().ToString());
@@ -4052,6 +4092,11 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
             if (mapStagedBlocks.size() > 50)
                 fRequest = false;
         }
+        int nBestHeight = 0;
+        {
+            LOCK(cs_main);
+            nBestHeight = chainActive.Height();
+        }
 
         if (!pto->fClient && fRequest && ((fFetch && !pto->m_limited_node) || !IsInitialBlockDownload()) && state.nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
             std::vector<const CBlockIndex*> vToDownload;
@@ -4062,15 +4107,24 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
 
                 fRequest = true;
                 CInv inv(MSG_BLOCK | nFetchFlags, pindex->GetBlockHash());
-                auto mi = mapRequestedBlocks.find(inv.hash);
-                if (mi != mapRequestedBlocks.end()) {
-                    if (GetTime() - mi->second < 5)
+                // Always request the next block, even if redundant.
+                if (pindex->nHeight != nBestHeight + 1) {
+                    auto mi = mapRequestedBlocks.find(inv.hash);
+                    if (mi != mapRequestedBlocks.end()) {
+                        if (GetTime() - mi->second < 5)
+                            fRequest = false;
+                    } else if (mapBlockSource.count(inv.hash)) {
+                        // Already have this block, so consider it requested
+                        mapRequestedBlocks.emplace(inv.hash, GetTime());
                         fRequest = false;
-                } else if (mapBlockSource.count(inv.hash)) {
-                    // Already have this block, so consider it requested
-                    bool fHaveInStaging = false;
-                    mapRequestedBlocks.emplace(inv.hash, GetTime());
-                    fRequest = false;
+                    } else {
+                        LOCK(cs_staging);
+                        if (mapStagedBlocks.count(pindex->nHeight)) {
+                            // If this block is already staged, dont request again
+                            if (pindex->GetBlockHash() == inv.hash)
+                                fRequest = false;
+                        }
+                    }
                 }
 
                 if (fRequest) {

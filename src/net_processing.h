@@ -84,5 +84,6 @@ struct CNodeStateStats {
 /** Get statistics from node state */
 bool GetNodeStateStats(NodeId nodeid, CNodeStateStats &stats);
 void ProcessStaging();
+void ThreadStaging();
 
 #endif // BITCOIN_NET_PROCESSING_H
