@@ -579,6 +579,11 @@ public:
         LOCK2(::cs_main, m_wallet.cs_wallet);
         return m_wallet.GetAnonCredit(outpoint, filter);
     }
+    bool getNewStealthAddress(CStealthAddress& address) override
+    {
+        LOCK(m_wallet.cs_wallet);
+        return m_wallet.GetAnonWallet()->NewStealthKey(address, 0, nullptr);
+    }
     CoinsList listCoins() override
     {
         LOCK2(::cs_main, m_wallet.cs_wallet);

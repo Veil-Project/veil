@@ -240,6 +240,8 @@ public:
     //! Return credit amount if transaction input belongs to wallet and it is an anon input
     virtual CAmount getAnonCredit(const COutPoint& outpoint, isminefilter filter) = 0;
 
+    virtual bool getNewStealthAddress(CStealthAddress& address) = 0;
+
     //! Return AvailableCoins + LockedCoins grouped by wallet address.
     //! (put change in one group with wallet address)
     using CoinsList = std::map<CTxDestination, std::vector<std::tuple<COutPoint, WalletTxOut>>>;

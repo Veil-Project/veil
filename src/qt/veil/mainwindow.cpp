@@ -125,11 +125,11 @@ void ::initBalance(){
 
     // Balance
 
-    ui->labelBalance->setText("50.738 VEIL");
+    ui->labelBalance->setText("0.00 VEIL");
 
-    ui->labelUnspendable->setText("50.738 VEIL");
+    ui->labelUnspendable->setText("0.00 VEIL");
 
-    ui->labelInmature->setText("50.738 VEIL");
+    ui->labelInmature->setText("0.00 VEIL");
 
 }
 
