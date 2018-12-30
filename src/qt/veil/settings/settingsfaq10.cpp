@@ -7,14 +7,12 @@ SettingsFaq10::SettingsFaq10(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->label->setText("The X16RT mining algorithm will be used for at least the first 12 months of mainnet going live (January 1st, 2019) to achieve wide coin supply distribution.<br><br>"
+    ui->label_2->setText("Anyone can earn veil through the Veil Bounty Program. A wide variety of tasks can be performed to earn veil, ranging from traditional bounty tasks, high reward contests, bug bounty, dev bounty, and adopting Veil as a merchant or service.<br><br>"
 
-                         "Anyone with NVIDIA or AMD graphics cards will be able to solo mine or pool mine veil without concerns about ASICs and mining centralization during the mining phase.<br><br>"
+                         "For the latest information, please see the Official Veil Bounty Program thread on the <font color=#105aef>BitcoinTalk forum.</font>");
 
-                         "For the latest mining instructions, please see the Official Veil Announcement thread on the <font color=#105aef>BitcoinTalk forum</font>.");
-
-    ui->label->setTextFormat( Qt::RichText );
-    ui->label->setWordWrap(true);
+    ui->label_2->setTextFormat( Qt::RichText );
+    ui->label_2->setWordWrap(true);
 }
 
 SettingsFaq10::~SettingsFaq10()

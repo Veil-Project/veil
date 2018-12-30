@@ -7,18 +7,14 @@ SettingsFaq09::SettingsFaq09(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->label_2->setText("Veil secures its network with an exclusively anonymous Zerocoin-based Proof-of-Stake system. Basecoin veil cannot stake. Only Zerocoin veil can stake.<br><br>"
+    ui->label->setText("The X16RT mining algorithm will be used for at least the first 12 months of mainnet going live (January 1st, 2019) to achieve wide coin supply distribution.<br><br>"
 
-                         "<font color=#105aef>Follow these simple steps to begin staking veil:</font><br><br>"
+                         "Anyone with NVIDIA or AMD graphics cards will be able to solo mine or pool mine veil without concerns about ASICs and mining centralization during the mining phase.<br><br>"
 
-                            "1. Send veil to the QR code or receiving address displayed in the overview tab to deposit veil to yourself.<br>"
-                            "2. Click the Staking Toggle at the bottom left of the Overview screen and input your password to unlock your wallet for Staking/Autominting.<br>"
-                            "3. Allow the wallet to automatically mind your Basecoin veil into Zerocoin veil.<br>"
-                            "4. After newly minted Zerocoin veil receives 200 confirmations, it will begin staking and can earn staking rewards. <br>"
-                         "5. Ensure the staking icon at the bottom left of the Overview screen is turned on. Exiting your wallet will stop staking.");
+                         "For the latest mining instructions, please see the Official Veil Announcement thread on the <font color=#105aef>BitcoinTalk forum</font>.");
 
-    ui->label_2->setTextFormat( Qt::RichText );
-    ui->label_2->setWordWrap(true);
+    ui->label->setTextFormat( Qt::RichText );
+    ui->label->setWordWrap(true);
 }
 
 SettingsFaq09::~SettingsFaq09()
