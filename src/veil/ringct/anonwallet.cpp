@@ -2196,6 +2196,14 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                 r.nType = OUTPUT_CT;
                 r.fChange = true;
 
+                //If no change address is set, then generate a new stealth address to use for change
+                if (!coinControl || ((coinControl && coinControl->destChange.type() == typeid(CNoDestination)))) {
+                    CStealthAddress stealthAddress;
+                    if (!NewStealthKey(stealthAddress, 0, nullptr))
+                        return error("%s: failed to generate stealth address to use for change: %s", __func__, sError);
+                    r.address = stealthAddress;
+                }
+
                 if (!SetChangeDest(coinControl, r, sError)) {
                     return wserrorN(1, sError, __func__, ("SetChangeDest failed: " + sError));
                 }

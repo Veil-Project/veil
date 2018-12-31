@@ -221,13 +221,13 @@ void SendCoinsDialog::on_sendButton_clicked()
         }
     }
 
-    if(recipients.isEmpty()){
-        openToastDialog("No recipients", this);
+    if(!valid){
+        openToastDialog("Invalid data", this);
         return;
     }
 
-    if(!valid){
-        openToastDialog("Invalid data", this);
+    if(recipients.isEmpty()){
+        openToastDialog("No recipients", this);
         return;
     }
 
