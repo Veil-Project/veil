@@ -1,6 +1,6 @@
-// Copyright (c) 2011-2018 The Bitcoin Core developers
-// Copyright (c) 2011-2018 The Particl developers
-// Copyright (c) 2018 The Veil developers
+// Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2011-2019 The Particl developers
+// Copyright (c) 2018-2019 Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
