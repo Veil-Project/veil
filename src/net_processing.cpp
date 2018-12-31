@@ -1440,7 +1440,7 @@ void ThreadStaging()
             LogPrintf("ThreadStaging() interrupted\n");
         }
 
-        if (ShutdownRequested() || !IsInitialBlockDownload())
+        if (ShutdownRequested() || (pindexBestHeader && chainActive.Height() >= pindexBestHeader->nHeight))
             break;
     }
     LogPrintf("ThreadStaging exiting\n");
@@ -1449,7 +1449,7 @@ void ThreadStaging()
 void ProcessStaging()
 {
     while (true) {
-        if (ShutdownRequested() || !IsInitialBlockDownload())
+        if (ShutdownRequested() || (pindexBestHeader && chainActive.Height() >= pindexBestHeader->nHeight))
             return;
         boost::this_thread::interruption_point();
 
