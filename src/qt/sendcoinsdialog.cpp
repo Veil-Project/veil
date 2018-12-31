@@ -871,7 +871,7 @@ void SendCoinsDialog::coinControlUpdateLabels()
     if (CoinControlDialog::coinControl()->HasSelected())
     {
         // actual coin control calculation
-        CoinControlDialog::updateLabels(model, this);
+//        CoinControlDialog::updateLabels(model, this);
 
         // show coin control stats
         //ui->labelCoinControlAutomaticallySelected->hide();
