@@ -390,7 +390,7 @@ void CoinControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
             item->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
     }
 }
-
+#include <iostream>
 // shows count of locked unspent outputs
 void CoinControlDialog::updateLabelLocked()
 {
@@ -534,61 +534,62 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
     if (model && model->getOptionsModel())
         nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
 
-    //QLabel *l1 = dialog->findChild<QLabel *>("labelCoinControlQuantity");
-    //QLabel *l2 = dialog->findChild<QLabel *>("labelCoinControlAmount");
-    //QLabel *l3 = dialog->findChild<QLabel *>("labelCoinControlFee");
-    //QLabel *l4 = dialog->findChild<QLabel *>("labelCoinControlAfterFee");
-    //QLabel *l5 = dialog->findChild<QLabel *>("labelCoinControlBytes");
-    //QLabel *l7 = dialog->findChild<QLabel *>("labelCoinControlLowOutput");
-    //QLabel *l8 = dialog->findChild<QLabel *>("labelCoinControlChange");
+    QLabel *l1 = dialog->findChild<QLabel *>("labelCoinControlQuantity");
+    QLabel *l2 = dialog->findChild<QLabel *>("labelCoinControlAmount");
+    QLabel *l3 = dialog->findChild<QLabel *>("labelCoinControlFee");
+    QLabel *l4 = dialog->findChild<QLabel *>("labelCoinControlAfterFee");
+    QLabel *l5 = dialog->findChild<QLabel *>("labelCoinControlBytes");
+    QLabel *l7 = dialog->findChild<QLabel *>("labelCoinControlLowOutput");
+    QLabel *l8 = dialog->findChild<QLabel *>("labelCoinControlChange");
 
     // enable/disable "dust" and "change"
-    //dialog->findChild<QLabel *>("labelCoinControlLowOutputText")->setEnabled(nPayAmount > 0);
-    //dialog->findChild<QLabel *>("labelCoinControlLowOutput")    ->setEnabled(nPayAmount > 0);
-    //dialog->findChild<QLabel *>("labelCoinControlChangeText")   ->setEnabled(nPayAmount > 0);
-    //dialog->findChild<QLabel *>("labelCoinControlChange")       ->setEnabled(nPayAmount > 0);
+    dialog->findChild<QLabel *>("labelCoinControlLowOutputText")->setEnabled(nPayAmount > 0);
+    dialog->findChild<QLabel *>("labelCoinControlLowOutput")    ->setEnabled(nPayAmount > 0);
+    dialog->findChild<QLabel *>("labelCoinControlChangeText")   ->setEnabled(nPayAmount > 0);
+    dialog->findChild<QLabel *>("labelCoinControlChange")       ->setEnabled(nPayAmount > 0);
 
     // stats
-    //l1->setText(QString::number(nQuantity));                                 // Quantity
-    //l2->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nAmount));        // Amount
-    //l3->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nPayFee));        // Fee
-    //l4->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nAfterFee));      // After Fee
-    //l5->setText(((nBytes > 0) ? ASYMP_UTF8 : "") + QString::number(nBytes));        // Bytes
-    //l7->setText(fDust ? tr("yes") : tr("no"));                               // Dust
-    //l8->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nChange));        // Change
-//    if (nPayFee > 0)
-//    {
-//        l3->setText(ASYMP_UTF8 + l3->text());
-//        l4->setText(ASYMP_UTF8 + l4->text());
-//        if (nChange > 0 && !CoinControlDialog::fSubtractFeeFromAmount)
-//            l8->setText(ASYMP_UTF8 + l8->text());
-//    }
-//
-//    // turn label red when dust
-//    l7->setStyleSheet((fDust) ? "color:red;" : "");
-//
-//    // tool tips
-//    QString toolTipDust = tr("This label turns red if any recipient receives an amount smaller than the current dust threshold.");
-//
-//    // how many satoshis the estimated fee can vary per byte we guess wrong
-//    double dFeeVary = (nBytes != 0) ? (double)nPayFee / nBytes : 0;
-//
-//    QString toolTip4 = tr("Can vary +/- %1 satoshi(s) per input.").arg(dFeeVary);
-//
-//    l3->setToolTip(toolTip4);
-//    l4->setToolTip(toolTip4);
-//    l7->setToolTip(toolTipDust);
-//    l8->setToolTip(toolTip4);
-    //dialog->findChild<QLabel *>("labelCoinControlFeeText")      ->setToolTip(l3->toolTip());
-    //dialog->findChild<QLabel *>("labelCoinControlAfterFeeText") ->setToolTip(l4->toolTip());
-    //dialog->findChild<QLabel *>("labelCoinControlBytesText")    ->setToolTip(l5->toolTip());
-    //dialog->findChild<QLabel *>("labelCoinControlLowOutputText")->setToolTip(l7->toolTip());
-    //dialog->findChild<QLabel *>("labelCoinControlChangeText")   ->setToolTip(l8->toolTip());
+    l1->setText(QString::number(nQuantity));                                 // Quantity
+    l2->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nAmount));        // Amount
+    l3->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nPayFee));        // Fee
+    l4->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nAfterFee));      // After Fee
+    l5->setText(((nBytes > 0) ? ASYMP_UTF8 : "") + QString::number(nBytes));        // Bytes
+    l7->setText(fDust ? tr("yes") : tr("no"));                               // Dust
+    l8->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nChange));        // Change
+    if (nPayFee > 0)
+    {
+        l3->setText(ASYMP_UTF8 + l3->text());
+        l4->setText(ASYMP_UTF8 + l4->text());
+        if (nChange > 0 && !CoinControlDialog::fSubtractFeeFromAmount)
+            l8->setText(ASYMP_UTF8 + l8->text());
+    }
+
+    // turn label red when dust
+    l7->setStyleSheet((fDust) ? "color:red;" : "");
+
+
+    // tool tips
+    QString toolTipDust = tr("This label turns red if any recipient receives an amount smaller than the current dust threshold.");
+
+    // how many satoshis the estimated fee can vary per byte we guess wrong
+    double dFeeVary = (nBytes != 0) ? (double)nPayFee / nBytes : 0;
+
+    QString toolTip4 = tr("Can vary +/- %1 satoshi(s) per input.").arg(dFeeVary);
+
+    l3->setToolTip(toolTip4);
+    l4->setToolTip(toolTip4);
+    l7->setToolTip(toolTipDust);
+    l8->setToolTip(toolTip4);
+    dialog->findChild<QLabel *>("labelCoinControlFeeText")      ->setToolTip(l3->toolTip());
+    dialog->findChild<QLabel *>("labelCoinControlAfterFeeText") ->setToolTip(l4->toolTip());
+    dialog->findChild<QLabel *>("labelCoinControlBytesText")    ->setToolTip(l5->toolTip());
+    dialog->findChild<QLabel *>("labelCoinControlLowOutputText")->setToolTip(l7->toolTip());
+    dialog->findChild<QLabel *>("labelCoinControlChangeText")   ->setToolTip(l8->toolTip());
 
     // Insufficient funds
-    //QLabel *label = dialog->findChild<QLabel *>("labelCoinControlInsuffFunds");
-    //if (label)
-    //    label->setVisible(nChange < 0);
+    QLabel *label = dialog->findChild<QLabel *>("labelCoinControlInsuffFunds");
+    if (label)
+        label->setVisible(nChange < 0);
 }
 
 CCoinControl* CoinControlDialog::coinControl()
