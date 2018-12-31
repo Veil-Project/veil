@@ -287,7 +287,7 @@ public:
                 s << *((CTxOutData*) this);
                 break;
             default:
-                assert(false);
+                throw std::runtime_error("serialize error: tx output type does not exist");
         }
     }
 
@@ -309,7 +309,7 @@ public:
                 s >> *((CTxOutData*) this);
                 break;
             default:
-                assert(false);
+                throw std::runtime_error("deserialize error: tx output type does not exist");
         }
     }
 
@@ -337,7 +337,8 @@ public:
 
     const CTxOutStandard *GetStandardOutput() const
     {
-        assert(nVersion == OUTPUT_STANDARD);
+        if (nVersion != OUTPUT_STANDARD)
+            throw std::runtime_error("GetStandardOutput(): nVersion is not OUTPUT_STANDARD");
         return (CTxOutStandard*)this;
     }
 
@@ -653,7 +654,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
                 tx.vpout[k] = MAKE_OUTPUT<CTxOutData>();
                 break;
             default:
-                return;
+                throw std::runtime_error("UnserializeTransaction error: output type does not exist");
         }
 
         tx.vpout[k]->nVersion = bv;
