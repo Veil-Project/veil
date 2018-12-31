@@ -261,7 +261,7 @@ QR code to send you veil</string>
                  <string notr="true">color:#707070;</string>
                 </property>
                 <property name="text">
-                 <string>1N6i46dytMPVhV1JMGZFuQBh7BZZ6nNLox</string>
+                 <string>Failed to Generate (Unlock Wallet)</string>
                 </property>
                </widget>
               </item>

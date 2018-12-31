@@ -170,7 +170,7 @@
 font-size:16px;</string>
           </property>
           <property name="text">
-           <string>Invalid Address</string>
+           <string>Failed To Generate. Ensure Wallet Is Unlocked.</string>
           </property>
          </widget>
         </item>
