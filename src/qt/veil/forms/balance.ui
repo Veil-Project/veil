@@ -167,7 +167,7 @@ font-size: 24px;
 }</string>
               </property>
               <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:medium; font-weight:600;&quot;&gt;100000.00 Veil&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:medium; font-weight:600;&quot;&gt;N/A Veil&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -216,7 +216,7 @@ color: #707070;</string>
 color: #707070;</string>
               </property>
               <property name="text">
-               <string>50.738 VEIL</string>
+               <string>N/A VEIL</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -260,7 +260,7 @@ color: #707070;</string>
 color: #707070;</string>
               </property>
               <property name="text">
-               <string>50.738 VEIL</string>
+               <string>N/A VEIL</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -396,7 +396,7 @@ color:#707070;</string>
                <number>0</number>
               </property>
               <property name="text">
-               <string>1N6i46dytMPVhV1JMGZFuQBh7BZZ6nNLox</string>
+               <string>N/A</string>
               </property>
               <property name="wordWrap">
                <bool>false</bool>

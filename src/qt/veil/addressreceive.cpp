@@ -67,29 +67,11 @@ void AddressReceive::generateNewAddress(){
     interfaces::Wallet& wallet = walletModel->wallet();
 
     // Generate a new address to associate with given label
-    if(!walletModel->wallet().getKeyFromPool(false /* internal */, newKey))
-    {
-        WalletModel::UnlockContext ctx(walletModel->requestUnlock());
-        if(!ctx.isValid())
-        {
-            // TODO: Check if the wallet is locked or not
-            // Unlock wallet failed or was cancelled
-            //editStatus = WALLET_UNLOCK_FAILURE;
-            //return QString();
-        }
-        if(!wallet.getKeyFromPool(false /* internal */, newKey))
-        {
-            // TODO: Generation fail
-            //editStatus = KEY_GENERATION_FAILURE;
-            //return QString();
-        }
-    }
-    wallet.learnRelatedScripts(newKey, OutputType::BECH32);
-    std::string strAddress;
-    dest = GetDestinationForKey(newKey, OutputType::BECH32);
+    CStealthAddress address;
+    if (!walletModel->wallet().getNewStealthAddress(address))
+        return;
     bool fBech32 = true;
-    strAddress = EncodeDestination(dest, fBech32);
-
+    std::string strAddress = address.ToString(fBech32);
     qAddress =  QString::fromStdString(strAddress);
 
     // set address
