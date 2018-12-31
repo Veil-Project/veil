@@ -17,7 +17,7 @@
    <string notr="true">font-size:16px;
 color:#707070;</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0">
    <property name="rightMargin">
     <number>60</number>
    </property>
