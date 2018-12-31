@@ -2277,7 +2277,7 @@ static UniValue gettransaction(const JSONRPCRequest& request)
     }
     
     const CWalletTx& wtx = it->second;
-assert(wtx.tx);
+    assert(wtx.tx);
     CAmount nCreditBase = wtx.GetCredit(filter);
     CAmount nDebitBase = wtx.GetDebit(filter);
     CAmount nCreditTotal = nCreditBase;
