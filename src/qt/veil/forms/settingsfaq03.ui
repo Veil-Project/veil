@@ -17,7 +17,7 @@
    <string notr="true">font-size:16px;
 color:#707070;</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0">
    <property name="rightMargin">
     <number>60</number>
    </property>
@@ -89,7 +89,7 @@ font-size:16px;</string>
      <property name="text">
       <string>Select either Wallet File or Recovery Seed Phrase
 
-When backing up with Wallet File, use a strong password with at least 16+ characters. Multiple copies can be made and put on different storage devices for redundant data protection.
+When backing up with Wallet File, use a strong password. Multiple copies can be made and put on different storage devices for redundant data protection.
 
 When backing up with Recovery Seed Phrase, write the 24-word seed phrase in the correct order. Never share your seed phrase with others. Anyone with it will have access to your wallet.
 
