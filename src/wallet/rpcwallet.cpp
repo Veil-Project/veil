@@ -2264,21 +2264,20 @@ static UniValue gettransaction(const JSONRPCRequest& request)
     CAmount nCreditAnon = 0;
     CAmount nDebitAnon = 0;
     auto it = pwallet->mapWallet.find(hash);
-    if (it != pwallet->mapWallet.end()) {
-        CWalletTx& tx = it->second;
-        LogPrintf("%s: 2217\n", __func__);
-        if (tx.tx->HasBlindedValues()) {
-            LogPrintf("%s: 2219\n", __func__);
-            auto* pwalletAnon = pwallet->GetAnonWallet();
-            if (pwalletAnon->IsMine(*tx.tx)) {
-                LogPrintf("%s: 2222\n", __func__);
-                nCreditAnon = pwalletAnon->GetCredit(*tx.tx, ISMINE_SPENDABLE);
-                nDebitAnon = pwalletAnon->GetDebit(*tx.tx, ISMINE_SPENDABLE);
-            }
+    if (it == pwallet->mapWallet.end())
+        throw JSONRPCError(RPC_WALLET_ERROR, "Wallet does not have record of the transaction");
+
+    CWalletTx& tx = it->second;
+    if (tx.tx->HasBlindedValues()) {
+        auto* pwalletAnon = pwallet->GetAnonWallet();
+        if (pwalletAnon->IsMine(*tx.tx)) {
+            nCreditAnon = pwalletAnon->GetCredit(*tx.tx, ISMINE_SPENDABLE);
+            nDebitAnon = pwalletAnon->GetDebit(*tx.tx, ISMINE_SPENDABLE);
         }
     }
+    
     const CWalletTx& wtx = it->second;
-
+assert(wtx.tx);
     CAmount nCreditBase = wtx.GetCredit(filter);
     CAmount nDebitBase = wtx.GetDebit(filter);
     CAmount nCreditTotal = nCreditBase;
