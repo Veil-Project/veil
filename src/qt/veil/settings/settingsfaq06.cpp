@@ -18,7 +18,7 @@ SettingsFaq06::SettingsFaq06(QWidget *parent) :
                          "<font color=#105aef>To change to Exchange or Service mode, follow these instructions:</font><br><br>"
 
                             "1. Go to Settings>Open Configuration File<br>"
-                            "2. Enter the following as a new line in the veil.config file: exchange-or-service=1<br>"
+                            "2. Enter the following as a new line in the veil.config file: exchangesandservicesmode=1<br>"
                             "3. Save the file and restart the wallet	<br><br>");
 
     ui->label_2->setTextFormat( Qt::RichText );
