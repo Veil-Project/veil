@@ -297,6 +297,12 @@ isminetype AnonWallet::HaveAddress(const CTxDestination &dest) const
         return HaveStealthAddress(sx);
     }
 
+    if (dest.type() == typeid(CKeyID)) {
+        CKeyID id = boost::get<CKeyID>(dest);
+        if (mapStealthDestinations.count(id))
+            return ISMINE_SPENDABLE;
+    }
+
     return ISMINE_NO;
 };
 
@@ -478,8 +484,14 @@ isminetype AnonWallet::IsMine(const CTxOutBase *txout) const
         {
             auto* out = (CTxOutCT*)txout;
             CTxDestination dest;
-            if (ExtractDestination(*out->GetPScriptPubKey(), dest))
-                return HaveAddress(dest);
+            if (ExtractDestination(*out->GetPScriptPubKey(), dest)) {
+                if (!HaveAddress(dest)) {
+                    if (dest.which() == 1) //ckeyid could be from cwallet
+                        return pwalletParent->IsMine(dest);
+                    return ISMINE_NO;
+                }
+                return ISMINE_SPENDABLE;
+            }
             break;
         }
         case OUTPUT_RINGCT:
@@ -1142,7 +1154,7 @@ void AnonWallet::AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CT
     }
 }
 
-int AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::string &sError)
+bool AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::string &sError)
 {
     LOCK(pwalletParent->cs_wallet);
     //uint32_t nChild;
@@ -1152,7 +1164,7 @@ int AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::
         if (r.nType == OUTPUT_STANDARD) {
             if (r.address.type() == typeid(CStealthAddress)) {
                 CStealthAddress sx = boost::get<CStealthAddress>(r.address);
-
+                r.isMine = mapStealthAddresses.count(sx.GetID());
                 CKey sShared;
                 ec_point pkSendTo;
 
@@ -1165,7 +1177,7 @@ int AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::
                 }
 
                 if (k >= nTries) {
-                    return wserrorN(1, sError, __func__, "Could not generate receiving public key.");
+                    return error("%s: Could not generate receiving public key.", __func__);
                 }
 
                 CPubKey pkEphem = r.sEphem.GetPubKey();
@@ -1177,8 +1189,17 @@ int AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::
                 rd.nType = OUTPUT_DATA;
 
                 if (0 != MakeStealthData(r.sNarration, sx.prefix, sShared, pkEphem, rd.vData, r.nStealthPrefix, sError)) {
-                    return 1;
+                    return error("%s: Failed to make stealth data: %s", __func__, sError);
                 }
+
+                if (r.isMine) {
+                    // Save this stealth destination to our stealth address so we know it is ours.
+                    if (!AddStealthDestination(sx.GetID(), idTo))
+                        return error("%s: failed to save stealth destination", __func__);
+                    if (!AddKeyToParent(sShared))
+                        return error("%s: failed to save ephemeral key", __func__);
+                }
+
                 vecSend.insert(vecSend.begin() + (i+1), rd);
                 i++; // skip over inserted output
             } else {
@@ -1197,37 +1218,26 @@ int AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::
             }
         } else if (r.nType == OUTPUT_CT) {
             CKey sEphem = r.sEphem;
-
-            /*
-            // TODO: Make optional
-            if (0 != pc->DeriveNextKey(sEphem, nChild, true))
-                return errorN(1, sError, __func__, "TryDeriveNext failed.");
-            */
-            if (!sEphem.IsValid()) {
+            if (!sEphem.IsValid())
                 sEphem.MakeNewKey(true);
-            }
 
             if (r.address.type() == typeid(CStealthAddress)) {
                 CStealthAddress sx = boost::get<CStealthAddress>(r.address);
-
+                r.isMine = mapStealthAddresses.count(sx.GetID());
                 CKey sShared;
                 ec_point pkSendTo;
 
                 int k, nTries = 24;
                 for (k = 0; k < nTries; ++k) {
                     if (StealthSecret(sEphem, sx.scan_pubkey, sx.spend_pubkey, sShared, pkSendTo) == 0) {
-                        break;
+                        if (sShared.IsValid())
+                            break;
                     }
-                    // if StealthSecret fails try again with new ephem key
-                    /* TODO: Make optional
-                    if (0 != pc->DeriveNextKey(sEphem, nChild, true))
-                        return errorN(1, sError, __func__, "DeriveNextKey failed.");
-                    */
                     sEphem.MakeNewKey(true);
                 }
 
                 if (k >= nTries) {
-                    return wserrorN(1, sError, __func__, "Could not generate receiving public key.");
+                    return error("%s: Could not generate receiving public key.", __func__);
                 }
 
                 r.pkTo = CPubKey(pkSendTo);
@@ -1236,6 +1246,14 @@ int AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::
                 r.scriptPubKey = GetScriptForDestination(idTo);
                 if (sx.prefix.number_bits > 0) {
                     r.nStealthPrefix = FillStealthPrefix(sx.prefix.number_bits, sx.prefix.bitfield);
+                }
+
+                if (r.isMine) {
+                    // Save this stealth destination to our stealth address so we know it is ours.
+                    if (!AddStealthDestination(sx.GetID(), idTo))
+                        return error("%s: failed to save stealth destination", __func__);
+                    if (!AddKeyToParent(sShared))
+                        return error("%s: failed to save ephemeral key", __func__);
                 }
             } else if (r.address.type() == typeid(CExtKeyPair)) {
                 throw std::runtime_error(strprintf("%s: sending to extkeypair", __func__));
@@ -1246,25 +1264,20 @@ int AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::
             } else if (!r.fScriptSet) {
                 r.scriptPubKey = GetScriptForDestination(r.address);
                 if (r.scriptPubKey.size() < 1) {
-                    return wserrorN(1, sError, __func__, "Unknown address type and no script set.");
+                    return error("%s: Unknown address type and no script set.", __func__);
                 }
             }
 
             r.sEphem = sEphem;
         } else if (r.nType == OUTPUT_RINGCT) {
             CKey sEphem = r.sEphem;
-            /*
-            // TODO: Make optional
-            if (0 != pc->DeriveNextKey(sEphem, nChild, true))
-                return errorN(1, sError, __func__, "TryDeriveNext failed.");
-            */
             if (!sEphem.IsValid()) {
                 sEphem.MakeNewKey(true);
             }
 
             if (r.address.type() == typeid(CStealthAddress)) {
                 CStealthAddress sx = boost::get<CStealthAddress>(r.address);
-
+                r.isMine = mapStealthAddresses.count(sx.GetID());
                 CKey sShared;
                 ec_point pkSendTo;
                 int k, nTries = 24;
@@ -1272,15 +1285,10 @@ int AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::
                     if (StealthSecret(sEphem, sx.scan_pubkey, sx.spend_pubkey, sShared, pkSendTo) == 0) {
                         break;
                     }
-                    // if StealthSecret fails try again with new ephem key
-                    /* TODO: Make optional
-                    if (0 != pc->DeriveNextKey(sEphem, nChild, true))
-                        return errorN(1, sError, __func__, "DeriveNextKey failed.");
-                    */
                     sEphem.MakeNewKey(true);
                 }
                 if (k >= nTries) {
-                    return wserrorN(1, sError, __func__, "Could not generate receiving public key.");
+                    return error("%s: Could not generate receiving public key.", __func__);
                 }
 
                 r.pkTo = CPubKey(pkSendTo);
@@ -1289,15 +1297,23 @@ int AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::
                 if (sx.prefix.number_bits > 0) {
                     r.nStealthPrefix = FillStealthPrefix(sx.prefix.number_bits, sx.prefix.bitfield);
                 }
+
+                if (r.isMine) {
+                    // Save this stealth destination to our stealth address so we know it is ours.
+                    if (!AddStealthDestination(sx.GetID(), idTo))
+                        return error("%s: failed to save stealth destination", __func__);
+                    if (!AddKeyToParent(sShared))
+                        return error("%s: failed to save ephemeral key", __func__);
+                }
             } else {
-                return wserrorN(1, sError, __func__, _("Only able to send to stealth address for now.")); // TODO: add more types?
+                return error("%s: Only able to send to stealth address for now.", __func__); // TODO: add more types?
             }
 
             r.sEphem = sEphem;
         }
     }
 
-    return 0;
+    return true;
 }
 
 void SetCTOutVData(std::vector<uint8_t> &vData, const CPubKey &pkEphem, uint32_t nStealthPrefix)
@@ -1483,12 +1499,12 @@ static bool ExpandChangeAddress(AnonWallet *phdw, CTempRecipient &r, std::string
     if (r.address.type() == typeid(CStealthAddress)) {
         CStealthAddress sx = boost::get<CStealthAddress>(r.address);
 
-        CKey sShared;
+        CKey keyShared;
         ec_point pkSendTo;
 
         int k, nTries = 24;
         for (k = 0; k < nTries; ++k) {
-            if (StealthSecret(r.sEphem, sx.scan_pubkey, sx.spend_pubkey, sShared, pkSendTo) == 0)
+            if (StealthSecret(r.sEphem, sx.scan_pubkey, sx.spend_pubkey, keyShared, pkSendTo) == 0)
                 break;
             r.sEphem.MakeNewKey(true);
         }
@@ -1504,8 +1520,13 @@ static bool ExpandChangeAddress(AnonWallet *phdw, CTempRecipient &r, std::string
             if (sx.prefix.number_bits > 0) {
                 r.nStealthPrefix = FillStealthPrefix(sx.prefix.number_bits, sx.prefix.bitfield);
             }
-        } else {
-            if (0 != MakeStealthData(r.sNarration, sx.prefix, sShared, pkEphem, r.vData, r.nStealthPrefix, sError))
+
+            // Save this stealth destination to our stealth address so we know it is ours.
+            if (!phdw->AddStealthDestination(sx.GetID(), idTo))
+                return error("%s: failed to save stealth destination", __func__);
+            if (!phdw->AddKeyToParent(r.sEphem))
+                return error("%s: failed to save ephemeral key", __func__);
+            if (0 != MakeStealthData(r.sNarration, sx.prefix, keyShared, pkEphem, r.vData, r.nStealthPrefix, sError))
                 return error("%s: failed to make stealth data: %s", __func__, sError);
         }
         return true;
@@ -1601,7 +1622,7 @@ static bool InsertChangeAddress(CTempRecipient &r, std::vector<CTempRecipient> &
         rd.fChange = true;
         rd.vData = r.vData;
         r.vData.clear();
-        vecSend.insert(vecSend.begin()+nChangePosInOut+1, rd);
+        //vecSend.insert(vecSend.begin()+nChangePosInOut+1, rd);
     }
 
     return true;
@@ -1654,7 +1675,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
     bool fOnlyStandardOutputs, fSkipFee;
     InspectOutputs(vecSend, false, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
 
-    if (0 != ExpandTempRecipients(vecSend, sError)) {
+    if (!ExpandTempRecipients(vecSend, sError)) {
         return 1; // sError is set
     }
 
@@ -2121,7 +2142,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
     bool fOnlyStandardOutputs, fSkipFee;
     InspectOutputs(vecSend, false, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
 
-    if (0 != ExpandTempRecipients(vecSend, sError))
+    if (!ExpandTempRecipients(vecSend, sError))
         return 1; // sError is set
 
     wtx.fTimeReceivedIsTxTime = true;
@@ -2199,8 +2220,10 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                 //If no change address is set, then generate a new stealth address to use for change
                 if (!coinControl || ((coinControl && coinControl->destChange.type() == typeid(CNoDestination)))) {
                     CStealthAddress stealthAddress;
-                    if (!NewStealthKey(stealthAddress, 0, nullptr))
-                        return error("%s: failed to generate stealth address to use for change: %s", __func__, sError);
+                    if (!NewStealthKey(stealthAddress, 0, nullptr)) {
+                        error("%s: failed to generate stealth address to use for change: %s", __func__, sError);
+                        return 1;
+                    }
                     r.address = stealthAddress;
                 }
 
@@ -2416,7 +2439,11 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                 }
 
                 if (!stx.GetBlind(coin.second, &vInputBlinds[nIn * 32])) {
-                    return werrorN(1, "%s: GetBlind failed for %s, %d.\n", __func__, txhash.ToString().c_str(), coin.second);
+                    //Try to manually get blinds
+                    uint256 blind;
+                    if (!GetCTBlindsFromOutput((CTxOutCT*)stx.tx->vpout[coin.second].get(), blind))
+                        return werrorN(1, "%s: GetBlind failed for %s, %d.\n", __func__, txhash.ToString().c_str(), coin.second);
+                    memcpy(&vInputBlinds[nIn * 32], blind.begin(), 32);
                 }
             }
             vpBlinds.push_back(&vInputBlinds[nIn * 32]);
@@ -2520,6 +2547,9 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
         rtx.nFlags |= ORF_BLIND_IN;
         AddOutputRecordMetaData(rtx, vecSend);
 
+        //save record
+        SaveRecord(txNew.GetHash(), rtx);
+
         // Embed the constructed transaction data in wtxNew.
         wtx.SetTx(MakeTransactionRef(std::move(txNew)));
 
@@ -2528,9 +2558,6 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
     if (0 != PreAcceptMempoolTx(wtx, sError)) {
         return 1;
     }
-
-    //save record
-    SaveRecord(txNew.GetHash(), rtx);
 
     LogPrintf("Fee Calculation: Fee:%d Bytes:%u Needed:%d Tgt:%d (requested %d) Reason:\"%s\" Decay %.5f: Estimation: (%g - %g) %.2f%% %.1f/(%.1f %d mem %.1f out) Fail: (%g - %g) %.2f%% %.1f/(%.1f %d mem %.1f out)\n",
               nFeeRet, nBytes, nFeeNeeded, feeCalc.returnedTarget, feeCalc.desiredTarget, StringForFeeReason(feeCalc.reason), feeCalc.est.decay,
@@ -2739,7 +2766,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
     //If output is going out as zerocoin, then it is being double counted and needs to be subtracted
     nValueOutAnon -= nValueOutZerocoin;
 
-    if (0 != ExpandTempRecipients(vecSend, sError))
+    if (!ExpandTempRecipients(vecSend, sError))
         return error("%s: ExpendTempRecipients failed: %s", __func__, sError);
 
     wtx.fTimeReceivedIsTxTime = true;
@@ -3930,6 +3957,16 @@ bool AnonWallet::AddStealthDestination(const CKeyID& idStealthAddress, const CKe
     return true;
 }
 
+bool AnonWallet::AddKeyToParent(const CKey& keySharedSecret)
+{
+    //Since the new key is not derived through Ext, for now keep it in CWallet keystore
+    bool fSuccess = true;
+    if (!pwalletParent->AddKeyPubKey(keySharedSecret, keySharedSecret.GetPubKey())) {
+        fSuccess = pwalletParent->HaveKey(keySharedSecret.GetPubKey().GetID());
+    }
+    return fSuccess;
+}
+
 bool AnonWallet::ProcessStealthOutput(const CTxDestination &address, std::vector<uint8_t> &vchEphemPK, uint32_t prefix,
         bool fHavePrefix, CKey &sShared, bool fNeedShared)
 {
@@ -4338,22 +4375,6 @@ int AnonWallet::InsertTempTxn(const uint256 &txid, const CTransactionRecord *rtx
 bool AnonWallet::OwnBlindOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxOutCT *pout, COutputRecord &rout,
         CStoredTransaction &stx, bool &fUpdated)
 {
-    /*
-    bool fDecoded = false;
-    if (pc && !IsLocked()) // check if output is from this wallet
-    {
-        CKey keyEphem;
-        uint32_t nChildOut;
-        if (0 == pc->DeriveKey(keyEphem, nLastChild, nChildOut, true))
-        {
-            // regenerate nonce
-            //uint256 nonce = keyEphem.ECDH(pkto_outs[k]);
-            //CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
-        };
-    };
-    */
-
-    CKeyID idKey;
     isminetype mine = IsMine(pout);
     if (!(mine & ISMINE_ALL)) {
         return 0;
@@ -4377,7 +4398,7 @@ bool AnonWallet::OwnBlindOut(AnonWalletDB *pwdb, const uint256 &txhash, const CT
                 LogPrintf("Error: %s - WriteLockedAnonOut failed.\n", __func__);
             }
         }
-        return 1;
+        return true;
     }
 
     CScript scriptPubKey;
@@ -4388,9 +4409,13 @@ bool AnonWallet::OwnBlindOut(AnonWalletDB *pwdb, const uint256 &txhash, const CT
     if (!ExtractDestination(scriptPubKey, dest))
         return error("%s: ExtractDestination failed", __func__);
 
+    if (dest.which() != 1)
+        return error("%s: destination is not key id", __func__);
+    CKeyID idKey = boost::get<CKeyID>(dest);
+
     CKey key;
-    if (!RegenerateKey(idKey, key))
-        return error("%s: GetKey failed.", __func__);
+    if (!GetKey(idKey, key))
+        return error("%s: GetKey failed for out.n=%d", __func__, rout.n);
 
     if (pout->vData.size() < 33)
         return error("%s: vData.size() < 33.", __func__);
@@ -4430,6 +4455,55 @@ bool AnonWallet::OwnBlindOut(AnonWalletDB *pwdb, const uint256 &txhash, const CT
 
     stx.InsertBlind(rout.n, blindOut);
     fUpdated = true;
+
+    return true;
+}
+
+bool AnonWallet::GetCTBlindsFromOutput(const CTxOutCT *pout, uint256& blind) const
+{
+    CScript scriptPubKey;
+    if (!pout->GetScriptPubKey(scriptPubKey))
+        return error("%s: GetScriptPubKey failed.", __func__);
+
+    CTxDestination dest;
+    if (!ExtractDestination(scriptPubKey, dest))
+        return error("%s: ExtractDestination failed", __func__);
+
+    if (dest.which() != 1)
+        return error("%s: destination is not key id", __func__);
+    CKeyID idKey = boost::get<CKeyID>(dest);
+
+    CKey key;
+    if (!GetKey(idKey, key))
+        return error("%s: GetKey failed.", __func__);
+
+    if (pout->vData.size() < 33)
+        return error("%s: vData.size() < 33.", __func__);
+
+    CPubKey pkEphem;
+    pkEphem.Set(pout->vData.begin(), pout->vData.begin() + 33);
+
+    // Regenerate nonce
+    uint256 nonce = key.ECDH(pkEphem);
+    CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
+
+    uint64_t min_value, max_value;
+    uint8_t blindOut[32];
+    unsigned char msg[256]; // Currently narration is capped at 32 bytes
+    size_t mlen = sizeof(msg);
+    memset(msg, 0, mlen);
+    uint64_t amountOut;
+    if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
+                                         blindOut, &amountOut, msg, &mlen, nonce.begin(),
+                                         &min_value, &max_value,
+                                         &pout->commitment, pout->vRangeproof.data(), pout->vRangeproof.size(),
+                                         nullptr, 0,
+                                         secp256k1_generator_h)) {
+        return error("%s: secp256k1_rangeproof_rewind failed.", __func__);
+    }
+
+    blind = uint256();
+    memcpy(blind.begin(), blindOut, 32);
 
     return true;
 }

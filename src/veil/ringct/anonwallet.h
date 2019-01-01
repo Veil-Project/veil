@@ -224,7 +224,7 @@ public:
     int GetChangeAddress(CPubKey &pk);
 
     void AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend);
-    int ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::string &sError);
+    bool ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::string &sError);
 
     int AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sError);
 
@@ -284,6 +284,7 @@ public:
      */
     int LoadStealthAddresses();
     bool AddStealthDestination(const CKeyID& idStealthAddress, const CKeyID& idStealthDestination);
+    bool AddKeyToParent(const CKey& keySharedSecret);
     bool GetStealthLinked(const CKeyID &stealthDest, CStealthAddress &sx) const;
     bool GetStealthAddress(const CKeyID& idStealth, CStealthAddress& stealthAddress);
     bool ProcessLockedStealthOutputs();
@@ -299,6 +300,7 @@ public:
 
     int InsertTempTxn(const uint256 &txid, const CTransactionRecord *rtx) const;
 
+    bool GetCTBlindsFromOutput(const CTxOutCT *pout, uint256& blind) const;
     bool OwnBlindOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxOutCT *pout, COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated);
     int OwnAnonOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxOutRingCT *pout, COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated);
 

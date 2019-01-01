@@ -1013,7 +1013,7 @@ static UniValue createrawbasecointransaction(const JSONRPCRequest& request)
     std::string sError;
     // Note: wallet is only necessary when sending to  an extkey address
     auto* pAnonWallet = wallet->GetAnonWallet();
-    if (0 != pAnonWallet->ExpandTempRecipients(vecSend, sError)) {
+    if (!pAnonWallet->ExpandTempRecipients(vecSend, sError)) {
         throw JSONRPCError(RPC_WALLET_ERROR, strprintf("ExpandTempRecipients failed: %s.", sError));
     }
 
