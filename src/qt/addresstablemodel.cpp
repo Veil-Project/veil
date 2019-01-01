@@ -206,7 +206,7 @@ QVariant AddressTableModel::data(const QModelIndex &index, int role) const
                 return rec->label;
             }
         case Address:
-            return rec->address.left(10) + "..." + rec->address.right(10);
+            return rec->address.left(18) + "..." + rec->address.right(18);
         }
     }
     else if (role == Qt::FontRole)
