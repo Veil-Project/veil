@@ -38,7 +38,12 @@ public:
 
     const CTransaction& get() override { return *m_tx; }
 
-    int64_t getVirtualSize() override { return GetVirtualTransactionSize(*m_tx); }
+    int64_t getVirtualSize() override
+    {
+        if (!m_tx)
+            return 0;
+        return GetVirtualTransactionSize(*m_tx);
+    }
 
     bool commit(WalletValueMap value_map,
         WalletOrderForm order_form,
