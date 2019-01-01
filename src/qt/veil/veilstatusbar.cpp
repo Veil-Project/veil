@@ -5,7 +5,6 @@
 #include <qt/walletmodel.h>
 #include <qt/veil/qtutils.h>
 #include <iostream>
-#include "unlockpassworddialog.h"
 
 VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
     QWidget(parent),
@@ -80,8 +79,10 @@ void VeilStatusBar::onBtnLockClicked()
     }else{
         bool isLocked = walletModel->getEncryptionStatus() == WalletModel::Locked;
         if (isLocked) {
-            UnlockPasswordDialog *dialog = new UnlockPasswordDialog(/*fUnlockForStakingOnly*/false, walletModel, mainWindow);
-            if (openDialogWithOpaqueBackground(dialog, mainWindow, 4)) {
+            mainWindow->showHide(true);
+            if(!unlockPasswordDialog)
+                unlockPasswordDialog = new UnlockPasswordDialog(/*fUnlockForStakingOnly*/false, walletModel, mainWindow);
+            if (openDialogWithOpaqueBackground(unlockPasswordDialog, mainWindow, 4)) {
                 openToastDialog("Wallet unlocked", mainWindow);
             } else {
                 openToastDialog("Wallet failed to unlock", mainWindow);
