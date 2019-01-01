@@ -1,5 +1,5 @@
-// Copyright (c) 2015-2018 The PIVX developers
-// Copyright (c) 2018 The VEIL developers
+// Copyright (c) 2015-2019 The PIVX developers
+// Copyright (c) 2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
