@@ -204,6 +204,8 @@ AddressesWidget::AddressesWidget(const PlatformStyle *platformStyle, WalletView 
     connect(ui->btnContacts,SIGNAL(clicked()),this,SLOT(onContactsClicked()));
     connect(ui->btnAdd,SIGNAL(clicked()),this,SLOT(onNewAddressClicked()));
     connect(ui->btnAddIcon,SIGNAL(clicked()),this,SLOT(onNewAddressClicked()));
+    connect(ui->btnMiningAddress,SIGNAL(clicked()),this,SLOT(onNewMinerAddressClicked()));
+    connect(ui->btnMiningAddress2,SIGNAL(clicked()),this,SLOT(onNewMinerAddressClicked()));
 }
 
 void AddressesWidget::setWalletModel(WalletModel *model)
@@ -301,14 +303,38 @@ void AddressesWidget::reloadTab(bool _isOnMyAddresses) {
 void AddressesWidget::onButtonChanged() {
     if(isOnMyAddresses){
         ui->btnAdd->setText("New Address");
+        showHideMineAddressBtn(true);
     }else{
         ui->btnAdd->setText("New Contact");
+        showHideMineAddressBtn(false);
+
     }
     if(this->menu){
         this->menu->hide();
     }
 }
 
+void AddressesWidget::showHideMineAddressBtn(bool show){
+    ui->btnMiningAddress2->setVisible(show);
+    ui->btnMiningAddress->setVisible(show);
+    ui->lblSplit->setVisible(show);
+}
+
+void AddressesWidget::onNewMinerAddressClicked(){
+    mainWindow->showHide(true);
+    QDialog *widget = new AddressReceive(mainWindow->getGUI(), this->walletModel, true);
+    std::string toast = "Mining Address";
+    widget->setWindowFlags(Qt::CustomizeWindowHint);
+    widget->setAttribute(Qt::WA_TranslucentBackground, true);
+
+    if(openDialogWithOpaqueBackground(widget, mainWindow->getGUI())){
+        openToastDialog(QString::fromStdString(toast + " Created"), mainWindow->getGUI());
+    }else{
+        openToastDialog(QString::fromStdString(toast + " Creation Failed"), mainWindow->getGUI());
+    }
+    // if it's the first one created, display it without having to reload
+    onForeground();
+}
 
 void AddressesWidget::onNewAddressClicked(){
     mainWindow->showHide(true);
@@ -318,6 +344,12 @@ void AddressesWidget::onNewAddressClicked(){
         widget = new AddressNewContact(mainWindow->getGUI(), this->walletModel);
         toast = "Contact";
     } else {
+        bool isLocked = walletModel->getEncryptionStatus() == WalletModel::Locked;
+        if(isLocked){
+            openToastDialog(QString::fromStdString("Wallet Locked, please unlock it to continue"), mainWindow->getGUI());
+            mainWindow->showHide(false);
+            return;
+        }
         widget = new AddressReceive(mainWindow->getGUI(), this->walletModel);
         toast = "Address";
     }

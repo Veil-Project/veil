@@ -19,13 +19,14 @@
 #include <QImage>
 #include <QLabel>
 #include <QPainter>
+#include <QString>
 #include <qt/veil/qtutils.h>
 
 #ifdef USE_QRCODE
 #include <qrencode.h>
 #endif
 
-AddressReceive::AddressReceive(QWidget *parent, WalletModel* _walletModel) :
+AddressReceive::AddressReceive(QWidget *parent, WalletModel* _walletModel, bool isMinerAddress) :
     QDialog(parent),
     walletModel(_walletModel),
     ui(new Ui::AddressReceive)
@@ -43,7 +44,8 @@ AddressReceive::AddressReceive(QWidget *parent, WalletModel* _walletModel) :
     ui->editDescription->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->editDescription->setProperty("cssClass" , "edit-primary");
 
-    generateNewAddress();
+    ui->labelTitle->setText(isMinerAddress ? "New Miner Address" : "New Receiving Address");
+    generateNewAddress(isMinerAddress);
 
     connect(ui->btnCopy, SIGNAL(clicked()),this, SLOT(on_btnCopyAddress_clicked()));
     connect(ui->btnSave, SIGNAL(clicked()),this, SLOT(onBtnSaveClicked()));
@@ -58,26 +60,56 @@ void AddressReceive::onBtnSaveClicked(){
 }
 
 void AddressReceive::on_btnCopyAddress_clicked() {
-    GUIUtil::setClipboard(qAddress);
-    openToastDialog("Address copied", this);
+    if(!qAddress.isEmpty()) {
+        GUIUtil::setClipboard(qAddress);
+        openToastDialog("Address copied", this);
+    }else openToastDialog("Wallet Encrypted, please unlock it first", this);
 }
 
-void AddressReceive::generateNewAddress(){
+void AddressReceive::generateNewAddress(bool isMinerAddress){
     // Address
     interfaces::Wallet& wallet = walletModel->wallet();
 
-    // Generate a new address to associate with given label
-    CStealthAddress address;
-    if (!walletModel->wallet().getNewStealthAddress(address))
-        return;
+    std::string strAddress;
+    if (!isMinerAddress) {
+        // Generate a new address to associate with given label
+        CStealthAddress address;
+        if (!walletModel->wallet().getNewStealthAddress(address))
+            return;
 
-    bool fBech32 = true;
-    std::string strAddress = address.ToString(fBech32);
-    dest = DecodeDestination(strAddress);
+        bool fBech32 = true;
+        strAddress = address.ToString(fBech32);
+        dest = DecodeDestination(strAddress);
+        wallet.setAddressBook(dest, "", "receive");
+    }else{
+        CPubKey newKey;
+        if (!wallet.getKeyFromPool(false, newKey)) {
+            WalletModel::UnlockContext ctx(walletModel->requestUnlock());
+            if(!ctx.isValid()) {
+                // TODO: Check if the wallet is locked or not
+                openToastDialog(QString::fromUtf8("Address generation failed"), this);
+                return;
+            }
+            if(!wallet.getKeyFromPool(false /* internal */, newKey)) {
+                openToastDialog(QString::fromUtf8("Address generation failed"), this);
+                return;
+            }
+        }else {
+            wallet.learnRelatedScripts(newKey, OutputType::LEGACY);
+            dest = newKey.GetID();
+            wallet.setAddressBook(dest, "", "receive");
+            bool fBech32 = false;
+            strAddress = EncodeDestination(dest, fBech32);
+        }
+    }
     qAddress =  QString::fromStdString(strAddress);
 
     // set address
-    ui->labelAddress->setText(qAddress.left(12) + "..." + qAddress.right(12));
+    if(!isMinerAddress){
+        ui->labelAddress->setText(qAddress.left(12) + "..." + qAddress.right(12));
+    }else{
+        ui->labelAddress->setText(qAddress);
+    }
 
     SendCoinsRecipient info;
     info.address = qAddress;
