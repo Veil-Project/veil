@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2018 The Bitcoin Core developers
-// Copyright (c) 2018 The PIVX developers
-// Copyright (c) 2018 The Veil developers
+// Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2015-2019 The PIVX developers
+// Copyright (c) 2018-2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -556,11 +556,10 @@ std::string LicenseInfo()
     const std::string URL_WEBSITE = "<https://veil-project.com>";
 
     return  CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2009, COPYRIGHT_YEAR) + " ") + "\n" +
-            "Copyright (C) 2009-2018 The Bitcoin Core developers" + "\n"
-            "Copyright (C) 2009-2018 Bitcoin Developers" + "\n" +
-            "Copyright (C) 2015-2018 PIVX Developers" + "\n" +
-            "Copyright (C) 2017-2018 The Particl Developers" + "\n" +
-            "Copyright (C) 2018 The Veil Developers" + "\n" +
+            "Copyright (C) 2009-2019 The Bitcoin Core developers" + "\n"
+            "Copyright (C) 2015-2019 PIVX Developers" + "\n" +
+            "Copyright (C) 2017-2019 The Particl Developers" + "\n" +
+            "Copyright (C) 2018-2019 Veil Developers" + "\n" +
            "\n" +
            strprintf(_("Please contribute if you find %s useful. "
                        "Visit %s for further information about the software."),

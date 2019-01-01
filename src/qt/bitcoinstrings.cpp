@@ -9,8 +9,8 @@
 #define UNUSED
 #endif
 static const char UNUSED *bitcoin_strings[] = {
-QT_TRANSLATE_NOOP("veil-core", "Veil Core"),
-QT_TRANSLATE_NOOP("veil-core", "The %s developers"),
+QT_TRANSLATE_NOOP("veil-core", "Veil"),
+QT_TRANSLATE_NOOP("veil-core", "%s developers"),
 QT_TRANSLATE_NOOP("veil-core", ""
 "-maxtxfee is set very high! Fees this large could be paid on a single "
 "transaction."),
