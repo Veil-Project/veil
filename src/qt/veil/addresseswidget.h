@@ -50,6 +50,7 @@ private Q_SLOTS:
     void onMyAddressClicked();
     void onContactsClicked();
     void onNewAddressClicked();
+    void onNewMinerAddressClicked();
     void onButtonChanged();
     void handleAddressClicked(const QModelIndex &index);
     virtual void showEvent(QShowEvent *event) override;
@@ -75,6 +76,7 @@ private:
     void reloadTab(bool _isOnMyAddresses);
     void showList(bool show);
 
+    void showHideMineAddressBtn(bool show);
 };
 
 #endif // ADDRESSESWIDGET_H
