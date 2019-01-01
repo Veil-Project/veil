@@ -12,7 +12,7 @@
 # University of Illinois/NCSA
 # Open Source License
 #
-# Copyright (c) 2007-2015 University of Illinois at Urbana-Champaign.
+# Copyright (c) 2007-2019 University of Illinois at Urbana-Champaign.
 # All rights reserved.
 #
 # Developed by:
