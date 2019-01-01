@@ -70,8 +70,10 @@ void AddressReceive::generateNewAddress(){
     CStealthAddress address;
     if (!walletModel->wallet().getNewStealthAddress(address))
         return;
+
     bool fBech32 = true;
     std::string strAddress = address.ToString(fBech32);
+    dest = DecodeDestination(strAddress);
     qAddress =  QString::fromStdString(strAddress);
 
     // set address
