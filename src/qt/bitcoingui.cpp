@@ -1269,8 +1269,12 @@ bool BitcoinGUI::encryptWallet(bool encrypt){
     if (!walletView) {
         return false;
     }
-    return walletView->encryptWallet(encrypt);
-
+    bool res = walletView->encryptWallet(encrypt);
+    if(res){
+        // Update views
+        updateWalletStatus();
+    }
+    return res;
 }
 
 void BitcoinGUI::updateWalletStatus()
@@ -1285,6 +1289,9 @@ void BitcoinGUI::updateWalletStatus()
     WalletModel * const walletModel = walletView->getWalletModel();
     setEncryptionStatus(walletModel->getEncryptionStatus());
     setHDStatus(walletModel->wallet().hdEnabled());
+    balance->refreshWalletStatus();
+    walletView->refreshWalletStatus();
+
 }
 #endif // ENABLE_WALLET
 

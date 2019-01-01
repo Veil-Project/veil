@@ -44,6 +44,8 @@ public:
     void setWalletModel(WalletModel *model);
     void setModel(AddressTableModel *model);
 
+    void refreshWalletStatus();
+
 private Q_SLOTS:
     void onMyAddressClicked();
     void onContactsClicked();

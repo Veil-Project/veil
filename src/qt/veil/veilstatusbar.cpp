@@ -83,6 +83,7 @@ void VeilStatusBar::onBtnLockClicked()
             if(!unlockPasswordDialog)
                 unlockPasswordDialog = new UnlockPasswordDialog(/*fUnlockForStakingOnly*/false, walletModel, mainWindow);
             if (openDialogWithOpaqueBackground(unlockPasswordDialog, mainWindow, 4)) {
+                mainWindow->updateWalletStatus();
                 openToastDialog("Wallet unlocked", mainWindow);
             } else {
                 openToastDialog("Wallet failed to unlock", mainWindow);

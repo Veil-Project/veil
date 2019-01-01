@@ -83,7 +83,7 @@ void SettingsWidget::onCheckStakingClicked(bool res) {
     try {
         if(!res){
             if(walletModel->getEncryptionStatus() == WalletModel::Unencrypted){
-                if (mainWindow->encryptWallet(true)){
+                if (mainWindow->getGUI()->encryptWallet(true)){
                     openToastDialog("Wallet encrypted", mainWindow->getGUI());
                 }else{
                     openToastDialog("Wallet not encrypted", mainWindow->getGUI());

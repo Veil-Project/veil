@@ -371,3 +371,8 @@ void WalletView::requestedSyncWarningInfo()
 {
     Q_EMIT outOfSyncWarningClicked();
 }
+
+void WalletView::refreshWalletStatus() {
+    this->addressesWidget->refreshWalletStatus();
+    this->receiveWidget->refreshWalletStatus();
+}

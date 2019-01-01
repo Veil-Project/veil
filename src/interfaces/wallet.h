@@ -128,6 +128,7 @@ public:
     //! Get wallet address list.
     virtual std::vector<WalletAddress> getAddresses() = 0;
     virtual std::vector<WalletAddress> getAddresses(bool IsMineAddresses) = 0;
+    virtual std::vector<WalletAddress> getStealthAddresses(bool IsMineAddresses) = 0;
 
     //! Add scripts to key store so old so software versions opening the wallet
     //! database can detect payments to newer address types.
