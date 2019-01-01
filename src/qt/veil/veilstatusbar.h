@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <miner.h>
+#include "unlockpassworddialog.h"
 
 class BitcoinGUI;
 class WalletModel;
@@ -35,6 +36,7 @@ private:
     Ui::VeilStatusBar *ui;
     BitcoinGUI* mainWindow;
     WalletModel *walletModel;
+    UnlockPasswordDialog *unlockPasswordDialog = nullptr;
 
     bool preparingFlag = false;
 };
