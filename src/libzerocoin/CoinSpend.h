@@ -46,8 +46,8 @@ public:
     template <typename Stream>
     CoinSpend(const ZerocoinParams* params, Stream& strm) :
         accumulatorPoK(&params->accumulatorParams),
-        commitmentPoK(&params->serialNumberSoKCommitmentGroup, &params->accumulatorParams.accumulatorPoKCommitmentGroup),
-        smallSoK(params)
+        smallSoK(params),
+        commitmentPoK(&params->serialNumberSoKCommitmentGroup, &params->accumulatorParams.accumulatorPoKCommitmentGroup)
     {
         strm >> *this;
     }
