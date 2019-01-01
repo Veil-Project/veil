@@ -44,7 +44,7 @@ Exchanges, merchants, and other services may want to avoid the Zerocoin automint
 “To change to Exchange or Service mode, follow these instructions:
 
 1. Go to Settings&gt;Open Configuration File
-2. Enter the following as a new line in the veil.config file: exchange-or-service=1
+2. Enter the following as a new line in the veil.config file: exchangesandservicesmode=1
 3. Save the file and restart the wallet”					</string>
      </property>
      <property name="alignment">
