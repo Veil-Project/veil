@@ -18,7 +18,7 @@ class AddressReceive : public QDialog
     Q_OBJECT
 
 public:
-    explicit AddressReceive(QWidget *parent = nullptr, WalletModel* _walletModel = nullptr);
+    explicit AddressReceive(QWidget *parent = nullptr, WalletModel* _walletModel = nullptr, bool isMinerAddress = false);
     ~AddressReceive();
 private Q_SLOTS:
     void onEscapeClicked();
@@ -32,7 +32,7 @@ private:
     QString qAddress;
     CTxDestination dest;
 
-    void generateNewAddress();
+    void generateNewAddress(bool isMinerAddress);
 };
 
 #endif // ADDRESSRECEIVE_H
