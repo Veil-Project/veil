@@ -206,7 +206,7 @@ QVariant AddressTableModel::data(const QModelIndex &index, int role) const
                 return rec->label;
             }
         case Address:
-            return rec->address;
+            return rec->address.left(10) + "..." + rec->address.right(10);
         }
     }
     else if (role == Qt::FontRole)
@@ -452,4 +452,8 @@ OutputType AddressTableModel::GetDefaultAddressType() const { return walletModel
 void AddressTableModel::emitDataChanged(int idx)
 {
     Q_EMIT dataChanged(index(idx, 0, QModelIndex()), index(idx, columns.length()-1, QModelIndex()));
+}
+
+void AddressTableModel::refresh() {
+    priv->refreshAddressTable(walletModel->wallet());
 }

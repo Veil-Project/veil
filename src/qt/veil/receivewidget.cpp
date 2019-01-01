@@ -61,34 +61,41 @@ ReceiveWidget::ReceiveWidget(QWidget *parent, WalletView* walletView) :
     ui->btnCreate->setIcon(ButtonIconCreate);
     ui->btnCreate->setIconSize(imgCreate.rect().size());
 
+    ui->labelAddress->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+
     connect(ui->btnCopy, SIGNAL(clicked()), this, SLOT(on_btnCopyAddress_clicked()));
     connect(ui->btnCreate, SIGNAL(clicked()), this, SLOT(generateNewAddressClicked()));
 
 }
 
 void ReceiveWidget::on_btnCopyAddress_clicked() {
-    GUIUtil::setClipboard(qAddress);
-    openToastDialog("Address copied", mainWindow->getGUI());
+    if(!qAddress.isEmpty()) {
+        GUIUtil::setClipboard(qAddress);
+        openToastDialog("Address copied", mainWindow->getGUI());
+    }else
+        openToastDialog("Wallet Encrypted, please unlock it first", mainWindow->getGUI());
 }
 
 void ReceiveWidget::generateNewAddressClicked(){
-    generateNewAddress();
-    openToastDialog("Address generated", mainWindow->getGUI());
+    if(generateNewAddress()) openToastDialog("Address generated", mainWindow->getGUI());
+    else openToastDialog("Wallet Encrypted, please unlock it first", mainWindow->getGUI());
 }
 
-void ReceiveWidget::generateNewAddress(){
+bool ReceiveWidget::generateNewAddress(){
     // Address
     interfaces::Wallet& wallet = walletModel->wallet();
     // Generate a new address to associate with given label
     CStealthAddress address;
-    if (!walletModel->wallet().getNewStealthAddress(address))
-        return;
+    if (!wallet.getNewStealthAddress(address)) {
+        openToastDialog("Wallet Encrypted, please unlock it first", mainWindow->getGUI());
+        return false;
+    }
     bool fBech32 = true;
     std::string strAddress = address.ToString(fBech32);
     qAddress =  QString::fromStdString(strAddress);
 
     // set address
-    ui->labelAddress->setText(qAddress);
+    ui->labelAddress->setText(qAddress.left(16) + "..." + qAddress.right(16));
 
     SendCoinsRecipient info;
     info.address = qAddress;
@@ -108,7 +115,7 @@ void ReceiveWidget::generateNewAddress(){
             if (!code)
             {
                 ui->labelQr->setText(tr("Error encoding URI into QR Code."));
-                return;
+                return false;
             }
             QImage qrImage = QImage(code->width + 8, code->width + 8, QImage::Format_RGB32);
             qrImage.fill(0xffffff);
@@ -146,6 +153,8 @@ void ReceiveWidget::generateNewAddress(){
         }
     }
 #endif
+
+    return true;
 }
 
 void ReceiveWidget::setWalletModel(WalletModel *model){
@@ -182,4 +191,10 @@ void ReceiveWidget::hideEvent(QHideEvent *event){
 ReceiveWidget::~ReceiveWidget()
 {
     delete ui;
+}
+
+void ReceiveWidget::refreshWalletStatus() {
+    // Label Address
+    // TODO: Use latest address instead of generate one every time.
+    generateNewAddress();
 }

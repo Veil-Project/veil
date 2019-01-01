@@ -28,6 +28,7 @@ public:
 
     void setClientModel(ClientModel *clientModel);
     void setWalletModel(WalletModel *walletModel);
+    void refreshWalletStatus();
 
 public Q_SLOTS:
     void setBalance(const interfaces::WalletBalances& balances);
@@ -44,6 +45,8 @@ private:
 
     CPubKey newKey;
     QString qAddress;
+
+    bool isWalletLocked = false;
 
     TooltipBalance *tooltip;
 };

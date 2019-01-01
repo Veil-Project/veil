@@ -44,18 +44,6 @@ Balance::Balance(QWidget *parent, BitcoinGUI* gui) :
 //    ui->copyAddress->setIcon(ButtonIcon);
 //    ui->copyAddress->setIconSize(QSize(20, 20));
 
-//  Load address qr..
-    QPixmap qrImg(ui->labelQr->width(),
-                  ui->labelQr->height()
-                  );
-    qrImg.load(":/icons/qr");
-    ui->labelQr->setPixmap(
-                qrImg.scaled(
-                    150,
-                    150,
-                    Qt::KeepAspectRatio)
-                );
-    //ui->labelAddress->setStyleSheet("font-size:9px;");
     connect(ui->btnBalance, SIGNAL(clicked()), this, SLOT(onBtnBalanceClicked()));
     connect(ui->copyAddress, SIGNAL(clicked()), this, SLOT(on_btnCopyAddress_clicked()));
 
@@ -103,22 +91,87 @@ void Balance::setWalletModel(WalletModel *model){
     // update the display unit, to not use the default ("VEIL")
     updateDisplayUnit();
 
-    // Generate a new address to associate with given label
-    CStealthAddress address;
-    if (!walletModel->wallet().getNewStealthAddress(address))
-        return;
-    bool fBech32 = true;
-    std::string strAddress = address.ToString(fBech32);
+    refreshWalletStatus();
+}
 
-    qAddress =  QString::fromStdString(strAddress);
+void Balance::setBalance(const interfaces::WalletBalances& balances){
+    int unit = walletModel->getOptionsModel()->getDisplayUnit();
+    m_balances = balances;
+    // TODO: Change this balance calculation
+    ui->labelBalance->setText(BitcoinUnits::formatWithUnit(unit, balances.total_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelUnconfirmed->setText(BitcoinUnits::formatWithUnit(unit, balances.total_unconfirmed_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelImmature->setText(BitcoinUnits::formatWithUnit(unit, balances.total_immature_balance, false, BitcoinUnits::separatorAlways));
+    //ui->labelTotal->setText(BitcoinUnits::formatWithUnit(unit, balances.balance + balances.unconfirmed_balance + balances.immature_balance, false, BitcoinUnits::separatorAlways));
+
+    // only show immature (newly mined) balance if it's non-zero, so as not to complicate things
+    // for the non-mining users
+    //bool showImmature = balances.total_immature_balance != 0;
+    //bool showWatchOnlyImmature = balances.immature_watch_only_balance != 0;
+
+    // for symmetry reasons also show immature label when the watch-only one is shown
+    //ui->labelImmature->setVisible(showImmature || showWatchOnlyImmature);
+    //ui->labelImmatureText->setVisible(showImmature || showWatchOnlyImmature);
+}
+
+
+void Balance::updateDisplayUnit()
+{
+    if(walletModel && walletModel->getOptionsModel())
+    {
+        if (m_balances.total_balance != -1) {
+            setBalance(m_balances);
+        }
+    }
+}
+
+void Balance::refreshWalletStatus() {
+    // Check wallet status
+    interfaces::Wallet& wallet = walletModel->wallet();
+    bool isLocked = walletModel->getEncryptionStatus() == WalletModel::Locked;
+    std::string strAddress;
+    if(isLocked) {
+        std::vector<interfaces::WalletAddress> addresses = wallet.getStealthAddresses(true);
+        if(addresses.empty()){
+            ui->labelQr->setText("");
+            ui->copyAddress->setVisible(false);
+            ui->labelReceive->setText("No Stealth Addresses");
+            ui->labelReceive->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+            ui->labelAddress->setText("");
+            return;
+        }
+        interfaces::WalletAddress address = addresses[0];
+        if (address.dest.type() == typeid(CStealthAddress)){
+            //CStealthAddress& castedAddress = dynamic_cast<CStealthAddress&>(address.dest);
+            bool fBech32 = true;
+            strAddress = EncodeDestination(address.dest,true);
+        }
+    }else {
+        ui->copyAddress->setVisible(true);
+        ui->labelReceive->setAlignment(Qt::AlignLeft);
+        ui->labelReceive->setText("Receiving address");
+        // Generate a new address to associate with given label
+        // TODO: Use only one stealth address here.
+        CStealthAddress address;
+        if (!walletModel->wallet().getNewStealthAddress(address)) {
+            ui->labelQr->setText("");
+            ui->copyAddress->setVisible(false);
+            ui->labelReceive->setText("Wallet Locked");
+            ui->labelReceive->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+            ui->labelAddress->setText("");
+            return;
+        }
+        bool fBech32 = true;
+        strAddress = address.ToString(fBech32);
+        wallet.setAddressBook(DecodeDestination(strAddress), "stealth", "stealth_receive");
+    }
+
+    qAddress = QString::fromStdString(strAddress);
 
     // set address
-    ui->labelAddress->setText(qAddress);
+    ui->labelAddress->setText(qAddress.left(12) + "..." + qAddress.right(12));
 
     SendCoinsRecipient info;
     info.address = qAddress;
-
-    // TODO: QR.. add transparent background..
 
     QString uri = GUIUtil::formatBitcoinURI(info);
     ui->labelQr->setText("No address");
@@ -171,34 +224,4 @@ void Balance::setWalletModel(WalletModel *model){
         }
     }
 #endif
-}
-
-void Balance::setBalance(const interfaces::WalletBalances& balances){
-    int unit = walletModel->getOptionsModel()->getDisplayUnit();
-    m_balances = balances;
-    // TODO: Change this balance calculation
-    ui->labelBalance->setText(BitcoinUnits::formatWithUnit(unit, balances.total_balance, false, BitcoinUnits::separatorAlways));
-    ui->labelUnconfirmed->setText(BitcoinUnits::formatWithUnit(unit, balances.total_unconfirmed_balance, false, BitcoinUnits::separatorAlways));
-    ui->labelImmature->setText(BitcoinUnits::formatWithUnit(unit, balances.total_immature_balance, false, BitcoinUnits::separatorAlways));
-    //ui->labelTotal->setText(BitcoinUnits::formatWithUnit(unit, balances.balance + balances.unconfirmed_balance + balances.immature_balance, false, BitcoinUnits::separatorAlways));
-
-    // only show immature (newly mined) balance if it's non-zero, so as not to complicate things
-    // for the non-mining users
-    bool showImmature = balances.total_immature_balance != 0;
-    //bool showWatchOnlyImmature = balances.immature_watch_only_balance != 0;
-
-    // for symmetry reasons also show immature label when the watch-only one is shown
-    //ui->labelImmature->setVisible(showImmature || showWatchOnlyImmature);
-    //ui->labelImmatureText->setVisible(showImmature || showWatchOnlyImmature);
-}
-
-
-void Balance::updateDisplayUnit()
-{
-    if(walletModel && walletModel->getOptionsModel())
-    {
-        if (m_balances.total_balance != -1) {
-            setBalance(m_balances);
-        }
-    }
 }

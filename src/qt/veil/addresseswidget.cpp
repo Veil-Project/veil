@@ -257,6 +257,7 @@ void AddressesWidget::showEvent(QShowEvent *event){
     a->setEndValue(1);
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    reloadTab(isOnMyAddresses);
 }
 
 void AddressesWidget::hideEvent(QHideEvent *event){
@@ -386,4 +387,8 @@ void AddressesWidget::showList(bool show){
 
 AddressesWidget::~AddressesWidget() {
     delete ui;
+}
+
+void AddressesWidget::refreshWalletStatus() {
+    model->refresh();
 }
