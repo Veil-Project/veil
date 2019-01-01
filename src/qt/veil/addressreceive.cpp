@@ -75,7 +75,7 @@ void AddressReceive::generateNewAddress(){
     qAddress =  QString::fromStdString(strAddress);
 
     // set address
-    ui->labelAddress->setText(qAddress);
+    ui->labelAddress->setText(qAddress.left(12) + "..." + qAddress.right(12));
 
     SendCoinsRecipient info;
     info.address = qAddress;

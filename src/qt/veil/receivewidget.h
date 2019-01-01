@@ -25,6 +25,8 @@ public:
     void setWalletModel(WalletModel *model);
 
 
+    void refreshWalletStatus();
+
 public Q_SLOTS:
     void on_btnCopyAddress_clicked();
     void generateNewAddressClicked();
@@ -38,7 +40,7 @@ private:
     CPubKey newKey;
     QString qAddress;
 
-    void generateNewAddress();
+    bool generateNewAddress();
 };
 
 #endif // RECEIVEWIDGET_H

@@ -82,6 +82,7 @@ public:
 
     OutputType GetDefaultAddressType() const;
 
+    void refresh();
 private:
     WalletModel* const walletModel;
     AddressTablePriv *priv = nullptr;

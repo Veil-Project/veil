@@ -65,6 +65,8 @@ public:
 
     void showOutOfSyncWarning(bool fShow);
 
+    void refreshWalletStatus();
+
     BitcoinGUI* getGUI(){ return gui;}
 
     void showHide(bool show)
