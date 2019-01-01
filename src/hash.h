@@ -286,15 +286,15 @@ public:
     // invalidates the object
     std::vector<unsigned char> GetHash()
     {
-        unsigned char buf_l[ctx.OUTPUT_SIZE];
-        unsigned char buf_r[ctx.OUTPUT_SIZE];
-        std::vector<unsigned char> buf(2*ctx.OUTPUT_SIZE);
-        ctx.Finalize(buf_l, buf_r);
-        for(unsigned int i=0; i<ctx.OUTPUT_SIZE; i++)
-            buf[i] = buf_l[i];
-        for(unsigned int i=ctx.OUTPUT_SIZE; i<2*ctx.OUTPUT_SIZE; i++)
-            buf[i] = buf_r[i-ctx.OUTPUT_SIZE];
-        return buf;
+      std::unique_ptr<unsigned char []> buf_l(new unsigned char[ctx.OUTPUT_SIZE]);
+      std::unique_ptr<unsigned char []> buf_r(new unsigned char[ctx.OUTPUT_SIZE]);
+      std::vector<unsigned char> buf(2*ctx.OUTPUT_SIZE);
+      ctx.Finalize(buf_l.get(), buf_r.get());
+      for(unsigned int i=0; i<ctx.OUTPUT_SIZE; i++)
+        buf[i] = buf_l[i];
+      for(unsigned int i=ctx.OUTPUT_SIZE; i<2*ctx.OUTPUT_SIZE; i++)
+        buf[i] = buf_r[i-ctx.OUTPUT_SIZE];
+      return buf;
     }
 
     template <typename T>
