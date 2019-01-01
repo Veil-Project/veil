@@ -211,7 +211,6 @@ isminetype IsMine(const CKeyStore& keystore, const CTxDestination& dest)
 {
     if (dest.type() == typeid(CStealthAddress)) {
         const CStealthAddress &sxAddr = boost::get<CStealthAddress>(dest);
-        LogPrintf("%s: 214 scan secret size=%d\n", __func__, sxAddr.scan_secret.size());
         return sxAddr.scan_secret.size() == EC_SECRET_SIZE ? ISMINE_SPENDABLE : ISMINE_NO; // TODO: watch only?
     }
 

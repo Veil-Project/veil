@@ -799,6 +799,7 @@ void static ThreadBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript)
 
 void ThreadStakeMiner()
 {
+    LogPrintf("ThreadStakeMiner() start\n");
     while (true) {
         boost::this_thread::interruption_point();
         if (ShutdownRequested())
