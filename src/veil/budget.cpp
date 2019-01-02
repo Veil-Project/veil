@@ -7,7 +7,7 @@ namespace veil {
 
 bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidationState& state)
 {
-    if (nHeight % BudgetParams::nBlocksPerPeriod && nHeight != 1)
+    if (nHeight % BudgetParams::nBlocksPerPeriod)
         return true;
 
     CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
