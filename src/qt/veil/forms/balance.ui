@@ -107,7 +107,7 @@ border:none;</string>
            <string/>
           </property>
           <property name="icon">
-           <iconset>
+           <iconset resource="../../veil.qrc">
             <normaloff>:/icons/simbol-png</normaloff>:/icons/simbol-png</iconset>
           </property>
           <property name="iconSize">
@@ -144,7 +144,7 @@ border:none;</string>
              <string>Total Balance</string>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../../veil.qrc">
               <normaloff>:/icons/ic-information-png</normaloff>:/icons/ic-information-png</iconset>
             </property>
            </widget>
@@ -362,7 +362,7 @@ color: #004377;</string>
                   <string/>
                  </property>
                  <property name="icon">
-                  <iconset>
+                  <iconset resource="../../veil.qrc">
                    <normaloff>:/icons/ic-copy-blue-png</normaloff>:/icons/ic-copy-blue-png</iconset>
                  </property>
                  <property name="iconSize">
@@ -389,7 +389,7 @@ color: #004377;</string>
 padding-left:5px;
 padding-right:5px;
 padding-bottom:3px;
-font-size:10px;
+font-size:11px;
 color:#707070;</string>
               </property>
               <property name="midLineWidth">
@@ -420,6 +420,8 @@ color:#707070;</string>
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../veil.qrc"/>
+ </resources>
  <connections/>
 </ui>
