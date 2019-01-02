@@ -1537,11 +1537,11 @@ bool CWallet::IsMine(const CTransaction& tx) const
         auto type = pOut->GetType();
         if (type == OUTPUT_STANDARD || type == OUTPUT_CT) {
             //Standard output and output ct both use normal pubkey
-            return ::IsMine(*this, *pOut->GetPScriptPubKey());
+            if (::IsMine(*this, *pOut->GetPScriptPubKey()))
+                return true;
         } else if (type == OUTPUT_RINGCT || type == OUTPUT_DATA ) {
-            return pAnonWalletMain->IsMine(pOut.get());
-        } else {
-            return ISMINE_NO;
+            if (pAnonWalletMain->IsMine(pOut.get()))
+                return true;
         }
     }
 
