@@ -3006,7 +3006,6 @@ CAmount CWallet::GetImmatureZerocoinBalance() const
     return nBalance;
 }
 
-// TODO: verify this method is implemented correctly
 bool CWallet::MintableCoins()
 {
     LOCK(cs_main);
