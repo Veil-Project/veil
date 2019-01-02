@@ -129,16 +129,8 @@ void Balance::refreshWalletStatus() {
     interfaces::Wallet& wallet = walletModel->wallet();
     bool isLocked = walletModel->getEncryptionStatus() == WalletModel::Locked;
     std::string strAddress;
-    if(isLocked) {
-        std::vector<interfaces::WalletAddress> addresses = wallet.getStealthAddresses(true);
-        if(addresses.empty()){
-            ui->labelQr->setText("");
-            ui->copyAddress->setVisible(false);
-            ui->labelReceive->setText("No Stealth Addresses");
-            ui->labelReceive->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-            ui->labelAddress->setText("");
-            return;
-        }
+    std::vector<interfaces::WalletAddress> addresses = wallet.getLabelAddress("stealth");
+    if(isLocked || !addresses.empty()) {
         interfaces::WalletAddress address = addresses[0];
         if (address.dest.type() == typeid(CStealthAddress)){
             //CStealthAddress& castedAddress = dynamic_cast<CStealthAddress&>(address.dest);

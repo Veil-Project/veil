@@ -325,6 +325,19 @@ public:
         }
         return true;
     }
+
+    std::vector<WalletAddress> getLabelAddress(const std::string label) override{
+        LOCK(m_wallet.cs_wallet);
+        std::vector<WalletAddress> result;
+        for(const CTxDestination ctx : m_wallet.GetLabelAddresses(label)){
+            std::string name;
+            std::string purpose;
+            this->getAddress(ctx,&name, nullptr,&purpose);
+            result.emplace_back(ctx, IsMine(m_wallet, ctx), name, purpose);
+        }
+        return result;
+    }
+
     std::vector<WalletAddress> getAddresses() override
     {
         LOCK(m_wallet.cs_wallet);

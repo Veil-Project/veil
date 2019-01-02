@@ -84,17 +84,30 @@ void ReceiveWidget::generateNewAddressClicked(){
 bool ReceiveWidget::generateNewAddress(){
     // Address
     interfaces::Wallet& wallet = walletModel->wallet();
-    // Generate a new address to associate with given label
-    CStealthAddress address;
-    if (!wallet.getNewStealthAddress(address)) {
-        openToastDialog("Wallet Encrypted, please unlock it first", mainWindow->getGUI());
-        return false;
+
+    bool isLocked = walletModel->getEncryptionStatus() == WalletModel::Locked;
+    std::string strAddress;
+    std::vector<interfaces::WalletAddress> addresses = wallet.getLabelAddress("stealth");
+    if(isLocked || !addresses.empty()) {
+        interfaces::WalletAddress address = addresses[0];
+        if (address.dest.type() == typeid(CStealthAddress)){
+            bool fBech32 = true;
+            strAddress = EncodeDestination(address.dest,true);
+        }
+    }else {
+        // Generate a new address to associate with given label
+        CStealthAddress address;
+        if (!wallet.getNewStealthAddress(address)) {
+            openToastDialog("Wallet Encrypted, please unlock it first", mainWindow->getGUI());
+            return false;
+        }
+        bool fBech32 = true;
+        strAddress = address.ToString(fBech32);
+        // Store it
+        wallet.setAddressBook(DecodeDestination(strAddress), "", "receive", true);
     }
-    bool fBech32 = true;
-    std::string strAddress = address.ToString(fBech32);
+
     qAddress =  QString::fromStdString(strAddress);
-    // Store it
-    wallet.setAddressBook(DecodeDestination(strAddress), "", "receive");
 
     // set address
     ui->labelAddress->setText(qAddress.left(16) + "..." + qAddress.right(16));

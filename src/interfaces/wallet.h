@@ -132,6 +132,7 @@ public:
         isminetype* is_mine,
         std::string* purpose) = 0;
 
+    virtual std::vector<WalletAddress> getLabelAddress(const std::string label) = 0;
     //! Get wallet address list.
     virtual std::vector<WalletAddress> getAddresses() = 0;
     virtual std::vector<WalletAddress> getAddresses(bool IsMineAddresses) = 0;
