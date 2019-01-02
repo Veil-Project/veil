@@ -118,15 +118,27 @@ void WalletModel::updateWatchOnlyFlag(bool fHaveWatchonly)
 
 bool WalletModel::validateAddress(const QString &address)
 {
-    return IsValidDestinationString(address.toStdString());
+    std::string strAddress = address.toStdString();
+    // Do not permit sending to basecoin addresses from the GUI
+    CBitcoinAddress veilAddress(strAddress);
+    return veilAddress.IsValidStealthAddress() && IsValidDestinationString(strAddress);
 }
 
-WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransaction &transaction, const CCoinControl& coinControl)
+enum WalletModelSpendType
+{
+    ZCSPEND,
+    CTSPEND,
+    RINGCTSPEND,
+    BASECOINSPEND
+};
+
+WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransaction &transaction, const
+CCoinControl& coinControl, OutputTypes inputType)
 {
     CAmount total = 0;
     bool fSubtractFeeFromAmount = false;
     QList<SendCoinsRecipient> recipients = transaction.getRecipients();
-    std::vector<CRecipient> vecSend;
+    std::vector<CTempRecipient> vecSend;
 
     if(recipients.empty())
     {
@@ -154,7 +166,8 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
                 const unsigned char* scriptStr = (const unsigned char*)out.script().data();
                 CScript scriptPubKey(scriptStr, scriptStr+out.script().size());
                 CAmount nAmount = out.amount();
-                CRecipient recipient = {scriptPubKey, nAmount, rcp.fSubtractFeeFromAmount};
+                CTempRecipient recipient(nAmount, rcp.fSubtractFeeFromAmount, scriptPubKey);
+                recipient.address = CBitcoinAddress(rcp.address.toStdString()).Get();
                 vecSend.push_back(recipient);
             }
             if (subtotal <= 0)
@@ -177,7 +190,8 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             ++nAddresses;
 
             CScript scriptPubKey = GetScriptForDestination(DecodeDestination(rcp.address.toStdString()));
-            CRecipient recipient = {scriptPubKey, rcp.amount, rcp.fSubtractFeeFromAmount};
+            CTempRecipient recipient(rcp.amount, rcp.fSubtractFeeFromAmount, scriptPubKey);
+            recipient.address = CBitcoinAddress(rcp.address.toStdString()).Get();
             vecSend.push_back(recipient);
 
             total += rcp.amount;
@@ -188,10 +202,55 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
         return DuplicateAddress;
     }
 
-    CAmount nBalance = m_wallet->getAvailableBalance(coinControl);
+    auto& newTx = transaction.getWtx();
+    WalletModelSpendType spendType;
+    CZerocoinSpendReceipt receipt;
+    CAmount nBalance = 0;
+    OutputTypes outputType;
+    if (inputType == OUTPUT_STANDARD) {
+        spendType = WalletModelSpendType::BASECOINSPEND;
+        outputType = OUTPUT_CT;
+        nBalance = m_wallet->getAvailableBalance(coinControl);
+    } else {
+        auto balances = m_wallet->getBalances();
+        if (balances.zerocoin_balance > total) {
+            /**Spend Zerocoins first**/
+            spendType = WalletModelSpendType::ZCSPEND;
+            //todo, this does not support multi recipient spend yet
+
+            std::vector<CZerocoinMint> vMintsSelected;
+            newTx = m_wallet->spendZerocoin(total, /*nSecurityLevel*/100, receipt, vMintsSelected, /*fMintChange*/true,
+                    /*fMinimizeChange*/false, &vecSend[0].address);
+        } else {
+            /** If not enough zerocoin balance, spend ringct **/
+            spendType = WalletModelSpendType::RINGCTSPEND;
+            outputType = OUTPUT_RINGCT;
+            inputType = OUTPUT_RINGCT;
+            int nNetworkAnon = 0;
+            {
+                LOCK(cs_main);
+                nNetworkAnon = chainActive.Tip()->nAnonOutputs;
+            }
+            nBalance = m_wallet->getAvailableRingCTBalance(coinControl);
+            if (total > nBalance || nNetworkAnon < 50) {
+                /** If not enough ringct balance, spend CT **/
+                spendType = WalletModelSpendType::CTSPEND;
+                LogPrintf("%s: rctbalance=%s nanonin=%d\n", __func__, nBalance, nNetworkAnon);
+                nBalance = m_wallet->getAvailableCTBalance(coinControl);
+                inputType = OUTPUT_CT;
+            }
+        }
+    }
+
+    for (auto &recipient : vecSend) {
+        recipient.nType = outputType;
+    }
 
     if(total > nBalance)
     {
+        std::cout << "Balance: " << nBalance << std::endl;
+        std::cout << "Total: " << total << std::endl;
+        std::cout << "Type: " << inputType << std::endl;
         return AmountExceedsBalance;
     }
 
@@ -200,11 +259,13 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
         int nChangePosRet = -1;
         std::string strFailReason;
 
-        auto& newTx = transaction.getWtx();
-        newTx = m_wallet->createTransaction(vecSend, coinControl, true /* sign */, nChangePosRet, nFeeRequired, strFailReason);
-        transaction.setTransactionFee(nFeeRequired);
-        if (fSubtractFeeFromAmount && newTx)
-            transaction.reassignAmounts(nChangePosRet);
+        if (spendType != ZCSPEND) {
+            newTx = m_wallet->createTransaction(vecSend, coinControl, true /* sign */, nChangePosRet, nFeeRequired,
+                                                inputType, strFailReason);
+            transaction.setTransactionFee(nFeeRequired);
+            if (fSubtractFeeFromAmount && newTx)
+                transaction.reassignAmounts(nChangePosRet);
+        }
 
         if(!newTx)
         {

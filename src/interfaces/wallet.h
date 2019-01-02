@@ -31,9 +31,12 @@
 class CCoinControl;
 class CFeeRate;
 class CKey;
+class CTempRecipient;
 class CWallet;
 class CWalletTx;
 class CDeterministicMint;
+class CZerocoinSpendReceipt;
+class CZerocoinMint;
 
 enum class FeeReason;
 enum class OutputType;
@@ -110,6 +113,10 @@ public:
             const CCoinControl* coinControl
     ) = 0;
 
+    virtual std::unique_ptr<PendingWalletTx> spendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
+            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
+            CTxDestination* addressTo = NULL) = 0;
+
     //! Return whether wallet has watch only keys.
     virtual bool haveWatchOnly() = 0;
 
@@ -156,11 +163,12 @@ public:
     virtual void listLockedCoins(std::vector<COutPoint>& outputs) = 0;
 
     //! Create transaction.
-    virtual std::unique_ptr<PendingWalletTx> createTransaction(const std::vector<CRecipient>& recipients,
+    virtual std::unique_ptr<PendingWalletTx> createTransaction(std::vector<CTempRecipient>& recipients,
         const CCoinControl& coin_control,
         bool sign,
         int& change_pos,
         CAmount& fee,
+        OutputTypes inputType,
         std::string& fail_reason) = 0;
 
     //! Return whether transaction can be abandoned.
@@ -224,6 +232,11 @@ public:
 
     //! Get available balance.
     virtual CAmount getAvailableBalance(const CCoinControl& coin_control) = 0;
+    virtual CAmount getAvailableCTBalance(const CCoinControl& coin_control) { return 0; }
+    virtual CAmount getAvailableRingCTBalance(const CCoinControl& coin_control) { return 0; }
+
+    //! Create a WalletTx without all the data filled in yet.
+    virtual CWallet* getWalletPointer() { return nullptr; }
 
     //! Return whether transaction input belongs to wallet.
     virtual isminetype txinIsMine(const CTxIn& txin) = 0;

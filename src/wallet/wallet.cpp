@@ -3709,6 +3709,8 @@ bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
         wtxNew.fTimeReceivedIsTxTime = true;
         wtxNew.fFromMe = true;
 
+        if (!wtxNew.tx)
+            return error("%s: FIXME wallet transaction is not linked to a tx", __func__);
         LogPrintf("CommitTransaction:\n%s", wtxNew.tx->ToString()); /* Continued */
         {
             // Take key pair from key pool so it won't be used again
@@ -6043,7 +6045,7 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 if (fStealthOutput) {
                     CTempRecipient r;
                     if (address->type() == typeid(CStealthAddress))
-                        r.nType = OUTPUT_RINGCT;
+                        r.nType = OUTPUT_CT;
                     else
                         r.nType = OUTPUT_STANDARD;
                     r.SetAmount(nValue);
@@ -6133,10 +6135,8 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 std::string sError;
                 CCoinControl coinControl;
 
-                if (0 != pAnonWalletMain->AddAnonInputs(wtxNew, rtx, vecSend, false, Params().DefaultRingSize(), 32, nFeeRet, &coinControl, sError, true,
-                                       nValueSelected)) {
-                    return false;
-                }
+                if (0 != pAnonWalletMain->AddStandardInputs(wtxNew, rtx, vecSend, false, nFeeRet, &coinControl, sError, true, nValueSelected))
+                    return error("%s: AddStandardInputs failed: %s", __func__, sError);
 
                 pAnonWalletMain->AddOutputRecordMetaData(rtx, vecSend);
             }

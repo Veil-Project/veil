@@ -38,7 +38,12 @@ public:
 
     const CTransaction& get() override { return *m_tx; }
 
-    int64_t getVirtualSize() override { return GetVirtualTransactionSize(*m_tx); }
+    int64_t getVirtualSize() override
+    {
+        if (!m_tx)
+            return 0;
+        return GetVirtualTransactionSize(*m_tx);
+    }
 
     bool commit(WalletValueMap value_map,
         WalletOrderForm order_form,
@@ -46,6 +51,7 @@ public:
     {
         LOCK2(cs_main, m_wallet.cs_wallet);
         CValidationState state;
+
         if (!m_wallet.CommitTransaction(m_tx, std::move(value_map), std::move(order_form), m_key, g_connman.get(), state)) {
             reject_reason = state.GetRejectReason();
             return false;
@@ -272,6 +278,18 @@ public:
         return m_wallet.MintZerocoin(nValue, wtx ,  vDMints, fAllowBasecoin,coinControl);
     }
 
+    std::unique_ptr<PendingWalletTx> spendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
+                               std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
+                               CTxDestination* addressTo = NULL) override
+    {
+        auto pending = MakeUnique<PendingWalletTxImpl>(m_wallet);
+        if (!m_wallet.SpendZerocoin(nValue, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, addressTo))
+            return {};
+        auto vtx = receipt.GetTransactions();
+        pending->m_tx = vtx[0];
+        return pending;
+    }
+
     bool haveWatchOnly() override { return m_wallet.HaveWatchOnly(); };
     bool setAddressBook(const CTxDestination& dest, const std::string& name, const std::string& purpose) override
     {
@@ -373,19 +391,67 @@ public:
         LOCK2(cs_main, m_wallet.cs_wallet);
         return m_wallet.ListLockedCoins(outputs);
     }
-    std::unique_ptr<PendingWalletTx> createTransaction(const std::vector<CRecipient>& recipients,
+    std::unique_ptr<PendingWalletTx> createTransaction(std::vector<CTempRecipient>& recipients,
         const CCoinControl& coin_control,
         bool sign,
         int& change_pos,
         CAmount& fee,
+        OutputTypes inputType,
         std::string& fail_reason) override
     {
         LOCK2(cs_main, m_wallet.cs_wallet);
         auto pending = MakeUnique<PendingWalletTxImpl>(m_wallet);
-        if (!m_wallet.CreateTransaction(recipients, pending->m_tx, pending->m_key, fee, change_pos,
-                fail_reason, coin_control, sign)) {
+        size_t nRingSize = Params().DefaultRingSize();
+        size_t nInputsPerSig = 32;
+
+        CTransactionRef tx_new;
+        auto pwalletAnon = m_wallet.GetAnonWallet();
+
+        CWalletTx wtx(&m_wallet, tx_new);
+        CTransactionRecord rtx;
+
+        CAmount nFeeRet = 0;
+        bool fFailed = false;
+        bool fCheckFeeOnly = false;
+        switch (inputType) {
+            case OUTPUT_STANDARD:
+            {
+                if (0 !=
+                    pwalletAnon->AddStandardInputs(wtx, rtx, recipients, !fCheckFeeOnly, nFeeRet, &coin_control, fail_reason, false, 0))
+                    fFailed = true;
+                break;
+            }
+            case OUTPUT_CT:
+                if (0 != pwalletAnon->AddBlindedInputs(wtx, rtx, recipients, !fCheckFeeOnly, nFeeRet, &coin_control, fail_reason))
+                    fFailed = true;
+                break;
+            case OUTPUT_RINGCT:
+                if (0 != pwalletAnon->AddAnonInputs(wtx, rtx, recipients, !fCheckFeeOnly, nRingSize, nInputsPerSig, nFeeRet, &coin_control, fail_reason))
+                    fFailed = true;
+                break;
+            default:
+                fFailed = true;
+        }
+
+        if (fFailed) {
+            fail_reason = "Failed to add inputs";
             return {};
         }
+
+        CValidationState state;
+        CReserveKey reservekey(&m_wallet);
+
+        pending->m_tx = wtx.tx;
+//        if (!m_wallet.CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, reservekey, g_connman.get(), state)) {
+//            fail_reason = "Transaction commit failed";
+//        }
+
+        fee = nFeeRet;
+
+//        if (!m_wallet.CreateTransaction(recipients, pending->m_tx, pending->m_key, fee, change_pos,
+//                fail_reason, coin_control, sign)) {
+//            return {};
+//        }
         return std::move(pending);
     }
     bool transactionCanBeAbandoned(const uint256& txid) override { return m_wallet.TransactionCanBeAbandoned(txid); }
@@ -560,6 +626,24 @@ public:
     CAmount getAvailableBalance(const CCoinControl& coin_control) override
     {
         return m_wallet.GetAvailableBalance(&coin_control);
+    }
+    CAmount getAvailableCTBalance(const CCoinControl& coin_control) override
+    {
+        if (!m_wallet.GetAnonWallet())
+            return 0;
+        return m_wallet.GetAnonWallet()->GetAvailableBlindBalance(&coin_control);
+    }
+    CAmount getAvailableRingCTBalance(const CCoinControl& coin_control) override
+    {
+        if (!m_wallet.GetAnonWallet()) {
+            std::cout << "Couldn't get anon wallet" << std::endl;
+            return 0;
+        }
+        return m_wallet.GetAnonWallet()->GetAvailableAnonBalance(&coin_control);
+    }
+    CWallet* getWalletPointer() override
+    {
+        return m_shared_wallet.get();
     }
     isminetype txinIsMine(const CTxIn& txin) override
     {
