@@ -233,9 +233,9 @@ public:
     /** Update wallet after successful transaction */
     bool SaveRecord(const uint256& txid, const CTransactionRecord& rtx);
     int AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
-            CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs);
+            CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs, CAmount nInputValue);
     int AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
-            CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs = false);
+            CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs, CAmount nInputValue);
 
     int AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
             CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError);
@@ -285,6 +285,7 @@ public:
     int LoadStealthAddresses();
     bool AddStealthDestination(const CKeyID& idStealthAddress, const CKeyID& idStealthDestination);
     bool AddKeyToParent(const CKey& keySharedSecret);
+    bool RecordOwnedStealthDestination(const CKey& sShared, const CKeyID& idStealth, const CKeyID& destStealth);
     bool GetStealthLinked(const CKeyID &stealthDest, CStealthAddress &sx) const;
     bool GetStealthAddress(const CKeyID& idStealth, CStealthAddress& stealthAddress);
     bool ProcessLockedStealthOutputs();
@@ -297,6 +298,7 @@ public:
 
     bool ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr);
     bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);
+    void MarkOutputSpent(const COutPoint& outpoint, bool isSpent);
 
     int InsertTempTxn(const uint256 &txid, const CTransactionRecord *rtx) const;
 

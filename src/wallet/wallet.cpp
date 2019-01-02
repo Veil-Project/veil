@@ -6045,7 +6045,7 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 if (fStealthOutput) {
                     CTempRecipient r;
                     if (address->type() == typeid(CStealthAddress))
-                        r.nType = OUTPUT_RINGCT;
+                        r.nType = OUTPUT_CT;
                     else
                         r.nType = OUTPUT_STANDARD;
                     r.SetAmount(nValue);
@@ -6135,10 +6135,8 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 std::string sError;
                 CCoinControl coinControl;
 
-                if (0 != pAnonWalletMain->AddAnonInputs(wtxNew, rtx, vecSend, false, Params().DefaultRingSize(), 32, nFeeRet, &coinControl, sError, true,
-                                       nValueSelected)) {
-                    return false;
-                }
+                if (0 != pAnonWalletMain->AddStandardInputs(wtxNew, rtx, vecSend, false, nFeeRet, &coinControl, sError, true, nValueSelected))
+                    return error("%s: AddStandardInputs failed: %s", __func__, sError);
 
                 pAnonWalletMain->AddOutputRecordMetaData(rtx, vecSend);
             }

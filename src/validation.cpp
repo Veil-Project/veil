@@ -727,7 +727,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 continue;
             }
 
-
             //Veil: check for duplicate zerocoin spends
             if (txin.scriptSig.IsZerocoinSpend()) {
                 auto spend = TxInToZerocoinSpend(txin);
@@ -757,12 +756,13 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 if (pfMissingInputs) {
                     *pfMissingInputs = true;
                 }
+                LogPrintf("%s:%s Missing: %s txid %s\n", __func__, __LINE__, txin.prevout.ToString(), txin.prevout.hash.GetHex());
                 return false; // fMissingInputs and !state.IsInvalid() is used to detect this condition, don't set state.Invalid()
             }
         }
 
         if (!AllAnonOutputsUnknown(tx, state)) // set state.fHasAnonOutput
-            return false; // Already in the blockchain, containing block could have been received before loose tx
+            return error("%s: already spent anon outputs", __func__); // Already in the blockchain, containing block could have been received before loose tx
 
         // Bring the best block into scope
         view.GetBestBlock();

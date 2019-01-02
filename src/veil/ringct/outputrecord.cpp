@@ -47,6 +47,19 @@ bool COutputRecord::IsBasecoin() const
     return nType == OUTPUT_STANDARD;
 }
 
+void COutputRecord::MarkSpent(bool isSpent)
+{
+    if (isSpent)
+        nType |= ORF_SPENT;
+    else
+        nType &= ~ORF_SPENT;
+}
+
+bool COutputRecord::IsSpent() const
+{
+    return nType & ORF_SPENT;
+}
+
 CAmount COutputRecord::GetAmount() const
 {
     return nValue * ((nFlags & ORF_OWN_ANY) ? 1 : -1);
