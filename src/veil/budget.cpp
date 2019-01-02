@@ -151,10 +151,9 @@ BudgetParams::BudgetParams(std::string strNetwork)
 {
     // Addresses must decode to be different, otherwise CheckBudgetTransaction() will fail
     if (strNetwork == "main") {
-        // TODO: Plug in actual addresses to use
-        budgetAddress = "3QALyBrJYUmXPtN8qgh4eNUeQ6NEBehfPY";
-        founderAddress = "3KQmyaDqehG9fcyQ3o8uTUujLgX1zp9LDJ";
-        labAddress = "3BJPMh1UU9r3RVH4ihLDTYfJj8BSPe1iRc";
+        budgetAddress = "3MvD3sxedwPzGSdLnehegDfBGfxpdMevk2";
+        founderAddress = "bv1qnauaweq25552zjthwqxq0puhz2flqrmhzh24h4";
+        labAddress = "341PYScHCbq5Y3G3orR14V1pSmhb8qamP5";
     } else if (strNetwork == "test") {
         budgetAddress = "mxd3ciTteXZAna4q2as6z69mL6F7EncYjr";
         founderAddress = "mhurm1WXr8QXxMZXzJRH61TSjcaDviKfqY";
