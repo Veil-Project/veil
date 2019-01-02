@@ -35,6 +35,8 @@ class CTempRecipient;
 class CWallet;
 class CWalletTx;
 class CDeterministicMint;
+class CZerocoinSpendReceipt;
+class CZerocoinMint;
 
 enum class FeeReason;
 enum class OutputType;
@@ -110,6 +112,10 @@ public:
             bool fAllowBasecoin,
             const CCoinControl* coinControl
     ) = 0;
+
+    virtual std::unique_ptr<PendingWalletTx> spendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
+            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
+            CTxDestination* addressTo = NULL) = 0;
 
     //! Return whether wallet has watch only keys.
     virtual bool haveWatchOnly() = 0;

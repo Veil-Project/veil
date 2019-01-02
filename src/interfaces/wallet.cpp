@@ -278,6 +278,18 @@ public:
         return m_wallet.MintZerocoin(nValue, wtx ,  vDMints, fAllowBasecoin,coinControl);
     }
 
+    std::unique_ptr<PendingWalletTx> spendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
+                               std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
+                               CTxDestination* addressTo = NULL) override
+    {
+        auto pending = MakeUnique<PendingWalletTxImpl>(m_wallet);
+        if (!m_wallet.SpendZerocoin(nValue, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, addressTo))
+            return {};
+        auto vtx = receipt.GetTransactions();
+        pending->m_tx = vtx[0];
+        return pending;
+    }
+
     bool haveWatchOnly() override { return m_wallet.HaveWatchOnly(); };
     bool setAddressBook(const CTxDestination& dest, const std::string& name, const std::string& purpose) override
     {
@@ -405,7 +417,7 @@ public:
             case OUTPUT_STANDARD:
             {
                 if (0 !=
-                    pwalletAnon->AddStandardInputs(wtx, rtx, recipients, !fCheckFeeOnly, nFeeRet, &coin_control, fail_reason, false))
+                    pwalletAnon->AddStandardInputs(wtx, rtx, recipients, !fCheckFeeOnly, nFeeRet, &coin_control, fail_reason, false, 0))
                     fFailed = true;
                 break;
             }
@@ -429,7 +441,7 @@ public:
         CValidationState state;
         CReserveKey reservekey(&m_wallet);
 
-        pending->m_tx = tx_new;
+        pending->m_tx = wtx.tx;
 //        if (!m_wallet.CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, reservekey, g_connman.get(), state)) {
 //            fail_reason = "Transaction commit failed";
 //        }

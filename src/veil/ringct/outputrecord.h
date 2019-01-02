@@ -73,6 +73,8 @@ public:
     CAmount GetRawValue() const { return nValue; }
     bool GetDestination(CTxDestination& dest) const;
     std::string ToString() const;
+    void MarkSpent(bool isSpent);
+    bool IsSpent() const;
 
     ADD_SERIALIZE_METHODS;
     template <typename Stream, typename Operation>

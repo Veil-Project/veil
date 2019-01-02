@@ -191,10 +191,6 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
     }
 
-    if (typeOut == OUTPUT_RINGCT && Params().NetworkIDString() == "main") {
-        throw std::runtime_error("Disabled on mainnet.");
-    }
-
     CAmount nTotal = 0;
 
     std::vector<CTempRecipient> vecSend;
@@ -433,7 +429,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         case OUTPUT_STANDARD:
         {
             if (0 !=
-                pwalletAnon->AddStandardInputs(wtx, rtx, vecSend, !fCheckFeeOnly, nFeeRet, &coincontrol, sError, false))
+                pwalletAnon->AddStandardInputs(wtx, rtx, vecSend, !fCheckFeeOnly, nFeeRet, &coincontrol, sError, false, 0))
                 throw JSONRPCError(RPC_WALLET_ERROR, strprintf("AddStandardInputs failed: %s.", sError));
             break;
         }
@@ -1505,7 +1501,7 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
     {
         LOCK2(cs_main, wallet->cs_wallet);
         if (sInputType == "standard") {
-            if (0 != pAnonWallet->AddStandardInputs(wtx, rtx, vecSend, false, nFee, &coinControl, sError, false)) {
+            if (0 != pAnonWallet->AddStandardInputs(wtx, rtx, vecSend, false, nFee, &coinControl, sError, false, 0)) {
                 throw JSONRPCError(RPC_WALLET_ERROR, strprintf("AddStandardInputs failed: %s.", sError));
             }
         } else if (sInputType == "anon") {

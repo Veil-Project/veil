@@ -417,10 +417,6 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
             nAnonIn++;
     }
 
-    //Only allow ringct outputs if there are anon inputs
-    if (nRingCTOut && !nAnonIn)
-        return state.DoS(100, false, REJECT_INVALID, "bad-txns-ringct-output-no-anonin");
-
     if (tx.IsCoinBase()) {
         if (tx.vin[0].scriptSig.size() < 2 || tx.vin[0].scriptSig.size() > 100)
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-length");
@@ -506,9 +502,14 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         return state.DoS(100, false, REJECT_INVALID, "mixed-input-types");
 
     size_t nRingCTInputs = nRingCT;
+    size_t nCTInputs = nCt;
     // GetPlainValueOut adds to nStandard, nCt, nRingCT
     CAmount nPlainValueOut = tx.GetPlainValueOut(nBasecoin, nCt, nRingCT);
     state.fHasAnonOutput = nRingCT > nRingCTInputs;
+
+    //Only allow ringct outputs if there are anon inputs or ct inputs
+    if (nRingCT && !nRingCTInputs && !nCTInputs)
+        return state.DoS(100, false, REJECT_INVALID, "bad-txns-ringct-output-no-anonin");
 
     txfee = 0;
     CAmount nFees = 0;

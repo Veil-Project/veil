@@ -1164,7 +1164,7 @@ bool AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std:
         if (r.nType == OUTPUT_STANDARD) {
             if (r.address.type() == typeid(CStealthAddress)) {
                 CStealthAddress sx = boost::get<CStealthAddress>(r.address);
-                r.isMine = mapStealthAddresses.count(sx.GetID());
+                r.isMine = mapStealthAddresses.count(sx.GetID()) > 0;
                 CKey sShared;
                 ec_point pkSendTo;
 
@@ -1193,11 +1193,8 @@ bool AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std:
                 }
 
                 if (r.isMine) {
-                    // Save this stealth destination to our stealth address so we know it is ours.
-                    if (!AddStealthDestination(sx.GetID(), idTo))
-                        return error("%s: failed to save stealth destination", __func__);
-                    if (!AddKeyToParent(sShared))
-                        return error("%s: failed to save ephemeral key", __func__);
+                    if (!RecordOwnedStealthDestination(sShared, sx.GetID(), idTo))
+                        return error("%s: failed to record stealth destination", __func__);
                 }
 
                 vecSend.insert(vecSend.begin() + (i+1), rd);
@@ -1249,11 +1246,8 @@ bool AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std:
                 }
 
                 if (r.isMine) {
-                    // Save this stealth destination to our stealth address so we know it is ours.
-                    if (!AddStealthDestination(sx.GetID(), idTo))
-                        return error("%s: failed to save stealth destination", __func__);
-                    if (!AddKeyToParent(sShared))
-                        return error("%s: failed to save ephemeral key", __func__);
+                    if (!RecordOwnedStealthDestination(sShared, sx.GetID(), idTo))
+                        return error("%s: failed to record stealth destination", __func__);
                 }
             } else if (r.address.type() == typeid(CExtKeyPair)) {
                 throw std::runtime_error(strprintf("%s: sending to extkeypair", __func__));
@@ -1299,11 +1293,8 @@ bool AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std:
                 }
 
                 if (r.isMine) {
-                    // Save this stealth destination to our stealth address so we know it is ours.
-                    if (!AddStealthDestination(sx.GetID(), idTo))
-                        return error("%s: failed to save stealth destination", __func__);
-                    if (!AddKeyToParent(sShared))
-                        return error("%s: failed to save ephemeral key", __func__);
+                    if (!RecordOwnedStealthDestination(sShared, sx.GetID(), idTo))
+                        return error("%s: failed to record stealth destination", __func__);
                 }
             } else {
                 return error("%s: Only able to send to stealth address for now.", __func__); // TODO: add more types?
@@ -1312,6 +1303,32 @@ bool AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std:
             r.sEphem = sEphem;
         }
     }
+
+    return true;
+}
+
+bool AnonWallet::RecordOwnedStealthDestination(const CKey& sShared, const CKeyID& idStealth, const CKeyID& destStealth)
+{
+    if (!mapStealthAddresses.count(idStealth))
+        return error("%s: do not have record of stealth address %s", __func__, idStealth.GetHex());
+
+    CStealthAddress myStealth = mapStealthAddresses.at(idStealth);
+    CKey keySpend;
+    if (!RegenerateKey(myStealth.GetSpendKeyID(), keySpend))
+        return error("%s: failed to regenerate spend key that is marked as mine", __func__);
+
+    CKey keySharedSecret;
+    if (StealthSharedToSecretSpend(sShared, keySpend, keySharedSecret) != 0)
+        return error("%s: StealthSharedToSecretSpend() failed.\n", __func__);
+
+    if (keySharedSecret.GetPubKey().GetID() != destStealth)
+        return error("%s: failed to generate correct shared secret", __func__);
+
+    // Save this stealth destination to our stealth address so we know it is ours.
+    if (!AddStealthDestination(idStealth, destStealth))
+        return error("%s: failed to save stealth destination", __func__);
+    if (!AddKeyToParent(keySharedSecret))
+        return error("%s: failed to save ephemeral key", __func__);
 
     return true;
 }
@@ -1498,7 +1515,7 @@ static bool ExpandChangeAddress(AnonWallet *phdw, CTempRecipient &r, std::string
 {
     if (r.address.type() == typeid(CStealthAddress)) {
         CStealthAddress sx = boost::get<CStealthAddress>(r.address);
-
+        r.isMine = true;
         CKey keyShared;
         ec_point pkSendTo;
 
@@ -1520,14 +1537,8 @@ static bool ExpandChangeAddress(AnonWallet *phdw, CTempRecipient &r, std::string
             if (sx.prefix.number_bits > 0) {
                 r.nStealthPrefix = FillStealthPrefix(sx.prefix.number_bits, sx.prefix.bitfield);
             }
-
-            // Save this stealth destination to our stealth address so we know it is ours.
-            if (!phdw->AddStealthDestination(sx.GetID(), idTo))
-                return error("%s: failed to save stealth destination", __func__);
-            if (!phdw->AddKeyToParent(r.sEphem))
-                return error("%s: failed to save ephemeral key", __func__);
-            if (0 != MakeStealthData(r.sNarration, sx.prefix, keyShared, pkEphem, r.vData, r.nStealthPrefix, sError))
-                return error("%s: failed to make stealth data: %s", __func__, sError);
+            if (!phdw->RecordOwnedStealthDestination(keyShared, sx.GetID(), idTo))
+                return error("%s: failed to record stealth destination", __func__);
         }
         return true;
     };
@@ -1558,14 +1569,8 @@ static bool ExpandChangeAddress(AnonWallet *phdw, CTempRecipient &r, std::string
 
 bool AnonWallet::SetChangeDest(const CCoinControl *coinControl, CTempRecipient &r, std::string &sError)
 {
-    if (r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT || r.address.type() == typeid(CStealthAddress)) {
-        /*
-        // TODO: Make optional
-        if (0 != pc->DeriveNextKey(r.sEphem, nChild, true))
-            return errorN(1, sError, __func__, "TryDeriveNext failed.");
-        */
+    if (r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT || r.address.type() == typeid(CStealthAddress))
         r.sEphem.MakeNewKey(true);
-    }
 
     //Already have recipient, use this
     if (r.address.type() == typeid(CStealthAddress)) {
@@ -1661,19 +1666,36 @@ bool AnonWallet::SaveRecord(const uint256& txid, const CTransactionRecord& rtx)
     AnonWalletDB wdb(*walletDatabase);
     if (!wdb.WriteTxRecord(txid, rtx))
         return error("%s: failed to write tx record\n", __func__);
-    mapRecords.emplace(txid, rtx);
+    mapRecords[txid] = rtx;
     return true;
 }
 
 int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
-        bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs)
+        bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs, CAmount nInputValue)
 {
     assert(coinControl);
     nFeeRet = 0;
-    CAmount nValue;
+    CAmount nValueOutCT;
     size_t nSubtractFeeFromAmount;
     bool fOnlyStandardOutputs, fSkipFee;
-    InspectOutputs(vecSend, false, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
+    InspectOutputs(vecSend, fZerocoinInputs, nValueOutCT, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
+
+    //Need count of zerocoin mint outputs in order to calculate fee correctly
+    int nZerocoinMintOuts = 0;
+    CAmount nValueOutZerocoin = 0;
+    CAmount nFeeZerocoin = 0;
+    for (auto& r : vecSend) {
+        if (r.fZerocoinMint) {
+            nZerocoinMintOuts++;
+            nValueOutZerocoin += r.nAmount;
+            nFeeZerocoin += Params().Zerocoin_MintFee();
+            //Zerocoin mints have to be exact amount, so not eligible to subtract fee
+            r.fExemptFeeSub = true;
+        }
+    }
+    fSkipFee = fZerocoinInputs && nZerocoinMintOuts == 0;
+    //If output is going out as zerocoin, then it is being double counted and needs to be subtracted
+    nValueOutCT -= nValueOutZerocoin;
 
     if (!ExpandTempRecipients(vecSend, sError)) {
         return 1; // sError is set
@@ -1720,7 +1742,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
         nFeeRet = 0;
         size_t nSubFeeTries = 100;
         bool pick_new_inputs = true;
-        CAmount nValueIn = 0;
+        CAmount nValueIn = nInputValue;
 
         // BnB selector is the only selector used when this is true.
         // That should only happen on the first pass through the loop.
@@ -1735,7 +1757,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
             txNew.vpout.clear();
             wtx.fFromMe = true;
 
-            CAmount nValueToSelect = nValue;
+            CAmount nValueToSelect = nValueOutCT;
             if (nSubtractFeeFromAmount == 0) {
                 nValueToSelect += nFeeRet;
             }
@@ -1780,8 +1802,11 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 //If no change address is set, then generate a new stealth address to use for change
                 if (!coinControl || (coinControl && coinControl->destChange.type() == typeid(CNoDestination))) {
                     CStealthAddress stealthAddress;
-                    if (!NewStealthKey(stealthAddress, 0, nullptr))
-                        return error("%s: failed to generate stealth address to use for change", __func__);
+                    if (!NewStealthKey(stealthAddress, 0, nullptr)) {
+                        error("%s: failed to generate stealth address to use for change", __func__);
+                        return 1;
+                    }
+
                     r.address = stealthAddress;
                 }
 
@@ -1879,6 +1904,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 return wserrorN(1, sError, __func__, "secp256k1_pedersen_commit failed for plain in.");
             }
 
+            nValueOutPlain += nValueOutZerocoin;
             if (nValueOutPlain > 0) {
                 vpBlinds.push_back(&vBlindPlain[0]);
 
@@ -1931,6 +1957,16 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 }
             }
 
+            if (fSkipFee) {
+                nFeeNeeded = 0;
+                nFeeRet = 0;
+                std::vector<uint8_t> &vData = ((CTxOutData*)txNew.vpout[0].get())->vData;
+                vData.resize(1);
+                if (0 != PutVarInt(vData, 0))
+                    return error("%s: failed to add CTFee of 0 to transaction", __func__);
+                break;
+            }
+
             nBytes = GetVirtualTransactionSize(txNew);
 
             // Remove scriptSigs to eliminate the fee calculation dummy signatures
@@ -1942,86 +1978,95 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
             }
 
             nFeeNeeded = GetMinimumFee(*pwalletParent, nBytes, *coinControl, ::mempool, ::feeEstimator, &feeCalc);
+            if (nFeeZerocoin)
+                nFeeNeeded = std::max(nFeeNeeded, nFeeZerocoin);
 
             // If we made it here and we aren't even able to meet the relay fee on the next pass, give up
             // because we must be at the maximum allowed fee.
-            if (nFeeNeeded < ::minRelayTxFee.GetFee(nBytes)) {
+            if (!fSkipFee && nFeeNeeded < ::minRelayTxFee.GetFee(nBytes)) {
                 return wserrorN(1, sError, __func__, _("Transaction too large for fee policy."));
             }
 
-            if (nFeeRet >= nFeeNeeded) {
-                // Reduce fee to only the needed amount if possible. This
-                // prevents potential overpayment in fees if the coins
-                // selected to meet nFeeNeeded result in a transaction that
-                // requires less fee than the prior iteration.
+            if (!fSkipFee) {
+                if (nFeeRet >= nFeeNeeded) {
+                    // Reduce fee to only the needed amount if possible. This
+                    // prevents potential overpayment in fees if the coins
+                    // selected to meet nFeeNeeded result in a transaction that
+                    // requires less fee than the prior iteration.
 
-                // If we have no change and a big enough excess fee, then
-                // try to construct transaction again only without picking
-                // new inputs. We now know we only need the smaller fee
-                // (because of reduced tx size) and so we should add a
-                // change output. Only try this once.
-                if (nChangePosInOut == -1 && nSubtractFeeFromAmount == 0 && pick_new_inputs) {
-                    CKeyID idNull;
-                    CScript scriptChange = GetScriptForDestination(idNull);
-                    CTxOut change_prototype_txout(0, scriptChange);
-                    size_t change_prototype_size = GetSerializeSize(change_prototype_txout, SER_DISK, 0);
-                    unsigned int tx_size_with_change = nBytes + change_prototype_size + 2; // Add 2 as a buffer in case increasing # of outputs changes compact size
-                    CAmount fee_needed_with_change = GetMinimumFee(*pwalletParent, tx_size_with_change, *coinControl, ::mempool, ::feeEstimator, nullptr);
-                    CAmount minimum_value_for_change = GetDustThreshold(change_prototype_txout, discard_rate);
-                    if (nFeeRet >= fee_needed_with_change + minimum_value_for_change) {
-                        pick_new_inputs = false;
-                        nFeeRet = fee_needed_with_change;
-                        continue;
+                    // If we have no change and a big enough excess fee, then
+                    // try to construct transaction again only without picking
+                    // new inputs. We now know we only need the smaller fee
+                    // (because of reduced tx size) and so we should add a
+                    // change output. Only try this once.
+                    if (nChangePosInOut == -1 && nSubtractFeeFromAmount == 0 && pick_new_inputs) {
+                        CKeyID idNull;
+                        CScript scriptChange = GetScriptForDestination(idNull);
+                        CTxOut change_prototype_txout(0, scriptChange);
+                        size_t change_prototype_size = GetSerializeSize(change_prototype_txout, SER_DISK, 0);
+                        unsigned int tx_size_with_change = nBytes + change_prototype_size +
+                                                           2; // Add 2 as a buffer in case increasing # of outputs changes compact size
+                        CAmount fee_needed_with_change = GetMinimumFee(*pwalletParent, tx_size_with_change,
+                                                                       *coinControl, ::mempool, ::feeEstimator,
+                                                                       nullptr);
+                        CAmount minimum_value_for_change = GetDustThreshold(change_prototype_txout, discard_rate);
+                        if (nFeeRet >= fee_needed_with_change + minimum_value_for_change) {
+                            pick_new_inputs = false;
+                            nFeeRet = fee_needed_with_change;
+                            continue;
+                        }
+                    }
+
+                    // If we have change output already, just increase it
+                    if (nFeeRet > nFeeNeeded && nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
+                        auto& r = vecSend[nChangePosInOut];
+                        CAmount extraFeePaid = nFeeRet - nFeeNeeded;
+                        CTxOutBaseRef c = txNew.vpout[r.n];
+                        c->SetValue(c->GetValue() + extraFeePaid);
+                        r.nAmount = c->GetValue();
+
+                        nFeeRet -= extraFeePaid;
+                    }
+
+                    break; // Done, enough fee included.
+                } else if (!pick_new_inputs) {
+                    // This shouldn't happen, we should have had enough excess
+                    // fee to pay for the new output and still meet nFeeNeeded
+                    // Or we should have just subtracted fee from recipients and
+                    // nFeeNeeded should not have changed
+
+                    if (!nSubtractFeeFromAmount || !(--nSubFeeTries)) { // rangeproofs can change size per iteration
+                        return wserrorN(1, sError, __func__,
+                                        _("Transaction fee and change calculation failed.").c_str());
                     }
                 }
 
-                // If we have change output already, just increase it
-                if (nFeeRet > nFeeNeeded && nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
-                    auto &r = vecSend[nChangePosInOut];
-                    CAmount extraFeePaid = nFeeRet - nFeeNeeded;
+                // Try to reduce change to include necessary fee
+                if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
+                    auto& r = vecSend[nChangePosInOut];
+                    CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
+
                     CTxOutBaseRef c = txNew.vpout[r.n];
-                    c->SetValue(c->GetValue() + extraFeePaid);
-                    r.nAmount = c->GetValue();
-
-                    nFeeRet -= extraFeePaid;
+                    // Only reduce change if remaining amount is still a large enough output.
+                    if (c->GetValue() >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
+                        c->SetValue(c->GetValue() - additionalFeeNeeded);
+                        r.nAmount = c->GetValue();
+                        nFeeRet += additionalFeeNeeded;
+                        break; // Done, able to increase fee from change
+                    }
                 }
 
-                break; // Done, enough fee included.
-            } else if (!pick_new_inputs) {
-                // This shouldn't happen, we should have had enough excess
-                // fee to pay for the new output and still meet nFeeNeeded
-                // Or we should have just subtracted fee from recipients and
-                // nFeeNeeded should not have changed
-
-                if (!nSubtractFeeFromAmount || !(--nSubFeeTries)) { // rangeproofs can change size per iteration
-                    return wserrorN(1, sError, __func__, _("Transaction fee and change calculation failed.").c_str());
+                // If subtracting fee from recipients, we now know what fee we
+                // need to subtract, we have no reason to reselect inputs
+                if (nSubtractFeeFromAmount > 0) {
+                    pick_new_inputs = false;
                 }
+
+                // Include more fee and try again.
+                nFeeRet = nFeeNeeded;
             }
-
-            // Try to reduce change to include necessary fee
-            if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
-                auto &r = vecSend[nChangePosInOut];
-                CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
-
-                CTxOutBaseRef c = txNew.vpout[r.n];
-                // Only reduce change if remaining amount is still a large enough output.
-                if (c->GetValue() >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
-                    c->SetValue(c->GetValue() - additionalFeeNeeded);
-                    r.nAmount = c->GetValue();
-                    nFeeRet += additionalFeeNeeded;
-                    break; // Done, able to increase fee from change
-                }
-            }
-
-            // If subtracting fee from recipients, we now know what fee we
-            // need to subtract, we have no reason to reselect inputs
-            if (nSubtractFeeFromAmount > 0) {
-                pick_new_inputs = false;
-            }
-
-            // Include more fee and try again.
-            nFeeRet = nFeeNeeded;
-            continue;
+            if (fZerocoinInputs)
+                return werrorN(1, "%s: Failed to calc fee\n", __func__);
         }
 
         coinControl->nChangePos = nChangePosInOut;
@@ -2081,7 +2126,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
 }
 
 int AnonWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
-        bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs)
+        bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs, CAmount nInputValue)
 {
     if (vecSend.size() < 1) {
         return wserrorN(1, sError, __func__, _("Transaction must have at least one recipient."));
@@ -2125,7 +2170,7 @@ int AnonWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::
         vecSend.push_back(rN);
     }
 
-    if (0 != AddStandardInputs_Inner(wtx, rtx, vecSend, sign, nFeeRet, coinControl, sError, fZerocoinInputs)) {
+    if (0 != AddStandardInputs_Inner(wtx, rtx, vecSend, sign, nFeeRet, coinControl, sError, fZerocoinInputs, nInputValue)) {
         return 1;
     }
 
@@ -2214,7 +2259,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             } else {
                 // Insert a sender-owned 0 value output which becomes the change output if needed
                 CTempRecipient r;
-                r.nType = OUTPUT_CT;
+                r.nType = OUTPUT_RINGCT;
                 r.fChange = true;
 
                 //If no change address is set, then generate a new stealth address to use for change
@@ -2490,11 +2535,9 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
 
         if (nLastBlinded != -1) {
             auto &r = vecSend[nLastBlinded];
-            if (r.nType != OUTPUT_CT) {
+            if (r.nType != OUTPUT_CT && r.nType != OUTPUT_RINGCT) {
                 return wserrorN(1, sError, __func__, "nLastBlinded not blind.");
             }
-
-            CTxOutCT *pout = (CTxOutCT*)txNew.vpout[r.n].get();
 
             // Last to-be-blinded value: compute from all other blinding factors.
             // sum of output blinding values must equal sum of input blinding values
@@ -2502,6 +2545,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                 return wserrorN(1, sError, __func__, "secp256k1_pedersen_blind_sum failed.");
             }
 
+            CTxOutBase *pout = (CTxOutBase*)txNew.vpout[r.n].get();
             if (0 != AddCTData(pout, r, sError)) {
                 return 1; // sError will be set
             }
@@ -4263,6 +4307,18 @@ bool AnonWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t
     return fIsMine;
 }
 
+void AnonWallet::MarkOutputSpent(const COutPoint& outpoint, bool isSpent)
+{
+    auto it = mapRecords.find(outpoint.hash);
+    if (it == mapRecords.end())
+        return;
+
+    //Overwrite record with updated info
+    auto record = it->second;
+    record.GetOutput(outpoint.n)->MarkSpent(isSpent);
+    SaveRecord(outpoint.hash, record);
+}
+
 bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate)
 {
     const CTransaction& tx = *ptx;
@@ -4308,6 +4364,7 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
 
             mir = mapRecords.find(txin.prevout.hash);
             if (mir != mapRecords.end()) {
+                MarkOutputSpent(txin.prevout, true);
                 const COutputRecord *r = mir->second.GetOutput(txin.prevout.n);
                 if (r && r->nFlags & ORF_OWN_ANY) {
                     fIsFromMe = true;
@@ -4415,7 +4472,7 @@ bool AnonWallet::OwnBlindOut(AnonWalletDB *pwdb, const uint256 &txhash, const CT
 
     CKey key;
     if (!GetKey(idKey, key))
-        return error("%s: GetKey failed for out.n=%d", __func__, rout.n);
+        return error("%s: GetKey failed for out.n=%d id=%s", __func__, rout.n, idKey.GetHex());
 
     if (pout->vData.size() < 33)
         return error("%s: vData.size() < 33.", __func__);
@@ -4868,12 +4925,21 @@ void AnonWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnly
 
     vCoins.clear();
 
+    CCoinsView dummy;
+    CCoinsViewCache view(&dummy);
+
+    LOCK(mempool.cs);
+    CCoinsViewMemPool viewMemPool(pcoinsTip.get(), mempool);
+    view.SetBackend(viewMemPool);
+
     if (coinControl && coinControl->HasSelected()) {
         // Add specified coins which may not be in the chain
         for (MapRecords_t::const_iterator it = mapTempRecords.begin(); it !=  mapTempRecords.end(); ++it) {
             const uint256 &txid = it->first;
             const CTransactionRecord &rtx = it->second;
             for (const auto &r : rtx.vout) {
+                if (r.IsSpent() || !view.HaveCoin(COutPoint(txid, r.n)))
+                    continue;
 //                if (IsLockedCoin(txid, r.n))
 //                    continue;
 
@@ -4926,13 +4992,14 @@ void AnonWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnly
         }
 
         for (const auto &r : rtx.vout) {
+
             if (r.nType != OUTPUT_CT)
                 continue;
 
             if (!(r.nFlags & ORF_OWN_ANY))
                 continue;
 
-            if (IsSpent(txid, r.n))
+            if (r.IsSpent() || IsSpent(txid, r.n) || !view.HaveCoin(COutPoint(txid, r.n)))
                 continue;
 
             if (r.GetAmount() < nMinimumAmount || r.GetAmount() > nMaximumAmount)
@@ -5332,6 +5399,8 @@ bool AnonWallet::IsSpent(const uint256& hash, unsigned int n) const
 
         MapRecords_t::const_iterator rit = mapRecords.find(wtxid);
         if (rit != mapRecords.end()) {
+            if (rit->second.GetOutput(n)->IsSpent())
+                return true;
             if (rit->second.IsAbandoned())
                 continue;
 
