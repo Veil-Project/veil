@@ -451,7 +451,7 @@ background-color: #fff;</string>
 background-image: url(&quot;:/icons/ic-switch-off&quot;) ;
 background-repeat:no-repeat;
 background-position:left center;
-padding:4 4 8 30px;
+padding:8 4 8 30px;
 }
 
 #checkStacking:checked {
