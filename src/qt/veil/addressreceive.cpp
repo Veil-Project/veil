@@ -59,7 +59,6 @@ void AddressReceive::onBtnSaveClicked(){
     if(isMiner){
         wallet.setAddressBook(dest, label, "basecoin", false);
     }else{
-        std::cout << "encoded/decoded: " << EncodeDestination(dest, true) << std::endl;
         wallet.setAddressBook(dest, label, "receive", true);
     }
 

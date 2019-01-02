@@ -85,7 +85,6 @@ public:
                         QString::fromStdString(address.purpose), address.is_mine);
                 bool fBasecoin = address.purpose == "basecoin";
                 QString addressStr = QString::fromStdString(EncodeDestination(address.dest, !fBasecoin));
-                //std::cout << "refresh table: " << EncodeDestination(address.dest, !fBasecoin) << std::endl;
                 cachedAddressTable.append(AddressTableEntry(addressType,
                                   QString::fromStdString(address.name), addressStr, fBasecoin));
             }
@@ -120,9 +119,6 @@ public:
             cachedAddressTable.insert(lowerIndex, AddressTableEntry(newEntryType, label, address));
             parent->endInsertRows();
 
-
-            std::cout << "updateEntry: " << address.toUtf8().constData() << std::endl;
-            std::cout << "updateEntry label: " << label.toUtf8().constData() << std::endl;
             break;
         case CT_UPDATED:
             if(!inModel)
