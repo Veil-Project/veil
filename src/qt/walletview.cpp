@@ -375,4 +375,5 @@ void WalletView::requestedSyncWarningInfo()
 void WalletView::refreshWalletStatus() {
     this->addressesWidget->refreshWalletStatus();
     this->receiveWidget->refreshWalletStatus();
+    this->settingsWidget->refreshWalletStatus();
 }
