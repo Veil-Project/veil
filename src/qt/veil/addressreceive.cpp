@@ -29,6 +29,7 @@
 AddressReceive::AddressReceive(QWidget *parent, WalletModel* _walletModel, bool isMinerAddress) :
     QDialog(parent),
     walletModel(_walletModel),
+    isMiner(isMinerAddress),
     ui(new Ui::AddressReceive)
 {
     ui->setupUi(this);
@@ -55,7 +56,13 @@ AddressReceive::AddressReceive(QWidget *parent, WalletModel* _walletModel, bool 
 void AddressReceive::onBtnSaveClicked(){
     std::string label = ui->editDescription->text().toUtf8().constData();
     interfaces::Wallet& wallet = walletModel->wallet();
-    wallet.setAddressBook(dest, label, "receive");
+    if(isMiner){
+        wallet.setAddressBook(dest, label, "basecoin", false);
+    }else{
+        std::cout << "encoded/decoded: " << EncodeDestination(dest, true) << std::endl;
+        wallet.setAddressBook(dest, label, "receive", true);
+    }
+
     accept();
 }
 
@@ -80,7 +87,7 @@ void AddressReceive::generateNewAddress(bool isMinerAddress){
         bool fBech32 = true;
         strAddress = address.ToString(fBech32);
         dest = DecodeDestination(strAddress);
-        wallet.setAddressBook(dest, "", "receive");
+        wallet.setAddressBook(dest, "", "receive", true);
     }else{
         CPubKey newKey;
         if (!wallet.getKeyFromPool(false, newKey)) {
@@ -97,7 +104,7 @@ void AddressReceive::generateNewAddress(bool isMinerAddress){
         }else {
             wallet.learnRelatedScripts(newKey, OutputType::LEGACY);
             dest = newKey.GetID();
-            wallet.setAddressBook(dest, "", "receive");
+            wallet.setAddressBook(dest, "", "basecoin");
             bool fBech32 = false;
             strAddress = EncodeDestination(dest, fBech32);
         }

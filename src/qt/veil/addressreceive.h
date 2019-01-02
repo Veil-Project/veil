@@ -27,6 +27,7 @@ private Q_SLOTS:
 private:
     Ui::AddressReceive *ui;
     WalletModel *walletModel;
+    bool isMiner;
 
     CPubKey newKey;
     QString qAddress;

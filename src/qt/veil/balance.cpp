@@ -141,7 +141,6 @@ void Balance::refreshWalletStatus() {
         }
         interfaces::WalletAddress address = addresses[0];
         if (address.dest.type() == typeid(CStealthAddress)){
-            //CStealthAddress& castedAddress = dynamic_cast<CStealthAddress&>(address.dest);
             bool fBech32 = true;
             strAddress = EncodeDestination(address.dest,true);
         }
@@ -162,7 +161,7 @@ void Balance::refreshWalletStatus() {
         }
         bool fBech32 = true;
         strAddress = address.ToString(fBech32);
-        wallet.setAddressBook(DecodeDestination(strAddress), "stealth", "stealth_receive");
+        wallet.setAddressBook(DecodeDestination(strAddress), "stealth", "receive", fBech32);
     }
 
     qAddress = QString::fromStdString(strAddress);

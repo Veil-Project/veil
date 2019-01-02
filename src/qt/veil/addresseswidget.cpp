@@ -32,8 +32,8 @@ class AddressViewDelegate : public QAbstractItemDelegate
 {
     Q_OBJECT
 public:
-    explicit AddressViewDelegate(const PlatformStyle *_platformStyle, QObject *parent=nullptr):
-        QAbstractItemDelegate(parent), unit(BitcoinUnits::VEIL),
+    explicit AddressViewDelegate(const PlatformStyle *_platformStyle, QObject *parent=nullptr, AddressTableModel *_model = nullptr):
+        QAbstractItemDelegate(parent), unit(BitcoinUnits::VEIL), model(_model),
         platformStyle(_platformStyle) {}
 
     inline void paint(QPainter *painter, const QStyleOptionViewItem &option,
@@ -49,8 +49,12 @@ public:
 
         // Get the address
         QString address = index.data(Qt::DisplayRole).toString();
-        QModelIndex header = index.sibling(index.row(), index.column() + 1);
-        QString addressData = header.data(Qt::DisplayRole).toString();
+       // QString addressData = index.data(Qt::DisplayRole, AddressTableModel::Address_dot).toString();
+
+        auto addressAuto = model->index(index.row(), AddressTableModel::Address_dot, index);
+        QString addressData = model->data(addressAuto, Qt::DisplayRole).toString();
+        //index.sibling(index.row(), index.column() + 1);
+        //QString addressData = header.data(Qt::DisplayRole).toString();
 
         QVariant value = index.data(Qt::ForegroundRole);
         QColor foreground = option.palette.color(QPalette::Text);
@@ -122,8 +126,13 @@ public:
         return QSize(DECORATION_SIZE, DECORATION_SIZE);
     }
 
+    void setModel(AddressTableModel *_model){
+        this->model = _model;
+    }
+
     int unit;
     const PlatformStyle *platformStyle;
+    AddressTableModel *model = nullptr;
 
 };
 
@@ -370,6 +379,7 @@ void AddressesWidget::setModel(AddressTableModel *_model)
     this->model = _model;
     if(!_model)
         return;
+    this->addressViewDelegate->setModel(_model);
     proxyModel = new AddressSortFilterProxyModel(AddressTableModel::Receive, this);
     proxyModel->setSourceModel(_model);
 
