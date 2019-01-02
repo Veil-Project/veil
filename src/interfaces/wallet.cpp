@@ -291,9 +291,9 @@ public:
     }
 
     bool haveWatchOnly() override { return m_wallet.HaveWatchOnly(); };
-    bool setAddressBook(const CTxDestination& dest, const std::string& name, const std::string& purpose) override
+    bool setAddressBook(const CTxDestination& dest, const std::string& name, const std::string& purpose, bool bench32) override
     {
-        return m_wallet.SetAddressBook(dest, name, purpose);
+        return m_wallet.SetAddressBook(dest, name, purpose, bench32);
     }
     bool delAddressBook(const CTxDestination& dest) override
     {
