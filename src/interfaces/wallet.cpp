@@ -287,7 +287,7 @@ public:
             return {};
         auto vtx = receipt.GetTransactions();
         pending->m_tx = vtx[0];
-        return pending;
+        return std::move(pending);
     }
 
     bool haveWatchOnly() override { return m_wallet.HaveWatchOnly(); };
@@ -334,7 +334,7 @@ public:
         }
         return result;
     }
-    std::vector<WalletAddress> getAddresses(bool IsMineAddresses)
+    std::vector<WalletAddress> getAddresses(bool IsMineAddresses) override
     {
         LOCK(m_wallet.cs_wallet);
         std::vector<WalletAddress> result;
@@ -345,7 +345,7 @@ public:
         return result;
     }
 
-    std::vector<WalletAddress> getStealthAddresses(bool IsMineAddresses)
+    std::vector<WalletAddress> getStealthAddresses(bool IsMineAddresses) override
     {
         LOCK(m_wallet.cs_wallet);
         std::vector<WalletAddress> result;
