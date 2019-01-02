@@ -13,7 +13,7 @@ VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
 {
     ui->setupUi(this);
 
-    ui->checkStacking->setProperty("cssClass" , "switch");
+    ui->checkStaking->setProperty("cssClass" , "switch");
 
     connect(ui->btnLock, SIGNAL(clicked()), this, SLOT(onBtnLockClicked()));
     connect(ui->btnSync, SIGNAL(clicked()), this, SLOT(onBtnSyncClicked()));
@@ -51,7 +51,7 @@ void VeilStatusBar::onCheckStakingClicked(bool res) {
             QString dialogMsg = gArgs.GetBoolArg("-exchangesandservicesmode", false) ? "Staking is disabled in exchange mode" : "Must unlock wallet before staking can be enabled";
             openToastDialog(dialogMsg, mainWindow);
             fBlockNextStakeCheckSignal = true;
-            ui->checkStacking->setCheckState(Qt::CheckState::Unchecked);
+            ui->checkStaking->setCheckState(Qt::CheckState::Unchecked);
         }
     } else {
         openToastDialog("Staking disabled", mainWindow);
@@ -103,7 +103,7 @@ void VeilStatusBar::setWalletModel(WalletModel *model)
     this->preparingFlag = false;
     this->walletModel = model;
     updateStakingCheckbox();
-    connect(ui->checkStacking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
+    connect(ui->checkStaking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
     this->preparingFlag = true;
 }
 
@@ -113,7 +113,7 @@ void VeilStatusBar::updateStakingCheckbox()
     ui->btnLock->setChecked(lockState == WalletModel::Locked || lockState == WalletModel::UnlockedForStakingOnly);
 
     if(this->preparingFlag) {
-        ui->checkStacking->setChecked(walletModel->isStakingEnabled() && lockState != WalletModel::Locked);
+        ui->checkStaking->setChecked(walletModel->isStakingEnabled() && lockState != WalletModel::Locked);
     }
 }
 

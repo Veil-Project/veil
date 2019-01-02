@@ -123,26 +123,26 @@ border-left:0px;
          <number>3</number>
         </property>
         <item>
-         <widget class="QCheckBox" name="checkStacking">
+         <widget class="QCheckBox" name="checkStaking">
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
           </property>
           <property name="styleSheet">
            <string notr="true">
- #checkStacking::indicator {
+ #checkStaking::indicator {
      border: 0;
      background: none;
  }
 
- #checkStacking {
+ #checkStaking {
  background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
  background-repeat:no-repeat;
  background-position:left center;
- padding:4 4 8 30px;
+ padding:8 4 8 30px;
  color:#bababa;
  }
 
- #checkStacking:checked {
+ #checkStaking:checked {
  background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
  color:#105aef;
  }</string>
