@@ -2510,7 +2510,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             return state.DoS(100, error("%s: block marked as proof of full node that is not proof of stake", __func__));
 
         uint256 hashRequired = veil::GetFullNodeHash(block, pindex->pprev);
-        if (block.hashPoFN != hashRequired && pindex->nHeight > 2500) //todo delete when chainreset
+        if (block.hashPoFN != hashRequired)
             return state.DoS(100, error("%s: block's Proof of Full node hash is invalid. Block=%s Required=%s",
                     __func__, block.hashPoFN.GetHex(), hashRequired.GetHex()), REJECT_INVALID, "bad-fullnode-hash");
     }
