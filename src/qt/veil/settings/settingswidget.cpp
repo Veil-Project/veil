@@ -252,14 +252,19 @@ void SettingsWidget::hideEvent(QHideEvent *event){
     connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
 }
 
-
 void SettingsWidget::setWalletModel(WalletModel *model){
     this->walletModel = model;
-    ui->checkBoxStaking->setChecked(walletModel->getEncryptionStatus() != WalletModel::Locked);
+    ui->checkBoxStaking->setChecked(walletModel->isStakingEnabled() && walletModel->getEncryptionStatus() != WalletModel::Locked);
     connect(ui->checkBoxStaking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
+}
+
+void SettingsWidget::refreshWalletStatus() {
+    checkChangedManually = true;
+    ui->checkBoxStaking->setChecked(walletModel->isStakingEnabled() && walletModel->getEncryptionStatus() != WalletModel::Locked);
 }
 
 SettingsWidget::~SettingsWidget()
 {
     delete ui;
 }
+

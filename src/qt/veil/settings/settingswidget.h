@@ -25,6 +25,8 @@ public:
 
     void setWalletModel(WalletModel *model);
 
+    void refreshWalletStatus();
+
 private Q_SLOTS:
     void onResetOptionClicked();
     void onLockWalletClicked();
