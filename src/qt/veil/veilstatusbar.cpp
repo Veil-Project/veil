@@ -54,6 +54,7 @@ void VeilStatusBar::onCheckStakingClicked(bool res) {
             ui->checkStaking->setCheckState(Qt::CheckState::Unchecked);
         }
     } else {
+        mainWindow->updateWalletStatus();
         openToastDialog("Staking disabled", mainWindow);
     }
 
