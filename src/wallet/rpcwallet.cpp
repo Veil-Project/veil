@@ -196,9 +196,9 @@ static UniValue getnewbasecoinaddress(const JSONRPCRequest& request)
     pwallet->LearnRelatedScripts(newKey, output_type);
     CTxDestination dest = GetDestinationForKey(newKey, output_type);
 
-    pwallet->SetAddressBook(dest, label, "receive");
-
     bool fBech32 = true;
+    pwallet->SetAddressBook(dest, label, "receive", fBech32);
+
     return EncodeDestination(dest, fBech32);
 }
 

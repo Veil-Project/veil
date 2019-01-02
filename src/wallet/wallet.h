@@ -1171,6 +1171,7 @@ public:
     DBErrors ZapWalletTx(std::vector<CWalletTx>& vWtx);
     DBErrors ZapSelectTx(std::vector<uint256>& vHashIn, std::vector<uint256>& vHashOut) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
+    bool SetAddressBook(const CTxDestination& address, const std::string& strName, const std::string& purpose, bool bench32);
     bool SetAddressBook(const CTxDestination& address, const std::string& strName, const std::string& purpose);
 
     bool DelAddressBook(const CTxDestination& address);
@@ -1326,7 +1327,6 @@ public:
     void WalletLogPrintf(std::string fmt, Params... parameters) const {
         LogPrintf(("%s " + fmt).c_str(), GetDisplayName(), parameters...);
     };
-
 };
 
 /** A key allocated from the key pool. */

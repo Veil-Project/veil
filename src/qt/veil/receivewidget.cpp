@@ -94,7 +94,7 @@ bool ReceiveWidget::generateNewAddress(){
     std::string strAddress = address.ToString(fBech32);
     qAddress =  QString::fromStdString(strAddress);
     // Store it
-    wallet.setAddressBook(DecodeDestination(strAddress), "", "receive");
+    wallet.setAddressBook(DecodeDestination(strAddress), "", "receive", true);
 
     // set address
     ui->labelAddress->setText(qAddress.left(16) + "..." + qAddress.right(16));

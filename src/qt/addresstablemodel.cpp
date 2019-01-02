@@ -58,7 +58,7 @@ static AddressTableEntry::Type translateTransactionType(const QString &strPurpos
     // "refund" addresses aren't shown, and change addresses aren't in mapAddressBook at all.
     if (strPurpose == "send")
         addressType = AddressTableEntry::Sending;
-    else if (strPurpose == "receive" || strPurpose == "basecoin")
+    else if (strPurpose == "receive" || strPurpose == "basecoin" || strPurpose == "stealth_receive")
         addressType = AddressTableEntry::Receiving;
     else if (strPurpose == "unknown" || strPurpose == "") // if purpose not set, guess
         addressType = (isMine ? AddressTableEntry::Receiving : AddressTableEntry::Sending);
@@ -84,9 +84,10 @@ public:
                 AddressTableEntry::Type addressType = translateTransactionType(
                         QString::fromStdString(address.purpose), address.is_mine);
                 bool fBasecoin = address.purpose == "basecoin";
+                QString addressStr = QString::fromStdString(EncodeDestination(address.dest, !fBasecoin));
+                //std::cout << "refresh table: " << EncodeDestination(address.dest, !fBasecoin) << std::endl;
                 cachedAddressTable.append(AddressTableEntry(addressType,
-                                  QString::fromStdString(address.name),
-                                  QString::fromStdString(EncodeDestination(address.dest)), fBasecoin));
+                                  QString::fromStdString(address.name), addressStr, fBasecoin));
             }
         }
         // qLowerBound() and qUpperBound() require our cachedAddressTable list to be sorted in asc order
@@ -118,6 +119,10 @@ public:
             parent->beginInsertRows(QModelIndex(), lowerIndex, lowerIndex);
             cachedAddressTable.insert(lowerIndex, AddressTableEntry(newEntryType, label, address));
             parent->endInsertRows();
+
+
+            std::cout << "updateEntry: " << address.toUtf8().constData() << std::endl;
+            std::cout << "updateEntry label: " << label.toUtf8().constData() << std::endl;
             break;
         case CT_UPDATED:
             if(!inModel)
@@ -206,6 +211,8 @@ QVariant AddressTableModel::data(const QModelIndex &index, int role) const
                 return rec->label;
             }
         case Address:
+            return rec->address;
+        case Address_dot:
             return rec->address.left(18) + "..." + rec->address.right(18);
         }
     }

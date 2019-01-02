@@ -453,7 +453,11 @@ static void NotifyAddressBookChanged(WalletModel *walletmodel,
         const CTxDestination &address, const std::string &label, bool isMine,
         const std::string &purpose, ChangeType status)
 {
-    QString strAddress = QString::fromStdString(EncodeDestination(address));
+    bool bench32 = true;
+    if(purpose == "basecoin"){
+        bench32 = false;
+    }
+    QString strAddress = QString::fromStdString(EncodeDestination(address,bench32));
     QString strLabel = QString::fromStdString(label);
     QString strPurpose = QString::fromStdString(purpose);
 
