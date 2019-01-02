@@ -37,7 +37,7 @@
     ui->setupUi(this);
 
     ui->title->setProperty("cssClass" , "title");
-    ui->checkStacking->setProperty("cssClass" , "switch");
+    ui->checkStaking->setProperty("cssClass" , "switch");
     this->setStyleSheet(GUIUtil::loadStyleSheet());
 
     //ui->centralWidget->setContentsMargins(0,0,0,0);
