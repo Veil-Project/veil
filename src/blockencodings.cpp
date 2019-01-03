@@ -110,6 +110,11 @@ ReadStatus PartiallyDownloadedBlock::InitData(const CBlockHeaderAndShortTxIDs& c
         std::unordered_map<uint64_t, uint16_t>::iterator idit = shorttxids.find(shortid);
         if (idit != shorttxids.end()) {
             if (!have_txn[idit->second]) {
+                auto& entry = vTxHashes[i].second;
+                if (!entry->HasTxRef()) {
+                    error("%s: FIXME CTxMempoolEntry missing txref", __func__);
+                    return READ_STATUS_FAILED;
+                }
                 txn_available[idit->second] = vTxHashes[i].second->GetSharedTx();
                 have_txn[idit->second]  = true;
                 mempool_count++;
