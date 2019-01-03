@@ -5391,7 +5391,7 @@ string CWallet::MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std:
 string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDeterministicMint>& vDMints, bool fAllowBasecoin, const CCoinControl* coinControl)
 {
     // Check amount
-    if (nValue <= 0)
+    if (nValue < libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN))
         return _("Invalid amount");
 
     CAmount nValueRequired = nValue + Params().Zerocoin_MintFee();
