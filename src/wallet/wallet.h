@@ -75,6 +75,7 @@ static const bool DEFAULT_WALLETBROADCAST = true;
 static const bool DEFAULT_DISABLE_WALLET = false;
 
 typedef std::vector<std::pair<uint32_t, bool> > BIP32Path;
+typedef std::map<libzerocoin::CoinDenomination, CAmount> ZerocoinSpread;
 
 class CBlockIndex;
 class CCoinControl;
@@ -1034,7 +1035,7 @@ public:
     std::vector<uint256> ResendWalletTransactionsBefore(int64_t nTime, CConnman* connman);
     CAmount GetBalance(const isminefilter& filter=ISMINE_SPENDABLE, const int min_depth=0) const;
     bool GetBalances(BalanceList& bal);
-    std::map<libzerocoin::CoinDenomination, CAmount> GetMyZerocoinDistribution() const;
+    std::pair<ZerocoinSpread, ZerocoinSpread> GetMyZerocoinDistribution() const;
     CAmount GetUnconfirmedBalance() const;
     CAmount GetImmatureBalance() const;
     CAmount GetUnconfirmedWatchOnlyBalance() const;

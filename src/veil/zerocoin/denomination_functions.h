@@ -11,6 +11,8 @@
 #include <list>
 #include <map>
 
+class CMintMeta;
+
 std::vector<CMintMeta> SelectMintsFromList(const CAmount nValueTarget, CAmount& nSelectedValue,
                                            int nMaxNumberOfSpends,
                                            bool fMinimizeChange,
