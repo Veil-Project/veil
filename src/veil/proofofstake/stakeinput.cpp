@@ -5,6 +5,7 @@
 
 #include <tinyformat.h>
 #include "veil/zerocoin/accumulators.h"
+#include "veil/zerocoin/mintmeta.h"
 #include "chain.h"
 #include "chainparams.h"
 #include "wallet/deterministicmint.h"

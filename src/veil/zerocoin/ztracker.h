@@ -11,6 +11,7 @@
 
 class CDeterministicMint;
 class CWallet;
+struct CMintMeta;
 
 typedef uint256 SerialHash;
 typedef uint256 PubCoinHash;

@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 The PIVX developers
+// Copyright (c) 2017-2018 The PIVX developers
 // Copyright (c) 2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -14,6 +14,7 @@
 #include "chainparams.h"
 #include "wallet/wallet.h"
 #include "accumulators.h"
+#include "mintmeta.h"
 #include <txmempool.h>
 
 using namespace std;
@@ -480,11 +481,24 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
 
         if (fMatureOnly) {
             // Not confirmed
-            if (!mint.nHeight || mint.nHeight > chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations())
-                continue;
+            bool fInclude = true;
+            if (!mint.nHeight || mint.nHeight > chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations()) {
+                fInclude = false;
+            } else {
+                mint.nMemFlags |= MINT_CONFIRMED;
+            }
+
+
             // Not mature
-            if (!mapMaturity.count(mint.denom) || mint.nHeight >= mapMaturity.at(mint.denom))
+            if (!mapMaturity.count(mint.denom) || mint.nHeight >= mapMaturity.at(mint.denom)) {
+                fInclude = false;
+            } else {
+                mint.nMemFlags |= MINT_MATURE;
+            }
+
+            if (!fInclude)
                 continue;
+
             //todo
             //if (mint.nHeight >= mapMaturity.at(mint.denom))
             //    continue;

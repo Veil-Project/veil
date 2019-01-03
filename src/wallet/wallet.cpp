@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2018-2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -34,6 +35,7 @@
 #include <wallet/deterministicmint.h>
 #include <veil/zerocoin/denomination_functions.h>
 #include <veil/mnemonic/mnemonic.h>
+#include <veil/zerocoin/mintmeta.h>
 #include <veil/zerocoin/zchain.h>
 #include <veil/zerocoin/zwallet.h>
 #include <libzerocoin/Params.h>
@@ -2433,22 +2435,33 @@ bool CWallet::GetBalances(BalanceList& bal)
 }
 
 // Get a Map pairing the Denominations with the amount of Zerocoin for each Denomination
-std::map<libzerocoin::CoinDenomination, CAmount> CWallet::GetMyZerocoinDistribution() const
+std::pair<ZerocoinSpread, ZerocoinSpread> CWallet::GetMyZerocoinDistribution() const
 {
-    std::map<libzerocoin::CoinDenomination, CAmount> spread;
-    spread[libzerocoin::ZQ_TEN] = 0;
-    spread[libzerocoin::ZQ_ONE_HUNDRED] = 0;
-    spread[libzerocoin::ZQ_ONE_THOUSAND] = 0;
-    spread[libzerocoin::ZQ_TEN_THOUSAND] = 0;
+    ZerocoinSpread spreadSpendable;
+    spreadSpendable[libzerocoin::ZQ_TEN] = 0;
+    spreadSpendable[libzerocoin::ZQ_ONE_HUNDRED] = 0;
+    spreadSpendable[libzerocoin::ZQ_ONE_THOUSAND] = 0;
+    spreadSpendable[libzerocoin::ZQ_TEN_THOUSAND] = 0;
+
+    ZerocoinSpread spreadPending;
+    spreadPending[libzerocoin::ZQ_TEN] = 0;
+    spreadPending[libzerocoin::ZQ_ONE_HUNDRED] = 0;
+    spreadPending[libzerocoin::ZQ_ONE_THOUSAND] = 0;
+    spreadPending[libzerocoin::ZQ_TEN_THOUSAND] = 0;
 
     {
         LOCK(cs_wallet);
-        std::set<CMintMeta> setMints = zTracker->ListMints(true, true, true);
-        for (auto& mint : setMints)
-            spread[mint.denom]++;
+
+        std::set<CMintMeta> setMints = zTracker->ListMints(true, /*fMatureOnly*/false, true);
+        for (const CMintMeta& mint : setMints) {
+            if (mint.nMemFlags & MINT_CONFIRMED && mint.nMemFlags & MINT_MATURE)
+                spreadSpendable[mint.denom]++;
+            else
+                spreadPending[mint.denom]++;
+        }
     }
 
-    return spread;
+    return std::make_pair(spreadSpendable, spreadPending);
 }
 
 bool CWallet::GetMintFromStakeHash(const uint256& hashStake, CZerocoinMint& mint)
@@ -5495,7 +5508,7 @@ bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendRe
     CAmount nValueToSelect = nValue;
 
     // Select the z mints to use in this spend
-    std::map<libzerocoin::CoinDenomination, CAmount> DenomMap = GetMyZerocoinDistribution();
+    std::map<libzerocoin::CoinDenomination, CAmount> DenomMap = GetMyZerocoinDistribution().first;
     std::list<CMintMeta> listMints(setMints.begin(), setMints.end());
     CAmount nValueSelected;
     int nCoinsReturned, nNeededSpends;
@@ -5961,7 +5974,7 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
             nValueToSelect = static_cast<CAmount>(ceil(dValue) * COIN);
 
         // Select the z mints to use in this spend
-        std::map<libzerocoin::CoinDenomination, CAmount> DenomMap = GetMyZerocoinDistribution();
+        std::map<libzerocoin::CoinDenomination, CAmount> DenomMap = GetMyZerocoinDistribution().first;
         std::list<CMintMeta> listMints(setMints.begin(), setMints.end());
         vMintsToFetch = SelectMintsFromList(nValueToSelect, nValueSelected, nMaxSpends, fMinimizeChange,
                                             nCoinsReturned, listMints, DenomMap, nNeededSpends);
