@@ -74,17 +74,27 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
  * return validity.
  * @note Must return 0 if !valid.
  */
-CAmount SettingsMinting::parseAmount(const QString &text, bool *valid_out) const {
+CAmount SettingsMinting::parseAmount(const QString &text, bool& valid_out, std::string& strError) const {
     CAmount val = 0;
-    bool valid = BitcoinUnits::parse(BitcoinUnits::VEIL, text, &val);
-    if(valid)
-    {
-        if(val < 10 || val > BitcoinUnits::maxMoney())
-            valid = false;
+    valid_out = false;
+    if (!BitcoinUnits::parse(BitcoinUnits::VEIL, text, &val)) {
+        strError = "failed to parse";
+        return 0;
     }
-    if(valid_out)
-        *valid_out = valid;
-    return valid ? val : 0;
+
+    CAmount nMinDenom = libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN);
+    if (val < nMinDenom || val > BitcoinUnits::maxMoney()) {
+        strError = "not in valid range";
+        return 0;
+    }
+
+    if (val % nMinDenom != 0) {
+        strError = "not multiple of 10";
+        return 0;
+    }
+
+    valid_out = true;
+    return val;
 }
 
 void SettingsMinting::mintAmountChange(const QString &amount){
@@ -96,35 +106,30 @@ void SettingsMinting::btnMint(){
 }
 
 void SettingsMinting::mintzerocoins(){
-    int64_t nTime = GetTimeMillis();
-
     // check if wallet is unlocked..
-    bool isAmountValid;
-    CAmount nAmount = parseAmount(ui->editAmount->text(), &isAmountValid);
+    bool isAmountValid = false;
+    std::string strError;
+    CAmount nAmount = parseAmount(ui->editAmount->text(), isAmountValid, strError);
 
-    if(!isAmountValid){
+    if (!isAmountValid) {
         // notify user
+        std::string strMessage = strprintf("Invalid Amount: %s", strError);
+        openToastDialog(strMessage.c_str(), this);
+        return;
     }
 
     interfaces::Wallet& wallet = walletModel->wallet();
-
-    //CWalletTx wtx(&dynamic_cast<CWallet&>(wallet), nullptr);
     std::vector<CDeterministicMint> vDMints;
-    std::string strError;
     std::vector<COutPoint> vOutpts;
 
     bool fAllowBasecoin = ui->useBasecoin->isChecked();
+    strError = wallet.mintZerocoin(nAmount, vDMints, fAllowBasecoin, nullptr);
 
-    strError = wallet.mintZerocoin(nAmount, vDMints, fAllowBasecoin, NULL);
-    std::cout << "mint: " << strError << std::endl;
     if(strError.empty()){
         openToastDialog("Mint completed", this);
     } else{
         openToastDialog(QString::fromStdString(strError), this);
     }
-
-    //if (strError != "")
-        //throw JSONRPCError(RPC_WALLET_ERROR, strError);
 }
 
 void SettingsMinting::onCheck10Clicked(bool res) {
