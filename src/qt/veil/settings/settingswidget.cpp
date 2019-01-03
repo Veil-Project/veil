@@ -113,10 +113,8 @@ void SettingsWidget::onCheckStakingClicked(bool res) {
         qDebug() << e.what();
         error = true;
     }
-    if(error){
-        checkChangedManually = true;
-        ui->checkBoxStaking->setChecked(!res);
-    }
+    checkChangedManually = true;
+    ui->checkBoxStaking->setChecked(walletModel->isStakingEnabled() && walletModel->getEncryptionStatus() != WalletModel::Locked);
 }
 
 
@@ -230,6 +228,10 @@ void SettingsWidget::onChangePasswordClicked(){
 
 
 void SettingsWidget::showEvent(QShowEvent *event){
+
+    checkChangedManually = true;
+    ui->checkBoxStaking->setChecked(walletModel->isStakingEnabled() && walletModel->getEncryptionStatus() != WalletModel::Locked);
+
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -252,14 +254,19 @@ void SettingsWidget::hideEvent(QHideEvent *event){
     connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
 }
 
-
 void SettingsWidget::setWalletModel(WalletModel *model){
     this->walletModel = model;
-    ui->checkBoxStaking->setChecked(walletModel->getEncryptionStatus() != WalletModel::Locked);
+    ui->checkBoxStaking->setChecked(walletModel->isStakingEnabled() && walletModel->getEncryptionStatus() != WalletModel::Locked);
     connect(ui->checkBoxStaking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
+}
+
+void SettingsWidget::refreshWalletStatus() {
+    checkChangedManually = true;
+    ui->checkBoxStaking->setChecked(walletModel->isStakingEnabled() && walletModel->getEncryptionStatus() != WalletModel::Locked);
 }
 
 SettingsWidget::~SettingsWidget()
 {
     delete ui;
 }
+
