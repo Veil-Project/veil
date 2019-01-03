@@ -49,12 +49,8 @@ public:
 
         // Get the address
         QString address = index.data(Qt::DisplayRole).toString();
-       // QString addressData = index.data(Qt::DisplayRole, AddressTableModel::Address_dot).toString();
-
-        auto addressAuto = model->index(index.row(), AddressTableModel::Address_dot, index);
-        QString addressData = model->data(addressAuto, Qt::DisplayRole).toString();
-        //index.sibling(index.row(), index.column() + 1);
-        //QString addressData = header.data(Qt::DisplayRole).toString();
+        QModelIndex header = index.sibling(index.row(), AddressTableModel::Address_dot);
+        QString addressData = header.data(Qt::DisplayRole).toString();
 
         QVariant value = index.data(Qt::ForegroundRole);
         QColor foreground = option.palette.color(QPalette::Text);
