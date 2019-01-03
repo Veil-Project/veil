@@ -4746,6 +4746,11 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
         for (auto &txin : tx.vin) {
             if (txin.IsAnonInput()) {
                 rtx.nFlags |= ORF_ANON_IN;
+            } else {
+                if (pwalletParent->IsMine(txin)) {
+                    rtx.nFlags |= ORF_FROM;
+                    rtx.nFlags |= ORF_BASECOIN_IN;
+                }
             }
             AddTxinToSpends(txin, txhash);
         }
@@ -4848,9 +4853,6 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                 break;
         }
         fUpdated = true;
-        //Veil: todo: adding outpoint to record as a dummy. Causing bloat. Fix this.
-        if (!fAdded)
-            rtx.InsertOutput(*pout);
     }
 
     if (fInsertedNew || fUpdated) {

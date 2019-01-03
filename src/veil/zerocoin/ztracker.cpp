@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019 The PIVX developers
+// Copyright (c) 2017-2018 The PIVX developers
 // Copyright (c) 2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -14,6 +14,7 @@
 #include "chainparams.h"
 #include "wallet/wallet.h"
 #include "accumulators.h"
+#include "mintmeta.h"
 #include <txmempool.h>
 
 using namespace std;
@@ -172,6 +173,8 @@ std::vector<CMintMeta> CzTracker::GetMints(bool fConfirmedOnly) const
         if (mint.isArchived || mint.isUsed)
             continue;
         bool fConfirmed = (mint.nHeight < chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations());
+        if (fConfirmed)
+            mint.nMemFlags |= MINT_CONFIRMED;
         if (fConfirmedOnly && !fConfirmed)
             continue;
         vMints.emplace_back(mint);
@@ -478,17 +481,32 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
         if (fUnusedOnly && mint.isUsed)
             continue;
 
-        if (fMatureOnly) {
-            // Not confirmed
-            if (!mint.nHeight || mint.nHeight > chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations())
-                continue;
-            // Not mature
-            if (!mapMaturity.count(mint.denom) || mint.nHeight >= mapMaturity.at(mint.denom))
-                continue;
-            //todo
-            //if (mint.nHeight >= mapMaturity.at(mint.denom))
-            //    continue;
+
+        // Not confirmed
+        bool fInclude = true;
+        if (!mint.nHeight || mint.nHeight > chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations()) {
+            if (fMatureOnly)
+                fInclude = false;
+        } else {
+            mint.nMemFlags |= MINT_CONFIRMED;
         }
+
+
+        // Not mature
+        if (!mapMaturity.count(mint.denom) || mint.nHeight >= mapMaturity.at(mint.denom)) {
+            if (fMatureOnly)
+                fInclude = false;
+        } else {
+            mint.nMemFlags |= MINT_MATURE;
+        }
+
+        if (!fInclude)
+            continue;
+
+        //todo
+        //if (mint.nHeight >= mapMaturity.at(mint.denom))
+        //    continue;
+
         setMints.insert(mint);
     }
 
