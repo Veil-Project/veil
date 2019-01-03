@@ -5435,8 +5435,7 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     std::vector<CTempRecipient> vecSend;
     if (!CreateZerocoinMintTransaction(nValue, txNew, vDMints, &reserveKey, nFeeRequired, strError, vecSend, fAllowBasecoin, coinControl)) {
         if (nValue + nFeeRequired > GetBalance())
-            return strprintf(_("Error: This transaction requires a transaction fee of at least %s because of its amount, "
-                               "complexity, or use of recently received funds!"), FormatMoney(nFeeRequired).c_str());
+            return strprintf(_("Error: Failed to create transaction: %s"), strError);
         return strError;
     }
 
@@ -5773,6 +5772,14 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
 {
     if (IsLocked()) {
         strFailReason = "Error: Wallet locked, unable to create transaction!";
+        LogPrintf("SpendZerocoin() : %s", strFailReason.c_str());
+        return false;
+    }
+
+    // Enforce that the amount requested is a multiple of the minimum mintable denomination
+    CAmount nValueMinDenom = libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN);
+    if (nValue % nValueMinDenom != 0) {
+        strFailReason = strprintf("Error: Requested mint amount needs to be multiple of %s!", FormatMoney(nValueMinDenom));
         LogPrintf("SpendZerocoin() : %s", strFailReason.c_str());
         return false;
     }

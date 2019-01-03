@@ -36,7 +36,7 @@ private:
     WalletView *mainWindow;
 
     void mintzerocoins();
-    CAmount parseAmount(const QString &text, bool *valid_out) const;
+    CAmount parseAmount(const QString &text, bool& valid_out, std::string& strError) const;
 };
 
 #endif // SETTINGSMINTING_H
