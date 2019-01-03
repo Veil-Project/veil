@@ -261,8 +261,14 @@ void SettingsWidget::setWalletModel(WalletModel *model){
 }
 
 void SettingsWidget::refreshWalletStatus() {
-    checkChangedManually = true;
-    ui->checkBoxStaking->setChecked(walletModel->isStakingEnabled() && walletModel->getEncryptionStatus() != WalletModel::Locked);
+    if(walletModel) {
+        WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
+        bool stakingStatus = walletModel->isStakingEnabled() && lockState != WalletModel::Locked;
+        if (ui->checkBoxStaking->isChecked() != stakingStatus) {
+            checkChangedManually = true;
+            ui->checkBoxStaking->setChecked(stakingStatus);
+        }
+    }
 }
 
 SettingsWidget::~SettingsWidget()
