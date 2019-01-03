@@ -42,7 +42,7 @@ private Q_SLOTS:
 private:
     Ui::SettingsWidget *ui;
     WalletView *mainWindow;
-    WalletModel *walletModel;
+    WalletModel *walletModel = nullptr;
 
     void openDialog(QDialog *dialog);
 };
