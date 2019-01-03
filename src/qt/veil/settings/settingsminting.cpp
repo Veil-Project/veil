@@ -79,7 +79,7 @@ CAmount SettingsMinting::parseAmount(const QString &text, bool *valid_out) const
     bool valid = BitcoinUnits::parse(BitcoinUnits::VEIL, text, &val);
     if(valid)
     {
-        if(val < 0 || val > BitcoinUnits::maxMoney())
+        if(val < 10 || val > BitcoinUnits::maxMoney())
             valid = false;
     }
     if(valid_out)
