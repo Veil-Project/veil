@@ -173,6 +173,8 @@ std::vector<CMintMeta> CzTracker::GetMints(bool fConfirmedOnly) const
         if (mint.isArchived || mint.isUsed)
             continue;
         bool fConfirmed = (mint.nHeight < chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations());
+        if (fConfirmed)
+            mint.nMemFlags |= MINT_CONFIRMED;
         if (fConfirmedOnly && !fConfirmed)
             continue;
         vMints.emplace_back(mint);
@@ -479,30 +481,32 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
         if (fUnusedOnly && mint.isUsed)
             continue;
 
-        if (fMatureOnly) {
-            // Not confirmed
-            bool fInclude = true;
-            if (!mint.nHeight || mint.nHeight > chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations()) {
+
+        // Not confirmed
+        bool fInclude = true;
+        if (!mint.nHeight || mint.nHeight > chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations()) {
+            if (fMatureOnly)
                 fInclude = false;
-            } else {
-                mint.nMemFlags |= MINT_CONFIRMED;
-            }
-
-
-            // Not mature
-            if (!mapMaturity.count(mint.denom) || mint.nHeight >= mapMaturity.at(mint.denom)) {
-                fInclude = false;
-            } else {
-                mint.nMemFlags |= MINT_MATURE;
-            }
-
-            if (!fInclude)
-                continue;
-
-            //todo
-            //if (mint.nHeight >= mapMaturity.at(mint.denom))
-            //    continue;
+        } else {
+            mint.nMemFlags |= MINT_CONFIRMED;
         }
+
+
+        // Not mature
+        if (!mapMaturity.count(mint.denom) || mint.nHeight >= mapMaturity.at(mint.denom)) {
+            if (fMatureOnly)
+                fInclude = false;
+        } else {
+            mint.nMemFlags |= MINT_MATURE;
+        }
+
+        if (!fInclude)
+            continue;
+
+        //todo
+        //if (mint.nHeight >= mapMaturity.at(mint.denom))
+        //    continue;
+
         setMints.insert(mint);
     }
 

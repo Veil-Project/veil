@@ -2454,7 +2454,7 @@ std::pair<ZerocoinSpread, ZerocoinSpread> CWallet::GetMyZerocoinDistribution() c
 
         std::set<CMintMeta> setMints = zTracker->ListMints(true, /*fMatureOnly*/false, true);
         for (const CMintMeta& mint : setMints) {
-            if (mint.nMemFlags & MINT_CONFIRMED && mint.nMemFlags & MINT_MATURE)
+            if ((mint.nMemFlags & MINT_CONFIRMED) && (mint.nMemFlags & MINT_MATURE))
                 spreadSpendable[mint.denom]++;
             else
                 spreadPending[mint.denom]++;
@@ -3013,6 +3013,8 @@ CAmount CWallet::GetImmatureZerocoinBalance() const
     CAmount nBalance = 0;
     std::vector<CMintMeta> vMints = zTracker->GetMints(false);
     for (auto meta : vMints) {
+        if (meta.nMemFlags & MINT_CONFIRMED)
+            continue;
         if (!mapMintMaturity.count(meta.denom) || meta.nHeight >= mapMintMaturity.at(meta.denom) || meta.nHeight >= chainActive.Height() || meta.nHeight == 0)
             nBalance += libzerocoin::ZerocoinDenominationToAmount(meta.denom);
     }
