@@ -692,7 +692,14 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         if (fProofOfStake) {
             //Need wallet if this is for proof of stake
             auto pwallet = GetMainWallet();
-            if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || !pwallet->IsStakingEnabled()) {
+
+            int nHeight;
+            {
+                LOCK(cs_main);
+                nHeight = chainActive.Height();
+            }
+
+            if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || !pwallet->IsStakingEnabled() || nHeight < Params().HeightPoSStart()) {
                 MilliSleep(5000);
                 continue;
             }
