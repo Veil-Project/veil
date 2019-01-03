@@ -285,7 +285,7 @@ public:
         nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
-        nZerocoinRequiredStakeDepth = 200; //The required confirmations for a zpiv to be stakable
+        nZerocoinRequiredStakeDepth = 200; //The required confirmations for a zerocoin to be stakable
         nHeightPoSStart = 1500;
         nKernelModulus = 100;
         nCoinbaseMaturity = 100;
@@ -428,7 +428,7 @@ public:
         nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
-        nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zpiv to be stakable
+        nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zerocoin to be stakable
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
@@ -533,7 +533,7 @@ public:
         nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
-        nZerocoinRequiredStakeDepth = 400; //The required confirmations for a zpiv to be stakable
+        nZerocoinRequiredStakeDepth = 400; //The required confirmations for a zerocoin to be stakable
     }
 };
 
