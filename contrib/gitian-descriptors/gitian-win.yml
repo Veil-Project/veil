@@ -1,5 +1,5 @@
 ---
-name: "veil-win-0.0.9.9"
+name: "veil-win-1.0.0.4"
 enable_cache: true
 suites:
 - "bionic"
