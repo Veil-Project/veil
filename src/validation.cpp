@@ -3564,7 +3564,17 @@ CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block, bool fProof
         pindexNew->BuildSkip();
     }
     pindexNew->nTimeMax = (pindexNew->pprev ? std::max(pindexNew->pprev->nTimeMax, pindexNew->nTime) : pindexNew->nTime);
-    pindexNew->nChainWork = (pindexNew->pprev ? pindexNew->pprev->nChainWork : 0) + GetBlockProof(*pindexNew);
+
+    int nTimeElapsed = 60;
+    if (pindexNew->pprev)
+        nTimeElapsed = pindexNew->GetBlockTime() - pindexNew->pprev->GetBlockTime();
+
+    nTimeElapsed = 1000 - nTimeElapsed;
+    if (nTimeElapsed <= 0)
+        nTimeElapsed = 1;
+
+    pindexNew->nChainWork = (pindexNew->pprev ? pindexNew->pprev->nChainWork : 0) + nTimeElapsed;
+    //pindexNew->nChainWork = (pindexNew->pprev ? pindexNew->pprev->nChainWork : 0) + GetBlockProof(*pindexNew);
     pindexNew->RaiseValidity(BLOCK_VALID_TREE);
 
     //! This may be incorrect if sync headers first is enabled
@@ -4652,7 +4662,16 @@ bool CChainState::LoadBlockIndex(const Consensus::Params& consensus_params, CBlo
     for (const std::pair<int, CBlockIndex*>& item : vSortedByHeight)
     {
         CBlockIndex* pindex = item.second;
-        pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + GetBlockProof(*pindex);
+        int64_t nTimeElapsed = 60;
+        if (pindex->pprev)
+            nTimeElapsed = pindex->GetBlockTime() - pindex->pprev->GetBlockTime();
+        nTimeElapsed = 1000 - nTimeElapsed;
+        if (nTimeElapsed <= 0)
+            nTimeElapsed = 1;
+
+        pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + nTimeElapsed;
+        //pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + 10000 - nTimeElapsed;
+        //pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + GetBlockProof(*pindex);
         pindex->nTimeMax = (pindex->pprev ? std::max(pindex->pprev->nTimeMax, pindex->nTime) : pindex->nTime);
         // We can link the chain of blocks for which we've received transactions at some point.
         // Pruned nodes may have deleted the block.
