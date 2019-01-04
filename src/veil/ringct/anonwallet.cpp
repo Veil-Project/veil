@@ -4315,7 +4315,10 @@ void AnonWallet::MarkOutputSpent(const COutPoint& outpoint, bool isSpent)
 
     //Overwrite record with updated info
     auto record = it->second;
-    record.GetOutput(outpoint.n)->MarkSpent(isSpent);
+    COutputRecord* outputRecord = record.GetOutput(outpoint.n);
+    if (outputRecord) {
+        outputRecord->MarkSpent(isSpent);
+    }
     SaveRecord(outpoint.hash, record);
 }
 
@@ -4364,13 +4367,13 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
 
             mir = mapRecords.find(txin.prevout.hash);
             if (mir != mapRecords.end()) {
-                MarkOutputSpent(txin.prevout, true);
                 const COutputRecord *r = mir->second.GetOutput(txin.prevout.n);
                 if (r && r->nFlags & ORF_OWN_ANY) {
                     fIsFromMe = true;
                     break; // only need one match
                 }
             }
+            MarkOutputSpent(txin.prevout, true);
 
             //Double check for standard outputs from us
             if (!fIsFromMe && !txin.IsAnonInput()) {
