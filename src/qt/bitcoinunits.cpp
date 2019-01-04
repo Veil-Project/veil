@@ -125,15 +125,16 @@ QString BitcoinUnits::formatFixedAmountOfDecimals(int unit, const CAmount& nIn, 
     if (num_decimals > 0) {
         qint64 remainder = n_abs % coin;
         QString remainder_str = QString::number(remainder);
-        /*
-        int left = remainder_str.size() - 2;
-        if(left == -1){
-            remainder_str = remainder_str.rightJustified(2, '0');
-        }else if(left == -2){
-            remainder_str = remainder_str.rightJustified(3, '0');
+        if(remainder > 0){
+            remainder_str = remainder_str.rightJustified(num_decimals, '0');
+        }else {
+            int left = remainder_str.size() - 2;
+            if (left == -1) {
+                remainder_str = remainder_str.rightJustified(2, '0');
+            } else if (left == -2) {
+                remainder_str = remainder_str.rightJustified(3, '0');
+            }
         }
-        */
-        remainder_str = remainder_str.rightJustified(num_decimals, '0');
         return quotient_str + QString(".") + remainder_str;
     } else {
         return quotient_str;
