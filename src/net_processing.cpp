@@ -2773,7 +2773,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         // We want to be a bit conservative just to be extra careful about DoS
         // possibilities in compact block processing...
-        if (pindex->nHeight <= chainActive.Height() + 2 && false) {
+        if (pindex->nHeight <= chainActive.Height() + 2 && /**Compactblocks broken**/false) {
+            /*
             if ((!fAlreadyInFlight && nodestate->nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) ||
                  (fAlreadyInFlight && blockInFlightIt->second.first == pfrom->GetId())) {
                 std::list<QueuedBlock>::iterator* queuedBlockIt = nullptr;
@@ -2834,6 +2835,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     fBlockReconstructed = true;
                 }
             }
+             */
         } else {
             if (fAlreadyInFlight) {
                 // We requested this block, but its far into the future, so our
