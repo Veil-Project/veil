@@ -120,6 +120,7 @@ CoinControlDialog::CoinControlDialog(const PlatformStyle *_platformStyle, QWidge
 
     ui->treeWidget->setColumnWidth(COLUMN_CHECKBOX, 84);
     ui->treeWidget->setColumnWidth(COLUMN_AMOUNT, 110);
+    ui->treeWidget->setColumnWidth(COLUMN_COINTYPE, 130);
     ui->treeWidget->setColumnWidth(COLUMN_LABEL, 190);
     ui->treeWidget->setColumnWidth(COLUMN_ADDRESS, 320);
     ui->treeWidget->setColumnWidth(COLUMN_DATE, 130);
@@ -391,6 +392,8 @@ void CoinControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
     }
 }
 #include <iostream>
+#include <veil/ringct/anonwallet.h>
+
 // shows count of locked unspent outputs
 void CoinControlDialog::updateLabelLocked()
 {
@@ -479,6 +482,8 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         }
         else nBytesInputs += 148;
     }
+
+
 
     // calculation
     if (nQuantity > 0)
@@ -706,6 +711,7 @@ void CoinControlDialog::updateView()
             // set checkbox
             if (coinControl()->IsSelected(output))
                 itemOutput->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
+            itemOutput->setText(COLUMN_COINTYPE, QString("Basecoin"));
         }
 
         // amount
@@ -715,6 +721,41 @@ void CoinControlDialog::updateView()
             itemWalletAddress->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, nSum));
             itemWalletAddress->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong)nSum));
         }
+    }
+
+    AnonWallet * pAnonWallet = model->wallet().getWalletPointer()->GetAnonWallet();
+    std::map<uint256, CTransactionRecord> mapTxRecords = pAnonWallet->mapRecords;
+    for (const auto& recordPair : mapTxRecords) {
+        uint256 txid = recordPair.first;
+        uint256 txHash = Hash(BEGIN(txid), END(txid));
+        CTransactionRecord txRecord = recordPair.second;
+
+        for(int i = 1; i < txRecord.vout.size(); i++) {
+            const auto& out = txRecord.vout[i];
+            if(out.IsSpent()) //ignore first output and spent outputs
+                continue;
+            CCoinControlWidgetItem *itemWalletAddress = new CCoinControlWidgetItem();
+            itemWalletAddress->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
+
+            CCoinControlWidgetItem *itemOutput;
+            if (treeMode)    itemOutput = new CCoinControlWidgetItem(itemWalletAddress);
+            else             itemOutput = new CCoinControlWidgetItem(ui->treeWidget);
+            itemOutput->setFlags(flgCheckbox);
+            itemOutput->setCheckState(COLUMN_CHECKBOX,Qt::Unchecked);
+
+            itemOutput->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, out.GetAmount()));
+            itemOutput->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong) out.GetAmount())); // padding so that sorting works correctly
+
+            // transaction hash
+            itemOutput->setText(COLUMN_TXHASH, QString::fromStdString(txHash.GetHex()));
+            if(out.IsChange()){
+                itemOutput->setText(COLUMN_COINTYPE, QString("Basecoin"));
+            }
+            else {
+                itemOutput->setText(COLUMN_COINTYPE, QString("Stealth Output"));
+            }
+        }
+
     }
 
     // expand all partially selected

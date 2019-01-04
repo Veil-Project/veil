@@ -76,6 +76,7 @@ private:
     {
         COLUMN_CHECKBOX = 0,
         COLUMN_AMOUNT,
+        COLUMN_COINTYPE,
         COLUMN_LABEL,
         COLUMN_ADDRESS,
         COLUMN_DATE,
