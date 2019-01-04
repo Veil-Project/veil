@@ -2086,19 +2086,19 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // nodes)
             connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::SENDHEADERS));
         }
-        if (pfrom->nVersion >= SHORT_IDS_BLOCKS_VERSION) {
-            // Tell our peer we are willing to provide version 1 or 2 cmpctblocks
-            // However, we do not request new block announcements using
-            // cmpctblock messages.
-            // We send this to non-NODE NETWORK peers as well, because
-            // they may wish to request compact blocks from us
-            bool fAnnounceUsingCMPCTBLOCK = false;
-            uint64_t nCMPCTBLOCKVersion = 2;
-            if (pfrom->GetLocalServices() & NODE_WITNESS)
-                connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::SENDCMPCT, fAnnounceUsingCMPCTBLOCK, nCMPCTBLOCKVersion));
-            nCMPCTBLOCKVersion = 1;
-            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::SENDCMPCT, fAnnounceUsingCMPCTBLOCK, nCMPCTBLOCKVersion));
-        }
+//        if (pfrom->nVersion >= SHORT_IDS_BLOCKS_VERSION) {
+//            // Tell our peer we are willing to provide version 1 or 2 cmpctblocks
+//            // However, we do not request new block announcements using
+//            // cmpctblock messages.
+//            // We send this to non-NODE NETWORK peers as well, because
+//            // they may wish to request compact blocks from us
+//            bool fAnnounceUsingCMPCTBLOCK = false;
+//            uint64_t nCMPCTBLOCKVersion = 2;
+//            if (pfrom->GetLocalServices() & NODE_WITNESS)
+//                connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::SENDCMPCT, fAnnounceUsingCMPCTBLOCK, nCMPCTBLOCKVersion));
+//            nCMPCTBLOCKVersion = 1;
+//            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::SENDCMPCT, fAnnounceUsingCMPCTBLOCK, nCMPCTBLOCKVersion));
+//        }
         pfrom->fSuccessfullyConnected = true;
     }
 
@@ -2773,7 +2773,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         // We want to be a bit conservative just to be extra careful about DoS
         // possibilities in compact block processing...
-        if (pindex->nHeight <= chainActive.Height() + 2) {
+        if (pindex->nHeight <= chainActive.Height() + 2 && false) {
             if ((!fAlreadyInFlight && nodestate->nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) ||
                  (fAlreadyInFlight && blockInFlightIt->second.first == pfrom->GetId())) {
                 std::list<QueuedBlock>::iterator* queuedBlockIt = nullptr;
