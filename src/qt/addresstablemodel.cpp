@@ -85,6 +85,11 @@ public:
                         QString::fromStdString(address.purpose), address.is_mine);
                 bool fBasecoin = address.purpose == "basecoin";
                 QString addressStr = QString::fromStdString(EncodeDestination(address.dest, !fBasecoin));
+                if (addressStr.isEmpty()){
+                    // TODO: Check why this is happening.
+                    //std::cout << "Empty address" << std::endl;
+                    continue;
+                }
                 cachedAddressTable.append(AddressTableEntry(addressType,
                                   QString::fromStdString(address.name), addressStr, fBasecoin));
             }
@@ -164,7 +169,7 @@ public:
 AddressTableModel::AddressTableModel(WalletModel *parent) :
     QAbstractTableModel(parent), walletModel(parent)
 {
-    columns << tr("Label") << tr("Address");
+    columns << tr("Label") << tr("Address") << tr("Address dot");
     priv = new AddressTablePriv(this);
     priv->refreshAddressTable(parent->wallet());
 }

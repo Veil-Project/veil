@@ -38,7 +38,6 @@ void VeilStatusBar::onBtnSyncClicked(){
 bool fBlockNextStakeCheckSignal = false;
 void VeilStatusBar::onCheckStakingClicked(bool res) {
     // When our own dialog internally changes the checkstate, block signal from executing
-    if(!this->preparingFlag) return;
     if (fBlockNextStakeCheckSignal) {
         fBlockNextStakeCheckSignal = false;
         return;
@@ -51,15 +50,19 @@ void VeilStatusBar::onCheckStakingClicked(bool res) {
             QString dialogMsg = gArgs.GetBoolArg("-exchangesandservicesmode", false) ? "Staking is disabled in exchange mode" : "Must unlock wallet before staking can be enabled";
             openToastDialog(dialogMsg, mainWindow);
             fBlockNextStakeCheckSignal = true;
-            ui->checkStaking->setCheckState(Qt::CheckState::Unchecked);
+            ui->checkStaking->setChecked(false);
+            return;
+        }else{
+            this->walletModel->setStakingEnabled(true);
+            mainWindow->updateWalletStatus();
+            openToastDialog("Staking enabled", mainWindow);
         }
     } else {
+        this->walletModel->setStakingEnabled(false);
         mainWindow->updateWalletStatus();
         openToastDialog("Staking disabled", mainWindow);
     }
 
-    if (!gArgs.GetBoolArg("-exchangesandservicesmode", false) && lockState != WalletModel::Locked)
-        this->walletModel->setStakingEnabled(res);
 }
 
 bool fBlockNextBtnLockSignal = false;
@@ -95,26 +98,38 @@ void VeilStatusBar::onBtnLockClicked()
         }
 
     }
-    fBlockNextBtnLockSignal = true;
+
     updateStakingCheckbox();
 }
 
 void VeilStatusBar::setWalletModel(WalletModel *model)
 {
-    this->preparingFlag = false;
     this->walletModel = model;
-    updateStakingCheckbox();
     connect(ui->checkStaking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
-    this->preparingFlag = true;
+    updateStakingCheckbox();
+}
+
+void VeilStatusBar::updateLockCheckbox(){
+    if(walletModel) {
+        WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
+        bool lockStatus = lockState == WalletModel::Locked || lockState == WalletModel::UnlockedForStakingOnly;
+        if (ui->btnLock->isChecked() != lockStatus) {
+            ui->btnLock->setChecked(lockStatus);
+            fBlockNextBtnLockSignal = true;
+        }
+    }
 }
 
 void VeilStatusBar::updateStakingCheckbox()
 {
-    WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
-    ui->btnLock->setChecked(lockState == WalletModel::Locked || lockState == WalletModel::UnlockedForStakingOnly);
-
-    if(this->preparingFlag) {
-        ui->checkStaking->setChecked(walletModel->isStakingEnabled() && lockState != WalletModel::Locked);
+    if(walletModel) {
+        WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
+        bool stakingStatus = walletModel->isStakingEnabled() && lockState != WalletModel::Locked;
+        if (ui->checkStaking->isChecked() != stakingStatus) {
+            fBlockNextStakeCheckSignal = true;
+            ui->checkStaking->setChecked(stakingStatus);
+            return;
+        }
     }
 }
 

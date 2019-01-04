@@ -35,10 +35,12 @@ private Q_SLOTS:
 private:
     Ui::VeilStatusBar *ui;
     BitcoinGUI* mainWindow;
-    WalletModel *walletModel;
+    WalletModel *walletModel = nullptr;
     UnlockPasswordDialog *unlockPasswordDialog = nullptr;
 
     bool preparingFlag = false;
+
+    void updateLockCheckbox();
 };
 
 #endif // VEILSTATUSBAR_H
