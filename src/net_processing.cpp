@@ -537,7 +537,7 @@ static void FindNextBlocksToDownload(NodeId nodeid, unsigned int count, std::vec
     // Make sure pindexBestKnownBlock is up to date, we'll need it.
     ProcessBlockAvailability(nodeid);
 
-    if (state->pindexBestKnownBlock == nullptr || state->pindexBestKnownBlock->nChainWork < chainActive.Tip()->nChainWork || state->pindexBestKnownBlock->nChainWork < nMinimumChainWork) {
+    if (state->pindexBestKnownBlock == nullptr || state->pindexBestKnownBlock->nChainWork < chainActive.Tip()->nChainWork || state->pindexBestKnownBlock->nChainWork < nMinimumChainWork || state->pindexBestKnownBlock->nChainWork < pindexBestHeader->nChainWork) {
         // This peer has nothing interesting.
         return;
     }
@@ -1440,7 +1440,7 @@ void ThreadStaging()
             LogPrintf("ThreadStaging() interrupted\n");
         }
 
-        if (ShutdownRequested() || (pindexBestHeader && chainActive.Height() >= pindexBestHeader->nHeight))
+        if (ShutdownRequested() /*|| (pindexBestHeader && chainActive.Height() >= pindexBestHeader->nHeight)*/)
             break;
     }
     LogPrintf("ThreadStaging exiting\n");
@@ -1449,7 +1449,7 @@ void ThreadStaging()
 void ProcessStaging()
 {
     while (true) {
-        if (ShutdownRequested() || (pindexBestHeader && chainActive.Height() >= pindexBestHeader->nHeight))
+        if (ShutdownRequested() /*|| (pindexBestHeader && chainActive.Height() >= pindexBestHeader->nHeight)*/)
             return;
         boost::this_thread::interruption_point();
 
@@ -4089,8 +4089,8 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
         bool fRequest = true;
         {
             LOCK(cs_staging);
-            if (mapStagedBlocks.size() > 50)
-                fRequest = false;
+//            if (mapStagedBlocks.size() > 50)
+//                fRequest = false;
         }
         int nBestHeight = 0;
         {
@@ -4098,7 +4098,7 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
             nBestHeight = chainActive.Height();
         }
 
-        if (!pto->fClient && fRequest && ((fFetch && !pto->m_limited_node) || !IsInitialBlockDownload()) && state.nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
+        if (!pto->fClient && fRequest && ((fFetch && !pto->m_limited_node) /*|| !IsInitialBlockDownload()*/) && state.nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
             std::vector<const CBlockIndex*> vToDownload;
             NodeId staller = -1;
             FindNextBlocksToDownload(pto->GetId(), MAX_BLOCKS_IN_TRANSIT_PER_PEER - state.nBlocksInFlight, vToDownload, staller, consensusParams);
@@ -4117,6 +4117,12 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                         // Already have this block, so consider it requested
                         mapRequestedBlocks.emplace(inv.hash, GetTime());
                         fRequest = false;
+                    } else if (pindexBestHeader->GetAncestor(pindex->nHeight)) {
+                        auto hashCheck = pindexBestHeader->GetAncestor(pindex->nHeight)->GetBlockHash();
+                        if (hashCheck != pindex->GetBlockHash()) {
+                            //this is not on the chain we want
+                            fRequest = false;
+                        }
                     } else {
                         LOCK(cs_staging);
                         if (mapStagedBlocks.count(pindex->nHeight)) {

@@ -46,9 +46,8 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         OutputTypes inputType = rtx.GetInputType();
         for (const auto &r : rtx.vout)
         {
-            if (r.nFlags & ORF_CHANGE) {
+            if (r.IsChange())
                 continue;
-            }
 
             nFlags |= r.nFlags;
 
@@ -74,8 +73,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     ExtractDestination(r.scriptPubKey, address);
             };
 
-            if (r.nType == OUTPUT_STANDARD)
-            {
+            if (r.nType == OUTPUT_STANDARD) {
                 outputType = OutputTypes::OUTPUT_STANDARD;
             } else if (r.nType == OUTPUT_CT) {
                 outputType = OutputTypes::OUTPUT_CT;
@@ -95,7 +93,9 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         if (sub.debit != 0)
             sub.debit -= wtx.ct_fee.second;
 
-        if (nFlags & ORF_OWNED && nFlags & ORF_FROM) {
+        if ((nFlags & ORF_OWNED && nFlags & ORF_FROM) || rtx.IsSendToSelf()) {
+            sub.debit = -wtx.ct_fee.second;
+            sub.credit = 0;
             if (inputType != outputType) {
                 /** Type Conversion **/
                 switch (inputType) {

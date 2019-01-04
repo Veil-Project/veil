@@ -6,6 +6,7 @@
 #include <logging.h>
 #include <reverse_iterator.h>
 #include "denomination_functions.h"
+#include "mintmeta.h"
 
 using namespace libzerocoin;
 

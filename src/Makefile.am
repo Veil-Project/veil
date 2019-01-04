@@ -212,6 +212,7 @@ BITCOIN_CORE_H = \
   veil/zerocoin/denomination_functions.h \
   veil/zerocoin/spendreceipt.h \
   veil/zerocoin/mintpool.h \
+  veil/zerocoin/mintmeta.h \
   veil/mnemonic/arrayslice.h \
   veil/mnemonic/dictionary.h \
   veil/mnemonic/generateseed.h \

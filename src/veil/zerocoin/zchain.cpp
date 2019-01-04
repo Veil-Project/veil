@@ -13,6 +13,7 @@
 #include "consensus/validation.h"
 #include "primitives/zerocoin.h"
 #include "ui_interface.h"
+#include "mintmeta.h"
 
 // 6 comes from OPCODE (1) + vch.size() (1) + BIGNUM size (4)
 #define SCRIPT_OFFSET 6

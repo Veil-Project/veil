@@ -16,6 +16,7 @@
 #include <veil/ringct/transactionrecord.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
+#include <veil/zerocoin/mintmeta.h>
 
 
 #include <boost/assign.hpp>
@@ -434,12 +435,14 @@ UniValue listzerocoinamounts(const JSONRPCRequest& request)
 
     EnsureWalletIsUnlocked(pwallet);
 
-    std::map<libzerocoin::CoinDenomination, CAmount> mapMints = pwallet->GetMyZerocoinDistribution();
+    std::pair<ZerocoinSpread, ZerocoinSpread> pZerocoinDist = pwallet->GetMyZerocoinDistribution();
     UniValue ret(UniValue::VARR);
-    for (const auto& mi : mapMints) {
+    for (const auto& mi : pZerocoinDist.first) {
         UniValue val(UniValue::VOBJ);
-        val.push_back(Pair("denomination", libzerocoin::ZerocoinDenominationToInt(mi.first)));
-        val.push_back(Pair("mints", (int64_t)mi.second));
+        auto denom = mi.first;
+        val.push_back(Pair("denomination", libzerocoin::ZerocoinDenominationToInt(denom)));
+        val.push_back(Pair("mints_spendable", (int64_t)mi.second));
+        val.push_back(Pair("mints_pending", (int64_t)pZerocoinDist.second.at(denom)));
         ret.push_back(val);
     }
     return ret;

@@ -904,6 +904,75 @@ static UniValue getreceivedbylabel(const JSONRPCRequest& request)
     return ValueFromAmount(nAmount);
 }
 
+static UniValue getbalances(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet *const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || !request.params.empty())
+        throw std::runtime_error(
+                "getbalances\n"
+                "\nReturns the balance for each type of veil currency\n"
+                "\nResult:\n"
+                "amount              (numeric) The total amount in " + CURRENCY_UNIT + " received for this label.\n"
+                                                                                       "\nExamples:\n"
+                                                                                       "\nAmount received by the default label with at least 1 confirmation\n"
+                + HelpExampleCli("getbalances", "\"\"")
+                + HelpExampleRpc("getbalances", "\"\"")
+        );
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    /*
+     * nVeil = 0;
+        nVeilUnconf = 0;
+        nVeilImmature = 0;
+        nVeilWatchOnly = 0;
+        nVeilWatchOnlyUnconf = 0;
+
+        nCT = 0;
+        nCTUnconf = 0;
+        nCTImmature = 0;
+
+        nRingCT = 0;
+        nRingCTUnconf = 0;
+        nRingCTImmature = 0;
+
+        nZerocoin = 0;
+        nZerocoinUnconf = 0;
+        nZerocoinImmature = 0;
+     */
+    BalanceList balancelist;
+    if (!pwallet->GetBalances(balancelist))
+        throw JSONRPCError(RPC_WALLET_ERROR, "failed to get balances from wallet");
+
+    UniValue ret(UniValue::VOBJ);
+    ret.pushKV("basecoin_spendable", FormatMoney(balancelist.nVeil));
+    ret.pushKV("basecoin_unconfirmed", FormatMoney(balancelist.nVeilUnconf));
+    ret.pushKV("basecoin_immature", FormatMoney(balancelist.nVeilImmature));
+
+    ret.pushKV("ct_spendable", FormatMoney(balancelist.nCT));
+    ret.pushKV("ct_unconfirmed", FormatMoney(balancelist.nCTUnconf));
+    ret.pushKV("ct_immature", FormatMoney(balancelist.nCTImmature));
+
+    ret.pushKV("ringct_spendable", FormatMoney(balancelist.nRingCT));
+    ret.pushKV("ringct_unconfirmed", FormatMoney(balancelist.nRingCTUnconf));
+    ret.pushKV("ringct_immature", FormatMoney(balancelist.nRingCTImmature));
+
+    ret.pushKV("zerocoin_spendable", FormatMoney(balancelist.nZerocoin));
+    ret.pushKV("zerocoin_unconfirmed", FormatMoney(balancelist.nZerocoinUnconf));
+    ret.pushKV("zerocoin_immature", FormatMoney(balancelist.nZerocoinImmature));
+
+    return ret;
+}
+
 static UniValue getbalance(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1076,6 +1145,9 @@ static UniValue sendfrom(const JSONRPCRequest& request)
     if (!IsValidDestination(dest)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Veil address");
     }
+    if (dest.which() == 6)
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Cannot send to stealth address using sendtoaddress");
+
     CAmount nAmount = AmountFromValue(request.params[2]);
     if (nAmount <= 0)
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount for send");
@@ -4804,6 +4876,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "encryptwallet",                    &encryptwallet,                 {"passphrase"} },
     { "wallet",             "getaddressinfo",                   &getaddressinfo,                {"address"} },
     { "wallet",             "getbalance",                       &getbalance,                    {"account|dummy","minconf","include_watchonly"} },
+    { "wallet",             "getbalances",                      &getbalances,                   {} },
     { "wallet",             "getnewbasecoinaddress",            &getnewbasecoinaddress,         {"label|account","address_type"} },
     { "wallet",             "getnewminingaddress",              &getnewminingaddress,           {"label"} },
     { "wallet",             "getrawchangeaddress",              &getrawchangeaddress,           {"address_type"} },

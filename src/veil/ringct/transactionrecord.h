@@ -68,6 +68,17 @@ public:
         return false;
     };
 
+    bool IsSendToSelf() const
+    {
+        if (!(nFlags & ORF_FROM))
+            return false;
+        for (const COutputRecord& record : vout) {
+            if (!record.IsReceive())
+                return false;
+        }
+        return true;
+    }
+
     CAmount TotalOutput()
     {
         CAmount nTotal = 0;

@@ -1012,6 +1012,6 @@ add_executable(veil
         src/versionbits.h
         src/walletinitinterface.h
         src/warnings.cpp
-        src/warnings.h src/veil/zerocoin/spendreceipt.h src/veil/ringct/temprecipient.h src/veil/ringct/temprecipient.cpp src/veil/zerocoin/spendreceipt.cpp src/veil/ringct/outputrecord.cpp src/veil/ringct/outputrecord.h src/wallet/walletbalances.h src/veil/ringct/transactionrecord.h)
+        src/warnings.h src/veil/zerocoin/spendreceipt.h src/veil/ringct/temprecipient.h src/veil/ringct/temprecipient.cpp src/veil/zerocoin/spendreceipt.cpp src/veil/ringct/outputrecord.cpp src/veil/ringct/outputrecord.h src/wallet/walletbalances.h src/veil/ringct/transactionrecord.h src/veil/zerocoin/mintmeta.h)
 
 qt5_use_modules(veil Core Widgets Gui)
