@@ -121,6 +121,22 @@ void CBlockIndex::BuildSkip()
         pskip = pprev->GetAncestor(GetSkipHeight(nHeight));
 }
 
+int64_t CBlockIndex::GetBlockWork() const
+{
+    int64_t nTimeSpan = 0;
+    if (pprev && pprev->pprev)
+        nTimeSpan = pprev->GetBlockTime() - pprev->pprev->GetBlockTime();
+    int64_t nBlockWork = 1000 - nTimeSpan;
+    if (nBlockWork <= 0)
+        nBlockWork = 1;
+
+    //PoS blocks have the final decision on consensus, if it is between a PoW block and PoS block
+    if (IsProofOfStake())
+        nBlockWork += 1001;
+
+    return nBlockWork;
+}
+
 arith_uint256 GetBlockProof(const CBlockIndex& block)
 {
     arith_uint256 bnTarget;
