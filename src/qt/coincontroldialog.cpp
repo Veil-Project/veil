@@ -729,10 +729,13 @@ void CoinControlDialog::updateView()
         uint256 txid = recordPair.first;
         uint256 txHash = Hash(BEGIN(txid), END(txid));
         CTransactionRecord txRecord = recordPair.second;
-
-        for(int i = 1; i < txRecord.vout.size(); i++) {
+        std::cout << txid.GetHex() << std::endl;
+        std::cout << txHash.GetHex() << std::endl;
+        std::cout << "end" << std::endl;
+        const CWalletTx* pWalletTx = model->wallet().getWalletPointer()->GetWalletTx(txid);
+        for(unsigned int i = 1; i < txRecord.vout.size(); i++) {
             const auto& out = txRecord.vout[i];
-            if(out.IsSpent()) //ignore first output and spent outputs
+            if(out.IsSpent())
                 continue;
             CCoinControlWidgetItem *itemWalletAddress = new CCoinControlWidgetItem();
             itemWalletAddress->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
@@ -746,8 +749,18 @@ void CoinControlDialog::updateView()
             itemOutput->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, out.GetAmount()));
             itemOutput->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong) out.GetAmount())); // padding so that sorting works correctly
 
+            // date
+            itemOutput->setText(COLUMN_DATE, GUIUtil::dateTimeStr(pWalletTx->GetTxTime()));
+            itemOutput->setData(COLUMN_DATE, Qt::UserRole, QVariant((qlonglong)pWalletTx->GetTxTime()));
+
+            //Confirmations
+            itemOutput->setText(COLUMN_CONFIRMATIONS, QString::number(pWalletTx->GetDepthInMainChain()));
+            itemOutput->setData(COLUMN_CONFIRMATIONS, Qt::UserRole, QVariant((qlonglong)pWalletTx->GetDepthInMainChain()));
+
             // transaction hash
             itemOutput->setText(COLUMN_TXHASH, QString::fromStdString(txHash.GetHex()));
+
+            //Type of coin
             if(out.IsChange()){
                 itemOutput->setText(COLUMN_COINTYPE, QString("Basecoin"));
             }
