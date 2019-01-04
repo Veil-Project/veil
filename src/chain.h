@@ -21,7 +21,8 @@
  * Maximum amount of time that a block timestamp is allowed to exceed the
  * current network-adjusted time before the block will be accepted.
  */
-static const int64_t MAX_FUTURE_BLOCK_TIME = 2 * 60 * 60;
+static const int64_t MAX_FUTURE_BLOCK_TIME = 75;
+static const int64_t MAX_PAST_BLOCK_TIME = 15;
 
 /**
  * Timestamp window used as a grace period by code that compares external
@@ -368,6 +369,8 @@ public:
     {
         return (int64_t)nTimeMax;
     }
+
+    int64_t GetBlockWork() const;
 
     /** Returns the hash of the accumulator for the specified denomination. If it doesn't exist then a new uint256 is returned*/
     uint256 GetAccumulatorHash(libzerocoin::CoinDenomination denom) const
