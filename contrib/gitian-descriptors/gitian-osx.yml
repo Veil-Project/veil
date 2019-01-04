@@ -1,5 +1,5 @@
 ---
-name: "veil-osx-1.0.0.4"
+name: "veil-osx-1.0.0.5"
 enable_cache: true
 suites:
 - "bionic"
