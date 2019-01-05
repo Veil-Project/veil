@@ -4614,7 +4614,7 @@ void CWallet::AutoZeromint()
     CCoinControl coinControl;
     CAmount nBalance = GetMintableBalance(vOutputs); // won't consider locked outputs or basecoin address
 
-    if (nBalance < 10){
+    if (nBalance <= libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN)){
         LogPrint(BCLog::SELECTCOINS, "CWallet::AutoZeromint(): available balance (%ld) too small for minting zPIV\n", nBalance);
         return;
     }
@@ -5551,6 +5551,7 @@ bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendRe
         }
 
         CValidationState state;
+        LOCK(cs_main);
         if (!AcceptToMemoryPool(mempool, state, wtxCurrent.tx, nullptr /* pfMissingInputs */, nullptr /* plTxnReplaced */,
                 false /* bypass_limits */, maxTxFee, true)) {
             // failed mempool validation for one of the transactions so no partial transaction is being committed
