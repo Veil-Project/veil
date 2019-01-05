@@ -4614,7 +4614,7 @@ void CWallet::AutoZeromint()
     CCoinControl coinControl;
     CAmount nBalance = GetMintableBalance(vOutputs); // won't consider locked outputs or basecoin address
 
-    if (nBalance < 10){
+    if (nBalance <= libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN)){
         LogPrint(BCLog::SELECTCOINS, "CWallet::AutoZeromint(): available balance (%ld) too small for minting zPIV\n", nBalance);
         return;
     }
@@ -5429,7 +5429,8 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     CAmount nValueRequired = nValue + Params().Zerocoin_MintFee();
 
     // User must specifically request to use basecoin, or else must have the anon balance for it
-    if (nValueRequired > pAnonWalletMain->GetAnonBalance()) {//todo should this be total anon balance (including blind)
+    CAmount nTotalAnonBalance = pAnonWalletMain->GetAnonBalance() + pAnonWalletMain->GetBlindBalance();
+    if (nValueRequired > nTotalAnonBalance) {
         if (!fAllowBasecoin)
             return _("Insufficient RingCT Funds");
     }
@@ -5550,6 +5551,7 @@ bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendRe
         }
 
         CValidationState state;
+        LOCK(cs_main);
         if (!AcceptToMemoryPool(mempool, state, wtxCurrent.tx, nullptr /* pfMissingInputs */, nullptr /* plTxnReplaced */,
                 false /* bypass_limits */, maxTxFee, true)) {
             // failed mempool validation for one of the transactions so no partial transaction is being committed
@@ -5881,7 +5883,7 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         for (const CInputCoin& coin: setCoins)
             txNew.vin.emplace_back(CTxIn(coin.outpoint.hash, coin.outpoint.n));
     } else {
-        /** Select RingCT Inputs **/
+        /** Select RingCT & CT Inputs **/
         // create output variables for add anon inputs
         CTransactionRef tx_new;
         CWalletTx wtx(this, tx_new);
@@ -5897,8 +5899,19 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
 
         CTransactionRecord rtx;
         std::string sError;
+
+        bool fAnonFailed = false;
+        bool fBlindFailed = false;
         if (0 != pAnonWalletMain->AddAnonInputs(wtx, rtx, vecSend, true, nRingSize, nInputsPerSig, nFeeRet, &cControl, sError)) {
-            strFailReason = strprintf("Failed to add ringctinputs : %s", sError);
+            fAnonFailed = true;
+        }
+
+        if (0 != pAnonWalletMain->AddBlindedInputs(wtx, rtx, vecSend, true, nFeeRet, &cControl, sError)) {
+            fBlindFailed = true;
+        }
+
+        if (fAnonFailed && fBlindFailed) {
+            strFailReason = strprintf("Failed to add ringctinputs & ctinputs : %s", sError);
             return false;
         }
 

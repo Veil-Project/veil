@@ -227,7 +227,7 @@ bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& tx
     return IsSerialInBlockchain(hashSerial, nHeightTx, txidSpend, tx);
 }
 
-bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& txidSpend, CTransactionRef txRef)
+bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& txidSpend, CTransactionRef& txRef)
 {
     txidSpend = uint256();
     // if not in zerocoinDB then its not in the blockchain
