@@ -183,6 +183,7 @@ public:
         hashMerkleRoot = uint256();
         hashWitnessMerkleRoot = uint256();
         hashPoFN = uint256();
+        fSignaturesVerified = false;
     }
 
     CBlockHeader GetBlockHeader() const
