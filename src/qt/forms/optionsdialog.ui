@@ -33,7 +33,7 @@ border:none;</string>
       <string notr="true"/>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tabMain">
       <property name="styleSheet">
@@ -922,7 +922,20 @@ padding:9px;
                   <string>The user interface language can be set here. This setting will take effect after restarting %1.</string>
                  </property>
                  <property name="styleSheet">
-                  <string notr="true">font-size:13px;qproperty-alignment: AlignCenter;</string>
+                  <string notr="true">QValueComboBox{
+	font-size:13px;
+	qproperty-alignment: AlignCenter;
+    selection-color: #000000;
+}
+
+QValueComboBox QFrame{
+	background-color:white;
+}
+
+QValueComboBox::drop-down {
+   background-color:white;
+   color:#bababa;
+}</string>
                  </property>
                 </widget>
                </item>
@@ -952,7 +965,20 @@ padding:9px;
                   <string>Choose the default subdivision unit to show in the interface and when sending coins.</string>
                  </property>
                  <property name="styleSheet">
-                  <string notr="true">font-size:13px;</string>
+                  <string notr="true">QValueComboBox{
+	font-size:13px;
+	qproperty-alignment: AlignCenter;
+    selection-color: #000000;
+}
+
+QValueComboBox QFrame{
+	background-color:white;
+}
+
+QValueComboBox::drop-down {
+   background-color:white;
+   color:#bababa;
+}</string>
                  </property>
                 </widget>
                </item>
@@ -1086,7 +1112,7 @@ padding:9px;
           <string>&amp;Reset Options</string>
          </property>
          <property name="icon">
-          <iconset>
+          <iconset resource="../veil.qrc">
            <normaloff>:/icons/ic-reset-options</normaloff>:/icons/ic-reset-options</iconset>
          </property>
          <property name="autoDefault">
@@ -1247,6 +1273,8 @@ background-color:#0e45b4;
    <header>qt/qvaluecombobox.h</header>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../veil.qrc"/>
+ </resources>
  <connections/>
 </ui>

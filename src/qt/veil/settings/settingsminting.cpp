@@ -21,6 +21,7 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
 {
     ui->setupUi(this);
     ui->btnEsc->setProperty("cssClass" , "btn-text-primary-inactive");
+    ui->useBasecoin->setProperty("cssClass" , "btn-check");
 
     ui->btnSendMint->setProperty("cssClass" , "btn-text-primary");
     ui->btnSendMint->setText("MINT");
@@ -37,7 +38,8 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
     interfaces::WalletBalances balances = wallet.getBalances();
     int unit = walletModel->getOptionsModel()->getDisplayUnit();
     ui->labelZVeilBalance->setText(BitcoinUnits::formatWithUnit(unit, balances.zerocoin_balance, false, BitcoinUnits::separatorAlways));
-    ui->labelConvertable->setText(BitcoinUnits::formatWithUnit(unit, balances.basecoin_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelConvertableCt->setText(BitcoinUnits::formatWithUnit(unit,balances.ct_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelConvertableBasecoin->setText(BitcoinUnits::formatWithUnit(unit,balances.basecoin_balance, false, BitcoinUnits::separatorAlways));
 
     switch (nPreferredDenom){
         case 10:
