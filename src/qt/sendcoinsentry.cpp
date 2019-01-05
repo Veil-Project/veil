@@ -136,7 +136,7 @@ void SendCoinsEntry::useAvailableBalanceClicked()
     Q_EMIT useAvailableBalance(this);
 }
 
-bool SendCoinsEntry::validate(interfaces::Node& node)
+bool SendCoinsEntry::validate(interfaces::Node& node, std::string& error)
 {
     if (!model)
         return false;
@@ -148,15 +148,15 @@ bool SendCoinsEntry::validate(interfaces::Node& node)
     if (recipient.paymentRequest.IsInitialized())
         return retval;
 
-    if (!model->validateAddress(ui->payTo->text()))
-    {
+    // Only stealth addresses accepted.
+    if(!model->isStealthAddress(ui->payTo->text())){
         validAmount(ui->payTo, false);
-        //ui->payTo->setValid(false);
+        error = "Only stealth addresses accepted";
         retval = false;
     }
 
-    if (!validateEdit(ui->payAmount))//->validate())
-    {
+    if (!validateEdit(ui->payAmount)) {
+        error = "Amount out of range";
         retval = false;
     }
 
@@ -167,14 +167,14 @@ bool SendCoinsEntry::validate(interfaces::Node& node)
     if (amount <= 0)
     {
         validAmount(ui->payTo, false);
-        //ui->payAmount->setValid(false);
+        error = "Amount cannot be zero";
         retval = false;
     }
 
     // Reject dust outputs:
     if (retval && GUIUtil::isDust(node, ui->payTo->text(), amount)) {
         validAmount(ui->payTo, false);
-        //ui->payAmount->setValid(false);
+        error = "Dust output";
         retval = false;
     }
 
