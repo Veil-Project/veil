@@ -44,20 +44,28 @@ bool COutputRecord::IsSend() const
 
 bool COutputRecord::IsBasecoin() const
 {
-    return nType == OUTPUT_STANDARD;
+    return nFlags == OUTPUT_STANDARD;
 }
 
 void COutputRecord::MarkSpent(bool isSpent)
 {
     if (isSpent)
-        nType |= ORF_SPENT;
+        nFlags |= ORF_SPENT;
     else
-        nType &= ~ORF_SPENT;
+        nFlags &= ~ORF_SPENT;
 }
 
-bool COutputRecord::IsSpent() const
+void COutputRecord::MarkPendingSpend(bool isSpent)
 {
-    return nType & ORF_SPENT;
+    if (isSpent)
+        nFlags |= ORF_PENDING_SPEND;
+    else
+        nFlags &= ORF_PENDING_SPEND;
+}
+
+bool COutputRecord::IsSpent(bool fIncludePendingSpend) const
+{
+    return nFlags & ORF_SPENT || nFlags & ORF_PENDING_SPEND;
 }
 
 CAmount COutputRecord::GetAmount() const

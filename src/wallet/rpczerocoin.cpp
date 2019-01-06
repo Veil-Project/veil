@@ -17,6 +17,7 @@
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
 #include <veil/zerocoin/mintmeta.h>
+#include <txmempool.h>
 
 
 #include <boost/assign.hpp>
@@ -73,6 +74,9 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
                 HelpExampleRpc("mintzerocoin", "13, \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
+    TRY_LOCK(mempool.cs, fMempoolLocked);
+    if (!fMempoolLocked)
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "failed to lock mempool");
 
 //    if (params.size() == 1) {
 //        RPCTypeCheck(params, boost::assign::list_of(UniValue::VNUM));

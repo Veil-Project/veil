@@ -25,7 +25,7 @@ enum OutputRecordFlags
     ORF_SPENT               = (1 << 3),
     ORF_LOCKED              = (1 << 4), // Needs wallet to be unlocked for further processing
     ORF_WATCHONLY           = (1 << 6),
-    ORF_HARDWARE_DEVICE     = (1 << 7),
+    ORF_PENDING_SPEND       = (1 << 7), // Don't use this output because it has been used to spend
 
     ORF_OWN_WATCH           = ORF_WATCHONLY,
     ORF_OWN_ANY             = ORF_OWNED | ORF_OWN_WATCH,
@@ -74,7 +74,8 @@ public:
     bool GetDestination(CTxDestination& dest) const;
     std::string ToString() const;
     void MarkSpent(bool isSpent);
-    bool IsSpent() const;
+    void MarkPendingSpend(bool isSpent);
+    bool IsSpent(bool fIncludePendingSpend = true) const;
 
     ADD_SERIALIZE_METHODS;
     template <typename Stream, typename Operation>
