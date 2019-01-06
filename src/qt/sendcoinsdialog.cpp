@@ -205,24 +205,22 @@ void SendCoinsDialog::on_sendButton_clicked()
     QList<SendCoinsRecipient> recipients;
     bool valid = true;
 
+    std::string error;
     for(int i = 0; i < ui->entries->count(); ++i)
     {
         SendCoinsEntry *entry = qobject_cast<SendCoinsEntry*>(ui->entries->itemAt(i)->widget());
-        if(entry)
-        {
-            if(entry->validate(model->node()))
-            {
+        if(entry) {
+            if(entry->validate(model->node(), error)) {
                 recipients.append(entry->getValue());
             }
-            else
-            {
+            else {
                 valid = false;
             }
         }
     }
 
     if(!valid){
-        openToastDialog("Invalid data", this);
+        openToastDialog(QString::fromStdString("Invalid data\n" + error), this);
         return;
     }
 

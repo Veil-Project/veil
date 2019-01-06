@@ -119,6 +119,12 @@ void WalletModel::updateWatchOnlyFlag(bool fHaveWatchonly)
 bool WalletModel::validateAddress(const QString &address)
 {
     std::string strAddress = address.toStdString();
+    CBitcoinAddress veilAddress(strAddress);
+    return IsValidDestinationString(strAddress);
+}
+
+bool WalletModel::isStealthAddress(const QString &address){
+    std::string strAddress = address.toStdString();
     // Do not permit sending to basecoin addresses from the GUI
     CBitcoinAddress veilAddress(strAddress);
     return veilAddress.IsValidStealthAddress() && IsValidDestinationString(strAddress);
@@ -248,9 +254,9 @@ CCoinControl& coinControl, OutputTypes inputType)
 
     if(total > nBalance)
     {
-        std::cout << "Balance: " << nBalance << std::endl;
-        std::cout << "Total: " << total << std::endl;
-        std::cout << "Type: " << inputType << std::endl;
+        //std::cout << "Balance: " << nBalance << std::endl;
+        //std::cout << "Total: " << total << std::endl;
+        //std::cout << "Type: " << inputType << std::endl;
         return AmountExceedsBalance;
     }
 
