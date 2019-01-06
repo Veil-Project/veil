@@ -461,6 +461,12 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
         mempool.GetTransactions(setMempool);
     }
 
+    int nBestHeight = 0;
+    {
+        LOCK(cs_main);
+        nBestHeight = chainActive.Height();
+    }
+
     std::map<libzerocoin::CoinDenomination, int> mapMaturity = GetMintMaturityHeight();
     for (auto& it : mapSerialHashes) {
         CMintMeta mint = it.second;
@@ -481,16 +487,14 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
         if (fUnusedOnly && mint.isUsed)
             continue;
 
-
         // Not confirmed
         bool fInclude = true;
-        if (!mint.nHeight || mint.nHeight > chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations()) {
+        if (!mint.nHeight || mint.nHeight > nBestHeight - Params().Zerocoin_MintRequiredConfirmations()) {
             if (fMatureOnly)
                 fInclude = false;
         } else {
             mint.nMemFlags |= MINT_CONFIRMED;
         }
-
 
         // Not mature
         if (!mapMaturity.count(mint.denom) || mint.nHeight >= mapMaturity.at(mint.denom)) {
@@ -502,10 +506,6 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
 
         if (!fInclude)
             continue;
-
-        //todo
-        //if (mint.nHeight >= mapMaturity.at(mint.denom))
-        //    continue;
 
         setMints.insert(mint);
     }

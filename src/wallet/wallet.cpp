@@ -2080,7 +2080,7 @@ void CWallet::ReacceptWalletTransactions()
 
         int nDepth = wtx.GetDepthInMainChain();
 
-        if (!wtx.IsCoinBase() && (nDepth == 0 && !wtx.isAbandoned())) {
+        if (!wtx.IsCoinBase() && (nDepth == 0 && !wtx.isAbandoned()) && !wtx.IsCoinStake()) {
             mapSorted.insert(std::make_pair(wtx.nOrderPos, &wtx));
         }
     }
@@ -2633,7 +2633,14 @@ CAmount CWallet::GetMintableBalance(std::vector<COutput>& vMintableCoins) const
     vMintableCoins.clear();
     CAmount balance = 0;
     std::vector<COutput> vCoins;
-    AvailableCoins(vCoins, true, nullptr, 1, MAX_MONEY, 0, Params().CoinbaseMaturity()+1);
+    /*
+     * (std::vector<COutput> &vCoins, bool fOnlySafe, const CCoinControl *coinControl, const CAmount &nMinimumAmount,
+                             const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount, const int nMinDepth,
+                             const int nMaxDepth, bool fIncludeImmature)
+     */
+    AvailableCoins(vCoins, /**fOnlySafe**/true, /**coinControl**/nullptr, /**nMinimumAmount**/1,
+    /**nMaximumAmount**/MAX_MONEY, /**nMinimumSumAmount**/MAX_MONEY, /**nMaximumCount**/0, /**nMinDepth**/6);
+
     for (const COutput& coin : vCoins) {
         CTxDestination address;
         if (coin.fSpendable) {
@@ -2670,8 +2677,13 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
         if (!CheckFinalTx(*pcoin->tx))
             continue;
 
-        if (pcoin->IsCoinBase() && pcoin->GetBlocksToMaturity() > 0)
-            continue;
+        if (pcoin->IsCoinBase()) {
+            if (pcoin->GetBlocksToMaturity() > 0)
+                continue;
+            //Null coinbase for PoS
+            if (pcoin->tx->vpout[0]->GetValue() == 0)
+                continue;
+        }
 
         int nDepth = pcoin->GetDepthInMainChain();
         if (nDepth < 0)
@@ -2724,6 +2736,11 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
 
         for (unsigned int i = 0; i < pcoin->tx->vpout.size(); i++) {
             if (!pcoin->tx->vpout[i]->IsStandardOutput())
+                continue;
+            if (pcoin->tx->vpout[i]->IsZerocoinMint())
+                continue;
+            // Null first output on coinstake
+            if (pcoin->tx->IsCoinStake() && i == 0)
                 continue;
             auto nValue = pcoin->tx->vpout[i]->GetValue();
             if (nValue < nMinimumAmount || nValue > nMaximumAmount)
