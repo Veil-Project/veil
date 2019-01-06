@@ -95,6 +95,19 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
     if (params.size() > 1)
         fAllowBasecoin = params[1].get_bool();
 
+    BalanceList balances;
+    pwallet->GetBalances(balances);
+
+    OutputTypes inputtype;
+    if (balances.nRingCT > nAmount && chainActive.Tip()->nAnonOutputs > 20)
+        inputtype = OUTPUT_RINGCT;
+    else if (balances.nCT > nAmount)
+        inputtype = OUTPUT_CT;
+    else if (fAllowBasecoin && balances.nVeil > nAmount)
+        inputtype = OUTPUT_STANDARD;
+    else
+        throw JSONRPCError(RPC_WALLET_ERROR, "Insufficient Balance");
+
     if (params.size() > 2) {
         UniValue outputs = params[2].get_array();
         for (unsigned int idx = 0; idx < outputs.size(); idx++) {
@@ -118,7 +131,7 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
         }
         strError = pwallet->MintZerocoinFromOutPoint(nAmount, wtx, vDMints, vOutpts);
     } else {
-        strError = pwallet->MintZerocoin(nAmount, wtx, vDMints, fAllowBasecoin, nullptr);
+        strError = pwallet->MintZerocoin(nAmount, wtx, vDMints, inputtype, nullptr);
     }
 
     if (strError != "")

@@ -268,14 +268,11 @@ public:
     bool getPrivKey(const CKeyID& address, CKey& key) override { return m_wallet.GetKey(address, key); }
     bool isSpendable(const CTxDestination& dest) override { return IsMine(m_wallet, dest) & ISMINE_SPENDABLE; }
 
-    std::string mintZerocoin(
-            CAmount nValue,
-            std::vector<CDeterministicMint>& vDMints,
-            bool fAllowBasecoin,
-            const CCoinControl* coinControl
-    ) override {
+    std::string mintZerocoin(CAmount nValue, std::vector<CDeterministicMint>& vDMints, OutputTypes inputtype,
+            const CCoinControl* coinControl) override
+    {
         CWalletTx wtx(&m_wallet, nullptr);
-        return m_wallet.MintZerocoin(nValue, wtx ,  vDMints, fAllowBasecoin,coinControl);
+        return m_wallet.MintZerocoin(nValue, wtx , vDMints, inputtype,coinControl);
     }
 
     std::unique_ptr<PendingWalletTx> spendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
@@ -620,6 +617,9 @@ public:
                 result.ring_ct_immature_balance + result.zerocoin_immature_balance;
         result.total_unconfirmed_balance = result.basecoin_unconfirmed_balance + result.ct_unconfirmed_balance +
                 result.ring_ct_unconfirmed_balance + result.zerocoin_unconfirmed_balance;
+
+        //Total balance should include any immature or unconfirmed
+        result.total_balance += result.total_immature_balance + result.total_unconfirmed_balance;
 
         return result;
     }
