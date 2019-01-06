@@ -3980,7 +3980,8 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                     if (!txinfo.tx) {
                         continue;
                     }
-                    if (filterrate && txinfo.feeRate.GetFeePerK() < filterrate) {
+
+                    if (filterrate && txinfo.feeRate.GetFeePerK() < filterrate && !txinfo.tx.get()->IsZerocoinSpend()) {
                         continue;
                     }
                     if (pto->pfilter && !pto->pfilter->IsRelevantAndUpdate(*txinfo.tx)) continue;
