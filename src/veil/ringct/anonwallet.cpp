@@ -636,12 +636,12 @@ CAmount AnonWallet::GetCredit(const COutPoint& outpoint, const isminefilter& fil
 
     auto outRecord = txRecord.GetOutput(outpoint.n);
     if (!outRecord) {
-        LogPrintf("%s: FIXME: txRecord does not have outpoint %s is!", __func__, outpoint.ToString());
+        //LogPrintf("%s: FIXME: txRecord does not have outpoint %s is!", __func__, outpoint.ToString());
         return 0;
     }
     auto nValue = outRecord->GetAmount();
     if (!MoneyRange(nValue)) {
-        LogPrintf("%s: FIXME: txRecord value %s outpoint %s is too high!", __func__, FormatMoney(nValue), outpoint.ToString());
+        //LogPrintf("%s: FIXME: txRecord value %s outpoint %s is too high!", __func__, FormatMoney(nValue), outpoint.ToString());
         return 0;
     }
 
@@ -1470,6 +1470,8 @@ static bool HaveAnonOutputs(std::vector<CTempRecipient> &vecSend)
 
 bool CheckOutputValue(const CTempRecipient &r, const CTxOutBase *txbout, CAmount nFeeRet, std::string sError)
 {
+    if (r.fZerocoinMint)
+        return true;
     if ((r.nType == OUTPUT_STANDARD && IsDust(txbout, dustRelayFee)) || (r.nType != OUTPUT_DATA && r.nAmount < 0)) {
         if (r.fSubtractFeeFromAmount && nFeeRet > 0) {
             if (r.nAmount < 0) {
@@ -1479,6 +1481,7 @@ bool CheckOutputValue(const CTempRecipient &r, const CTxOutBase *txbout, CAmount
             }
         } else {
             sError = _("Transaction amount too small");
+            LogPrintf("%s:%s amount=%s\n", __func__, __LINE__, FormatMoney(r.nAmount));
         }
         return error("%s: Failed %s.", __func__, sError);
     }
@@ -2182,10 +2185,26 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
 {
     assert(coinControl);
     nFeeRet = 0;
-    CAmount nValue;
+    CAmount nValueOutBlind;
     size_t nSubtractFeeFromAmount;
     bool fOnlyStandardOutputs, fSkipFee;
-    InspectOutputs(vecSend, false, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
+    InspectOutputs(vecSend, false, nValueOutBlind, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
+
+    //Need count of zerocoin mint outputs in order to calculate fee correctly
+    int nZerocoinMintOuts = 0;
+    CAmount nValueOutZerocoin = 0;
+    CAmount nFeeZerocoin = 0;
+    for (auto& r : vecSend) {
+        if (r.fZerocoinMint) {
+            nZerocoinMintOuts++;
+            nValueOutZerocoin += r.nAmount;
+            nFeeZerocoin += Params().Zerocoin_MintFee();
+            //Zerocoin mints have to be exact amount, so not eligible to subtract fee
+            r.fExemptFeeSub = true;
+        }
+    }
+    //If output is going out as zerocoin, then it is being double counted and needs to be subtracted
+    nValueOutBlind -= nValueOutZerocoin;
 
     if (!ExpandTempRecipients(vecSend, sError))
         return 1; // sError is set
@@ -2230,7 +2249,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             txNew.vpout.clear();
             wtx.fFromMe = true;
 
-            CAmount nValueToSelect = nValue;
+            CAmount nValueToSelect = nValueOutBlind + nValueOutZerocoin;
             if (nSubtractFeeFromAmount == 0) {
                 nValueToSelect += nFeeRet;
             }
@@ -2374,6 +2393,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             nBytes = GetVirtualTransactionSize(txNew);
 
             nFeeNeeded = GetMinimumFee(*pwalletParent, nBytes, *coinControl, ::mempool, ::feeEstimator, &feeCalc);
+            nFeeNeeded = std::max(nFeeNeeded, nFeeZerocoin);
 
             // If we made it here and we aren't even able to meet the relay fee on the next pass, give up
             // because we must be at the maximum allowed fee.
@@ -2410,7 +2430,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                                 && !r.fChange) {
                                 r.SetAmount(r.nAmountSelected-1);
                                 fFound = true;
-                                nValue -= 1;
+                                nValueOutBlind -= 1;
                                 break;
                             }
                         }
@@ -2437,8 +2457,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             }
 
             // Try to reduce change to include necessary fee
-            if (nChangePosInOut != -1
-                && nSubtractFeeFromAmount == 0) {
+            if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
                 auto &r = vecSend[nChangePosInOut];
 
                 CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
