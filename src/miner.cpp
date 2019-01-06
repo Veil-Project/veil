@@ -146,7 +146,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         }
     }
 
-    LOCK2(cs_main, mempool.cs);
+    LOCK(cs_main);
+    TRY_LOCK(mempool.cs, fLockMem);
+    if (!fLockMem)
+        return nullptr;
+
     CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);
     nHeight = pindexPrev->nHeight + 1;

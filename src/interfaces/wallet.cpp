@@ -619,7 +619,7 @@ public:
                 result.ring_ct_unconfirmed_balance + result.zerocoin_unconfirmed_balance;
 
         //Total balance should include any immature or unconfirmed
-        result.total_balance += result.total_immature_balance + result.total_unconfirmed_balance;
+        result.total_balance += result.total_immature_balance;
 
         return result;
     }

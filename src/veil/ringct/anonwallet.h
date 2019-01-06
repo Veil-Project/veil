@@ -225,6 +225,7 @@ public:
 
     void AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend);
     bool ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::string &sError);
+    void MarkInputsAsPendingSpend(CTransactionRecord &rtx);
 
     int AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sError);
 
