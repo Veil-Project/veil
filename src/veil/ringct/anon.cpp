@@ -56,7 +56,7 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
         uint32_t nInputs, nRingSize;
         txin.GetAnonInfo(nInputs, nRingSize);
 
-        if (nInputs < 1 || nInputs > MAX_ANON_INPUTS) // TODO: Select max inputs size
+        if (nInputs < 1 || nInputs > MAX_ANON_INPUTS)
             return state.DoS(100, false, REJECT_INVALID, "bad-anon-num-inputs");
 
         if (nRingSize < MIN_RINGSIZE || nRingSize > MAX_RINGSIZE)
@@ -132,15 +132,16 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
             const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
 
             if (!setHaveKI.insert(ki).second) {
-                return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki");
+                return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki-tx-double");
             }
 
             if (mempool.HaveKeyImage(ki, txhashKI) && txhashKI != txhash) {
-                return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki");
+                return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki-mempool");
             }
 
             if (pblocktree->ReadRCTKeyImage(ki, txhashKI) && txhashKI != txhash) {
-                return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki");
+                LogPrintf("%s: Key image in tx %s\n", __func__, txhashKI.GetHex());
+                return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-keyimage");
             }
         }
 

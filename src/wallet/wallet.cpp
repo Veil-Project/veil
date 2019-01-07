@@ -1886,6 +1886,9 @@ void CWalletTx::GetAmounts(std::list<COutputEntry>& listReceived,
 
         CTxOut txout;
         if (!pout->GetTxOut(txout)) {
+            if (pout->GetType() == OUTPUT_DATA)
+                continue;
+
             //Anon output
             const AnonWallet* pwalletAnon = pwallet->GetAnonWallet_const();
             COutputRecord record;
@@ -2080,7 +2083,7 @@ void CWallet::ReacceptWalletTransactions()
 
         int nDepth = wtx.GetDepthInMainChain();
 
-        if (!wtx.IsCoinBase() && (nDepth == 0 && !wtx.isAbandoned())) {
+        if (!wtx.IsCoinBase() && (nDepth == 0 && !wtx.isAbandoned()) && !wtx.IsCoinStake()) {
             mapSorted.insert(std::make_pair(wtx.nOrderPos, &wtx));
         }
     }
@@ -2096,7 +2099,7 @@ void CWallet::ReacceptWalletTransactions()
 bool CWalletTx::RelayWalletTransaction(CConnman* connman)
 {
     assert(pwallet->GetBroadcastTransactions());
-    if (!IsCoinBase() && !isAbandoned() && GetDepthInMainChain() == 0)
+    if (!IsCoinBase() && !IsCoinStake() && !isAbandoned() && GetDepthInMainChain() == 0)
     {
         CValidationState state;
         /* GetDepthInMainChain already catches known conflicts. */
@@ -2411,6 +2414,9 @@ bool CWallet::GetBalances(BalanceList& bal)
     LOCK2(cs_main, cs_wallet);
     for (const auto &item : mapWallet) {
         const CWalletTx &wtx = item.second;
+        //Blinded values will come from anonwallet
+        if (wtx.tx->HasBlindedValues())
+            continue;
         bal.nVeilImmature += wtx.GetImmatureCredit();
 
         if (wtx.IsTrusted()) {
@@ -2633,7 +2639,14 @@ CAmount CWallet::GetMintableBalance(std::vector<COutput>& vMintableCoins) const
     vMintableCoins.clear();
     CAmount balance = 0;
     std::vector<COutput> vCoins;
-    AvailableCoins(vCoins, true, nullptr, 1, MAX_MONEY, 0, Params().CoinbaseMaturity()+1);
+    /*
+     * (std::vector<COutput> &vCoins, bool fOnlySafe, const CCoinControl *coinControl, const CAmount &nMinimumAmount,
+                             const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount, const int nMinDepth,
+                             const int nMaxDepth, bool fIncludeImmature)
+     */
+    AvailableCoins(vCoins, /**fOnlySafe**/true, /**coinControl**/nullptr, /**nMinimumAmount**/1,
+    /**nMaximumAmount**/MAX_MONEY, /**nMinimumSumAmount**/MAX_MONEY, /**nMaximumCount**/0, /**nMinDepth**/6);
+
     for (const COutput& coin : vCoins) {
         CTxDestination address;
         if (coin.fSpendable) {
@@ -2670,8 +2683,13 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
         if (!CheckFinalTx(*pcoin->tx))
             continue;
 
-        if (pcoin->IsCoinBase() && pcoin->GetBlocksToMaturity() > 0)
-            continue;
+        if (pcoin->IsCoinBase()) {
+            if (pcoin->GetBlocksToMaturity() > 0)
+                continue;
+            //Null coinbase for PoS
+            if (pcoin->tx->vpout[0]->GetValue() == 0)
+                continue;
+        }
 
         int nDepth = pcoin->GetDepthInMainChain();
         if (nDepth < 0)
@@ -2724,6 +2742,11 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
 
         for (unsigned int i = 0; i < pcoin->tx->vpout.size(); i++) {
             if (!pcoin->tx->vpout[i]->IsStandardOutput())
+                continue;
+            if (pcoin->tx->vpout[i]->IsZerocoinMint())
+                continue;
+            // Null first output on coinstake
+            if (pcoin->tx->IsCoinStake() && i == 0)
                 continue;
             auto nValue = pcoin->tx->vpout[i]->GetValue();
             if (nValue < nMinimumAmount || nValue > nMaximumAmount)
@@ -3742,7 +3765,7 @@ bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
             if (!wtxNew.tx->IsZerocoinSpend()) {
                 for (const CTxIn &txin : wtxNew.tx->vin) {
                     if (!mapWallet.count(txin.prevout.hash)) {
-                        LogPrintf("%s: %s ***** FIXMEEEEEEEEEEEEEEEEEEEEE Notify that anon input has been spend\n", __func__, __LINE__);
+                        //LogPrintf("%s: %s ***** FIXMEEEEEEEEEEEEEEEEEEEEE Notify that anon input has been spend\n", __func__, __LINE__);
                         continue;
                     }
 
@@ -4619,9 +4642,6 @@ void CWallet::AutoZeromint()
         return;
     }
 
-    for (const COutput& out : vOutputs)
-        coinControl.Select(COutPoint(out.tx->GetHash(), out.i));
-
     double dPercentage = 100 * (double)nZerocoinBalance / (double)(nZerocoinBalance + nBalance);
 
     // Check if minting is actually needed
@@ -4664,9 +4684,18 @@ void CWallet::AutoZeromint()
     }
 
     if (nMintAmount > 0){
+
+        CAmount nValueSelected = 0;
+        for (const COutput& out : vOutputs) {
+            nValueSelected += out.tx->tx->vpout[out.i]->GetValue();
+            coinControl.Select(COutPoint(out.tx->GetHash(), out.i));
+            if (nValueSelected > nMintAmount)
+                break;
+        }
+
         CWalletTx wtx(NULL, NULL);
         std::vector<CDeterministicMint> vDMints;
-        string strError = GetMainWallet()->MintZerocoin(nMintAmount*COIN, wtx, vDMints, true, &coinControl);
+        string strError = GetMainWallet()->MintZerocoin(nMintAmount*COIN, wtx, vDMints, /*inputtype*/OUTPUT_STANDARD, &coinControl);
 
         // Return if something went wrong during minting
         if (strError != ""){
@@ -5415,12 +5444,12 @@ string CWallet::MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std:
         return strError;
     }
 
-    string strError = MintZerocoin(nValue, wtxNew, vDMints, coinControl);
+    string strError = MintZerocoin(nValue, wtxNew, vDMints, /*inputtype*/OUTPUT_STANDARD, coinControl);
     delete coinControl;
     return strError;
 }
 
-string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDeterministicMint>& vDMints, bool fAllowBasecoin, const CCoinControl* coinControl)
+string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDeterministicMint>& vDMints, OutputTypes inputtype, const CCoinControl* coinControl)
 {
     // Check amount
     if (nValue < libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN))
@@ -5429,13 +5458,22 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     CAmount nValueRequired = nValue + Params().Zerocoin_MintFee();
 
     // User must specifically request to use basecoin, or else must have the anon balance for it
-    CAmount nTotalAnonBalance = pAnonWalletMain->GetAnonBalance() + pAnonWalletMain->GetBlindBalance();
-    if (nValueRequired > nTotalAnonBalance) {
-        if (!fAllowBasecoin)
-            return _("Insufficient RingCT Funds");
+    CAmount nBalance = 0;
+    std::string strTypeName = "";
+    //todo cs_main lock?
+    if (inputtype == OUTPUT_RINGCT && chainActive.Tip()->nAnonOutputs > 20) {
+        nBalance = pAnonWalletMain->GetAnonBalance();
+        strTypeName = "RingCT";
+    } else if (inputtype == OUTPUT_CT) {
+        nBalance = pAnonWalletMain->GetBlindBalance();
+        strTypeName = "CT";
+    } else if (inputtype == OUTPUT_STANDARD) {
+        nBalance = GetBalance();
+        strTypeName = "Basecoin";
     }
-    if (fAllowBasecoin && nValueRequired > GetBalance())
-        return _("Insufficient Basecoin Funds");
+
+    if (nValueRequired > nBalance)
+        return strprintf("Insufficient %s Funds", strTypeName);
 
     CReserveKey reserveKey(this);
     int64_t nFeeRequired;
@@ -5449,7 +5487,7 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     string strError;
     CMutableTransaction txNew;
     std::vector<CTempRecipient> vecSend;
-    if (!CreateZerocoinMintTransaction(nValue, txNew, vDMints, &reserveKey, nFeeRequired, strError, vecSend, fAllowBasecoin, coinControl)) {
+    if (!CreateZerocoinMintTransaction(nValue, txNew, vDMints, &reserveKey, nFeeRequired, strError, vecSend, inputtype, coinControl)) {
         if (nValue + nFeeRequired > GetBalance())
             return strprintf(_("Error: Failed to create transaction: %s"), strError);
         return strError;
@@ -5785,7 +5823,7 @@ bool CWallet::CreateZOutPut(libzerocoin::CoinDenomination denomination, CTxOut& 
 
 bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransaction& txNew,
         std::vector<CDeterministicMint>& vDMints, CReserveKey* reservekey, int64_t& nFeeRet, std::string& strFailReason,
-        std::vector<CTempRecipient>& vecSend, bool isBasecoin, const CCoinControl* coinControl, const bool isZCSpendChange)
+        std::vector<CTempRecipient>& vecSend, OutputTypes inputtype, const CCoinControl* coinControl, const bool isZCSpendChange)
 {
     if (IsLocked()) {
         strFailReason = "Error: Wallet locked, unable to create transaction!";
@@ -5824,7 +5862,7 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
             return error(strFailReason.c_str());
         }
 
-        if (isZCSpendChange || isBasecoin) {
+        if (isZCSpendChange || inputtype == OUTPUT_STANDARD) {
             txNew.vpout.emplace_back(outMint.GetSharedPtr());
         }
 
@@ -5858,7 +5896,7 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
 
     CAmount nValueIn = 0;
     std::set<CInputCoin> setCoins;
-    if (isBasecoin) {
+    if (inputtype == OUTPUT_STANDARD) {
         /** select basecoin UTXO's to use**/
         CCoinControl defaultCoinControl;
         if (coinControl == NULL)
@@ -5882,15 +5920,37 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         // Fill vin
         for (const CInputCoin& coin: setCoins)
             txNew.vin.emplace_back(CTxIn(coin.outpoint.hash, coin.outpoint.n));
+
+        //any change that is less than 0.0100000 will be ignored and given as an extra fee
+        //also assume that a zerocoinspend that is minting the change will not have any change that goes to Piv
+        CAmount nChange = nValueIn - nTotalValue; // Fee already accounted for in nTotalValue
+        if (nChange > Params().Zerocoin_MintFee()) {
+            // Fill a vout to ourself using the largest contributing address
+            CScript scriptChange = GetLargestContributor(setCoins);
+
+            //add to the transaction
+            CTxOut outChange(nChange, scriptChange);
+            txNew.vpout.emplace_back(outChange.GetSharedPtr());
+        } else {
+            if (reservekey)
+                reservekey->ReturnKey();
+        }
+
+        // Sign if these are basecoin outputs - NOTE that zerocoin outputs are signed later in SoK
+        int nIn = 0;
+        for (const CInputCoin& coin : setCoins) {
+            if (!SignSignature(*this, coin.txout.scriptPubKey, txNew, nIn++, coin.txout.nValue, SIGHASH_ALL)) {
+                strFailReason = "Signing transaction failed";
+                return false;
+            }
+        }
+
+        return true;
     } else {
-        /** Select RingCT & CT Inputs **/
+        /** Select RingCT or CT Inputs **/
         // create output variables for add anon inputs
         CTransactionRef tx_new;
         CWalletTx wtx(this, tx_new);
-
-        // default parameters for ring sig
-        size_t nRingSize = Params().DefaultRingSize();
-        size_t nInputsPerSig = 32;
 
         // protecting against nullptr dereference
         CCoinControl cControl;
@@ -5900,50 +5960,24 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         CTransactionRecord rtx;
         std::string sError;
 
-        bool fAnonFailed = false;
-        bool fBlindFailed = false;
-        if (0 != pAnonWalletMain->AddAnonInputs(wtx, rtx, vecSend, true, nRingSize, nInputsPerSig, nFeeRet, &cControl, sError)) {
-            fAnonFailed = true;
-        }
-
-        if (0 != pAnonWalletMain->AddBlindedInputs(wtx, rtx, vecSend, true, nFeeRet, &cControl, sError)) {
-            fBlindFailed = true;
-        }
-
-        if (fAnonFailed && fBlindFailed) {
-            strFailReason = strprintf("Failed to add ringctinputs & ctinputs : %s", sError);
-            return false;
+        if (inputtype == OUTPUT_RINGCT)  {
+            // default parameters for ring sig
+            if (0 != pAnonWalletMain->AddAnonInputs(wtx, rtx, vecSend, true, Params().DefaultRingSize(), /**nInputsPerSig**/ 32, nFeeRet, &cControl, sError)) {
+                strFailReason = strprintf("Failed to add ringctinputs: %s", sError);
+                return false;
+            }
+        } else if (inputtype == OUTPUT_CT) {
+            if (0 != pAnonWalletMain->AddBlindedInputs(wtx, rtx, vecSend, true, nFeeRet, &cControl, sError)) {
+                strFailReason = strprintf("Failed to add ringctinputs: %s", sError);
+                return false;
+            }
         }
 
         txNew = CMutableTransaction(*wtx.tx);
         return true;
     }
 
-    //any change that is less than 0.0100000 will be ignored and given as an extra fee
-    //also assume that a zerocoinspend that is minting the change will not have any change that goes to Piv
-    CAmount nChange = nValueIn - nTotalValue; // Fee already accounted for in nTotalValue
-    if (nChange > Params().Zerocoin_MintFee()) {
-        // Fill a vout to ourself using the largest contributing address
-        CScript scriptChange = GetLargestContributor(setCoins);
-
-        //add to the transaction
-        CTxOut outChange(nChange, scriptChange);
-        txNew.vpout.emplace_back(outChange.GetSharedPtr());
-    } else {
-        if (reservekey)
-            reservekey->ReturnKey();
-    }
-
-    // Sign if these are basecoin outputs - NOTE that zerocoin outputs are signed later in SoK
-    int nIn = 0;
-    for (const CInputCoin& coin : setCoins) {
-        if (!SignSignature(*this, coin.txout.scriptPubKey, txNew, nIn++, coin.txout.nValue, SIGHASH_ALL)) {
-            strFailReason = "Signing transaction failed";
-            return false;
-        }
-    }
-
-    return true;
+    return false;
 }
 
 bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew,
@@ -6028,16 +6062,15 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
         if (!GetTransaction(mint.GetTxHash(), txMint, Params().GetConsensus(), hashBlock)) {
             receipt.SetStatus("Unable to find transaction containing mint", nStatus);
             fArchive = true;
-        } else if (mapBlockIndex.count(hashBlock) < 1) {
+        } else if (!mapBlockIndex.count(hashBlock) || !chainActive.Contains(mapBlockIndex.at(hashBlock))) {
             receipt.SetStatus("Mint did not make it into blockchain", nStatus);
             fArchive = true;
         }
 
         // archive this mint as an orphan
         if (fArchive) {
-            //walletdb.ArchiveMintOrphan(mint);
-            //nArchived++;
-            //todo
+            walletdb.ArchiveMintOrphan(mint);
+            nArchived++;
         }
     }
     if (nArchived)
@@ -6155,9 +6188,8 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                     //mint change as zerocoins and RingCT
                     CAmount nFeeRet = 0;
                     std::string strFailReason = "";
-                    bool fAllowBasecoin = false; // A spend we ALWAYS want to mint change and then remainder of dust change in RingCT
                     if (!CreateZerocoinMintTransaction(nChangeRemint, txNew, vNewMints, &reserveKey, nFeeRet,
-                                                       strFailReason, vecSend, fAllowBasecoin, nullptr, true)) {
+                                                       strFailReason, vecSend, /*inputtype*/OUTPUT_STANDARD, nullptr, true)) {
                         receipt.SetStatus("Failed to create mint", nStatus);
                         return false;
                     }
@@ -6218,6 +6250,14 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 spend.SetTxHash(txHash);
                 if (!WalletBatch(*this->database).WriteZerocoinSpendSerialEntry(spend))
                     receipt.SetStatus("Failed to write coin serial number into wallet", nStatus);
+            }
+
+            //Change the rtx record to the correct spot
+            uint256 txidOld = rtx.GetPartialTxid();
+            if (!txidOld.IsNull() && pAnonWalletMain->mapRecords.count(txidOld)) {
+                pAnonWalletMain->mapRecords.erase(txidOld);
+                rtx.RemovePartialTxid();
+                pAnonWalletMain->SaveRecord(txHash, rtx);
             }
 
             txRef = std::make_shared<CTransaction>(mtx);

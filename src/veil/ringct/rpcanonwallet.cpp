@@ -275,9 +275,16 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         if (typeOut == OUTPUT_RINGCT && !address.IsValidStealthAddress()) {
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid stealth address");
         }
-
-        if (!address.IsValid()) {
-            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
+        CTxDestination dest;
+        if (typeOut == OUTPUT_STANDARD) {
+            dest = DecodeDestination(request.params[0].get_str());
+            if (!IsValidDestination(dest)) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid basecoin address");
+            }
+        } else {
+            if (!address.IsValid())
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid stealth address");
+            dest = address.Get();
         }
 
         CAmount nAmount = AmountFromValue(request.params[1]);
@@ -291,7 +298,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
             fSubtractFeeFromAmount = request.params[4].get_bool();
         }
 
-        if (0 != AddOutput(typeOut, vecSend, address.Get(), nAmount, fSubtractFeeFromAmount, sError)) {
+        if (0 != AddOutput(typeOut, vecSend, dest, nAmount, fSubtractFeeFromAmount, sError)) {
             throw JSONRPCError(RPC_MISC_ERROR, strprintf("AddOutput failed: %s.", sError));
         }
     }

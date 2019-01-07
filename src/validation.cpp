@@ -1854,8 +1854,11 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
                     if (out->IsType(OUTPUT_STANDARD))
                         txout.nValue = out->GetValue();
+
                     bool is_spent = view.SpendCoin(op, &coin);
                     if (!is_spent || txout != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
+                        LogPrintf("tx: is_coinbase=%d height=%d coinheight=%d\n", is_coinbase, pindex->nHeight, coin.nHeight);
+                        LogPrintf("%s:%s %s\n  pos=%d spend=%d txout==%d height=%d cbase=%d \n %s\n", __func__, __LINE__, block.GetHash().GetHex(), k, !is_spent, txout != coin.out, pindex->nHeight != coin.nHeight, is_coinbase != coin.fCoinBase, tx.ToString());
                         fClean = false; // transaction output mismatch
                     }
                 }

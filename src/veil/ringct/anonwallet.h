@@ -31,22 +31,6 @@ class UniValue;
 
 const uint16_t OR_PLACEHOLDER_N = 0xFFFF; // index of a fake output to contain reconstructed amounts for txns with undecodeable outputs
 
-enum RTxAddonValueTypes
-{
-    RTXVT_EPHEM_PATH            = 1, // path ephemeral keys are derived from packed 4bytes no separators
-
-    RTXVT_REPLACES_TXID         = 2,
-    RTXVT_REPLACED_BY_TXID      = 3,
-
-    RTXVT_COMMENT               = 4,
-    RTXVT_TO                    = 5,
-
-    /*
-    RTXVT_STEALTH_KEYID     = 2,
-    RTXVT_STEALTH_KEYID_N   = 3, // n0:pk0:n1:pk1:...
-    */
-};
-
 class COutputR
 {
 public:
@@ -225,6 +209,7 @@ public:
 
     void AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend);
     bool ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::string &sError);
+    void MarkInputsAsPendingSpend(CTransactionRecord &rtx);
 
     int AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sError);
 

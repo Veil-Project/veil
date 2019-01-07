@@ -106,12 +106,8 @@ public:
     //! Return whether wallet has private key.
     virtual bool isSpendable(const CTxDestination& dest) = 0;
 
-    virtual std::string mintZerocoin(
-            CAmount nValue,
-            std::vector<CDeterministicMint>& vDMints,
-            bool fAllowBasecoin,
-            const CCoinControl* coinControl
-    ) = 0;
+    virtual std::string mintZerocoin(CAmount nValue, std::vector<CDeterministicMint>& vDMints, OutputTypes inputtype,
+            const CCoinControl* coinControl) = 0;
 
     virtual std::unique_ptr<PendingWalletTx> spendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
             std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,

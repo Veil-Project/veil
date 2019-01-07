@@ -592,6 +592,10 @@ static UniValue sendtoaddress(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid address");
     }
 
+    if (dest.which() == 6) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Must send to a basecoin address");
+    }
+
     // Amount
     CAmount nAmount = AmountFromValue(request.params[1]);
     if (nAmount <= 0)

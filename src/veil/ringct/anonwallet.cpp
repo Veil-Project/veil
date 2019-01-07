@@ -636,12 +636,12 @@ CAmount AnonWallet::GetCredit(const COutPoint& outpoint, const isminefilter& fil
 
     auto outRecord = txRecord.GetOutput(outpoint.n);
     if (!outRecord) {
-        LogPrintf("%s: FIXME: txRecord does not have outpoint %s is!", __func__, outpoint.ToString());
+        //LogPrintf("%s: FIXME: txRecord does not have outpoint %s is!", __func__, outpoint.ToString());
         return 0;
     }
     auto nValue = outRecord->GetAmount();
     if (!MoneyRange(nValue)) {
-        LogPrintf("%s: FIXME: txRecord value %s outpoint %s is too high!", __func__, FormatMoney(nValue), outpoint.ToString());
+        //LogPrintf("%s: FIXME: txRecord value %s outpoint %s is too high!", __func__, FormatMoney(nValue), outpoint.ToString());
         return 0;
     }
 
@@ -991,7 +991,7 @@ bool AnonWallet::GetBalances(BalanceList &bal)
             }
             switch (r.nType) {
                 case OUTPUT_RINGCT:
-                    if (!(r.nFlags & ORF_OWNED))
+                    if (!(r.nFlags & ORF_OWNED) || r.IsSpent())
                         continue;
                     if (fTrusted)
                         bal.nRingCT += r.GetAmount();
@@ -999,7 +999,7 @@ bool AnonWallet::GetBalances(BalanceList &bal)
                         bal.nRingCTUnconf += r.GetAmount();
                     break;
                 case OUTPUT_CT:
-                    if (!(r.nFlags & ORF_OWNED))
+                    if (!(r.nFlags & ORF_OWNED) || r.IsSpent())
                         continue;
                     if (fTrusted)
                         bal.nCT += r.GetAmount();
@@ -1100,6 +1100,22 @@ void AnonWallet::ParseAddressForMetaData(const CTxDestination &addr, COutputReco
         //ORA_STANDARD
     }
     return;
+}
+
+void AnonWallet::MarkInputsAsPendingSpend(CTransactionRecord &rtx)
+{
+    for (const COutPoint& outpointIn : rtx.vin) {
+        auto it = mapRecords.find(outpointIn.hash);
+        if (it == mapRecords.end())
+            continue;
+        COutputRecord* outputRecord = it->second.GetOutput(outpointIn.n);
+        if (!outputRecord)
+            continue;
+        outputRecord->MarkPendingSpend(true);
+        CTransactionRecord recordUpdated = it->second;
+        auto txid = it->first;
+        SaveRecord(txid, recordUpdated);
+    }
 }
 
 void AnonWallet::AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend)
@@ -1470,6 +1486,8 @@ static bool HaveAnonOutputs(std::vector<CTempRecipient> &vecSend)
 
 bool CheckOutputValue(const CTempRecipient &r, const CTxOutBase *txbout, CAmount nFeeRet, std::string sError)
 {
+    if (r.fZerocoinMint)
+        return true;
     if ((r.nType == OUTPUT_STANDARD && IsDust(txbout, dustRelayFee)) || (r.nType != OUTPUT_DATA && r.nAmount < 0)) {
         if (r.fSubtractFeeFromAmount && nFeeRet > 0) {
             if (r.nAmount < 0) {
@@ -1479,6 +1497,7 @@ bool CheckOutputValue(const CTempRecipient &r, const CTxOutBase *txbout, CAmount
             }
         } else {
             sError = _("Transaction amount too small");
+            LogPrintf("%s:%s amount=%s\n", __func__, __LINE__, FormatMoney(r.nAmount));
         }
         return error("%s: Failed %s.", __func__, sError);
     }
@@ -2182,10 +2201,30 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
 {
     assert(coinControl);
     nFeeRet = 0;
-    CAmount nValue;
+    CAmount nValueOutBlind;
     size_t nSubtractFeeFromAmount;
     bool fOnlyStandardOutputs, fSkipFee;
-    InspectOutputs(vecSend, false, nValue, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
+    InspectOutputs(vecSend, false, nValueOutBlind, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
+
+    //Need count of zerocoin mint outputs in order to calculate fee correctly
+    int nZerocoinMintOuts = 0;
+    CAmount nValueOutZerocoin = 0;
+    CAmount nFeeZerocoin = 0;
+    bool fHasCTOut = false;
+    for (auto& r : vecSend) {
+        if (r.nType == OUTPUT_RINGCT) {
+            fHasCTOut = true;
+        }
+        if (r.fZerocoinMint) {
+            nZerocoinMintOuts++;
+            nValueOutZerocoin += r.nAmount;
+            nFeeZerocoin += Params().Zerocoin_MintFee();
+            //Zerocoin mints have to be exact amount, so not eligible to subtract fee
+            r.fExemptFeeSub = true;
+        }
+    }
+    //If output is going out as zerocoin, then it is being double counted and needs to be subtracted
+    nValueOutBlind -= nValueOutZerocoin;
 
     if (!ExpandTempRecipients(vecSend, sError))
         return 1; // sError is set
@@ -2230,7 +2269,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             txNew.vpout.clear();
             wtx.fFromMe = true;
 
-            CAmount nValueToSelect = nValue;
+            CAmount nValueToSelect = nValueOutBlind + nValueOutZerocoin;
             if (nSubtractFeeFromAmount == 0) {
                 nValueToSelect += nFeeRet;
             }
@@ -2259,7 +2298,11 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             } else {
                 // Insert a sender-owned 0 value output which becomes the change output if needed
                 CTempRecipient r;
+
+                //Default use ringct change, but have to use CT if the destination is sent as CT
                 r.nType = OUTPUT_RINGCT;
+                if (fHasCTOut)
+                    r.nType = OUTPUT_CT;
                 r.fChange = true;
 
                 //If no change address is set, then generate a new stealth address to use for change
@@ -2374,6 +2417,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             nBytes = GetVirtualTransactionSize(txNew);
 
             nFeeNeeded = GetMinimumFee(*pwalletParent, nBytes, *coinControl, ::mempool, ::feeEstimator, &feeCalc);
+            nFeeNeeded = std::max(nFeeNeeded, nFeeZerocoin);
 
             // If we made it here and we aren't even able to meet the relay fee on the next pass, give up
             // because we must be at the maximum allowed fee.
@@ -2410,7 +2454,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                                 && !r.fChange) {
                                 r.SetAmount(r.nAmountSelected-1);
                                 fFound = true;
-                                nValue -= 1;
+                                nValueOutBlind -= 1;
                                 break;
                             }
                         }
@@ -2437,8 +2481,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             }
 
             // Try to reduce change to include necessary fee
-            if (nChangePosInOut != -1
-                && nSubtractFeeFromAmount == 0) {
+            if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
                 auto &r = vecSend[nChangePosInOut];
 
                 CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
@@ -2562,12 +2605,12 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             int nIn = 0;
             for (const auto &coin : setCoins) {
                 const uint256 &txhash = coin.first->first;
-                const COutputRecord *oR = coin.first->second.GetOutput(coin.second);
-                if (!oR) {
+                const COutputRecord *outputRecord = coin.first->second.GetOutput(coin.second);
+                if (!outputRecord) {
                     return werrorN(1, "%s: GetOutput %s failed.\n", __func__, txhash.ToString().c_str());
                 }
 
-                const CScript &scriptPubKey = oR->scriptPubKey;
+                const CScript &scriptPubKey = outputRecord->scriptPubKey;
 
                 CStoredTransaction stx;
                 if (!AnonWalletDB(*walletDatabase).ReadStoredTx(txhash, stx)) {
@@ -2586,13 +2629,18 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             }
         }
 
-
         rtx.nFee = nFeeRet;
         rtx.nFlags |= ORF_BLIND_IN;
         AddOutputRecordMetaData(rtx, vecSend);
+        for (auto txin : txNew.vin)
+            rtx.vin.emplace_back(txin.prevout);
+        MarkInputsAsPendingSpend(rtx);
 
+        uint256 txid = txNew.GetHash();
+        if (nValueOutZerocoin)
+            rtx.AddPartialTxid(txid);
         //save record
-        SaveRecord(txNew.GetHash(), rtx);
+        SaveRecord(txid, rtx);
 
         // Embed the constructed transaction data in wtxNew.
         wtx.SetTx(MakeTransactionRef(std::move(txNew)));
@@ -2797,7 +2845,10 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
     int nZerocoinMintOuts = 0;
     CAmount nValueOutZerocoin = 0;
     CAmount nFeeZerocoin = 0;
+    bool fCTOut = false;
     for (auto& r : vecSend) {
+        if (r.nType == OUTPUT_CT)
+            fCTOut = true;
         if (r.fZerocoinMint) {
             nZerocoinMintOuts++;
             nValueOutZerocoin += r.nAmount;
@@ -2847,13 +2898,18 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
         CAmount nValueIn = nInputValue;
 
         // Start with no fee and loop until there is enough fee
+        int nIterations = 0;
         while (true) {
+            if (nIterations > 20)
+                return error("%s: FIXME, unable to properly calculate transaction fee with ringct inputs", __func__);
+            nIterations++;
+
             if (!fAlreadyHaveInputs)
                 txNew.vin.clear();
             txNew.vpout.clear();
             wtx.fFromMe = true;
 
-            CAmount nValueToSelect = nValueOutAnon;
+            CAmount nValueToSelect = nValueOutAnon + nValueOutZerocoin;
             if (nSubtractFeeFromAmount == 0) {
                 nValueToSelect += nFeeRet;
             }
@@ -2866,7 +2922,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     return error("%s: Insufficient funds.", __func__);
             }
 
-            const CAmount nChange = nValueIn - nValueToSelect - nValueOutZerocoin;
+            const CAmount nChange = nValueIn - nValueToSelect;
 
             // Remove fee outputs from last round
             for (size_t i = 0; i < vecSend.size(); ++i) {
@@ -2880,7 +2936,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
             {
                 // Fill an output to ourself
                 CTempRecipient recipient;
-                recipient.nType = OUTPUT_RINGCT;
+                recipient.nType = fCTOut ? OUTPUT_CT : OUTPUT_RINGCT;
                 recipient.fChange = true;
 
                 //If no change address is set, then generate a new stealth address to use for change
@@ -3175,6 +3231,20 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     // Keyimage is required for the tx hash
                     if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], anonOutput.pubkey.begin(), key.begin())))
                         return error("%s: secp256k1_get_keyimage failed %d", __func__, rv);
+
+                    // Double check key image is not used... todo, this should not be done here and is result of bad state
+                    uint256 txhashKI;
+                    auto ki = *((CCmpPubKey*)&vKeyImages[k*33]);
+                    if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
+                        AnonWalletDB wdb(*walletDatabase);
+                        COutPoint out;
+                        bool fErased = false;
+                        if (wdb.ReadAnonKeyImage(ki, out)) {
+                            MarkOutputSpent(out, true);
+                            fErased = true;
+                        }
+                        return error("%s: bad wallet state trying to spend already spent anonin, outpoint=%s erased=%d", __func__, out.ToString(), fErased);
+                    }
                 }
             }
 
@@ -3313,8 +3383,15 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
         rtx.nFlags |= ORF_ANON_IN;
         AddOutputRecordMetaData(rtx, vecSend);
 
+        for (auto txin : txNew.vin)
+            rtx.vin.emplace_back(txin.prevout);
+        MarkInputsAsPendingSpend(rtx);
+
+        uint256 txid = txNew.GetHash();
+        if (nValueOutZerocoin)
+            rtx.AddPartialTxid(txid);
         //save record
-        SaveRecord(txNew.GetHash(), rtx);
+        SaveRecord(txid, rtx);
 
         // Embed the constructed transaction data in wtxNew.
         wtx.SetTx(MakeTransactionRef(std::move(txNew)));
@@ -4945,8 +5022,6 @@ void AnonWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnly
             for (const auto &r : rtx.vout) {
                 if (r.IsSpent() || !view.HaveCoin(COutPoint(txid, r.n)))
                     continue;
-//                if (IsLockedCoin(txid, r.n))
-//                    continue;
 
                 if (coinControl->IsSelected(COutPoint(txid, r.n))) {
                     int nDepth = 0;
@@ -5020,9 +5095,9 @@ void AnonWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnly
             bool fMature = true;
             bool fSpendable = (coinControl && !coinControl->fAllowWatchOnly && !(r.nFlags & ORF_OWNED)) ? false : true;
             bool fSolvable = true;
-            bool fNeedHardwareKey = (r.nFlags & ORF_HARDWARE_DEVICE);
+            //bool fNeedHardwareKey = (r.nFlags & ORF_HARDWARE_DEVICE);
 
-            vCoins.emplace_back(txid, it, r.n, nDepth, fSpendable, fSolvable, safeTx, fMature, fNeedHardwareKey);
+            vCoins.emplace_back(txid, it, r.n, nDepth, fSpendable, fSolvable, safeTx, fMature, /*fNeedHardwareKey*/false);
 
             if (nMinimumSumAmount != MAX_MONEY) {
                 nTotal += r.GetAmount();
@@ -5171,7 +5246,7 @@ void AnonWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySaf
                 continue;
             }
 
-            if (IsSpent(txid, r.n)) {
+            if (IsSpent(txid, r.n) || r.IsSpent()) {
                 continue;
             }
 
@@ -5190,9 +5265,9 @@ void AnonWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySaf
             bool fMature = true;
             bool fSpendable = (coinControl && !coinControl->fAllowWatchOnly && !(r.nFlags & ORF_OWNED)) ? false : true;
             bool fSolvable = true;
-            bool fNeedHardwareKey = (r.nFlags & ORF_HARDWARE_DEVICE);
+            //bool fNeedHardwareKey = (r.nFlags & ORF_HARDWARE_DEVICE);
 
-            vCoins.emplace_back(txid, it, r.n, nDepth, fSpendable, fSolvable, safeTx, fMature, fNeedHardwareKey);
+            vCoins.emplace_back(txid, it, r.n, nDepth, fSpendable, fSolvable, safeTx, fMature, /*fNeedHardwareKey*/false);
 
             if (nMinimumSumAmount != MAX_MONEY) {
                 nTotal += r.GetRawValue();
@@ -5403,16 +5478,20 @@ bool AnonWallet::IsSpent(const uint256& hash, unsigned int n) const
         const uint256 &wtxid = it->second;
 
         MapRecords_t::const_iterator rit = mapRecords.find(wtxid);
-        if (rit != mapRecords.end()) {
-            if (rit->second.GetOutput(n)->IsSpent())
-                return true;
-            if (rit->second.IsAbandoned())
-                continue;
+        if (rit == mapRecords.end())
+            return true; // Could not find, consider spent
 
-            int depth = GetDepthInMainChain(rit->second.blockHash, rit->second.nIndex);
-            if (depth >= 0)
-                return true; // Spent
-        }
+        const COutputRecord* outRecord = rit->second.GetOutput(n);
+        if (!outRecord)
+            return true; // Could not find the record, so just consider it spent.
+        if (outRecord->IsSpent())
+            return true;
+        if (rit->second.IsAbandoned())
+            continue;
+
+        int depth = GetDepthInMainChain(rit->second.blockHash, rit->second.nIndex);
+        if (depth >= 0)
+            return true; // Spent
     }
 
     return false;

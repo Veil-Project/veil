@@ -808,7 +808,7 @@ public:
     // Zerocoin
     bool MintableCoins();
     bool CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransaction& txNew, std::vector<CDeterministicMint>& vDMints,
-            CReserveKey* reservekey, int64_t& nFeeRet, std::string& strFailReason, std::vector<CTempRecipient>& vecSend, bool isBasecoin, const CCoinControl* coinControl = NULL,
+            CReserveKey* reservekey, int64_t& nFeeRet, std::string& strFailReason, std::vector<CTempRecipient>& vecSend, OutputTypes inputtype, const CCoinControl* coinControl = NULL,
             const bool isZCSpendChange = false);
     bool CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew, CReserveKey& reserveKey,
             CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vSelectedMints,
@@ -817,7 +817,7 @@ public:
             CZerocoinSpendReceipt& receipt, libzerocoin::SpendType spendType, CBlockIndex* pindexCheckpoint = nullptr);
     std::string MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
             const std::vector<COutPoint> vOutpts);
-    std::string MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints, bool fAllowBasecoin,
+    std::string MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints, OutputTypes inputtype,
             const CCoinControl* coinControl = NULL);
     bool SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
             std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, CTxDestination* addressTo = NULL);

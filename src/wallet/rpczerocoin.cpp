@@ -17,6 +17,7 @@
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
 #include <veil/zerocoin/mintmeta.h>
+#include <txmempool.h>
 
 
 #include <boost/assign.hpp>
@@ -73,6 +74,9 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
                 HelpExampleRpc("mintzerocoin", "13, \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
+    TRY_LOCK(mempool.cs, fMempoolLocked);
+    if (!fMempoolLocked)
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "failed to lock mempool");
 
 //    if (params.size() == 1) {
 //        RPCTypeCheck(params, boost::assign::list_of(UniValue::VNUM));
@@ -91,9 +95,25 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
     std::string strError;
     std::vector<COutPoint> vOutpts;
 
-    bool fAllowBasecoin = false;
+    bool fUseBasecoin = false;
     if (params.size() > 1)
-        fAllowBasecoin = params[1].get_bool();
+        fUseBasecoin = params[1].get_bool();
+
+    BalanceList balances;
+    pwallet->GetBalances(balances);
+
+    OutputTypes inputtype = OUTPUT_NULL;
+    if (fUseBasecoin) {
+        if (balances.nVeil > nAmount)
+            inputtype = OUTPUT_STANDARD;
+    } else if (balances.nRingCT > nAmount && chainActive.Tip()->nAnonOutputs > 20) {
+        inputtype = OUTPUT_RINGCT;
+    } else if (balances.nCT > nAmount) {
+        inputtype = OUTPUT_CT;
+    }
+
+    if (inputtype == OUTPUT_NULL)
+        throw JSONRPCError(RPC_WALLET_ERROR, "Insufficient Balance");
 
     if (params.size() > 2) {
         UniValue outputs = params[2].get_array();
@@ -118,7 +138,7 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
         }
         strError = pwallet->MintZerocoinFromOutPoint(nAmount, wtx, vDMints, vOutpts);
     } else {
-        strError = pwallet->MintZerocoin(nAmount, wtx, vDMints, fAllowBasecoin, nullptr);
+        strError = pwallet->MintZerocoin(nAmount, wtx, vDMints, inputtype, nullptr);
     }
 
     if (strError != "")
