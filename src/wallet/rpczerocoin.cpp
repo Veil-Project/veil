@@ -655,42 +655,8 @@ UniValue spendzerocoinmints(const JSONRPCRequest& request)
     return DoZerocoinSpend(pwallet, nAmount, false, true, 100, vMintsSelected, address_str);
 }
 
-UniValue resetmintzerocoin(const JSONRPCRequest& request)
+UniValue ResetMints(CWallet* pwallet)
 {
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CWallet* const pwallet = wallet.get();
-    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
-        return NullUniValue;
-
-    UniValue params = request.params;
-    if (request.fHelp || params.size() > 1)
-        throw runtime_error(
-                "resetmintzerocoin ( fullscan )\n"
-                "\nScan the blockchain for all of the zerocoins that are held in the wallet.dat.\n"
-                "Update any meta-data that is incorrect. Archive any mints that are not able to be found.\n" +
-                HelpRequiringPassphrase(pwallet) + "\n"
-
-                                            "\nArguments:\n"
-                                            "1. fullscan          (boolean, optional) Rescan each block of the blockchain.\n"
-                                            "                               WARNING - may take 30+ minutes!\n"
-
-                                            "\nResult:\n"
-                                            "{\n"
-                                            "  \"updated\": [       (array) JSON array of updated mints.\n"
-                                            "    \"xxx\"            (string) Hex encoded mint.\n"
-                                            "    ,...\n"
-                                            "  ],\n"
-                                            "  \"archived\": [      (array) JSON array of archived mints.\n"
-                                            "    \"xxx\"            (string) Hex encoded mint.\n"
-                                            "    ,...\n"
-                                            "  ]\n"
-                                            "}\n"
-
-                                            "\nExamples:\n" +
-                HelpExampleCli("resetmintzerocoin", "true") + HelpExampleRpc("resetmintzerocoin", "true"));
-
-    LOCK2(cs_main, pwallet->cs_wallet);
-
     WalletBatch walletdb(pwallet->GetDBHandle());
     set<CMintMeta> setMints = pwallet->ListMints(false, false, true);
     vector<CMintMeta> vMintsToFind(setMints.begin(), setMints.end());
@@ -720,35 +686,8 @@ UniValue resetmintzerocoin(const JSONRPCRequest& request)
     return obj;
 }
 
-UniValue resetspentzerocoin(const JSONRPCRequest& request)
+UniValue ResetSpends(CWallet* pwallet)
 {
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CWallet* const pwallet = wallet.get();
-    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
-        return NullUniValue;
-
-    UniValue params = request.params;
-    if (request.fHelp || params.size() != 0)
-        throw runtime_error(
-                "resetspentzerocoin\n"
-                "\nScan the blockchain for all of the zerocoins that are held in the wallet.dat.\n"
-                "Reset mints that are considered spent that did not make it into the blockchain.\n"
-
-                "\nResult:\n"
-                "{\n"
-                "  \"restored\": [        (array) JSON array of restored objects.\n"
-                "    {\n"
-                "      \"serial\": \"xxx\"  (string) Serial in hex format.\n"
-                "    }\n"
-                "    ,...\n"
-                "  ]\n"
-                "}\n"
-
-                "\nExamples:\n" +
-                HelpExampleCli("resetspentzerocoin", "") + HelpExampleRpc("resetspentzerocoin", ""));
-
-    LOCK2(cs_main, pwallet->cs_wallet);
-
     WalletBatch walletdb(pwallet->GetDBHandle());
     CzTracker* zTracker = pwallet->GetZTrackerPointer();
     set<CMintMeta> setMints = zTracker->ListMints(false, false, false);
@@ -786,6 +725,152 @@ UniValue resetspentzerocoin(const JSONRPCRequest& request)
 
     objRet.push_back(Pair("restored", arrRestored));
     return objRet;
+}
+
+UniValue ReconsiderZerocoins(CWallet* pwallet)
+{
+    list<CZerocoinMint> listMints;
+    list<CDeterministicMint> listDMints;
+
+    pwallet->ReconsiderZerocoins(listMints, listDMints);
+
+    UniValue arrRet(UniValue::VARR);
+    for (const CZerocoinMint& mint : listMints) {
+        UniValue objMint(UniValue::VOBJ);
+        objMint.push_back(Pair("txid", mint.GetTxHash().GetHex()));
+        objMint.push_back(Pair("denomination", ValueFromAmount(mint.GetDenominationAsAmount())));
+        objMint.push_back(Pair("pubcoin", mint.GetValue().GetHex()));
+        objMint.push_back(Pair("height", mint.GetHeight()));
+        arrRet.push_back(objMint);
+    }
+    for (const CDeterministicMint& dMint : listDMints) {
+        UniValue objMint(UniValue::VOBJ);
+        objMint.push_back(Pair("txid", dMint.GetTxHash().GetHex()));
+        objMint.push_back(Pair("denomination", FormatMoney(libzerocoin::ZerocoinDenominationToAmount(dMint.GetDenomination()))));
+        objMint.push_back(Pair("pubcoinhash", dMint.GetPubcoinHash().GetHex()));
+        objMint.push_back(Pair("height", dMint.GetHeight()));
+        arrRet.push_back(objMint);
+    }
+
+    return arrRet;
+}
+
+UniValue rescanzerocoinwallet(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    UniValue params = request.params;
+    if (request.fHelp || params.size() > 1)
+        throw runtime_error(
+                "resetmintzerocoin ( fullscan )\n"
+                "\nScan the blockchain for all of the zerocoins that are held in the wallet.dat.\n"
+                "Update any meta-data that is incorrect. Archive any mints that are not able to be found.\n" +
+                HelpRequiringPassphrase(pwallet) + "\n"
+
+                                                   "\nArguments:\n"
+                                                   "1. fullscan          (boolean, optional) Rescan each block of the blockchain.\n"
+                                                   "                               WARNING - may take 30+ minutes!\n"
+
+                                                   "\nResult:\n"
+                                                   "{\n"
+                                                   "  \"updated\": [       (array) JSON array of updated mints.\n"
+                                                   "    \"xxx\"            (string) Hex encoded mint.\n"
+                                                   "    ,...\n"
+                                                   "  ],\n"
+                                                   "  \"archived\": [      (array) JSON array of archived mints.\n"
+                                                   "    \"xxx\"            (string) Hex encoded mint.\n"
+                                                   "    ,...\n"
+                                                   "  ]\n"
+                                                   "}\n"
+
+                                                   "\nExamples:\n" +
+                HelpExampleCli("resetmintzerocoin", "true") + HelpExampleRpc("resetmintzerocoin", "true"));
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    UniValue objMintReset = ResetMints(pwallet);
+    UniValue objSpendReset = ResetSpends(pwallet);
+    UniValue arrReconsider = ReconsiderZerocoins(pwallet);
+    UniValue arrRet(UniValue::VARR);
+
+    arrRet.pushKV("mints_reset", objMintReset);
+    arrRet.pushKV("spends_reset", objSpendReset);
+    arrRet.pushKV("unarchived_zerocoins", arrReconsider);
+    return arrRet;
+}
+
+UniValue resetmintzerocoin(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    UniValue params = request.params;
+    if (request.fHelp || params.size() > 1)
+        throw runtime_error(
+                "resetmintzerocoin ( fullscan )\n"
+                "\nScan the blockchain for all of the zerocoins that are held in the wallet.dat.\n"
+                "Update any meta-data that is incorrect. Archive any mints that are not able to be found.\n" +
+                HelpRequiringPassphrase(pwallet) + "\n"
+
+                                            "\nArguments:\n"
+                                            "1. fullscan          (boolean, optional) Rescan each block of the blockchain.\n"
+                                            "                               WARNING - may take 30+ minutes!\n"
+
+                                            "\nResult:\n"
+                                            "{\n"
+                                            "  \"updated\": [       (array) JSON array of updated mints.\n"
+                                            "    \"xxx\"            (string) Hex encoded mint.\n"
+                                            "    ,...\n"
+                                            "  ],\n"
+                                            "  \"archived\": [      (array) JSON array of archived mints.\n"
+                                            "    \"xxx\"            (string) Hex encoded mint.\n"
+                                            "    ,...\n"
+                                            "  ]\n"
+                                            "}\n"
+
+                                            "\nExamples:\n" +
+                HelpExampleCli("resetmintzerocoin", "true") + HelpExampleRpc("resetmintzerocoin", "true"));
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    return ResetMints(pwallet);
+}
+
+UniValue resetspentzerocoin(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    UniValue params = request.params;
+    if (request.fHelp || params.size() != 0)
+        throw runtime_error(
+                "resetspentzerocoin\n"
+                "\nScan the blockchain for all of the zerocoins that are held in the wallet.dat.\n"
+                "Reset mints that are considered spent that did not make it into the blockchain.\n"
+
+                "\nResult:\n"
+                "{\n"
+                "  \"restored\": [        (array) JSON array of restored objects.\n"
+                "    {\n"
+                "      \"serial\": \"xxx\"  (string) Serial in hex format.\n"
+                "    }\n"
+                "    ,...\n"
+                "  ]\n"
+                "}\n"
+
+                "\nExamples:\n" +
+                HelpExampleCli("resetspentzerocoin", "") + HelpExampleRpc("resetspentzerocoin", ""));
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    return ResetSpends(pwallet);
 }
 
 UniValue getarchivedzerocoin(const JSONRPCRequest& request)
@@ -1066,30 +1151,7 @@ UniValue reconsiderzerocoins(const JSONRPCRequest& request)
 
     EnsureWalletIsUnlocked(pwallet);
 
-    list<CZerocoinMint> listMints;
-    list<CDeterministicMint> listDMints;
-
-    pwallet->ReconsiderZerocoins(listMints, listDMints);
-
-    UniValue arrRet(UniValue::VARR);
-    for (const CZerocoinMint& mint : listMints) {
-        UniValue objMint(UniValue::VOBJ);
-        objMint.push_back(Pair("txid", mint.GetTxHash().GetHex()));
-        objMint.push_back(Pair("denomination", ValueFromAmount(mint.GetDenominationAsAmount())));
-        objMint.push_back(Pair("pubcoin", mint.GetValue().GetHex()));
-        objMint.push_back(Pair("height", mint.GetHeight()));
-        arrRet.push_back(objMint);
-    }
-    for (const CDeterministicMint& dMint : listDMints) {
-        UniValue objMint(UniValue::VOBJ);
-        objMint.push_back(Pair("txid", dMint.GetTxHash().GetHex()));
-        objMint.push_back(Pair("denomination", FormatMoney(libzerocoin::ZerocoinDenominationToAmount(dMint.GetDenomination()))));
-        objMint.push_back(Pair("pubcoinhash", dMint.GetPubcoinHash().GetHex()));
-        objMint.push_back(Pair("height", dMint.GetHeight()));
-        arrRet.push_back(objMint);
-    }
-
-    return arrRet;
+    return ReconsiderZerocoins(pwallet);
 }
 
 UniValue generatemintlist(const JSONRPCRequest& request)
@@ -1288,6 +1350,7 @@ static const CRPCCommand commands[] =
     { "zerocoin",           "importzerocoins",                  &importzerocoins,               {"importdata"} },
     { "zerocoin",           "exportzerocoins",                  &exportzerocoins,               {"include_spent", "denomination"} },
     { "zerocoin",           "getarchivedzerocoin",              &getarchivedzerocoin,           {} },
+    { "zerocoin",           "rescanzerocoinwallet",             &rescanzerocoinwallet,          {} },
     { "zerocoin",           "resetspentzerocoin",               &resetspentzerocoin,            {} },
     { "zerocoin",           "resetmintzerocoin",                &resetmintzerocoin,             {} },
     { "zerocoin",           "spendzerocoinmints",               &spendzerocoinmints,            {"mints_list", "address"} },
