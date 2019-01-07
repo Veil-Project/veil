@@ -2636,8 +2636,11 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             rtx.vin.emplace_back(txin.prevout);
         MarkInputsAsPendingSpend(rtx);
 
+        uint256 txid = txNew.GetHash();
+        if (nValueOutZerocoin)
+            rtx.AddPartialTxid(txid);
         //save record
-        SaveRecord(txNew.GetHash(), rtx);
+        SaveRecord(txid, rtx);
 
         // Embed the constructed transaction data in wtxNew.
         wtx.SetTx(MakeTransactionRef(std::move(txNew)));
@@ -2842,7 +2845,10 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
     int nZerocoinMintOuts = 0;
     CAmount nValueOutZerocoin = 0;
     CAmount nFeeZerocoin = 0;
+    bool fCTOut = false;
     for (auto& r : vecSend) {
+        if (r.nType == OUTPUT_CT)
+            fCTOut = true;
         if (r.fZerocoinMint) {
             nZerocoinMintOuts++;
             nValueOutZerocoin += r.nAmount;
@@ -2930,7 +2936,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
             {
                 // Fill an output to ourself
                 CTempRecipient recipient;
-                recipient.nType = OUTPUT_RINGCT;
+                recipient.nType = fCTOut ? OUTPUT_CT : OUTPUT_RINGCT;
                 recipient.fChange = true;
 
                 //If no change address is set, then generate a new stealth address to use for change
@@ -3225,6 +3231,18 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     // Keyimage is required for the tx hash
                     if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], anonOutput.pubkey.begin(), key.begin())))
                         return error("%s: secp256k1_get_keyimage failed %d", __func__, rv);
+
+                    // Double check key image is not used... todo, this should not be done here and is result of bad state
+                    uint256 txhashKI;
+                    auto ki = *((CCmpPubKey*)&vKeyImages[k*33]);
+                    if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
+                        AnonWalletDB wdb(*walletDatabase);
+                        COutPoint out;
+                        if (wdb.ReadAnonKeyImage(ki, out)) {
+                            MarkOutputSpent(out, true);
+                        }
+                        return error("%s: bad wallet state trying to spend already spent anonin", __func__);
+                    }
                 }
             }
 
@@ -3367,8 +3385,11 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
             rtx.vin.emplace_back(txin.prevout);
         MarkInputsAsPendingSpend(rtx);
 
+        uint256 txid = txNew.GetHash();
+        if (nValueOutZerocoin)
+            rtx.AddPartialTxid(txid);
         //save record
-        SaveRecord(txNew.GetHash(), rtx);
+        SaveRecord(txid, rtx);
 
         // Embed the constructed transaction data in wtxNew.
         wtx.SetTx(MakeTransactionRef(std::move(txNew)));

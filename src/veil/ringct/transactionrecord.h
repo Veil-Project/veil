@@ -10,6 +10,24 @@
 
 extern const uint256 ABANDON_HASH;
 
+enum RTxAddonValueTypes
+{
+    RTXVT_EPHEM_PATH            = 1, // path ephemeral keys are derived from packed 4bytes no separators
+
+    RTXVT_REPLACES_TXID         = 2,
+    RTXVT_REPLACED_BY_TXID      = 3,
+
+    RTXVT_COMMENT               = 4,
+    RTXVT_TO                    = 5,
+
+    RTXVT_TEMP_TXID             = 6,
+
+    /*
+    RTXVT_STEALTH_KEYID     = 2,
+    RTXVT_STEALTH_KEYID_N   = 3, // n0:pk0:n1:pk1:...
+    */
+};
+
 typedef std::map<uint8_t, std::vector<uint8_t> > mapRTxValue_t;
 class CTransactionRecord
 {
@@ -38,6 +56,34 @@ public:
     COutputRecord *GetOutput(int n);
     const COutputRecord *GetOutput(int n) const;
     const COutputRecord *GetChangeOutput() const;
+
+    void AddPartialTxid(const uint256& txid)
+    {
+        std::vector<uint8_t> vec(32);
+        memcpy(vec.data(), txid.begin(), 32);
+        mapValue.emplace(RTXVT_TEMP_TXID, vec);
+    }
+
+    bool HasPartialTxid() const
+    {
+        return mapValue.count(RTXVT_TEMP_TXID) > 0;
+    }
+
+    void RemovePartialTxid()
+    {
+        mapValue.erase(RTXVT_TEMP_TXID);
+    }
+
+    uint256 GetPartialTxid() const
+    {
+        uint256 txid;
+        txid.SetNull();
+        if (mapValue.count(RTXVT_TEMP_TXID)) {
+            std::vector<uint8_t> vec = mapValue.at(RTXVT_TEMP_TXID);
+            memcpy(txid.begin(), vec.data(), 32);
+        }
+        return txid;
+    }
 
     void SetMerkleBranch(const uint256 &blockHash_, int posInBlock)
     {

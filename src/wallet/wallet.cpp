@@ -3750,7 +3750,6 @@ bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
             // Take key pair from key pool so it won't be used again
             reservekey.KeepKey();
 
-
             if (wtxNew.tx->HasBlindedValues())
                 setAnonTx.emplace(wtxNew.tx->GetHash());
 
@@ -3762,7 +3761,7 @@ bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
             if (!wtxNew.tx->IsZerocoinSpend()) {
                 for (const CTxIn &txin : wtxNew.tx->vin) {
                     if (!mapWallet.count(txin.prevout.hash)) {
-                        LogPrintf("%s: %s ***** FIXMEEEEEEEEEEEEEEEEEEEEE Notify that anon input has been spend\n", __func__, __LINE__);
+                        //LogPrintf("%s: %s ***** FIXMEEEEEEEEEEEEEEEEEEEEE Notify that anon input has been spend\n", __func__, __LINE__);
                         continue;
                     }
 
@@ -4621,7 +4620,7 @@ void CWallet::AutoZeromint()
 {
     // After sync wait even more to reduce load when wallet was just started
     int64_t nWaitTime = GetAdjustedTime() - nAutoMintStartupTime;
-    if (nWaitTime < AUTOMINT_DELAY){
+    if (nWaitTime < 20){
         LogPrint(BCLog::SELECTCOINS, "CWallet::AutoZeromint(): time since sync-completion or last Automint (%ld sec) < default waiting time (%ld sec). Waiting again...\n", nWaitTime, AUTOMINT_DELAY);
         return;
     }
@@ -6247,6 +6246,14 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 spend.SetTxHash(txHash);
                 if (!WalletBatch(*this->database).WriteZerocoinSpendSerialEntry(spend))
                     receipt.SetStatus("Failed to write coin serial number into wallet", nStatus);
+            }
+
+            //Change the rtx record to the correct spot
+            uint256 txidOld = rtx.GetPartialTxid();
+            if (!txidOld.IsNull() && pAnonWalletMain->mapRecords.count(txidOld)) {
+                pAnonWalletMain->mapRecords.erase(txidOld);
+                rtx.RemovePartialTxid();
+                pAnonWalletMain->SaveRecord(txHash, rtx);
             }
 
             txRef = std::make_shared<CTransaction>(mtx);

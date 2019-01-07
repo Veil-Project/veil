@@ -1730,7 +1730,7 @@ int ApplyTxInUndo(Coin&& undo, CCoinsViewCache& view, const COutPoint& out)
     bool fClean = true;
 
     if (view.HaveCoin(out)) fClean = false; // overwriting transaction output
-
+    LogPrintf("%s:%s fClean=%d\n", __func__, __LINE__, fClean);
     if (undo.nHeight == 0) {
         // Missing undo metadata (height and coinbase). Older versions included this
         // information only in undo records for the last spend of a transactions'
@@ -1820,7 +1820,6 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
             if (out->IsType(OUTPUT_RINGCT)) {
                 CTxOutRingCT *txout = (CTxOutRingCT*)out;
-
                 if (view.nLastRCTOutput == 0) {
                     view.nLastRCTOutput = pindex->nAnonOutputs;
                     // Verify data matches
@@ -1841,7 +1840,6 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
                 continue;
             }
-
             // Check that all outputs are available and match the outputs in the block itself
             // exactly.
             if (out->IsType(OUTPUT_STANDARD) || out->IsType(OUTPUT_CT)) {
@@ -1849,13 +1847,17 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 if (!pScript->IsUnspendable()) {
                     COutPoint op(hash, k);
                     Coin coin;
-
                     CTxOut txout(0, *pScript);
 
-                    if (out->IsType(OUTPUT_STANDARD))
+                    if (out->IsType(OUTPUT_STANDARD)) {
                         txout.nValue = out->GetValue();
+                        LogPrintf("STANDARD\n");
+                    }
+
                     bool is_spent = view.SpendCoin(op, &coin);
                     if (!is_spent || txout != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
+                        LogPrintf("tx: is_coinbase=%d height=%d coinheight=%d\n", is_coinbase, pindex->nHeight, coin.nHeight);
+                        LogPrintf("%s:%s %s\n  pos=%d spend=%d txout==%d height=%d cbase=%d \n %s\n", __func__, __LINE__, block.GetHash().GetHex(), k, !is_spent, txout != coin.out, pindex->nHeight != coin.nHeight, is_coinbase != coin.fCoinBase, tx.ToString());
                         fClean = false; // transaction output mismatch
                     }
                 }
@@ -1895,12 +1897,13 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
                 const COutPoint &out = in.prevout;
                 int res = ApplyTxInUndo(std::move(txundo.vprevout[j]), view, out);
+                LogPrintf("%s:%s %s res=%d\n", __func__, __LINE__, block.GetHash().GetHex(), res);
                 if (res == DISCONNECT_FAILED) return DISCONNECT_FAILED;
                 fClean = fClean && res != DISCONNECT_UNCLEAN;
             }
         }
     }
-
+    LogPrintf("%s:%s %s clean=%d\n", __func__, __LINE__, block.GetHash().GetHex(), fClean);
     // move best block pointer to prevout block
     view.SetBestBlock(pindex->pprev->GetBlockHash());
 
