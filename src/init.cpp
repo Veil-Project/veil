@@ -60,6 +60,7 @@
 
 #ifdef ENABLE_WALLET
 #include <veil/ringct/anonwallet.h>
+#include "wallet/wallet.h"
 #endif
 
 #include <boost/algorithm/string/classification.hpp>
@@ -1854,6 +1855,30 @@ bool AppInitMain()
     threadGroupStaging.create_thread(&ThreadStaging);
 
     LinkPoWThreadGroup(&threadGroupPoWMining);
+
+    // Start wallet CPU mining if the -gen=<n> parameter is given
+    int nThreads = gArgs.GetArg("-gen", 0);
+    if (nThreads) {
+        auto pt = GetMainWallet();
+        if (pt) {
+            std::shared_ptr<CReserveScript> coinbase_script;
+            pt->GetScriptForMining(coinbase_script);
+
+            // If the keypool is exhausted, no script is returned at all.  Catch this.
+            if (!coinbase_script) {
+                error("Failed to start veilminer: Keypool ran out, please call keypoolrefill first");
+                return true;
+            }
+
+            //throw an error if no script was provided
+            if (coinbase_script->reserveScript.empty()) {
+                error("Failed to start veilminer: No coinbase script available");
+                return true;
+            }
+
+            GenerateBitcoins(true, nThreads, coinbase_script);
+        }
+    }
 
     return true;
 }
