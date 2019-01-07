@@ -120,21 +120,24 @@ void SettingsMinting::mintzerocoins(){
         return;
     }
 
-    bool fAllowBasecoin = ui->useBasecoin->isChecked();
+    bool fUseBasecoin = ui->useBasecoin->isChecked();
 
     interfaces::Wallet& wallet = walletModel->wallet();
     std::vector<CDeterministicMint> vDMints;
     std::vector<COutPoint> vOutpts;
-    OutputTypes inputtype;
+    OutputTypes inputtype = OUTPUT_NULL;
 
     interfaces::WalletBalances balances = wallet.getBalances();
-    if (balances.ring_ct_balance > nAmount && chainActive.Tip()->nAnonOutputs > 20)
-        inputtype = OUTPUT_RINGCT;
-    else if (balances.ct_balance > nAmount)
-        inputtype = OUTPUT_CT;
-    else if (fAllowBasecoin && balances.basecoin_balance > nAmount)
+    if (!fUseBasecoin) {
+        if (balances.ring_ct_balance > nAmount && chainActive.Tip()->nAnonOutputs > 20)
+            inputtype = OUTPUT_RINGCT;
+        else if (balances.ct_balance > nAmount)
+            inputtype = OUTPUT_CT;
+    } else if (balances.basecoin_balance > nAmount) {
         inputtype = OUTPUT_STANDARD;
-    else {
+    }
+
+    if (inputtype == OUTPUT_NULL) {
         openToastDialog("Insufficient Balance", this);
         return;
     }

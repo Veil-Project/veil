@@ -2414,6 +2414,9 @@ bool CWallet::GetBalances(BalanceList& bal)
     LOCK2(cs_main, cs_wallet);
     for (const auto &item : mapWallet) {
         const CWalletTx &wtx = item.second;
+        //Blinded values will come from anonwallet
+        if (wtx.tx->HasBlindedValues())
+            continue;
         bal.nVeilImmature += wtx.GetImmatureCredit();
 
         if (wtx.IsTrusted()) {
@@ -3762,7 +3765,7 @@ bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
             if (!wtxNew.tx->IsZerocoinSpend()) {
                 for (const CTxIn &txin : wtxNew.tx->vin) {
                     if (!mapWallet.count(txin.prevout.hash)) {
-                        LogPrintf("%s: %s ***** FIXMEEEEEEEEEEEEEEEEEEEEE Notify that anon input has been spend\n", __func__, __LINE__);
+                        //LogPrintf("%s: %s ***** FIXMEEEEEEEEEEEEEEEEEEEEE Notify that anon input has been spend\n", __func__, __LINE__);
                         continue;
                     }
 
@@ -6247,6 +6250,14 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 spend.SetTxHash(txHash);
                 if (!WalletBatch(*this->database).WriteZerocoinSpendSerialEntry(spend))
                     receipt.SetStatus("Failed to write coin serial number into wallet", nStatus);
+            }
+
+            //Change the rtx record to the correct spot
+            uint256 txidOld = rtx.GetPartialTxid();
+            if (!txidOld.IsNull() && pAnonWalletMain->mapRecords.count(txidOld)) {
+                pAnonWalletMain->mapRecords.erase(txidOld);
+                rtx.RemovePartialTxid();
+                pAnonWalletMain->SaveRecord(txHash, rtx);
             }
 
             txRef = std::make_shared<CTransaction>(mtx);
