@@ -1158,18 +1158,26 @@ UniValue deterministiczerocoinstate(const JSONRPCRequest& request)
     if (request.fHelp || params.size() != 0)
         throw runtime_error(
                 "deterministiczerocoinstate\n"
-                "\nThe current state of the mintpool of the deterministic zerocoin wallet.\n" +
+                "\nThe current state of the mintpool of the deterministic zerocoin wallet.\n"
+                        "\nResult:\n"
+                        "{\n"
+                        "  \"zerocoin_master_seed_hash\": \"xxx\",   (string) Hash of the master seed used for all zerocoin derivation.\n"
+                        "  \"count\": n,    (numeric) The count of the next zerocoin that will be derived.\n"
+                        "  \"mintpool_count\": \"xxx\",   (string) The count of the mintpool\n"
+                        "}\n"
+
+
                 HelpRequiringPassphrase(pwallet) + "\n"
 
                                             "\nExamples\n" +
-                HelpExampleCli("mintpoolstatus", "") + HelpExampleRpc("mintpoolstatus", ""));
+                HelpExampleCli("deterministiczerocoinstate", "") + HelpExampleRpc("deterministiczerocoinstate", ""));
 
     CzWallet* zwallet = pwallet->getZWallet();
     UniValue obj(UniValue::VOBJ);
     int nCount, nCountLastUsed;
     zwallet->GetState(nCount, nCountLastUsed);
     CKeyID seedID = zwallet->GetMasterSeedID();
-    obj.push_back(Pair("zerocoin_master_seed", seedID.GetHex()));
+    obj.push_back(Pair("zerocoin_master_seed_hash", seedID.GetHex()));
     obj.push_back(Pair("count", nCount));
     obj.push_back(Pair("mintpool_count", nCountLastUsed));
 
@@ -1242,6 +1250,8 @@ UniValue searchdeterministiczerocoin(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Range has to be at least 1");
 
     int nThreads = params[2].get_int();
+    if (nThreads < 1)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Threads has to be at least 1");
 
     CzWallet* zwallet = pwallet->getZWallet();
 
