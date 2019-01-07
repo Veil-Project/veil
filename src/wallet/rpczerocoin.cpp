@@ -95,21 +95,24 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
     std::string strError;
     std::vector<COutPoint> vOutpts;
 
-    bool fAllowBasecoin = false;
+    bool fUseBasecoin = false;
     if (params.size() > 1)
-        fAllowBasecoin = params[1].get_bool();
+        fUseBasecoin = params[1].get_bool();
 
     BalanceList balances;
     pwallet->GetBalances(balances);
 
-    OutputTypes inputtype;
-    if (balances.nRingCT > nAmount && chainActive.Tip()->nAnonOutputs > 20)
+    OutputTypes inputtype = OUTPUT_NULL;
+    if (fUseBasecoin) {
+        if (balances.nVeil > nAmount)
+            inputtype = OUTPUT_STANDARD;
+    } else if (balances.nRingCT > nAmount && chainActive.Tip()->nAnonOutputs > 20) {
         inputtype = OUTPUT_RINGCT;
-    else if (balances.nCT > nAmount)
+    } else if (balances.nCT > nAmount) {
         inputtype = OUTPUT_CT;
-    else if (fAllowBasecoin && balances.nVeil > nAmount)
-        inputtype = OUTPUT_STANDARD;
-    else
+    }
+
+    if (inputtype == OUTPUT_NULL)
         throw JSONRPCError(RPC_WALLET_ERROR, "Insufficient Balance");
 
     if (params.size() > 2) {
