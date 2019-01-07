@@ -255,32 +255,6 @@ padding:4;</string>
          </spacer>
         </item>
         <item>
-         <widget class="QPushButton" name="btnEsc">
-          <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
-          <property name="text">
-           <string>CANCEL</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_4">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>40</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
          <widget class="QPushButton" name="btnSave">
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
@@ -289,7 +263,7 @@ padding:4;</string>
            <string notr="true"/>
           </property>
           <property name="text">
-           <string>SAVE</string>
+           <string>OK</string>
           </property>
          </widget>
         </item>

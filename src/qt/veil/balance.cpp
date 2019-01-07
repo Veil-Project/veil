@@ -68,7 +68,7 @@ void Balance::onBtnBalanceClicked(){
             parentWidget(),
             unit,
             balances.zerocoin_balance + balances.zerocoin_immature_balance,
-            balances.ring_ct_balance + balances.ring_ct_immature_balance,
+            balances.ring_ct_balance + balances.ring_ct_immature_balance + balances.ct_balance + balances.ct_unconfirmed_balance,
             balances.basecoin_balance + balances.basecoin_immature_balance
     );
     tooltip->move(ui->btnBalance->pos().rx()+150,0);

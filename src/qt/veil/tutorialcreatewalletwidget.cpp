@@ -9,7 +9,6 @@ TutorialCreateWalletWidget::TutorialCreateWalletWidget(QWidget *parent) :
 
     ui->groupBox->setFocusPolicy(Qt::NoFocus);
     ui->btnCreate->setFocusPolicy(Qt::NoFocus);
-    ui->btnImport->setFocusPolicy(Qt::NoFocus);
     ui->btnRestore->setFocusPolicy(Qt::NoFocus);
 }
 
@@ -24,8 +23,6 @@ int TutorialCreateWalletWidget::GetButtonClicked()
         return 1;
     else if (ui->btnRestore->isChecked())
         return 2;
-    else if (ui->btnImport->isChecked())
-        return 3;
     else
         return 0;
 }
