@@ -991,7 +991,7 @@ bool AnonWallet::GetBalances(BalanceList &bal)
             }
             switch (r.nType) {
                 case OUTPUT_RINGCT:
-                    if (!(r.nFlags & ORF_OWNED))
+                    if (!(r.nFlags & ORF_OWNED) || r.IsSpent())
                         continue;
                     if (fTrusted)
                         bal.nRingCT += r.GetAmount();
@@ -999,7 +999,7 @@ bool AnonWallet::GetBalances(BalanceList &bal)
                         bal.nRingCTUnconf += r.GetAmount();
                     break;
                 case OUTPUT_CT:
-                    if (!(r.nFlags & ORF_OWNED))
+                    if (!(r.nFlags & ORF_OWNED) || r.IsSpent())
                         continue;
                     if (fTrusted)
                         bal.nCT += r.GetAmount();
@@ -3238,10 +3238,12 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
                         AnonWalletDB wdb(*walletDatabase);
                         COutPoint out;
+                        bool fErased = false;
                         if (wdb.ReadAnonKeyImage(ki, out)) {
                             MarkOutputSpent(out, true);
+                            fErased = true;
                         }
-                        return error("%s: bad wallet state trying to spend already spent anonin", __func__);
+                        return error("%s: bad wallet state trying to spend already spent anonin, outpoint=%s erased=%d", __func__, out.ToString(), fErased);
                     }
                 }
             }
@@ -5244,7 +5246,7 @@ void AnonWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySaf
                 continue;
             }
 
-            if (IsSpent(txid, r.n)) {
+            if (IsSpent(txid, r.n) || r.IsSpent()) {
                 continue;
             }
 
