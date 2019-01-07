@@ -483,7 +483,28 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         else nBytesInputs += 148;
     }
 
+    AnonWallet * pAnonWallet = model->wallet().getWalletPointer()->GetAnonWallet();
+    std::map<uint256, CTransactionRecord> mapTxRecords = pAnonWallet->mapRecords;
+    for (const auto& recordPair : mapTxRecords) {
+        uint256 txid = recordPair.first;
+        CTransactionRecord txRecord = recordPair.second;
+        const CWalletTx* pWalletTx = model->wallet().getWalletPointer()->GetWalletTx(txid);
+        if (pWalletTx->GetDepthInMainChain() < 0) continue;
+        for(unsigned int i = 1; i < txRecord.vout.size(); i++) {
+            COutputRecord outputRecord = txRecord.vout[i];
 
+            // unselect already spent, very unlikely scenario, this could happen
+            // when selected are spent elsewhere, like rpc or another computer
+            if (outputRecord.IsSpent()) {
+                coinControl()->UnSelect(COutPoint(txid, outputRecord.n));
+                continue;
+            }
+
+            // Amount
+            if (coinControl()->IsSelected(COutPoint(txid, outputRecord.n)))
+                nAmount += outputRecord.GetAmount();
+        }
+    }
 
     // calculation
     if (nQuantity > 0)
@@ -760,9 +781,6 @@ void CoinControlDialog::updateView()
                     itemNewAddressContainer->setFlags(flgTristate);
                     itemNewAddressContainer->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
 
-                    // label
-//                    itemNewAddressContainer->setText(COLUMN_LABEL, sWalletLabel);
-
                     // address
                     itemNewAddressContainer->setText(COLUMN_ADDRESS, QString::fromStdString(sxAddress.ToString()));
 
@@ -804,6 +822,10 @@ void CoinControlDialog::updateView()
             // transaction hash
             itemOutput->setText(COLUMN_TXHASH, QString::fromStdString(txid.GetHex()));
 
+            //vout index
+            itemOutput->setText(COLUMN_VOUT_INDEX, QString::number(out.n));
+
+
             //Type of coin
             if(out.nType == OUTPUT_CT){
                 itemOutput->setText(COLUMN_COINTYPE, QString("Stealth (CT)"));
@@ -818,6 +840,17 @@ void CoinControlDialog::updateView()
                 itemWalletAddress->setText(COLUMN_CHECKBOX, "(" + QString::number(nChildren) + ")");
                 mapTreeContainers[sxAddress] = std::make_tuple(itemWalletAddress, nSum, nChildren);
             }
+
+            //Coin control interfacing
+            COutPoint outPoint(txid, out.n);
+            if (model->wallet().isLockedCoin(outPoint))
+            {
+                coinControl()->UnSelect(outPoint);
+                itemOutput->setDisabled(true);
+                itemOutput->setIcon(COLUMN_CHECKBOX, platformStyle->SingleColorIcon(":/icons/lock_closed"));
+            }
+            if (coinControl()->IsSelected(outPoint))
+                itemOutput->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
         }
 
     }
