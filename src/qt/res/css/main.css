@@ -670,8 +670,7 @@ QToolTip {
     border-radius:20px;
     padding:6px;
     margin:0px;
-    min-height: 30px;
+    min-height: 35px;
     qproperty-alignment: 'AlignVCenter | AlignCenter';
-    qproperty-wordWrap: true;
 }
 
