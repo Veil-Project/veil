@@ -739,6 +739,13 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             }
         }
 
+        if (fGenerateBitcoins && !fProofOfStake) { // If the miner was turned on and we are in IsInitialBlockDownload(), sleep 60 seconds, before trying again
+            if (IsInitialBlockDownload() && !gArgs.GetBoolArg("-genoverride", false)) {
+                MilliSleep(60000);
+                continue;
+            }
+        }
+
         CScript scriptMining;
         if (coinbaseScript)
             scriptMining = coinbaseScript->reserveScript;
