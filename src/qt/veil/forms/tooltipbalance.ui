@@ -97,7 +97,7 @@ background-color:transparent;</string>
            <string/>
           </property>
           <property name="icon">
-           <iconset>
+           <iconset resource="../../veil.qrc">
             <normaloff>:/icons/ic-information-png</normaloff>:/icons/ic-information-png</iconset>
           </property>
           <property name="iconSize">
@@ -134,7 +134,7 @@ font-size:12px;
 text-align:center;</string>
         </property>
         <property name="text">
-         <string>RingCT </string>
+         <string>RingCT &amp; CT</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -185,6 +185,8 @@ text-align:center;</string>
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../veil.qrc"/>
+ </resources>
  <connections/>
 </ui>

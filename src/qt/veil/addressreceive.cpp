@@ -33,11 +33,9 @@ AddressReceive::AddressReceive(QWidget *parent, WalletModel* _walletModel, bool 
     ui(new Ui::AddressReceive)
 {
     ui->setupUi(this);
-    connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(onEscapeClicked()));
 
     ui->labelTitle->setProperty("cssClass" , "title-dialog");
     ui->btnSave->setProperty("cssClass" , "btn-text-primary");
-    ui->btnEsc->setProperty("cssClass" , "btn-text-primary-inactive");
 
     // Description
 
