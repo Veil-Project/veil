@@ -76,6 +76,7 @@ void VeilStatusBar::onBtnLockClicked()
 
     if(walletModel->getEncryptionStatus() == WalletModel::Unlocked || walletModel->getEncryptionStatus() == WalletModel::UnlockedForStakingOnly){
         if (walletModel->setWalletLocked(true, false)){
+            ui->btnLock->setIcon(QIcon(":/icons/ic-locked-png"));
             openToastDialog("Wallet locked", mainWindow);
         }else{
             openToastDialog("Wallet not locked", mainWindow);
@@ -88,13 +89,16 @@ void VeilStatusBar::onBtnLockClicked()
                 unlockPasswordDialog = new UnlockPasswordDialog(/*fUnlockForStakingOnly*/false, walletModel, mainWindow);
             if (openDialogWithOpaqueBackground(unlockPasswordDialog, mainWindow, 4)) {
                 mainWindow->updateWalletStatus();
+                ui->btnLock->setIcon(QIcon(":/icons/ic-unlocked-png"));
                 openToastDialog("Wallet unlocked", mainWindow);
             } else {
                 openToastDialog("Wallet failed to unlock", mainWindow);
             }
         } else {
-            mainWindow->encryptWallet(true);
-            openToastDialog("Wallet locked", mainWindow);
+            if(mainWindow->encryptWallet(true)){
+                ui->btnLock->setIcon(QIcon(":/icons/ic-locked-png"));
+                openToastDialog("Wallet locked", mainWindow);
+            }
         }
 
     }
@@ -106,7 +110,11 @@ void VeilStatusBar::setWalletModel(WalletModel *model)
 {
     this->walletModel = model;
     connect(ui->checkStaking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
+    WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
+    bool lockStatus = lockState == WalletModel::Locked || lockState == WalletModel::UnlockedForStakingOnly;
+    ui->btnLock->setIcon(QIcon( (lockStatus) ? ":/icons/ic-locked-png" : ":/icons/ic-unlocked-png"));
     updateStakingCheckbox();
+    updateLockCheckbox();
 }
 
 void VeilStatusBar::updateLockCheckbox(){
@@ -115,6 +123,7 @@ void VeilStatusBar::updateLockCheckbox(){
         bool lockStatus = lockState == WalletModel::Locked || lockState == WalletModel::UnlockedForStakingOnly;
         if (ui->btnLock->isChecked() != lockStatus) {
             ui->btnLock->setChecked(lockStatus);
+            ui->btnLock->setIcon(QIcon( (lockStatus) ? ":/icons/ic-locked-png" : ":/icons/ic-unlocked-png"));
             fBlockNextBtnLockSignal = true;
         }
     }
