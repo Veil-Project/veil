@@ -1164,7 +1164,7 @@ UniValue deterministiczerocoinstate(const JSONRPCRequest& request)
                         "  \"zerocoin_master_seed_hash\": \"xxx\",   (string) Hash of the master seed used for all zerocoin derivation.\n"
                         "  \"count\": n,    (numeric) The count of the next zerocoin that will be derived.\n"
                         "  \"mintpool_count\": \"xxx\",   (string) The count of the mintpool\n"
-                        "}\n"
+                        "}\n" +
 
 
                 HelpRequiringPassphrase(pwallet) + "\n"
