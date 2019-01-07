@@ -1320,6 +1320,14 @@ CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
     return nSubsidy;
 }
 
+bool HeadersAndBlocksSynced()
+{
+    LOCK(cs_main);
+    if (IsInitialBlockDownload())
+        return false;
+    return chainActive.Height() >= pindexBestHeader->nHeight;
+}
+
 bool IsInitialBlockDownload()
 {
     // Once this function has returned false, it must remain false.
@@ -2851,7 +2859,7 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
 
     //If Zerocoin automint is on, then Zerocoins will be minted
     std::shared_ptr<CWallet> wMainWallet = GetMainWallet();
-    if (!IsInitialBlockDownload() && wMainWallet->isZeromintEnabled()) {
+    if (HeadersAndBlocksSynced() && wMainWallet->isZeromintEnabled()) {
         wMainWallet->AutoZeromint();
     }
 
