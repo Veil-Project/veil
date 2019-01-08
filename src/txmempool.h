@@ -97,7 +97,8 @@ private:
     int64_t nSigOpCostWithAncestors;
 
     //Zerocoin data
-    std::set<CBigNum> setSerialHashes;
+    std::set<uint256> setSerialHashes;
+    std::set<uint256> setPubcoinHashes;
 
 public:
     CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFee,
@@ -118,7 +119,10 @@ public:
     size_t DynamicMemoryUsage() const { return nUsageSize; }
     const LockPoints& GetLockPoints() const { return lockPoints; }
     bool IsZerocoinSpend() const { return !setSerialHashes.empty(); }
-    const std::set<CBigNum> GetSetSerialHashes() const { return setSerialHashes; }
+    bool IsZerocoinMint() const { return !setPubcoinHashes.empty(); }
+    const std::set<uint256> GetSetSerialHashes() const { return setSerialHashes; }
+    bool HasSerial(const uint256& hashSerial) const { return setSerialHashes.count(hashSerial) > 0; }
+    bool HasPubcoin(const uint256& hashPubcoin) const { return setPubcoinHashes.count(hashPubcoin) > 0; }
 
     // Adjusts the descendant state.
     void UpdateDescendantState(int64_t modifySize, CAmount modifyFee, int64_t modifyCount);
@@ -561,6 +565,7 @@ public:
     void removeRecursive(const CTransaction &tx, MemPoolRemovalReason reason = MemPoolRemovalReason::UNKNOWN);
     void removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMemPoolHeight, int flags);
     void removeConflicts(const CTransaction &tx) EXCLUSIVE_LOCKS_REQUIRED(cs);
+    void removePubcoins(const std::set<uint256>& setPubcoinHashes) EXCLUSIVE_LOCKS_REQUIRED(cs);
     void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight);
 
     void clear();
@@ -583,6 +588,7 @@ public:
     void ClearPrioritisation(const uint256 hash);
 
     bool HaveKeyImage(const CCmpPubKey &ki, uint256 &hash) const;
+    bool HasZerocoinSerial(const uint256& hashSerial) const;
 
 public:
     /** Remove a set of transactions from the mempool.

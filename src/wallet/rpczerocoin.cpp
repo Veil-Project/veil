@@ -694,7 +694,7 @@ UniValue ResetSpends(CWallet* pwallet)
     list<CZerocoinSpend> listSpends = walletdb.ListSpentCoins();
     list<CZerocoinSpend> listUnconfirmedSpends;
 
-    for (CZerocoinSpend spend : listSpends) {
+    for (CZerocoinSpend& spend : listSpends) {
         CTransactionRef txRef;
         uint256 hashBlock;
         if (!GetTransaction(spend.GetTxHash(), txRef, Params().GetConsensus(), hashBlock)) {
@@ -709,7 +709,7 @@ UniValue ResetSpends(CWallet* pwallet)
 
     UniValue objRet(UniValue::VOBJ);
     UniValue arrRestored(UniValue::VARR);
-    for (CZerocoinSpend spend : listUnconfirmedSpends) {
+    for (CZerocoinSpend& spend : listUnconfirmedSpends) {
         for (auto& meta : setMints) {
             if (meta.hashSerial == GetSerialHash(spend.GetSerial())) {
                 zTracker->SetPubcoinNotUsed(meta.hashPubcoin);
