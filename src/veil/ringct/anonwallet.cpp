@@ -52,6 +52,7 @@ int CTransactionRecord::InsertOutput(COutputRecord &r)
 {
     for (size_t i = 0; i < vout.size(); ++i) {
         if (vout[i].n == r.n) {
+            vout[i] = r;
             return 0; // duplicate
         }
 
@@ -4434,8 +4435,10 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
                     if (!wdb.ReadAnonKeyImage(ki, prevout))
                         continue;
 
+                    MarkOutputSpent(prevout, true);
+
                     fIsFromMe = true;
-                    break;
+                    continue;
                 }
 
                 if (fIsFromMe)
@@ -4902,8 +4905,12 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
             fHave = true;
         } else {
             pout = &rout;
-            pout->nFlags |= ORF_LOCKED; // mark new output as locked
+            //pout->nFlags |= ORF_LOCKED; // mark new output as locked
         }
+
+        //If there were any spending flags, remove
+        pout->nFlags &= ~ORF_SPENT;
+        pout->nFlags &= ~ORF_PENDING_SPEND;
 
         pout->n = i;
         pout->nType = txout->nVersion;

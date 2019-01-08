@@ -714,7 +714,7 @@ UniValue ResetSpends(CWallet* pwallet)
             if (meta.hashSerial == GetSerialHash(spend.GetSerial())) {
                 zTracker->SetPubcoinNotUsed(meta.hashPubcoin);
                 walletdb.EraseZerocoinSpendSerialEntry(spend.GetSerial());
-                RemoveSerialFromDB(spend.GetSerial());
+                //RemoveSerialFromDB(spend.GetSerial());
                 UniValue obj(UniValue::VOBJ);
                 obj.push_back(Pair("serial", spend.GetSerial().GetHex()));
                 arrRestored.push_back(obj);

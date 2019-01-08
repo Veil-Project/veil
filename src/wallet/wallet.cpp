@@ -2037,6 +2037,21 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
                     break;
                 }
                 for (size_t posInBlock = 0; posInBlock < block.vtx.size(); ++posInBlock) {
+                    if (block.vtx[posInBlock]->IsZerocoinSpend()) {
+                        uint256 txid = block.vtx[posInBlock]->GetHash();
+                        std::map<libzerocoin::CoinSpend, uint256> spendInfo;
+                        for (auto& in : block.vtx[posInBlock]->vin) {
+                            if (!in.scriptSig.IsZerocoinSpend())
+                                continue;
+
+                            auto spend = TxInToZerocoinSpend(in);
+                            if (spend)
+                                spendInfo.emplace(*spend, txid);
+                            else
+                                error("Faield to getspend *********************************\n");
+                        }
+                        pzerocoinDB->WriteCoinSpendBatch(spendInfo);
+                    }
                     SyncTransaction(block.vtx[posInBlock], pindex, posInBlock, fUpdate);
                 }
             } else {
