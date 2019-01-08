@@ -734,8 +734,13 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                     return false;
                 auto bnSerial = spend->getCoinSerialNumber();
                 int nHeight;
-                if (IsSerialInBlockchain(bnSerial, nHeight) || setSerials.count(bnSerial))
+                if (IsSerialInBlockchain(bnSerial, nHeight))
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-known");
+                if (setSerials.count(bnSerial))
+                    return state.Invalid(false, REJECT_INVALID, "zcspend-tx-dupl-serials");
+                if (mempool.HasZerocoinSerial(GetSerialHash(bnSerial)))
+                    return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-in-mempool");
+
                 setSerials.emplace(bnSerial);
                 continue;
             }
@@ -2388,7 +2393,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                         return state.DoS(100, error("%s: failed final check of zerocoinmint for tx %s", __func__, tx.GetHash().GetHex()), REJECT_INVALID);
 
                     if (!ContextualCheckZerocoinMint(tx, coin, pindex))
-                        return state.DoS(100, error("%s: zerocoin mint failed contextual check", __func__), REJECT_INVALID);
+                        return state.DoS(100, error("%s: zerocoin mint failed contextual check in transaction %s", __func__, tx.GetHash().GetHex()), REJECT_INVALID);
 
                     if (mapMints.count(coin))
                         return state.DoS(100, error("%s: zerocoin mint included within the same block twice", __func__), REJECT_INVALID);
