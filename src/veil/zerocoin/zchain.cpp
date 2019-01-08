@@ -74,6 +74,36 @@ bool BlockToPubcoinList(const CBlock& block, std::list<libzerocoin::PublicCoin>&
     return true;
 }
 
+bool TxToPubcoinHashSet(const CTransactionRef& tx, std::set<uint256>& setHashes)
+{
+    for (unsigned int i = 0; i < tx->vpout.size(); i++) {
+        const auto pout = tx->vpout[i];
+        if(!pout->IsZerocoinMint())
+            continue;
+
+        CValidationState state;
+        libzerocoin::PublicCoin pubCoin(Params().Zerocoin_Params());
+        if(!OutputToPublicCoin(pout.get(), pubCoin))
+            return false;
+
+        uint256 hash = GetPubCoinHash(pubCoin.getValue());
+        setHashes.emplace(hash);
+    }
+    return true;
+}
+
+bool TxToSerialHashSet(const CTransactionRef& tx, std::set<uint256>& setHashes)
+{
+    for (const auto& in :tx->vin) {
+        auto spend = TxInToZerocoinSpend(in);
+        if (spend)
+            setHashes.emplace(GetSerialHash(spend->getCoinSerialNumber()));
+        else
+            return false;
+    }
+    return true;
+}
+
 //return a list of zerocoin mints contained in a specific block
 bool BlockToZerocoinMintList(const CBlock& block, std::list<CZerocoinMint>& vMints)
 {
@@ -137,6 +167,7 @@ void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMin
         //see if this mint is spent
         uint256 hashTxSpend;
         bool fSpent = pzerocoinDB->ReadCoinSpend(meta.hashSerial, hashTxSpend);
+        LogPrintf("%s:%s serial %s spent = %d\n", __func__, __LINE__, meta.hashSerial.GetHex(), fSpent);
 
         //if marked as spent, check that it actually made it into the chain
         CTransactionRef txSpend;

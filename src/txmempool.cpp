@@ -42,12 +42,12 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFe
     nModFeesWithAncestors = nFee;
     nSigOpCostWithAncestors = sigOpCost;
     setSerialHashes.clear();
+    setPubcoinHashes.clear();
     if (tx->IsZerocoinSpend()) {
-        for (const auto& in :tx->vin) {
-            auto spend = TxInToZerocoinSpend(in);
-            if (spend)
-                setSerialHashes.emplace(spend->getCoinSerialNumber());
-        }
+        TxToSerialHashSet(tx, setSerialHashes);
+    }
+    if (tx->IsZerocoinMint()) {
+        TxToPubcoinHashSet(tx, setPubcoinHashes);
     }
 }
 
@@ -572,6 +572,28 @@ void CTxMemPool::removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMem
     RemoveStaged(setAllRemoves, false, MemPoolRemovalReason::REORG);
 }
 
+void CTxMemPool::removePubcoins(const std::set<uint256>& setPubcoinHashes)
+{
+    AssertLockHeld(cs);
+    setEntries txToRemove;
+    for (auto it = mapTx.begin(); it != mapTx.end(); it++) {
+        if (!it->IsZerocoinMint())
+            continue;
+        for (const uint256& hashPubcoin : setPubcoinHashes) {
+            if (it->HasPubcoin(hashPubcoin)) {
+                //Remove this transaction from mempool because it contains the pubcoin that has been spent
+                txToRemove.insert(it);
+                break;
+            }
+        }
+    }
+    setEntries setAllRemoves;
+    for (txiter it : txToRemove) {
+        CalculateDescendants(it, setAllRemoves);
+    }
+    RemoveStaged(setAllRemoves, false, MemPoolRemovalReason::BLOCK);
+}
+
 void CTxMemPool::removeConflicts(const CTransaction &tx)
 {
     // Remove transactions which depend on inputs of tx, recursively
@@ -638,7 +660,13 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
             setEntries stage;
             stage.insert(it);
             RemoveStaged(stage, true, MemPoolRemovalReason::BLOCK);
+        } else if (tx->IsZerocoinMint()) {
+            // Remove any mempool mints with the same pubcoin
+            std::set<uint256> setPubcoinHashes;
+            TxToPubcoinHashSet(tx, setPubcoinHashes);
+            removePubcoins(setPubcoinHashes);
         }
+
         removeConflicts(*tx);
         ClearPrioritisation(tx->GetHash());
     }
@@ -954,6 +982,16 @@ bool CTxMemPool::HaveKeyImage(const CCmpPubKey &ki, uint256 &hash) const
         return true;
     }
 
+    return false;
+}
+
+bool CTxMemPool::HasZerocoinSerial(const uint256& hashSerial) const
+{
+    LOCK(cs);
+    for (auto mi = mapTx.begin(); mi != mapTx.end(); ++mi) {
+        if (mi->HasSerial(hashSerial))
+            return true;
+    }
     return false;
 }
 
