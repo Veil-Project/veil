@@ -16,7 +16,7 @@ TooltipBalance::TooltipBalance(QWidget *parent, int unit, int64_t nZerocoinBalan
     ui->textRing->setText(BitcoinUnits::formatWithUnit(unit, nRingBalance, false, BitcoinUnits::separatorAlways));
     ui->textBasecoin->setText(BitcoinUnits::formatWithUnit(unit, basecoinBalance, false, BitcoinUnits::separatorAlways));
 
-    QTimer::singleShot(3500, this, SLOT(hide()));
+    QTimer::singleShot(5000, this, SLOT(hide()));
 
 }
 

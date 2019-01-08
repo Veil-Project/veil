@@ -257,7 +257,12 @@ CCoinControl& coinControl, OutputTypes inputType)
         //std::cout << "Balance: " << nBalance << std::endl;
         //std::cout << "Total: " << total << std::endl;
         //std::cout << "Type: " << inputType << std::endl;
-        return AmountExceedsBalance;
+        if(inputType == OUTPUT_STANDARD){
+            return AmountExceedsBalance;
+        }else{
+            return AmountExceedsBalance_NoBasecoinBalanceAccepted;
+        }
+
     }
 
     {

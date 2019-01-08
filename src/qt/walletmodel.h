@@ -120,6 +120,7 @@ public:
         InvalidAmount,
         InvalidAddress,
         AmountExceedsBalance,
+        AmountExceedsBalance_NoBasecoinBalanceAccepted,
         AmountWithFeeExceedsBalance,
         DuplicateAddress,
         TransactionCreationFailed, // Error returned when wallet is still locked
