@@ -2395,7 +2395,7 @@ static UniValue abandontransaction(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() != 1) {
+    if (request.fHelp || request.params.size() > 2) {
         throw std::runtime_error(
             "abandontransaction \"txid\"\n"
             "\nMark in-wallet transaction <txid> as abandoned\n"
@@ -2405,6 +2405,7 @@ static UniValue abandontransaction(const JSONRPCRequest& request)
             "It has no effect on transactions which are already abandoned.\n"
             "\nArguments:\n"
             "1. \"txid\"    (string, required) The transaction id\n"
+            "2. \"remove_mempool\"    (bool, optional) If the transaction is in the mempool, then remove it\n"
             "\nResult:\n"
             "\nExamples:\n"
             + HelpExampleCli("abandontransaction", "\"1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d\"")
@@ -2420,6 +2421,18 @@ static UniValue abandontransaction(const JSONRPCRequest& request)
 
     uint256 hash;
     hash.SetHex(request.params[0].get_str());
+
+    bool fDeleteFromMempool = false;
+    if (request.params.size() == 2)
+        fDeleteFromMempool = request.params[1].get_bool();
+
+    if (fDeleteFromMempool) {
+        TRY_LOCK(mempool.cs, fLock);
+        if (!fLock)
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to lock mempool");
+        // For now just clear the mempool completely. TODO: delete only the needed tx
+        mempool.clear();
+    }
 
     if (!pwallet->mapWallet.count(hash)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid or non-wallet transaction id");
@@ -4868,7 +4881,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "walletprocesspsbt",                &walletprocesspsbt,             {"psbt","sign","sighashtype","bip32derivs"} },
     { "wallet",             "walletcreatefundedpsbt",           &walletcreatefundedpsbt,        {"inputs","outputs","locktime","options","bip32derivs"} },
     { "hidden",             "resendwallettransactions",         &resendwallettransactions,      {} },
-    { "wallet",             "abandontransaction",               &abandontransaction,            {"txid"} },
+    { "wallet",             "abandontransaction",               &abandontransaction,            {"txid", "remove_mempool"} },
     { "wallet",             "abortrescan",                      &abortrescan,                   {} },
     { "wallet",             "addmultisigaddress",               &addmultisigaddress,            {"nrequired","keys","label|account","address_type"} },
     { "hidden",             "addwitnessaddress",                &addwitnessaddress,             {"address","p2sh"} },

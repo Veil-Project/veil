@@ -195,6 +195,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "searchdeterministiczerocoin", 1, "range"},
     { "searchdeterministiczerocoin", 2, "threads"},
     { "spendzerocoinmints", 0, "mints_list"},
+    { "abandontransaction", 1, "remove_mempool"},
 };
 
 class CRPCConvertTable
