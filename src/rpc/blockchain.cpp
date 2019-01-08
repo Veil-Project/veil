@@ -1,5 +1,7 @@
 // Copyright (c) 2010 Satoshi Nakamoto
-// Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2009-2018 The Bitcoin Core developers
+// Copyright (c) 2015-2018 The PIVX developers
+// Copyright (c) 2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -2185,9 +2187,45 @@ UniValue scantxoutset(const JSONRPCRequest& request)
     return result;
 }
 
+UniValue findserial(const JSONRPCRequest& request)
+{
+    if(request.fHelp || request.params.size() != 1)
+        throw runtime_error(
+                "findserial \"serial\"\n"
+                "\nSearches the zerocoin database for a zerocoin spend transaction that contains the specified serial\n"
+
+                "\nArguments:\n"
+                "1. serial   (string, required) the serial of a zerocoin spend to search for.\n"
+
+                "\nResult:\n"
+                "{\n"
+                "  \"success\": true|false        (boolean) Whether the serial was found\n"
+                "  \"txid\": \"xxx\"              (string) The transaction that contains the spent serial\n"
+                "}\n"
+
+                "\nExamples:\n" +
+                HelpExampleCli("findserial", "\"serial\"") + HelpExampleRpc("findserial", "\"serial\""));
+
+    std::string strSerial = request.params[0].get_str();
+    CBigNum bnSerial = 0;
+    bnSerial.SetHex(strSerial);
+    if (!bnSerial)
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid serial");
+
+    uint256 txid;
+    bool fSuccess = pzerocoinDB->ReadCoinSpend(bnSerial, txid);
+
+    UniValue ret(UniValue::VOBJ);
+    ret.push_back(Pair("success", fSuccess));
+    ret.push_back(Pair("txid", txid.GetHex()));
+    ret.pushKV("serial", bnSerial.GetHex());
+    return ret;
+}
+
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
+    { "blockchain",         "findserial",             &findserial,             {"serial"} },
     { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      {} },
     { "blockchain",         "getchaintxstats",        &getchaintxstats,        {"nblocks", "blockhash"} },
     { "blockchain",         "getblockstats",          &getblockstats,          {"hash_or_height", "stats"} },
