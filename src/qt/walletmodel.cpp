@@ -219,6 +219,7 @@ CCoinControl& coinControl, OutputTypes inputType)
         nBalance = m_wallet->getAvailableBalance(coinControl);
     } else {
         auto balances = m_wallet->getBalances();
+        std::cout << "zerocoin balnace:" << balances.zerocoin_balance << std::endl;
         if (balances.zerocoin_balance > total) {
             /**Spend Zerocoins first**/
             spendType = WalletModelSpendType::ZCSPEND;
@@ -227,6 +228,7 @@ CCoinControl& coinControl, OutputTypes inputType)
             std::vector<CZerocoinMint> vMintsSelected;
             newTx = m_wallet->spendZerocoin(total, /*nSecurityLevel*/100, receipt, vMintsSelected, /*fMintChange*/true,
                     /*fMinimizeChange*/false, &vecSend[0].address);
+            nBalance = balances.zerocoin_balance;
         } else {
             /** If not enough zerocoin balance, spend ringct **/
             spendType = WalletModelSpendType::RINGCTSPEND;
@@ -254,9 +256,9 @@ CCoinControl& coinControl, OutputTypes inputType)
 
     if(total > nBalance)
     {
-        //std::cout << "Balance: " << nBalance << std::endl;
-        //std::cout << "Total: " << total << std::endl;
-        //std::cout << "Type: " << inputType << std::endl;
+        std::cout << "Balance: " << nBalance << std::endl;
+        std::cout << "Total: " << total << std::endl;
+        std::cout << "Type: " << inputType << std::endl;
         if(inputType == OUTPUT_STANDARD){
             return AmountExceedsBalance;
         }else{
