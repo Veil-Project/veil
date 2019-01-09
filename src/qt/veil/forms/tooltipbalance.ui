@@ -134,7 +134,7 @@ font-size:12px;
 text-align:center;</string>
         </property>
         <property name="text">
-         <string>RingCT &amp; CT</string>
+         <string>Basecoin (Shielded) </string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
