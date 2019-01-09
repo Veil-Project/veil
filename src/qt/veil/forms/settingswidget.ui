@@ -492,7 +492,7 @@ background-color:transparent;
 border:0;</string>
             </property>
             <property name="text">
-             <string>Zerocoin minting</string>
+             <string>Zerocoin Minting</string>
             </property>
            </widget>
           </item>
