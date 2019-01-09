@@ -29,7 +29,7 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
 
     ui->btnEsc->setProperty("cssClass" , "btn-text-primary-inactive");
 
-    ui->editAmount->setPlaceholderText("Enter amount here");
+    ui->editAmount->setPlaceholderText("Amount to convert");
     ui->editAmount->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->editAmount->setProperty("cssClass" , "edit-primary");
 
