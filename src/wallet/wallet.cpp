@@ -2064,7 +2064,7 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
                             if (spend)
                                 spendInfo.emplace(*spend, txid);
                             else
-                                error("Faield to getspend *********************************\n");
+                                error("%s: Failed to getspend *********************************\n");
                         }
                         pzerocoinDB->WriteCoinSpendBatch(spendInfo);
                     }

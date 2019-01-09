@@ -36,45 +36,25 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
     bool fZerocoinSpend = wtx.tx->IsZerocoinSpend();
     bool fZerocoinMint = wtx.tx->IsZerocoinMint();
 
-    if (!fZerocoinSpend && wtx.tx->HasBlindedValues()) {
+    if (wtx.tx->HasBlindedValues() && wtx.txout_address.size()) {
         const CTransactionRecord &rtx = wtx.rtx;
 
         const uint256 &hash = wtx.tx->GetHash();
         int64_t nTime = wtx.time;
         TransactionRecord sub(hash, nTime);
 
-        CTxDestination address = CNoDestination();
         uint8_t nFlags = 0;
         OutputTypes outputType = OutputTypes::OUTPUT_NULL;
         OutputTypes inputType = rtx.GetInputType();
-        for (const auto &r : rtx.vout)
-        {
+        CTxDestination address = CNoDestination();
+        for (unsigned int i = 0; i < rtx.vout.size(); ++i) {
+            const auto &r = rtx.vout[i];
             if (r.IsChange())
                 continue;
 
-            nFlags |= r.nFlags;
+            address = wtx.txout_address.at(i);
 
-            if (r.vPath.size() > 0)
-            {
-                if (r.vPath[0] == ORA_STEALTH)
-                {
-                    if (r.vPath.size() < 5)
-                    {
-                        LogPrintf("%s: Warning, malformed vPath.\n", __func__);
-                    } else
-                    {
-//                        uint32_t sidx;
-//                        memcpy(&sidx, &r.vPath[1], 4);
-//                        CStealthAddress sx;
-//                        if (wtx.veilWallet->GetStealthByIndex(sidx, sx))
-//                            address = sx;
-                    };
-                };
-            } else
-            {
-                if (address.type() == typeid(CNoDestination))
-                    ExtractDestination(r.scriptPubKey, address);
-            };
+            nFlags |= r.nFlags;
 
             if (r.nType == OUTPUT_STANDARD) {
                 outputType = OutputTypes::OUTPUT_STANDARD;
@@ -90,11 +70,13 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 sub.debit -= r.GetRawValue();
         };
 
+        if (sub.debit != 0)
+            sub.debit -= wtx.ct_fee.second;
+
         if (address.type() != typeid(CNoDestination))
             sub.address = CBitcoinAddress(address).ToString();
 
-        if (sub.debit != 0)
-            sub.debit -= wtx.ct_fee.second;
+        bool fUseStandard = false;
 
         if ((((nFlags & ORF_OWNED) || wtx.is_my_zerocoin_mint) && ((nFlags & ORF_FROM) || wtx.is_my_zerocoin_spend)) ||
             rtx.IsSendToSelf()) {
@@ -216,11 +198,14 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 sub.type = TransactionRecord::ZeroCoinSpend;
             else
                 sub.type = TransactionRecord::SendToAddress;
-        }
+        } else
+            fUseStandard = true;
 
-        sub.involvesWatchAddress = nFlags & ORF_OWN_WATCH;
-        parts.append(sub);
-        return parts;
+        if (!fUseStandard) {
+            sub.involvesWatchAddress = nFlags & ORF_OWN_WATCH;
+            parts.append(sub);
+            return parts;
+        }
     }
 
     int64_t nTime = wtx.time;

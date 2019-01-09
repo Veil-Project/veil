@@ -93,7 +93,10 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
             fInputsFromMe = true;
     }
     result.txout_is_mine.reserve(wtx.tx->vpout.size());
-    result.txout_address.reserve(wtx.tx->vpout.size());
+    if (!result.has_rtx)
+        result.txout_address.reserve(wtx.tx->vpout.size());
+    else
+        result.txout_address.reserve(result.rtx.vout.size());
     result.txout_address_is_mine.reserve(wtx.tx->vpout.size());
     for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
         auto txout = wtx.tx->vpout[i];
@@ -164,6 +167,36 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
                 result.map_anon_value_out.emplace(i, DUMMY_VALUE);
         }
     }
+
+    // Get txout addresses a bit differently for transactions with blinded values
+    if (result.has_rtx) {
+        for (unsigned int i = 0; i < result.rtx.vout.size(); i++) {
+            auto &out = result.rtx.vout[i];
+            if (out.IsChange()) {
+                result.txout_address.emplace_back(CNoDestination());
+                continue;
+            }
+
+            CTxDestination address = CNoDestination();
+            if (out.vPath.size() > 0) {
+                if (out.vPath[0] == ORA_STEALTH) {
+                    if (out.vPath.size() < 5) {
+                        LogPrintf("%s: Warning, malformed vPath.\n", __func__);
+                    } else {
+                        CKeyID id;
+                        CStealthAddress sx;
+
+                        if (out.GetStealthID(id) && wallet.GetAnonWallet()->GetStealthAddress(id, sx))
+                            address = sx;
+                    };
+                };
+            } else if (address.type() == typeid(CNoDestination))
+                ExtractDestination(out.scriptPubKey, address);
+
+            result.txout_address.emplace_back(address);
+        }
+    }
+
     result.credit = wtx.GetCredit(ISMINE_ALL);
     result.debit = wtx.GetDebit(ISMINE_ALL);
     result.change = wtx.GetChange();

@@ -366,9 +366,9 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
     case TransactionRecord::RingCTRecvWithAddress:
         return tr("Received with RingCT Address");
     case TransactionRecord::RingCTSendToAddress:
-        return tr("Sent RingCT to");
+        return tr("RingCT sent to");
     case TransactionRecord::RingCTSendToSelf:
-        return tr("RingCT Payment to yourself");
+        return tr("RingCT payment to yourself");
     case TransactionRecord::RingCTGenerated:
         return tr("Mined");
     case TransactionRecord::ConvertBasecoinToCT:
