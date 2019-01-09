@@ -383,8 +383,14 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
         return tr("Converted RingCT To Basecoin");
     case TransactionRecord::ConvertRingCtToCt:
         return tr("Converted RingCT To CT");
+    case TransactionRecord::ConvertZerocoinToCt:
+        return tr("Converted Zerocoin to CT");
     case TransactionRecord::ZeroCoinMint:
         return tr("Zerocoin Mint");
+    case TransactionRecord::ZeroCoinMintFromCt:
+        return tr("Zerocoin Mint from CT");
+    case TransactionRecord::ZeroCoinMintFromRingCt:
+        return tr("Zerocoin Mint from RingCT");
     case TransactionRecord::ZeroCoinSpend:
         return tr("Sent Zerocoin");
     case TransactionRecord::ZeroCoinSpendRemint:

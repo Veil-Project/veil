@@ -101,7 +101,10 @@ public:
         ConvertCtToRingCT,
         ConvertCtToBasecoin,
         ConvertRingCtToCt,
-        ConvertRingCtToBasecoin
+        ConvertRingCtToBasecoin,
+        ConvertZerocoinToCt,
+        ZeroCoinMintFromCt,
+        ZeroCoinMintFromRingCt
     };
 
     /** Number of confirmation recommended for accepting a transaction */
