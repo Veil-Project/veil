@@ -102,6 +102,7 @@ font-size:16px;
 font-weight:bold;</string>
            </property>
            <property name="text">
+            <string>This is your Veil receiving address</string>
             <string>This is your current VEIL receive address. For privacy, a new receive address will be created after you receive VEIL on the current one.</string>
            </property>
            <property name="alignment">
