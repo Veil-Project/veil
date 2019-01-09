@@ -164,7 +164,7 @@ font-size:12px;
 text-align:center;</string>
         </property>
         <property name="text">
-         <string>Basecoin</string>
+         <string>Basecoin (Unshielded)</string>
         </property>
        </widget>
       </item>
