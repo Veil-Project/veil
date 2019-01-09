@@ -58,14 +58,14 @@ AskPassphraseDialog::AskPassphraseDialog(Mode _mode, QWidget *parent) :
     switch(mode)
     {
         case Encrypt: // Ask passphrase x2
-            ui->warningLabel->setText(tr("Enter the new passphrase to the wallet.<br/>Please use a passphrase of <b>ten or more random characters</b>, or <b>eight or more words</b>."));
+            ui->warningLabel->setText(tr("Enter the new password to the wallet.<br/>Please use a password of <b>ten or more random characters</b>, or <b>eight or more words</b>."));
             ui->passLabel1->hide();
             ui->passEdit1->hide();
             setWindowTitle(tr("Encrypt wallet"));
             ui->labelTitle->setText(tr("Encrypt wallet"));
             break;
         case Unlock: // Ask passphrase
-            ui->warningLabel->setText(tr("This operation needs your wallet passphrase to unlock the wallet."));
+            ui->warningLabel->setText(tr("This operation needs your wallet password to unlock the wallet."));
             ui->passLabel2->hide();
             ui->passEdit2->hide();
             ui->passLabel3->hide();
@@ -74,7 +74,7 @@ AskPassphraseDialog::AskPassphraseDialog(Mode _mode, QWidget *parent) :
             ui->labelTitle->setText(tr("Unlock wallet"));
             break;
         case Decrypt:   // Ask passphrase
-            ui->warningLabel->setText(tr("This operation needs your wallet passphrase to decrypt the wallet."));
+            ui->warningLabel->setText(tr("This operation needs your wallet password to decrypt the wallet."));
             ui->passLabel2->hide();
             ui->passEdit2->hide();
             ui->passLabel3->hide();
@@ -83,9 +83,9 @@ AskPassphraseDialog::AskPassphraseDialog(Mode _mode, QWidget *parent) :
             ui->labelTitle->setText(tr("Decrypt wallet"));
             break;
         case ChangePass: // Ask old passphrase + new passphrase x2
-            setWindowTitle(tr("Change passphrase"));
-            ui->labelTitle->setText(tr("Change passphrase"));
-            ui->warningLabel->setText(tr("Enter the old passphrase and new passphrase to the wallet."));
+            setWindowTitle(tr("Change wallet password"));
+            ui->labelTitle->setText(tr("Change wallet password"));
+            ui->warningLabel->setText(tr("Enter the old password and new password to the wallet."));
             break;
     }
     textChanged();
@@ -140,7 +140,7 @@ void AskPassphraseDialog::accept()
             break;
         }
         QMessageBox::StandardButton retval = QMessageBox::question(this, tr("Confirm wallet encryption"),
-                 tr("Warning: If you encrypt your wallet and lose your passphrase, you will <b>LOSE ALL OF YOUR Veil</b>!") + "<br><br>" + tr("Are you sure you wish to encrypt your wallet?"),
+                 tr("Warning: If you encrypt your wallet and lose your password, you will <b>LOSE ALL OF YOUR Veil</b>!") + "<br><br>" + tr("Are you sure you wish to encrypt your wallet?"),
                  QMessageBox::Yes|QMessageBox::Cancel,
                  QMessageBox::Cancel);
         if(retval == QMessageBox::Yes)
@@ -172,7 +172,7 @@ void AskPassphraseDialog::accept()
             else
             {
                 QMessageBox::critical(this, tr("Wallet encryption failed"),
-                                     tr("The supplied passphrases do not match."));
+                                     tr("The supplied passwords do not match."));
             }
         }
         else
@@ -184,7 +184,7 @@ void AskPassphraseDialog::accept()
         if(!model->setWalletLocked(false, fUnlockForStakingOnly, oldpass))
         {
             QMessageBox::critical(this, tr("Wallet unlock failed"),
-                                  tr("The passphrase entered for the wallet decryption was incorrect."));
+                                  tr("The password entered for the wallet decryption was incorrect."));
         }
         else
         {
@@ -195,7 +195,7 @@ void AskPassphraseDialog::accept()
         if(!model->setWalletEncrypted(false, oldpass))
         {
             QMessageBox::critical(this, tr("Wallet decryption failed"),
-                                  tr("The passphrase entered for the wallet decryption was incorrect."));
+                                  tr("The password entered for the wallet decryption was incorrect."));
         }
         else
         {
@@ -208,19 +208,19 @@ void AskPassphraseDialog::accept()
             if(model->changePassphrase(oldpass, newpass1))
             {
                 QMessageBox::information(this, tr("Wallet encrypted"),
-                                     tr("Wallet passphrase was successfully changed."));
+                                     tr("Wallet password was successfully changed."));
                 QDialog::accept(); // Success
             }
             else
             {
                 QMessageBox::critical(this, tr("Wallet encryption failed"),
-                                     tr("The passphrase entered for the wallet decryption was incorrect."));
+                                     tr("The password entered for the wallet decryption was incorrect."));
             }
         }
         else
         {
             QMessageBox::critical(this, tr("Wallet encryption failed"),
-                                 tr("The supplied passphrases do not match."));
+                                 tr("The supplied passwords do not match."));
         }
         break;
     }
