@@ -7,16 +7,48 @@
 #include <QTimer>
 #include <qt/bitcoinunits.h>
 
-TooltipBalance::TooltipBalance(QWidget *parent, int unit, int64_t nZerocoinBalance, int64_t nRingBalance, int64_t basecoinBalance) :
+TooltipBalance::TooltipBalance(QWidget *parent, int _unit, int64_t nZerocoinBalance, int64_t nRingBalance, int64_t basecoinBalance) :
     QWidget(parent),
+    unit(_unit),
     ui(new Ui::TooltipBalance)
 {
     ui->setupUi(this);
     ui->textZero->setText(BitcoinUnits::formatWithUnit(unit, nZerocoinBalance, false, BitcoinUnits::separatorAlways));
     ui->textRing->setText(BitcoinUnits::formatWithUnit(unit, nRingBalance, false, BitcoinUnits::separatorAlways));
     ui->textBasecoin->setText(BitcoinUnits::formatWithUnit(unit, basecoinBalance, false, BitcoinUnits::separatorAlways));
+}
 
-    QTimer::singleShot(5000, this, SLOT(hide()));
+void TooltipBalance::update(
+        QString firstTitle, int64_t firstBalance,
+        QString secondTitle, int64_t secondBalance,
+        QString thirdTitle, int64_t thirdBalance){
+
+    if(!firstTitle.isEmpty()){
+        ui->lblSecond->setVisible(true);
+        ui->textRing->setVisible(true);
+        ui->lblFirst->setText(firstTitle);
+        ui->textZero->setText(BitcoinUnits::formatWithUnit(unit, firstBalance, false, BitcoinUnits::separatorAlways));
+    }
+
+    if(!secondTitle.isEmpty()){
+        ui->lblSecond->setVisible(true);
+        ui->textRing->setVisible(true);
+        ui->lblSecond->setText(secondTitle);
+        ui->textRing->setText(BitcoinUnits::formatWithUnit(unit, secondBalance, false, BitcoinUnits::separatorAlways));
+    }else{
+        ui->lblSecond->setVisible(false);
+        ui->textRing->setVisible(false);
+    }
+
+    if(!thirdTitle.isEmpty()){
+        ui->lblSecond->setVisible(true);
+        ui->textRing->setVisible(true);
+        ui->lblThird->setText(thirdTitle);
+        ui->textBasecoin->setText(BitcoinUnits::formatWithUnit(unit, thirdBalance, false, BitcoinUnits::separatorAlways));
+    }else{
+        ui->lblSecond->setVisible(false);
+        ui->textRing->setVisible(false);
+    }
 
 }
 
@@ -29,6 +61,8 @@ void TooltipBalance::showEvent(QShowEvent *event){
     a->setEndValue(1);
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+
+    QTimer::singleShot(5000, this, SLOT(hide()));
 }
 
 void TooltipBalance::hideEvent(QHideEvent *event){

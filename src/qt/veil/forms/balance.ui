@@ -192,20 +192,21 @@ margin-right:15px;</string>
               </property>
              </widget>
             </item>
-            <item>
-             <widget class="QLabel" name="label_2">
+            <item alignment="Qt::AlignHCenter">
+             <widget class="QPushButton" name="btnUnconfirmed">
+              <property name="layoutDirection">
+               <enum>Qt::RightToLeft</enum>
+              </property>
               <property name="styleSheet">
-               <string notr="true">background-color: transparent;
+               <string notr="true">background-color:transparent;
 color: #707070;</string>
               </property>
               <property name="text">
                <string>Unconfirmed</string>
               </property>
-              <property name="alignment">
-               <set>Qt::AlignCenter</set>
-              </property>
-              <property name="margin">
-               <number>0</number>
+              <property name="icon">
+               <iconset resource="../../veil.qrc">
+                <normaloff>:/icons/ic-information-png</normaloff>:/icons/ic-information-png</iconset>
               </property>
              </widget>
             </item>
@@ -239,17 +240,21 @@ color: #707070;</string>
               </property>
              </spacer>
             </item>
-            <item>
-             <widget class="QLabel" name="label_5">
+            <item alignment="Qt::AlignHCenter">
+             <widget class="QPushButton" name="btnImmature">
+              <property name="layoutDirection">
+               <enum>Qt::RightToLeft</enum>
+              </property>
               <property name="styleSheet">
-               <string notr="true">background-color: transparent;
+               <string notr="true">background-color:transparent;
 color: #707070;</string>
               </property>
               <property name="text">
                <string>Immature</string>
               </property>
-              <property name="alignment">
-               <set>Qt::AlignCenter</set>
+              <property name="icon">
+               <iconset resource="../../veil.qrc">
+                <normaloff>:/icons/ic-information-png</normaloff>:/icons/ic-information-png</iconset>
               </property>
              </widget>
             </item>
