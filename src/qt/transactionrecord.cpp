@@ -33,7 +33,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
 {
     QList<TransactionRecord> parts;
 
-    if (wtx.tx->HasBlindedValues()) {
+    bool fZerocoinSpend = wtx.tx->IsZerocoinSpend();
+    bool fZerocoinMint = wtx.tx->IsZerocoinMint();
+
+    if (!fZerocoinSpend && wtx.tx->HasBlindedValues()) {
         const CTransactionRecord &rtx = wtx.rtx;
 
         const uint256 &hash = wtx.tx->GetHash();
@@ -96,15 +99,17 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         if ((nFlags & ORF_OWNED && nFlags & ORF_FROM) || rtx.IsSendToSelf()) {
             sub.debit = -wtx.ct_fee.second;
             sub.credit = 0;
-            if (inputType != outputType) {
+            if (fZerocoinSpend) {
+                sub.type = TransactionRecord::ZeroCoinSpend;
+            } else if (inputType != outputType) {
                 /** Type Conversion **/
                 switch (inputType) {
                     case OUTPUT_STANDARD:
-                        // converting basecoins
-                        if (outputType == OUTPUT_CT)
+                        if (outputType == OUTPUT_CT) {
                             sub.type = TransactionRecord::ConvertBasecoinToCT;
-                        else if (outputType == OUTPUT_RINGCT)
+                        } else if (outputType == OUTPUT_RINGCT) {
                             sub.type = TransactionRecord::ConvertBasecoinToRingCT;
+                        }
                         break;
                     case OUTPUT_CT:
                         if (outputType == OUTPUT_RINGCT)
@@ -120,6 +125,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                         break;
                     default:
                         sub.type = TransactionRecord::SendToSelf;
+                        LogPrintf("%s:%s %s\n", __func__, __LINE__, wtx.tx->GetHash().GetHex());
                         break;
                 }
             } else {
@@ -174,8 +180,12 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 sub.type = TransactionRecord::RingCTSendToAddress;
             else if (rtx.nFlags & ORF_BLIND_IN)
                 sub.type = TransactionRecord::CTSendToAddress;
-            else
-                sub.type = TransactionRecord::SendToAddress;
+            else {
+                if (fZerocoinSpend)
+                    sub.type = TransactionRecord::ZeroCoinSpend;
+                else
+                    sub.type = TransactionRecord::SendToAddress;
+            }
         }
 
         sub.involvesWatchAddress = nFlags & ORF_OWN_WATCH;
@@ -212,21 +222,14 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             const auto& pOut = wtx.tx->vpout[nOut];
             isminetype mine = wtx.txout_is_mine[nOut];
 
-            CTxOut txout;
-            if (!pOut->GetTxOut(txout)) {
-                //Anon output lets just assume ringct change
-                if (pOut->nVersion == OUTPUT_RINGCT) {
-                    TransactionRecord sub(hash, nTime);
-                    sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
-                    sub.type = TransactionRecord::RingCTSendToSelf;
-                    sub.idx = parts.size();
-                    parts.append(sub);
-                }
-                continue;
+            //Check for any records from anonwallet
+            const COutputRecord* precord = nullptr;
+            if (wtx.has_rtx) {
+                precord = wtx.rtx.GetOutput(nOut);
             }
 
             // change that was reminted as zerocoins
-            if (txout.IsZerocoinMint()) {
+            if (pOut->IsZerocoinMint()) {
                 // do not display record if this isn't from our wallet
                 if (!wtx.is_my_zerocoin_spend)
                     continue;
@@ -244,20 +247,30 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 continue;
             }
 
+            CScript scriptPubKey;
             string strAddress = "";
             CTxDestination address;
-            if (ExtractDestination(txout.scriptPubKey, address))
-                strAddress = CBitcoinAddress(address).ToString();
+            if (pOut->GetScriptPubKey(scriptPubKey)) {
+                if (ExtractDestination(scriptPubKey, address))
+                    strAddress = CBitcoinAddress(address).ToString();
+            }
 
             // a zerocoinspend that was sent to an address held by this wallet
-            if (mine) {
+            if (mine || (precord && precord->IsReceive())) {
                 TransactionRecord sub(hash, nTime);
                 sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
                 if (wtx.is_my_zerocoin_spend) {
                     sub.type = TransactionRecord::ZeroCoinSpendSelf;
-                } else {
+                } else if (pOut->GetType() == OUTPUT_STANDARD) {
                     sub.type = TransactionRecord::ZeroCoinRecv;
-                    sub.credit = txout.nValue;
+                    sub.credit = pOut->GetValue();
+                } else if (pOut->GetType() == OUTPUT_CT) {
+                    sub.type = TransactionRecord::ZeroCoinRecv;
+                    if (precord) {
+                        sub.credit = precord->GetAmount();
+                    } else {
+                        LogPrintf("%s:%s %s\n", __func__, __LINE__, wtx.tx->GetHash().GetHex());
+                    }
                 }
                 sub.address = mapValue["recvzerocoinspend"];
                 if (strAddress != "")
@@ -266,7 +279,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 parts.append(sub);
                 continue;
             }
-
+            LogPrintf("%s:%s %s ismyspend=%d\n", __func__, __LINE__, wtx.tx->GetHash().GetHex(), wtx.is_my_zerocoin_spend);
             // spend is not from us, so do not display the spend side of the record
             if (!wtx.is_my_zerocoin_spend)
                 continue;
@@ -274,7 +287,16 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             // zerocoin spend that was sent to someone else
             TransactionRecord sub(hash, nTime);
             sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
-            sub.debit = -txout.nValue;
+            if (pOut->GetType() == OUTPUT_STANDARD)
+                sub.debit = -pOut->GetValue();
+            else if (pOut->GetType() == OUTPUT_CT) {
+                if (precord) {
+                    sub.debit = -precord->GetAmount();
+                } else {
+                    LogPrintf("%s:%s %s\n", __func__, __LINE__, wtx.tx->GetHash().GetHex());
+                }
+            }
+
             sub.type = TransactionRecord::ZeroCoinSpend;
             sub.address = mapValue["zerocoinspend"];
             if (strAddress != "")
@@ -321,6 +343,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 sub.type = TransactionRecord::RecvWithAddress;
                 sub.address = EncodeDestination(wtx.txout_address[i]);
             } else {
+                LogPrintf("%s:%s %s\n", __func__, __LINE__, wtx.tx->GetHash().GetHex());
                 // Received by IP connection (deprecated features), or a multisignature or other non-simple transaction
                 sub.type = TransactionRecord::RecvFromOther;
                 sub.address = mapValue["from"];
@@ -353,6 +376,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             if (wtx.ct_fee.second != 0)
                 nTxFee = wtx.ct_fee.second;
             CAmount nChange = wtx.change;
+            LogPrintf("%s:%s %s\n", __func__, __LINE__, wtx.tx->GetHash().GetHex());
             auto recordType = TransactionRecord::SendToSelf;
             if (wtx.is_anon_send || wtx.is_anon_recv)
                 recordType = TransactionRecord::RingCTSendToSelf;
@@ -411,6 +435,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     sub.type = TransactionRecord::SendToAddress;
                     sub.address = EncodeDestination(wtx.txout_address[nOut]);
                 } else {
+                    LogPrintf("%s:%s %s\n", __func__, __LINE__, wtx.tx->GetHash().GetHex());
                     // Sent to IP, or other non-address transaction like OP_EVAL
                     sub.type = TransactionRecord::SendToOther;
                     sub.address = mapValue["to"];
@@ -430,6 +455,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             //
             // Mixed debit transaction, can't break down payees
             //
+            LogPrintf("%s:%s %s\n", __func__, __LINE__, wtx.tx->GetHash().GetHex());
             parts.append(TransactionRecord(hash, nTime, TransactionRecord::Other, "", nNet, 0));
             parts.last().involvesWatchAddress = involvesWatchAddress;
         }

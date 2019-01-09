@@ -45,6 +45,16 @@ bool AnonWalletDB::WriteStealthAddress(const CStealthAddress &sxAddr)
     return WriteIC(std::make_pair(std::string("sxad"), sxAddr.scan_pubkey), sxAddr, true);
 }
 
+bool AnonWalletDB::WriteStealthDestinationMeta(const CKeyID& idStealthDestination, const std::vector<uint8_t>& vchEphemPK)
+{
+    return WriteIC(std::make_pair(std::string("sdmeta"), idStealthDestination), vchEphemPK);
+}
+
+bool AnonWalletDB::ReadStealthDestinationMeta(const CKeyID& idStealthDestination, std::vector<uint8_t>& vchEphemPK)
+{
+    return m_batch.Read(std::make_pair(std::string("sdmeta"), idStealthDestination), vchEphemPK);
+}
+
 bool AnonWalletDB::ReadStealthAddress(CStealthAddress& sxAddr)
 {
     // Set scan_pubkey before reading

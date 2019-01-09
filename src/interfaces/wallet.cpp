@@ -79,6 +79,7 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
         auto panonwallet = wallet.GetAnonWallet();
         if (panonwallet->mapRecords.count(txid)) {
             result.rtx = panonwallet->mapRecords.at(txid);
+            result.has_rtx = true;
         }
     }
 

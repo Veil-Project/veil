@@ -1167,8 +1167,6 @@ bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight, CBlockIndex* pin
     //It is possible that the block is part of chainactive, but we are trying to reorg. If pindex is included, and it is not part of
     //chain active, then see if the blockhash is part of the same chain as pindex
     if (pindex) {
-        if (pindex == pindexCheck)
-            return true;
         //The block we are checking from is a lower height or equal height, then this is not considered in the same chain from this reference point
         if (pindex->nHeight <= nHeight)
             return false;
@@ -1194,7 +1192,7 @@ bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& 
 bool IsTransactionInChain(const uint256& txId, int& nHeightTx, const Consensus::Params& params, CBlockIndex* pindex)
 {
     CTransactionRef tx;
-    return IsTransactionInChain(txId, nHeightTx, tx, params);
+    return IsTransactionInChain(txId, nHeightTx, tx, params, pindex);
 }
 
 

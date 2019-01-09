@@ -191,13 +191,17 @@ bool CCryptoKeyStore::Unlock(const CKeyingMaterial& vMasterKeyIn)
         {
             const CPubKey &vchPubKey = (*mi).second.first;
             const std::vector<unsigned char> &vchCryptedSecret = (*mi).second.second;
-            CKey key;
-            if (!DecryptKey(vMasterKeyIn, vchCryptedSecret, vchPubKey, key))
-            {
-                keyFail = true;
-                break;
+            if (vchCryptedSecret.empty()) {
+                keyFail = false;
+                keyPass = true;
+            } else {
+                CKey key;
+                if (!DecryptKey(vMasterKeyIn, vchCryptedSecret, vchPubKey, key)) {
+                    keyFail = true;
+                    break;
+                }
+                keyPass = true;
             }
-            keyPass = true;
             if (fDecryptionThoroughlyChecked)
                 break;
         }

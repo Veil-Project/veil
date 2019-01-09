@@ -449,6 +449,7 @@ QString TransactionTableModel::formatTxToAddress(const TransactionRecord *wtx, b
     case TransactionRecord::SendToOther:
         return QString::fromStdString(wtx->address) + watchAddress;
     case TransactionRecord::RingCTSendToSelf:
+        return tr("(n/a) RingCTSendToSelf");
     case TransactionRecord::SendToSelf:
     default:
         return tr("(n/a)") + watchAddress;

@@ -321,7 +321,27 @@ bool AnonWallet::GetKey(const CKeyID &address, CKey &keyOut) const
             return error("%s: failed to regenerate keyid %s", __func__, address.GetHex());
     }
 
-    return pwalletParent->GetKey(address, keyOut);
+    if (pwalletParent->GetKey(address, keyOut))
+        return true;
+
+    // Last check if it is a stealth destination that was stored while the wallet was locked
+    if (!mapStealthDestinations.count(address))
+        return false;
+
+    AnonWalletDB wdb(*walletDatabase);
+    std::vector<uint8_t> vchEphemPK;
+    if (!wdb.ReadStealthDestinationMeta(address, vchEphemPK))
+        return error("%s: failed to find stealth destination meta data", __func__);
+
+    CKeyID idStealth = mapStealthDestinations.at(address);
+    CStealthAddress addr = mapStealthAddresses.at(idStealth);
+
+    CKey sShared;
+    ec_point pkExtracted;
+    if (StealthSecret(addr.scan_secret, vchEphemPK, addr.spend_pubkey, sShared, pkExtracted) != 0)
+        return error("%s: failed to generate stealth secret", __func__);
+
+    return CalculateStealthDestinationKey(idStealth, address, sShared, keyOut);
 };
 
 bool AnonWallet::GetPubKey(const CKeyID &address, CPubKey& pkOut) const
@@ -698,7 +718,7 @@ bool AnonWallet::GetOutputRecord(const COutPoint& outpoint, COutputRecord& recor
     auto& r = mapRecords.at(outpoint.hash);
     auto precord = r.GetOutput(outpoint.n);
     if (!precord)
-        return error("%s: Could no locate output record. FIXME", __func__);
+        return error("%s: Could no locate output record for tx %s n=%d. FIXME", __func__, outpoint.hash.GetHex(), outpoint.n);
     record = *precord;
     return true;
 }
@@ -1324,22 +1344,31 @@ bool AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std:
     return true;
 }
 
+bool AnonWallet::CalculateStealthDestinationKey(const CKeyID& idStealthSpend, const CKeyID& idStealthDestination, const CKey& sShared, CKey& keyDestination) const
+{
+    CKey keySpend;
+    if (!RegenerateKey(idStealthSpend, keySpend))
+        return error("%s: failed to regenerate spend key that is marked as mine", __func__);
+
+    if (StealthSharedToSecretSpend(sShared, keySpend, keyDestination) != 0)
+        return error("%s: StealthSharedToSecretSpend() failed.\n", __func__);
+
+    if (keyDestination.GetPubKey().GetID() != idStealthDestination)
+        return error("%s: failed to generate correct shared secret", __func__);
+
+    return true;
+}
+
 bool AnonWallet::RecordOwnedStealthDestination(const CKey& sShared, const CKeyID& idStealth, const CKeyID& destStealth)
 {
     if (!mapStealthAddresses.count(idStealth))
         return error("%s: do not have record of stealth address %s", __func__, idStealth.GetHex());
 
     CStealthAddress myStealth = mapStealthAddresses.at(idStealth);
-    CKey keySpend;
-    if (!RegenerateKey(myStealth.GetSpendKeyID(), keySpend))
-        return error("%s: failed to regenerate spend key that is marked as mine", __func__);
 
     CKey keySharedSecret;
-    if (StealthSharedToSecretSpend(sShared, keySpend, keySharedSecret) != 0)
-        return error("%s: StealthSharedToSecretSpend() failed.\n", __func__);
-
-    if (keySharedSecret.GetPubKey().GetID() != destStealth)
-        return error("%s: failed to generate correct shared secret", __func__);
+    if (!CalculateStealthDestinationKey(myStealth.GetSpendKeyID(), destStealth, sShared, keySharedSecret))
+        return error("%s: failed to calculated stealth destination key", __func__);
 
     // Save this stealth destination to our stealth address so we know it is ours.
     if (!AddStealthDestination(idStealth, destStealth))
@@ -2121,9 +2150,13 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
         rtx.nFlags |= ORF_FROM; //Set from me
         rtx.nFlags |= ORF_BASECOIN_IN;
         AddOutputRecordMetaData(rtx, vecSend);
+        MarkInputsAsPendingSpend(rtx);
 
+        uint256 txid = txNew.GetHash();
+        if (nValueOutZerocoin)
+            rtx.AddPartialTxid(txid);
         //save record
-        SaveRecord(txNew.GetHash(), rtx);
+        SaveRecord(txid, rtx);
 
         // Embed the constructed transaction data in wtxNew.
         wtx.SetTx(MakeTransactionRef(std::move(txNew)));
@@ -4079,6 +4112,12 @@ bool AnonWallet::AddStealthDestination(const CKeyID& idStealthAddress, const CKe
     return true;
 }
 
+bool AnonWallet::AddStealthDestinationMeta(const CKeyID& idStealth, const CKeyID& idStealthDestination, std::vector<uint8_t> &vchEphemPK)
+{
+    AnonWalletDB db(*walletDatabase);
+    return db.WriteStealthDestinationMeta(idStealthDestination, vchEphemPK);
+}
+
 bool AnonWallet::AddKeyToParent(const CKey& keySharedSecret)
 {
     //Since the new key is not derived through Ext, for now keep it in CWallet keystore
@@ -4141,18 +4180,9 @@ bool AnonWallet::ProcessStealthOutput(const CTxDestination &address, std::vector
         assert(AddStealthDestination(addr->GetID(), idStealthDestination));
 
         if (IsLocked()) {
-            // Add key without secret
-            std::vector<uint8_t> vchEmpty;
-            pwalletParent->AddCryptedKey(pubKeyStealthSecret, vchEmpty);
-            CBitcoinAddress coinAddress(idExtracted);
-
-            CPubKey cpkEphem(vchEphemPK);
-            CPubKey cpkScan(addr->scan_pubkey);
-            CStealthKeyMetadata lockedSkMeta(cpkEphem, cpkScan);
-
-            if (!AnonWalletDB(*walletDatabase).WriteStealthKeyMeta(idExtracted, lockedSkMeta)) {
-                LogPrintf("WriteStealthKeyMeta failed for %s.\n", coinAddress.ToString());
-            }
+            // Save ephemeral pubkey
+            if (AddStealthDestinationMeta(addr->GetID(), idStealthDestination, vchEphemPK))
+                return error("%s: Failed to add metadata for stealth destination", __func__);
 
             nFoundStealth++;
             return true;

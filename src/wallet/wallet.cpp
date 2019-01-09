@@ -526,19 +526,21 @@ bool CWallet::Unlock(const SecureString& strWalletPassphrase, bool fUnlockForSta
 
     bool fSuccess = false;
     {
-        LOCK(cs_wallet);
-        this->fUnlockForStakingOnly = fUnlockForStakingOnly;
-        for (const MasterKeyMap::value_type& pMasterKey : mapMasterKeys)
         {
-            if(!crypter.SetKeyFromPassphrase(strWalletPassphrase, pMasterKey.second.vchSalt, pMasterKey.second.nDeriveIterations, pMasterKey.second.nDerivationMethod))
+            LOCK(cs_wallet);
+            this->fUnlockForStakingOnly = fUnlockForStakingOnly;
+            for (const MasterKeyMap::value_type& pMasterKey : mapMasterKeys) {
+                if (!crypter.SetKeyFromPassphrase(strWalletPassphrase, pMasterKey.second.vchSalt, pMasterKey.second.nDeriveIterations, pMasterKey.second.nDerivationMethod))
+                    return false;
+                if (!crypter.Decrypt(pMasterKey.second.vchCryptedKey, _vMasterKey))
+                    continue; // try another master key
+                if (CCryptoKeyStore::Unlock(_vMasterKey)) {
+                    fSuccess = true;
+                    break;
+                }
+            }
+            if (!fSuccess)
                 return false;
-            if (!crypter.Decrypt(pMasterKey.second.vchCryptedKey, _vMasterKey))
-                continue; // try another master key
-            if (!CCryptoKeyStore::Unlock(_vMasterKey))
-                continue;
-
-            fSuccess = true;
-            break;
         }
 
         WalletBatch walletdb(*database);
