@@ -17,6 +17,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QDoubleValidator>
+#include <QCompleter>
 
 SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *parent) :
     QStackedWidget(parent),
@@ -96,6 +97,19 @@ void SendCoinsEntry::setModel(WalletModel *_model)
         connect(_model->getOptionsModel(), SIGNAL(displayUnitChanged(int)), this, SLOT(updateDisplayUnit()));
 
     clear();
+
+//    QCompleter *completer = new QCompleter(this);
+//    completer->setCaseSensitivity(Qt::CaseInsensitive);
+
+//    completerModel = new CompleterModel(this);
+
+//    selectCompleter->setCompletionMode( QCompleter::PopupCompletion);
+//    selectCompleter->setModel( completerModel);
+//    selectCompleter->setModelSorting( QCompleter::CaseInsensitivelySortedModel);
+//    selectCompleter->setCaseSensitivity( Qt::CaseInsensitive);
+//    selectCompleter->setWrapAround( true);
+
+//    label->payTo(completer);
 }
 
 void SendCoinsEntry::clear()

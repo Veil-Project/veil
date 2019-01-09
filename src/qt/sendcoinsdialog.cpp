@@ -567,6 +567,9 @@ void SendCoinsDialog::processSendCoinsReturn(const WalletModel::SendCoinsReturn 
     case WalletModel::AmountExceedsBalance:
         msgParams.first = tr("The amount exceeds your balance.");
         break;
+    case WalletModel::AmountExceedsBalance_NoBasecoinBalanceAccepted:
+        msgParams.first = tr("The amount exceeds your zerocoin balance, only zerocoins accepted on stealth addresses");
+        break;
     case WalletModel::AmountWithFeeExceedsBalance:
         msgParams.first = tr("The total exceeds your balance when the %1 transaction fee is included.").arg(msgArg);
         break;

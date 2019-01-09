@@ -34,6 +34,8 @@ public Q_SLOTS:
     void setBalance(const interfaces::WalletBalances& balances);
     void updateDisplayUnit();
     void onBtnBalanceClicked();
+    void onBtnUnconfirmedClicked();
+    void onBtnImmatureClicked();
     void on_btnCopyAddress_clicked();
 
 private:
@@ -48,7 +50,9 @@ private:
 
     bool isWalletLocked = false;
 
-    TooltipBalance *tooltip;
+    TooltipBalance *tooltip = nullptr;
+
+    void onBtnBalanceClicked(int type);
 };
 
 #endif // BALANCE_H

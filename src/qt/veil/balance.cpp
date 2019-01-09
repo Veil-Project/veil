@@ -45,6 +45,8 @@ Balance::Balance(QWidget *parent, BitcoinGUI* gui) :
 //    ui->copyAddress->setIconSize(QSize(20, 20));
 
     connect(ui->btnBalance, SIGNAL(clicked()), this, SLOT(onBtnBalanceClicked()));
+    connect(ui->btnUnconfirmed, SIGNAL(clicked()), this, SLOT(onBtnUnconfirmedClicked()));
+    connect(ui->btnImmature, SIGNAL(clicked()), this, SLOT(onBtnImmatureClicked()));
     connect(ui->copyAddress, SIGNAL(clicked()), this, SLOT(on_btnCopyAddress_clicked()));
 
 }
@@ -54,24 +56,95 @@ Balance::~Balance()
     delete ui;
 }
 
+void Balance::onBtnBalanceClicked() {
+    onBtnBalanceClicked(0);
+}
+
+void Balance::onBtnUnconfirmedClicked() {
+    onBtnBalanceClicked(1);
+}
+
+void Balance::onBtnImmatureClicked() {
+    onBtnBalanceClicked(2);
+}
+
 
 void Balance::on_btnCopyAddress_clicked() {
     GUIUtil::setClipboard(qAddress);
     openToastDialog("Address copied", mainWindow);
 }
 
-void Balance::onBtnBalanceClicked(){
+void Balance::onBtnBalanceClicked(int type){
     interfaces::Wallet& wallet = walletModel->wallet();
     interfaces::WalletBalances balances = wallet.getBalances();
     int unit = walletModel->getOptionsModel()->getDisplayUnit();
-    tooltip = new TooltipBalance(
-            parentWidget(),
-            unit,
-            balances.zerocoin_balance + balances.zerocoin_immature_balance,
-            balances.ring_ct_balance + balances.ring_ct_immature_balance + balances.ct_balance + balances.ct_unconfirmed_balance,
-            balances.basecoin_balance + balances.basecoin_immature_balance
+
+    if(!tooltip)
+        tooltip = new TooltipBalance(
+                parentWidget(),
+                unit,
+                balances.zerocoin_balance,
+                balances.ring_ct_balance + balances.ct_balance,
+                balances.basecoin_balance
+        );
+
+    QString firstTitle;
+    int64_t firstBalance;
+    QString secondTitle;
+    int64_t secondBalance;
+    QString thirdTitle;
+    int64_t thirdBalance;
+
+    QPushButton* widget;
+    int posy;
+    int posx;
+
+    switch (type){
+        case 0:
+            firstTitle = QString::fromStdString("Zerocoin");
+            firstBalance = balances.zerocoin_balance;
+            secondTitle = QString::fromStdString("RingCT & CT");
+            secondBalance = balances.ring_ct_balance + balances.ct_balance;
+            thirdTitle = QString::fromStdString("Basecoin");
+            thirdBalance = balances.basecoin_balance;
+            widget = ui->btnBalance;
+            posy = 0;
+            posx = widget->pos().rx()+150;
+           break;
+        case 1:
+            firstTitle = QString::fromStdString("Zerocoin");
+            firstBalance = balances.zerocoin_unconfirmed_balance;
+            secondTitle = QString::fromStdString("RingCT & CT");
+            secondBalance = balances.ring_ct_unconfirmed_balance + balances.ct_unconfirmed_balance;
+            thirdTitle = QString::fromStdString("Basecoin");
+            thirdBalance = balances.basecoin_unconfirmed_balance;
+            widget = ui->btnUnconfirmed;
+            posy = widget->pos().ry() - 140;
+            posx = widget->pos().rx() + 130;
+            break;
+        case 2:
+            firstTitle = QString::fromStdString("Zerocoin");
+            firstBalance = balances.zerocoin_immature_balance;
+            secondTitle = QString::fromStdString("RingCT & CT");
+            secondBalance = balances.ring_ct_immature_balance + balances.ct_immature_balance;
+            thirdTitle = QString::fromStdString("Basecoin");
+            thirdBalance = balances.basecoin_immature_balance;
+            widget = ui->btnImmature;
+            posy = widget->pos().ry() - 140;
+            posx = widget->pos().rx() + 130;
+            break;
+    }
+
+    tooltip->update(
+            firstTitle,
+            firstBalance,
+            secondTitle,
+            secondBalance,
+            thirdTitle,
+            thirdBalance
     );
-    tooltip->move(ui->btnBalance->pos().rx()+150,0);
+
+    tooltip->move(posx,posy);
     tooltip->show();
 }
 
@@ -98,8 +171,19 @@ void Balance::setBalance(const interfaces::WalletBalances& balances){
     int unit = walletModel->getOptionsModel()->getDisplayUnit();
     m_balances = balances;
     // TODO: Change this balance calculation
-    ui->labelBalance->setText(BitcoinUnits::formatWithUnit(unit, balances.total_balance, false, BitcoinUnits::separatorAlways));
-    ui->labelUnconfirmed->setText(BitcoinUnits::formatWithUnit(unit, balances.total_unconfirmed_balance, false, BitcoinUnits::separatorAlways));
+    ui->labelBalance->setText(BitcoinUnits::formatWithUnit(
+            unit,
+            balances.basecoin_balance + balances.ct_balance + balances.ring_ct_balance + balances.zerocoin_balance,
+            false,
+            BitcoinUnits::separatorAlways));
+
+    ui->labelUnconfirmed->setText(
+            BitcoinUnits::formatWithUnit(unit,
+            balances.total_unconfirmed_balance,
+            false,
+            BitcoinUnits::separatorAlways
+            )
+    );
     ui->labelImmature->setText(BitcoinUnits::formatWithUnit(unit, balances.total_immature_balance, false, BitcoinUnits::separatorAlways));
     //ui->labelTotal->setText(BitcoinUnits::formatWithUnit(unit, balances.balance + balances.unconfirmed_balance + balances.immature_balance, false, BitcoinUnits::separatorAlways));
 
@@ -216,3 +300,5 @@ void Balance::refreshWalletStatus() {
     }
 #endif
 }
+
+
