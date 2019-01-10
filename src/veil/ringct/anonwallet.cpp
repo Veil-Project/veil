@@ -4458,7 +4458,7 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
 
             //Double check for standard outputs from us
             if (!fIsFromMe && !txin.IsAnonInput()) {
-                if (pwalletParent->IsMine(txin))
+                if (pwalletParent->IsMine(txin, /*fCheckZerocoin*/true, /*fCheckAnon*/false))
                     fIsFromMe = true;
             }
         }

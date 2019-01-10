@@ -1389,10 +1389,23 @@ isminetype CWallet::IsMine(const CTxDestination& dest) const
     return ::IsMine(*this, dest);
 }
 
-isminetype CWallet::IsMine(const CTxIn &txin) const
+isminetype CWallet::IsMine(const CTxIn &txin, bool fCheckZerocoin, bool fCheckAnon) const
 {
     {
         LOCK(cs_wallet);
+        if (fCheckZerocoin && txin.scriptSig.IsZerocoinSpend()) {
+            auto spend = TxInToZerocoinSpend(txin);
+            if (!spend)
+                return ISMINE_NO;
+            if (IsMyZerocoinSpend(spend->getCoinSerialNumber()))
+                return ISMINE_SPENDABLE;
+        }
+
+        if (fCheckAnon) {
+            auto mine_anon = pAnonWalletMain->IsMine(txin);
+            if (mine_anon) return mine_anon;
+        }
+
         std::map<uint256, CWalletTx>::const_iterator mi = mapWallet.find(txin.prevout.hash);
         if (mi != mapWallet.end())
         {
@@ -1400,6 +1413,7 @@ isminetype CWallet::IsMine(const CTxIn &txin) const
             if (txin.prevout.n < prev.tx->vpout.size())
                 return IsMine(prev.tx->vpout[txin.prevout.n].get());
         }
+
     }
     return ISMINE_NO;
 }

@@ -1137,7 +1137,7 @@ public:
 
     std::set<CTxDestination> GetLabelAddresses(const std::string& label) const;
 
-    isminetype IsMine(const CTxIn& txin) const;
+    isminetype IsMine(const CTxIn& txin, bool fCheckZerocoin = false, bool fCheckAnon = false) const;
     isminetype IsMine(const CTxDestination& dest) const;
 
     /**
