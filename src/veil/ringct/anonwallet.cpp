@@ -1142,52 +1142,24 @@ void AnonWallet::MarkInputsAsPendingSpend(CTransactionRecord &rtx)
 void AnonWallet::AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend)
 {
     for (const auto &r : vecSend) {
-        if (r.nType == OUTPUT_STANDARD) {
-            COutputRecord rec;
+        COutputRecord rec;
 
-            rec.n = r.n;
-            if (r.fChange)
-                rec.nFlags |= ORF_CHANGE;
-            if (r.isMine)
-                rec.nFlags |= ORF_OWNED;
-            rec.nType = r.nType;
-            rec.SetValue(r.nAmount);
-            rec.sNarration = r.sNarration;
+        rec.n = r.n;
+        rec.nType = r.nType;
+        rec.SetValue(r.nAmount);
+        rec.sNarration = r.sNarration;
+        rec.scriptPubKey = r.scriptPubKey;
+
+        if (r.fChange)
+            rec.nFlags |= ORF_CHANGE;
+        if (r.isMine)
+            rec.nFlags |= ORF_OWNED;
+
+        if (!r.scriptPubKey.empty())
             rec.scriptPubKey = r.scriptPubKey;
-            rtx.InsertOutput(rec);
-        } else if (r.nType == OUTPUT_CT) {
-            COutputRecord rec;
 
-            rec.n = r.n;
-            rec.nType = r.nType;
-            rec.SetValue(r.nAmount);
-            if (r.fChange)
-                rec.nFlags |= ORF_CHANGE;
-            if (r.isMine)
-                rec.nFlags |= ORF_OWNED;
-
-            rec.scriptPubKey = r.scriptPubKey;
-            rec.sNarration = r.sNarration;
-
-            ParseAddressForMetaData(r.address, rec);
-
-            rtx.InsertOutput(rec);
-        } else if (r.nType == OUTPUT_RINGCT) {
-            COutputRecord rec;
-
-            rec.n = r.n;
-            rec.nType = r.nType;
-            rec.SetValue(r.nAmount);
-            if (r.fChange)
-                rec.nFlags |= ORF_CHANGE;
-            if (r.isMine)
-                rec.nFlags |= ORF_OWNED;
-            rec.sNarration = r.sNarration;
-
-            ParseAddressForMetaData(r.address, rec);
-
-            rtx.InsertOutput(rec);
-        }
+        ParseAddressForMetaData(r.address, rec);
+        rtx.InsertOutput(rec);
     }
 }
 
@@ -2246,7 +2218,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
     CAmount nFeeZerocoin = 0;
     bool fHasCTOut = false;
     for (auto& r : vecSend) {
-        if (r.nType == OUTPUT_RINGCT) {
+        if (r.nType == OUTPUT_CT) {
             fHasCTOut = true;
         }
         if (r.fZerocoinMint) {
@@ -4440,7 +4412,6 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
         mapValue_t mapNarr;
         size_t nCT = 0, nRingCT = 0;
         bool fIsMine = ScanForOwnedOutputs(tx, nCT, nRingCT, mapNarr);
-        LogPrintf("%s: Found owned outputs anon =%d\n", __func__, fIsMine);
         bool fIsFromMe = false;
         MapRecords_t::const_iterator mir;
         for (const auto &txin : tx.vin) {
