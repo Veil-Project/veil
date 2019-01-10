@@ -3661,7 +3661,7 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
             {
                 LOCK(cs_main);
                 //Double check that this will pass time requirements
-                if (nTxNewTime <= chainActive.Tip()->GetMedianTimePast()) {
+                if (nTxNewTime <= chainActive.Tip()->GetMedianTimePast() || nTxNewTime < chainActive.Tip()->GetBlockTime() - MAX_PAST_BLOCK_TIME) {
                     LogPrintf("CreateCoinStake() : kernel found, but it is too far in the past \n");
                     continue;
                 }
@@ -5726,19 +5726,7 @@ bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendRe
 
 bool IsMintInChain(const uint256& hashPubcoin, uint256& txid, int& nHeight)
 {
-    if (!IsPubcoinInBlockchain(hashPubcoin, txid))
-        return false;
-
-    uint256 hashBlock;
-    CTransactionRef tx;
-    if (!GetTransaction(txid, tx, Params().GetConsensus(), hashBlock))
-        return false;
-
-    if (!mapBlockIndex.count(hashBlock) || !chainActive.Contains(mapBlockIndex.at(hashBlock)))
-        return false;
-
-    nHeight = mapBlockIndex.at(hashBlock)->nHeight;
-    return true;
+    return IsPubcoinInBlockchain(hashPubcoin, nHeight, txid, chainActive.Tip());
 }
 
 void CWallet::ReconsiderZerocoins(std::list<CZerocoinMint>& listMintsRestored, std::list<CDeterministicMint>& listDMintsRestored)

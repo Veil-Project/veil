@@ -202,7 +202,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         if (pblock->vtx[i] == nullptr)
             continue;
 
-        //const CTransaction &tx = *(pblock->vtx[i]);
         const CTransaction* ptx = pblock->vtx[i].get();
         std::set<uint256> setTxSerialHashes;
         std::set<uint256> setTxPubcoinHashes;
@@ -211,7 +210,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         if (ptx->IsZerocoinMint())
             TxToPubcoinHashSet(ptx, setTxPubcoinHashes);
 
-        //double check all zerocoin spends for duplicates
+        //double check all zerocoin spends for duplicates or for already spent serials
         bool fRemove = false;
         for (const uint256& hashSerial : setTxSerialHashes) {
             if (setSerials.count(hashSerial)) {
@@ -219,19 +218,36 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                 LogPrintf("%s: removing duplicate serial tx %s\n", __func__, ptx->GetHash().GetHex());
                 fRemove = true;
                 break;
+            } else {
+                uint256 txid;
+                if (IsSerialInBlockchain(hashSerial, nHeight, txid)) {
+                    setDuplicate.emplace(ptx->GetHash());
+                    LogPrintf("%s: removing serial that is already in chain, tx=%s\n", __func__, ptx->GetHash().GetHex());
+                    fRemove = true;
+                    break;
+                }
             }
             setSerials.emplace(hashSerial);
         }
         if (fRemove)
             continue;
 
-        //Double check for mint duplicates
+        //Double check for mint duplicates or already accumulated pubcoins
         for (const uint256& hashPubcoin : setTxPubcoinHashes) {
             if (setPubcoins.count(hashPubcoin)) {
                 setDuplicate.emplace(ptx->GetHash());
                 LogPrintf("%s: removing duplicate pubcoin tx %s\n", __func__, ptx->GetHash().GetHex());
                 fRemove = true;
                 break;
+            } else {
+                uint256 txid;
+                int nHeightTx = 0;
+                if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, chainActive.Tip())) {
+                    setDuplicate.emplace(ptx->GetHash());
+                    LogPrintf("%s: removing duplicate pubcoin tx %s\n", __func__, ptx->GetHash().GetHex());
+                    fRemove = true;
+                    break;
+                }
             }
             setPubcoins.emplace(hashPubcoin);
         }

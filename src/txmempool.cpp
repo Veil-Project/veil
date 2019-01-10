@@ -606,6 +606,28 @@ void CTxMemPool::removePubcoins(const std::set<uint256>& setPubcoinHashes)
     RemoveStaged(setAllRemoves, false, MemPoolRemovalReason::BLOCK);
 }
 
+void CTxMemPool::removeSerials(const std::set<uint256>& setSerialHashes)
+{
+    AssertLockHeld(cs);
+    setEntries txToRemove;
+    for (auto it = mapTx.begin(); it != mapTx.end(); it++) {
+        if (!it->IsZerocoinSpend())
+            continue;
+        for (const uint256& hashSerial : setSerialHashes) {
+            if (it->HasSerial(hashSerial)) {
+                //Remove this transaction from mempool because it contains the pubcoin that has been spent
+                txToRemove.insert(it);
+                break;
+            }
+        }
+    }
+    setEntries setAllRemoves;
+    for (txiter it : txToRemove) {
+        CalculateDescendants(it, setAllRemoves);
+    }
+    RemoveStaged(setAllRemoves, false, MemPoolRemovalReason::BLOCK);
+}
+
 void CTxMemPool::removeConflicts(const CTransaction &tx)
 {
     // Remove transactions which depend on inputs of tx, recursively
@@ -672,11 +694,19 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
             setEntries stage;
             stage.insert(it);
             RemoveStaged(stage, true, MemPoolRemovalReason::BLOCK);
-        } else if (tx->IsZerocoinMint()) {
-            // Remove any mempool mints with the same pubcoin
-            std::set<uint256> setPubcoinHashes;
-            TxToPubcoinHashSet(tx.get(), setPubcoinHashes);
-            removePubcoins(setPubcoinHashes);
+        } else {
+            if (tx->IsZerocoinMint()) {
+                // Remove any mempool mints with the same pubcoin
+                std::set<uint256> setPubcoinHashes;
+                TxToPubcoinHashSet(tx.get(), setPubcoinHashes);
+                removePubcoins(setPubcoinHashes);
+            }
+            if (tx->IsZerocoinSpend()) {
+                //Remove any mempool spends with the same serial
+                std::set<uint256> setSerialHashes;
+                TxToSerialHashSet(tx.get(), setSerialHashes);
+                removeSerials(setSerialHashes);
+            }
         }
 
         removeConflicts(*tx);
@@ -1002,6 +1032,16 @@ bool CTxMemPool::HasZerocoinSerial(const uint256& hashSerial) const
     LOCK(cs);
     for (auto mi = mapTx.begin(); mi != mapTx.end(); ++mi) {
         if (mi->HasSerial(hashSerial))
+            return true;
+    }
+    return false;
+}
+
+bool CTxMemPool::HasPublicCoin(const uint256& hashPubcoin) const
+{
+    LOCK(cs);
+    for (auto mi = mapTx.begin(); mi != mapTx.end(); ++mi) {
+        if (mi->HasPubcoin(hashPubcoin))
             return true;
     }
     return false;

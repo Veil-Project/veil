@@ -769,6 +769,17 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
         }
 
+        for (auto pout : tx.vpout) {
+            if (pout->IsZerocoinMint()) {
+                CTxOut txout;
+                libzerocoin::PublicCoin coin(Params().Zerocoin_Params());
+                if (!OutputToPublicCoin(pout.get(), coin))
+                    return false;
+                if (pool.HasPublicCoin(GetPubCoinHash(coin.getValue())))
+                    return false;
+            }
+        }
+
         if (!AllAnonOutputsUnknown(tx, state)) // set state.fHasAnonOutput
             return error("%s: already spent anon outputs", __func__); // Already in the blockchain, containing block could have been received before loose tx
 
