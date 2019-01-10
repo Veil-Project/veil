@@ -71,12 +71,13 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
     std::list<COutputEntry> listSent;
     CAmount nFee;
     wtx.GetAmounts(listReceived, listSent, nFee, ISMINE_ALL);
+    auto panonwallet = wallet.GetAnonWallet();
 
     WalletTx result;
     result.tx = wtx.tx;
+    result.value_map = wtx.mapValue;
     auto txid = wtx.tx->GetHash();
     if (wtx.tx->HasBlindedValues()) {
-        auto panonwallet = wallet.GetAnonWallet();
         if (panonwallet->mapRecords.count(txid)) {
             result.rtx = panonwallet->mapRecords.at(txid);
             result.has_rtx = true;
@@ -102,10 +103,23 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
         CScript scriptPubKey;
         auto fAddressIsMine = ismine;
         if (txout->GetScriptPubKey(scriptPubKey)) {
-            result.txout_address_is_mine.emplace_back(
-                    ExtractDestination(scriptPubKey, result.txout_address.back()) ?
-                    IsMine(wallet, result.txout_address.back()) :
-                    ISMINE_NO);
+            CTxDestination dest;
+            bool fSuccess = ExtractDestination(scriptPubKey, dest);
+            if (fSuccess)
+                result.txout_address.emplace_back(dest);
+            result.txout_address_is_mine.emplace_back(fSuccess ? IsMine(wallet, dest) : ISMINE_NO);
+
+            //Check if this is a stealth destination, if so include stealth address
+            if (dest.type() == typeid(CKeyID)) {
+                auto idStealthDestination = boost::get<CKeyID>(dest);
+                if (panonwallet->HaveStealthDestination(idStealthDestination)) {
+                    CStealthAddress stealthAddress;
+                    if (panonwallet->GetStealthLinked(idStealthDestination, stealthAddress)) {
+                        result.value_map[strprintf("stealth:%d", i)] = stealthAddress.ToString(true);
+                    }
+                }
+            }
+
         } else {
             if (txout->nVersion == OUTPUT_DATA && fInputsFromMe)
                 fAddressIsMine = ISMINE_SPENDABLE;
@@ -154,7 +168,6 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
     result.debit = wtx.GetDebit(ISMINE_ALL);
     result.change = wtx.GetChange();
     result.time = wtx.GetTxTime();
-    result.value_map = wtx.mapValue;
     result.is_coinbase = wtx.IsCoinBase();
     result.is_coinstake = wtx.IsCoinStake();
 

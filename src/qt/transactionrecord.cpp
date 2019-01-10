@@ -265,21 +265,29 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     sub.type = TransactionRecord::ZeroCoinRecv;
                     sub.credit = pOut->GetValue();
                 } else if (pOut->GetType() == OUTPUT_CT) {
-                    sub.type = TransactionRecord::ZeroCoinRecv;
-                    if (precord) {
-                        sub.credit = precord->GetAmount();
-                    } else {
-                        LogPrintf("%s:%s %s\n", __func__, __LINE__, wtx.tx->GetHash().GetHex());
-                    }
-                }
-                sub.address = mapValue["recvzerocoinspend"];
-                if (strAddress != "")
+                    sub.type = TransactionRecord::CTRecvWithAddress;
+                    //Get full stealth address if available
+                    std::string strKey = strprintf("stealth:%d", nOut);
+                    if (wtx.value_map.count(strKey))
+                        strAddress = wtx.value_map.at(strKey);
+
                     sub.address = strAddress;
+
+                    // Value is blinded so must come from outputrecord
+                    if (precord)
+                        sub.credit = precord->GetAmount();
+                }
+
+                if (strAddress.empty())
+                    sub.address = mapValue["recvzerocoinspend"];
+                else
+                    sub.address = strAddress;
+
                 sub.idx = parts.size();
                 parts.append(sub);
                 continue;
             }
-            LogPrintf("%s:%s %s ismyspend=%d\n", __func__, __LINE__, wtx.tx->GetHash().GetHex(), wtx.is_my_zerocoin_spend);
+
             // spend is not from us, so do not display the spend side of the record
             if (!wtx.is_my_zerocoin_spend)
                 continue;
@@ -290,11 +298,8 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             if (pOut->GetType() == OUTPUT_STANDARD)
                 sub.debit = -pOut->GetValue();
             else if (pOut->GetType() == OUTPUT_CT) {
-                if (precord) {
+                if (precord)
                     sub.debit = -precord->GetAmount();
-                } else {
-                    LogPrintf("%s:%s %s\n", __func__, __LINE__, wtx.tx->GetHash().GetHex());
-                }
             }
 
             sub.type = TransactionRecord::ZeroCoinSpend;
