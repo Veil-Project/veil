@@ -135,10 +135,19 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason)
         return false;
     }
 
-    for (const CTxIn& txin : tx.vin)
+    bool fZerocoinSpend = false;
+    for (unsigned int i = 0; i < tx.vin.size(); i++)
     {
-        if (txin.scriptSig.IsZerocoinSpend())
+        const CTxIn& txin = tx.vin[i];
+        if (txin.scriptSig.IsZerocoinSpend()) {
+            if (!fZerocoinSpend && i > 0) {
+                reason = "malformed-zerocoinspend";
+                return false;
+            }
+            fZerocoinSpend = true;
             continue;
+        }
+
 
         // Biggest 'standard' txin is a 15-of-15 P2SH multisig with compressed
         // keys (remember the 520 byte limit on redeemScript size). That works
