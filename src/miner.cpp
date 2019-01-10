@@ -195,34 +195,50 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     //! find any coins that are sent to the network address, also make sure no conflicting zerocoin spends are included
     // todo reiterating over the spends here is not ideal, the new mining code is so complicated that this is the easiest solution at the moment
-    std::set<CBigNum> setSerials;
+    std::set<uint256> setSerials;
+    std::set<uint256> setPubcoins;
     std::set<uint256> setDuplicate;
     for (unsigned int i = 0; i < pblock->vtx.size(); i++) {
         if (pblock->vtx[i] == nullptr)
             continue;
 
-        const CTransaction &tx = *(pblock->vtx[i]);
+        //const CTransaction &tx = *(pblock->vtx[i]);
+        const CTransaction* ptx = pblock->vtx[i].get();
+        std::set<uint256> setTxSerialHashes;
+        std::set<uint256> setTxPubcoinHashes;
+        if (ptx->IsZerocoinSpend())
+            TxToSerialHashSet(ptx, setTxSerialHashes);
+        if (ptx->IsZerocoinMint())
+            TxToPubcoinHashSet(ptx, setTxPubcoinHashes);
 
         //double check all zerocoin spends for duplicates
         bool fRemove = false;
-        for (const auto& in : tx.vin) {
-            if (in.scriptSig.IsZerocoinSpend()) {
-                auto spend = TxInToZerocoinSpend(in);
-                if (!spend)
-                    continue;
-                if (setSerials.count(spend->getCoinSerialNumber())) {
-                    setDuplicate.emplace(tx.GetHash());
-                    fRemove = true;
-                    break;
-                }
-
-                setSerials.emplace(spend->getCoinSerialNumber());
+        for (const uint256& hashSerial : setTxSerialHashes) {
+            if (setSerials.count(hashSerial)) {
+                setDuplicate.emplace(ptx->GetHash());
+                LogPrintf("%s: removing duplicate serial tx %s\n", __func__, ptx->GetHash().GetHex());
+                fRemove = true;
+                break;
             }
+            setSerials.emplace(hashSerial);
         }
         if (fRemove)
             continue;
 
-        for (const auto& pout : tx.vpout) {
+        //Double check for mint duplicates
+        for (const uint256& hashPubcoin : setTxPubcoinHashes) {
+            if (setPubcoins.count(hashPubcoin)) {
+                setDuplicate.emplace(ptx->GetHash());
+                LogPrintf("%s: removing duplicate pubcoin tx %s\n", __func__, ptx->GetHash().GetHex());
+                fRemove = true;
+                break;
+            }
+            setPubcoins.emplace(hashPubcoin);
+        }
+        if (fRemove)
+            continue;
+
+        for (const auto& pout : ptx->vpout) {
             if (!pout->IsStandardOutput())
                 continue;
             if (*pout->GetPScriptPubKey() == rewardScript) {

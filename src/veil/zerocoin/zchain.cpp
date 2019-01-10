@@ -74,7 +74,7 @@ bool BlockToPubcoinList(const CBlock& block, std::list<libzerocoin::PublicCoin>&
     return true;
 }
 
-bool TxToPubcoinHashSet(const CTransactionRef& tx, std::set<uint256>& setHashes)
+bool TxToPubcoinHashSet(const CTransaction* tx, std::set<uint256>& setHashes)
 {
     for (unsigned int i = 0; i < tx->vpout.size(); i++) {
         const auto pout = tx->vpout[i];
@@ -92,9 +92,9 @@ bool TxToPubcoinHashSet(const CTransactionRef& tx, std::set<uint256>& setHashes)
     return true;
 }
 
-bool TxToSerialHashSet(const CTransactionRef& tx, std::set<uint256>& setHashes)
+bool TxToSerialHashSet(const CTransaction* tx, std::set<uint256>& setHashes)
 {
-    for (const auto& in :tx->vin) {
+    for (const CTxIn& in :tx->vin) {
         auto spend = TxInToZerocoinSpend(in);
         if (spend)
             setHashes.emplace(GetSerialHash(spend->getCoinSerialNumber()));
