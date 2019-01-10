@@ -12,7 +12,8 @@
 enum MintMemoryFlags
 {
     MINT_MATURE = (1 << 0),
-    MINT_CONFIRMED = (1 << 1)
+    MINT_CONFIRMED = (1 << 1),
+    MINT_PENDINGSPEND = (1 << 2)
 };
 
 //struct that is safe to store essential mint data, without holding any information that allows for actual spending (serial, randomness, private key)

@@ -5543,6 +5543,18 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     return "";
 }
 
+bool CWallet::AvailableZerocoins(std::set<CMintMeta>& setMints)
+{
+    auto setMintsTemp = zTracker->ListMints(true, true, true); // need to find mints to spend
+    for (const CMintMeta& mint : setMintsTemp) {
+        if (mint.nMemFlags & MINT_PENDINGSPEND)
+            continue;
+        setMints.emplace(mint);
+    }
+
+    return true;
+}
+
 bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
         std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, CTxDestination* addressTo)
 {
@@ -5554,7 +5566,8 @@ bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendRe
         return false;
     }
 
-    auto setMints = zTracker->ListMints(true, true, true); // need to find mints to spend
+    std::set<CMintMeta> setMints;
+    AvailableZerocoins(setMints);
     if (setMints.empty()) {
         receipt.SetStatus("Failed to find Zerocoins in wallet.dat", nStatus);
         return false;
