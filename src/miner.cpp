@@ -111,15 +111,21 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     resetBlock();
 
-    //Need wallet if this is for proof of stake
-    auto pwalletMain = GetMainWallet();
-    if (!pwalletMain)
-        return nullptr;
+    //Need wallet if this is for proof of stake,
+    std::shared_ptr<CWallet> pwalletMain = nullptr;
+    if (fProofOfStake) {
+        pwalletMain = GetMainWallet();
+        if (!pwalletMain)
+            error("Failing to get the Main Wallet for CreateNewBlock with Proof of Stake\n");
+            return nullptr;
+    }
 
     pblocktemplate.reset(new CBlockTemplate());
 
-    if(!pblocktemplate.get())
+    if(!pblocktemplate.get()) {
+        error("Failing to get the block template\n");
         return nullptr;
+    }
     pblock = &pblocktemplate->block; // pointer for convenience
 
     // Add dummy coinbase tx as first transaction
@@ -148,8 +154,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     LOCK(cs_main);
     TRY_LOCK(mempool.cs, fLockMem);
-    if (!fLockMem)
+    if (!fLockMem) {
+        error("Failing to get the lock on the mempool\n");
         return nullptr;
+    }
 
     CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);
