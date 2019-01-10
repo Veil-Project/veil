@@ -44,10 +44,10 @@ CTxMemPoolEntry::CTxMemPoolEntry(const CTransactionRef& _tx, const CAmount& _nFe
     setSerialHashes.clear();
     setPubcoinHashes.clear();
     if (tx->IsZerocoinSpend()) {
-        TxToSerialHashSet(tx, setSerialHashes);
+        TxToSerialHashSet(tx.get(), setSerialHashes);
     }
     if (tx->IsZerocoinMint()) {
-        TxToPubcoinHashSet(tx, setPubcoinHashes);
+        TxToPubcoinHashSet(tx.get(), setPubcoinHashes);
     }
 }
 
@@ -368,6 +368,18 @@ void CTxMemPool::GetTransactions(std::set<uint256>& setTxids)
         setTxids.insert(mi->GetTx().GetHash());
 }
 
+void CTxMemPool::GetSerials(std::map<uint256, uint256>& mapSerials) const
+{
+    mapSerials.clear();
+    LOCK(cs);
+    for (indexed_transaction_set::iterator mi = mapTx.begin(); mi != mapTx.end(); ++mi) {
+        uint256 txid = mi->GetTx().GetHash();
+        std::set<uint256> setTemp = mi->GetSetSerialHashes();
+        for (const uint256& hashSerial : setTemp)
+            mapSerials.emplace(hashSerial, txid);
+    }
+}
+
 unsigned int CTxMemPool::GetTransactionsUpdated() const
 {
     LOCK(cs);
@@ -663,7 +675,7 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
         } else if (tx->IsZerocoinMint()) {
             // Remove any mempool mints with the same pubcoin
             std::set<uint256> setPubcoinHashes;
-            TxToPubcoinHashSet(tx, setPubcoinHashes);
+            TxToPubcoinHashSet(tx.get(), setPubcoinHashes);
             removePubcoins(setPubcoinHashes);
         }
 

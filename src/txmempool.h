@@ -574,6 +574,7 @@ public:
     void queryHashes(std::vector<uint256>& vtxid);
     bool isSpent(const COutPoint& outpoint) const;
     void GetTransactions(std::set<uint256>& stTxids);
+    void GetSerials(std::map<uint256, uint256>& mapSerials) const; //serialhash => txid
     unsigned int GetTransactionsUpdated() const;
     void AddTransactionsUpdated(unsigned int n);
     /**

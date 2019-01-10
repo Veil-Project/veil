@@ -738,8 +738,11 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-known");
                 if (setSerials.count(bnSerial))
                     return state.Invalid(false, REJECT_INVALID, "zcspend-tx-dupl-serials");
-                if (mempool.HasZerocoinSerial(GetSerialHash(bnSerial)))
+                uint256 hashSerial = GetSerialHash(bnSerial);
+                if (mempool.HasZerocoinSerial(hashSerial)) {
+                    LogPrint(BCLog::NET, "%s: serial:%s already in mempool tx:%s\n", __func__, hashSerial.GetHex(), hash.GetHex());
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-in-mempool");
+                }
 
                 setSerials.emplace(bnSerial);
                 continue;
