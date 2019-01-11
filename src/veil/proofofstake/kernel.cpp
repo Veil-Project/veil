@@ -83,13 +83,20 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
     bool fSuccess = false;
     unsigned int nTryTime = 0;
     int nHeightStart = chainActive.Height();
-    int nHashDrift = 30;
+    int nHashDrift = GetTime() + MAX_FUTURE_BLOCK_TIME - 10 - nTimeTx;
+    if (nHashDrift < 0)
+        nHashDrift = 1;
     CDataStream ssUniqueID = stakeInput->GetUniqueness();
     CAmount nValueIn = stakeInput->GetValue();
 
     //Adjust stake weights to larger denoms
     WeightStake(nValueIn, stakeInput->GetDenomination());
 
+    int nBestHeight = chainActive.Tip()->nHeight;
+    uint256 hashBestBlock = chainActive.Tip()->GetBlockHash();
+    if (!mapStakeHashCounter.count(nBestHeight)) {
+        mapStakeHashCounter[nBestHeight] = 0;
+    }
     for (int i = 0; i < nHashDrift; i++) //iterate the hashing
     {
         //new block came in, move on
@@ -99,6 +106,7 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
         //hash this iteration
         nTryTime = nTimeTx + nHashDrift - i;
 
+        mapStakeHashCounter[nBestHeight]++;
         // if stake hash does not meet the target then continue to next iteration
         if (!CheckStake(ssUniqueID, nValueIn, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nTimeBlockFrom, nTryTime, hashProofOfStake))
             continue;
@@ -109,7 +117,7 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
     }
 
     mapHashedBlocks.clear();
-    mapHashedBlocks[chainActive.Tip()->nHeight] = GetTime(); //store a time stamp of when we last hashed on this block
+    mapHashedBlocks[hashBestBlock] = nTimeTx + nHashDrift; //store a time stamp of when we last hashed on this block
     return fSuccess;
 }
 

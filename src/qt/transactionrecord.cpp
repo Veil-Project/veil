@@ -326,7 +326,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
 
                 // Value is blinded so must come from outputrecord
                 if (precord)
-                    sub.debit = -precord->GetAmount();
+                    sub.debit = precord->GetAmount();
                 //todo fix this for rescans or instances of lost data
 //                if (sub.debit <= 1 && !fAssignedSend && wtx.has_rtx) {
 //                    sub.debit = wtx.rtx.GetValueSent();

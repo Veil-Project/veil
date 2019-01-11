@@ -3637,8 +3637,8 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
     if (listInputs.empty())
         return false;
 
-    if (GetAdjustedTime() - chainActive.Tip()->GetBlockTime() < 60)
-        MilliSleep(10000);
+//    if (GetAdjustedTime() - chainActive.Tip()->GetBlockTime() < 60)
+//        MilliSleep(10000);
 
     CAmount nCredit = 0;
     CScript scriptPubKeyKernel;
@@ -3659,6 +3659,17 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
         CBlockHeader block = pindex->GetBlockHeader();
         uint256 hashProofOfStake;
         nTxNewTime = GetAdjustedTime();
+        auto nTimeMinBlock = pindex->pprev->GetBlockTime() - MAX_PAST_BLOCK_TIME;
+        if (nTxNewTime < nTimeMinBlock)
+            nTxNewTime = nTimeMinBlock + 1;
+
+        //Don't rehash the same timestamps
+        uint256 hashBlockPrev = pindex->pprev->GetBlockHash();
+        if (mapHashedBlocks.count(hashBlockPrev)) {
+            auto nTimeMin = mapHashedBlocks.at(hashBlockPrev);
+            if (nTxNewTime < nTimeMin)
+                nTxNewTime = nTimeMin + 1;
+        }
 
         //iterates each utxo inside of CheckStakeKernelHash()
         if (Stake(stakeInput.get(), nBits, block.GetBlockTime(), nTxNewTime, hashProofOfStake)) {
@@ -3666,7 +3677,7 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
             {
                 LOCK(cs_main);
                 //Double check that this will pass time requirements
-                if (nTxNewTime <= chainActive.Tip()->GetMedianTimePast() || nTxNewTime < chainActive.Tip()->GetBlockTime() - MAX_PAST_BLOCK_TIME) {
+                if (nTxNewTime <= chainActive.Tip()->GetMedianTimePast() || nTxNewTime < nTimeMinBlock) {
                     LogPrintf("CreateCoinStake() : kernel found, but it is too far in the past \n");
                     continue;
                 }
