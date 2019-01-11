@@ -170,7 +170,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (chainparams.MineBlocksOnDemand())
         pblock->nVersion = gArgs.GetArg("-blockversion", pblock->nVersion);
 
-    if(!fProofOfStake) pblock->nTime = GetAdjustedTime();
+    if (!fProofOfStake) {
+        pblock->nTime = GetAdjustedTime();
+        if (pblock->nTime < chainActive.Tip()->GetBlockTime() - MAX_PAST_BLOCK_TIME) {
+            pblock->nTime = chainActive.Tip()->GetBlockTime() - MAX_PAST_BLOCK_TIME + 1;
+        }
+    }
     const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
 
     nLockTimeCutoff = (STANDARD_LOCKTIME_VERIFY_FLAGS & LOCKTIME_MEDIAN_TIME_PAST)
@@ -739,9 +744,13 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             auto pwallet = GetMainWallet();
 
             int nHeight;
+            int64_t nTimeLastBlock = 0;
+            uint256 hashBestBlock;
             {
                 LOCK(cs_main);
                 nHeight = chainActive.Height();
+                nTimeLastBlock = chainActive.Tip()->GetBlockTime();
+                hashBestBlock = chainActive.Tip()->GetBlockHash();
             }
 
             if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || !pwallet->IsStakingEnabled() || nHeight < Params().HeightPoSStart() || !HeadersAndBlocksSynced()) {
@@ -756,7 +765,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 fMintableCoins = pwallet->MintableCoins();
             }
 
-            while ((pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) || !fMintableCoins) {
+            while ((pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) || !fMintableCoins || GetAdjustedTime() < nTimeLastBlock - MAX_PAST_BLOCK_TIME) {
                 // Do a separate 1 minute check here to ensure fMintableCoins is updated
                 if (!fMintableCoins) {
                     if (GetTime() - nMintableLastCheck > 1 * 60) // 1 minute check time
@@ -765,15 +774,17 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                         fMintableCoins = pwallet->MintableCoins();
                     }
                 }
-                MilliSleep(5000);
-                if (!fGenerateBitcoins && !fProofOfStake)
-                    continue;
+                MilliSleep(2500);
+                continue;
             }
 
             //search our map of hashed blocks, see if bestblock has been hashed yet
-            if (mapHashedBlocks.count(chainActive.Tip()->nHeight)) {
+            if (mapHashedBlocks.count(hashBestBlock)) {
+                if (mapStakeHashCounter.count(nHeight)) {
+                    LogPrintf("%s: Tried %d stake hashed for block %d last=%d\n", __func__, mapStakeHashCounter.at(nHeight), nHeight+1, mapHashedBlocks.at(hashBestBlock));
+                }
                 // wait half of the nHashDrift with max wait of 3 minutes
-                if (GetTime() - mapHashedBlocks[chainActive.Tip()->nHeight] < max(60, 1)) {
+                if (GetTime() + MAX_FUTURE_BLOCK_TIME - mapHashedBlocks[hashBestBlock] < 15) {
                     MilliSleep(5000);
                     continue;
                 }
@@ -832,7 +843,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
             LogPrintf("%s : Failed to process new block, clearing mempool txs\n", __func__);
-            mempool.clear();
+            //mempool.clear();
             continue;
         }
 
