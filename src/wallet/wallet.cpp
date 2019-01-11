@@ -1658,6 +1658,11 @@ bool CWallet::IsMyZerocoinSpend(const CBigNum& bnSerial) const
     return zTracker->HasSerial(bnSerial);
 }
 
+bool CWallet::IsMyZerocoinSpend(const uint256& hashSerial) const
+{
+    return zTracker->HasSerialHash(hashSerial);
+}
+
 bool CWallet::UpdateMint(const CBigNum& bnValue, const int& nHeight, const uint256& txid, const libzerocoin::CoinDenomination& denom)
 {
     uint256 hashValue = GetPubCoinHash(bnValue);
@@ -6276,8 +6281,12 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 return error("%s: %s", __func__, receipt.GetStatusMessage());
             }
 
+            txRef = std::make_shared<CTransaction>(mtx);
+            wtxNew.SetTx(txRef);
+            receipt.AddTransaction(txRef, rtx);
+
             //now that all inputs have been added, add full tx hash to zerocoinspend records and write to db
-            uint256 txHash = txNew.GetHash();
+            uint256 txHash = mtx.GetHash();
             for (CZerocoinSpend& spend : receipt.GetSpends_back()) {
                 spend.SetTxHash(txHash);
                 if (!WalletBatch(*this->database).WriteZerocoinSpendSerialEntry(spend))
@@ -6289,12 +6298,8 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
             if (!txidOld.IsNull() && pAnonWalletMain->mapRecords.count(txidOld)) {
                 pAnonWalletMain->mapRecords.erase(txidOld);
                 rtx.RemovePartialTxid();
-                pAnonWalletMain->SaveRecord(txHash, rtx);
             }
-
-            txRef = std::make_shared<CTransaction>(mtx);
-            wtxNew.SetTx(txRef);
-            receipt.AddTransaction(txRef, rtx);
+            pAnonWalletMain->SaveRecord(txHash, rtx);
         }
     }
 

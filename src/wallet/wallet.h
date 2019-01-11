@@ -1167,6 +1167,7 @@ public:
     void ChainStateFlushed(const CBlockLocator& loc) override;
 
     bool IsMyZerocoinSpend(const CBigNum& bnSerial) const;
+    bool IsMyZerocoinSpend(const uint256& hashSerial) const;
     bool IsMyMint(const CBigNum& bnValue) const;
 
     DBErrors LoadWallet(bool& fFirstRunRet);

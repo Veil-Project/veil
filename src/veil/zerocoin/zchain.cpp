@@ -153,13 +153,11 @@ void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMin
         CTransactionRef tx;
         uint256 hashBlock;
         if (!GetTransaction(txHash, tx, Params().GetConsensus(), hashBlock, true)) {
-            LogPrintf("%s : cannot find tx %s\n", __func__, txHash.GetHex());
             vMissingMints.push_back(meta);
             continue;
         }
 
         if (!mapBlockIndex.count(hashBlock)) {
-            LogPrintf("%s : cannot find block %s\n", __func__, hashBlock.GetHex());
             vMissingMints.push_back(meta);
             continue;
         }
@@ -167,13 +165,11 @@ void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMin
         //see if this mint is spent
         uint256 hashTxSpend;
         bool fSpent = pzerocoinDB->ReadCoinSpend(meta.hashSerial, hashTxSpend);
-        LogPrintf("%s:%s serial %s spent = %d\n", __func__, __LINE__, meta.hashSerial.GetHex(), fSpent);
 
         //if marked as spent, check that it actually made it into the chain
         CTransactionRef txSpend;
         uint256 hashBlockSpend;
         if (fSpent && !GetTransaction(hashTxSpend, txSpend, Params().GetConsensus(), hashBlockSpend, true)) {
-            LogPrintf("%s : cannot find spend tx %s\n", __func__, hashTxSpend.GetHex());
             meta.isUsed = false;
             vMintsToUpdate.push_back(meta);
             continue;
@@ -184,7 +180,6 @@ void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMin
         uint256 hashSerial = meta.hashSerial;
         uint256 txidSpend;
         if (fSpent && !IsSerialInBlockchain(hashSerial, nHeightTx, txidSpend)) {
-            LogPrintf("%s : cannot find block %s. Erasing coinspend from zerocoinDB.\n", __func__, hashBlockSpend.GetHex());
             meta.isUsed = false;
             vMintsToUpdate.push_back(meta);
             continue;
@@ -198,7 +193,6 @@ void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMin
             CValidationState state;
             OutputToPublicCoin(out.get(), pubcoin);
             if (GetPubCoinHash(pubcoin.getValue()) == meta.hashPubcoin && pubcoin.getDenomination() != meta.denom) {
-                LogPrintf("%s: found mismatched denom pubcoinhash = %s\n", __func__, meta.hashPubcoin.GetHex());
                 meta.denom = pubcoin.getDenomination();
                 vMintsToUpdate.emplace_back(meta);
             }

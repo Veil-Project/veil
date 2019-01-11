@@ -47,7 +47,7 @@ bool AnonWalletDB::WriteStealthAddress(const CStealthAddress &sxAddr)
 
 bool AnonWalletDB::WriteStealthDestinationMeta(const CKeyID& idStealthDestination, const std::vector<uint8_t>& vchEphemPK)
 {
-    return WriteIC(std::make_pair(std::string("sdmeta"), idStealthDestination), vchEphemPK);
+    return WriteIC(std::make_pair(std::string("sdmeta"), idStealthDestination), vchEphemPK, true);
 }
 
 bool AnonWalletDB::ReadStealthDestinationMeta(const CKeyID& idStealthDestination, std::vector<uint8_t>& vchEphemPK)

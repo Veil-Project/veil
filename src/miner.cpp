@@ -244,7 +244,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                 int nHeightTx = 0;
                 if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, chainActive.Tip())) {
                     setDuplicate.emplace(ptx->GetHash());
-                    LogPrintf("%s: removing duplicate pubcoin tx %s\n", __func__, ptx->GetHash().GetHex());
+                    LogPrintf("%s: removing already in chain pubcoin : tx %s\n", __func__, ptx->GetHash().GetHex());
                     fRemove = true;
                     break;
                 }

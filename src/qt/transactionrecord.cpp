@@ -36,7 +36,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
     bool fZerocoinSpend = wtx.tx->IsZerocoinSpend();
     bool fZerocoinMint = wtx.tx->IsZerocoinMint();
 
-    if (wtx.tx->HasBlindedValues() && wtx.txout_address.size()) {
+    if (!fZerocoinSpend && wtx.tx->HasBlindedValues() && wtx.txout_address.size()) {
         const CTransactionRecord &rtx = wtx.rtx;
 
         const uint256 &hash = wtx.tx->GetHash();
@@ -172,23 +172,23 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         } else if (((nFlags & ORF_OWNED) || wtx.is_my_zerocoin_mint) && wtx.is_coinstake) {
             sub.type = TransactionRecord::ZeroCoinStake;
         } else if (nFlags & ORF_OWNED) {
-                switch (outputType) {
-                    case OUTPUT_STANDARD:
-                        if (wtx.tx->IsZerocoinSpend())
-                            sub.type = TransactionRecord::ZeroCoinRecv;
-                        else
-                            sub.type = TransactionRecord::RecvWithAddress;
-                        break;
-                    case OUTPUT_CT:
-                        sub.type = TransactionRecord::CTRecvWithAddress;
-                        break;
-                    case OUTPUT_RINGCT:
-                        sub.type = TransactionRecord::RingCTRecvWithAddress;
-                        break;
-                    default:
+            switch (outputType) {
+                case OUTPUT_STANDARD:
+                    if (wtx.tx->IsZerocoinSpend())
+                        sub.type = TransactionRecord::ZeroCoinRecv;
+                    else
                         sub.type = TransactionRecord::RecvWithAddress;
-                        break;
-                }
+                    break;
+                case OUTPUT_CT:
+                    sub.type = TransactionRecord::CTRecvWithAddress;
+                    break;
+                case OUTPUT_RINGCT:
+                    sub.type = TransactionRecord::RingCTRecvWithAddress;
+                    break;
+                default:
+                    sub.type = TransactionRecord::RecvWithAddress;
+                    break;
+            }
         } else if ((nFlags & ORF_FROM) || wtx.is_my_zerocoin_spend) {
             if (rtx.nFlags & ORF_ANON_IN)
                 sub.type = TransactionRecord::RingCTSendToAddress;
@@ -233,9 +233,12 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
     } else if (wtx.tx->IsZerocoinSpend()) {
         //zerocoin spend outputs
         bool fFeeAssigned = false;
+        bool fAssignedSend = false;
         for (unsigned int nOut = 0; nOut < wtx.tx->vpout.size(); nOut++) {
             const auto& pOut = wtx.tx->vpout[nOut];
             isminetype mine = wtx.txout_is_mine[nOut];
+            if (pOut->GetType() == OUTPUT_DATA)
+                continue;
 
             //Check for any records from anonwallet
             const COutputRecord* precord = nullptr;
@@ -313,14 +316,26 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             if (pOut->GetType() == OUTPUT_STANDARD)
                 sub.debit = -pOut->GetValue();
             else if (pOut->GetType() == OUTPUT_CT) {
+                sub.type = TransactionRecord::CTRecvWithAddress;
+                //Get full stealth address if available
+                std::string strKey = strprintf("stealth:%d", nOut);
+                if (wtx.value_map.count(strKey))
+                    strAddress = wtx.value_map.at(strKey);
+
+                sub.address = strAddress;
+
+                // Value is blinded so must come from outputrecord
                 if (precord)
                     sub.debit = -precord->GetAmount();
+                //todo fix this for rescans or instances of lost data
+//                if (sub.debit <= 1 && !fAssignedSend && wtx.has_rtx) {
+//                    sub.debit = wtx.rtx.GetValueSent();
+//                    fAssignedSend = true;
+//                }
+
             }
 
             sub.type = TransactionRecord::ZeroCoinSpend;
-            sub.address = mapValue["zerocoinspend"];
-            if (strAddress != "")
-                sub.address = strAddress;
             sub.idx = parts.size();
             parts.append(sub);
         }

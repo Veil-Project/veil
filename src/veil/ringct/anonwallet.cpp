@@ -2125,7 +2125,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
         MarkInputsAsPendingSpend(rtx);
 
         uint256 txid = txNew.GetHash();
-        if (nValueOutZerocoin)
+        if (fZerocoinInputs)
             rtx.AddPartialTxid(txid);
         //save record
         SaveRecord(txid, rtx);
@@ -4463,7 +4463,7 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
             }
         }
 
-        if (nCT > 0 || nRingCT > 0) {
+        if (fIsFromMe || fIsMine) {
             bool fExisted = mapRecords.count(tx.GetHash()) != 0;
             if (fExisted && !fUpdate) return false;
             if (fExisted || fIsMine || fIsFromMe) {
@@ -4820,6 +4820,7 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
         rtx.nBlockTime = pIndex->nTime;
     }
 
+    CAmount nValueInOwned = 0;
     bool fInsertedNew = ret.second;
     if (fInsertedNew) {
         rtx.nTimeReceived = GetAdjustedTime();
@@ -4860,9 +4861,18 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                     outpoint.n = *(keyImage.begin()+32);
 
                     rtx.vin.push_back(outpoint);
+
+                    //Look up value of own inputs
+                    COutputRecord outRecord;
+                    if (mapRecords.count(outpoint.hash)) {
+                        if (GetOutputRecord(outpoint, outRecord)) {
+                            if (outRecord.nFlags & ORF_OWN_ANY)
+                                nValueInOwned += outRecord.GetAmount();
+                        }
+                    }
                 }
             }
-        } else if (!tx.IsZerocoinSpend()){
+        } else if (!tx.IsZerocoinSpend()) {
             rtx.vin.resize(tx.vin.size());
             for (size_t k = 0; k < tx.vin.size(); ++k) {
                 rtx.vin[k] = tx.vin[k].prevout;
@@ -4886,12 +4896,28 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                     }
                 }
             }
+        } else if (tx.IsZerocoinSpend()) {
+            // Add value of zerocoin spends
+            std::set<uint256> setSerialHashes;
+            TxToSerialHashSet(&tx, setSerialHashes);
+
+            bool fIsMine = false;
+            for (const uint256& hash : setSerialHashes) {
+                if (pwalletParent->IsMyZerocoinSpend(hash)) {
+                    fIsMine = true;
+                    break;
+                }
+            }
+            if (fIsMine) {
+                nValueInOwned += tx.GetZerocoinSpent();
+            }
         }
     }
+    rtx.SetOwnedValueIn(nValueInOwned);
 
     CStoredTransaction stx;
     if (!wdb.ReadStoredTx(txhash, stx)) {
-        LogPrintf("%s:%s no stored tx\n", __func__, __LINE__);
+        //LogPrintf("%s:%s no stored tx\n", __func__, __LINE__);
         stx.vBlinds.clear();
     }
 
@@ -4910,8 +4936,11 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
         }
 
         //If there were any spending flags, remove
+        auto nFlagsPrev = pout->nFlags;
         pout->nFlags &= ~ORF_SPENT;
         pout->nFlags &= ~ORF_PENDING_SPEND;
+        if (!fUpdated)
+            fUpdated = nFlagsPrev != pout->nFlags;
 
         pout->n = i;
         pout->nType = txout->nVersion;
@@ -4928,16 +4957,28 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                     && !fHave) {
                     fUpdated = true;
                     fAdded = true;
-                    rtx.InsertOutput(*pout);
+                } else {
+                    //Just set as from me.
+                    if (rtx.nFlags & ORF_FROM) {
+                        pout->nFlags &= ORF_FROM;
+                    }
+
+                    //todo: this could also be sent from someone else, to multiple recipients, in which this wallet is one of many sent to
                 }
+                rtx.InsertOutput(*pout);
                 break;
             case OUTPUT_RINGCT:
                 if (OwnAnonOut(&wdb, txhash, (CTxOutRingCT*)txout.get(), *pout, stx, fUpdated)
                     && !fHave) {
                     fUpdated = true;
                     fAdded = true;
-                    rtx.InsertOutput(*pout);
+                } else {
+                    //Just set as from me.
+                    if (rtx.nFlags & ORF_FROM) {
+                        pout->nFlags &= ORF_FROM;
+                    }
                 }
+                rtx.InsertOutput(*pout);
                 break;
         }
         fUpdated = true;

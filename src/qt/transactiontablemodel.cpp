@@ -451,11 +451,14 @@ QString TransactionTableModel::formatTxToAddress(const TransactionRecord *wtx, b
     case TransactionRecord::RingCTRecvWithAddress:
     case TransactionRecord::RingCTSendToAddress:
     case TransactionRecord::RingCTGenerated:
+    case TransactionRecord::ZeroCoinSpend:
         return lookupAddress(wtx->address, tooltip) + watchAddress;
     case TransactionRecord::SendToOther:
         return QString::fromStdString(wtx->address) + watchAddress;
     case TransactionRecord::RingCTSendToSelf:
         return tr("(n/a) RingCTSendToSelf");
+    case TransactionRecord::ZeroCoinStake:
+        return tr("  ");
     case TransactionRecord::SendToSelf:
     default:
         return tr("(n/a)") + watchAddress;

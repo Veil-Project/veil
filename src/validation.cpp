@@ -764,19 +764,27 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 if (pfMissingInputs) {
                     *pfMissingInputs = true;
                 }
-                LogPrintf("%s:%s Missing: %s txid %s\n", __func__, __LINE__, txin.prevout.ToString(), txin.prevout.hash.GetHex());
+                LogPrint(BCLog::NET, "%s:%s Missing: %s txid %s\n", __func__, __LINE__, txin.prevout.ToString(), txin.prevout.hash.GetHex());
                 return false; // fMissingInputs and !state.IsInvalid() is used to detect this condition, don't set state.Invalid()
             }
         }
 
-        for (auto pout : tx.vpout) {
-            if (pout->IsZerocoinMint()) {
-                CTxOut txout;
-                libzerocoin::PublicCoin coin(Params().Zerocoin_Params());
-                if (!OutputToPublicCoin(pout.get(), coin))
+        //Weed out pubcoin that are either 1)already in the mempool in a different txid 2)already in the chain in a different txid
+        for (const auto& pout : tx.vpout) {
+            std::set<uint256> setPubcoins;
+            TxToPubcoinHashSet(&tx, setPubcoins);
+            for (const uint256& hashPubcoin : setPubcoins) {
+                if (pool.HasPublicCoin(hashPubcoin)) {
+                    LogPrint(BCLog::NET, "%s: pubcoin already in mempool. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
                     return false;
-                if (pool.HasPublicCoin(GetPubCoinHash(coin.getValue())))
+                }
+
+                int nHeightTx;
+                uint256 txid;
+                if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, chainActive.Tip())) {
+                    LogPrint(BCLog::NET, "%s: pubcoin already in blockchain. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
                     return false;
+                }
             }
         }
 
@@ -1108,7 +1116,7 @@ static bool AcceptToMemoryPoolWithTime(const CChainParams& chainparams, CTxMemPo
     if (!res) {
         for (const COutPoint& hashTx : coins_to_uncache)
             pcoinsTip->Uncache(hashTx);
-        error("%s: failed to accept tx to mempool: %s", __func__, state.GetRejectReason());
+        LogPrint(BCLog::NET, "%s: failed to accept tx %s to mempool: %s\n", __func__, tx->GetHash().GetHex(), state.GetRejectReason());
     }
     // After we've (potentially) uncached entries, ensure our coins cache is still within its size limits
     CValidationState stateDummy;
