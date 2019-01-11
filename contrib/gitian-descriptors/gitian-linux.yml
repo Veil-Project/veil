@@ -1,5 +1,5 @@
 ---
-name: "veil-0.0.0.99"
+name: "veil-1.0.0.8"
 enable_cache: true
 suites:
 - "bionic"
