@@ -2295,6 +2295,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     CAmount nBlockValueIn = 0;
     CAmount nBlockValueOut = 0;
     int64_t nTimeZerocoinSpendCheck = 0;
+    std::vector<libzerocoin::SerialNumberSoKProof> vProofs;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2346,8 +2347,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         } else {
             if (tx.IsZerocoinSpend()) {
                 int64_t nTimeSpendCheck = GetTimeMicros();
-                // Skip signature verification if it's already been done or if the block height is below a checkpoint height
-                bool fSkipSigVerify = block.fSignaturesVerified ? true : fSkipComputation;
                 int nHeightTx = 0;
                 uint256 txid = tx.GetHash();
                 if (IsTransactionInChain(txid, nHeightTx, Params().GetConsensus(), pindex)) {
@@ -2376,9 +2375,12 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
                     setSerialsInBlock.emplace(spend->getCoinSerialNumber());
                     mapSpends.emplace(*spend, tx.GetHash());
-                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, fSkipSigVerify))
+                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, /*fSkipVerify*/true))
                         return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
                                                     tx.GetHash().GetHex()), REJECT_INVALID);
+                    libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
+                                                            spend->getSerialComm(), spend->getHashSig());
+                    vProofs.emplace_back(proof);
                 }
                 nTimeZerocoinSpendCheck += GetTimeMicros() - nTimeSpendCheck;
             }
@@ -2516,6 +2518,15 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         if (!tx.HasBlindedValues()) {
             nBlockValueIn += nTxValueIn;
             nBlockValueOut += nTxValueOut;
+        }
+    }
+
+    // Skip signature verification if it's already been done or if the block height is below a checkpoint height
+    bool fSkipSigVerify = block.fSignaturesVerified ? true : fSkipComputation;
+    if (!fSkipSigVerify && !vProofs.empty()) {
+        if (!libzerocoin::SerialNumberSoKProof::BatchVerify(vProofs)) {
+            return state.DoS(100, error("%s: Failed to verify zerocoinspend proofs for block=%s height=%d", __func__,
+                                        block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID);
         }
     }
 
