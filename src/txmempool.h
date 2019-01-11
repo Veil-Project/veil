@@ -566,6 +566,7 @@ public:
     void removeForReorg(const CCoinsViewCache *pcoins, unsigned int nMemPoolHeight, int flags);
     void removeConflicts(const CTransaction &tx) EXCLUSIVE_LOCKS_REQUIRED(cs);
     void removePubcoins(const std::set<uint256>& setPubcoinHashes) EXCLUSIVE_LOCKS_REQUIRED(cs);
+    void removeSerials(const std::set<uint256>& setSerialHashes) EXCLUSIVE_LOCKS_REQUIRED(cs);
     void removeForBlock(const std::vector<CTransactionRef>& vtx, unsigned int nBlockHeight);
 
     void clear();
@@ -574,6 +575,7 @@ public:
     void queryHashes(std::vector<uint256>& vtxid);
     bool isSpent(const COutPoint& outpoint) const;
     void GetTransactions(std::set<uint256>& stTxids);
+    void GetSerials(std::map<uint256, uint256>& mapSerials) const; //serialhash => txid
     unsigned int GetTransactionsUpdated() const;
     void AddTransactionsUpdated(unsigned int n);
     /**
@@ -589,6 +591,7 @@ public:
 
     bool HaveKeyImage(const CCmpPubKey &ki, uint256 &hash) const;
     bool HasZerocoinSerial(const uint256& hashSerial) const;
+    bool HasPublicCoin(const uint256& hashPubcoin) const;
 
 public:
     /** Remove a set of transactions from the mempool.

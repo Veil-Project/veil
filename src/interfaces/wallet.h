@@ -410,6 +410,7 @@ struct WalletTx
     bool is_my_zerocoin_spend;
     bool is_anon_send;
     bool is_anon_recv;
+    bool has_rtx;
     std::map<unsigned int, CAmount> map_anon_value_out;
     std::map<unsigned int, CAmount> map_anon_value_in;
     std::pair<int, CAmount> ct_fee;

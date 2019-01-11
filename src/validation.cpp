@@ -738,8 +738,11 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-known");
                 if (setSerials.count(bnSerial))
                     return state.Invalid(false, REJECT_INVALID, "zcspend-tx-dupl-serials");
-                if (mempool.HasZerocoinSerial(GetSerialHash(bnSerial)))
+                uint256 hashSerial = GetSerialHash(bnSerial);
+                if (mempool.HasZerocoinSerial(hashSerial)) {
+                    LogPrint(BCLog::NET, "%s: serial:%s already in mempool tx:%s\n", __func__, hashSerial.GetHex(), hash.GetHex());
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-in-mempool");
+                }
 
                 setSerials.emplace(bnSerial);
                 continue;
@@ -761,8 +764,27 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 if (pfMissingInputs) {
                     *pfMissingInputs = true;
                 }
-                LogPrintf("%s:%s Missing: %s txid %s\n", __func__, __LINE__, txin.prevout.ToString(), txin.prevout.hash.GetHex());
+                LogPrint(BCLog::NET, "%s:%s Missing: %s txid %s\n", __func__, __LINE__, txin.prevout.ToString(), txin.prevout.hash.GetHex());
                 return false; // fMissingInputs and !state.IsInvalid() is used to detect this condition, don't set state.Invalid()
+            }
+        }
+
+        //Weed out pubcoin that are either 1)already in the mempool in a different txid 2)already in the chain in a different txid
+        for (const auto& pout : tx.vpout) {
+            std::set<uint256> setPubcoins;
+            TxToPubcoinHashSet(&tx, setPubcoins);
+            for (const uint256& hashPubcoin : setPubcoins) {
+                if (pool.HasPublicCoin(hashPubcoin)) {
+                    LogPrint(BCLog::NET, "%s: pubcoin already in mempool. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
+                    return false;
+                }
+
+                int nHeightTx;
+                uint256 txid;
+                if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, chainActive.Tip())) {
+                    LogPrint(BCLog::NET, "%s: pubcoin already in blockchain. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
+                    return false;
+                }
             }
         }
 
@@ -1094,7 +1116,7 @@ static bool AcceptToMemoryPoolWithTime(const CChainParams& chainparams, CTxMemPo
     if (!res) {
         for (const COutPoint& hashTx : coins_to_uncache)
             pcoinsTip->Uncache(hashTx);
-        error("%s: failed to accept tx to mempool: %s", __func__, state.GetRejectReason());
+        LogPrint(BCLog::NET, "%s: failed to accept tx %s to mempool: %s\n", __func__, tx->GetHash().GetHex(), state.GetRejectReason());
     }
     // After we've (potentially) uncached entries, ensure our coins cache is still within its size limits
     CValidationState stateDummy;
@@ -1192,7 +1214,7 @@ bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& 
 bool IsTransactionInChain(const uint256& txId, int& nHeightTx, const Consensus::Params& params, CBlockIndex* pindex)
 {
     CTransactionRef tx;
-    return IsTransactionInChain(txId, nHeightTx, tx, params);
+    return IsTransactionInChain(txId, nHeightTx, tx, params, pindex);
 }
 
 
@@ -1904,8 +1926,11 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
 
                 if (in.scriptSig.IsZerocoinSpend()) {
                     auto spend = TxInToZerocoinSpend(in);
-                    if (spend)
-                        pzerocoinDB->EraseCoinSpend(spend->getCoinSerialNumber());
+                    if (!spend) {
+                        error("DisconnectBlock(): failed to undo zerocoinspend");
+                    }
+
+                    pzerocoinDB->EraseCoinSpend(spend->getCoinSerialNumber());
                     continue;
                 }
 

@@ -33,45 +33,28 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
 {
     QList<TransactionRecord> parts;
 
-    if (wtx.tx->HasBlindedValues()) {
+    bool fZerocoinSpend = wtx.tx->IsZerocoinSpend();
+    bool fZerocoinMint = wtx.tx->IsZerocoinMint();
+
+    if (!fZerocoinSpend && wtx.tx->HasBlindedValues() && wtx.txout_address.size()) {
         const CTransactionRecord &rtx = wtx.rtx;
 
         const uint256 &hash = wtx.tx->GetHash();
         int64_t nTime = wtx.time;
         TransactionRecord sub(hash, nTime);
 
-        CTxDestination address = CNoDestination();
         uint8_t nFlags = 0;
         OutputTypes outputType = OutputTypes::OUTPUT_NULL;
         OutputTypes inputType = rtx.GetInputType();
-        for (const auto &r : rtx.vout)
-        {
+        CTxDestination address = CNoDestination();
+        for (unsigned int i = 0; i < rtx.vout.size(); ++i) {
+            const auto &r = rtx.vout[i];
             if (r.IsChange())
                 continue;
 
-            nFlags |= r.nFlags;
+            address = wtx.txout_address.at(i);
 
-            if (r.vPath.size() > 0)
-            {
-                if (r.vPath[0] == ORA_STEALTH)
-                {
-                    if (r.vPath.size() < 5)
-                    {
-                        LogPrintf("%s: Warning, malformed vPath.\n", __func__);
-                    } else
-                    {
-//                        uint32_t sidx;
-//                        memcpy(&sidx, &r.vPath[1], 4);
-//                        CStealthAddress sx;
-//                        if (wtx.veilWallet->GetStealthByIndex(sidx, sx))
-//                            address = sx;
-                    };
-                };
-            } else
-            {
-                if (address.type() == typeid(CNoDestination))
-                    ExtractDestination(r.scriptPubKey, address);
-            };
+            nFlags |= r.nFlags;
 
             if (r.nType == OUTPUT_STANDARD) {
                 outputType = OutputTypes::OUTPUT_STANDARD;
@@ -87,46 +70,78 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 sub.debit -= r.GetRawValue();
         };
 
-        if (address.type() != typeid(CNoDestination))
-            sub.address = CBitcoinAddress(address).ToString();
-
         if (sub.debit != 0)
             sub.debit -= wtx.ct_fee.second;
 
-        if ((nFlags & ORF_OWNED && nFlags & ORF_FROM) || rtx.IsSendToSelf()) {
+        if (address.type() != typeid(CNoDestination))
+            sub.address = CBitcoinAddress(address).ToString();
+
+        bool fUseStandard = false;
+
+        if ((((nFlags & ORF_OWNED) || wtx.is_my_zerocoin_mint) && ((nFlags & ORF_FROM) || wtx.is_my_zerocoin_spend)) ||
+            rtx.IsSendToSelf()) {
+
             sub.debit = -wtx.ct_fee.second;
             sub.credit = 0;
             if (inputType != outputType) {
                 /** Type Conversion **/
                 switch (inputType) {
                     case OUTPUT_STANDARD:
-                        // converting basecoins
-                        if (outputType == OUTPUT_CT)
-                            sub.type = TransactionRecord::ConvertBasecoinToCT;
-                        else if (outputType == OUTPUT_RINGCT)
-                            sub.type = TransactionRecord::ConvertBasecoinToRingCT;
+                        if (wtx.is_my_zerocoin_spend) {
+                            sub.type = TransactionRecord::ConvertZerocoinToCt;
+                        } else {
+                            // converting basecoins
+                            if (outputType == OUTPUT_CT)
+                                sub.type = TransactionRecord::ConvertBasecoinToCT;
+                            else if (outputType == OUTPUT_RINGCT)
+                                sub.type = TransactionRecord::ConvertBasecoinToRingCT;
+                        }
                         break;
                     case OUTPUT_CT:
-                        if (outputType == OUTPUT_RINGCT)
-                            sub.type = TransactionRecord::ConvertCtToRingCT;
-                        else if (outputType == OUTPUT_STANDARD)
-                            sub.type = TransactionRecord::ConvertCtToBasecoin;
+                        if (wtx.is_my_zerocoin_mint) {
+                            sub.type = TransactionRecord::ZeroCoinMintFromCt;
+                        } else {
+                            if (outputType == OUTPUT_RINGCT)
+                                sub.type = TransactionRecord::ConvertCtToRingCT;
+                            else if (outputType == OUTPUT_STANDARD)
+                                sub.type = TransactionRecord::ConvertCtToBasecoin;
+                        }
                         break;
                     case OUTPUT_RINGCT:
-                        if (outputType == OUTPUT_CT)
-                            sub.type = TransactionRecord::ConvertRingCtToCt;
-                        else if (outputType == OUTPUT_STANDARD)
-                            sub.type = TransactionRecord::ConvertRingCtToBasecoin;
+                        if (wtx.is_my_zerocoin_mint) {
+                            sub.type = TransactionRecord::ZeroCoinMintFromRingCt;
+                        } else {
+                            if (outputType == OUTPUT_CT)
+                                sub.type = TransactionRecord::ConvertRingCtToCt;
+                            else if (outputType == OUTPUT_STANDARD)
+                                sub.type = TransactionRecord::ConvertRingCtToBasecoin;
+                        }
                         break;
                     default:
-                        sub.type = TransactionRecord::SendToSelf;
+                        if (wtx.is_my_zerocoin_spend) {
+                            sub.type = TransactionRecord::ConvertZerocoinToCt;
+                        } else {
+                            // converting basecoins
+                            if (outputType == OUTPUT_CT)
+                                sub.type = TransactionRecord::ConvertBasecoinToCT;
+                            else if (outputType == OUTPUT_RINGCT)
+                                sub.type = TransactionRecord::ConvertBasecoinToRingCT;
+                        }
                         break;
                 }
             } else {
                 /** Send to Self **/
                 switch (outputType) {
                     case OUTPUT_STANDARD:
-                        sub.type = TransactionRecord::SendToSelf;
+                        if (wtx.is_my_zerocoin_spend && wtx.is_my_zerocoin_mint) {
+                            sub.type = TransactionRecord::ZeroCoinSpendRemint;
+                        } else if (wtx.is_my_zerocoin_spend) {
+                            sub.type = TransactionRecord::ZeroCoinSpendSelf;
+                        } else if (wtx.is_my_zerocoin_mint) {
+                            sub.type = TransactionRecord::ZeroCoinMint;
+                        } else {
+                            sub.type = TransactionRecord::SendToSelf;
+                        }
                         break;
                     case OUTPUT_CT:
                         sub.type = TransactionRecord::CTSendToSelf;
@@ -154,10 +169,15 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     sub.type = TransactionRecord::Generated;
                     break;
             }
+        } else if (((nFlags & ORF_OWNED) || wtx.is_my_zerocoin_mint) && wtx.is_coinstake) {
+            sub.type = TransactionRecord::ZeroCoinStake;
         } else if (nFlags & ORF_OWNED) {
             switch (outputType) {
                 case OUTPUT_STANDARD:
-                    sub.type = TransactionRecord::RecvWithAddress;
+                    if (wtx.tx->IsZerocoinSpend())
+                        sub.type = TransactionRecord::ZeroCoinRecv;
+                    else
+                        sub.type = TransactionRecord::RecvWithAddress;
                     break;
                 case OUTPUT_CT:
                     sub.type = TransactionRecord::CTRecvWithAddress;
@@ -169,18 +189,23 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     sub.type = TransactionRecord::RecvWithAddress;
                     break;
             }
-        } else if (nFlags & ORF_FROM) {
+        } else if ((nFlags & ORF_FROM) || wtx.is_my_zerocoin_spend) {
             if (rtx.nFlags & ORF_ANON_IN)
                 sub.type = TransactionRecord::RingCTSendToAddress;
             else if (rtx.nFlags & ORF_BLIND_IN)
                 sub.type = TransactionRecord::CTSendToAddress;
+            else if (wtx.is_my_zerocoin_spend)
+                sub.type = TransactionRecord::ZeroCoinSpend;
             else
                 sub.type = TransactionRecord::SendToAddress;
-        }
+        } else
+            fUseStandard = true;
 
-        sub.involvesWatchAddress = nFlags & ORF_OWN_WATCH;
-        parts.append(sub);
-        return parts;
+        if (!fUseStandard) {
+            sub.involvesWatchAddress = nFlags & ORF_OWN_WATCH;
+            parts.append(sub);
+            return parts;
+        }
     }
 
     int64_t nTime = wtx.time;
@@ -208,25 +233,21 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
     } else if (wtx.tx->IsZerocoinSpend()) {
         //zerocoin spend outputs
         bool fFeeAssigned = false;
+        bool fAssignedSend = false;
         for (unsigned int nOut = 0; nOut < wtx.tx->vpout.size(); nOut++) {
             const auto& pOut = wtx.tx->vpout[nOut];
             isminetype mine = wtx.txout_is_mine[nOut];
-
-            CTxOut txout;
-            if (!pOut->GetTxOut(txout)) {
-                //Anon output lets just assume ringct change
-                if (pOut->nVersion == OUTPUT_RINGCT) {
-                    TransactionRecord sub(hash, nTime);
-                    sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
-                    sub.type = TransactionRecord::RingCTSendToSelf;
-                    sub.idx = parts.size();
-                    parts.append(sub);
-                }
+            if (pOut->GetType() == OUTPUT_DATA)
                 continue;
+
+            //Check for any records from anonwallet
+            const COutputRecord* precord = nullptr;
+            if (wtx.has_rtx) {
+                precord = wtx.rtx.GetOutput(nOut);
             }
 
             // change that was reminted as zerocoins
-            if (txout.IsZerocoinMint()) {
+            if (pOut->IsZerocoinMint()) {
                 // do not display record if this isn't from our wallet
                 if (!wtx.is_my_zerocoin_spend)
                     continue;
@@ -244,24 +265,42 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 continue;
             }
 
+            CScript scriptPubKey;
             string strAddress = "";
             CTxDestination address;
-            if (ExtractDestination(txout.scriptPubKey, address))
-                strAddress = CBitcoinAddress(address).ToString();
+            if (pOut->GetScriptPubKey(scriptPubKey)) {
+                if (ExtractDestination(scriptPubKey, address))
+                    strAddress = CBitcoinAddress(address).ToString();
+            }
 
             // a zerocoinspend that was sent to an address held by this wallet
-            if (mine) {
+            if (mine || (precord && precord->IsReceive())) {
                 TransactionRecord sub(hash, nTime);
                 sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
                 if (wtx.is_my_zerocoin_spend) {
                     sub.type = TransactionRecord::ZeroCoinSpendSelf;
-                } else {
+                } else if (pOut->GetType() == OUTPUT_STANDARD) {
                     sub.type = TransactionRecord::ZeroCoinRecv;
-                    sub.credit = txout.nValue;
-                }
-                sub.address = mapValue["recvzerocoinspend"];
-                if (strAddress != "")
+                    sub.credit = pOut->GetValue();
+                } else if (pOut->GetType() == OUTPUT_CT) {
+                    sub.type = TransactionRecord::CTRecvWithAddress;
+                    //Get full stealth address if available
+                    std::string strKey = strprintf("stealth:%d", nOut);
+                    if (wtx.value_map.count(strKey))
+                        strAddress = wtx.value_map.at(strKey);
+
                     sub.address = strAddress;
+
+                    // Value is blinded so must come from outputrecord
+                    if (precord)
+                        sub.credit = precord->GetAmount();
+                }
+
+                if (strAddress.empty())
+                    sub.address = mapValue["recvzerocoinspend"];
+                else
+                    sub.address = strAddress;
+
                 sub.idx = parts.size();
                 parts.append(sub);
                 continue;
@@ -274,11 +313,29 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             // zerocoin spend that was sent to someone else
             TransactionRecord sub(hash, nTime);
             sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
-            sub.debit = -txout.nValue;
-            sub.type = TransactionRecord::ZeroCoinSpend;
-            sub.address = mapValue["zerocoinspend"];
-            if (strAddress != "")
+            if (pOut->GetType() == OUTPUT_STANDARD)
+                sub.debit = -pOut->GetValue();
+            else if (pOut->GetType() == OUTPUT_CT) {
+                sub.type = TransactionRecord::CTRecvWithAddress;
+                //Get full stealth address if available
+                std::string strKey = strprintf("stealth:%d", nOut);
+                if (wtx.value_map.count(strKey))
+                    strAddress = wtx.value_map.at(strKey);
+
                 sub.address = strAddress;
+
+                // Value is blinded so must come from outputrecord
+                if (precord)
+                    sub.debit = -precord->GetAmount();
+                //todo fix this for rescans or instances of lost data
+//                if (sub.debit <= 1 && !fAssignedSend && wtx.has_rtx) {
+//                    sub.debit = wtx.rtx.GetValueSent();
+//                    fAssignedSend = true;
+//                }
+
+            }
+
+            sub.type = TransactionRecord::ZeroCoinSpend;
             sub.idx = parts.size();
             parts.append(sub);
         }

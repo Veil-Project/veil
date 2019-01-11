@@ -350,6 +350,9 @@ public:
     bool ReadStealthAddress(CStealthAddress &sxAddr);
     bool EraseStealthAddress(const CStealthAddress &sxAddr);
 
+    bool WriteStealthDestinationMeta(const CKeyID& idStealthDestination, const std::vector<uint8_t>& vchEphemPK);
+    bool ReadStealthDestinationMeta(const CKeyID& idStealthDestination, std::vector<uint8_t>& vchEphemPK);
+
     bool ReadNamedExtKeyId(const std::string &name, CKeyID &identifier, uint32_t nFlags=DB_READ_UNCOMMITTED);
     bool WriteNamedExtKeyId(const std::string &name, const CKeyID &identifier);
 

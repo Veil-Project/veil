@@ -1837,6 +1837,7 @@ static const CRPCCommand commands[] =
 
                 { "wallet",             "sendstealthtobasecoin", &sendstealthtobasecoin,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
                 { "wallet",             "sendstealthtostealth", &sendstealthtostealth,              {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
+                { "wallet",             "sendstealthtoringct", &sendstealthtoringct,              {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
 
                 { "wallet",             "sendringcttobasecoin", &sendringcttobasecoin,                {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },
                 { "wallet",             "sendringcttostealth", &sendringcttostealth,               {"address","amount","comment","comment_to","subtractfeefromamount","narration","ringsize","inputs_per_sig"} },

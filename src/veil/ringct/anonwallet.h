@@ -269,10 +269,13 @@ public:
      */
     int LoadStealthAddresses();
     bool AddStealthDestination(const CKeyID& idStealthAddress, const CKeyID& idStealthDestination);
+    bool AddStealthDestinationMeta(const CKeyID& idStealth, const CKeyID& idStealthDestination, std::vector<uint8_t> &vchEphemPK);
     bool AddKeyToParent(const CKey& keySharedSecret);
+    bool CalculateStealthDestinationKey(const CKeyID& idStealthSpend, const CKeyID& idStealthDestination, const CKey& sShared, CKey& keyDestination) const;
     bool RecordOwnedStealthDestination(const CKey& sShared, const CKeyID& idStealth, const CKeyID& destStealth);
     bool GetStealthLinked(const CKeyID &stealthDest, CStealthAddress &sx) const;
     bool GetStealthAddress(const CKeyID& idStealth, CStealthAddress& stealthAddress);
+    bool HaveStealthDestination(const CKeyID& destStealth) { return mapStealthDestinations.count(destStealth) > 0; }
     bool ProcessLockedStealthOutputs();
     bool ProcessLockedBlindedOutputs();
     bool ProcessStealthOutput(const CTxDestination &address,

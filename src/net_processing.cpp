@@ -2409,9 +2409,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
 
         LOCK(cs_main);
-        if (IsInitialBlockDownload() && !pfrom->fWhitelisted) {
+        if (!HeadersAndBlocksSynced() && !pfrom->fWhitelisted) {
             LogPrint(BCLog::NET, "Ignoring getheaders from peer=%d because node is in initial block download\n", pfrom->GetId());
-            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexBestHeader), uint256()));;
+            if (pindexBestHeader->GetBlockTime() < GetTime() - 180)
+                connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexBestHeader), uint256()));;
             return true;
         }
 

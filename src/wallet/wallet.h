@@ -821,6 +821,7 @@ public:
             const CCoinControl* coinControl = NULL);
     bool SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
             std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, CTxDestination* addressTo = NULL);
+    bool AvailableZerocoins(std::set<CMintMeta>& setMints);
 //    std::string ResetMintZerocoin();
 //    std::string ResetSpentZerocoin();
     void ReconsiderZerocoins(std::list<CZerocoinMint>& listMintsRestored, std::list<CDeterministicMint>& listDMintsRestored);
@@ -1136,7 +1137,7 @@ public:
 
     std::set<CTxDestination> GetLabelAddresses(const std::string& label) const;
 
-    isminetype IsMine(const CTxIn& txin) const;
+    isminetype IsMine(const CTxIn& txin, bool fCheckZerocoin = false, bool fCheckAnon = false) const;
     isminetype IsMine(const CTxDestination& dest) const;
 
     /**
@@ -1166,6 +1167,7 @@ public:
     void ChainStateFlushed(const CBlockLocator& loc) override;
 
     bool IsMyZerocoinSpend(const CBigNum& bnSerial) const;
+    bool IsMyZerocoinSpend(const uint256& hashSerial) const;
     bool IsMyMint(const CBigNum& bnValue) const;
 
     DBErrors LoadWallet(bool& fFirstRunRet);

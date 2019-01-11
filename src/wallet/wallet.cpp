@@ -526,19 +526,21 @@ bool CWallet::Unlock(const SecureString& strWalletPassphrase, bool fUnlockForSta
 
     bool fSuccess = false;
     {
-        LOCK(cs_wallet);
-        this->fUnlockForStakingOnly = fUnlockForStakingOnly;
-        for (const MasterKeyMap::value_type& pMasterKey : mapMasterKeys)
         {
-            if(!crypter.SetKeyFromPassphrase(strWalletPassphrase, pMasterKey.second.vchSalt, pMasterKey.second.nDeriveIterations, pMasterKey.second.nDerivationMethod))
+            LOCK(cs_wallet);
+            this->fUnlockForStakingOnly = fUnlockForStakingOnly;
+            for (const MasterKeyMap::value_type& pMasterKey : mapMasterKeys) {
+                if (!crypter.SetKeyFromPassphrase(strWalletPassphrase, pMasterKey.second.vchSalt, pMasterKey.second.nDeriveIterations, pMasterKey.second.nDerivationMethod))
+                    return false;
+                if (!crypter.Decrypt(pMasterKey.second.vchCryptedKey, _vMasterKey))
+                    continue; // try another master key
+                if (CCryptoKeyStore::Unlock(_vMasterKey)) {
+                    fSuccess = true;
+                    break;
+                }
+            }
+            if (!fSuccess)
                 return false;
-            if (!crypter.Decrypt(pMasterKey.second.vchCryptedKey, _vMasterKey))
-                continue; // try another master key
-            if (!CCryptoKeyStore::Unlock(_vMasterKey))
-                continue;
-
-            fSuccess = true;
-            break;
         }
 
         WalletBatch walletdb(*database);
@@ -1387,10 +1389,23 @@ isminetype CWallet::IsMine(const CTxDestination& dest) const
     return ::IsMine(*this, dest);
 }
 
-isminetype CWallet::IsMine(const CTxIn &txin) const
+isminetype CWallet::IsMine(const CTxIn &txin, bool fCheckZerocoin, bool fCheckAnon) const
 {
     {
         LOCK(cs_wallet);
+        if (fCheckZerocoin && txin.scriptSig.IsZerocoinSpend()) {
+            auto spend = TxInToZerocoinSpend(txin);
+            if (!spend)
+                return ISMINE_NO;
+            if (IsMyZerocoinSpend(spend->getCoinSerialNumber()))
+                return ISMINE_SPENDABLE;
+        }
+
+        if (fCheckAnon) {
+            auto mine_anon = pAnonWalletMain->IsMine(txin);
+            if (mine_anon) return mine_anon;
+        }
+
         std::map<uint256, CWalletTx>::const_iterator mi = mapWallet.find(txin.prevout.hash);
         if (mi != mapWallet.end())
         {
@@ -1398,6 +1413,7 @@ isminetype CWallet::IsMine(const CTxIn &txin) const
             if (txin.prevout.n < prev.tx->vpout.size())
                 return IsMine(prev.tx->vpout[txin.prevout.n].get());
         }
+
     }
     return ISMINE_NO;
 }
@@ -1640,6 +1656,11 @@ bool CWallet::IsMyMint(const CBigNum& bnValue) const
 bool CWallet::IsMyZerocoinSpend(const CBigNum& bnSerial) const
 {
     return zTracker->HasSerial(bnSerial);
+}
+
+bool CWallet::IsMyZerocoinSpend(const uint256& hashSerial) const
+{
+    return zTracker->HasSerialHash(hashSerial);
 }
 
 bool CWallet::UpdateMint(const CBigNum& bnValue, const int& nHeight, const uint256& txid, const libzerocoin::CoinDenomination& denom)
@@ -2037,6 +2058,21 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
                     break;
                 }
                 for (size_t posInBlock = 0; posInBlock < block.vtx.size(); ++posInBlock) {
+                    if (block.vtx[posInBlock]->IsZerocoinSpend()) {
+                        uint256 txid = block.vtx[posInBlock]->GetHash();
+                        std::map<libzerocoin::CoinSpend, uint256> spendInfo;
+                        for (auto& in : block.vtx[posInBlock]->vin) {
+                            if (!in.scriptSig.IsZerocoinSpend())
+                                continue;
+
+                            auto spend = TxInToZerocoinSpend(in);
+                            if (spend)
+                                spendInfo.emplace(*spend, txid);
+                            else
+                                error("%s: Failed to getspend *********************************\n");
+                        }
+                        pzerocoinDB->WriteCoinSpendBatch(spendInfo);
+                    }
                     SyncTransaction(block.vtx[posInBlock], pindex, posInBlock, fUpdate);
                 }
             } else {
@@ -3630,7 +3666,7 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
             {
                 LOCK(cs_main);
                 //Double check that this will pass time requirements
-                if (nTxNewTime <= chainActive.Tip()->GetMedianTimePast()) {
+                if (nTxNewTime <= chainActive.Tip()->GetMedianTimePast() || nTxNewTime < chainActive.Tip()->GetBlockTime() - MAX_PAST_BLOCK_TIME) {
                     LogPrintf("CreateCoinStake() : kernel found, but it is too far in the past \n");
                     continue;
                 }
@@ -5526,6 +5562,18 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     return "";
 }
 
+bool CWallet::AvailableZerocoins(std::set<CMintMeta>& setMints)
+{
+    auto setMintsTemp = zTracker->ListMints(true, true, true); // need to find mints to spend
+    for (const CMintMeta& mint : setMintsTemp) {
+        if (mint.nMemFlags & MINT_PENDINGSPEND)
+            continue;
+        setMints.emplace(mint);
+    }
+
+    return true;
+}
+
 bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
         std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, CTxDestination* addressTo)
 {
@@ -5537,7 +5585,8 @@ bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendRe
         return false;
     }
 
-    auto setMints = zTracker->ListMints(true, true, true); // need to find mints to spend
+    std::set<CMintMeta> setMints;
+    AvailableZerocoins(setMints);
     if (setMints.empty()) {
         receipt.SetStatus("Failed to find Zerocoins in wallet.dat", nStatus);
         return false;
@@ -5682,19 +5731,7 @@ bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendRe
 
 bool IsMintInChain(const uint256& hashPubcoin, uint256& txid, int& nHeight)
 {
-    if (!IsPubcoinInBlockchain(hashPubcoin, txid))
-        return false;
-
-    uint256 hashBlock;
-    CTransactionRef tx;
-    if (!GetTransaction(txid, tx, Params().GetConsensus(), hashBlock))
-        return false;
-
-    if (!mapBlockIndex.count(hashBlock) || !chainActive.Contains(mapBlockIndex.at(hashBlock)))
-        return false;
-
-    nHeight = mapBlockIndex.at(hashBlock)->nHeight;
-    return true;
+    return IsPubcoinInBlockchain(hashPubcoin, nHeight, txid, chainActive.Tip());
 }
 
 void CWallet::ReconsiderZerocoins(std::list<CZerocoinMint>& listMintsRestored, std::list<CDeterministicMint>& listDMintsRestored)
@@ -6244,8 +6281,12 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 return error("%s: %s", __func__, receipt.GetStatusMessage());
             }
 
+            txRef = std::make_shared<CTransaction>(mtx);
+            wtxNew.SetTx(txRef);
+            receipt.AddTransaction(txRef, rtx);
+
             //now that all inputs have been added, add full tx hash to zerocoinspend records and write to db
-            uint256 txHash = txNew.GetHash();
+            uint256 txHash = mtx.GetHash();
             for (CZerocoinSpend& spend : receipt.GetSpends_back()) {
                 spend.SetTxHash(txHash);
                 if (!WalletBatch(*this->database).WriteZerocoinSpendSerialEntry(spend))
@@ -6257,12 +6298,8 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
             if (!txidOld.IsNull() && pAnonWalletMain->mapRecords.count(txidOld)) {
                 pAnonWalletMain->mapRecords.erase(txidOld);
                 rtx.RemovePartialTxid();
-                pAnonWalletMain->SaveRecord(txHash, rtx);
             }
-
-            txRef = std::make_shared<CTransaction>(mtx);
-            wtxNew.SetTx(txRef);
-            receipt.AddTransaction(txRef, rtx);
+            pAnonWalletMain->SaveRecord(txHash, rtx);
         }
     }
 

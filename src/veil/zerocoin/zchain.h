@@ -26,13 +26,13 @@ class uint256;
 
 bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomination denom, std::vector<CBigNum>& vValues);
 bool BlockToPubcoinList(const CBlock& block, std::list<libzerocoin::PublicCoin>& listPubcoins);
-bool TxToPubcoinHashSet(const CTransactionRef& tx, std::set<uint256>& setHashes);
-bool TxToSerialHashSet(const CTransactionRef& tx, std::set<uint256>& setHashes);
+bool TxToPubcoinHashSet(const CTransaction* tx, std::set<uint256>& setHashes);
+bool TxToSerialHashSet(const CTransaction* tx, std::set<uint256>& setHashes);
 bool BlockToZerocoinMintList(const CBlock& block, std::list<CZerocoinMint>& vMints);
 void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMintsToUpdate, std::vector<CMintMeta>& vMissingMints);
 int GetZerocoinStartHeight();
 bool GetZerocoinMint(const CBigNum& bnPubcoin, uint256& txHash);
-bool IsPubcoinInBlockchain(const uint256& hashPubcoin, uint256& txid);
+bool IsPubcoinInBlockchain(const uint256& hashPubcoin, int& nHeightTx, uint256& txid, CBlockIndex* pindexChain);
 bool IsSerialKnown(const CBigNum& bnSerial);
 bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx, CBlockIndex* pindex = nullptr);
 bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& txidSpend);

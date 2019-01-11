@@ -7,6 +7,7 @@
 #define VEIL_TRANSACTIONRECORD_H
 
 #include <veil/ringct/outputrecord.h>
+#include <utilstrencodings.h>
 
 extern const uint256 ABANDON_HASH;
 
@@ -21,6 +22,7 @@ enum RTxAddonValueTypes
     RTXVT_TO                    = 5,
 
     RTXVT_TEMP_TXID             = 6,
+    RTXVT_OWNED_VALUE_IN        = 7,
 
     /*
     RTXVT_STEALTH_KEYID     = 2,
@@ -79,7 +81,8 @@ public:
         uint256 txid;
         txid.SetNull();
         if (mapValue.count(RTXVT_TEMP_TXID)) {
-            std::vector<uint8_t> vec = mapValue.at(RTXVT_TEMP_TXID);
+            mapValue.at(RTXVT_TEMP_TXID);
+            auto vec = mapValue.at(RTXVT_TEMP_TXID);
             memcpy(txid.begin(), vec.data(), 32);
         }
         return txid;
@@ -90,6 +93,33 @@ public:
         blockHash = blockHash_;
         nIndex = posInBlock;
     };
+
+    void SetOwnedValueIn(const CAmount& nValueIn)
+    {
+        std::vector<uint8_t> vec(8);
+        memcpy(vec.data(), BEGIN(nValueIn), 8);
+        mapValue[RTXVT_OWNED_VALUE_IN] = vec;
+    }
+
+    CAmount GetOwnedValueIn() const
+    {
+        if (!mapValue.count(RTXVT_OWNED_VALUE_IN))
+            return 0;
+        CAmount nValueIn;
+        auto vec = mapValue.at(RTXVT_OWNED_VALUE_IN);
+        memcpy(BEGIN(nValueIn), vec.data(), 8);
+        return nValueIn;
+    }
+
+    CAmount GetValueSent() const
+    {
+        CAmount nValueSent = GetOwnedValueIn();
+        for (const COutputRecord& record : vout) {
+            if (record.IsReceive())
+                nValueSent -= record.GetAmount();
+        }
+        return nValueSent;
+    }
 
     bool IsAbandoned() const { return (blockHash == ABANDON_HASH); }
     bool HashUnset() const { return (blockHash.IsNull() || blockHash == ABANDON_HASH); }
