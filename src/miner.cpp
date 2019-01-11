@@ -115,9 +115,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     std::shared_ptr<CWallet> pwalletMain = nullptr;
     if (fProofOfStake) {
         pwalletMain = GetMainWallet();
-        if (!pwalletMain)
+        if (!pwalletMain) {
             error("Failing to get the Main Wallet for CreateNewBlock with Proof of Stake\n");
             return nullptr;
+        }
     }
 
     pblocktemplate.reset(new CBlockTemplate());
