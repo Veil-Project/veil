@@ -62,7 +62,7 @@
       <property name="lineWidth">
        <number>0</number>
       </property>
-      <layout class="QGridLayout" name="gridLayout_2" columnstretch="2,0,0">
+      <layout class="QGridLayout" name="gridLayout_2" columnstretch="2,0,0,0">
        <property name="leftMargin">
         <number>0</number>
        </property>
@@ -78,29 +78,6 @@
        <property name="spacing">
         <number>0</number>
        </property>
-       <item row="0" column="1" rowspan="2">
-        <widget class="QLabel" name="label_5">
-         <property name="minimumSize">
-          <size>
-           <width>1</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>1</width>
-           <height>16777215</height>
-          </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">background-color:#bfbfbf;
-margin-top:24px</string>
-         </property>
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
        <item row="1" column="0">
         <layout class="QHBoxLayout" name="payToLayout">
          <property name="spacing">
@@ -122,7 +99,7 @@ margin-top:24px</string>
 	padding:8;
    margin-left:12px;
 	font-size:16px;
-	margin-right:16px;
+	margin-right:3px;
 	background:transparent;
    background-color:transparent;
 	border-top:none;
@@ -134,6 +111,30 @@ margin-top:24px</string>
 #payTo:focus {
     border-bottom:1px solid #105aef;
 }</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="btnAddressBook">
+           <property name="focusPolicy">
+            <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background:transparent;
+border:none;</string>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="icon">
+            <iconset resource="../veil.qrc">
+             <normaloff>:/icons/ic-send-address</normaloff>:/icons/ic-send-address</iconset>
+           </property>
+           <property name="iconSize">
+            <size>
+             <width>24</width>
+             <height>24</height>
+            </size>
            </property>
           </widget>
          </item>
@@ -176,7 +177,7 @@ color:#105AEF;</string>
          </property>
         </widget>
        </item>
-       <item row="1" column="2">
+       <item row="1" column="3">
         <widget class="QLineEdit" name="payAmount">
          <property name="focusPolicy">
           <enum>Qt::StrongFocus</enum>
@@ -201,7 +202,30 @@ color:#105AEF;</string>
          </property>
         </widget>
        </item>
-       <item row="0" column="2">
+       <item row="0" column="2" rowspan="2">
+        <widget class="QLabel" name="label_5">
+         <property name="minimumSize">
+          <size>
+           <width>1</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>1</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color:#bfbfbf;
+margin-top:24px</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="3">
         <widget class="QFrame" name="frame_2">
          <property name="frameShape">
           <enum>QFrame::StyledPanel</enum>

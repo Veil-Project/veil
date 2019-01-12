@@ -63,6 +63,7 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
     connect(ui->btnRemove, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_is, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_s, SIGNAL(clicked()), this, SLOT(deleteClicked()));
+    connect(ui->btnAddressBook, SIGNAL(clicked()), this, SLOT(on_addressBookButton_clicked()));
     //connect(ui->useAvailableBalanceButton, SIGNAL(clicked()), this, SLOT(useAvailableBalanceClicked()));
 }
 
@@ -71,18 +72,17 @@ SendCoinsEntry::~SendCoinsEntry()
     delete ui;
 }
 
-//void SendCoinsEntry::on_addressBookButton_clicked()
-//{
-//    if(!model)
-//        return;
-//    AddressBookPage dlg(platformStyle, AddressBookPage::ForSelection, AddressBookPage::SendingTab, this);
-//    dlg.setModel(model->getAddressTableModel());
-//    if(dlg.exec())
-//    {
-//        ui->payTo->setText(dlg.getReturnValue());
-//        ui->payAmount->setFocus();
-//    }
-//}
+void SendCoinsEntry::on_addressBookButton_clicked()
+{
+    if(!model)
+        return;
+    AddressBookPage dlg(platformStyle, AddressBookPage::ForSelection, AddressBookPage::SendingTab, this);
+    dlg.setModel(model->getAddressTableModel());
+    if(dlg.exec()) {
+        ui->payTo->setText(dlg.getReturnValue());
+        ui->payAmount->setFocus();
+    }
+}
 
 void SendCoinsEntry::on_payTo_textChanged(const QString &address)
 {
