@@ -278,6 +278,8 @@ CCoinControl& coinControl, OutputTypes inputType)
             transaction.setTransactionFee(nFeeRequired);
             if (fSubtractFeeFromAmount && newTx)
                 transaction.reassignAmounts(nChangePosRet);
+        }else{
+            strFailReason = receipt.GetStatusMessage();
         }
 
         if(!newTx)
