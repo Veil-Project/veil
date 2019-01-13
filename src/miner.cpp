@@ -70,7 +70,7 @@ BlockAssembler::BlockAssembler(const CChainParams& params, const Options& option
 {
     blockMinFeeRate = options.blockMinFeeRate;
     // Limit weight to between 4K and MAX_BLOCK_WEIGHT-4K for sanity:
-    nBlockMaxWeight = std::max<size_t>(4000, std::min<size_t>(MAX_BLOCK_WEIGHT - 4000, options.nBlockMaxWeight));
+    nBlockMaxWeight = std::max<size_t>(4000, std::min<size_t>(MAX_BLOCK_WEIGHT/4, options.nBlockMaxWeight));
 }
 
 static BlockAssembler::Options DefaultOptions()
