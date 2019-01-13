@@ -4061,7 +4061,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
 
     int nMaxReorgDepth = gArgs.GetArg("-maxreorg", DEFAULT_MAX_REORG_DEPTH);
     if (chainActive.Height() - nHeight >= nMaxReorgDepth)
-        return state.DoS(1, error("%s: forked chain older than max reorganization depth (height %d)", __func__, nHeight), REJECT_DEPTH, "bad-fork-prior-to-max-reorg-depth");
+        return state.DoS(25, error("%s: forked chain older than max reorganization depth (height %d)", __func__, nHeight), REJECT_DEPTH, "bad-fork-prior-to-max-reorg-depth");
 
     // Check timestamp against prev
     if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast() || (pindexPrev->nHeight > 5000 && block.GetBlockTime() < pindexPrev->GetBlockTime() - MAX_PAST_BLOCK_TIME))
