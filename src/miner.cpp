@@ -279,6 +279,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     //Remove duplicates
     std::vector<CTransactionRef> vtxReplace;
+    CCoinsViewCache viewCheck(pcoinsTip.get());
     for (unsigned int i = 0; i < pblock->vtx.size(); i++) {
         if (pblock->vtx[i] == nullptr) {
             vtxReplace.emplace_back(pblock->vtx[i]);
@@ -287,6 +288,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
         if (setDuplicate.count(pblock->vtx[i]->GetHash())) {
             mempool.removeRecursive(*pblock->vtx[i]);
+            continue;
+        }
+
+        //Don't have inputs, skip this
+        if (!pblock->vtx[i]->IsZerocoinSpend() && !pblock->vtx[i]->vin[0].IsAnonInput() && !viewCheck.HaveInputs(*pblock->vtx[i])) {
             continue;
         }
 
