@@ -70,7 +70,7 @@ BlockAssembler::BlockAssembler(const CChainParams& params, const Options& option
 {
     blockMinFeeRate = options.blockMinFeeRate;
     // Limit weight to between 4K and MAX_BLOCK_WEIGHT-4K for sanity:
-    nBlockMaxWeight = std::max<size_t>(4000, std::min<size_t>(MAX_BLOCK_WEIGHT - 4000, options.nBlockMaxWeight));
+    nBlockMaxWeight = std::max<size_t>(4000, std::min<size_t>(MAX_BLOCK_WEIGHT/4, options.nBlockMaxWeight));
 }
 
 static BlockAssembler::Options DefaultOptions()
@@ -170,7 +170,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (chainparams.MineBlocksOnDemand())
         pblock->nVersion = gArgs.GetArg("-blockversion", pblock->nVersion);
 
-    if(!fProofOfStake) pblock->nTime = GetAdjustedTime();
+    if (!fProofOfStake) {
+        pblock->nTime = GetAdjustedTime();
+        if (pblock->nTime < chainActive.Tip()->GetBlockTime() - MAX_PAST_BLOCK_TIME) {
+            pblock->nTime = chainActive.Tip()->GetBlockTime() - MAX_PAST_BLOCK_TIME + 1;
+        }
+    }
     const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
 
     nLockTimeCutoff = (STANDARD_LOCKTIME_VERIFY_FLAGS & LOCKTIME_MEDIAN_TIME_PAST)
@@ -224,14 +229,14 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         for (const uint256& hashSerial : setTxSerialHashes) {
             if (setSerials.count(hashSerial)) {
                 setDuplicate.emplace(ptx->GetHash());
-                LogPrintf("%s: removing duplicate serial tx %s\n", __func__, ptx->GetHash().GetHex());
+                LogPrint(BCLog::BLOCKCREATION, "%s: removing duplicate serial tx %s\n", __func__, ptx->GetHash().GetHex());
                 fRemove = true;
                 break;
             } else {
                 uint256 txid;
                 if (IsSerialInBlockchain(hashSerial, nHeight, txid)) {
                     setDuplicate.emplace(ptx->GetHash());
-                    LogPrintf("%s: removing serial that is already in chain, tx=%s\n", __func__, ptx->GetHash().GetHex());
+                    LogPrint(BCLog::BLOCKCREATION, "%s: removing serial that is already in chain, tx=%s\n", __func__, ptx->GetHash().GetHex());
                     fRemove = true;
                     break;
                 }
@@ -245,7 +250,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         for (const uint256& hashPubcoin : setTxPubcoinHashes) {
             if (setPubcoins.count(hashPubcoin)) {
                 setDuplicate.emplace(ptx->GetHash());
-                LogPrintf("%s: removing duplicate pubcoin tx %s\n", __func__, ptx->GetHash().GetHex());
+                LogPrint(BCLog::BLOCKCREATION, "%s: removing duplicate pubcoin tx %s\n", __func__, ptx->GetHash().GetHex());
                 fRemove = true;
                 break;
             } else {
@@ -253,7 +258,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                 int nHeightTx = 0;
                 if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, chainActive.Tip())) {
                     setDuplicate.emplace(ptx->GetHash());
-                    LogPrintf("%s: removing already in chain pubcoin : tx %s\n", __func__, ptx->GetHash().GetHex());
+                    LogPrint(BCLog::BLOCKCREATION, "%s: removing already in chain pubcoin : tx %s\n", __func__, ptx->GetHash().GetHex());
                     fRemove = true;
                     break;
                 }
@@ -274,6 +279,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     //Remove duplicates
     std::vector<CTransactionRef> vtxReplace;
+    CCoinsViewCache viewCheck(pcoinsTip.get());
     for (unsigned int i = 0; i < pblock->vtx.size(); i++) {
         if (pblock->vtx[i] == nullptr) {
             vtxReplace.emplace_back(pblock->vtx[i]);
@@ -282,6 +288,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
         if (setDuplicate.count(pblock->vtx[i]->GetHash())) {
             mempool.removeRecursive(*pblock->vtx[i]);
+            continue;
+        }
+
+        //Don't have inputs, skip this
+        if (!pblock->vtx[i]->IsZerocoinSpend() && !pblock->vtx[i]->vin[0].IsAnonInput() && !viewCheck.HaveInputs(*pblock->vtx[i])) {
             continue;
         }
 
@@ -366,7 +377,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     pblocktemplate->vTxFees[0] = -nFees;
 
-    LogPrintf("CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops %d Proof-Of-Stake:%d \n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost, pblock->IsProofOfStake());
+    LogPrint(BCLog::BLOCKCREATION, "CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops %d Proof-Of-Stake:%d \n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost, pblock->IsProofOfStake());
 
     // Fill in header
     pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
@@ -385,7 +396,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     auto mapCheckpoints = mapAccumulators.GetCheckpoints(true);
     if (nHeight % 10 == 0) {
         if (!CalculateAccumulatorCheckpoint(nHeight, mapCheckpoints, mapAccumulators))
-            LogPrintf("%s: failed to get accumulator checkpoints\n", __func__);
+            LogPrint(BCLog::BLOCKCREATION, "%s: failed to get accumulator checkpoints\n", __func__);
         pblock->mapAccumulatorHashes = mapAccumulators.GetCheckpoints(true);
     } else {
         pblock->mapAccumulatorHashes = pindexPrev->mapAccumulatorHashes;
@@ -393,7 +404,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     //Proof of full node
     if(fProofOfFullNode && !fProofOfStake)
-        LogPrintf("%s: A block can not be proof of full node and proof of work.\n", __func__);
+        LogPrint(BCLog::BLOCKCREATION, "%s: A block can not be proof of full node and proof of work.\n", __func__);
     else if(fProofOfFullNode && fProofOfStake) {
         LOCK(cs_main);
         pblock->hashPoFN = veil::GetFullNodeHash(*pblock, pindexPrev);
@@ -410,7 +421,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         }
         auto spend = TxInToZerocoinSpend(pblock->vtx[1]->vin[0]);
         if (!spend) {
-            LogPrintf("%s: failed to get spend for txin", __func__);
+            LogPrint(BCLog::BLOCKCREATION, "%s: failed to get spend for txin", __func__);
             return nullptr;
         }
 
@@ -418,22 +429,23 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
         CKey key;
         if (!pwalletMain->GetZerocoinKey(bnSerial, key)) {
-            LogPrintf("%s: Failed to get zerocoin key from wallet!\n", __func__);
+            LogPrint(BCLog::BLOCKCREATION, "%s: Failed to get zerocoin key from wallet!\n", __func__);
             return nullptr;
         }
 
         if (!key.Sign(pblock->GetHash(), pblock->vchBlockSig)) {
-            LogPrintf("%s: Failed to sign block hash\n", __func__);
+            LogPrint(BCLog::BLOCKCREATION, "%s: Failed to sign block hash\n", __func__);
             return nullptr;
         }
-        LogPrintf("%s: FOUND STAKE!!\n block: \n%s\n", __func__, pblock->ToString());
+        LogPrint(BCLog::BLOCKCREATION, "%s: FOUND STAKE!!\n block: \n%s\n", __func__, pblock->ToString());
     }
 
     CValidationState state;
     if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
         error("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state));
         error("%s: Clearing mempool because of error", __func__);
-        mempool.clear();
+        //todo: instead of clearing mempool, only clear any transactions (if any) that caused the issue
+        // mempool.clear();
         return nullptr;
     }
 
@@ -739,9 +751,13 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             auto pwallet = GetMainWallet();
 
             int nHeight;
+            int64_t nTimeLastBlock = 0;
+            uint256 hashBestBlock;
             {
                 LOCK(cs_main);
                 nHeight = chainActive.Height();
+                nTimeLastBlock = chainActive.Tip()->GetBlockTime();
+                hashBestBlock = chainActive.Tip()->GetBlockHash();
             }
 
             if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || !pwallet->IsStakingEnabled() || nHeight < Params().HeightPoSStart() || !HeadersAndBlocksSynced()) {
@@ -756,7 +772,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 fMintableCoins = pwallet->MintableCoins();
             }
 
-            while ((pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) || !fMintableCoins) {
+            while ((pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) || !fMintableCoins || GetAdjustedTime() < nTimeLastBlock - MAX_PAST_BLOCK_TIME) {
                 // Do a separate 1 minute check here to ensure fMintableCoins is updated
                 if (!fMintableCoins) {
                     if (GetTime() - nMintableLastCheck > 1 * 60) // 1 minute check time
@@ -765,15 +781,17 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                         fMintableCoins = pwallet->MintableCoins();
                     }
                 }
-                MilliSleep(5000);
-                if (!fGenerateBitcoins && !fProofOfStake)
-                    continue;
+                MilliSleep(2500);
+                continue;
             }
 
             //search our map of hashed blocks, see if bestblock has been hashed yet
-            if (mapHashedBlocks.count(chainActive.Tip()->nHeight)) {
+            if (mapHashedBlocks.count(hashBestBlock)) {
+                if (mapStakeHashCounter.count(nHeight)) {
+                    LogPrint(BCLog::BLOCKCREATION, "%s: Tried %d stake hashed for block %d last=%d\n", __func__, mapStakeHashCounter.at(nHeight), nHeight+1, mapHashedBlocks.at(hashBestBlock));
+                }
                 // wait half of the nHashDrift with max wait of 3 minutes
-                if (GetTime() - mapHashedBlocks[chainActive.Tip()->nHeight] < max(60, 1)) {
+                if (GetTime() + MAX_FUTURE_BLOCK_TIME - mapHashedBlocks[hashBestBlock] < 15) {
                     MilliSleep(5000);
                     continue;
                 }
@@ -823,7 +841,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             LOCK(cs_nonce);
             nHashes += nTries;
             int32_t nTimeDuration = GetTime() - nTimeStart;
-            LogPrintf("%s: PoW Hashspeed %d kh/s\n", __func__, arith_uint256(nHashes/1000/nTimeDuration).getdouble());
+            LogPrint(BCLog::BLOCKCREATION, "%s: PoW Hashspeed %d kh/s\n", __func__, arith_uint256(nHashes/1000/nTimeDuration).getdouble());
             if (nTries == nInnerLoopCount) {
                 continue;
             }
@@ -831,8 +849,8 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
 
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
-            LogPrintf("%s : Failed to process new block, clearing mempool txs\n", __func__);
-            mempool.clear();
+            LogPrint(BCLog::BLOCKCREATION, "%s : Failed to process new block, clearing mempool txs\n", __func__);
+            //mempool.clear();
             continue;
         }
 

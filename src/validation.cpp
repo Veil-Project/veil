@@ -251,7 +251,8 @@ bool fRequireStandard = true;
 bool fCheckBlockIndex = false;
 bool fCheckpointsEnabled = DEFAULT_CHECKPOINTS_ENABLED;
 size_t nCoinCacheUsage = 5000 * 300;
-std::map<unsigned int, unsigned int> mapHashedBlocks;
+std::map<uint256, unsigned int> mapHashedBlocks;
+std::map<unsigned int, unsigned int> mapStakeHashCounter;
 uint64_t nPruneTarget = 0;
 int64_t nMaxTipAge = DEFAULT_MAX_TIP_AGE;
 bool fEnableReplacement = DEFAULT_ENABLE_REPLACEMENT;
@@ -711,6 +712,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     if (fHasBasecoinInputs && fHasZerocoinInputs)
         return state.Invalid(error("%s: tx mixes zerocoin and basecoin inputs", __func__, REJECT_INVALID, "txn-mixed-zerocoin-inputs"));
 
+    std::vector<libzerocoin::SerialNumberSoKProof> vProofs;
     {
         CCoinsView dummy;
         CCoinsViewCache view(&dummy);
@@ -744,6 +746,12 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-in-mempool");
                 }
 
+                if (!ContextualCheckZerocoinSpend(tx, *spend, pindexBestHeader->GetBlockHash(), pindexBestHeader, /*fSkipVerify*/true))
+                    return state.Invalid(false, REJECT_INVALID, "failed-zcspend-context-checks");
+
+                libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
+                                                        spend->getSerialComm(), spend->getHashSig());
+                vProofs.emplace_back(proof);
                 setSerials.emplace(bnSerial);
                 continue;
             }
@@ -785,6 +793,15 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                     LogPrint(BCLog::NET, "%s: pubcoin already in blockchain. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
                     return false;
                 }
+            }
+
+            //Do context checks of mint
+            if (pout->IsZerocoinMint() && !setPubcoins.empty()) {
+                libzerocoin::PublicCoin pubcoin(Params().Zerocoin_Params());
+                if (!OutputToPublicCoin(pout.get(), pubcoin))
+                    return state.Invalid(false, REJECT_INVALID, "zcmint-malformed");
+                if (!OutputToPublicCoin(pout.get(), pubcoin) || !ContextualCheckZerocoinMint(tx, pubcoin, chainActive.Tip()))
+                    return state.Invalid(false, REJECT_INVALID, "zcmint-fail-context-check");
             }
         }
 
@@ -1061,6 +1078,14 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         if (!CheckInputsFromMempoolAndCache(tx, state, view, pool, currentBlockScriptVerifyFlags, true, txdata)) {
             return error("%s: BUG! PLEASE REPORT THIS! CheckInputs failed against latest-block but not STANDARD flags %s, %s",
                     __func__, hash.ToString(), FormatStateMessage(state));
+        }
+
+        // Last we batch verify zerocoin spend proofs
+        if (!vProofs.empty()) {
+            if (!libzerocoin::SerialNumberSoKProof::BatchVerify(vProofs)) {
+                return state.DoS(100, error("%s: Failed to verify zerocoinspend proofs for tx %s", __func__,
+                                            tx.GetHash().GetHex()), REJECT_INVALID);
+            }
         }
 
         if (test_accept) {
@@ -4039,7 +4064,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
 
     int nMaxReorgDepth = gArgs.GetArg("-maxreorg", DEFAULT_MAX_REORG_DEPTH);
     if (chainActive.Height() - nHeight >= nMaxReorgDepth)
-        return state.DoS(1, error("%s: forked chain older than max reorganization depth (height %d)", __func__, nHeight), REJECT_DEPTH, "bad-fork-prior-to-max-reorg-depth");
+        return state.DoS(25, error("%s: forked chain older than max reorganization depth (height %d)", __func__, nHeight), REJECT_DEPTH, "bad-fork-prior-to-max-reorg-depth");
 
     // Check timestamp against prev
     if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast() || (pindexPrev->nHeight > 5000 && block.GetBlockTime() < pindexPrev->GetBlockTime() - MAX_PAST_BLOCK_TIME))

@@ -234,6 +234,14 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         //zerocoin spend outputs
         bool fFeeAssigned = false;
         bool fAssignedSend = false;
+
+        bool fAllToMe = true;
+        for (unsigned int i = 0; i < wtx.txout_is_mine.size(); i++) {
+            if (!wtx.txout_is_mine[i] && !(i == 0 && wtx.tx->HasBlindedValues())) { //don't count data output
+                fAllToMe = false;
+                break;
+            }
+        }
         for (unsigned int nOut = 0; nOut < wtx.tx->vpout.size(); nOut++) {
             const auto& pOut = wtx.tx->vpout[nOut];
             isminetype mine = wtx.txout_is_mine[nOut];
@@ -279,6 +287,12 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
                 if (wtx.is_my_zerocoin_spend) {
                     sub.type = TransactionRecord::ZeroCoinSpendSelf;
+                    if (fAllToMe) {
+                        //Only display one tx record for spend to self
+                        sub.idx = parts.size();
+                        parts.append(sub);
+                        break;
+                    }
                 } else if (pOut->GetType() == OUTPUT_STANDARD) {
                     sub.type = TransactionRecord::ZeroCoinRecv;
                     sub.credit = pOut->GetValue();

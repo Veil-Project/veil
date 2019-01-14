@@ -70,7 +70,8 @@ bool COutputRecord::IsSpent(bool fIncludePendingSpend) const
 
 CAmount COutputRecord::GetAmount() const
 {
-    return nValue * ((nFlags & ORF_OWN_ANY) ? 1 : -1);
+    //return nValue * ((nFlags & ORF_OWN_ANY) ? 1 : -1);
+    return std::abs(nValue);
 }
 
 bool COutputRecord::GetDestination(CTxDestination& dest) const

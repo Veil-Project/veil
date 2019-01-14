@@ -54,6 +54,7 @@ namespace BCLog {
         QT          = (1 << 19),
         LEVELDB     = (1 << 20),
         ZEROCOINDB  = (1 << 21),
+        BLOCKCREATION = (1 << 22),
         ALL         = ~(uint32_t)0,
     };
 
