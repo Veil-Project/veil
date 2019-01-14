@@ -31,6 +31,8 @@
 #include <QSettings>
 #include <QTreeWidget>
 
+#include <veil/ringct/anonwallet.h>
+
 QList<CAmount> CoinControlDialog::payAmounts;
 bool CoinControlDialog::fSubtractFeeFromAmount = false;
 
@@ -391,8 +393,6 @@ void CoinControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
             item->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
     }
 }
-#include <iostream>
-#include <veil/ringct/anonwallet.h>
 
 // shows count of locked unspent outputs
 void CoinControlDialog::updateLabelLocked()
