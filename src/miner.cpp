@@ -438,7 +438,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
         error("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state));
         error("%s: Clearing mempool because of error", __func__);
-        mempool.clear();
+        //todo: instead of clearing mempool, only clear any transactions (if any) that caused the issue
+        // mempool.clear();
         return nullptr;
     }
 
