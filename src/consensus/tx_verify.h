@@ -20,8 +20,8 @@ class CValidationState;
 /** Transaction validation functions */
 
 /** Context-independent validity checks */
-bool CheckTransaction(const CTransaction& tx, CValidationState& state, bool fCheckDuplicateInputs=true);
-bool CheckZerocoinMint(const CTxOut& txout, CBigNum& bnValue, CValidationState& state);
+bool CheckTransaction(const CTransaction& tx, CValidationState& state, bool fSkipZerocoinMintIsPrime=false);
+bool CheckZerocoinMint(const CTxOut& txout, CBigNum& bnValue, CValidationState& state, bool fSkipZerocoinMintIsPrime);
 bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state);
 
 namespace Consensus {
