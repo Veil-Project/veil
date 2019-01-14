@@ -245,7 +245,6 @@ CCoinControl& coinControl, OutputTypes inputType)
                 spendType = WalletModelSpendType::CTSPEND;
                 LogPrintf("%s: rctbalance=%s nanonin=%d\n", __func__, nBalance, nNetworkAnon);
                 nBalance = m_wallet->getAvailableCTBalance(coinControl);
-                std::cout << "CT Balance: " << nBalance << std::endl;
                 inputType = OUTPUT_CT;
             }
         }
@@ -263,7 +262,7 @@ CCoinControl& coinControl, OutputTypes inputType)
         if(inputType == OUTPUT_STANDARD){
             return AmountExceedsBalance;
         }else{
-//            return AmountExceedsBalance_NoBasecoinBalanceAccepted;
+            return AmountExceedsBalance_NoBasecoinBalanceAccepted;
         }
 
     }
