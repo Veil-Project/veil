@@ -952,9 +952,9 @@ CAmount AnonWallet::GetBlindBalance()
         const auto &txhash = ri.first;
         const auto &rtx = ri.second;
 
-        if (!IsTrusted(txhash, rtx.blockHash))
-            continue;
-
+//        if (!IsTrusted(txhash, rtx.blockHash))
+//            continue;
+        std::cout << "Trusted coins" << std::endl;
         for (const auto &r : rtx.vout)
         {
             if (r.nType == OUTPUT_CT

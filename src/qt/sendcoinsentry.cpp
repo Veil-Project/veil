@@ -163,11 +163,11 @@ bool SendCoinsEntry::validate(interfaces::Node& node, std::string& error)
         return retval;
 
     // Only stealth addresses accepted.
-    if(!model->isStealthAddress(ui->payTo->text())){
-        validAmount(ui->payTo, false);
-        error = "Only stealth addresses accepted";
-        retval = false;
-    }
+//    if(!model->isStealthAddress(ui->payTo->text())){
+//        validAmount(ui->payTo, false);
+//        error = "Only stealth addresses accepted";
+//        retval = false;
+//    }
 
     if (!validateEdit(ui->payAmount)) {
         error = "Amount out of range";
