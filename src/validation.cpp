@@ -2202,8 +2202,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     }
 
     bool fSkipComputation = false;
-    CBlockIndex* pcheckpoint = Checkpoints::GetLastCheckpoint(chainparams.Checkpoints());
-    if (pcheckpoint && pindex->nHeight < pcheckpoint->nHeight)
+    int nHeightLastCheckpoint = Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints());
+    if (pindex->nHeight < nHeightLastCheckpoint)
         fSkipComputation = true;
 
     int64_t nTime1 = GetTimeMicros(); nTimeCheck += nTime1 - nTimeStart;
@@ -2566,12 +2566,15 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     // Skip signature verification if it's already been done or if the block height is below a checkpoint height
     bool fSkipSigVerify = block.fSignaturesVerified ? true : fSkipComputation;
+    int64_t nTimeSigVerify = GetTimeMicros();
     if (!fSkipSigVerify && !vProofs.empty()) {
         if (!libzerocoin::SerialNumberSoKProof::BatchVerify(vProofs)) {
             return state.DoS(100, error("%s: Failed to verify zerocoinspend proofs for block=%s height=%d", __func__,
                                         block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID);
         }
     }
+    nTimeSigVerify = GetTimeMicros() - nTimeSigVerify;
+    nTimeZerocoinSpendCheck += nTimeSigVerify;
 
     //Track zerocoin money supply in the block index
     if (!AddZerocoinsToIndex(pindex, block, mapSpends, mapMints, fJustCheck))
@@ -4035,12 +4038,13 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
         return error("%s : zerocoin spend with serial %s from tx %s is not in valid range\n", __func__,
                      spend.getCoinSerialNumber().GetHex(), tx.GetHash().GetHex());
 
+    CBigNum bnAccumulatorValue;
+    if (!pzerocoinDB->ReadAccumulatorValue(spend.getAccumulatorChecksum(), bnAccumulatorValue))
+        return error("%s: Cannot find accumulator checkpoint in zerocoinDB\n", __func__);
+
     //Check the signature of the spend
     // Skip signature verification during initial block download
     if (!fSkipSignatureVerify) {
-        CBigNum bnAccumulatorValue;
-        if (!pzerocoinDB->ReadAccumulatorValue(spend.getAccumulatorChecksum(), bnAccumulatorValue))
-            return error("%s: Cannot find accumulator checkpoint in zerocoinDB\n", __func__);
         libzerocoin::Accumulator accumulator(Params().Zerocoin_Params(), spend.getDenomination(), bnAccumulatorValue);
 
         //Check that the coin has been accumulated
