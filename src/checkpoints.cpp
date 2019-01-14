@@ -29,4 +29,16 @@ namespace Checkpoints {
         return nullptr;
     }
 
+    int GetLastCheckpointHeight(const CCheckpointData& data)
+    {
+        int nHeightLast = 0;
+        const MapCheckpoints& checkpoints = data.mapCheckpoints;
+
+        for (const MapCheckpoints::value_type& i : reverse_iterate(checkpoints)) {
+            if (i.first > nHeightLast)
+                nHeightLast = i.first;
+        }
+        return nHeightLast;
+    }
+
 } // namespace Checkpoints

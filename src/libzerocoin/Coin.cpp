@@ -54,7 +54,7 @@ bool PublicCoin::operator<(const PublicCoin& rhs) const
     return this->getValue() < rhs.getValue();
 }
 
-bool PublicCoin::validate() const
+bool PublicCoin::validate(bool fSkipIsPrime) const
 {
     if (this->params->accumulatorParams.minCoinValue >= value) {
         std::cout << "PublicCoin::validate value is too low\n";
@@ -66,7 +66,7 @@ bool PublicCoin::validate() const
         return false;
     }
 
-    if (!value.isPrime(params->zkp_iterations)) {
+    if (!fSkipIsPrime && !value.isPrime(params->zkp_iterations)) {
         std::cout << "PublicCoin::validate value is not prime\n";
         return false;
     }

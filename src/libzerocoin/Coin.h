@@ -63,7 +63,7 @@ public:
     /** Checks that coin is prime and in the appropriate range given the parameters
      * @return true if valid
      */
-    bool validate() const;
+    bool validate(bool fSkipIsPrime = false) const;
 
     ADD_SERIALIZE_METHODS;
     template <typename Stream, typename Operation>

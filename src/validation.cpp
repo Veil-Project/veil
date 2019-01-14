@@ -2137,6 +2137,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     assert(*pindex->phashBlock == block.GetHash());
     int64_t nTimeStart = GetTimeMicros();
 
+    bool fSkipComputation = false;
+    int nHeightLastCheckpoint = Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints());
+    if (pindex->nHeight < nHeightLastCheckpoint)
+        fSkipComputation = true;
+
     // Check it again in case a previous version let a bad block in
     // NOTE: We don't currently (re-)invoke ContextualCheckBlock() or
     // ContextualCheckBlockHeader() here. This means that if we add a new
@@ -2150,7 +2155,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // is enforced in ContextualCheckBlockHeader(); we wouldn't want to
     // re-enforce that rule here (at least until we make it impossible for
     // GetAdjustedTime() to go backward).
-    if (!CheckBlock(block, state, chainparams.GetConsensus(), !fJustCheck, !fJustCheck)) {
+    if (!CheckBlock(block, state, chainparams.GetConsensus(), fSkipComputation, !fJustCheck, !fJustCheck)) {
         if (state.CorruptionPossible()) {
             // We don't write down blocks to disk if they may have been
             // corrupted, so this should be impossible unless we're having hardware
@@ -2159,6 +2164,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
         return error("%s: Consensus::CheckBlock: %s", __func__, FormatStateMessage(state));
     }
+    int64_t nTimeCheckBlock = GetTimeMicros() - nTimeStart;
 
     // verify that the view's current state corresponds to the previous block
     uint256 hashPrevBlock = pindex->pprev == nullptr ? uint256() : pindex->pprev->GetBlockHash();
@@ -2201,13 +2207,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
     }
 
-    bool fSkipComputation = false;
-    CBlockIndex* pcheckpoint = Checkpoints::GetLastCheckpoint(chainparams.Checkpoints());
-    if (pcheckpoint && pindex->nHeight < pcheckpoint->nHeight)
-        fSkipComputation = true;
-
     int64_t nTime1 = GetTimeMicros(); nTimeCheck += nTime1 - nTimeStart;
     LogPrint(BCLog::BENCH, "    - Sanity checks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime1 - nTimeStart), nTimeCheck * MICRO, nTimeCheck * MILLI / nBlocksTotal);
+    LogPrint(BCLog::BENCH, "    -   CheckBlock(): %.2fms\n", MILLI * nTimeCheckBlock);
 
     // Do not allow blocks that contain transactions which 'overwrite' older transactions,
     // unless those are already completely spent.
@@ -2566,12 +2568,15 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     // Skip signature verification if it's already been done or if the block height is below a checkpoint height
     bool fSkipSigVerify = block.fSignaturesVerified ? true : fSkipComputation;
+    int64_t nTimeSigVerify = GetTimeMicros();
     if (!fSkipSigVerify && !vProofs.empty()) {
         if (!libzerocoin::SerialNumberSoKProof::BatchVerify(vProofs)) {
             return state.DoS(100, error("%s: Failed to verify zerocoinspend proofs for block=%s height=%d", __func__,
                                         block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID);
         }
     }
+    nTimeSigVerify = GetTimeMicros() - nTimeSigVerify;
+    nTimeZerocoinSpendCheck += nTimeSigVerify;
 
     //Track zerocoin money supply in the block index
     if (!AddZerocoinsToIndex(pindex, block, mapSpends, mapMints, fJustCheck))
@@ -2661,10 +2666,13 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     }
 
     // Ensure that accumulator checkpoints are valid and in the same state as this instance of the chain
+    int64_t nTimeAccumulate = GetTimeMicros();
     AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
     if (!ValidateAccumulatorCheckpoint(block, pindex, mapAccumulators))
         return state.DoS(100, error("%s: Failed to validate accumulator checkpoint for block=%s height=%d", __func__,
                                     block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID, "bad-acc-checkpoint");
+    nTimeAccumulate = GetTimeMicros() - nTimeAccumulate;
+    LogPrint(BCLog::BENCH, "    - Accumulate zerocoinmints in: %.2fms\n", MILLI * nTimeAccumulate);
 
     if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
@@ -3826,7 +3834,7 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     return true;
 }
 
-bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW, bool fCheckMerkleRoot)
+bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fSkipComputation, bool fCheckPOW, bool fCheckMerkleRoot)
 {
     // These are checks that are independent of context.
     if (block.fChecked)
@@ -3874,13 +3882,14 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     }
 
     // Check transactions
+    int64_t nTimeCheckTx = GetTimeMicros();
     for (const auto& tx : block.vtx) {
-        if (!CheckTransaction(*tx, state, false))
+        if (!CheckTransaction(*tx, state, fSkipComputation))
             return state.Invalid(false, state.GetRejectCode(), state.GetRejectReason(),
                                  strprintf("Transaction check failed (tx hash %s) %s", tx->GetHash().ToString(),
                                            state.GetDebugMessage()));
     }
-
+    LogPrint(BCLog::BENCH, "    -   CheckTransaction(): %.2fms\n", 0.001 * (GetTimeMicros() - nTimeCheckTx));
     unsigned int nSigOps = 0;
     for (const auto& tx : block.vtx)
     {
@@ -4035,12 +4044,13 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
         return error("%s : zerocoin spend with serial %s from tx %s is not in valid range\n", __func__,
                      spend.getCoinSerialNumber().GetHex(), tx.GetHash().GetHex());
 
+    CBigNum bnAccumulatorValue;
+    if (!pzerocoinDB->ReadAccumulatorValue(spend.getAccumulatorChecksum(), bnAccumulatorValue))
+        return error("%s: Cannot find accumulator checkpoint in zerocoinDB\n", __func__);
+
     //Check the signature of the spend
     // Skip signature verification during initial block download
     if (!fSkipSignatureVerify) {
-        CBigNum bnAccumulatorValue;
-        if (!pzerocoinDB->ReadAccumulatorValue(spend.getAccumulatorChecksum(), bnAccumulatorValue))
-            return error("%s: Cannot find accumulator checkpoint in zerocoinDB\n", __func__);
         libzerocoin::Accumulator accumulator(Params().Zerocoin_Params(), spend.getDenomination(), bnAccumulatorValue);
 
         //Check that the coin has been accumulated
@@ -4406,7 +4416,9 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
         if (pindex->nChainWork < nMinimumChainWork) return true;
     }
 
-    if (!CheckBlock(block, state, chainparams.GetConsensus()) ||
+    int nHeightLastCheckpoint = Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints());
+    bool fSkipComputation = pindex->nHeight < nHeightLastCheckpoint;
+    if (!CheckBlock(block, state, chainparams.GetConsensus(), fSkipComputation) ||
         !ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindex->pprev)) {
         if (state.IsInvalid() && !state.CorruptionPossible()) {
             pindex->nStatus |= BLOCK_FAILED_VALID;

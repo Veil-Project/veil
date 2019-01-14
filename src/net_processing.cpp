@@ -9,6 +9,7 @@
 #include <arith_uint256.h>
 #include <blockencodings.h>
 #include <chainparams.h>
+#include <checkpoints.h>
 #include <consensus/validation.h>
 #include <hash.h>
 #include <validation.h>
@@ -1477,6 +1478,7 @@ void ProcessStaging()
         std::set<int> setRemoveBlocks;
         int nBestHeight = nHeightNext -1;
         int nHaveCheckpointHeight = 10 - (nBestHeight % 10) + nBestHeight;
+        int nHighestBlockCheck = 0;
         for (auto &blockPair : mapStagedBlocksCopy) {
             // Likely do not have the accumulator checkpoint so cannot verify
             if (blockPair.first > nHaveCheckpointHeight) {
@@ -1486,6 +1488,9 @@ void ProcessStaging()
             // Signatures for this block have already been verified, skip
             if (blockPair.second.fSignaturesVerified)
                 continue;
+
+            if (blockPair.first > nHighestBlockCheck)
+                nHighestBlockCheck = blockPair.first;
 
             bool fSkipBlock = false;
             std::vector<libzerocoin::SerialNumberSoKProof> vProofsTemp;
@@ -1522,10 +1527,13 @@ void ProcessStaging()
         // Now verify the batched spends
         bool fVerificationSuccess = true;
         // Probably not worth verifying if it is only one proof
+        int nHeightLastCheckpoint = Checkpoints::GetLastCheckpointHeight(Params().Checkpoints());
         if (vProofs.size() > 1) {
-            LogPrintf("%s: Batch verifying %d zeroknowledge proofs\n", __func__, vProofs.size());
-            if(!libzerocoin::SerialNumberSoKProof::BatchVerify(vProofs)) {
-                fVerificationSuccess = false;
+            if (nHighestBlockCheck > nHeightLastCheckpoint) {
+                LogPrintf("%s: Batch verifying %d zeroknowledge proofs\n", __func__, vProofs.size());
+                if (!libzerocoin::SerialNumberSoKProof::BatchVerify(vProofs)) {
+                    fVerificationSuccess = false;
+                }
             }
         }
 
