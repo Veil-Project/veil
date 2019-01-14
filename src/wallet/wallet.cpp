@@ -3637,8 +3637,9 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
     if (listInputs.empty())
         return false;
 
-//    if (GetAdjustedTime() - chainActive.Tip()->GetBlockTime() < 60)
-//        MilliSleep(10000);
+    //Small sleep if too far back on timing
+    if (GetAdjustedTime() - chainActive.Tip()->GetBlockTime() < 1)
+        MilliSleep(2500);
 
     CAmount nCredit = 0;
     CScript scriptPubKeyKernel;
