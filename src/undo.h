@@ -31,6 +31,9 @@ public:
             ::Serialize(s, (unsigned char)0);
         }
         ::Serialize(s, CTxOutCompressor(REF(txout->out)));
+        ::Serialize(s, txout->nType);
+        if (txout->nType == OUTPUT_CT)
+            s.write((char*)&txout->commitment.data[0], 33);
     }
 
     explicit TxInUndoSerializer(const Coin* coin) : txout(coin) {}
@@ -55,6 +58,9 @@ public:
             ::Unserialize(s, VARINT(nVersionDummy));
         }
         ::Unserialize(s, CTxOutCompressor(REF(txout->out)));
+        ::Unserialize(s, txout->nType);
+        if (txout->nType == OUTPUT_CT)
+            s.read((char*)&txout->commitment.data[0], 33);
     }
 
     explicit TxInUndoDeserializer(Coin* coin) : txout(coin) {}
