@@ -796,8 +796,10 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
 
             //Do context checks of mint
-            if (!setPubcoins.empty()) {
+            if (pout->IsZerocoinMint() && !setPubcoins.empty()) {
                 libzerocoin::PublicCoin pubcoin(Params().Zerocoin_Params());
+                if (!OutputToPublicCoin(pout.get(), pubcoin))
+                    return state.Invalid(false, REJECT_INVALID, "zcmint-malformed");
                 if (!OutputToPublicCoin(pout.get(), pubcoin) || !ContextualCheckZerocoinMint(tx, pubcoin, chainActive.Tip()))
                     return state.Invalid(false, REJECT_INVALID, "zcmint-fail-context-check");
             }
