@@ -1731,7 +1731,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
     }
 
     // Discourage fee sniping. See CWallet::CreateTransaction
-    txNew.nLockTime = chainActive.Height();
+    txNew.nLockTime = chainActive.Height() - 1;
 
     // 1/10 chance of random time further back to increase privacy
     if (GetRandInt(10) == 0) {
@@ -4960,7 +4960,7 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                 } else {
                     //Just set as from me.
                     if (rtx.nFlags & ORF_FROM) {
-                        pout->nFlags &= ORF_FROM;
+                        pout->nFlags |= ORF_FROM;
                     }
 
                     //todo: this could also be sent from someone else, to multiple recipients, in which this wallet is one of many sent to
@@ -4975,7 +4975,7 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                 } else {
                     //Just set as from me.
                     if (rtx.nFlags & ORF_FROM) {
-                        pout->nFlags &= ORF_FROM;
+                        pout->nFlags |= ORF_FROM;
                     }
                 }
                 rtx.InsertOutput(*pout);
