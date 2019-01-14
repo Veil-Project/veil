@@ -726,6 +726,24 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         for (const CTxIn& txin : tx.vin) {
             if (txin.IsAnonInput()) {
                 state.fHasAnonInput = true;
+                const std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
+
+                uint32_t nInputs, nRingSize;
+                txin.GetAnonInfo(nInputs, nRingSize);
+                if (vKeyImages.size() != nInputs * 33)
+                    return state.Invalid(false, REJECT_DUPLICATE, "anonin-badkeyimagesize");
+
+                for (size_t k = 0; k < nInputs; ++k) {
+                    const CCmpPubKey &ki = *((CCmpPubKey *) &vKeyImages[k * 33]);
+                    uint256 txidKeyImage;
+                    if (pool.HaveKeyImage(ki, txidKeyImage))
+                        return state.Invalid(false, REJECT_DUPLICATE, "keyimage-already-known");
+                    if (pblocktree->ReadRCTKeyImage(ki, txidKeyImage)) {
+                        LogPrintf("%s: Key image in tx %s\n", __func__, txidKeyImage.GetHex());
+                        return state.Invalid(false, REJECT_DUPLICATE, "bad-anonin-dup-keyimage");
+                    }
+
+                }
                 continue;
             }
 
