@@ -233,7 +233,7 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
     return fValidated;
 }
 
-bool CheckZerocoinMint(const CTxOut& txout, CBigNum& bnValue, CValidationState& state)
+bool CheckZerocoinMint(const CTxOut& txout, CBigNum& bnValue, CValidationState& state, bool fSkipZerocoinMintIsPrime)
 {
     libzerocoin::PublicCoin pubCoin(Params().Zerocoin_Params());
     if (!TxOutToPublicCoin(txout, pubCoin))
@@ -257,13 +257,13 @@ bool CheckValue(CValidationState &state, CAmount nValue, CAmount &nValueOut)
     return true;
 }
 
-bool CheckStandardOutput(CValidationState &state, const Consensus::Params& consensusParams, const CTxOutStandard *p, CAmount &nValueOut, CBigNum& bnPubcoin)
+bool CheckStandardOutput(CValidationState &state, const Consensus::Params& consensusParams, const CTxOutStandard *p, CAmount &nValueOut, CBigNum& bnPubcoin, bool fSkipZerocoinMintIsPrime)
 {
     if (p->IsZerocoinMint()) {
         CTxOut txout;
         if (!p->GetTxOut(txout))
             return error("%s: failed to extract zerocoinmint from output", __func__);
-        if (!CheckZerocoinMint(txout, bnPubcoin, state))
+        if (!CheckZerocoinMint(txout, bnPubcoin, state, fSkipZerocoinMintIsPrime))
             return error("%s: zerocoin mint check failed", __func__);
     }
     return CheckValue(state, p->nValue, nValueOut);
@@ -326,7 +326,7 @@ bool CheckDataOutput(CValidationState &state, const CTxOutData *p)
     return true;
 }
 
-bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fCheckDuplicateInputs)
+bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fSkipZerocoinMintIsPrime)
 {
     // Basic checks that don't depend on any context
     if (tx.vin.empty())
@@ -352,7 +352,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fChe
         switch (txout->nVersion) {
             case OUTPUT_STANDARD: {
                 CBigNum bnPubCoin = 0;
-                if (!CheckStandardOutput(state, consensusParams, (CTxOutStandard*) txout.get(), nValueOut, bnPubCoin))
+                if (!CheckStandardOutput(state, consensusParams, (CTxOutStandard*) txout.get(), nValueOut, bnPubCoin, fSkipZerocoinMintIsPrime))
                     return false;
                 if (txout->IsZerocoinMint())
                     nZerocoinMints++;
