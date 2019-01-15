@@ -21,6 +21,7 @@
 
 #include <QAbstractItemDelegate>
 #include <QPainter>
+#include <QSettings>
 
 #define DECORATION_SIZE 54
 #define NUM_ITEMS 3
@@ -317,6 +318,7 @@ void OverviewPage::setWalletModel(WalletModel *model)
 
         // Keep up to date with wallet
         connect(model->getOptionsModel(), SIGNAL(displayUnitChanged(int)), this, SLOT(updateDisplayUnit()));
+        connect(model->getOptionsModel(), SIGNAL(hideOrphansChanged(bool)), this, SLOT(hideOrphans(bool)));
 
         updateWatchOnlyLabels(wallet.haveWatchOnly());
         connect(model, SIGNAL(notifyWatchonlyChanged(bool)), this, SLOT(updateWatchOnlyLabels(bool)));
@@ -324,6 +326,10 @@ void OverviewPage::setWalletModel(WalletModel *model)
 
     // update the display unit, to not use the default ("VEIL")
     updateDisplayUnit();
+
+    // Hide orphans
+    QSettings settings;
+    hideOrphans(settings.value("bHideOrphans", true).toBool());
 }
 
 void OverviewPage::updateTxesView(){
@@ -364,4 +370,14 @@ void OverviewPage::onFaqClicked(){
     mainWindow->getGUI()->showHide(true);
     SettingsFaq *dialog = new SettingsFaq(mainWindow->getGUI());
     openDialogWithOpaqueBackgroundFullScreen(dialog, mainWindow->getGUI());
+}
+
+void OverviewPage::hideOrphans(bool fHide)
+{
+    filter->setHideOrphans(fHide);
+}
+
+void OverviewPage::showEvent(QShowEvent *event){
+    QSettings settings;
+    hideOrphans(settings.value("bHideOrphans", true).toBool());
 }
