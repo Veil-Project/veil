@@ -4153,7 +4153,7 @@ bool AnonWallet::ProcessStealthOutput(const CTxDestination &address, std::vector
 
         if (IsLocked()) {
             // Save ephemeral pubkey
-            if (AddStealthDestinationMeta(addr->GetID(), idStealthDestination, vchEphemPK))
+            if (!AddStealthDestinationMeta(addr->GetID(), idStealthDestination, vchEphemPK))
                 return error("%s: Failed to add metadata for stealth destination", __func__);
 
             nFoundStealth++;
