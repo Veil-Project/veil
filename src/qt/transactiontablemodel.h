@@ -74,6 +74,8 @@ public:
         StatusRole,
         /** Unprocessed icon */
         RawDecorationRole,
+        /** Transaction Fee */
+        FeeRole,
     };
 
     int rowCount(const QModelIndex &parent) const;
