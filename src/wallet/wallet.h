@@ -829,6 +829,7 @@ public:
     bool GetZerocoinKey(const CBigNum& bnSerial, CKey& key);
     bool CreateZOutPut(libzerocoin::CoinDenomination denomination, CTxOut &outMint, CDeterministicMint &dMint);
     bool GetMint(const uint256& hashSerial, CZerocoinMint& mint);
+    bool GetMintMeta(const uint256& hashPubcoin, CMintMeta& meta) const;
     std::set<CMintMeta> ListMints(bool fUnusedOnly, bool fMatureOnly, bool fUpdateStatus);
     bool GetMintFromStakeHash(const uint256& hashStake, CZerocoinMint& mint);
     bool DatabaseMint(CDeterministicMint& dMint);
@@ -1169,6 +1170,7 @@ public:
     bool IsMyZerocoinSpend(const CBigNum& bnSerial) const;
     bool IsMyZerocoinSpend(const uint256& hashSerial) const;
     bool IsMyMint(const CBigNum& bnValue) const;
+    bool IsMyMint(const CTxOutBase* pout) const;
 
     DBErrors LoadWallet(bool& fFirstRunRet);
     DBErrors ZapWalletTx(std::vector<CWalletTx>& vWtx);
