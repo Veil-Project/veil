@@ -155,13 +155,17 @@ void AddRangeproof(const std::vector<uint8_t> &vRangeproof, UniValue &entry)
 }
 
 void OutputToJSON(uint256 &txid, int i,
-                  const CTxOutBase *baseOut, UniValue &entry)
+                  const CTxOutBase *baseOut, UniValue &entry, bool isCoinBase = false)
 {
     switch (baseOut->GetType())
     {
         case OUTPUT_STANDARD:
         {
-            entry.pushKV("type", "standard");
+            if (isCoinBase && i == 0) {
+                entry.pushKV("type", "coinbase");
+            } else {
+                entry.pushKV("type", "standard");
+            }
             CTxOutStandard *s = (CTxOutStandard*) baseOut;
             entry.pushKV("value", ValueFromAmount(s->nValue));
             entry.pushKV("valueSat", s->nValue);
@@ -303,7 +307,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
     for (unsigned int i = 0; i < tx.vpout.size(); i++) {
         const auto& pout = tx.vpout[i];
         UniValue out(UniValue::VOBJ);
-        OutputToJSON(txid, i, pout.get(), out);
+        OutputToJSON(txid, i, pout.get(), out, tx.IsCoinBase());
         vout.push_back(out);
     }
 
