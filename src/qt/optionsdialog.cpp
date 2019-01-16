@@ -24,6 +24,7 @@
 #include <QLocale>
 #include <QMessageBox>
 #include <QTimer>
+#include <QSettings>
 
 OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     QDialog(parent),
@@ -47,6 +48,12 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
 
     ui->pruneSize->setEnabled(false);
     connect(ui->prune, SIGNAL(toggled(bool)), ui->pruneSize, SLOT(setEnabled(bool)));
+
+    // Hide orphans
+    QSettings settings;
+    ui->hideOrphans->setChecked(settings.value("bHideOrphans", true).toBool());
+
+    connect(ui->hideOrphans, SIGNAL(toggled(bool)), this, SLOT(onHideOrphansCheck(bool)));
 
     /* Network elements init */
 #ifndef USE_UPNP
@@ -338,6 +345,11 @@ void OptionsDialog::updateDefaultProxyNets()
     strProxy = proxy.proxy.ToStringIP() + ":" + proxy.proxy.ToStringPort();
     strDefaultProxyGUI = ui->proxyIp->text() + ":" + ui->proxyPort->text();
     (strProxy == strDefaultProxyGUI.toStdString()) ? ui->proxyReachTor->setChecked(true) : ui->proxyReachTor->setChecked(false);
+}
+
+void OptionsDialog::onHideOrphansCheck(bool state) {
+    QSettings settings;
+    settings.setValue("bHideOrphans", state);
 }
 
 ProxyAddressValidator::ProxyAddressValidator(QObject *parent) :

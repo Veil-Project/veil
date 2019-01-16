@@ -22,6 +22,8 @@
 #include <QSettings>
 #include <QStringList>
 
+#include <iostream>
+
 const char *DEFAULT_GUI_PROXY_HOST = "127.0.0.1";
 
 static const QString GetDefaultProxyAddress();
@@ -113,10 +115,16 @@ void OptionsModel::Init(bool resetSettings)
 
     // Wallet
 #ifdef ENABLE_WALLET
+
     if (!settings.contains("bSpendZeroConfChange"))
         settings.setValue("bSpendZeroConfChange", true);
     if (!m_node.softSetBoolArg("-spendzeroconfchange", settings.value("bSpendZeroConfChange").toBool()))
         addOverriddenOption("-spendzeroconfchange");
+
+    // Orphans
+    if (!settings.contains("bHideOrphans"))
+        settings.setValue("bHideOrphans", true);
+    bHideOrphans = settings.value("bHideOrphans").toBool();
 #endif
 
     // Network
@@ -282,6 +290,10 @@ QVariant OptionsModel::data(const QModelIndex & index, int role) const
 #ifdef ENABLE_WALLET
         case SpendZeroConfChange:
             return settings.value("bSpendZeroConfChange");
+
+        case HideOrphans:{
+            return settings.value("bHideOrphans");
+        }
 #endif
         case DisplayUnit:
             return nDisplayUnit;
@@ -397,6 +409,13 @@ bool OptionsModel::setData(const QModelIndex & index, const QVariant & value, in
                 setRestartRequired(true);
             }
             break;
+
+        case HideOrphans: {
+            bHideOrphans = value.toBool();
+            settings.setValue("bHideOrphans", bHideOrphans);
+            Q_EMIT hideOrphansChanged(bHideOrphans);
+        }
+        break;
 #endif
         case DisplayUnit:
             setDisplayUnit(value);

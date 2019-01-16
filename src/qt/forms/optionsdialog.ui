@@ -33,7 +33,7 @@ border:none;</string>
       <string notr="true"/>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tabMain">
       <property name="styleSheet">
@@ -327,6 +327,13 @@ padding:9px;
                </property>
                <property name="text">
                 <string>&amp;Spend unconfirmed change</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="hideOrphans">
+               <property name="text">
+                <string>Hide orphans</string>
                </property>
               </widget>
              </item>

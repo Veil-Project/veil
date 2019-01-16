@@ -60,6 +60,9 @@ private Q_SLOTS:
     void handleOutOfSyncWarningClicks();
     void sortTxes(const QString& selectedStr);
     void onFaqClicked();
+    virtual void showEvent(QShowEvent *event) override;
+
+    void hideOrphans(bool fHide);
 };
 
 #endif // BITCOIN_QT_OVERVIEWPAGE_H
