@@ -64,6 +64,14 @@ bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidati
  * Rewards are based upon the height of the block.
  * @param nBlockHeight
  */
+bool BudgetParams::IsSuperBlock(int nBlockHeight)
+{
+    return (
+            (Params().NetworkIDString() == "main" && nBlockHeight % nBlocksPerPeriod == 0) ||
+            (Params().NetworkIDString() == "test" && (nBlockHeight % nBlocksPerPeriod == 20000 || nBlockHeight == 1))
+            );
+}
+
 void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
         CAmount& nFounderPayment, CAmount& nLabPayment, CAmount& nBudgetPayment)
 {
@@ -76,7 +84,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
     } else if (nBlockHeight >= 1 && nBlockHeight <= 518399) {
 
         nBlockReward = 50;
-        if((nBlockHeight % nBlocksPerPeriod) == 0 || (Params().NetworkIDString() == "test" && nBlockHeight == 1)) {
+        if(IsSuperBlock(nBlockHeight)) {
             nFounderPayment = 10 * nBlocksPerPeriod;
             nLabPayment = 10 * nBlocksPerPeriod;
             nBudgetPayment = 30 * nBlocksPerPeriod;
@@ -87,7 +95,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
     } else if (nBlockHeight >= 518400 && nBlockHeight <= 1036799) {
 
         nBlockReward = 40;
-        if((nBlockHeight % nBlocksPerPeriod) == 0) {
+        if(IsSuperBlock(nBlockHeight)) {
             nFounderPayment = 8 * nBlocksPerPeriod;
             nLabPayment = 8 * nBlocksPerPeriod;
             nBudgetPayment = 24 * nBlocksPerPeriod;
@@ -98,7 +106,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
     } else if (nBlockHeight >= 1036800 && nBlockHeight <= 1555199) {
 
         nBlockReward = 30;
-        if((nBlockHeight % nBlocksPerPeriod) == 0) {
+        if(IsSuperBlock(nBlockHeight)) {
             nFounderPayment = 6 * nBlocksPerPeriod;
             nLabPayment = 6 * nBlocksPerPeriod;
             nBudgetPayment = 18 * nBlocksPerPeriod;
@@ -109,7 +117,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
     } else if (nBlockHeight >= 1555200 && nBlockHeight <= 2073599) {
 
         nBlockReward = 20;
-        if((nBlockHeight % nBlocksPerPeriod) == 0) {
+        if(IsSuperBlock(nBlockHeight)) {
             nFounderPayment = 4 * nBlocksPerPeriod;
             nLabPayment = 4 * nBlocksPerPeriod;
             nBudgetPayment = 12 * nBlocksPerPeriod;
@@ -120,7 +128,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
     } else if (nBlockHeight >= 2073600 && nBlockHeight <= 2591999) {
 
         nBlockReward = 10;
-        if((nBlockHeight % nBlocksPerPeriod) == 0) {
+        if(IsSuperBlock(nBlockHeight)) {
             nFounderPayment = 2 * nBlocksPerPeriod;
             nLabPayment = 2 * nBlocksPerPeriod;
             nBudgetPayment = 6 * nBlocksPerPeriod;
@@ -131,7 +139,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
     } else {
 
         nBlockReward = 10;
-        if((nBlockHeight % nBlocksPerPeriod) == 0) {
+        if(IsSuperBlock(nBlockHeight)) {
             nFounderPayment = 0 * nBlocksPerPeriod;
             nLabPayment = 2 * nBlocksPerPeriod;
             nBudgetPayment = 8 * nBlocksPerPeriod;
