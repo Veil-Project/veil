@@ -8,6 +8,7 @@
 #include <qt/bitcoinunits.h>
 #include <qt/walletmodel.h>
 #include <qt/optionsmodel.h>
+#include <QDateTime>
 
 TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRecord *rec, WalletModel *walletModel) :
     QDialog(parent),
@@ -38,7 +39,6 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
     connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(onEscapeClicked()));
 
     if(rec) {
-        // TODO: Complete this..
         int unit = walletModel->getOptionsModel()->getDisplayUnit();
         ui->textId->setText(rec->getTxHash());
         ui->textId->setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -46,9 +46,14 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
         ui->textFee->setText(BitcoinUnits::formatWithUnit(unit, rec->getFee(), false, BitcoinUnits::separatorAlways));
         ui->textInputs->setText(QString::fromStdString(std::to_string(rec->getInputsSize())));
         ui->textConfirmations->setText(QString::fromStdString(std::to_string(rec->getConfirmations())));
-        ui->textSend->setText(QString::fromStdString((rec->getAddress())));
+        if (rec->getAddress().empty()){
+            ui->textSend->setText("Unknown");
+        } else{
+            ui->textSend->setText(QString::fromStdString((rec->getAddress())));
+        }
+        // TODO: add size to TransactionRecord.
         ui->textSize->setText("n/a Kb");
-        ui->textDate->setText("n/a");
+        ui->textDate->setText(GUIUtil::dateTimeStr(QDateTime::fromTime_t(static_cast<uint>(rec->time))));
     }
 }
 
