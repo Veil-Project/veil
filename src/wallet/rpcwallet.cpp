@@ -33,7 +33,8 @@
 #include <wallet/walletutil.h>
 #include <wallet/deterministicmint.h>
 #include <veil/dandelioninventory.h>
-
+#include <veil/zerocoin/mintmeta.h>
+#include <veil/zerocoin/zchain.h>
 #include <veil/ringct/anonwallet.h>
 
 #include <stdint.h>
@@ -2268,6 +2269,46 @@ static UniValue listsinceblock(const JSONRPCRequest& request)
     return ret;
 }
 
+UniValue OutputRecordToUniValue(const COutputRecord* record)
+{
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("type", record->nType);
+    obj.pushKV("flags", record->nFlags);
+    obj.pushKV("n", record->n);
+    obj.pushKV("scriptPubKey", HexStr(record->scriptPubKey));
+    obj.pushKV("amount", FormatMoney(record->GetAmount()));
+
+    return obj;
+}
+
+UniValue ZerocoinMintToUniValue(const CWallet* pwallet, const CTxOutBaseRef pout)
+{
+    UniValue obj_ret(UniValue::VOBJ);
+    if (!pout->IsZerocoinMint())
+        return obj_ret;
+
+    libzerocoin::PublicCoin pubcoin(Params().Zerocoin_Params());
+    if (!OutputToPublicCoin(pout.get(), pubcoin))
+        return obj_ret;
+
+    bool fIsMyMint = pwallet->IsMyMint(pubcoin.getValue());
+    obj_ret.pushKV("is_mine", fIsMyMint);
+    obj_ret.pushKV("denom", pubcoin.getDenomination());
+    uint256 hashPubcoin = GetPubCoinHash(pubcoin.getValue());
+    obj_ret.pushKV("pubcoinhash", hashPubcoin.GetHex());
+    if (fIsMyMint) {
+        CMintMeta meta;
+        if (pwallet->GetMintMeta(hashPubcoin, meta)) {
+            obj_ret.pushKV("txid", meta.txid.GetHex());
+            obj_ret.pushKV("height", meta.nHeight);
+            obj_ret.pushKV("serialhash", meta.hashSerial.GetHex());
+            obj_ret.pushKV("is_spent", meta.isUsed);
+        }
+    }
+
+    return obj_ret;
+}
+
 static UniValue gettransaction(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -2345,8 +2386,8 @@ static UniValue gettransaction(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_ERROR, "Wallet does not have record of the transaction");
 
     CWalletTx& tx = it->second;
+    auto* pwalletAnon = pwallet->GetAnonWallet();
     if (tx.tx->HasBlindedValues()) {
-        auto* pwalletAnon = pwallet->GetAnonWallet();
         if (pwalletAnon->IsMine(*tx.tx)) {
             nCreditAnon = pwalletAnon->GetCredit(*tx.tx, ISMINE_SPENDABLE);
             nDebitAnon = pwalletAnon->GetDebit(*tx.tx, ISMINE_SPENDABLE);
@@ -2380,6 +2421,98 @@ static UniValue gettransaction(const JSONRPCRequest& request)
     ListTransactions(pwallet, wtx, "*", 0, false, details, filter);
     entry.pushKV("details", details);
 
+    UniValue obj_debug(UniValue::VOBJ);
+    UniValue arr_vin(UniValue::VARR);
+    for (auto txin : wtx.tx->vin) {
+        UniValue obj_vin(UniValue::VOBJ);
+        bool fIsMyInput = pwallet->IsMine(txin);
+
+        obj_vin.pushKV("from_me", fIsMyInput);
+        if (txin.IsAnonInput()) {
+            obj_vin.pushKV("type", "ringct");
+        } else if (txin.scriptSig.IsZerocoinSpend()) {
+            obj_vin.pushKV("type", "zerocoinspend");
+        } else {
+            //Have to specifically look up type to determine whether it is CT or Basecoin
+            uint256 hashBlock;
+            CTransactionRef txPrev;
+            if (!GetTransaction(txin.prevout.hash, txPrev, Params().GetConsensus(), hashBlock)) {
+                obj_vin.pushKV("type", "failed");
+                continue;
+            }
+
+            obj_vin.pushKV("prevout", txin.prevout.ToString());
+            auto nType = txPrev->vpout[txin.prevout.n]->GetType();
+            if (nType == OUTPUT_STANDARD)
+                obj_vin.pushKV("type", "basecoin");
+            else {
+                obj_vin.pushKV("type", "ct");
+                if (fIsMyInput) {
+                    auto mi = pwalletAnon->mapRecords.find(txin.prevout.hash);
+                    obj_vin.pushKV("has_tx_rec", bool(mi != pwalletAnon->mapRecords.end()));
+                    if (mi != pwalletAnon->mapRecords.end()) {
+                        const COutputRecord *oR = mi->second.GetOutput(txin.prevout.n);
+                        if (oR)
+                            obj_vin.pushKV("output_record", OutputRecordToUniValue(oR));
+                    }
+                }
+            }
+        }
+        arr_vin.push_back(obj_vin);
+    }
+    obj_debug.pushKV("vin", arr_vin);
+
+    UniValue arr_vout(UniValue::VARR);
+    for (unsigned int i = 0; i < wtx.tx->vpout.size(); i++) {
+        UniValue obj_out(UniValue::VOBJ);
+        auto pout = wtx.tx->vpout[i];
+        bool fIsMyOutput = pwallet->IsMine(pout.get());
+        if (pout->GetType() == OUTPUT_STANDARD) {
+            if (pout->IsZerocoinMint()) {
+                obj_out.pushKV("type", "zerocoinmint");
+                obj_out.pushKV("metadata", ZerocoinMintToUniValue(pwallet, pout));
+            } else {
+                obj_out.pushKV("type", "basecoin");
+
+                CTxDestination dest;
+                if (ExtractDestination(*pout->GetPScriptPubKey(), dest)) {
+                    obj_out.pushKV("sent_to", CBitcoinAddress(dest).ToString());
+                }
+            }
+            obj_out.pushKV("amount", FormatMoney(pout->GetValue()));
+        } else if (pout->GetType() == OUTPUT_CT) {
+            obj_out.pushKV("type", "ct");
+        } else if (pout->GetType() == OUTPUT_RINGCT) {
+            obj_out.pushKV("type", "ringct");
+            CTxOutRingCT* outRingCT = (CTxOutRingCT*)pout.get();
+
+            std::vector<uint8_t> vchEphemPK;
+            vchEphemPK.resize(33);
+            memcpy(&vchEphemPK[0], &outRingCT->vData[0], 33);
+            obj_out.pushKV("ephemeral_pubkey", HexStr(vchEphemPK));
+        } else if (pout->GetType() == OUTPUT_DATA) {
+            obj_out.pushKV("type", "data");
+            CTxOutData* outData = (CTxOutData*)pout.get();
+            CAmount nFeeData;
+            if (outData->GetCTFee(nFeeData)) {
+                obj_out.pushKV("ct_fee", FormatMoney(nFeeData));
+            }
+            obj_out.pushKV("data", HexStr(outData->vData));
+        }
+
+        obj_out.pushKV("is_mine", fIsMyOutput);
+        auto mi = pwalletAnon->mapRecords.find(hash);
+        obj_out.pushKV("has_tx_rec", bool(mi != pwalletAnon->mapRecords.end()));
+        if (mi != pwalletAnon->mapRecords.end()) {
+            const COutputRecord *oR = mi->second.GetOutput(i);
+            if (oR)
+                obj_out.pushKV("output_record", OutputRecordToUniValue(oR));
+        }
+        arr_vout.push_back(obj_out);
+    }
+    obj_debug.pushKV("vout", arr_vout);
+
+    entry.pushKV("debug", obj_debug);
     std::string strHex = EncodeHexTx(*wtx.tx, RPCSerializationFlags());
     entry.pushKV("hex", strHex);
 

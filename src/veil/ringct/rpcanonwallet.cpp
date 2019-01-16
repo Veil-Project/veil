@@ -104,6 +104,38 @@ static UniValue getnewaddress(const JSONRPCRequest &request)
     return stealthAddress.ToString(fBech32);
 }
 
+static UniValue restoreaddresses(const JSONRPCRequest &request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(wallet.get(), request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "restoreaddresses (generate_count)\n"
+                "Regenerates deterministic stealth addresses to give wallet knowledge that they are owned"
+                + HelpRequiringPassphrase(wallet.get()) +
+                "\nArguments:\n"
+                "1. generate_count       (int, required) Amount of addresses to add to the wallet internally. WARNING: Generate as few as needed. High address counts will slow down sync times.\n"
+                "\nResult:\n"
+                "\"address\"              (string) The new stealth address\n"
+                "\nExamples:\n"
+                + HelpExampleCli("restoreaddresses", "10")
+                + HelpExampleRpc("restoreaddresses", "10"));
+
+    EnsureWalletIsUnlocked(wallet.get());
+    auto pAnonWallet = wallet->GetAnonWallet();
+
+    unsigned int n = request.params[0].get_int();
+
+    for (unsigned int i = 0; i < n; i++) {
+        CStealthAddress stealthAddress;
+        if (!pAnonWallet->NewStealthKey(stealthAddress, 0, nullptr))
+            throw JSONRPCError(RPC_WALLET_ERROR, _("NewStealthKeyFromAccount failed."));
+    }
+    return NullUniValue;
+}
+
 static void push(UniValue & entry, std::string key, UniValue const & value)
 {
     if (entry[key].getType() == 0) {
@@ -1832,6 +1864,7 @@ static const CRPCCommand commands[] =
         { //  category              name                                actor (function)                argNames
                 //  --------------------- ------------------------            -----------------------         ----------
                 { "wallet",             "getnewaddress",             &getnewaddress,          {"label","num_prefix_bits","prefix_num","bech32","makeV2"} },
+                { "wallet",             "restoreaddresses",          &restoreaddresses,          {"generate_count"} },
 
                 { "wallet",             "sendbasecointostealth", &sendbasecointostealth,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
 

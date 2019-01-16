@@ -1447,6 +1447,12 @@ isminetype CWallet::IsMine(const CTxOutBase *txout) const
     {
         case OUTPUT_STANDARD:
         {
+            if (txout->IsZerocoinMint())
+                if (IsMyMint(txout))
+                    return ISMINE_SPENDABLE;
+                else
+                    return ISMINE_NO;
+
             CTxOut out;
             txout->GetTxOut(out);
             return IsMine(out);
@@ -1651,6 +1657,16 @@ bool CWallet::IsMyMint(const CBigNum& bnValue) const
         return true;
 
     return zwalletMain->IsInMintPool(bnValue);
+}
+
+bool CWallet::IsMyMint(const CTxOutBase* pout) const
+{
+    libzerocoin::PublicCoin pubcoin(Params().Zerocoin_Params());
+    if (!OutputToPublicCoin(pout, pubcoin)) {
+        return false;
+    }
+
+    return IsMyMint(pubcoin.getValue());
 }
 
 bool CWallet::IsMyZerocoinSpend(const CBigNum& bnSerial) const
@@ -2536,6 +2552,14 @@ bool CWallet::GetMint(const uint256& hashSerial, CZerocoinMint& mint)
         return error("%s: failed to read zerocoinmint from database", __func__);
     }
 
+    return true;
+}
+
+bool CWallet::GetMintMeta(const uint256& hashPubcoin, CMintMeta& meta) const
+{
+    if (!zTracker->HasPubcoinHash(hashPubcoin))
+        return false;
+    meta = zTracker->GetMetaFromPubcoin(hashPubcoin);
     return true;
 }
 

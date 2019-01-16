@@ -470,6 +470,7 @@ std::map<CTxDestination, CAmount> AnonWallet::GetAddressBalances()
 isminetype AnonWallet::IsMine(const CTxIn& txin) const
 {
     if (txin.IsAnonInput()) {
+        //todo, this causing issues?
         return ISMINE_NO;
     }
 
@@ -521,6 +522,10 @@ isminetype AnonWallet::IsMine(const CTxOutBase *txout) const
             if (mapKeyPaths.count(keyID))
                 return ISMINE_SPENDABLE;
             if (pwalletParent->HaveKey(keyID))
+                return ISMINE_SPENDABLE;
+            if (HaveAddress(keyID))
+                return ISMINE_SPENDABLE;
+            if (pwalletParent->IsMine(keyID))
                 return ISMINE_SPENDABLE;
         }
         default:
@@ -1550,6 +1555,8 @@ static bool ExpandChangeAddress(AnonWallet *phdw, CTempRecipient &r, std::string
             return error("%s: Could not generate receiving public key.", __func__);
 
         CPubKey pkEphem = r.sEphem.GetPubKey();
+        if (!pkEphem.IsValid())
+            return error("%s: Ephemeral pubkey is not valid\n", __func__);
         r.pkTo = CPubKey(pkSendTo);
         CKeyID idTo = r.pkTo.GetID();
         r.scriptPubKey = GetScriptForDestination(idTo);
@@ -3283,7 +3290,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
 
                         CAnonOutput ao;
                         if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
-                            return wserrorN(1, sError, __func__, _("Anon output not found in db, %d"), nIndex);
+                            return error("%s: Anon output not found in db, %d", __func__, nIndex);
                         }
 
                         memcpy(&vm[(i + k * nCols) * 33], ao.pubkey.begin(), 33);
@@ -3293,7 +3300,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                         if (i == vSecretColumns[l]) {
                             CKeyID idk = ao.pubkey.GetID();
                             if (!GetKey(idk, vsk[k])) {
-                                return wserrorN(1, sError, __func__, _("No key for anonoutput, %s"),
+                                return error("No key for anonoutput, %s",
                                                 HexStr(ao.pubkey.begin(), ao.pubkey.end()));
                             }
                             vpsk[k] = vsk[k].begin();
@@ -3355,7 +3362,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     secp256k1_pedersen_commitment splitInputCommit;
                     if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &splitInputCommit,
                             (uint8_t*)vSplitCommitBlindingKeys[l].begin(), nCommitValue, secp256k1_generator_h)) {
-                        return wserrorN(1, sError, __func__, "secp256k1_pedersen_commit failed.");
+                        return error("%s: secp256k1_pedersen_commit failed.", __func__);
                     }
 
 
@@ -4108,7 +4115,7 @@ bool AnonWallet::ProcessStealthOutput(const CTxDestination &address, std::vector
     CKey keySpend;
 
     CKeyID idStealthDestination = boost::get<CKeyID>(address);
-    if (mapKeyPaths.count(idStealthDestination)) {
+    if (mapStealthDestinations.count(idStealthDestination)) {
         CStealthAddress sx;
         if (fNeedShared && GetStealthLinked(idStealthDestination, sx) && GetStealthAddressScanKey(sx)) {
             if (StealthShared(sx.scan_secret, vchEphemPK, sShared) != 0) {
