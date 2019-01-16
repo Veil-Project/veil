@@ -1447,11 +1447,12 @@ isminetype CWallet::IsMine(const CTxOutBase *txout) const
     {
         case OUTPUT_STANDARD:
         {
-            if (txout->IsZerocoinMint())
+            if (txout->IsZerocoinMint()) {
                 if (IsMyMint(txout))
                     return ISMINE_SPENDABLE;
                 else
                     return ISMINE_NO;
+            }
 
             CTxOut out;
             txout->GetTxOut(out);

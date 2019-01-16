@@ -2430,6 +2430,7 @@ static UniValue gettransaction(const JSONRPCRequest& request)
         obj_vin.pushKV("from_me", fIsMyInput);
         if (txin.IsAnonInput()) {
             obj_vin.pushKV("type", "ringct");
+            obj_vin.pushKV("is_mine_ki", pwalletAnon->IsMyAnonInput(txin));
         } else if (txin.scriptSig.IsZerocoinSpend()) {
             obj_vin.pushKV("type", "zerocoinspend");
         } else {
