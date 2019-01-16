@@ -1,4 +1,4 @@
-
+#include <chainparams.h>
 #include <veil/budget.h>
 #include <test/test_veil.h>
 #include <boost/test/unit_test.hpp>
@@ -8,7 +8,7 @@ BOOST_FIXTURE_TEST_SUITE(monthly_rewards_tests, BasicTestingSetup)
 
 
 /**
- *  Tests to make suret that the proper rewards are sent with the given block height
+ *  Tests to make sure that the proper rewards are sent with the given block height
  */
 
 BOOST_AUTO_TEST_CASE(testRewardAfterSet)
@@ -18,9 +18,9 @@ BOOST_AUTO_TEST_CASE(testRewardAfterSet)
     veil::Budget().GetBlockRewards(1, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
 
     BOOST_CHECK(nBlockReward == 50 * COIN);
-    BOOST_CHECK(nFounderPayment == 10 * nBlocksPerPeriod * COIN);
-    BOOST_CHECK(nLabPayment == 10 * nBlocksPerPeriod * COIN);
-    BOOST_CHECK(nBudgetPayment == 30 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nFounderPayment == 0);
+    BOOST_CHECK(nLabPayment == 0);
+    BOOST_CHECK(nBudgetPayment == 0);
 
     veil::Budget().GetBlockRewards(2, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
 
@@ -112,6 +112,110 @@ BOOST_AUTO_TEST_CASE(testRewardAfterSet)
     BOOST_CHECK(nFounderPayment == 0);
     BOOST_CHECK(nLabPayment == 0);
     BOOST_CHECK(nBudgetPayment == 0);
+}
+
+BOOST_AUTO_TEST_CASE(testRewardAfterSet_testnet)
+{
+    SelectParams("test");
+    CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment = 0;
+    int nBlocksPerPeriod = 43200;
+    veil::Budget().GetBlockRewards(1, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 50 * COIN);
+    BOOST_CHECK(nFounderPayment == 10 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nLabPayment == 10 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nBudgetPayment == 30 * nBlocksPerPeriod * COIN);
+
+    veil::Budget().GetBlockRewards(2, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 50 * COIN);
+    BOOST_CHECK(nFounderPayment == 0);
+    BOOST_CHECK(nLabPayment == 0);
+    BOOST_CHECK(nBudgetPayment == 0);
+
+    veil::Budget().GetBlockRewards(20000, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 50 * COIN);
+    BOOST_CHECK(nFounderPayment == 10 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nLabPayment == 10 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nBudgetPayment == 30 * nBlocksPerPeriod * COIN);
+
+    veil::Budget().GetBlockRewards(20001, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 50 * COIN);
+    BOOST_CHECK(nFounderPayment == 0);
+    BOOST_CHECK(nLabPayment == 0);
+    BOOST_CHECK(nBudgetPayment == 0);
+
+    veil::Budget().GetBlockRewards(12 * nBlocksPerPeriod + 20000, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 40 * COIN);
+    BOOST_CHECK(nFounderPayment == 8 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nLabPayment == 8 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nBudgetPayment == 24 * nBlocksPerPeriod * COIN);
+
+    veil::Budget().GetBlockRewards(12 * nBlocksPerPeriod + 20001, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 40 * COIN);
+    BOOST_CHECK(nFounderPayment == 0);
+    BOOST_CHECK(nLabPayment == 0);
+    BOOST_CHECK(nBudgetPayment == 0);
+
+    veil::Budget().GetBlockRewards(24 * nBlocksPerPeriod + 20000, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 30 * COIN);
+    BOOST_CHECK(nFounderPayment == 6 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nLabPayment == 6 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nBudgetPayment == 18 * nBlocksPerPeriod * COIN);
+
+    veil::Budget().GetBlockRewards(24 * nBlocksPerPeriod + 20001, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 30 * COIN);
+    BOOST_CHECK(nFounderPayment == 0);
+    BOOST_CHECK(nLabPayment == 0);
+    BOOST_CHECK(nBudgetPayment == 0);
+
+    veil::Budget().GetBlockRewards(36 * nBlocksPerPeriod + 20000, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 20 * COIN);
+    BOOST_CHECK(nFounderPayment == 4 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nLabPayment == 4 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nBudgetPayment == 12 * nBlocksPerPeriod * COIN);
+
+    veil::Budget().GetBlockRewards(36 * nBlocksPerPeriod + 20001, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 20 * COIN);
+    BOOST_CHECK(nFounderPayment == 0);
+    BOOST_CHECK(nLabPayment == 0);
+    BOOST_CHECK(nBudgetPayment == 0);
+
+    veil::Budget().GetBlockRewards(48 * nBlocksPerPeriod + 20000, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 10 * COIN);
+    BOOST_CHECK(nFounderPayment == 2 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nLabPayment == 2 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nBudgetPayment == 6 * nBlocksPerPeriod * COIN);
+
+    veil::Budget().GetBlockRewards(48 * nBlocksPerPeriod + 20001, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 10 * COIN);
+    BOOST_CHECK(nFounderPayment == 0);
+    BOOST_CHECK(nLabPayment == 0);
+    BOOST_CHECK(nBudgetPayment == 0);
+
+    veil::Budget().GetBlockRewards(60 * nBlocksPerPeriod + 20000, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 10 * COIN);
+    BOOST_CHECK(nFounderPayment == 0);
+    BOOST_CHECK(nLabPayment == 2 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nBudgetPayment == 8 * nBlocksPerPeriod * COIN);
+
+    veil::Budget().GetBlockRewards(60 * nBlocksPerPeriod + 20001, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+
+    BOOST_CHECK(nBlockReward == 10 * COIN);
+    BOOST_CHECK(nFounderPayment == 0);
+    BOOST_CHECK(nLabPayment == 0);
+    BOOST_CHECK(nBudgetPayment == 0);
 
 
 }
@@ -127,7 +231,7 @@ BOOST_AUTO_TEST_CASE(countRwards)
     int nBlockRewardsCount = 0;
     int nRewardsCount = 0;
 
-    for(int i = 0; i <= 518399; i++) {
+    for(int i = 0; i <= 518400; i++) {
         veil::Budget().GetBlockRewards(i, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
         if(nFounderPayment > 0)
             nRewardsCount++;
@@ -136,7 +240,7 @@ BOOST_AUTO_TEST_CASE(countRwards)
     }
 
     BOOST_CHECK(nRewardsCount == 12);
-    BOOST_CHECK(nBlockRewardsCount == 518399);
+    BOOST_CHECK(nBlockRewardsCount == 518400);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
