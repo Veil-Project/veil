@@ -2834,6 +2834,64 @@ int AnonWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size_
     return 0;
 }
 
+/**Compute whether an anon input's key images belongs to us**/
+bool AnonWallet::IsMyAnonInput(const CTxIn& txin)
+{
+    uint32_t nInputs, nRingSize;
+    txin.GetAnonInfo(nInputs, nRingSize);
+
+    size_t nCols = nRingSize;
+    size_t nRows = nInputs + 1;
+
+    if (txin.scriptData.stack.size() != 1)
+        return false;
+
+    if (txin.scriptWitness.stack.size() != 2)
+        return false;
+
+    const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+    const std::vector<uint8_t> vMI = txin.scriptWitness.stack[0];
+    const std::vector<uint8_t> vDL = txin.scriptWitness.stack[1];
+
+    if (vKeyImages.size() != nInputs * 33)
+        return false;
+
+    std::vector<uint8_t> vM(nCols * nRows * 33);
+    std::set<CKey> setKeyCandidates;
+
+    size_t ofs = 0, nB = 0;
+    for (size_t k = 0; k < nInputs; ++k) {
+        for (size_t i = 0; i < nCols; ++i) {
+            int64_t nIndex;
+
+            if (0 != GetVarInt(vMI, ofs, (uint64_t &) nIndex, nB))
+                return false;
+            ofs += nB;
+
+            CAnonOutput ao;
+            if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
+                return false;
+            }
+
+            CKeyID stealthDest = ao.pubkey.GetID();
+            CKey key;
+            if (GetKey(stealthDest, key)) {
+                std::vector<uint8_t> vchKeyImage(33);
+                if (0 != secp256k1_get_keyimage(secp256k1_ctx_blind, vchKeyImage.data(), ao.pubkey.begin(), key.begin())) {
+                    continue;
+                }
+                CCmpPubKey keyImage(vchKeyImage);
+                for (const auto& ki : vKeyImages) {
+                    if (vchKeyImage == keyImage)
+                        return true;
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
 int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
         bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet, const CCoinControl *coinControl,
         std::string &sError, bool fZerocoinInputs, CAmount nInputValue)
