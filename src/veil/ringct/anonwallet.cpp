@@ -341,7 +341,7 @@ bool AnonWallet::GetKey(const CKeyID &address, CKey &keyOut) const
     if (StealthSecret(addr.scan_secret, vchEphemPK, addr.spend_pubkey, sShared, pkExtracted) != 0)
         return error("%s: failed to generate stealth secret", __func__);
 
-    return CalculateStealthDestinationKey(idStealth, address, sShared, keyOut);
+    return CalculateStealthDestinationKey(addr.GetSpendKeyID(), address, sShared, keyOut);
 };
 
 bool AnonWallet::GetPubKey(const CKeyID &address, CPubKey& pkOut) const
@@ -4888,7 +4888,10 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
     CAmount nValueInOwned = 0;
     bool fInsertedNew = ret.second;
     if (fInsertedNew) {
-        rtx.nTimeReceived = GetAdjustedTime();
+        if (pIndex)
+            rtx.nTimeReceived = pIndex->GetBlockTime();
+        else
+            rtx.nTimeReceived = GetAdjustedTime();
 
         MapRecords_t::iterator mri = ret.first;
         rtxOrdered.insert(std::make_pair(rtx.nTimeReceived, mri));
