@@ -150,9 +150,9 @@ public:
     qint64 time;
     Type type;
     std::string address;
-    CAmount debit;
-    CAmount credit;
-    CAmount fee;
+    CAmount debit = 0;
+    CAmount credit = 0;
+    CAmount fee = 0;
     int outputsSize = 0;
     int inputsSize = 0;
     int confirmations = 0;

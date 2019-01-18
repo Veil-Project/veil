@@ -23,9 +23,7 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
     ui->btnEsc->setProperty("cssClass" , "btn-text-primary-inactive");
     ui->useBasecoin->setProperty("cssClass" , "btn-check");
 
-    ui->btnSendMint->setProperty("cssClass" , "btn-text-primary");
-    ui->btnSendMint->setText("MINT");
-
+    ui->btnMint->setProperty("cssClass" , "btn-text-primary");
 
     ui->btnEsc->setProperty("cssClass" , "btn-text-primary-inactive");
 
