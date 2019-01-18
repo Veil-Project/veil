@@ -4516,10 +4516,9 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
                 const COutputRecord *r = mir->second.GetOutput(txin.prevout.n);
                 if (r && r->nFlags & ORF_OWN_ANY) {
                     fIsFromMe = true;
-                    break; // only need one match
                 }
+                MarkOutputSpent(txin.prevout, true);
             }
-            MarkOutputSpent(txin.prevout, true);
 
             //Double check for standard outputs from us
             if (!fIsFromMe && !txin.IsAnonInput()) {
