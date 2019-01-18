@@ -209,8 +209,12 @@ AddressesWidget::AddressesWidget(const PlatformStyle *platformStyle, WalletView 
     connect(ui->btnContacts,SIGNAL(clicked()),this,SLOT(onContactsClicked()));
     connect(ui->btnAdd,SIGNAL(clicked()),this,SLOT(onNewAddressClicked()));
     connect(ui->btnAddIcon,SIGNAL(clicked()),this,SLOT(onNewAddressClicked()));
-    connect(ui->btnMiningAddress,SIGNAL(clicked()),this,SLOT(onNewMinerAddressClicked()));
-    connect(ui->btnMiningAddress2,SIGNAL(clicked()),this,SLOT(onNewMinerAddressClicked()));
+
+    ui->btnMiningAddress->setVisible(false);
+    ui->btnMiningAddress2->setVisible(false);
+    ui->lblSplit->setVisible(false);
+    //connect(ui->btnMiningAddress,SIGNAL(clicked()),this,SLOT(onNewMinerAddressClicked()));
+    //connect(ui->btnMiningAddress2,SIGNAL(clicked()),this,SLOT(onNewMinerAddressClicked()));
 }
 
 void AddressesWidget::setWalletModel(WalletModel *model)
@@ -320,9 +324,9 @@ void AddressesWidget::onButtonChanged() {
 }
 
 void AddressesWidget::showHideMineAddressBtn(bool show){
-    ui->btnMiningAddress2->setVisible(show);
-    ui->btnMiningAddress->setVisible(show);
-    ui->lblSplit->setVisible(show);
+    //ui->btnMiningAddress2->setVisible(show);
+    //ui->btnMiningAddress->setVisible(show);
+    //ui->lblSplit->setVisible(show);
 }
 
 void AddressesWidget::onNewMinerAddressClicked(){

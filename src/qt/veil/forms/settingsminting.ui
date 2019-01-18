@@ -767,21 +767,7 @@ padding-bottom:3px;</string>
                <enum>Qt::NoFocus</enum>
               </property>
               <property name="styleSheet">
-               <string notr="true">#btnMint {
-border-radius: 6px;
-color: #105aef;
-font-size: 16px;
-background-color:#FFFFFF;
-border:1px solid #105aef;
-line-height:10px;
-padding:8 12 8 12 ;
-}
-
-#btnMint:hover {
-background-color:#FFFFFF;
-color:#0e45b4;
-border:1px solid #0e45b4;
-}</string>
+               <string notr="true"/>
               </property>
               <property name="text">
                <string>Mint Zerocoin Veil</string>
@@ -927,10 +913,25 @@ background-color:transparent;</string>
                  <enum>Qt::NoFocus</enum>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">padding-bottom:10px;</string>
+                 <string notr="true">#btnSendMint {
+border-radius: 6px;
+color: #105aef;
+font-size: 16px;
+background-color:#FFFFFF;
+border:1px solid #105aef;
+line-height:10px;
+padding:8px 12px 8px 12px ;
+padding-bottom:10px;
+}
+
+#btnSendMint:hover {
+background-color:#FFFFFF;
+color:#0e45b4;
+border:1px solid #0e45b4;
+}</string>
                 </property>
                 <property name="text">
-                 <string>SEND</string>
+                 <string>MINT</string>
                 </property>
                </widget>
               </item>

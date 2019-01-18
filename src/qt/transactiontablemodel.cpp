@@ -656,7 +656,7 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
     case AmountRole:
         return qint64(rec->credit + rec->debit);
     case FeeRole:
-        return "Fee " + BitcoinUnits::formatWithUnit(BitcoinUnits::VEIL, rec->getFee(), false, BitcoinUnits::separatorAlways);
+        return "Fee " + ( rec->getFee() == 0 ? "0.00 VEIL" : BitcoinUnits::formatWithUnit(BitcoinUnits::VEIL, rec->getFee(), false, BitcoinUnits::separatorAlways)) ;
     case TxHashRole:
         return rec->getTxHash();
     case TxHexRole:
