@@ -489,6 +489,8 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         uint256 txid = recordPair.first;
         CTransactionRecord txRecord = recordPair.second;
         const CWalletTx* pWalletTx = model->wallet().getWalletPointer()->GetWalletTx(txid);
+        if (!pWalletTx)
+            continue;
         if (pWalletTx->GetDepthInMainChain() < 0) continue;
         for(unsigned int i = 1; i < txRecord.vout.size(); i++) {
             COutputRecord outputRecord = txRecord.vout[i];
@@ -746,16 +748,22 @@ void CoinControlDialog::updateView()
 
     AnonWallet * pAnonWallet = model->wallet().getWalletPointer()->GetAnonWallet();
     std::map<uint256, CTransactionRecord> mapTxRecords = pAnonWallet->mapRecords;
-    std::map<CStealthAddress, std::tuple<CCoinControlWidgetItem*, CAmount, int>> mapTreeContainers;
+    std::map<CKeyID, std::tuple<CCoinControlWidgetItem*, CAmount, int>> mapTreeContainers;
     for (const auto& recordPair : mapTxRecords) {
         uint256 txid = recordPair.first;
         CTransactionRecord txRecord = recordPair.second;
         const CWalletTx* pWalletTx = model->wallet().getWalletPointer()->GetWalletTx(txid);
+        if (!pWalletTx)
+            continue;
         for(unsigned int i = 1; i < txRecord.vout.size(); i++) {
             int nChildren = 0;
             CAmount nSum = 0;
             const auto& out = txRecord.vout[i];
-            if(out.IsSpent())
+            if (out.IsSpent() || !(out.nFlags & ORF_OWNED) || out.IsBasecoin())
+                continue;
+
+            //Also need to filter out zerocoinmints
+            if (pWalletTx->tx->vpout[i]->IsZerocoinMint())
                 continue;
 
             CCoinControlWidgetItem *itemOutput;
@@ -763,17 +771,27 @@ void CoinControlDialog::updateView()
 
             //Get Address
             CKeyID stealthID;
-            if (!out.GetStealthID(stealthID))
-                LogPrintf("%s: Failed to get StealthID from OuputRecord", __func__);
             CStealthAddress sxAddress;
-            if (!pAnonWallet->GetStealthAddress(stealthID, sxAddress)) {
+            if (!out.GetStealthID(stealthID) && out.nType == OUTPUT_CT) {
+                // Manually parse the stealth destination from the transaction.
+                CTxOutCT* txout = (CTxOutCT*)pWalletTx->tx->vpout[i].get();
+                CTxDestination dest;
+                if (ExtractDestination(txout->scriptPubKey, dest)) {
+                    if (dest.type() == typeid(CKeyID)) {
+                        CKeyID idStealthDestination = boost::get<CKeyID>(dest);
+                        if (!pAnonWallet->GetStealthLinked(idStealthDestination, sxAddress))
+                            LogPrintf("%s: Failed to get StealthID from OuputRecord", __func__);
+                    }
+                }
+            } else if (!pAnonWallet->GetStealthAddress(stealthID, sxAddress)) {
                 LogPrintf("%s: Failed to get Stealth address from StealthID", __func__);
+                continue;
             }
 
             if (treeMode){
-                if (mapTreeContainers.count(sxAddress) == 0) {
+                if (mapTreeContainers.count(sxAddress.GetID()) == 0) {
                     CCoinControlWidgetItem* itemNewAddressContainer = new CCoinControlWidgetItem();
-                    mapTreeContainers[sxAddress] = std::make_tuple(itemNewAddressContainer, CAmount(), 0);;
+                    mapTreeContainers[sxAddress.GetID()] = std::make_tuple(itemNewAddressContainer, CAmount(), 1);
 
                     // wallet address
                     ui->treeWidget->addTopLevelItem(itemNewAddressContainer);
@@ -782,10 +800,10 @@ void CoinControlDialog::updateView()
                     itemNewAddressContainer->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
 
                     // address
-                    itemNewAddressContainer->setText(COLUMN_ADDRESS, QString::fromStdString(sxAddress.ToString()));
+                    itemNewAddressContainer->setText(COLUMN_ADDRESS, QString::fromStdString(sxAddress.ToString(/*fBech32*/true)));
 
                 }
-                auto const& mapEntry = mapTreeContainers[sxAddress];
+                auto const& mapEntry = mapTreeContainers[sxAddress.GetID()];
                 itemWalletAddress = std::get<0>(mapEntry);
                 nSum = std::get<1>(mapEntry);
                 nChildren = std::get<2>(mapEntry);
@@ -793,10 +811,10 @@ void CoinControlDialog::updateView()
             }
             else {
                 itemOutput = new CCoinControlWidgetItem(ui->treeWidget);
-                itemOutput->setText(COLUMN_ADDRESS, QString::fromStdString(sxAddress.ToString()));
+                itemOutput->setText(COLUMN_ADDRESS, QString::fromStdString(sxAddress.ToString(/*fBech32*/true)));
             }
 
-            QString sLabel = model->getAddressTableModel()->labelForAddress(QString::fromStdString(sxAddress.ToString()));
+            QString sLabel = model->getAddressTableModel()->labelForAddress(QString::fromStdString(sxAddress.ToString(/*fBech32*/true)));
             if (sLabel.isEmpty())
                 sLabel = tr("(no label)");
 
@@ -838,7 +856,7 @@ void CoinControlDialog::updateView()
                 itemWalletAddress->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, nSum));
                 itemWalletAddress->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong) nSum));
                 itemWalletAddress->setText(COLUMN_CHECKBOX, "(" + QString::number(nChildren) + ")");
-                mapTreeContainers[sxAddress] = std::make_tuple(itemWalletAddress, nSum, nChildren);
+                mapTreeContainers[sxAddress.GetID()] = std::make_tuple(itemWalletAddress, nSum, nChildren);
             }
 
             //Coin control interfacing
