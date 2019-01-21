@@ -71,6 +71,7 @@ public:
     std::string sNarration;
     bool fScriptSet;
     bool fChange;
+    bool fLastBlindDummy;
     bool fNonceSet;
     uint32_t nChildKey; // update later
     uint32_t nStealthPrefix;

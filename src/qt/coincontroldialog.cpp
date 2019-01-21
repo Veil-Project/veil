@@ -21,6 +21,7 @@
 #include <validation.h> // For mempool
 #include <wallet/fees.h>
 #include <wallet/wallet.h>
+#include <rpc/server.h>
 
 #include <QApplication>
 #include <QCheckBox>
@@ -377,8 +378,30 @@ void CoinControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
             coinControl()->UnSelect(outpt);
         else if (item->isDisabled()) // locked (this happens if "check all" through parent node)
             item->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
-        else
-            coinControl()->Select(outpt);
+        else {
+            int nTypeExisting = -1;
+            if (coinControl()->HasSelected()) {
+                // If coins are already selected make sure it matches other input types
+                nTypeExisting = coinControl()->nCoinType;
+            }
+
+            int nTypeSelected = -1;
+            auto strSelection = item->text(COLUMN_COINTYPE);
+            if (strSelection.contains("(RingCT)"))
+                nTypeSelected = OUTPUT_RINGCT;
+            else if (strSelection.contains("(CT)"))
+                nTypeSelected = OUTPUT_CT;
+            else
+                nTypeSelected = OUTPUT_STANDARD;
+
+            //Clear any other selections if not the same
+            if (nTypeExisting != -1 && nTypeExisting != nTypeSelected)
+                coinControl()->UnSelectAll();
+            coinControl()->nCoinType = nTypeSelected;
+
+            CAmount nValue = AmountFromValue(item->text(COLUMN_AMOUNT).toStdString());
+            coinControl()->Select(outpt, nValue);
+        }
 
         // selection changed -> update labels
         if (ui->treeWidget->isEnabled()) // do not update on every click for (un)select all
@@ -561,7 +584,7 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
     int nDisplayUnit = BitcoinUnits::VEIL;
     if (model && model->getOptionsModel())
         nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
-
+/*
     QLabel *l1 = dialog->findChild<QLabel *>("labelCoinControlQuantity");
     QLabel *l2 = dialog->findChild<QLabel *>("labelCoinControlAmount");
     QLabel *l3 = dialog->findChild<QLabel *>("labelCoinControlFee");
@@ -569,15 +592,16 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
     QLabel *l5 = dialog->findChild<QLabel *>("labelCoinControlBytes");
     QLabel *l7 = dialog->findChild<QLabel *>("labelCoinControlLowOutput");
     QLabel *l8 = dialog->findChild<QLabel *>("labelCoinControlChange");
-
+*/
     // enable/disable "dust" and "change"
+    /*
     dialog->findChild<QLabel *>("labelCoinControlLowOutputText")->setEnabled(nPayAmount > 0);
     dialog->findChild<QLabel *>("labelCoinControlLowOutput")    ->setEnabled(nPayAmount > 0);
     dialog->findChild<QLabel *>("labelCoinControlChangeText")   ->setEnabled(nPayAmount > 0);
     dialog->findChild<QLabel *>("labelCoinControlChange")       ->setEnabled(nPayAmount > 0);
-
+*/
     // stats
-    l1->setText(QString::number(nQuantity));                                 // Quantity
+/*    l1->setText(QString::number(nQuantity));                                 // Quantity
     l2->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nAmount));        // Amount
     l3->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nPayFee));        // Fee
     l4->setText(BitcoinUnits::formatWithUnit(nDisplayUnit, nAfterFee));      // After Fee
@@ -618,6 +642,7 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
     QLabel *label = dialog->findChild<QLabel *>("labelCoinControlInsuffFunds");
     if (label)
         label->setVisible(nChange < 0);
+        */
 }
 
 CCoinControl* CoinControlDialog::coinControl()
@@ -764,6 +789,10 @@ void CoinControlDialog::updateView()
 
             //Also need to filter out zerocoinmints
             if (pWalletTx->tx->vpout[i]->IsZerocoinMint())
+                continue;
+
+            //Don't display zero confirmed outputs
+            if (pWalletTx->GetDepthInMainChain() < 1)
                 continue;
 
             CCoinControlWidgetItem *itemOutput;

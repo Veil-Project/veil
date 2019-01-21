@@ -1529,7 +1529,7 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
     }
 
     for (const CTxIn& txin : tx.vin) {
-        coinControl.Select(txin.prevout);
+        coinControl.Select(txin.prevout, 0); //todo select amount
     }
 
     CTransactionRef tx_new;
