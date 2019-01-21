@@ -3170,7 +3170,7 @@ bool CWallet::FundTransaction(CMutableTransaction& tx, CAmount& nFeeRet, int& nC
     coinControl.fAllowOtherInputs = true;
 
     for (const CTxIn& txin : tx.vin) {
-        coinControl.Select(txin.prevout);
+        coinControl.Select(txin.prevout, 0); //todo select amount
     }
 
     // Acquire the locks to prevent races to the new locked unspents between the
@@ -4761,7 +4761,7 @@ void CWallet::AutoZeromint()
         CAmount nValueSelected = 0;
         for (const COutput& out : vOutputs) {
             nValueSelected += out.tx->tx->vpout[out.i]->GetValue();
-            coinControl.Select(COutPoint(out.tx->GetHash(), out.i));
+            coinControl.Select(COutPoint(out.tx->GetHash(), out.i), out.tx->tx->vpout[out.i]->GetValue());
             if (nValueSelected > nMintAmount)
                 break;
         }
@@ -5508,7 +5508,7 @@ string CWallet::MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std:
 {
     CCoinControl* coinControl = new CCoinControl();
     for (const COutPoint& output : vOutpts) {
-        coinControl->Select(output);
+        coinControl->Select(output, 0); //todo add amount
     }
 
     if (!coinControl->HasSelected()) {

@@ -83,6 +83,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
 
             sub.debit = -wtx.ct_fee.second;
             sub.credit = 0;
+            sub.fee = wtx.ct_fee.second;
             if (inputType != outputType) {
                 /** Type Conversion **/
                 switch (inputType) {
@@ -223,6 +224,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             sub.type = TransactionRecord::ZeroCoinStake;
             sub.address = mapValue["zerocoinmint"];
             sub.credit = 0;
+            sub.fee = 0;
             for (const auto& pOut : wtx.tx->vpout) {
                 if (pOut->IsZerocoinMint())
                     sub.credit += pOut->GetValue();
@@ -315,6 +317,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 else
                     sub.address = strAddress;
 
+                sub.fee = 0;
                 sub.idx = parts.size();
                 parts.append(sub);
                 continue;

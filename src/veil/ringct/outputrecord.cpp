@@ -44,7 +44,7 @@ bool COutputRecord::IsSend() const
 
 bool COutputRecord::IsBasecoin() const
 {
-    return nFlags == OUTPUT_STANDARD;
+    return nType == OUTPUT_STANDARD;
 }
 
 void COutputRecord::MarkSpent(bool isSpent)
