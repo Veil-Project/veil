@@ -115,6 +115,24 @@ CBlockIndex* CBlockIndex::GetAncestor(int height)
     return const_cast<CBlockIndex*>(static_cast<const CBlockIndex*>(this)->GetAncestor(height));
 }
 
+const CBlockIndex* CBlockIndex::GetBestPoWAncestor() const
+{
+    const CBlockIndex* pindexBestPoW = nullptr;
+    if (this->IsProofOfWork()) {
+        pindexBestPoW = this;
+    } else {
+        const CBlockIndex* pprev = this;
+        while (pprev->pprev) {
+            pprev = pprev->pprev;
+            if (pprev->IsProofOfWork()) {
+                pindexBestPoW = pprev;
+                break;
+            }
+        }
+    }
+    return pindexBestPoW;
+}
+
 void CBlockIndex::BuildSkip()
 {
     if (pprev)
@@ -135,6 +153,14 @@ int64_t CBlockIndex::GetBlockWork() const
         nBlockWork += 1001;
 
     return nBlockWork;
+}
+
+arith_uint256 CBlockIndex::GetChainPoW() const
+{
+    const CBlockIndex* pindexLastPoW = GetBestPoWAncestor();
+    if (!pindexLastPoW)
+        return 0;
+    return pindexLastPoW->nChainPoW + (IsProofOfWork() ? GetBlockProof(*this) : 0);
 }
 
 arith_uint256 GetBlockProof(const CBlockIndex& block)

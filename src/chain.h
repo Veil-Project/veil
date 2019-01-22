@@ -204,6 +204,9 @@ public:
     //! (memory only) Total amount of work (expected number of hashes) in the chain up to and including this block
     arith_uint256 nChainWork;
 
+    //! (memory only) Total amount of work (only looking at PoW) in the chain up to and including this block
+    arith_uint256 nChainPoW;
+
     //! Number of transactions in this block.
     //! Note: in a potential headers-first mode, this number cannot be relied upon
     unsigned int nTx;
@@ -260,6 +263,7 @@ public:
         nDataPos = 0;
         nUndoPos = 0;
         nChainWork = arith_uint256();
+        nChainPoW = arith_uint256();
         nTx = 0;
         nChainTx = 0;
         nStatus = 0;
@@ -371,6 +375,7 @@ public:
     }
 
     int64_t GetBlockWork() const;
+    arith_uint256 GetChainPoW() const;
 
     /** Returns the hash of the accumulator for the specified denomination. If it doesn't exist then a new uint256 is returned*/
     uint256 GetAccumulatorHash(libzerocoin::CoinDenomination denom) const
@@ -467,6 +472,7 @@ public:
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);
     const CBlockIndex* GetAncestor(int height) const;
+    const CBlockIndex* GetBestPoWAncestor() const;
 
     //!Add an accumulator to the CBlockIndex
     void AddAccumulator(libzerocoin::CoinDenomination denom,CBigNum bnAccumulator);

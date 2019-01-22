@@ -181,7 +181,8 @@ public:
      * If a block header hasn't already been seen, call CheckBlockHeader on it, ensure
      * that it doesn't descend from an invalid block, and then add it to mapBlockIndex.
      */
-    bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fProofOfStake, bool fProofOfFullNode) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+    bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams,
+            CBlockIndex** ppindex, bool fProofOfStake, bool fProofOfFullNode, int nMaxHeightNoPoWScore) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput* stake);
 
@@ -3669,7 +3670,7 @@ CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block, bool fProof
     pindexNew->nTimeMax = (pindexNew->pprev ? std::max(pindexNew->pprev->nTimeMax, pindexNew->nTime) : pindexNew->nTime);
 
     pindexNew->nChainWork = (pindexNew->pprev ? pindexNew->pprev->nChainWork : 0) + pindexNew->GetBlockWork();
-    //pindexNew->nChainWork = (pindexNew->pprev ? pindexNew->pprev->nChainWork : 0) + GetBlockProof(*pindexNew);
+    pindexNew->nChainPoW = pindexNew->GetChainPoW();
     pindexNew->RaiseValidity(BLOCK_VALID_TREE);
 
     //! This may be incorrect if sync headers first is enabled
@@ -4221,7 +4222,8 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     return true;
 }
 
-bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fProofOfStake, bool fProofOfFullNode)
+bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams,
+        CBlockIndex** ppindex, bool fProofOfStake, bool fProofOfFullNode, int nMaxHeightNoPoWScore)
 {
     AssertLockHeld(cs_main);
     // Check for duplicate
@@ -4271,7 +4273,13 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
                 }
             }
         }
+        // Don't save this header if it is too high to process without adding more PoW work
+        if (pindexPrev->nHeight + 1 >= nMaxHeightNoPoWScore) {
+            if (!block.fProofOfStake && chainActive.Tip()->nChainPoW >= pindexPrev->GetChainPoW())
+                return true;
+        }
     }
+
     if (pindex == nullptr)
         pindex = AddToBlockIndex(block, fProofOfStake, fProofOfFullNode);
 
@@ -4289,16 +4297,27 @@ bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidatio
     if (first_invalid != nullptr) first_invalid->SetNull();
     {
         LOCK(cs_main);
+        int nHeightMaxNonPoW = chainActive.Height() + Params().MaxHeaderRequestWithoutPoW();
+        nHeightMaxNonPoW = std::max(nHeightMaxNonPoW, Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints()));
         for (const CBlockHeader& header : headers) {
             CBlockIndex *pindex = nullptr; // Use a temp pindex instead of ppindex to avoid a const_cast
             bool fProofOfStake = header.fProofOfStake;// todo, no easy way to know if this is PoS block - maybe look at hash value?
             bool fProofOfFullNode = header.fProofOfFullNode;
-            if (!g_chainstate.AcceptBlockHeader(header, state, chainparams, &pindex, fProofOfStake, fProofOfFullNode)) {
+            if (!g_chainstate.AcceptBlockHeader(header, state, chainparams, &pindex, fProofOfStake, fProofOfFullNode, nHeightMaxNonPoW)) {
                 if (first_invalid) *first_invalid = header;
                 return false;
             }
+            if (!pindex)
+                return true;
             if (ppindex) {
                 *ppindex = pindex;
+            }
+            if (pindex->nHeight > nHeightMaxNonPoW) {
+                // If this index has is far in the future and has no way to validate it yet
+                // (PoW can check validity long range, PoS is limited to worst case 200ish blocks), then don't process at all
+                // and prevent any exhaustion vulnerabilities
+                if (chainActive.Tip()->nChainPoW >= pindex->nChainPoW)
+                    break;
             }
         }
     }
@@ -4363,7 +4382,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     CBlockIndex *pindexDummy = nullptr;
     CBlockIndex *&pindex = ppindex ? *ppindex : pindexDummy;
 
-    if (!AcceptBlockHeader(block, state, chainparams, &pindex, block.fProofOfStake, block.fProofOfFullNode))
+    if (!AcceptBlockHeader(block, state, chainparams, &pindex, block.fProofOfStake, block.fProofOfFullNode, chainActive.Height() + Params().MaxHeaderRequestWithoutPoW()))
         return error("%s: AcceptBlockHeader failed for block %s", __func__, block.GetHash().GetHex());
 
     //! Validate Proof of Stake (skip if a reindex is in progress)
@@ -4374,7 +4393,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
         uint256 hashProofOfStake = uint256();
         unique_ptr<CStakeInput> stake;
 
-        if (!CheckProofOfStake(block.vtx[1], block.nBits, block.nTime, hashProofOfStake, stake))
+        if (!CheckProofOfStake(pindex, block.vtx[1], block.nBits, block.nTime, hashProofOfStake, stake))
             return state.DoS(100, error("%s: proof of stake check failed", __func__));
 
         if (!stake)

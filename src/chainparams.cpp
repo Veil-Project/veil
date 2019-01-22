@@ -299,6 +299,8 @@ public:
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
+
+        nMaxHeaderRequestWithoutPoW = 50;
     }
 };
 
@@ -443,6 +445,8 @@ public:
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
+
+        nMaxHeaderRequestWithoutPoW = 50;
     }
 };
 
@@ -540,6 +544,8 @@ public:
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 400; //The required confirmations for a zerocoin to be stakable
         nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
+
+        nMaxHeaderRequestWithoutPoW = 50;
     }
 };
 
