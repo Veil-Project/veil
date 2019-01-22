@@ -132,6 +132,7 @@ public:
     int CoinbaseMaturity() const { return nCoinbaseMaturity; }
     int HeightSupplyCreationStop() const { return nHeightSupplyCreationStop; }
     int ProofOfFullNodeRounds() const {return nProofOfFullNodeRounds; }
+    int EnforceWeightReductionTime() const { return nTimeEnforceWeightReduction; }
 
 protected:
     CChainParams() {}
@@ -182,6 +183,9 @@ protected:
     int nCoinbaseMaturity;
     int nProofOfFullNodeRounds;
     int nHeightSupplyCreationStop;
+
+    //Time and height enforcements
+    int nTimeEnforceWeightReduction;
 };
 
 /**

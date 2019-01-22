@@ -295,6 +295,7 @@ public:
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 2000000;
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
+        nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
@@ -438,6 +439,7 @@ public:
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 2000000;
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
+        nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
@@ -537,6 +539,7 @@ public:
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 400; //The required confirmations for a zerocoin to be stakable
+        nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
     }
 };
 

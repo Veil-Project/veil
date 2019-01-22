@@ -158,7 +158,10 @@ bool CheckProofOfStake(const CTransactionRef txRef, const uint32_t& nBits, const
 
     unsigned int nBlockFromTime = blockprev.nTime;
     unsigned int nTxTime = nTimeBlock;
-    if (!CheckStake(stake->GetUniqueness(), stake->GetValue(), nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime,
+    CAmount nValue = stake->GetValue();
+    if (nTimeBlock > Params().EnforceWeightReductionTime())
+        WeightStake(nValue, stake->GetDenomination());
+    if (!CheckStake(stake->GetUniqueness(), nValue, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime,
                     nTxTime, hashProofOfStake)) {
         return error("CheckProofOfStake() : INFO: check kernel failed on coinstake %s, hashProof=%s \n",
                      txRef->GetHash().GetHex(), hashProofOfStake.GetHex());
