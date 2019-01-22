@@ -217,6 +217,99 @@ UniValue generateBlocks(bool fGenerate, int nThreads, std::shared_ptr<CReserveSc
     return UniValue(UniValue::VNULL);
 }
 
+UniValue generateBlocks(std::shared_ptr<CTempRecipient> recipient, int nGenerate, uint64_t nMaxTries, bool keepScript, std::shared_ptr<CStealthAddress> address)
+{
+    static const int nInnerLoopCount = 0x10000;
+    int nHeightEnd = 0;
+    int nHeight = 0;
+
+    {   // Don't keep cs_main locked
+        LOCK(cs_main);
+        nHeight = chainActive.Height();
+        nHeightEnd = nHeight+nGenerate;
+    }
+    unsigned int nExtraNonce = 0;
+    UniValue blockHashes(UniValue::VARR);
+    while (nHeight < nHeightEnd && !ShutdownRequested())
+    {
+        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(*recipient, true, false, false, address));
+        if (!pblocktemplate.get())
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
+        CBlock *pblock = &pblocktemplate->block;
+        {
+            LOCK(cs_main);
+            IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
+        }
+        if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+            uint256 mix_hash;
+            while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount && !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits, Params().GetConsensus())) {
+                ++pblock->nNonce64;
+                --nMaxTries;
+            }
+            pblock->mixHash = mix_hash;
+        } else if (pblock->IsRandomX() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+            char hash[RANDOMX_HASH_SIZE];
+
+            arith_uint256 bnTarget;
+            bool fNegative;
+            bool fOverflow;
+
+            bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
+
+            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount) {
+                // RandomX hash
+                uint256 hash_blob = pblock->GetRandomXHeaderHash();
+                randomx_calculate_hash(GetMyMachineValidating(), &hash_blob, sizeof uint256(), hash);
+
+                uint256 uint256Hash = RandomXHashToUint256(hash);
+
+                // Check proof of work matches claimed amount
+                if (UintToArith256(uint256Hash) < bnTarget)
+                    break;
+
+                ++pblock->nNonce;
+                --nMaxTries;
+            }
+        } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount &&
+                   !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                ++pblock->nNonce;
+                --nMaxTries;
+            }
+        } else {
+            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount &&
+                   !CheckProofOfWork(pblock->GetX16RTPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                ++pblock->nNonce;
+                --nMaxTries;
+            }
+        }
+        if (nMaxTries == 0) {
+            break;
+        }
+        if (pblock->nNonce == nInnerLoopCount) {
+            continue;
+        }
+        std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
+        if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr))
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "ProcessNewBlock, block not accepted");
+        ++nHeight;
+        blockHashes.push_back(pblock->GetHash().GetHex());
+
+        //mark script as important because it was used at least for one coinbase output if the script came from the wallet
+//        if (keepScript)
+//        {
+//            coinbaseScript->KeepScript();
+//        }
+    }
+    return blockHashes;
+}
+
+UniValue generateBlocks(bool fGenerate, int nThreads, std::shared_ptr<CTempRecipient> recipient)
+{
+    GenerateBitcoins(fGenerate, nThreads, recipient);
+    return UniValue(UniValue::VNULL);
+}
+
 static UniValue generatetoaddress(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 3)

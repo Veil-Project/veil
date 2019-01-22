@@ -4635,7 +4635,10 @@ bool AnonWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t
             CTxDestination address;
             if (!ExtractDestination(ctout->scriptPubKey, address)
                 || address.type() != typeid(CKeyID)) {
-                LogPrintf("%s: ExtractDestination failed.\n", __func__);
+                if (!ExtractDestination(ctout->scriptPubKey, address))
+                    LogPrintf("%s: ExtractDestination failed.\n", __func__);
+                if (address.type() != typeid(CKeyID))
+                    LogPrintf("%s: KeyType failed.\n", __func__);
                 continue;
             }
 
@@ -5515,7 +5518,7 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
 
     if (fInsertedNew || fUpdated) {
         // Plain to plain will always be a wtx, revisit if adding p2p to rtx
-        if (!tx.GetCTFee(rtx.nFee))
+        if (!tx.IsCoinBase() && !tx.GetCTFee(rtx.nFee))
             LogPrintf("%s: ERROR - GetCTFee failed %s.\n", __func__, txhash.ToString());
 
         // If txn has change, it must have been sent by this wallet

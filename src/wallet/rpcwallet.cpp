@@ -4308,19 +4308,20 @@ UniValue generate(const JSONRPCRequest& request)
     }
 
     std::shared_ptr<CReserveScript> coinbase_script;
-    pwallet->GetScriptForMining(coinbase_script);
+    std::shared_ptr<CTempRecipient> recipient;
+    pwallet->GetRecipientForMining(recipient);
 
     // If the keypool is exhausted, no script is returned at all.  Catch this.
-    if (!coinbase_script) {
+    if (!recipient) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
     }
 
     //throw an error if no script was provided
-    if (coinbase_script->reserveScript.empty()) {
-        throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
-    }
+//    if (coinbase_script->reserveScript.empty()) {
+//        throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
+//    }
 
-    return generateBlocks(coinbase_script, num_generate, max_tries, true);
+    return generateBlocks(recipient, num_generate, max_tries, true);
 }
 
 UniValue generatecontinuous(const JSONRPCRequest& request)
@@ -4352,20 +4353,22 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
     if (request.params.size() > 1)
         nThreads = request.params[1].get_int();
 
-    std::shared_ptr<CReserveScript> coinbase_script;
-    pwallet->GetScriptForMining(coinbase_script);
+//    std::shared_ptr<CReserveScript> coinbase_script;
+//    pwallet->GetScriptForMining(coinbase_script);
+    std::shared_ptr<CTempRecipient> recipient;
+    pwallet->GetRecipientForMining(recipient);
 
     // If the keypool is exhausted, no script is returned at all.  Catch this.
-    if (!coinbase_script) {
+    if (!recipient) {
         throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
     }
 
-    //throw an error if no script was provided
-    if (coinbase_script->reserveScript.empty()) {
-        throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
-    }
+//    //throw an error if no script was provided
+//    if (coinbase_script->reserveScript.empty()) {
+//        throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
+//    }
 
-    return generateBlocks(fGenerate, nThreads, coinbase_script);
+    return generateBlocks(fGenerate, nThreads, recipient);
 }
 
 UniValue rescanblockchain(const JSONRPCRequest& request)

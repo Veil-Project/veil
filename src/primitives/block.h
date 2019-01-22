@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <libzerocoin/Denominations.h>
 #include <iostream>
+#include <logging.h>
 
 
 static const int32_t BITS_TO_BLOCK_VERSION = 28;

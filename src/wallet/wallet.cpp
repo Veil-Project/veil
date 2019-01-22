@@ -4678,6 +4678,74 @@ void CWallet::GetScriptForMining(std::shared_ptr<CReserveScript> &script)
     script->reserveScript = CScript() << ToByteVector(pubkey) << OP_CHECKSIG;
 }
 
+/**
+ * Gets recipient info to send to a stealth address for mining. Uses the stealth
+ * address provided or generates a new stealth address if there is none.
+ */
+void CWallet::GetRecipientForMining(std::shared_ptr<CTempRecipient> &recipient, std::shared_ptr<CStealthAddress> address)
+{
+    auto pMainWallet = GetMainWallet();
+    if (!pMainWallet) {
+        LogPrintf("%s: Failed to get main wallet for mining", __func__);
+        return;
+    }
+
+//    static CEKAStealthKey akStealth;
+//    // Generate a new stealth key if no stealth address was provided and not already set
+//    if (address == nullptr && !akStealth.skScan.IsValid()) {
+//        LogPrintf("%s: Generating new stealth key for mining", __func__);
+//        std::string label("Mining address");
+//        GetAnonWallet()->NewStealthKey()NewStealthKeyFromAccount(label, akStealth, 0, nullptr, true);
+//    }
+
+    // Set stealth address
+    CStealthAddress stealthAddr;
+    auto anonWallet = GetAnonWallet();
+    if (address == nullptr) {
+
+        if (anonWallet) {
+            if (!anonWallet->NewStealthKey(stealthAddr, 0, nullptr)) {
+                LogPrintf("%s: Failed to get new stealth address for mining", __func__);
+                return;
+            }
+        } else {
+            LogPrintf("%s: Failed to get anon wallet for mining", __func__);
+            return;
+        }
+    } else {
+        stealthAddr = *address;
+    }
+
+    CKey ephemeralKey;
+    CKey secretShared;
+    ec_point pkSendTo;
+    int nResult;
+    do {
+        ephemeralKey.MakeNewKey(true);
+        nResult = StealthSecret(ephemeralKey, stealthAddr.scan_pubkey, stealthAddr.spend_pubkey, secretShared, pkSendTo);
+    } while (nResult != 0);
+
+    // Generate a new ephemeral key every time, since an ephemeral key cannot be used twice
+    recipient = std::make_shared<CTempRecipient>();
+    recipient->nType = OUTPUT_CT;
+    recipient->isMine = true;
+    recipient->address = stealthAddr;
+
+    recipient->pkTo = CPubKey(pkSendTo);
+    recipient->sEphem = ephemeralKey;
+    recipient->vBlind.resize(32);
+    GetStrongRandBytes(&recipient->vBlind[0], 32);
+
+
+    std::string strError;
+    vector<CTempRecipient> recp;
+    recp.emplace_back(*recipient);
+    if (!anonWallet->ExpandTempRecipients(recp, strError))
+        LogPrintf("%s: Failed change dest. %s", __func__, strError);
+
+    *recipient = recp[0];
+}
+
 void CWallet::LockCoin(const COutPoint& output)
 {
     AssertLockHeld(cs_wallet); // setLockedCoins

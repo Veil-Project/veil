@@ -1958,22 +1958,23 @@ bool AppInitMain()
             auto pt = GetMainWallet();
             if (pt) {
                 std::shared_ptr<CReserveScript> coinbase_script;
-                pt->GetScriptForMining(coinbase_script);
+                std::shared_ptr<CTempRecipient> recipient;
+                pt->GetRecipientForMining(recipient);
 
                 // If the keypool is exhausted, no script is returned at all.  Catch this.
-                if (!coinbase_script) {
+                if (!recipient) {
                     error("Failed to start veilminer: Keypool ran out, please call keypoolrefill first");
                     fSkip = true;
                 }
 
                 //throw an error if no script was provided
-                if (coinbase_script->reserveScript.empty()) {
-                    error("Failed to start veilminer: No coinbase script available");
-                    fSkip = true;
-                }
+//                if (coinbase_script->reserveScript.empty()) {
+//                    error("Failed to start veilminer: No coinbase script available");
+//                    fSkip = true;
+//                }
 
                 if (!fSkip)
-                    GenerateBitcoins(true, nThreads, coinbase_script);
+                    GenerateBitcoins(true, nThreads, recipient);
             }
         }
 

@@ -513,7 +513,9 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
             nBasecoin++;
         } else if (coin.nType == OUTPUT_CT) {
             vpCommitsIn.push_back(&coin.commitment);
+            LogPrintf("Got value from ct %d\n", coin.out.nValue);
             nCt++;
+
         } else {
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-input-type");
         }
@@ -576,6 +578,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         uint8_t blindPlain[32];
         memset(blindPlain, 0, 32);
         if (nValueIn > 0) {
+            LogPrintf("inputs: %d\n", nValueIn);
             if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainInCommitment, blindPlain, (uint64_t) nValueIn, secp256k1_generator_h))
                 return state.Invalid(false, REJECT_INVALID, "commit-failed");
 
@@ -583,6 +586,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
         }
 
         if (nPlainValueOut > 0) {
+            LogPrintf("outputs: %d\n", nPlainValueOut);
             if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainOutCommitment, blindPlain, (uint64_t) nPlainValueOut, secp256k1_generator_h))
                 return state.Invalid(false, REJECT_INVALID, "commit-failed");
 
@@ -591,8 +595,9 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
 
         secp256k1_pedersen_commitment *pc;
         for (auto &txout : tx.vpout) {
-            if ((pc = txout->GetPCommitment()))
+            if ((pc = txout->GetPCommitment())) {
                 vpCommitsOut.push_back(pc);
+            }
         }
 
         int rv = secp256k1_pedersen_verify_tally(secp256k1_ctx_blind, vpCommitsIn.data(), vpCommitsIn.size(),
