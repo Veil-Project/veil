@@ -2263,7 +2263,7 @@ CAmount CWalletTx::GetImmatureCredit(bool fUseCache) const
     return 0;
 }
 
-CAmount CWalletTx::GetAvailableCredit(bool fUseCache, const isminefilter& filter) const
+CAmount CWalletTx::GetAvailableCredit(bool fUseCache, const isminefilter& filter, bool fBaseCoinOnly) const
 {
     if (pwallet == nullptr)
         return 0;
@@ -2296,7 +2296,7 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache, const isminefilter& filter
                 CTxOut out;
                 if (pout->GetTxOut(out))
                     nCredit += pwallet->GetCredit(out, filter);
-            } else {
+            } else if (!fBaseCoinOnly) {
                 nCredit += pwallet->GetAnonCredit(COutPoint(hashTx, i), filter);
             }
             if (!MoneyRange(nCredit))
@@ -2467,18 +2467,15 @@ bool CWallet::GetBalances(BalanceList& bal)
     LOCK2(cs_main, cs_wallet);
     for (const auto &item : mapWallet) {
         const CWalletTx &wtx = item.second;
-        //Blinded values will come from anonwallet
-        if (wtx.tx->HasBlindedValues())
-            continue;
         bal.nVeilImmature += wtx.GetImmatureCredit();
 
         if (wtx.IsTrusted()) {
-            bal.nVeil += wtx.GetAvailableCredit();
-            bal.nVeilWatchOnly += wtx.GetAvailableCredit(true, ISMINE_WATCH_ONLY);
+            bal.nVeil += wtx.GetAvailableCredit(true, ISMINE_SPENDABLE, true);
+            bal.nVeilWatchOnly += wtx.GetAvailableCredit(true, ISMINE_WATCH_ONLY, true);
         } else {
             if (wtx.GetDepthInMainChain() == 0 && wtx.InMempool()) {
-                bal.nVeilUnconf += wtx.GetAvailableCredit();
-                bal.nVeilWatchOnlyUnconf += wtx.GetAvailableCredit(true, ISMINE_WATCH_ONLY);
+                bal.nVeilUnconf += wtx.GetAvailableCredit(true, ISMINE_SPENDABLE, true);
+                bal.nVeilWatchOnlyUnconf += wtx.GetAvailableCredit(true, ISMINE_WATCH_ONLY, true);
             }
         }
     }
