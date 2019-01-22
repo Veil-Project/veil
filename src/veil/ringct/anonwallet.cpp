@@ -1004,6 +1004,8 @@ bool AnonWallet::GetBalances(BalanceList &bal)
         const auto &rtx = ri.second;
 
         bool fTrusted = IsTrusted(txhash, rtx.blockHash);
+        int nDepth = GetDepthInMainChain(rtx.blockHash, 0);
+        bool fConfirmed = nDepth >= 11;
         bool fInMempool = false;
         if (!fTrusted) {
             CTransactionRef ptx = mempool.get(txhash);
@@ -1019,7 +1021,9 @@ bool AnonWallet::GetBalances(BalanceList &bal)
                 case OUTPUT_RINGCT:
                     if (!(r.nFlags & ORF_OWNED) || r.IsSpent())
                         continue;
-                    if (fTrusted)
+                    if (fTrusted && !fConfirmed)
+                        bal.nRingCTImmature += r.GetAmount();
+                    else if (fTrusted && fConfirmed)
                         bal.nRingCT += r.GetAmount();
                     else if (fInMempool)
                         bal.nRingCTUnconf += r.GetAmount();
@@ -1027,7 +1031,9 @@ bool AnonWallet::GetBalances(BalanceList &bal)
                 case OUTPUT_CT:
                     if (!(r.nFlags & ORF_OWNED) || r.IsSpent())
                         continue;
-                    if (fTrusted)
+                    if(fTrusted && !fConfirmed)
+                        bal.nCTImmature += r.GetAmount();
+                    else if (fTrusted && fConfirmed)
                         bal.nCT += r.GetAmount();
                     else if (fInMempool)
                         bal.nCTUnconf += r.GetAmount();
