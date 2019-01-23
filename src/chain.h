@@ -166,6 +166,10 @@ enum BlockStatus: uint32_t {
     BLOCK_OPT_WITNESS       =   128, //!< block data in blk*.data was received with a witness-enforcing client
 };
 
+enum BlockMemFlags: uint32_t {
+    POS_BADWEIGHT = (1 << 0),
+};
+
 /** The block chain is a tree shaped structure starting with the
  * genesis block at the root, with each block potentially having multiple
  * candidates to be the next block. A blockindex may have multiple pprev pointing
@@ -244,6 +248,9 @@ public:
     //! (memory only) Maximum nTime in the chain up to and including this block.
     unsigned int nTimeMax;
 
+    //! (memory only) Maximum nTime in the chain up to and including this block.
+    uint32_t nMemFlags;
+
     //! Hash value for the accumulator. Can be used to access the zerocoindb for the accumulator value
     std::map<libzerocoin::CoinDenomination ,uint256> mapAccumulatorHashes;
 
@@ -269,6 +276,7 @@ public:
         nStatus = 0;
         nSequenceId = 0;
         nTimeMax = 0;
+        nMemFlags = 0;
         nNetworkRewardReserve = 0;
 
         //Proof of stake

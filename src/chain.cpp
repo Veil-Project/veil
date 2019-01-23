@@ -141,6 +141,9 @@ void CBlockIndex::BuildSkip()
 
 int64_t CBlockIndex::GetBlockWork() const
 {
+    if (nMemFlags & POS_BADWEIGHT)
+        return -100; //prefer a chain without this
+
     int64_t nTimeSpan = 0;
     if (pprev && pprev->pprev)
         nTimeSpan = pprev->GetBlockTime() - pprev->pprev->GetBlockTime();

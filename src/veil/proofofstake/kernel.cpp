@@ -122,7 +122,7 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
 }
 
 // Check kernel hash target and coinstake signature
-bool CheckProofOfStake(const CTransactionRef txRef, const uint32_t& nBits, const unsigned int& nTimeBlock, uint256& hashProofOfStake, std::unique_ptr<CStakeInput>& stake)
+bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, const uint32_t& nBits, const unsigned int& nTimeBlock, uint256& hashProofOfStake, std::unique_ptr<CStakeInput>& stake)
 {
     if (!txRef->IsCoinStake())
         return error("CheckProofOfStake() : called on non-coinstake %s", txRef->GetHash().ToString().c_str());
@@ -159,10 +159,17 @@ bool CheckProofOfStake(const CTransactionRef txRef, const uint32_t& nBits, const
     unsigned int nBlockFromTime = blockprev.nTime;
     unsigned int nTxTime = nTimeBlock;
     CAmount nValue = stake->GetValue();
-    if (nTimeBlock > Params().EnforceWeightReductionTime())
-        WeightStake(nValue, stake->GetDenomination());
+    //if (nTimeBlock > Params().EnforceWeightReductionTime())
+    WeightStake(nValue, stake->GetDenomination());
     if (!CheckStake(stake->GetUniqueness(), nValue, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime,
                     nTxTime, hashProofOfStake)) {
+        if (CheckStake(stake->GetUniqueness(), stake->GetValue(), nStakeModifier, ArithToUint256(bnTargetPerCoinDay),
+                nBlockFromTime, nTxTime, hashProofOfStake)) {
+            //Used a modified weighting, orphan off if possible
+            pindexCheck->nMemFlags |= POS_BADWEIGHT;
+            LogPrintf("%s: Modified weight detected block %s\n", __func__, pindexCheck->GetBlockHash().GetHex());
+            return true;
+        }
         return error("CheckProofOfStake() : INFO: check kernel failed on coinstake %s, hashProof=%s \n",
                      txRef->GetHash().GetHex(), hashProofOfStake.GetHex());
     }

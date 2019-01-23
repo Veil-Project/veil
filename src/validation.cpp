@@ -4494,6 +4494,10 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
         return AbortNode(state, std::string("System error: ") + e.what());
     }
 
+    //Possible that block index had more or less trust added after full knowledge of the block. Flush in case changed.
+    pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + pindex->GetBlockWork();
+    setDirtyBlockIndex.emplace(pindex);
+
     FlushStateToDisk(chainparams, state, FlushStateMode::NONE);
 
     CheckBlockIndex(chainparams.GetConsensus());
