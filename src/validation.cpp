@@ -4093,7 +4093,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
 
     int nMaxReorgDepth = gArgs.GetArg("-maxreorg", DEFAULT_MAX_REORG_DEPTH);
     if (chainActive.Height() - nHeight >= nMaxReorgDepth)
-        return state.DoS(25, error("%s: forked chain older than max reorganization depth (height %d)", __func__, nHeight), REJECT_DEPTH, "bad-fork-prior-to-max-reorg-depth");
+        return state.DoS(100, error("%s: forked chain older than max reorganization depth (height %d)", __func__, nHeight), REJECT_DEPTH, "bad-fork-prior-to-max-reorg-depth");
 
     // Check timestamp against prev
     if (block.GetBlockTime() <= pindexPrev->GetMedianTimePast() || (pindexPrev->nHeight > 5000 && block.GetBlockTime() < pindexPrev->GetBlockTime() - MAX_PAST_BLOCK_TIME))
@@ -4291,17 +4291,47 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
     return true;
 }
 
+bool IsAncestor(const CBlockIndex* pindexChain, const CBlockIndex* pindexCheck)
+{
+    if (!pindexChain || !pindexCheck)
+        return false;
+    if (pindexChain->nHeight <= pindexCheck->nHeight)
+        return false;
+
+    return pindexChain->GetAncestor(pindexCheck->nHeight)->GetBlockHash() == pindexCheck->GetBlockHash();
+}
+
+// If there are too many loose block indexes, then delete the extras.
+void CleanBlockIndexGarbage()
+{
+    std::set<uint256> setDelete;
+    for (const auto& p : mapBlockIndex) {
+        const CBlockIndex* pindex = p.second;
+        if (pindexBestHeader && (!IsAncestor(pindexBestHeader, pindex) && !chainActive.Contains(pindex)))
+            setDelete.emplace(p.first);
+    }
+
+    if (setDelete.size() > 1000) {
+        LogPrintf("%s: Erasing %d irrelivant indexes\n", __func__, setDelete.size());
+        for (const uint256& hash : setDelete) {
+            mapBlockIndex.erase(hash);
+        }
+    }
+}
+
 // Exposed wrapper for AcceptBlockHeader
 bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex, CBlockHeader *first_invalid)
 {
     if (first_invalid != nullptr) first_invalid->SetNull();
     {
         LOCK(cs_main);
+        CleanBlockIndexGarbage();
         int nHeightMaxNonPoW = chainActive.Height() + Params().MaxHeaderRequestWithoutPoW();
         nHeightMaxNonPoW = std::max(nHeightMaxNonPoW, Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints()));
+
         for (const CBlockHeader& header : headers) {
             CBlockIndex *pindex = nullptr; // Use a temp pindex instead of ppindex to avoid a const_cast
-            bool fProofOfStake = header.fProofOfStake;// todo, no easy way to know if this is PoS block - maybe look at hash value?
+            bool fProofOfStake = header.fProofOfStake;
             bool fProofOfFullNode = header.fProofOfFullNode;
             if (!g_chainstate.AcceptBlockHeader(header, state, chainparams, &pindex, fProofOfStake, fProofOfFullNode, nHeightMaxNonPoW)) {
                 if (first_invalid) *first_invalid = header;
