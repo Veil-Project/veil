@@ -1476,6 +1476,7 @@ void ProcessStaging()
         std::vector<CBigNum> vBlockSerials;
         std::vector<libzerocoin::SerialNumberSoKProof> vProofs;
         std::set<int> setRemoveBlocks;
+        std::set<uint256> setBatchTxHashes;
         int nBestHeight = nHeightNext -1;
         int nHaveCheckpointHeight = 10 - (nBestHeight % 10) + nBestHeight;
         int nHighestBlockCheck = 0;
@@ -1508,6 +1509,7 @@ void ProcessStaging()
 
                         vBlockSerials.emplace_back(spend.getCoinSerialNumber());
                     }
+                    setBatchTxHashes.emplace(tx->GetHash());
                 }
 
                 if (fSkipBlock)
@@ -1538,12 +1540,19 @@ void ProcessStaging()
         }
 
         if (fVerificationSuccess) {
-            LOCK(cs_staging);
-            for (auto &blockPair : mapStagedBlocksCopy) {
-                if (!mapStagedBlocks.count(blockPair.first))
-                    continue;
+            {
+                LOCK(cs_staging);
+                for (auto &blockPair : mapStagedBlocksCopy) {
+                    if (!mapStagedBlocks.count(blockPair.first))
+                        continue;
 
-                mapStagedBlocks[blockPair.first].fSignaturesVerified = true;
+                    mapStagedBlocks[blockPair.first].fSignaturesVerified = true;
+                }
+            }
+            {
+                LOCK(cs_main);
+                for (const uint256 &hash : setBatchTxHashes)
+                    setBatchVerified.emplace(hash);
             }
         }
 
@@ -2433,8 +2442,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         LOCK(cs_main);
         if (!HeadersAndBlocksSynced() && !pfrom->fWhitelisted) {
             LogPrint(BCLog::NET, "Ignoring getheaders from peer=%d because node is in initial block download\n", pfrom->GetId());
-            if (pindexBestHeader->GetBlockTime() < GetTime() - 180)
-                connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexBestHeader), uint256()));;
             return true;
         }
 
@@ -3069,9 +3076,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     if (nStagedCacheSize < STAGING_CACHE_SIZE) {
                         LOCK(cs_staging);
                         nStagedCacheSize += nSizeBlock;
-                        mapStagedBlocks.emplace(pindexPrev->nHeight+1, *pblock);
-                        LogPrint(BCLog::NET, "staging block %s (%d) because only have prevheader and not prev block\n",
-                                 pblock->GetHash().ToString(), pindexPrev->nHeight+1);
+                        mapStagedBlocks.emplace(nHeightBlock, *pblock);
+                        LogPrint(BCLog::NET, "staging block %s (%d) because only have prevheader and not prev block. Need:%d\n",
+                                 pblock->GetHash().ToString(), pindexPrev->nHeight+1, nHeightNext);
                     } else {
                         LogPrint(BCLog::NET, "staging area full, discarding block %s (%d)\n",
                                 pblock->GetHash().ToString(), pindexPrev->nHeight+1);

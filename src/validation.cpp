@@ -254,6 +254,7 @@ bool fCheckpointsEnabled = DEFAULT_CHECKPOINTS_ENABLED;
 size_t nCoinCacheUsage = 5000 * 300;
 std::map<uint256, unsigned int> mapHashedBlocks;
 std::map<unsigned int, unsigned int> mapStakeHashCounter;
+std::set<uint256> setBatchVerified;
 uint64_t nPruneTarget = 0;
 int64_t nMaxTipAge = DEFAULT_MAX_TIP_AGE;
 bool fEnableReplacement = DEFAULT_ENABLE_REPLACEMENT;
@@ -770,7 +771,8 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
                 libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
                                                         spend->getSerialComm(), spend->getHashSig());
-                vProofs.emplace_back(proof);
+                if (!setBatchVerified.count(tx.GetHash()))
+                    vProofs.emplace_back(proof);
                 setSerials.emplace(bnSerial);
                 continue;
             }
@@ -2342,6 +2344,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     CAmount nBlockValueOut = 0;
     int64_t nTimeZerocoinSpendCheck = 0;
     std::vector<libzerocoin::SerialNumberSoKProof> vProofs;
+    std::vector<uint256> vTxidProofs;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2426,7 +2429,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                                                     tx.GetHash().GetHex()), REJECT_INVALID);
                     libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
                                                             spend->getSerialComm(), spend->getHashSig());
-                    vProofs.emplace_back(proof);
+                    if (!setBatchVerified.count(txid)) {
+                        vTxidProofs.emplace_back(txid);
+                        vProofs.emplace_back(proof);
+                    }
                 }
                 nTimeZerocoinSpendCheck += GetTimeMicros() - nTimeSpendCheck;
             }
@@ -2575,6 +2581,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             return state.DoS(100, error("%s: Failed to verify zerocoinspend proofs for block=%s height=%d", __func__,
                                         block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID);
         }
+
+        //Global tracker for already validated proofs
+        for (const uint256& txid : vTxidProofs)
+            setBatchVerified.emplace(txid);
     }
     nTimeSigVerify = GetTimeMicros() - nTimeSigVerify;
     nTimeZerocoinSpendCheck += nTimeSigVerify;
@@ -4402,7 +4412,9 @@ bool CChainState::ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput*
 }
 
 /** Store block on disk. If dbp is non-nullptr, the file is known to already reside on disk */
-bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock)
+bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state,
+        const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp,
+        bool* fNewBlock)
 {
     const CBlock& block = *pblock;
 
@@ -4493,10 +4505,6 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     } catch (const std::runtime_error& e) {
         return AbortNode(state, std::string("System error: ") + e.what());
     }
-
-    //Possible that block index had more or less trust added after full knowledge of the block. Flush in case changed.
-    pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + pindex->GetBlockWork();
-    setDirtyBlockIndex.emplace(pindex);
 
     FlushStateToDisk(chainparams, state, FlushStateMode::NONE);
 
