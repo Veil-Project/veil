@@ -4825,6 +4825,7 @@ bool CChainState::LoadBlockIndex(const Consensus::Params& consensus_params, CBlo
         int64_t nTimeSpan = 0;
 
         pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + pindex->GetBlockWork();
+        pindex->nChainPoW = pindex->GetChainPoW();
         pindex->nTimeMax = (pindex->pprev ? std::max(pindex->pprev->nTimeMax, pindex->nTime) : pindex->nTime);
         // We can link the chain of blocks for which we've received transactions at some point.
         // Pruned nodes may have deleted the block.

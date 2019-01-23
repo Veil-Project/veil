@@ -18,6 +18,7 @@
 #include "stakeinput.h"
 #include "veil/zerocoin/zchain.h"
 #include "libzerocoin/bignum.h"
+#include <versionbits.h>
 
 using namespace std;
 
@@ -62,7 +63,7 @@ void WeightStake(CAmount& nValueIn, const libzerocoin::CoinDenomination denom)
     }
 }
 
-bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockFrom, unsigned int& nTimeTx, uint256& hashProofOfStake)
+bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockFrom, unsigned int& nTimeTx, uint256& hashProofOfStake, bool fWeightStake)
 {
     if (nTimeTx < nTimeBlockFrom)
         return error("Stake() : nTime violation");
@@ -90,13 +91,14 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
     CAmount nValueIn = stakeInput->GetValue();
 
     //Adjust stake weights to larger denoms
-    WeightStake(nValueIn, stakeInput->GetDenomination());
+    if (fWeightStake)
+        WeightStake(nValueIn, stakeInput->GetDenomination());
 
     int nBestHeight = chainActive.Tip()->nHeight;
     uint256 hashBestBlock = chainActive.Tip()->GetBlockHash();
-    if (!mapStakeHashCounter.count(nBestHeight)) {
+    if (!mapStakeHashCounter.count(nBestHeight))
         mapStakeHashCounter[nBestHeight] = 0;
-    }
+
     for (int i = 0; i < nHashDrift; i++) //iterate the hashing
     {
         //new block came in, move on
@@ -159,15 +161,16 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
     unsigned int nBlockFromTime = blockprev.nTime;
     unsigned int nTxTime = nTimeBlock;
     CAmount nValue = stake->GetValue();
-    //if (nTimeBlock > Params().EnforceWeightReductionTime())
+
     WeightStake(nValue, stake->GetDenomination());
     if (!CheckStake(stake->GetUniqueness(), nValue, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime,
                     nTxTime, hashProofOfStake)) {
-        if (CheckStake(stake->GetUniqueness(), stake->GetValue(), nStakeModifier, ArithToUint256(bnTargetPerCoinDay),
-                nBlockFromTime, nTxTime, hashProofOfStake)) {
-            //Used a modified weighting, orphan off if possible
-            pindexCheck->nMemFlags |= POS_BADWEIGHT;
-            LogPrintf("%s: Modified weight detected block %s\n", __func__, pindexCheck->GetBlockHash().GetHex());
+
+        ThresholdState state = VersionBitsState(pindexCheck, Params().GetConsensus(), Consensus::DEPLOYMENT_POS_WEIGHT, versionbitscache);
+        if (state == ThresholdState::ACTIVE) {
+            return error("%s: Modified stake weight. Invalid stake.", __func__);
+        } else if (CheckStake(stake->GetUniqueness(), stake->GetValue(), nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime, nTxTime, hashProofOfStake)) {
+            LogPrintf("%s: Modified weight detected block %s, enforcement off\n", __func__, pindexCheck->GetBlockHash().GetHex());
             return true;
         }
         return error("CheckProofOfStake() : INFO: check kernel failed on coinstake %s, hashProof=%s \n",
