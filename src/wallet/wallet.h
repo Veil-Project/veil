@@ -76,6 +76,7 @@ static const bool DEFAULT_DISABLE_WALLET = false;
 
 typedef std::vector<std::pair<uint32_t, bool> > BIP32Path;
 typedef std::map<libzerocoin::CoinDenomination, CAmount> ZerocoinSpread;
+typedef std::tuple<CWalletTx, std::vector<CDeterministicMint>, std::vector<CZerocoinMint>> CommitData;
 
 class CBlockIndex;
 class CCoinControl;
@@ -127,8 +128,9 @@ enum ZerocoinSpendStatus {
     ZINVALID_WITNESS = 12,                      // Spend coin transaction did not verify
     ZBAD_SERIALIZATION = 13,                    // Transaction verification failed
     ZSPENT_USED_ZPIV = 14,                      // Coin has already been spend
-    ZTX_TOO_LARGE = 15,                          // The transaction is larger than the max tx size
-    ZSPEND_V1_SEC_LEVEL                         // Spend is V1 and security level is not set to 100
+    ZTX_TOO_LARGE = 15,                         // The transaction is larger than the max tx size
+    ZSPEND_V1_SEC_LEVEL = 16,                   // Spend is V1 and security level is not set to 100
+    ZSPEND_PREPARED = 17                        // No error thus far, but spending not yet fully finished
 };
 
 //! Default for -addresstype
@@ -812,7 +814,7 @@ public:
     bool CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransaction& txNew, std::vector<CDeterministicMint>& vDMints,
             CReserveKey* reservekey, int64_t& nFeeRet, std::string& strFailReason, std::vector<CTempRecipient>& vecSend, OutputTypes inputtype, const CCoinControl* coinControl = NULL,
             const bool isZCSpendChange = false);
-    bool CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew, CReserveKey& reserveKey,
+    bool CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew,
             CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vSelectedMints,
             std::vector<CDeterministicMint>& vNewMints, bool fMintChange,  bool fMinimizeChange, CTxDestination* address = NULL);
     bool MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, const uint256& hashTxOut, CTxIn& newTxIn,
@@ -822,7 +824,11 @@ public:
     std::string MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints, OutputTypes inputtype,
             const CCoinControl* coinControl = NULL);
     bool SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
-            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, libzerocoin::CoinDenomination denomFilter, CTxDestination* addressTo = NULL);
+            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, libzerocoin::CoinDenomination denomFilter = libzerocoin::CoinDenomination::ZQ_ERROR, CTxDestination* addressTo = NULL);
+    bool PrepareZerocoinSpend(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
+            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
+            std::vector<CommitData>& vCommitData, libzerocoin::CoinDenomination denomFilter = libzerocoin::CoinDenomination::ZQ_ERROR, CTxDestination* addressTo = NULL);
+    bool CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData);
     bool AvailableZerocoins(std::set<CMintMeta>& setMints);
 //    std::string ResetMintZerocoin();
 //    std::string ResetSpentZerocoin();

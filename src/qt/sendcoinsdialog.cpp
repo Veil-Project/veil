@@ -249,7 +249,10 @@ void SendCoinsDialog::on_sendButton_clicked()
 
     updateCoinControlState(ctrl);
 
-    prepareStatus = model->prepareTransaction(currentTransaction, ctrl);
+    WalletModelSpendType spendType;
+    CZerocoinSpendReceipt receipt;
+    std::vector<CommitData> vCommitData;
+    prepareStatus = model->prepareTransaction(currentTransaction, ctrl, spendType, receipt, vCommitData);
     // process prepareStatus and on error generate message shown to user
     processSendCoinsReturn(prepareStatus,
         BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), currentTransaction.getTransactionFee()));
@@ -374,7 +377,11 @@ void SendCoinsDialog::on_sendButton_clicked()
     }
 
     // now send the prepared transaction
-    WalletModel::SendCoinsReturn sendStatus = model->sendCoins(currentTransaction);
+    WalletModel::SendCoinsReturn sendStatus;
+    if (spendType == ZCSPEND)
+        sendStatus = model->sendZerocoins(receipt, vCommitData);
+    if (sendStatus.status == WalletModel::OK)
+        sendStatus = model->sendCoins(currentTransaction);
     // process sendStatus and on error generate message shown to user
     processSendCoinsReturn(sendStatus);
 
