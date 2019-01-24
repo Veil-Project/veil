@@ -271,6 +271,17 @@ CExtKey DeriveKeyFromPath(const CExtKey& keyAccount, const BIP32Path& vPath)
     return keyDerive;
 }
 
+std::string BIP32PathToString(const BIP32Path& vPath)
+{
+    std::string str;
+    for (auto p : vPath) {
+        str += std::to_string(p.first);
+        if (p.second)
+            str += "'";
+        str += "/";
+    }
+}
+
 // Veil:
 // Pass in {[0, true], [0, false], [0, false]} to match default bip44 matching
 // the same derivation used here https://iancoleman.io/bip39/
@@ -333,6 +344,11 @@ void CWallet::DeriveNewChildKey(WalletBatch &batch, CKeyMetadata& metadata, CKey
     // update the chain model in the database
     if (!batch.WriteHDChain(hdChain))
         throw std::runtime_error(std::string(__func__) + ": Writing HD chain model failed");
+}
+
+int CWallet::GetAccountKeyCount() const
+{
+    return hdChain.nExternalChainCounter;
 }
 
 bool CWallet::AddKeyPubKeyWithDB(WalletBatch &batch, const CKey& secret, const CPubKey &pubkey)
@@ -5221,7 +5237,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     zwallet->LoadMintPoolFromDB();
     if (!walletInstance->IsLocked()) {
         assert(walletInstance->GetZerocoinSeed(keyZerocoin));
-        zwallet = walletInstance->getZWallet();
+        zwallet = walletInstance->GetZWallet();
         auto idExpect = zwallet->GetMasterSeedID();
         assert(keyZerocoin.GetPubKey().GetID() == idExpect);
         zwallet->SetMasterSeed(keyZerocoin);

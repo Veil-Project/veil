@@ -1189,16 +1189,16 @@ UniValue generatemintlist(const JSONRPCRequest& request)
 
     int nCount = params[0].get_int();
     int nRange = params[1].get_int();
-    if (pwallet->getZWallet()->HasEmptySeed())
+    if (pwallet->GetZWallet()->HasEmptySeed())
         throw JSONRPCError(RPC_WALLET_ERROR, "Zerocoin seed is not loaded");
 
-    CKeyID seedID = pwallet->getZWallet()->GetMasterSeedID();
+    CKeyID seedID = pwallet->GetZWallet()->GetMasterSeedID();
     UniValue arrRet(UniValue::VARR);
     for (int i = nCount; i < nCount + nRange; i++) {
         libzerocoin::CoinDenomination denom = libzerocoin::CoinDenomination::ZQ_TEN;
         libzerocoin::PrivateCoin coin(Params().Zerocoin_Params(), denom, false);
         CDeterministicMint dMint;
-        pwallet->getZWallet()->GenerateMint(seedID, i, denom, coin, dMint);
+        pwallet->GetZWallet()->GenerateMint(seedID, i, denom, coin, dMint);
         UniValue obj(UniValue::VOBJ);
         obj.push_back(Pair("count", i));
         obj.push_back(Pair("value", coin.getPublicCoin().getValue().GetHex()));
@@ -1234,7 +1234,7 @@ UniValue deterministiczerocoinstate(const JSONRPCRequest& request)
                                             "\nExamples\n" +
                 HelpExampleCli("deterministiczerocoinstate", "") + HelpExampleRpc("deterministiczerocoinstate", ""));
 
-    CzWallet* zwallet = pwallet->getZWallet();
+    CzWallet* zwallet = pwallet->GetZWallet();
     UniValue obj(UniValue::VOBJ);
     int nCount, nCountLastUsed;
     zwallet->GetState(nCount, nCountLastUsed);
@@ -1315,7 +1315,7 @@ UniValue searchdeterministiczerocoin(const JSONRPCRequest& request)
     if (nThreads < 1)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Threads has to be at least 1");
 
-    CzWallet* zwallet = pwallet->getZWallet();
+    CzWallet* zwallet = pwallet->GetZWallet();
 
     boost::thread_group* dzThreads = new boost::thread_group();
     int nRangePerThread = nRange / nThreads;

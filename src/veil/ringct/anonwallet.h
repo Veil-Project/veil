@@ -156,6 +156,7 @@ public:
     isminetype HaveStealthAddress(const CStealthAddress &sxAddr) const;
     bool GetStealthAddressScanKey(CStealthAddress &sxAddr) const;
     bool GetStealthAddressSpendKey(CStealthAddress &sxAddr, CKey &key) const;
+    bool GetAddressMeta(const CStealthAddress& address, CKeyID& idAccount, std::string& strPath) const;
 
     bool ImportStealthAddress(const CStealthAddress &sxAddr, const CKey &skSpend);
 
@@ -254,6 +255,8 @@ public:
     bool SetMasterKey(const CExtKey& keyMasterIn);
     bool LoadAccountCounters();
     bool LoadKeys();
+    CKeyID GetSeedHash() const;
+    int GetStealthAccountCount() const;
 
     bool HaveKeyID(const CKeyID& id);
     bool NewKeyFromAccount(const CKeyID &idAccount, CKey& key);

@@ -393,6 +393,21 @@ bool AnonWallet::GetStealthAddressSpendKey(CStealthAddress &sxAddr, CKey &key) c
 }
 
 
+bool AnonWallet::GetAddressMeta(const CStealthAddress& address, CKeyID& idAccount, std::string& strPath) const
+{
+    if (!mapStealthAddresses.count(address.GetID()))
+        return false;
+
+    CStealthAddress sxAddr = mapStealthAddresses.at(address.GetID());
+    if (mapKeyPaths.count(sxAddr.GetID())) {
+        auto accountpair = mapKeyPaths.at(sxAddr.GetID());
+        idAccount = accountpair.first;
+        strPath = BIP32PathToString(accountpair.second);
+    }
+
+    return true;
+}
+
 
 bool AnonWallet::ImportStealthAddress(const CStealthAddress &sxAddr, const CKey &skSpend)
 {
@@ -3565,6 +3580,11 @@ bool AnonWallet::SetMasterKey(const CExtKey& keyMasterIn)
     return wdb.WriteNamedExtKeyId("master", idMaster);
 }
 
+CKeyID AnonWallet::GetSeedHash() const
+{
+    return idMaster;
+}
+
 bool AnonWallet::LoadKeys()
 {
     LOCK(pwalletParent->cs_wallet);
@@ -3641,6 +3661,13 @@ bool AnonWallet::LoadAccountCounters()
     pcursor->close();
 
     return true;
+}
+
+int AnonWallet::GetStealthAccountCount() const
+{
+    if (!mapAccountCounter.count(idStealthAccount))
+        return 0;
+    return mapAccountCounter.at(idStealthAccount);
 }
 
 bool AnonWallet::RegenerateKey(const CKeyID& idKey, CKey& key) const
