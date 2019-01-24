@@ -4467,6 +4467,51 @@ void AnonWallet::MarkOutputSpent(const COutPoint& outpoint, bool isSpent)
     SaveRecord(outpoint.hash, record);
 }
 
+void AnonWallet::RescanWallet()
+{
+    AssertLockHeld(pwalletParent->cs_wallet);
+    AssertLockHeld(cs_main);
+    AnonWalletDB wdb(*walletDatabase);
+
+    std::set<uint256> setErase;
+    for (auto mi = mapRecords.begin(); mi != mapRecords.end(); mi++) {
+        uint256 txid = mi->first;
+        CTransactionRecord* txrecord = &mi->second;
+
+        int nHeightTx = 0;
+        if (!IsTransactionInChain(txid, nHeightTx, Params().GetConsensus())) {
+            //This particular transaction never made it into the chain. If it is a certain amount of time old, delete it.
+            if (GetTime() - txrecord->nTimeReceived > 60*20) {
+                //20 minutes too old?
+                for (auto input : txrecord->vin) {
+                    //If the input is marked as spent because of this tx, then unmark
+                    auto mi_2 = mapRecords.find(input.hash);
+                    if (mi_2 != mapRecords.end()) {
+                        CTransactionRecord* txrecord_input = &mi_2->second;
+                        COutputRecord* outrecord = txrecord_input->GetOutput(input.n);
+
+                        //not sure why this would ever happen
+                        if (!outrecord)
+                            continue;
+
+                        //Assume the spentness is from this, should do a full chain rescan after? //todo
+                        outrecord->MarkSpent(false);
+                        outrecord->MarkPendingSpend(false);
+                        wdb.WriteTxRecord(input.hash, *txrecord_input);
+                        LogPrintf("%s: Marking %s as unspent\n", __func__, input.ToString());
+                    }
+                }
+                setErase.emplace(txid);
+            }
+        }
+    }
+
+    for (const uint256& txid : setErase) {
+        mapRecords.erase(txid);
+        wdb.EraseTxRecord(txid);
+    }
+}
+
 bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate)
 {
     const CTransaction& tx = *ptx;

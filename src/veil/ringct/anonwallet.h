@@ -289,6 +289,7 @@ public:
     bool ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr);
     bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);
     void MarkOutputSpent(const COutPoint& outpoint, bool isSpent);
+    void RescanWallet();
 
     int InsertTempTxn(const uint256 &txid, const CTransactionRecord *rtx) const;
 

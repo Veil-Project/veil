@@ -136,6 +136,26 @@ static UniValue restoreaddresses(const JSONRPCRequest &request)
     return NullUniValue;
 }
 
+static UniValue rescanringctwallet(const JSONRPCRequest &request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(wallet.get(), request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || !request.params.empty())
+        throw std::runtime_error(
+                "rescanringctwallet\n"
+                "Rescans all transactions in the ringct wallet (CT and RingCT transactions)"
+                + HelpRequiringPassphrase(wallet.get()));
+
+    EnsureWalletIsUnlocked(wallet.get());
+    auto pAnonWallet = wallet->GetAnonWallet();
+    LOCK2(cs_main, wallet->cs_wallet);
+
+    pAnonWallet->RescanWallet();
+    return NullUniValue;
+}
+
 static void push(UniValue & entry, std::string key, UniValue const & value)
 {
     if (entry[key].getType() == 0) {
@@ -1865,6 +1885,7 @@ static const CRPCCommand commands[] =
                 //  --------------------- ------------------------            -----------------------         ----------
                 { "wallet",             "getnewaddress",             &getnewaddress,          {"label","num_prefix_bits","prefix_num","bech32","makeV2"} },
                 { "wallet",             "restoreaddresses",          &restoreaddresses,          {"generate_count"} },
+                { "wallet",             "rescanringctwallet",          &rescanringctwallet,          {} },
 
                 { "wallet",             "sendbasecointostealth", &sendbasecointostealth,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
 
