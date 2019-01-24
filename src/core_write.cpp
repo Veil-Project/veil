@@ -5,6 +5,7 @@
 #include <core_io.h>
 
 #include <veil/ringct/blind.h>
+#include <veil/zerocoin/zchain.h>
 #include <consensus/consensus.h>
 #include <consensus/validation.h>
 #include <key_io.h>
@@ -283,6 +284,11 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
             if (txin.scriptSig.IsZerocoinSpend()) {
                 in.pushKV("type", "zerocoinspend");
                 in.pushKV("denomination", FormatMoney(txin.GetZerocoinSpent()));
+                std::vector<char, zero_after_free_allocator<char> > dataTxIn;
+                dataTxIn.insert(dataTxIn.end(), txin.scriptSig.begin() + 4, txin.scriptSig.end());
+                CDataStream serializedCoinSpend(dataTxIn, SER_NETWORK, PROTOCOL_VERSION);
+                libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), serializedCoinSpend);
+                in.pushKV("serial", spend.getCoinSerialNumber().GetHex());
             }
             in.pushKV("vout", (int64_t)txin.prevout.n);
             UniValue o(UniValue::VOBJ);
