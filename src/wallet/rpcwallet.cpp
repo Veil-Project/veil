@@ -34,6 +34,7 @@
 #include <wallet/deterministicmint.h>
 #include <veil/dandelioninventory.h>
 #include <veil/zerocoin/mintmeta.h>
+#include <veil/zerocoin/zwallet.h>
 #include <veil/zerocoin/zchain.h>
 #include <veil/ringct/anonwallet.h>
 
@@ -3180,6 +3181,30 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
     }
     obj.pushKV("private_keys_enabled", !pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
     obj.pushKV("staking_active", !mapHashedBlocks.empty());
+
+    UniValue objSeedData(UniValue::VOBJ);
+    auto pAnonWallet = pwallet->GetAnonWallet();
+    UniValue objAnonSeed(UniValue::VOBJ);
+    objAnonSeed.pushKV("seed_hash", pAnonWallet->GetSeedHash().GetHex());
+    objAnonSeed.pushKV("count", pAnonWallet->GetStealthAccountCount());
+
+    UniValue objBasecoinSeed(UniValue::VOBJ);
+    objBasecoinSeed.pushKV("seed_hash", seed_id.GetHex());
+    objBasecoinSeed.pushKV("count", pwallet->GetAccountKeyCount());
+
+    auto zwallet = pwallet->GetZWallet();
+    int nCountZerocoin, nCountLastUsed;
+    zwallet->GetState(nCountZerocoin, nCountLastUsed);
+    CKeyID seedID = zwallet->GetMasterSeedID();
+    UniValue objZerocoinSeed(UniValue::VOBJ);
+    objZerocoinSeed.pushKV("seed_hash", seedID.GetHex());
+    objZerocoinSeed.pushKV("count", nCountLastUsed);
+
+    objSeedData.pushKV("basecoin_wallet", objBasecoinSeed);
+    objSeedData.pushKV("stealth_wallet", objAnonSeed);
+    objSeedData.pushKV("zerocoin_wallet", objZerocoinSeed);
+    obj.pushKV("wallet_seeds", objSeedData);
+
     return obj;
 }
 
@@ -4296,6 +4321,7 @@ public:
     UniValue operator()(const CStealthAddress &sxAddr) const {
         UniValue obj(UniValue::VOBJ);
         obj.pushKV("isstealthaddress", true);
+        obj.pushKV("bech32", sxAddr.ToString(true));
         obj.pushKV("prefix_num_bits", sxAddr.prefix.number_bits);
         obj.pushKV("prefix_bitfield", strprintf("0x%04x", sxAddr.prefix.bitfield));
         auto pwalletAnon = pwallet->GetAnonWallet();
@@ -4308,8 +4334,13 @@ public:
                 }
                 if (arr.size())
                     obj.pushKV("stealth_destinations", arr);
+                CKeyID idAccount;
+                std::string strPath;
+                if (pwalletAnon->GetAddressMeta(stealthAddress, idAccount, strPath)) {
+                    obj.pushKV("account_id", idAccount.GetHex());
+                    obj.pushKV("key_path", strPath);
+                }
             }
-
         }
         return obj;
     }

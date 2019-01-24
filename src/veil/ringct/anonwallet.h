@@ -156,6 +156,7 @@ public:
     isminetype HaveStealthAddress(const CStealthAddress &sxAddr) const;
     bool GetStealthAddressScanKey(CStealthAddress &sxAddr) const;
     bool GetStealthAddressSpendKey(CStealthAddress &sxAddr, CKey &key) const;
+    bool GetAddressMeta(const CStealthAddress& address, CKeyID& idAccount, std::string& strPath) const;
 
     bool ImportStealthAddress(const CStealthAddress &sxAddr, const CKey &skSpend);
 
@@ -254,6 +255,8 @@ public:
     bool SetMasterKey(const CExtKey& keyMasterIn);
     bool LoadAccountCounters();
     bool LoadKeys();
+    CKeyID GetSeedHash() const;
+    int GetStealthAccountCount() const;
 
     bool HaveKeyID(const CKeyID& id);
     bool NewKeyFromAccount(const CKeyID &idAccount, CKey& key);
@@ -289,6 +292,7 @@ public:
     bool ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr);
     bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);
     void MarkOutputSpent(const COutPoint& outpoint, bool isSpent);
+    void RescanWallet();
 
     int InsertTempTxn(const uint256 &txid, const CTransactionRecord *rtx) const;
 

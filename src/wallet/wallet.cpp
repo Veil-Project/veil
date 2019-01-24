@@ -271,6 +271,17 @@ CExtKey DeriveKeyFromPath(const CExtKey& keyAccount, const BIP32Path& vPath)
     return keyDerive;
 }
 
+std::string BIP32PathToString(const BIP32Path& vPath)
+{
+    std::string str;
+    for (auto p : vPath) {
+        str += std::to_string(p.first);
+        if (p.second)
+            str += "'";
+        str += "/";
+    }
+}
+
 // Veil:
 // Pass in {[0, true], [0, false], [0, false]} to match default bip44 matching
 // the same derivation used here https://iancoleman.io/bip39/
@@ -333,6 +344,11 @@ void CWallet::DeriveNewChildKey(WalletBatch &batch, CKeyMetadata& metadata, CKey
     // update the chain model in the database
     if (!batch.WriteHDChain(hdChain))
         throw std::runtime_error(std::string(__func__) + ": Writing HD chain model failed");
+}
+
+int CWallet::GetAccountKeyCount() const
+{
+    return hdChain.nExternalChainCounter;
 }
 
 bool CWallet::AddKeyPubKeyWithDB(WalletBatch &batch, const CKey& secret, const CPubKey &pubkey)
@@ -3635,7 +3651,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
     return true;
 }
 
-bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime)
+bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime)
 {
     // The following split & combine thresholds are important to security
     // Should not be adjusted if you don't understand the consequences
@@ -3671,37 +3687,31 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
         if (IsLocked() || ShutdownRequested())
             return false;
 
-        //make sure that enough time has elapsed between
-        CBlockIndex *pindex = stakeInput->GetIndexFrom();
-        if (!pindex || pindex->nHeight < 1) {
+        CBlockIndex *pindexFrom = stakeInput->GetIndexFrom();
+        if (!pindexFrom || pindexFrom->nHeight < 1) {
             LogPrintf("*** no pindexfrom\n");
             continue;
         }
 
         // Read block header
-        CBlockHeader block = pindex->GetBlockHeader();
         uint256 hashProofOfStake;
         nTxNewTime = GetAdjustedTime();
-        auto nTimeMinBlock = pindex->pprev->GetBlockTime() - MAX_PAST_BLOCK_TIME;
+        auto nTimeMinBlock = std::max(pindexBest->GetBlockTime() - MAX_PAST_BLOCK_TIME, pindexBest->GetMedianTimePast());
         if (nTxNewTime < nTimeMinBlock)
             nTxNewTime = nTimeMinBlock + 1;
 
-        //Don't rehash the same timestamps
-        uint256 hashBlockPrev = pindex->pprev->GetBlockHash();
-        if (mapHashedBlocks.count(hashBlockPrev)) {
-            auto nTimeMin = mapHashedBlocks.at(hashBlockPrev);
-            if (nTxNewTime < nTimeMin)
-                nTxNewTime = nTimeMin + 1;
-        }
-
         //iterates each utxo inside of CheckStakeKernelHash()
-        if (Stake(stakeInput.get(), nBits, block.GetBlockTime(), nTxNewTime, hashProofOfStake)) {
+        bool fWeightStake = false;
+        ThresholdState state = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_POS_WEIGHT, versionbitscache);
+        if (state == ThresholdState::ACTIVE || state == ThresholdState::LOCKED_IN)
+            fWeightStake = true;
+        if (Stake(stakeInput.get(), nBits, pindexFrom->GetBlockTime(), nTxNewTime, pindexBest, hashProofOfStake, fWeightStake)) {
             int nHeight = 0;
             {
                 LOCK(cs_main);
                 //Double check that this will pass time requirements
-                if (nTxNewTime <= chainActive.Tip()->GetMedianTimePast() || nTxNewTime < nTimeMinBlock) {
-                    LogPrintf("CreateCoinStake() : kernel found, but it is too far in the past \n");
+                if (nTxNewTime <= nTimeMinBlock) {
+                    LogPrint(BCLog::BLOCKCREATION, "CreateCoinStake() : kernel found, but it is too far in the past \n");
                     continue;
                 }
                 nHeight = chainActive.Height();
@@ -3752,9 +3762,9 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
             txNew.vin.emplace_back(in);
 
             //Mark mints as spent
-            auto* z = (ZerocoinStake*)stakeInput.get();
-            if (!z->MarkSpent(this, txNew.GetHash()))
-                return error("%s: failed to mark mint as used\n", __func__);
+//            auto* z = (ZerocoinStake*)stakeInput.get();
+//            if (!z->MarkSpent(this, txNew.GetHash()))
+//                return error("%s: failed to mark mint as used\n", __func__);
 
             fKernelFound = true;
             break;
@@ -3795,7 +3805,7 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInp
         }
     }
 
-    LogPrintf("%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());
+    LogPrint(BCLog::BLOCKCREATION, "%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());
 
     return true;
 }
@@ -5224,7 +5234,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     zwallet->LoadMintPoolFromDB();
     if (!walletInstance->IsLocked()) {
         assert(walletInstance->GetZerocoinSeed(keyZerocoin));
-        zwallet = walletInstance->getZWallet();
+        zwallet = walletInstance->GetZWallet();
         auto idExpect = zwallet->GetMasterSeedID();
         assert(keyZerocoin.GetPubKey().GetID() == idExpect);
         zwallet->SetMasterSeed(keyZerocoin);

@@ -212,8 +212,8 @@ bool WalletInit::Open() const
         pwallet->setZPivAutoBackups(fEnableZPivBackups);
 
         AddWallet(pwallet);
-        pwallet->getZWallet()->LoadMintPoolFromDB();
-        pwallet->getZWallet()->SyncWithChain();
+        pwallet->GetZWallet()->LoadMintPoolFromDB();
+        pwallet->GetZWallet()->SyncWithChain();
     }
 
     return true;

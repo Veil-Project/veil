@@ -1476,6 +1476,7 @@ void ProcessStaging()
         std::vector<CBigNum> vBlockSerials;
         std::vector<libzerocoin::SerialNumberSoKProof> vProofs;
         std::set<int> setRemoveBlocks;
+        std::set<uint256> setBatchTxHashes;
         int nBestHeight = nHeightNext -1;
         int nHaveCheckpointHeight = 10 - (nBestHeight % 10) + nBestHeight;
         int nHighestBlockCheck = 0;
@@ -1508,6 +1509,7 @@ void ProcessStaging()
 
                         vBlockSerials.emplace_back(spend.getCoinSerialNumber());
                     }
+                    setBatchTxHashes.emplace(tx->GetHash());
                 }
 
                 if (fSkipBlock)
@@ -1538,12 +1540,19 @@ void ProcessStaging()
         }
 
         if (fVerificationSuccess) {
-            LOCK(cs_staging);
-            for (auto &blockPair : mapStagedBlocksCopy) {
-                if (!mapStagedBlocks.count(blockPair.first))
-                    continue;
+            {
+                LOCK(cs_staging);
+                for (auto &blockPair : mapStagedBlocksCopy) {
+                    if (!mapStagedBlocks.count(blockPair.first))
+                        continue;
 
-                mapStagedBlocks[blockPair.first].fSignaturesVerified = true;
+                    mapStagedBlocks[blockPair.first].fSignaturesVerified = true;
+                }
+            }
+            {
+                LOCK(cs_main);
+                for (const uint256 &hash : setBatchTxHashes)
+                    setBatchVerified.emplace(hash);
             }
         }
 
@@ -1660,7 +1669,7 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
         uint256 hashLastBlock;
         for (const CBlockHeader& header : headers) {
             if (!hashLastBlock.IsNull() && header.hashPrevBlock != hashLastBlock) {
-                Misbehaving(pfrom->GetId(), 20, "non-continuous headers sequence");
+                Misbehaving(pfrom->GetId(), 0, "non-continuous headers sequence");
                 return false;
             }
             hashLastBlock = header.GetHash();
@@ -1722,7 +1731,7 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
         }
     }
 
-    {
+    if (pindexLast) {
         LOCK(cs_main);
         CNodeState *nodestate = State(pfrom->GetId());
         if (nodestate->nUnconnectingHeaders > 0) {
@@ -1752,7 +1761,18 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
         bool fCanDirectFetch = CanDirectFetch(chainparams.GetConsensus());
         // If this set of headers is valid and ends in a block with at least as
         // much work as our tip, download as much as possible.
-        if (fCanDirectFetch && pindexLast->IsValid(BLOCK_VALID_TREE) && chainActive.Tip()->nChainWork <= pindexLast->nChainWork) {
+        bool hasGreaterWorkLongRange;
+
+        int nHeightMax_NoWorkPoW = chainActive.Height() + Params().MaxHeaderRequestWithoutPoW();
+        nHeightMax_NoWorkPoW = std::max(nHeightMax_NoWorkPoW, Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints()));
+        if (pindexLast->nHeight < nHeightMax_NoWorkPoW)
+            hasGreaterWorkLongRange = chainActive.Tip()->nChainWork <= pindexLast->nChainWork;
+        else
+            hasGreaterWorkLongRange = chainActive.Tip()->nChainPoW <= pindexLast->nChainPoW;
+
+        bool fFetchShortRange = !hasGreaterWorkLongRange;
+
+        if (fCanDirectFetch && pindexLast->IsValid(BLOCK_VALID_TREE) && hasGreaterWorkLongRange) {
             std::vector<const CBlockIndex*> vToFetch;
             const CBlockIndex *pindexWalk = pindexLast;
             // Calculate all the blocks we'd need to switch to pindexLast, up to a limit.
@@ -1781,6 +1801,9 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
                         // Can't download any more from this peer
                         break;
                     }
+                    // Prevent situations of exhaustion if there is no PoW to go off of, and must revert to PoS block verify
+                    if (fFetchShortRange && pindex->nHeight >= nHeightMax_NoWorkPoW)
+                        break;
                     uint32_t nFetchFlags = GetFetchFlags(pfrom);
                     vGetData.push_back(CInv(MSG_BLOCK | nFetchFlags, pindex->GetBlockHash()));
                     MarkBlockAsInFlight(pfrom->GetId(), pindex->GetBlockHash(), pindex);
@@ -1824,7 +1847,7 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
         if (!pfrom->fDisconnect && IsOutboundDisconnectionCandidate(pfrom) && nodestate->pindexBestKnownBlock != nullptr) {
             // If this is an outbound peer, check to see if we should protect
             // it from the bad/lagging chain logic.
-            if (g_outbound_peers_with_protect_from_disconnect < MAX_OUTBOUND_PEERS_TO_PROTECT_FROM_DISCONNECT && nodestate->pindexBestKnownBlock->nChainWork >= chainActive.Tip()->nChainWork && !nodestate->m_chain_sync.m_protect) {
+            if (g_outbound_peers_with_protect_from_disconnect < MAX_OUTBOUND_PEERS_TO_PROTECT_FROM_DISCONNECT && hasGreaterWorkLongRange && !nodestate->m_chain_sync.m_protect) {
                 LogPrint(BCLog::NET, "Protecting outbound peer=%d from eviction\n", pfrom->GetId());
                 nodestate->m_chain_sync.m_protect = true;
                 ++g_outbound_peers_with_protect_from_disconnect;
@@ -2419,8 +2442,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         LOCK(cs_main);
         if (!HeadersAndBlocksSynced() && !pfrom->fWhitelisted) {
             LogPrint(BCLog::NET, "Ignoring getheaders from peer=%d because node is in initial block download\n", pfrom->GetId());
-            if (pindexBestHeader->GetBlockTime() < GetTime() - 180)
-                connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexBestHeader), uint256()));;
             return true;
         }
 
@@ -2485,6 +2506,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             LogPrint(BCLog::NET, "transaction sent in violation of protocol peer=%d\n", pfrom->GetId());
             return true;
         }
+
+        if (!HeadersAndBlocksSynced())
+            return true;
 
         std::deque<COutPoint> vWorkQueue;
         std::vector<uint256> vEraseQueue;
@@ -3026,12 +3050,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // mapBlockSource is only used for sending reject messages and DoS scores,
             // so the race between here and cs_main in ProcessNewBlock is fine.
             mapBlockSource.emplace(hash, std::make_pair(pfrom->GetId(), true));
-//            if (!mapBlockIndex.count(pblock->hashPrevBlock)) {
-//                //Don't have previous block, instead of processing this one, try to work backwards to common fork
-//                LogPrint(BCLog::NET, "sending getblocks to outbound peer=%d to because sent a block that we do not have prevblock\n", pfrom->GetId());
-//                connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETBLOCKS, chainActive.GetLocator(), uint256()));
-//                return true;
-//            }
         }
 
         bool fProcessBlock = false;
@@ -3041,12 +3059,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             if (mapBlockIndex.count(pblock->hashPrevBlock)) {
                 nHeightNext = chainActive.Height() + 1;
                 CBlockIndex* pindexPrev = mapBlockIndex.at(pblock->hashPrevBlock);
+                int nHeightBlock = pindexPrev->nHeight + 1;
 
                 //We need the full block data to process it
                 if (pblock->hashPrevBlock == Params().GenesisBlock().GetHash() || pindexPrev->nChainTx > 0) {
                     fProcessBlock = true;
-
-                } else if (forceProcessing && pindexPrev->nHeight - nHeightNext < ASK_FOR_BLOCKS + 10 && nHeightNext < pindexPrev->nHeight) {
+                } else if (forceProcessing && nHeightBlock - nHeightNext < ASK_FOR_BLOCKS + 10 && nHeightNext <= nHeightBlock) {
                     //Keep a few blocks cached so we don't fetch them over and over
                     CDataStream ss(SER_DISK, PROTOCOL_VERSION);
                     ss << *pblock;
@@ -3054,9 +3072,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     if (nStagedCacheSize < STAGING_CACHE_SIZE) {
                         LOCK(cs_staging);
                         nStagedCacheSize += nSizeBlock;
-                        mapStagedBlocks.emplace(pindexPrev->nHeight+1, *pblock);
-                        LogPrint(BCLog::NET, "staging block %s (%d) because only have prevheader and not prev block\n",
-                                 pblock->GetHash().ToString(), pindexPrev->nHeight+1);
+                        mapStagedBlocks.emplace(nHeightBlock, *pblock);
+                        LogPrint(BCLog::NET, "staging block %s (%d) because only have prevheader and not prev block. Need:%d\n",
+                                 pblock->GetHash().ToString(), pindexPrev->nHeight+1, nHeightNext);
                     } else {
                         LogPrint(BCLog::NET, "staging area full, discarding block %s (%d)\n",
                                 pblock->GetHash().ToString(), pindexPrev->nHeight+1);

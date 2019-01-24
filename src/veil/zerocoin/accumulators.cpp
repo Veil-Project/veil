@@ -312,7 +312,6 @@ int AddBlockMintsToAccumulator(const libzerocoin::PublicCoin& coin, const int nH
     list<PublicCoin> listPubcoins;
     //Do not keep cs_main locked during modular exponentiation (unless this is already locked from the validation)
     {
-        LOCK(cs_main);
         //grab mints from this block
         CBlock block;
         if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus()))

@@ -132,6 +132,8 @@ public:
     int CoinbaseMaturity() const { return nCoinbaseMaturity; }
     int HeightSupplyCreationStop() const { return nHeightSupplyCreationStop; }
     int ProofOfFullNodeRounds() const {return nProofOfFullNodeRounds; }
+    int EnforceWeightReductionTime() const { return nTimeEnforceWeightReduction; }
+    int MaxHeaderRequestWithoutPoW() const { return nMaxHeaderRequestWithoutPoW; }
 
 protected:
     CChainParams() {}
@@ -182,6 +184,12 @@ protected:
     int nCoinbaseMaturity;
     int nProofOfFullNodeRounds;
     int nHeightSupplyCreationStop;
+
+    //Time and height enforcements
+    int nTimeEnforceWeightReduction;
+
+    //Settings that are not chain critical, but should not be edited unless the person changing understands the consequence
+    int nMaxHeaderRequestWithoutPoW;
 };
 
 /**

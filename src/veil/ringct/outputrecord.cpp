@@ -60,7 +60,7 @@ void COutputRecord::MarkPendingSpend(bool isSpent)
     if (isSpent)
         nFlags |= ORF_PENDING_SPEND;
     else
-        nFlags &= ORF_PENDING_SPEND;
+        nFlags &= ~ORF_PENDING_SPEND;
 }
 
 bool COutputRecord::IsSpent(bool fIncludePendingSpend) const

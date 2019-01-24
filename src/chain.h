@@ -166,6 +166,10 @@ enum BlockStatus: uint32_t {
     BLOCK_OPT_WITNESS       =   128, //!< block data in blk*.data was received with a witness-enforcing client
 };
 
+enum BlockMemFlags: uint32_t {
+    POS_BADWEIGHT = (1 << 0),
+};
+
 /** The block chain is a tree shaped structure starting with the
  * genesis block at the root, with each block potentially having multiple
  * candidates to be the next block. A blockindex may have multiple pprev pointing
@@ -204,6 +208,9 @@ public:
     //! (memory only) Total amount of work (expected number of hashes) in the chain up to and including this block
     arith_uint256 nChainWork;
 
+    //! (memory only) Total amount of work (only looking at PoW) in the chain up to and including this block
+    arith_uint256 nChainPoW;
+
     //! Number of transactions in this block.
     //! Note: in a potential headers-first mode, this number cannot be relied upon
     unsigned int nTx;
@@ -241,6 +248,9 @@ public:
     //! (memory only) Maximum nTime in the chain up to and including this block.
     unsigned int nTimeMax;
 
+    //! (memory only) Maximum nTime in the chain up to and including this block.
+    uint32_t nMemFlags;
+
     //! Hash value for the accumulator. Can be used to access the zerocoindb for the accumulator value
     std::map<libzerocoin::CoinDenomination ,uint256> mapAccumulatorHashes;
 
@@ -260,11 +270,13 @@ public:
         nDataPos = 0;
         nUndoPos = 0;
         nChainWork = arith_uint256();
+        nChainPoW = arith_uint256();
         nTx = 0;
         nChainTx = 0;
         nStatus = 0;
         nSequenceId = 0;
         nTimeMax = 0;
+        nMemFlags = 0;
         nNetworkRewardReserve = 0;
 
         //Proof of stake
@@ -371,6 +383,7 @@ public:
     }
 
     int64_t GetBlockWork() const;
+    arith_uint256 GetChainPoW() const;
 
     /** Returns the hash of the accumulator for the specified denomination. If it doesn't exist then a new uint256 is returned*/
     uint256 GetAccumulatorHash(libzerocoin::CoinDenomination denom) const
@@ -467,6 +480,7 @@ public:
     //! Efficiently find an ancestor of this block.
     CBlockIndex* GetAncestor(int height);
     const CBlockIndex* GetAncestor(int height) const;
+    const CBlockIndex* GetBestPoWAncestor() const;
 
     //!Add an accumulator to the CBlockIndex
     void AddAccumulator(libzerocoin::CoinDenomination denom,CBigNum bnAccumulator);

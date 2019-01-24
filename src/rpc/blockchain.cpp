@@ -1167,6 +1167,7 @@ static UniValue BIP9SoftForkDesc(const Consensus::Params& consensusParams, Conse
         statsUV.pushKV("threshold", statsStruct.threshold);
         statsUV.pushKV("elapsed", statsStruct.elapsed);
         statsUV.pushKV("count", statsStruct.count);
+        statsUV.pushKV("support", (double)statsStruct.count / (double)statsStruct.elapsed);
         statsUV.pushKV("possible", statsStruct.possible);
         rv.pushKV("statistics", statsUV);
     }
@@ -1198,7 +1199,8 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
             "  \"mediantime\": xxxxxx,         (numeric) median time for the current best block\n"
             "  \"verificationprogress\": xxxx, (numeric) estimate of verification progress [0..1]\n"
             "  \"initialblockdownload\": xxxx, (bool) (debug information) estimate of whether this node is in Initial Block Download mode.\n"
-            "  \"chainwork\": \"xxxx\"           (string) total amount of work in active chain, in hexadecimal\n"
+            "  \"chainwork\": \"xxxx\"         (string) total amount of work in active chain, in hexadecimal\n"
+            "  \"chainpow\": \"xxxx\"          (string) total amount of PoW work in active chain, in hexadecimal\n"
             "  \"size_on_disk\": xxxxxx,       (numeric) the estimated size of the block and undo files on disk\n"
             "  \"pruned\": xx,                 (boolean) if the blocks are subject to pruning\n"
             "  \"pruneheight\": xxxxxx,        (numeric) lowest-height complete block stored (only present if pruning is enabled)\n"
@@ -1248,6 +1250,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     obj.pushKV("verificationprogress",  GuessVerificationProgress(Params().TxData(), chainActive.Tip()));
     obj.pushKV("initialblockdownload",  IsInitialBlockDownload());
     obj.pushKV("chainwork",             chainActive.Tip()->nChainWork.GetHex());
+    obj.pushKV("chainpow",             chainActive.Tip()->nChainPoW.GetHex());
     obj.pushKV("size_on_disk",          CalculateCurrentUsage());
     obj.pushKV("pruned",                fPruneMode);
     if (fPruneMode) {
@@ -1267,18 +1270,18 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
         }
     }
 
-//    const Consensus::Params& consensusParams = Params().GetConsensus();
-//    CBlockIndex* tip = chainActive.Tip();
-//    UniValue softforks(UniValue::VARR);
-//    UniValue bip9_softforks(UniValue::VOBJ);
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+    CBlockIndex* tip = chainActive.Tip();
+    UniValue softforks(UniValue::VARR);
+    UniValue bip9_softforks(UniValue::VOBJ);
 //    softforks.push_back(SoftForkDesc("bip34", 2, tip, consensusParams));
 //    softforks.push_back(SoftForkDesc("bip66", 3, tip, consensusParams));
 //    softforks.push_back(SoftForkDesc("bip65", 4, tip, consensusParams));
-//    for (int pos = Consensus::DEPLOYMENT_CSV; pos != Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++pos) {
-//        BIP9SoftForkDescPushBack(bip9_softforks, consensusParams, static_cast<Consensus::DeploymentPos>(pos));
-//    }
-//    obj.pushKV("softforks",             softforks);
-//    obj.pushKV("bip9_softforks", bip9_softforks);
+    for (int pos = Consensus::DEPLOYMENT_POS_WEIGHT; pos != Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++pos) {
+        BIP9SoftForkDescPushBack(bip9_softforks, consensusParams, static_cast<Consensus::DeploymentPos>(pos));
+    }
+    //obj.pushKV("softforks",             softforks);
+    obj.pushKV("bip9_softforks", bip9_softforks);
 
     obj.pushKV("warnings", GetWarnings("statusbar"));
     return obj;

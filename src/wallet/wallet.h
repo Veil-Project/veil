@@ -646,6 +646,7 @@ struct CoinSelectionParams
 };
 
 CExtKey DeriveKeyFromPath(const CExtKey& keyAccount, const BIP32Path& vPath);
+std::string BIP32PathToString(const BIP32Path& vPath);
 
 class WalletRescanReserver; //forward declarations for ScanForWalletTransactions/RescanFromTime
 /**
@@ -855,7 +856,7 @@ public:
         zTracker = std::unique_ptr<CzTracker>(new CzTracker(this));
     }
 
-    CzWallet* getZWallet() { return zwalletMain; }
+    CzWallet* GetZWallet() { return zwalletMain; }
 
     bool isZeromintEnabled()
     {
@@ -966,6 +967,7 @@ public:
      * Generate a new key
      */
     CPubKey GenerateNewKey(WalletBatch& batch, bool internal = false) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    int GetAccountKeyCount() const;
     //! Adds a key to the store, and saves it to disk.
     bool AddKeyPubKey(const CKey& key, const CPubKey &pubkey) override EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     bool AddKeyPubKeyWithDB(WalletBatch &batch,const CKey& key, const CPubKey &pubkey) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -1053,7 +1055,7 @@ public:
     CAmount GetZerocoinBalance(bool fMatureOnly) const;
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
-    bool CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime);
+    bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime);
     bool SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount);
 
     // sub wallet seeds
