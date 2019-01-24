@@ -248,7 +248,7 @@
                   <widget class="QPushButton" name="btnGoFaq">
                    <property name="minimumSize">
                     <size>
-                     <width>205</width>
+                     <width>235</width>
                      <height>0</height>
                     </size>
                    </property>
