@@ -146,7 +146,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         }
 
         uint32_t nTxNewTime = 0;
-        if (pwalletMain->CreateCoinStake(pblock->nBits, txCoinStake, nTxNewTime)) {
+        if (pwalletMain->CreateCoinStake(chainActive.Tip(), pblock->nBits, txCoinStake, nTxNewTime)) {
             pblock->nTime = nTxNewTime;
         } else {
             return nullptr;
@@ -739,6 +739,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
 
     unsigned int nExtraNonce = 0;
     static const int nInnerLoopCount = 0x010000;
+    static int nStakeHashesLast = 0;
 
     while (fGenerateBitcoins || fProofOfStake)
     {
@@ -769,6 +770,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 fMintableCoins = pwallet->MintableCoins();
             }
 
+            bool fNextIter = false;
             while ((pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) || !fMintableCoins || GetAdjustedTime() < nTimeLastBlock - MAX_PAST_BLOCK_TIME) {
                 // Do a separate 1 minute check here to ensure fMintableCoins is updated
                 if (!fMintableCoins) {
@@ -777,18 +779,24 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                         nMintableLastCheck = GetTime();
                         fMintableCoins = pwallet->MintableCoins();
                     }
+                    if (!fMintableCoins)
+                        fNextIter = true;
                 }
                 MilliSleep(2500);
-                continue;
+                break;
             }
+            if (fNextIter)
+                continue;
 
             //search our map of hashed blocks, see if bestblock has been hashed yet
             if (mapHashedBlocks.count(hashBestBlock)) {
-                if (mapStakeHashCounter.count(nHeight)) {
-                    LogPrint(BCLog::BLOCKCREATION, "%s: Tried %d stake hashed for block %d last=%d\n", __func__, mapStakeHashCounter.at(nHeight), nHeight+1, mapHashedBlocks.at(hashBestBlock));
+                auto it = mapStakeHashCounter.find(nHeight);
+                if (it != mapStakeHashCounter.end() && it->second != nStakeHashesLast) {
+                    nStakeHashesLast = it->second;
+                    LogPrint(BCLog::BLOCKCREATION, "%s: Tried %d stake hashes for block %d last=%d\n", __func__, nStakeHashesLast, nHeight+1, mapHashedBlocks.at(hashBestBlock));
                 }
                 // wait half of the nHashDrift with max wait of 3 minutes
-                if (GetTime() + MAX_FUTURE_BLOCK_TIME - mapHashedBlocks[hashBestBlock] < 15) {
+                if (GetAdjustedTime() + MAX_FUTURE_BLOCK_TIME - mapHashedBlocks[hashBestBlock] < 40) {
                     MilliSleep(5000);
                     continue;
                 }

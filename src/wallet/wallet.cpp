@@ -3638,7 +3638,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
     return true;
 }
 
-bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime)
+bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime)
 {
     // The following split & combine thresholds are important to security
     // Should not be adjusted if you don't understand the consequences
@@ -3674,41 +3674,31 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
         if (IsLocked() || ShutdownRequested())
             return false;
 
-        //make sure that enough time has elapsed between
-        CBlockIndex *pindex = stakeInput->GetIndexFrom();
-        if (!pindex || pindex->nHeight < 1) {
+        CBlockIndex *pindexFrom = stakeInput->GetIndexFrom();
+        if (!pindexFrom || pindexFrom->nHeight < 1) {
             LogPrintf("*** no pindexfrom\n");
             continue;
         }
 
         // Read block header
-        CBlockHeader block = pindex->GetBlockHeader();
         uint256 hashProofOfStake;
         nTxNewTime = GetAdjustedTime();
-        auto nTimeMinBlock = pindex->pprev->GetBlockTime() - MAX_PAST_BLOCK_TIME;
+        auto nTimeMinBlock = std::max(pindexBest->GetBlockTime() - MAX_PAST_BLOCK_TIME, pindexBest->GetMedianTimePast());
         if (nTxNewTime < nTimeMinBlock)
             nTxNewTime = nTimeMinBlock + 1;
-
-        //Don't rehash the same timestamps
-        uint256 hashBlockPrev = pindex->pprev->GetBlockHash();
-        if (mapHashedBlocks.count(hashBlockPrev)) {
-            auto nTimeMin = mapHashedBlocks.at(hashBlockPrev);
-            if (nTxNewTime < nTimeMin)
-                nTxNewTime = nTimeMin + 1;
-        }
 
         //iterates each utxo inside of CheckStakeKernelHash()
         bool fWeightStake = false;
         ThresholdState state = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_POS_WEIGHT, versionbitscache);
         if (state == ThresholdState::ACTIVE || state == ThresholdState::LOCKED_IN)
             fWeightStake = true;
-        if (Stake(stakeInput.get(), nBits, block.GetBlockTime(), nTxNewTime, hashProofOfStake, fWeightStake)) {
+        if (Stake(stakeInput.get(), nBits, pindexFrom->GetBlockTime(), nTxNewTime, pindexBest, hashProofOfStake, fWeightStake)) {
             int nHeight = 0;
             {
                 LOCK(cs_main);
                 //Double check that this will pass time requirements
-                if (nTxNewTime <= chainActive.Tip()->GetMedianTimePast() || nTxNewTime < nTimeMinBlock) {
-                    LogPrintf("CreateCoinStake() : kernel found, but it is too far in the past \n");
+                if (nTxNewTime <= nTimeMinBlock) {
+                    LogPrint(BCLog::BLOCKCREATION, "CreateCoinStake() : kernel found, but it is too far in the past \n");
                     continue;
                 }
                 nHeight = chainActive.Height();
@@ -3759,9 +3749,9 @@ bool CWallet::CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, un
             txNew.vin.emplace_back(in);
 
             //Mark mints as spent
-            auto* z = (ZerocoinStake*)stakeInput.get();
-            if (!z->MarkSpent(this, txNew.GetHash()))
-                return error("%s: failed to mark mint as used\n", __func__);
+//            auto* z = (ZerocoinStake*)stakeInput.get();
+//            if (!z->MarkSpent(this, txNew.GetHash()))
+//                return error("%s: failed to mark mint as used\n", __func__);
 
             fKernelFound = true;
             break;
@@ -3802,7 +3792,7 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInp
         }
     }
 
-    LogPrintf("%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());
+    LogPrint(BCLog::BLOCKCREATION, "%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());
 
     return true;
 }

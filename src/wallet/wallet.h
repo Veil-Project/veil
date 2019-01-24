@@ -1053,7 +1053,7 @@ public:
     CAmount GetZerocoinBalance(bool fMatureOnly) const;
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
-    bool CreateCoinStake(unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime);
+    bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime);
     bool SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount);
 
     // sub wallet seeds
