@@ -169,6 +169,7 @@ extern unsigned int nStakeMinAge;
 extern size_t nCoinCacheUsage;
 extern std::map<uint256, unsigned int> mapHashedBlocks; //blockhash, last timestamp hashed
 extern std::map<unsigned int, unsigned int> mapStakeHashCounter;
+extern std::map<uint256, uint256> mapStakeSeen;
 extern std::set<uint256> setBatchVerified;
 /** A fee rate smaller than this is considered zero fee (for relaying, mining and transaction creation) */
 extern CFeeRate minRelayTxFee;

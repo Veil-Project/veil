@@ -1669,7 +1669,7 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
         uint256 hashLastBlock;
         for (const CBlockHeader& header : headers) {
             if (!hashLastBlock.IsNull() && header.hashPrevBlock != hashLastBlock) {
-                Misbehaving(pfrom->GetId(), 20, "non-continuous headers sequence");
+                Misbehaving(pfrom->GetId(), 0, "non-continuous headers sequence");
                 return false;
             }
             hashLastBlock = header.GetHash();
@@ -3050,12 +3050,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             // mapBlockSource is only used for sending reject messages and DoS scores,
             // so the race between here and cs_main in ProcessNewBlock is fine.
             mapBlockSource.emplace(hash, std::make_pair(pfrom->GetId(), true));
-//            if (!mapBlockIndex.count(pblock->hashPrevBlock)) {
-//                //Don't have previous block, instead of processing this one, try to work backwards to common fork
-//                LogPrint(BCLog::NET, "sending getblocks to outbound peer=%d to because sent a block that we do not have prevblock\n", pfrom->GetId());
-//                connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETBLOCKS, chainActive.GetLocator(), uint256()));
-//                return true;
-//            }
         }
 
         bool fProcessBlock = false;
@@ -3070,7 +3064,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 //We need the full block data to process it
                 if (pblock->hashPrevBlock == Params().GenesisBlock().GetHash() || pindexPrev->nChainTx > 0) {
                     fProcessBlock = true;
-
                 } else if (forceProcessing && nHeightBlock - nHeightNext < ASK_FOR_BLOCKS + 10 && nHeightNext <= nHeightBlock) {
                     //Keep a few blocks cached so we don't fetch them over and over
                     CDataStream ss(SER_DISK, PROTOCOL_VERSION);

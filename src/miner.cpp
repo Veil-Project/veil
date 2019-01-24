@@ -443,9 +443,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     CValidationState state;
     if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
         error("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state));
-        error("%s: Clearing mempool because of error", __func__);
-        //todo: instead of clearing mempool, only clear any transactions (if any) that caused the issue
-        // mempool.clear();
         return nullptr;
     }
 
@@ -849,8 +846,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
 
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
-            LogPrint(BCLog::BLOCKCREATION, "%s : Failed to process new block, clearing mempool txs\n", __func__);
-            //mempool.clear();
+            LogPrint(BCLog::BLOCKCREATION, "%s : Failed to process new block\n", __func__);
             continue;
         }
 

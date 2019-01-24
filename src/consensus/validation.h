@@ -31,6 +31,7 @@ private:
         MODE_VALID,   //!< everything ok
         MODE_INVALID, //!< network rule violation (DoS value may be set)
         MODE_ERROR,   //!< run-time error
+        MODE_STAGING, //!< potentially valid, but not processing yet.
     } mode;
     int nDoS;
     std::string strRejectReason;
@@ -67,6 +68,15 @@ public:
         mode = MODE_ERROR;
         return false;
     }
+    bool Stage(const std::string &_strDebugMessage="") {
+        mode = MODE_STAGING;
+        strDebugMessage = _strDebugMessage;
+        return false;
+    }
+    bool IsStaged() {
+        return mode == MODE_STAGING;
+    }
+
     bool IsValid() const {
         return mode == MODE_VALID;
     }

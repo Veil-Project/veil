@@ -255,6 +255,7 @@ size_t nCoinCacheUsage = 5000 * 300;
 std::map<uint256, unsigned int> mapHashedBlocks;
 std::map<unsigned int, unsigned int> mapStakeHashCounter;
 std::set<uint256> setBatchVerified;
+std::map<uint256, uint256> mapStakeSeen; //stakehash, blockhash
 uint64_t nPruneTarget = 0;
 int64_t nMaxTipAge = DEFAULT_MAX_TIP_AGE;
 bool fEnableReplacement = DEFAULT_ENABLE_REPLACEMENT;
@@ -4433,7 +4434,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
             return state.DoS(100, error("%s: Blockheader marked as PoS but block is not PoS", __func__));
         
         uint256 hashProofOfStake = uint256();
-        unique_ptr<CStakeInput> stake;
+        std::unique_ptr<CStakeInput> stake;
 
         if (!CheckProofOfStake(pindex, block.vtx[1], block.nBits, block.nTime, hashProofOfStake, stake))
             return state.DoS(100, error("%s: proof of stake check failed", __func__));
@@ -4443,6 +4444,21 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
 
         if (!ContextualCheckZerocoinStake(pindex, stake.get()))
             return state.DoS(100, error("%s: zerocoin stake fails context checks", __func__));
+
+        // This stake has already been seen in a different block, prevent disk-space attack by requiring valid PoW block header
+        uint256 hashBlock = block.GetHash();
+        if (mapStakeSeen.count(hashProofOfStake) && mapStakeSeen.at(hashProofOfStake) != hashBlock) {
+            if (!pindexBestHeader)
+                return state.Stage("Failed to find best header");
+
+            const CBlockIndex* pindexBestPoW = pindexBestHeader->GetBestPoWAncestor();
+            if (!pindexBestPoW)
+                return state.Stage("Could not find a valid best pow ancestor on duplicate stake\n");
+
+            if (pindexBestPoW->nHeight <= pindex->nHeight || !IsAncestor(pindexBestPoW, pindex))
+                return state.Stage("Duplicate stake without additional PoW on the chain");
+        }
+        mapStakeSeen[hashProofOfStake] = hashBlock;
     }
 
     // Try to process all requested blocks that we don't have, but only
@@ -4532,6 +4548,8 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
             ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
         }
         if (!ret) {
+            if (state.IsStaged())
+                return error("%s: Block cannot be checked without known PoW added on chain tip", __func__);
             GetMainSignals().BlockChecked(*pblock, state);
             return error("%s: AcceptBlock FAILED (%s)(%d)", __func__, FormatStateMessage(state), pindex ? pindex->nHeight : -1);
         }
