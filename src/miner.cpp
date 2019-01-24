@@ -136,17 +136,15 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 
     CMutableTransaction txCoinStake;
-    if (fProofOfStake && chainActive.Height() + 1 >= Params().HeightPoSStart()) {
+    CBlockIndex* pindexPrev = chainActive.Tip();
+    if (fProofOfStake && pindexPrev->nHeight + 1 >= Params().HeightPoSStart()) {
         //POS block - one coinbase is null then non null coinstake
         //POW block - one coinbase that is not null
         pblock->nTime = GetAdjustedTime();
-        {
-            LOCK(cs_main);
-            pblock->nBits = GetNextWorkRequired(chainActive.Tip(), pblock, chainparams.GetConsensus(), true);
-        }
+        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus(), true);
 
         uint32_t nTxNewTime = 0;
-        if (pwalletMain->CreateCoinStake(chainActive.Tip(), pblock->nBits, txCoinStake, nTxNewTime)) {
+        if (pwalletMain->CreateCoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime)) {
             pblock->nTime = nTxNewTime;
         } else {
             return nullptr;
@@ -160,10 +158,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         return nullptr;
     }
 
-    CBlockIndex* pindexPrev = chainActive.Tip();
     assert(pindexPrev != nullptr);
     nHeight = pindexPrev->nHeight + 1;
-
     pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
