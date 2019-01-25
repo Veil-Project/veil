@@ -362,11 +362,11 @@ public:
         nDefaultPort = 58811;
         nPruneAfterHeight = 1000;
 
-        int nTimeStart = 1536946053;
-        uint32_t nNonce = 7019238;
+        int nTimeStart = 1548379385;
+        uint32_t nNonce = 4234676;
         genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0xaff3a6a530724159f414d91882407de57eba9820d6f4e6cc7443e85729c8d9a9"));
+        assert(consensus.hashGenesisBlock == uint256S("0xec7d8a93639c6bbf10954c71a2db69617bd90db72b353321927081836939df7a"));
         assert(genesis.hashMerkleRoot == uint256S("0xa6d192b185dc382a8d7e7dbb5f7a212a54cb93b94e6b9e08869d9169c04993b0"));
         assert(genesis.hashWitnessMerkleRoot == uint256S("0xa6d192b185dc382a8d7e7dbb5f7a212a54cb93b94e6b9e08869d9169c04993b0"));
         assert(genesis.hashVeilData == uint256S("0x8b7f273daa09d2d0fa6abeb27a2a87a4ee6c947ac04931f4f3b6b83f1cf7ad3f"));

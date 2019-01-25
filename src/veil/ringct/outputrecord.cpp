@@ -5,6 +5,7 @@
 #include "outputrecord.h"
 #include <boost/variant.hpp>
 #include <tinyformat.h>
+#include <utilmoneystr.h>
 
 void COutputRecord::AddStealthAddress(const CKeyID& idStealth)
 {
@@ -65,7 +66,7 @@ void COutputRecord::MarkPendingSpend(bool isSpent)
 
 bool COutputRecord::IsSpent(bool fIncludePendingSpend) const
 {
-    return nFlags & ORF_SPENT || nFlags & ORF_PENDING_SPEND;
+    return nFlags & ORF_SPENT || (fIncludePendingSpend && (nFlags & ORF_PENDING_SPEND));
 }
 
 CAmount COutputRecord::GetAmount() const
@@ -91,5 +92,5 @@ bool COutputRecord::GetDestination(CTxDestination& dest) const
 
 std::string COutputRecord::ToString() const
 {
-    return strprintf("TransactionRecord:\n  n=%d\n  nValue=%d\n  nType=%d\n  IsSend()=%d\n", n, nValue, nType, IsSend());
+    return strprintf("TransactionRecord:\n  n=%d\n  nValue=%s\n  nType=%d\n  spend=%d pending=%d\n  flags=%d\n", n, FormatMoney(GetAmount()), nType, nFlags&ORF_SPENT, nFlags&ORF_PENDING_SPEND, nFlags);
 }

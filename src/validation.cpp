@@ -800,29 +800,29 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         }
 
         //Weed out pubcoin that are either 1)already in the mempool in a different txid 2)already in the chain in a different txid
-        for (const auto& pout : tx.vpout) {
-            std::set<uint256> setPubcoins;
-            TxToPubcoinHashSet(&tx, setPubcoins);
-            for (const uint256& hashPubcoin : setPubcoins) {
-                if (pool.HasPublicCoin(hashPubcoin)) {
-                    LogPrint(BCLog::NET, "%s: pubcoin already in mempool. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
-                    return false;
-                }
-
-                int nHeightTx;
-                uint256 txid;
-                if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, chainActive.Tip())) {
-                    LogPrint(BCLog::NET, "%s: pubcoin already in blockchain. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
-                    return false;
-                }
+        std::set<uint256> setPubcoins;
+        TxToPubcoinHashSet(&tx, setPubcoins);
+        for (const uint256& hashPubcoin : setPubcoins) {
+            if (pool.HasPublicCoin(hashPubcoin)) {
+                LogPrint(BCLog::NET, "%s: pubcoin already in mempool. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
+                return false;
             }
 
+            int nHeightTx;
+            uint256 txid;
+            if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, chainActive.Tip())) {
+                LogPrint(BCLog::NET, "%s: pubcoin already in blockchain. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
+                return false;
+            }
+        }
+
+        for (const auto& pout : tx.vpout) {
             //Do context checks of mint
-            if (pout->IsZerocoinMint() && !setPubcoins.empty()) {
+            if (pout->IsZerocoinMint()) {
                 libzerocoin::PublicCoin pubcoin(Params().Zerocoin_Params());
                 if (!OutputToPublicCoin(pout.get(), pubcoin))
                     return state.Invalid(false, REJECT_INVALID, "zcmint-malformed");
-                if (!OutputToPublicCoin(pout.get(), pubcoin) || !ContextualCheckZerocoinMint(tx, pubcoin, chainActive.Tip()))
+                if (!ContextualCheckZerocoinMint(tx, pubcoin, chainActive.Tip()))
                     return state.Invalid(false, REJECT_INVALID, "zcmint-fail-context-check");
             }
         }
