@@ -3763,9 +3763,9 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             txNew.vin.emplace_back(in);
 
             //Mark mints as spent
-//            auto* z = (ZerocoinStake*)stakeInput.get();
-//            if (!z->MarkSpent(this, txNew.GetHash()))
-//                return error("%s: failed to mark mint as used\n", __func__);
+            auto* z = (ZerocoinStake*)stakeInput.get();
+            if (!z->MarkSpent(this, txNew.GetHash()))
+                return error("%s: failed to mark mint as used\n", __func__);
 
             fKernelFound = true;
             break;
