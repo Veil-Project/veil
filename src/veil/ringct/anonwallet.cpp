@@ -1118,9 +1118,7 @@ bool AnonWallet::IsChange(const CTxOutBase *txout) const
     const CScript *ps = txout->GetPScriptPubKey();
     if (ps)
     {
-        const CScript &scriptPubKey = *ps;
         auto mine = pwalletParent->IsMine(txout);
-        //isminetype mine = IsMine(scriptPubKey, idk, pak, pasc, pa, isInvalid);
         if (!mine)
             return false;
     };
@@ -2882,6 +2880,7 @@ bool AnonWallet::IsMyAnonInput(const CTxIn& txin)
 
     size_t ofs = 0, nB = 0;
     for (size_t k = 0; k < nInputs; ++k) {
+        auto image = *((CCmpPubKey*)&vKeyImages[k*33]);
         for (size_t i = 0; i < nCols; ++i) {
             int64_t nIndex;
 
@@ -2902,10 +2901,8 @@ bool AnonWallet::IsMyAnonInput(const CTxIn& txin)
                     continue;
                 }
                 CCmpPubKey keyImage(vchKeyImage);
-                for (const auto& ki : vKeyImages) {
-                    if (vchKeyImage == keyImage)
-                        return true;
-                }
+                if (vchKeyImage == image)
+                    return true;
             }
         }
     }
@@ -4530,11 +4527,61 @@ void AnonWallet::RescanWallet()
                         //Assume the spentness is from this, should do a full chain rescan after? //todo
                         outrecord->MarkSpent(false);
                         outrecord->MarkPendingSpend(false);
+
                         wdb.WriteTxRecord(input.hash, *txrecord_input);
                         LogPrintf("%s: Marking %s as unspent\n", __func__, input.ToString());
                     }
                 }
                 setErase.emplace(txid);
+            }
+        } else {
+            // Check outputs for inconsistencies
+
+            CTransactionRef txRef;
+            uint256 hashBlock;
+            if (!GetTransaction(txid, txRef, Params().GetConsensus(), hashBlock, true))
+                continue;
+
+            for (auto it = txrecord->vout.begin(); it != txrecord->vout.end(); it++) {
+                bool fUpdated = false;
+                if (it->scriptPubKey.empty()) {
+                    CStoredTransaction stx;
+                    if (it->nType == OUTPUT_CT) {
+                        OwnBlindOut(&wdb, txid, (CTxOutCT*)txRef->vpout[it->n].get(), *(it), stx, fUpdated);
+                    } else if (it->nType == OUTPUT_RINGCT) {
+                        OwnAnonOut(&wdb, txid, (CTxOutRingCT*)txRef->vpout[it->n].get(), *(it), stx, fUpdated);
+                    }
+                    if (fUpdated)
+                        LogPrintf("%s: Updating scriptpubkey for %s\n", __func__, COutPoint(txid, it->n).ToString());
+                }
+
+                // If value is marked as 0, check blind to make sure it is actually 0
+                if ((it->nFlags & ORF_OWNED) && it->GetAmount() == 0) {
+                    int64_t nValue = 0;
+                    uint256 blind;
+                    if (it->nType == OUTPUT_CT) {
+                        auto pout = (CTxOutCT*) txRef->vpout[it->n].get();
+                        if (GetCTBlinds(it->scriptPubKey, pout->vData, &pout->commitment, pout->vRangeproof, blind, nValue)) {
+                            if (nValue != 0) {
+                                fUpdated = true;
+                                LogPrintf("%s: Recovered %s that was marked as 0 \n", __func__, FormatMoney(nValue));
+                            }
+                        }
+                    } else if (it->nType == OUTPUT_RINGCT) {
+                        auto pout = (CTxOutRingCT*) txRef->vpout[it->n].get();
+                        if (GetCTBlinds(it->scriptPubKey, pout->vData, &pout->commitment, pout->vRangeproof, blind, nValue)) {
+                            if (nValue != 0) {
+                                fUpdated = true;
+                                LogPrintf("%s: Recovered %s that was marked as 0 \n", __func__, FormatMoney(nValue));
+                            }
+                        }
+                    }
+                    it->SetValue(nValue);
+                }
+
+                if (fUpdated) {
+                    wdb.WriteTxRecord(txid, *txrecord);
+                }
             }
         }
     }
@@ -4742,6 +4789,53 @@ bool AnonWallet::OwnBlindOut(AnonWalletDB *pwdb, const uint256 &txhash, const CT
     return true;
 }
 
+bool AnonWallet::GetCTBlinds(CScript scriptPubKey, std::vector<uint8_t>& vData,
+        secp256k1_pedersen_commitment* commitment, std::vector<uint8_t>& vRangeproof, uint256 &blind, int64_t& nValue) const
+{
+    CTxDestination dest;
+    if (!ExtractDestination(scriptPubKey, dest))
+        return error("%s: ExtractDestination failed", __func__);
+
+    if (dest.which() != 1)
+        return error("%s: destination is not key id", __func__);
+    CKeyID idKey = boost::get<CKeyID>(dest);
+
+    CKey key;
+    if (!GetKey(idKey, key))
+        return error("%s: GetKey failed.", __func__);
+
+    if (vData.size() < 33)
+        return error("%s: vData.size() < 33.", __func__);
+
+    CPubKey pkEphem;
+    pkEphem.Set(vData.begin(), vData.begin() + 33);
+
+    // Regenerate nonce
+    uint256 nonce = key.ECDH(pkEphem);
+    CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
+
+    uint64_t min_value, max_value;
+    uint8_t blindOut[32];
+    unsigned char msg[256]; // Currently narration is capped at 32 bytes
+    size_t mlen = sizeof(msg);
+    memset(msg, 0, mlen);
+    uint64_t amountOut;
+    if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
+                                         blindOut, &amountOut, msg, &mlen, nonce.begin(),
+                                         &min_value, &max_value,
+                                         commitment, vRangeproof.data(), vRangeproof.size(),
+                                         nullptr, 0,
+                                         secp256k1_generator_h)) {
+        return error("%s: secp256k1_rangeproof_rewind failed.", __func__);
+    }
+
+    blind = uint256();
+    memcpy(blind.begin(), blindOut, 32);
+    nValue = amountOut;
+
+    return true;
+}
+
 bool AnonWallet::GetCTBlindsFromOutput(const CTxOutCT *pout, uint256& blind) const
 {
     CScript scriptPubKey;
@@ -4804,10 +4898,10 @@ bool AnonWallet::HaveKeyID(const CKeyID& id)
 int AnonWallet::OwnAnonOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxOutRingCT *pout, COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated)
 {
     rout.nType = OUTPUT_RINGCT;
-    CKeyID idPubkey = pout->pk.GetID();
+    CKeyID idStealthDestination = pout->pk.GetID();
     CKey key;
     if (IsLocked()) {
-        if (!HaveKeyID(idPubkey))
+        if (!HaveKeyID(idStealthDestination))
             return 0;
 
         rout.nFlags |= ORF_OWNED;
@@ -4816,7 +4910,7 @@ int AnonWallet::OwnAnonOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxO
         return 1;
     }
 
-    if (!GetKey(idPubkey, key))
+    if (!GetKey(idStealthDestination, key))
         return 0;
 
     if (pout->vData.size() < 33)
@@ -4853,10 +4947,11 @@ int AnonWallet::OwnAnonOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxO
     rout.nFlags |= ORF_OWNED;
     rout.SetValue(amountOut);
 
-    if (rout.vPath.empty()) {
-        CStealthAddress stealthAddress;
-        if (GetStealthLinked(idPubkey, stealthAddress))
-            rout.AddStealthAddress(stealthAddress.GetID());
+    CStealthAddress stealthAddress;
+    if (GetStealthLinked(idStealthDestination, stealthAddress)) {
+        auto idStealth = stealthAddress.GetID();
+        rout.AddStealthAddress(idStealth);
+        rout.scriptPubKey = GetScriptForDestination(idStealth);
     }
 
     COutPoint op(txhash, rout.n);

@@ -280,6 +280,7 @@ std::string BIP32PathToString(const BIP32Path& vPath)
             str += "'";
         str += "/";
     }
+    return str;
 }
 
 // Veil:
@@ -2470,7 +2471,7 @@ CAmount CWallet::GetBalance(const isminefilter& filter, const int min_depth) con
         {
             const CWalletTx* pcoin = &entry.second;
             if (pcoin->IsTrusted() && pcoin->GetDepthInMainChain() >= min_depth) {
-                nTotal += pcoin->GetAvailableCredit(true, filter);
+                nTotal += pcoin->GetAvailableCredit(true, filter, /*fBasecoinOnly*/true);
             }
         }
     }
