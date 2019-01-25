@@ -327,7 +327,7 @@ public:
                                CTxDestination* addressTo = NULL) override
     {
         auto pending = MakeUnique<PendingWalletTxImpl>(m_wallet);
-        if (!m_wallet.SpendZerocoin(nValue, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, addressTo))
+        if (!m_wallet.SpendZerocoin(nValue, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, libzerocoin::CoinDenomination::ZQ_ERROR, addressTo))
             return {};
         auto vtx = receipt.GetTransactions();
         pending->m_tx = vtx[0];

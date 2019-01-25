@@ -5620,7 +5620,8 @@ bool CWallet::AvailableZerocoins(std::set<CMintMeta>& setMints)
 }
 
 bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
-        std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, CTxDestination* addressTo)
+        std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
+        libzerocoin::CoinDenomination denomFilter, CTxDestination* addressTo)
 {
     // Default: assume something goes wrong. Depending on the problem this gets more specific below
     int nStatus = ZSPEND_ERROR;
@@ -5645,6 +5646,21 @@ bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendRe
     // Select the z mints to use in this spend
     std::map<libzerocoin::CoinDenomination, CAmount> DenomMap = GetMyZerocoinDistribution().first;
     std::list<CMintMeta> listMints(setMints.begin(), setMints.end());
+    if (denomFilter != libzerocoin::CoinDenomination::ZQ_ERROR) {
+        //A specific denom was selected to spend with
+        listMints.clear();
+        for (const auto& mint : setMints) {
+            if (mint.denom == denomFilter)
+                listMints.emplace_back(mint);
+        }
+
+        //Set denom map to 0 values for non-matching denoms
+        for (auto mi = DenomMap.begin(); mi != DenomMap.end(); mi++) {
+            if (mi->first != denomFilter)
+                mi->second = 0;
+        }
+    }
+
     CAmount nValueSelected;
     int nCoinsReturned, nNeededSpends;
     auto vMintsToFetch = SelectMintsFromList(nValueToSelect, nValueSelected, Params().Zerocoin_MaxSpendsPerTransaction(),
