@@ -6006,12 +6006,12 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         //any change that is less than 0.0100000 will be ignored and given as an extra fee
         //also assume that a zerocoinspend that is minting the change will not have any change that goes to Piv
         CAmount nChange = nValueIn - nTotalValue; // Fee already accounted for in nTotalValue
-        if (nChange > Params().Zerocoin_MintFee()) {
-            // Fill a vout to ourself using the largest contributing address
-            CScript scriptChange = GetLargestContributor(setCoins);
 
-            //add to the transaction
-            CTxOut outChange(nChange, scriptChange);
+        // Fill a vout to ourself using the largest contributing address
+        CScript scriptChange = GetLargestContributor(setCoins);
+        //add to the transaction
+        CTxOut outChange(nChange, scriptChange);
+        if (!IsDust(outChange, dustRelayFee)) {
             txNew.vpout.emplace_back(outChange.GetSharedPtr());
         } else {
             if (reservekey)
