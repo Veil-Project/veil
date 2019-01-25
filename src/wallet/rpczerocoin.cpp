@@ -171,9 +171,9 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
 
     UniValue params = request.params;
 
-    if (request.fHelp || params.size() > 5 || params.size() < 4)
+    if (request.fHelp || params.size() > 6 || params.size() < 4)
         throw std::runtime_error(
-                "spendzerocoin amount mintchange minimizechange securitylevel ( \"address\" )\n"
+                "spendzerocoin amount mintchange minimizechange securitylevel d( \"address\" denomination)\n"
                 "\nSpend zerocoin to a veil address.\n"
                 "\nArguments:\n"
                 "1. amount          (numeric, required) Amount to spend.\n"
@@ -186,6 +186,7 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
                 "                       Adding more checkpoints makes the minting process take longer\n"
                 "5. \"address\"     (string, optional, default=change) Send to specified address or to a new change address.\n"
                 "                       If there is change then an address is required\n"
+                "6. denomination    (numeric, optional) Only select from a specific zerocoin denomination\n"
 
                 "\nResult:\n"
                 "{\n"
@@ -223,20 +224,27 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
     int nSecurityLevel = params[3].get_int();       // Security level
 
     CTxDestination dest; // Optional sending address. Dummy initialization here.
-    if (params.size() == 5) {
+    if (params.size() > 4) {
         // Destination address was supplied as request[4]. Optional parameters MUST be at the end
         // to avoid type confusion from the JSON interpreter
         dest = DecodeDestination(params[4].get_str());
+    }
+
+    libzerocoin::CoinDenomination denomFilter = libzerocoin::CoinDenomination::ZQ_ERROR;
+    if (params.size() > 5) {
+        denomFilter = libzerocoin::IntToZerocoinDenomination(params[5].get_int());
+        if (denomFilter == libzerocoin::CoinDenomination::ZQ_ERROR)
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not parse denomination");
     }
 
     std::vector<CZerocoinMint> vMintsSelected;
     CZerocoinSpendReceipt receipt;
     bool fSuccess;
 
-    if(params.size() == 5) // Spend to supplied destination address
-        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, &dest);
+    if(params.size() > 4) // Spend to supplied destination address
+        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, denomFilter, &dest);
     else                   // Spend to newly generated local address
-        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange);
+        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, denomFilter);
 
     if (!fSuccess)
         throw JSONRPCError(RPC_WALLET_ERROR, receipt.GetStatusMessage());
@@ -517,9 +525,9 @@ UniValue DoZerocoinSpend(CWallet* pwallet, const CAmount nAmount, bool fMintChan
         dest = CBitcoinAddress(address_str).Get();
         if(!address.IsValid())
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid VEIL address");
-        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, &dest);
+        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, libzerocoin::CoinDenomination::ZQ_ERROR, &dest);
     } else                   // Spend to newly generated local address
-        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange);
+        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, libzerocoin::CoinDenomination::ZQ_ERROR);
 
     if (!fSuccess)
         throw JSONRPCError(RPC_WALLET_ERROR, receipt.GetStatusMessage());
@@ -1341,7 +1349,7 @@ static const CRPCCommand commands[] =
 {
      //  category              name                                actor (function)                argNames
     //  --------------------- ------------------------          -----------------------         ----------
-    { "zerocoin",           "spendzerocoin",                    &spendzerocoin,                 {"amount", "mintchange", "minimizechange", "securitylevel", "address"} },
+    { "zerocoin",           "spendzerocoin",                    &spendzerocoin,                 {"amount", "mintchange", "minimizechange", "securitylevel", "address", "denomination"} },
     { "zerocoin",           "mintzerocoin",                     &mintzerocoin,                  {"amount", "utxos"} },
     { "zerocoin",           "searchdeterministiczerocoin",      &searchdeterministiczerocoin,   {"count", "range", "threads"} },
     { "zerocoin",           "deterministiczerocoinstate",       &deterministiczerocoinstate,    {} },

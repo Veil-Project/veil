@@ -821,7 +821,7 @@ public:
     std::string MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints, OutputTypes inputtype,
             const CCoinControl* coinControl = NULL);
     bool SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
-            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, CTxDestination* addressTo = NULL);
+            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, libzerocoin::CoinDenomination denomFilter, CTxDestination* addressTo = NULL);
     bool AvailableZerocoins(std::set<CMintMeta>& setMints);
 //    std::string ResetMintZerocoin();
 //    std::string ResetSpentZerocoin();
