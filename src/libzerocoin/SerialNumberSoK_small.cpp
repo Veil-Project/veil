@@ -400,16 +400,28 @@ SerialNumberSoK_small::SerialNumberSoK_small(const ZerocoinParams* ZCp, const Pr
 bool SerialNumberSoK_small::Verify(const CBigNum& coinSerialNumber,
         const CBigNum& valueOfCommitmentToCoin, const uint256 msghash) const
 {
-    std::vector<SerialNumberSoKProof> proof(1, SerialNumberSoKProof(*this, coinSerialNumber, valueOfCommitmentToCoin, msghash));
+    auto proof = SerialNumberSoKProof(*this, coinSerialNumber, valueOfCommitmentToCoin, msghash);
+    std::vector<const SerialNumberSoKProof*> vproof{&proof};
 
-    return SerialNumberSoKProof::BatchVerify(proof);
+    uint8_t nReturn;
+    return SerialNumberSoKProof::BatchVerify(vproof);
 
 }
 
+bool SerialNumberSoKProof::BatchVerify(std::vector<const SerialNumberSoKProof*> &proofs, uint8_t* nReturn)
+{
+    if (!BatchVerify(proofs)) {
+        *nReturn = 0;
+        return false;
+    }
 
-bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs) {
-    const CBigNum q = proofs[0].signature.params->serialNumberSoKCommitmentGroup.groupOrder;
-    const CBigNum p = proofs[0].signature.params->serialNumberSoKCommitmentGroup.modulus;
+    *nReturn = 1;
+    return true;
+}
+
+bool SerialNumberSoKProof::BatchVerify(std::vector<const SerialNumberSoKProof*> &proofs) {
+    const CBigNum q = proofs[0]->signature.params->serialNumberSoKCommitmentGroup.groupOrder;
+    const CBigNum p = proofs[0]->signature.params->serialNumberSoKCommitmentGroup.modulus;
     const int m =  ZKP_M;
     const int n =  ZKP_N;
     const int N = ZKP_SERIALSIZE;
@@ -417,89 +429,80 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
     const int m2dash =  ZKP_M2DASH;
     const int ndash =  ZKP_NDASH;
     const int pads = ZKP_PADS;
+    const CBigNum bnZero(0);
+    const CBigNum bnOne(1);
 
     // ****************************************************************************
     // **************************** STEP 1: Parsing *******************************
     // ****************************************************************************
 
-    uint256 msghash;
-    CBigNum S;
-    CBigNum y1;
-    CBN_vector ComA;
-    CBN_vector ComB;
-    CBN_vector ComC;
-    CBigNum ComD;
-    CBigNum comRdash;
-    CBigNum rho;
-    PolynomialCommitment *polyComm;
-    Bulletproofs *innerProduct;
-
     CBigNum ny;
     CBigNum temp;
+    CBigNum y1;
 
     std::vector<SerialNumberSoKProof2> proofs2;
 
     for(unsigned int w=0; w<proofs.size(); w++)
     {
-        msghash = proofs[w].msghash;
-        S = proofs[w].coinSerialNumber;
-        y1 = proofs[w].valueOfCommitmentToCoin;
-        ComA = proofs[w].signature.ComA;
-        ComB = proofs[w].signature.ComB;
-        ComC = proofs[w].signature.ComC;
-        ComD = proofs[w].signature.ComD;
-        comRdash  = proofs[w].signature.comRdash;
-        rho = proofs[w].signature.rho;
-        polyComm = &proofs[w].signature.polyComm;
-        innerProduct = &proofs[w].signature.innerProduct;
+        const uint256& msghash = proofs[w]->msghash;
+        const CBigNum& S = proofs[w]->coinSerialNumber;
+        y1 = proofs[w]->valueOfCommitmentToCoin;
+        const auto& ComA = proofs[w]->signature.ComA;
+        const CBN_vector& ComB = proofs[w]->signature.ComB;
+        const CBN_vector& ComC = proofs[w]->signature.ComC;
+        const CBigNum& ComD = proofs[w]->signature.ComD;
+        const CBigNum& comRdash  = proofs[w]->signature.comRdash;
+        const CBigNum& rho = proofs[w]->signature.rho;
+        const PolynomialCommitment* polyComm = &proofs[w]->signature.polyComm;
+        const Bulletproofs* innerProduct = &proofs[w]->signature.innerProduct;
 
         // Restore y1 in ComC
         CBN_vector ComC_(ComC);
         ComC_.push_back(y1);
 
         // Assert inputs in correct groups
-        if( S < CBigNum(0) || S > CBigNum(2).pow(256))
+        if( S < bnZero || S > CBigNum(2).pow(256))
             return error("wrong value for S");
 
-        if( ComD < CBigNum(0) || ComD > p )
+        if( ComD < bnZero || ComD > p )
             return error("wrong value for ComD");
 
         for(int i=0; i<m; i++) {
-            if( ComA[i] < CBigNum(0) || ComA[i] > p )
+            if( ComA[i] < bnZero || ComA[i] > p )
                 return error("wrong value for ComA at %d", i);
-            if( ComB[i] < CBigNum(0) || ComB[i] > p )
+            if( ComB[i] < bnZero || ComB[i] > p )
                 return error("wrong value for ComB at %d", i);
-            if( ComC_[i] < CBigNum(0) || ComC_[i] > p )
+            if( ComC_[i] < bnZero || ComC_[i] > p )
                 return error("wrong value for ComC at %d", i);
         }
 
-        if( comRdash < CBigNum(0) || comRdash > p )
+        if( comRdash < bnZero || comRdash > p )
             return error("wrong value for comRdash");
 
         for(int i=0; i<m1dash; i++)
-            if( polyComm->Tf[i] < CBigNum(0) || polyComm->Tf[i] > p )
+            if( polyComm->Tf[i] < bnZero || polyComm->Tf[i] > p )
                 return error("wrong value for Tf at %d", i);
 
         for(int i=0; i<m2dash; i++)
-            if( polyComm->Trho[i] < CBigNum(0) || polyComm->Trho[i] > p )
+            if( polyComm->Trho[i] < bnZero || polyComm->Trho[i] > p )
                 return error("wrong value for Trho at %d", i);
 
-        if( polyComm->U < CBigNum(0) || polyComm->U > p )
+        if( polyComm->U < bnZero || polyComm->U > p )
             return error("wrong value for U");
 
         for(int i=0; i<ndash; i++)
-            if( polyComm->tbar[i] < CBigNum(0) || polyComm->tbar[i] > q )
+            if( polyComm->tbar[i] < bnZero || polyComm->tbar[i] > q )
                 return error("wrong value for tbar at %d", i);
 
-        if( polyComm->taubar < CBigNum(0) || polyComm->taubar > q )
+        if( polyComm->taubar < bnZero || polyComm->taubar > q )
             return error("wrong value for taubar");
 
         for(int j=0; j<(int)innerProduct->pi[0].size(); j++)
-            if( innerProduct->pi[0][j] < CBigNum(0) || innerProduct->pi[0][j] > p )
+            if( innerProduct->pi[0][j] < bnZero || innerProduct->pi[0][j] > p )
                 return error("wrong value for pi[0] at j=%d", j);
 
         for(int j=0; j<(int)innerProduct->pi[1].size(); j++)
-            if( innerProduct->pi[1][j] < CBigNum(0) || innerProduct->pi[1][j] > p )
+            if( innerProduct->pi[1][j] < bnZero || innerProduct->pi[1][j] > p )
                 return error("wrong value for pi[1] at j=%d", j);
 
         const int M1 = innerProduct->final_a.size();
@@ -507,9 +510,9 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
 
         for(int i=0; i<M1; i++)
             for(int j=0; j<N1; j++) {
-                if( innerProduct->final_a[i][j] < CBigNum(0) || innerProduct->final_a[i][j] > q )
+                if( innerProduct->final_a[i][j] < bnZero || innerProduct->final_a[i][j] > q )
                     return error("wrong value for final_a at [%d, %d]", i, j);
-                if( innerProduct->final_b[i][j] < CBigNum(0) || innerProduct->final_b[i][j] > q )
+                if( innerProduct->final_b[i][j] < bnZero || innerProduct->final_b[i][j] > q )
                     return error("wrong value for final_b at [%d, %d]", i, j);
             }
 
@@ -541,7 +544,7 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
         // precomputation of x powers
         CBN_vector xPowersPos(m2dash*ndash+1);
         CBN_vector xPowersNeg(m1dash*ndash+1);
-        xPowersPos[0] = xPowersNeg[0] = CBigNum(1);
+        xPowersPos[0] = xPowersNeg[0] = bnOne;
         xPowersPos[1] = x;
         xPowersNeg[1] = x.pow_mod(-1,q);
         for(int i=2; i<m2dash*ndash+1; i++)
@@ -552,8 +555,8 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
 
         // set ymPowers
         ny = y.pow_mod(-ZKP_M, q);
-        CBN_vector ymPowers(1, CBigNum(1));
-        temp = CBigNum(1);
+        CBN_vector ymPowers(1, bnOne);
+        temp = bnOne;
 
         for(unsigned int i=0; i<n+pads; i++) {
             temp = temp.mul_mod(ny, q);
@@ -561,8 +564,8 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
         }
 
         // set yPowers
-        CBN_vector yPowers(1, CBigNum(1));
-        temp = CBigNum(1);
+        CBN_vector yPowers(1, bnOne);
+        temp = bnOne;
 
         for(unsigned int i=0; i<8*N+m+1; i++) {
             temp = temp.mul_mod(y, q);
@@ -574,10 +577,8 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
         for(unsigned int i=1; i<n+1; i++)
             yDash.push_back(yPowers[m*i]);
 
-
         // append the proof
-        SerialNumberSoKProof2 newProof(proofs[w].signature, S, y1,
-                xPowersPos, xPowersNeg, yPowers, yDash, ymPowers);
+        SerialNumberSoKProof2 newProof(proofs[w]->signature, S, y1, xPowersPos, xPowersNeg, yPowers, yDash, ymPowers);
         proofs2.push_back(newProof);
 
     }
@@ -606,23 +607,20 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
 
     for(unsigned int w=0; w<proofs2.size(); w++)
     {
-        S = proofs2[w].coinSerialNumber;
+        const auto& S = proofs2[w].coinSerialNumber;
         y1 = proofs2[w].valueOfCommitmentToCoin;
-        ComA = proofs2[w].signature.ComA;
-        ComB = proofs2[w].signature.ComB;
-        ComC = proofs2[w].signature.ComC;
-        ComD = proofs2[w].signature.ComD;
-        comRdash  = proofs2[w].signature.comRdash;
-        rho = proofs2[w].signature.rho;
-        polyComm = &proofs2[w].signature.polyComm;
-        innerProduct = &proofs2[w].signature.innerProduct;
+        const auto& ComA = proofs2[w].signature.ComA;
+        const auto& ComB = proofs2[w].signature.ComB;
+        const auto& ComC = proofs2[w].signature.ComC;
+        const auto& ComD = proofs2[w].signature.ComD;
+        const auto& comRdash  = proofs2[w].signature.comRdash;
+        const auto& rho = proofs2[w].signature.rho;
+        const auto* polyComm = &proofs2[w].signature.polyComm;
+        const auto* innerProduct = &proofs2[w].signature.innerProduct;
 
         // Restore y1 in ComC
         CBN_vector ComC_(ComC);
         ComC_.push_back(y1);
-
-        S = proofs2[w].coinSerialNumber;
-        y1 = proofs2[w].valueOfCommitmentToCoin;
         params = proofs2[w].signature.params;
         polyComm = &proofs2[w].signature.polyComm;
 
@@ -652,10 +650,7 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
         // ****************************************************************************
         // ***************************** STEP 4: Find ComR ****************************
         // ****************************************************************************
-
-        rho = proofs2[w].signature.rho;
-
-        CBigNum ComR = pedersenCommitment(params, CBN_vector(1, CBigNum(0)), -rho);
+        CBigNum ComR = pedersenCommitment(params, CBN_vector(1, bnZero), -rho);
         ComR = ComR.mul_mod(ComD.pow_mod(proofs2[w].xPowersPos[2*m+1],p),p);
 
         for(int i=1; i<m+1; i++) {
@@ -734,7 +729,6 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
         // ****************************************************************************
 
         gamma = CBigNum::randBignum(q);
-        comRdash  = proofs2[w].signature.comRdash;
         ComR = proofs2[w].ComR;
 
         CBN_vector temp_v;
@@ -751,7 +745,7 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
     }
 
 
-    CBigNum test = pedersenCommitment(proofs2[0].signature.params, test_vec, CBigNum(0));
+    CBigNum test = pedersenCommitment(proofs2[0].signature.params, test_vec, bnZero);
 
     if(test != comTest) {
         LogPrintf("BatchVerify failed: different test and comTest\n");
@@ -772,13 +766,13 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<SerialNumberSoKProof> &proofs
 bool SerialNumberSoKProof::BatchBulletproofs(const CBN_matrix ck_inner_g, std::vector<SerialNumberSoKProof2> &proofs)
 {
     // Initialize
-    SerialNumberSoKProof2 dp = proofs[0];
-    const ZerocoinParams* params = dp.signature.params;
-    int N1 = dp.signature.innerProduct.pi[0].size();
+    const SerialNumberSoKProof2& dp_outter = proofs[0];
+    const ZerocoinParams* params = dp_outter.signature.params;
+    const int N1 = dp_outter.signature.innerProduct.pi[0].size();
 
-    const CBigNum q = params->serialNumberSoKCommitmentGroup.groupOrder;
-    const CBigNum p = params->serialNumberSoKCommitmentGroup.modulus;
-    const CBigNum u_inner_prod = params->serialNumberSoKCommitmentGroup.u_inner_prod;
+    const CBigNum& q = params->serialNumberSoKCommitmentGroup.groupOrder;
+    const CBigNum& p = params->serialNumberSoKCommitmentGroup.modulus;
+    const CBigNum& u_inner_prod = params->serialNumberSoKCommitmentGroup.u_inner_prod;
 
     CBigNum Ptest = CBigNum(1);
 
@@ -787,12 +781,12 @@ bool SerialNumberSoKProof::BatchBulletproofs(const CBN_matrix ck_inner_g, std::v
     CBigNum x, Ak, Bk;
     CBN_vector xlist;
     CBigNum pt1, pt2;
-    CBigNum A, B, z;
+    CBigNum z;
     for(unsigned int w=0; w<proofs.size(); w++)
     {
-        dp = proofs[w];
-        A = dp.ComR;
-        B = dp.signature.comRdash;
+        const auto& dp = proofs[w];
+        const auto& A = dp.ComR;
+        const auto& B = dp.signature.comRdash;
         z = dp.z;
 
         gamma = CBigNum::randBignum(q);

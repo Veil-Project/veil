@@ -159,7 +159,8 @@ public:
     CBigNum valueOfCommitmentToCoin;
     uint256 msghash;
 
-    static bool BatchVerify(std::vector<SerialNumberSoKProof> &proofs);
+    static bool BatchVerify(std::vector<const SerialNumberSoKProof*> &proofs, uint8_t* nReturn);
+    static bool BatchVerify(std::vector<const SerialNumberSoKProof*> &proofs);
     static bool BatchBulletproofs(const CBN_matrix ck_inner_g, std::vector<SerialNumberSoKProof2> &proofs);
     static CBN_vector getFinal_gh(const ZerocoinParams* ZCp, CBN_vector gs, std::vector<fBE> forBigExpo);
 };

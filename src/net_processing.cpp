@@ -1537,7 +1537,8 @@ void ProcessStagingBatchVerify()
         if (vProofs.size() > 1) {
             if (nHighestBlockCheck > nHeightLastCheckpoint) {
                 LogPrint(BCLog::STAGING, "%s: Batch verifying %d zeroknowledge proofs\n", __func__, vProofs.size());
-                if (!libzerocoin::SerialNumberSoKProof::BatchVerify(vProofs)) {
+
+                if (!ThreadedBatchVerify(&vProofs)) {
                     fVerificationSuccess = false;
                 }
             }
@@ -1689,7 +1690,7 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
             headerBestNode = header;
         }
         LogPrint(BCLog::NET, "%s: Peer's best sent header=%s\n", __func__, headerBestNode.GetHash().GetHex());
-        
+
         // If we don't have the last header, then they'll have given us
         // something new (if these headers are valid).
         if (!LookupBlockIndex(hashLastBlock) || headerBestNode.hashPrevBlock == chainActive.Tip()->GetBlockHash()) {

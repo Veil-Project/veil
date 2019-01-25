@@ -1103,7 +1103,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
         // Last we batch verify zerocoin spend proofs
         if (!vProofs.empty()) {
-            if (!libzerocoin::SerialNumberSoKProof::BatchVerify(vProofs)) {
+            if (!ThreadedBatchVerify(&vProofs)) {
                 return state.DoS(100, error("%s: Failed to verify zerocoinspend proofs for tx %s", __func__,
                                             tx.GetHash().GetHex()), REJECT_INVALID);
             }
@@ -2578,7 +2578,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     bool fSkipSigVerify = fSkipComputation;
     int64_t nTimeSigVerify = GetTimeMicros();
     if (!fSkipSigVerify && !vProofs.empty()) {
-        if (!libzerocoin::SerialNumberSoKProof::BatchVerify(vProofs)) {
+        if (!ThreadedBatchVerify(&vProofs)) {
             return state.DoS(100, error("%s: Failed to verify zerocoinspend proofs for block=%s height=%d", __func__,
                                         block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID);
         }
