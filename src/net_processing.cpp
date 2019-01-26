@@ -3063,9 +3063,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 nHeightNext = chainActive.Height() + 1;
                 CBlockIndex* pindexPrev = mapBlockIndex.at(pblock->hashPrevBlock);
                 int nHeightBlock = pindexPrev->nHeight + 1;
+                bool isForReorg = nHeightBlock <= nHeightNext - 1 && !chainActive.Contains(pindexPrev);
 
                 //We need the full block data to process it
-                if (pblock->hashPrevBlock == Params().GenesisBlock().GetHash() || pindexPrev->nChainTx > 0) {
+                if (pblock->hashPrevBlock == Params().GenesisBlock().GetHash() || pindexPrev->nChainTx > 0 || (isForReorg && forceProcessing)) {
                     fProcessBlock = true;
                 } else if (forceProcessing && nHeightBlock - nHeightNext < ASK_FOR_BLOCKS + 10 && nHeightNext <= nHeightBlock) {
                     //Keep a few blocks cached so we don't fetch them over and over
