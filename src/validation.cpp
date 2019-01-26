@@ -4413,6 +4413,7 @@ bool CChainState::ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput*
 }
 
 /** Store block on disk. If dbp is non-nullptr, the file is known to already reside on disk */
+std::map<uint256, uint256> mapDoubleStake;
 bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state,
         const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp,
         bool* fNewBlock)
@@ -4448,15 +4449,19 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
         // This stake has already been seen in a different block, prevent disk-space attack by requiring valid PoW block header
         uint256 hashBlock = block.GetHash();
         if (mapStakeSeen.count(hashProofOfStake) && mapStakeSeen.at(hashProofOfStake) != hashBlock) {
-            if (!pindexBestHeader)
-                return state.Stage("Failed to find best header");
+            if (mapDoubleStake.count(hashProofOfStake)) {
+                if (!pindexBestHeader)
+                    return state.Stage("Failed to find best header");
 
-            const CBlockIndex* pindexBestPoW = pindexBestHeader->GetBestPoWAncestor();
-            if (!pindexBestPoW)
-                return state.Stage("Could not find a valid best pow ancestor on duplicate stake\n");
+                const CBlockIndex *pindexBestPoW = pindexBestHeader->GetBestPoWAncestor();
+                if (!pindexBestPoW)
+                    return state.Stage("Could not find a valid best pow ancestor on duplicate stake\n");
 
-            if (pindexBestPoW->nHeight <= pindex->nHeight || !IsAncestor(pindexBestPoW, pindex))
-                return state.Stage("Duplicate stake without additional PoW on the chain");
+                if (pindexBestPoW->nHeight <= pindex->nHeight || !IsAncestor(pindexBestPoW, pindex))
+                    return state.Stage("Duplicate stake without additional PoW on the chain");
+            } else {
+                mapDoubleStake[hashProofOfStake] = mapStakeSeen.at(hashProofOfStake);
+            }
         }
         mapStakeSeen[hashProofOfStake] = hashBlock;
     }
