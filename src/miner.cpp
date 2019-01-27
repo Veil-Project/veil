@@ -747,15 +747,23 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
 
             int nHeight;
             int64_t nTimeLastBlock = 0;
+            int64_t nTimeBestHeader = 0;
             uint256 hashBestBlock;
             {
                 LOCK(cs_main);
                 nHeight = chainActive.Height();
                 nTimeLastBlock = chainActive.Tip()->GetBlockTime();
                 hashBestBlock = chainActive.Tip()->GetBlockHash();
+                if (pindexBestHeader)
+                    nTimeBestHeader = pindexBestHeader->GetBlockTime();
             }
 
-            if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || !pwallet->IsStakingEnabled() || nHeight < Params().HeightPoSStart() || !HeadersAndBlocksSynced()) {
+            if (!gArgs.GetBoolArg("-genoverride", false) && nTimeBestHeader - nTimeLastBlock > 60*60) {
+                MilliSleep(5000);
+                continue;
+            }
+
+            if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || !pwallet->IsStakingEnabled() || nHeight < Params().HeightPoSStart()) {
                 MilliSleep(5000);
                 continue;
             }
