@@ -758,7 +758,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     nTimeBestHeader = pindexBestHeader->GetBlockTime();
             }
 
-            if (!gArgs.GetBoolArg("-genoverride", false) && nTimeBestHeader - nTimeLastBlock > 60*60) {
+            if (!gArgs.GetBoolArg("-genoverride", false) && nTimeBestHeader - nTimeLastBlock > 60*60 || IsInitialBlockDownload()) {
                 MilliSleep(5000);
                 continue;
             }
