@@ -481,7 +481,7 @@ static void NotifyAddressBookChanged(WalletModel *walletmodel,
         const std::string &purpose, ChangeType status)
 {
     bool bench32 = true;
-    if(purpose == "basecoin"){
+    if(purpose == "receive_miner"){
         bench32 = false;
     }
     QString strAddress = QString::fromStdString(EncodeDestination(address,bench32));

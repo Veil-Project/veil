@@ -31,7 +31,8 @@ public:
     enum ColumnIndex {
         Label = 0,   /**< User specified label */
         Address = 1,  /**< Veil address */
-        Address_dot = 2  /**< Veil address ... */
+        Address_dot = 2,  /**< Veil address ... */
+        Is_Basecoin = 3,
     };
 
     enum RoleIndex {

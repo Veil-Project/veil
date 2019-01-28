@@ -58,7 +58,7 @@ static AddressTableEntry::Type translateTransactionType(const QString &strPurpos
     // "refund" addresses aren't shown, and change addresses aren't in mapAddressBook at all.
     if (strPurpose == "send")
         addressType = AddressTableEntry::Sending;
-    else if (strPurpose == "receive" || strPurpose == "basecoin" || strPurpose == "stealth_receive")
+    else if (strPurpose == "receive" || strPurpose == "receive_miner" || strPurpose == "basecoin" || strPurpose == "stealth_receive")
         addressType = AddressTableEntry::Receiving;
     else if (strPurpose == "unknown" || strPurpose == "") // if purpose not set, guess
         addressType = (isMine ? AddressTableEntry::Receiving : AddressTableEntry::Sending);
@@ -83,7 +83,7 @@ public:
             {
                 AddressTableEntry::Type addressType = translateTransactionType(
                         QString::fromStdString(address.purpose), address.is_mine);
-                bool fBasecoin = address.purpose == "basecoin";
+                bool fBasecoin = address.purpose == "receive_miner";
                 QString addressStr = QString::fromStdString(EncodeDestination(address.dest, !fBasecoin));
                 if (addressStr.isEmpty()){
                     // TODO: Check why this is happening.
@@ -215,6 +215,8 @@ QVariant AddressTableModel::data(const QModelIndex &index, int role) const
             return rec->address;
         case Address_dot:
             return rec->address.left(18) + "..." + rec->address.right(18);
+        case Is_Basecoin:
+            return rec->fBasecoin;
         }
     }
     else if (role == Qt::FontRole)
@@ -245,6 +247,7 @@ bool AddressTableModel::setData(const QModelIndex &index, const QVariant &value,
     if(!index.isValid())
         return false;
     AddressTableEntry *rec = static_cast<AddressTableEntry*>(index.internalPointer());
+
     std::string strPurpose = (rec->type == AddressTableEntry::Sending ? "send" : "receive");
     editStatus = OK;
 
