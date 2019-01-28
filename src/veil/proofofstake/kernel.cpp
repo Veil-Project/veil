@@ -63,6 +63,7 @@ void WeightStake(CAmount& nValueIn, const libzerocoin::CoinDenomination denom)
     }
 }
 
+std::set<uint256> setFoundStakes;
 bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockFrom, unsigned int& nTimeTx, const CBlockIndex* pindexBest, uint256& hashProofOfStake, bool fWeightStake)
 {
     if (nTimeTx < nTimeBlockFrom)
@@ -117,6 +118,10 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
         // if stake hash does not meet the target then continue to next iteration
         if (!CheckStake(ssUniqueID, nValueIn, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nTimeBlockFrom, nTryTime, hashProofOfStake))
             continue;
+
+        if (setFoundStakes.count(hashProofOfStake))
+            continue;
+        setFoundStakes.emplace(hashProofOfStake);
 
         fSuccess = true; // if we make it this far then we have successfully created a stake hash
         nTimeTx = nTryTime;

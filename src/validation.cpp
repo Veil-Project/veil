@@ -742,10 +742,9 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                     if (pool.HaveKeyImage(ki, txidKeyImage))
                         return state.Invalid(false, REJECT_DUPLICATE, "keyimage-already-known");
                     if (pblocktree->ReadRCTKeyImage(ki, txidKeyImage)) {
-                        LogPrintf("%s: Key image in tx %s\n", __func__, txidKeyImage.GetHex());
+                        LogPrint(BCLog::NET, "%s: Key image in tx %s\n", __func__, txidKeyImage.GetHex());
                         return state.Invalid(false, REJECT_DUPLICATE, "bad-anonin-dup-keyimage");
                     }
-
                 }
                 continue;
             }
@@ -1222,7 +1221,7 @@ bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus
     return false;
 }
 
-bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight, CBlockIndex* pindex)
+bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight, const CBlockIndex* pindex)
 {
     LOCK(cs_main);
 
@@ -1249,7 +1248,7 @@ bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight, CBlockIndex* pin
     return inChainActive;
 }
 
-bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params, CBlockIndex* pindex)
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params, const CBlockIndex* pindex)
 {
     uint256 hashBlock;
     if (!GetTransaction(txId, txRef, params, hashBlock, true))
@@ -1258,7 +1257,7 @@ bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& 
     return IsBlockHashInChain(hashBlock, nHeightTx, pindex);
 }
 
-bool IsTransactionInChain(const uint256& txId, int& nHeightTx, const Consensus::Params& params, CBlockIndex* pindex)
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, const Consensus::Params& params, const CBlockIndex* pindex)
 {
     CTransactionRef tx;
     return IsTransactionInChain(txId, nHeightTx, tx, params, pindex);
@@ -2708,34 +2707,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     // Record zerocoin serials
     std::set<uint256> setAddedTx;
-    // todo VEIL-89: the other bitcoin code doesn't access the main wallet here so we'll probably want to shift the
-    // zerocoin processing elsewhere eventually
-    auto pwalletMain = GetMainWallet();
-    if (pwalletMain) {
-        for (auto pSpend: mapSpends) {
-            // Send signal to wallet if this is ours
-            if (pwalletMain->IsMyZerocoinSpend(pSpend.first.getCoinSerialNumber())) {
-                LogPrintf("%s: %s detected zerocoinspend in transaction %s \n", __func__, pSpend.first.getCoinSerialNumber().GetHex(), pSpend.second.GetHex());
-                // todo: pwalletMain->NotifyZerocoinChanged(pwalletMain, pSpend.first.getCoinSerialNumber().GetHex(), "Used", CT_UPDATED);
-
-                //Don't add the same tx multiple times
-                if (setAddedTx.count(pSpend.second))
-                    continue;
-
-                //Search block for matching tx, turn into wtx, set merkle branch, add to wallet
-                for (int i = 0; i < block.vtx.size(); i++) {
-                    CTransactionRef tx = block.vtx.at(i);
-                    if (tx->GetHash() == pSpend.second) {
-                        CWalletTx wtx(pwalletMain.get(), tx);
-                        wtx.nTimeReceived = pindex->GetBlockTime();
-                        wtx.SetMerkleBranch(pindex, i);
-                        pwalletMain->AddToWallet(wtx);
-                        setAddedTx.insert(pSpend.second);
-                    }
-                }
-            }
-        }
-    }
 
     // Flush spend/mint info to disk
     if (!pzerocoinDB->WriteCoinSpendBatch(mapSpends)) return state.Error(("Failed to record coin serials to database"));
@@ -4179,10 +4150,23 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                               ? pindexPrev->GetMedianTimePast()
                               : block.GetBlockTime();
 
-    // Check that all transactions are finalized
+    // Cheap transaction context checks
     for (const auto& tx : block.vtx) {
+        // Check that all transactions are finalized
         if (!IsFinalTx(*tx, nHeight, nLockTimeCutoff)) {
             return state.DoS(10, false, REJECT_INVALID, "bad-txns-nonfinal", false, "non-final transaction");
+        }
+
+        // Check that zerocoin serials are not already in chain
+        if (tx->IsZerocoinSpend()) {
+            std::set<uint256> setSerialHashes;
+            TxToSerialHashSet(tx.get(), setSerialHashes);
+            for (const uint256& hashSerial : setSerialHashes) {
+                int nHeightSpend = 0;
+                if (IsSerialInBlockchain(hashSerial, nHeightSpend, pindexPrev))
+                    return state.DoS(100, false, REJECT_INVALID, "bad-zcspend-in-chain", false,
+                            strprintf("Zerocoin serial hash %s already spent in block %d", hashSerial.GetHex(), nHeightSpend));
+            }
         }
     }
 
@@ -4554,7 +4538,7 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
         }
         if (!ret) {
             if (state.IsStaged())
-                return error("%s: Block cannot be checked without known PoW added on chain tip", __func__);
+                return error("%s: Block %s cannot be checked without known PoW added on chain tip", __func__, pblock->GetHash().GetHex());
             GetMainSignals().BlockChecked(*pblock, state);
             return error("%s: AcceptBlock FAILED (%s)(%d)", __func__, FormatStateMessage(state), pindex ? pindex->nHeight : -1);
         }
