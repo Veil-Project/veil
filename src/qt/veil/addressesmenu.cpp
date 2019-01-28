@@ -39,10 +39,17 @@ void AddressesMenu::on_btnEditAddress_clicked(){
     auto address = this->model->index(index.row(), AddressTableModel::Address, index);
     QString addressStr = this->model->data(address, Qt::DisplayRole).toString();
 
+
+    auto isMinerAddress = this->model->index(index.row(), AddressTableModel::Is_Basecoin, index);
+    bool isMiner = this->model->data(isMinerAddress, Qt::DisplayRole).toBool();
+
     this->mainWindow->getGUI()->showHide(true);
     std::string purpose;
     if(AddressTableModel::Receive == type){
-        purpose = "receive";
+        if(isMiner){
+            purpose = "receive_miner";
+        }else
+            purpose = "receive";
     }else{
         purpose = "send";
     }

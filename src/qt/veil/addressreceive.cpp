@@ -55,7 +55,7 @@ void AddressReceive::onBtnSaveClicked(){
     std::string label = ui->editDescription->text().toUtf8().constData();
     interfaces::Wallet& wallet = walletModel->wallet();
     if(isMiner){
-        wallet.setAddressBook(dest, label, "basecoin", false);
+        wallet.setAddressBook(dest, label, "receive_miner", false);
     }else{
         wallet.setAddressBook(dest, label, "receive", true);
     }
@@ -101,7 +101,7 @@ void AddressReceive::generateNewAddress(bool isMinerAddress){
         }else {
             wallet.learnRelatedScripts(newKey, OutputType::LEGACY);
             dest = newKey.GetID();
-            wallet.setAddressBook(dest, "", "basecoin");
+            wallet.setAddressBook(dest, "", "receive_miner");
             bool fBech32 = false;
             strAddress = EncodeDestination(dest, fBech32);
         }

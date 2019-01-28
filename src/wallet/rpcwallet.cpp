@@ -252,7 +252,7 @@ static UniValue getnewminingaddress(const JSONRPCRequest& request)
     CKeyID dest = newKey.GetID();
     pwallet->LearnRelatedScripts(newKey, OutputType::LEGACY);
 
-    pwallet->SetAddressBook(dest, label, "receive");
+    pwallet->SetAddressBook(dest, label, "receive_miner");
 
     bool fBech32 = false;
     return EncodeDestination(dest, fBech32);

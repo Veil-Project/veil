@@ -430,6 +430,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             auto recordType = TransactionRecord::SendToSelf;
             if (wtx.is_anon_send || wtx.is_anon_recv)
                 recordType = TransactionRecord::RingCTSendToSelf;
+            else if (wtx.is_my_zerocoin_mint) {
+                recordType = TransactionRecord::ZeroCoinMint;
+            }
+
 
             parts.append(
                     TransactionRecord(
