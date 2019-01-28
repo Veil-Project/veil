@@ -838,6 +838,7 @@ public:
     std::string GetUniqueWalletBackupName(bool fzAuto) const;
     bool UpdateMint(const CBigNum& bnValue, const int& nHeight, const uint256& txid, const libzerocoin::CoinDenomination& denom);
     void UpdateZerocoinState(const CMintMeta& meta);
+    void SetSerialSpent(const uint256& bnSerial, const uint256& txid);
     void ArchiveZerocoin(CMintMeta& meta);
     void AutoZeromint();
 
