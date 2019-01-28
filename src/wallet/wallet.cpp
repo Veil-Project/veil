@@ -1104,6 +1104,8 @@ void CWallet::LoadToWallet(const CWalletTx& wtxIn)
 bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate)
 {
     const CTransaction& tx = *ptx;
+    uint256 txid = tx.GetHash();
+    bool fMyZerocoinSpend = false;
     {
         AssertLockHeld(cs_wallet);
 
@@ -1116,6 +1118,21 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
             if (pAnonWalletMain->mapRecords.count(tx.GetHash())) {
                 setAnonTx.emplace(tx.GetHash());
                 fAnonRecord = true;
+            }
+        }
+
+        // Check for spent zerocoins
+        if (tx.IsZerocoinSpend()) {
+            std::set<uint256> setSerials;
+            TxToSerialHashSet(&tx, setSerials);
+
+            for (const uint256& hashSerial : setSerials) {
+                // Send signal to wallet if this is ours
+                if (IsMyZerocoinSpend(hashSerial)) {
+                    LogPrintf("%s: detected spent zerocoin in transaction %s \n", __func__, txid.GetHex());
+                    SetSerialSpent(hashSerial, txid);
+                    fMyZerocoinSpend = true;
+                }
             }
         }
 
@@ -1144,7 +1161,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
         bool fExisted = mapWallet.count(tx.GetHash()) != 0;
 
         if (fExisted && !fUpdate) return false;
-        if (fExisted || IsMine(tx) || IsFromMe(tx) || fAnonRecord)
+        if (fExisted || IsMine(tx) || IsFromMe(tx) || fAnonRecord || fMyZerocoinSpend)
         {
             /* Check if any keys in the wallet keypool that were supposed to be unused
              * have appeared in a new transaction. If so, remove those keys from the keypool.
@@ -1369,6 +1386,30 @@ void CWallet::BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) {
 
     for (const CTransactionRef& ptx : pblock->vtx) {
         SyncTransaction(ptx);
+
+        if (ptx->IsZerocoinSpend()) {
+            std::set<uint256> setSerialHashes;
+            TxToSerialHashSet(ptx.get(), setSerialHashes);
+
+            for (const uint256& hashSerial : setSerialHashes) {
+                if (!IsMyZerocoinSpend(hashSerial))
+                    continue;
+
+                CMintMeta mint = zTracker->Get(hashSerial);
+                zTracker->SetPubcoinNotUsed(mint.hashPubcoin);
+            }
+        }
+
+        /* todo - More efficient to update mints here? Needed for disconnect?
+        if (ptx->IsZerocoinMint()) {
+            std::set<uint256> setPubcoinHashes;
+            TxToPubcoinHashSet(ptx.get(), setPubcoinHashes);
+
+            for (const uint256& hashPubcoin : setPubcoinHashes) {
+                zTracker->
+            }
+        }
+         */
     }
 }
 
@@ -1720,6 +1761,12 @@ bool CWallet::UpdateMint(const CBigNum& bnValue, const int& nHeight, const uint2
 void CWallet::UpdateZerocoinState(const CMintMeta& meta)
 {
     zTracker->UpdateState(meta);
+}
+
+void CWallet::SetSerialSpent(const uint256& bnSerial, const uint256& txid)
+{
+    auto mint = zTracker->Get(bnSerial);
+    zTracker->SetPubcoinUsed(mint.hashPubcoin, txid);
 }
 
 void CWallet::ArchiveZerocoin(CMintMeta& meta)

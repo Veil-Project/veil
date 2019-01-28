@@ -238,11 +238,16 @@ bool IsSerialKnown(const CBigNum& bnSerial)
     return pzerocoinDB->ReadCoinSpend(bnSerial, txHash);
 }
 
-bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx, CBlockIndex* pindex)
+bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx, const CBlockIndex* pindex)
+{
+    return IsSerialInBlockchain(GetSerialHash(bnSerial), nHeightTx, pindex);
+}
+
+bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, const CBlockIndex* pindex)
 {
     uint256 txHash;
     // if not in zerocoinDB then its not in the blockchain
-    if (!pzerocoinDB->ReadCoinSpend(bnSerial, txHash))
+    if (!pzerocoinDB->ReadCoinSpend(hashSerial, txHash))
         return false;
 
     CTransactionRef txRef;
