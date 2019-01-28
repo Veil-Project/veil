@@ -172,17 +172,12 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
     unsigned int nTxTime = nTimeBlock;
     CAmount nValue = stake->GetValue();
 
-    WeightStake(nValue, stake->GetDenomination());
+    // Enforce VIP-1 after it was activated
+    if (nTxTime > Params().EnforceWeightReductionTime())
+        WeightStake(nValue, stake->GetDenomination());
+
     if (!CheckStake(stake->GetUniqueness(), nValue, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime,
                     nTxTime, hashProofOfStake)) {
-
-        ThresholdState state = VersionBitsState(pindexCheck, Params().GetConsensus(), Consensus::DEPLOYMENT_POS_WEIGHT, versionbitscache);
-        if (state == ThresholdState::ACTIVE) {
-            return error("%s: Modified stake weight. Invalid stake.", __func__);
-        } else if (CheckStake(stake->GetUniqueness(), stake->GetValue(), nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime, nTxTime, hashProofOfStake)) {
-            LogPrintf("%s: Modified weight detected block %s, enforcement off\n", __func__, pindexCheck->GetBlockHash().GetHex());
-            return true;
-        }
         return error("CheckProofOfStake() : INFO: check kernel failed on coinstake %s, hashProof=%s \n",
                      txRef->GetHash().GetHex(), hashProofOfStake.GetHex());
     }
