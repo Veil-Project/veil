@@ -154,16 +154,37 @@ int64_t CBlockIndex::GetBlockWork() const
     if (IsProofOfStake()) {
         nBlockWork += 1000 + (GetBlockTime() - pprev->GetBlockTime());
     }
-
     return nBlockWork;
+}
+
+int64_t CBlockIndex::GetBlockPoW() const
+{
+    if (!IsProofOfWork())
+        return 0;
+
+    int64_t nBlockPoW = 0;
+    if (pprev) {
+        int64_t nTimeSpan = 0;
+        const CBlockIndex* pindexWalk = pprev;
+        while (pindexWalk->pprev) {
+            if (pindexWalk->IsProofOfWork()) {
+                nTimeSpan = GetBlockTime() - pindexWalk->GetBlockTime();
+                break;
+            }
+            pindexWalk = pindexWalk->pprev;
+        }
+        nBlockPoW = 1000 - nTimeSpan;
+    }
+    if (nBlockPoW < 1)
+        nBlockPoW = 1;
+    return nBlockPoW;
 }
 
 arith_uint256 CBlockIndex::GetChainPoW() const
 {
-    const CBlockIndex* pindexLastPoW = GetBestPoWAncestor();
-    if (!pindexLastPoW)
+    if (!pprev)
         return 0;
-    return pindexLastPoW->nChainPoW + (IsProofOfWork() ? GetBlockProof(*this) : 0);
+    return pprev->nChainPoW + (IsProofOfWork() ? GetBlockPoW() : 0);
 }
 
 arith_uint256 GetBlockProof(const CBlockIndex& block)
