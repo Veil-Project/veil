@@ -2573,8 +2573,6 @@ std::pair<ZerocoinSpread, ZerocoinSpread> CWallet::GetMyZerocoinDistribution() c
     spreadPending[libzerocoin::ZQ_TEN_THOUSAND] = 0;
 
     {
-        LOCK(cs_wallet);
-
         std::set<CMintMeta> setMints = zTracker->ListMints(true, /*fMatureOnly*/false, true);
         for (const CMintMeta& mint : setMints) {
             if ((mint.nMemFlags & MINT_CONFIRMED) && (mint.nMemFlags & MINT_MATURE))

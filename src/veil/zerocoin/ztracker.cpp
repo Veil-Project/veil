@@ -476,11 +476,7 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
         mempool.GetSerials(mapMempoolSerials);
     }
 
-    int nBestHeight = 0;
-    {
-        LOCK(cs_main);
-        nBestHeight = chainActive.Height();
-    }
+    int nBestHeight = chainActive.Height();
 
     std::map<libzerocoin::CoinDenomination, int> mapMaturity = GetMintMaturityHeight();
     for (auto& it : mapSerialHashes) {
