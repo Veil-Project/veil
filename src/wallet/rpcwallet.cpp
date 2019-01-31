@@ -2436,6 +2436,12 @@ static UniValue gettransaction(const JSONRPCRequest& request)
             obj_vin.pushKV("is_mine_ki", pwalletAnon->IsMyAnonInput(txin));
         } else if (txin.scriptSig.IsZerocoinSpend()) {
             obj_vin.pushKV("type", "zerocoinspend");
+            auto spend = TxInToZerocoinSpend(txin);
+            if (spend) {
+                auto bnSerial = spend->getCoinSerialNumber();
+                obj_vin.pushKV("serial", bnSerial.GetHex());
+                obj_vin.pushKV("serial_hash", GetSerialHash(bnSerial).GetHex());
+            }
         } else {
             //Have to specifically look up type to determine whether it is CT or Basecoin
             uint256 hashBlock;
