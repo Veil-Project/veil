@@ -2521,13 +2521,17 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         // Veil: check for dandelion
         int64_t nTimeStemPhase = 0;
-        if (strCommand == NetMsgType::TX_DAND && !fEnableDandelion) {
-            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::REJECT, strCommand, REJECT_DANDELION, std::string("Received tx_dand after opting out of dandelion")));
-            LOCK(cs_main);
-            Misbehaving(pfrom->GetId(), 1);
-            return false;
-        } else if (strCommand == NetMsgType::TX_DAND)
-            vRecv >> nTimeStemPhase;
+        {
+            LOCK(veil::dandelion.cs);
+            if (strCommand == NetMsgType::TX_DAND && !fEnableDandelion) {
+                connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::REJECT, strCommand, REJECT_DANDELION, std::string(
+                        "Received tx_dand after opting out of dandelion")));
+                LOCK(cs_main);
+                Misbehaving(pfrom->GetId(), 1);
+                return false;
+            } else if (strCommand == NetMsgType::TX_DAND)
+                vRecv >> nTimeStemPhase;
+        }
 
         CInv inv(MSG_TX, tx.GetHash(), nTimeStemPhase);
         pfrom->AddInventoryKnown(inv);
@@ -3079,6 +3083,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                         mapStagedBlocks.emplace(nHeightBlock, *pblock);
                         LogPrint(BCLog::NET, "staging block %s (%d) because only have prevheader and not prev block. Need:%d\n",
                                  pblock->GetHash().ToString(), pindexPrev->nHeight+1, nHeightNext);
+
+                        //Request previous block again
+                        CInv inv_block(MSG_BLOCK, pindexPrev->GetBlockHash());
+                        if (!AlreadyHave(inv_block)) {
+                            LogPrint(BCLog::NET, "Requesting %d from peer.\n", nHeightNext);
+                            MarkBlockAsInFlight(pfrom->GetId(), inv_block.hash);
+                            pfrom->AskFor(inv_block);
+                        }
                     } else {
                         LogPrint(BCLog::NET, "staging area full, discarding block %s (%d)\n",
                                 pblock->GetHash().ToString(), pindexPrev->nHeight+1);
@@ -3104,7 +3116,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             }
         }
     }
-
 
     else if (strCommand == NetMsgType::GETADDR)
     {
