@@ -2056,7 +2056,7 @@ void CConnman::ThreadMessageHandler()
                 continue;
 
             // Receive messages
-            LOCK(veil::dandelion.cs);
+            //LOCK(veil::dandelion.cs);
             bool fMoreNodeWork = m_msgproc->ProcessMessages(pnode, flagInterruptMsgProc);
             fMoreWork |= (fMoreNodeWork && !pnode->fPauseSend);
             if (flagInterruptMsgProc)
