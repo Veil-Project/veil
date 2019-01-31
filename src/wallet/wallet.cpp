@@ -778,11 +778,14 @@ void CWallet::AddToSpends(const uint256& wtxid)
     auto it = mapWallet.find(wtxid);
     assert(it != mapWallet.end());
     CWalletTx& thisTx = it->second;
-    if (thisTx.IsCoinBase()) // Coinbases don't spend anything!
+    if (thisTx.IsCoinBase() || thisTx.IsZerocoinSpend()) // Coinbases/zcspends don't spend anything in CWallet!
         return;
 
-    for (const CTxIn& txin : thisTx.tx->vin)
+    for (const CTxIn& txin : thisTx.tx->vin) {
+        if (txin.IsAnonInput()) // Anon inputs do not spend anything
+            return;
         AddToSpends(txin.prevout, wtxid);
+    }
 }
 
 bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
@@ -1089,7 +1092,7 @@ void CWallet::LoadToWallet(const CWalletTx& wtxIn)
     AddToSpends(hash);
     for (const CTxIn& txin : wtx.tx->vin) {
         auto it = mapWallet.find(txin.prevout.hash);
-        if (it != mapWallet.end()) {
+        if (it != mapWallet.end() && !txin.IsAnonInput() && !txin.scriptSig.IsZerocoinSpend()) {
             CWalletTx& prevtx = it->second;
             if (prevtx.nIndex == -1 && !prevtx.hashUnset()) {
                 MarkConflicted(prevtx.hashBlock, wtx.GetHash());
