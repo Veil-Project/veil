@@ -5287,6 +5287,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
         auto idExpect = zwallet->GetMasterSeedID();
         assert(keyZerocoin.GetPubKey().GetID() == idExpect);
         zwallet->SetMasterSeed(keyZerocoin);
+        zwallet->LoadMintPoolFromDB();
         zwallet->GenerateMintPool();
         zwallet->SyncWithChain();
 
