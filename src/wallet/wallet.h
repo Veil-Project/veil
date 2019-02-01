@@ -49,6 +49,8 @@ std::shared_ptr<CWallet> GetMainWallet();
 
 extern CCriticalSection cs_main;
 
+extern bool fGlobalUnlockSpendCache; // Bool used for letting the precomputing thread know that zerospends need to use the cs_spendcache
+
 //! Default for -keypool
 static const unsigned int DEFAULT_KEYPOOL_SIZE = 1000;
 //! -paytxfee default
@@ -91,6 +93,7 @@ struct FeeCalculation;
 enum class FeeEstimateMode;
 class AnonWallet;
 class CTransactionRecord;
+class CoinWitnessCacheData;
 
 /** (client) version numbers for particular wallet features */
 enum WalletFeature
@@ -848,6 +851,7 @@ public:
     void SetSerialSpent(const uint256& bnSerial, const uint256& txid);
     void ArchiveZerocoin(CMintMeta& meta);
     void AutoZeromint();
+    void PrecomputeSpends();
 
     CzTracker* GetZTrackerPointer() {
         return zTracker.get();
@@ -1064,7 +1068,7 @@ public:
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
     bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime);
-    bool SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount);
+    bool SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs, CAmount nTargetAmount);
 
     // sub wallet seeds
     bool GetZerocoinSeed(CKey& keyZerocoinMaster);
@@ -1409,6 +1413,8 @@ public:
         }
     }
 };
+
+void ThreadPrecomputeSpends();
 
 // Calculate the size of the transaction assuming all signatures are max size
 // Use DummySignatureCreator, which inserts 71 byte signatures everywhere.

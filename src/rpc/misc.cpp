@@ -32,6 +32,9 @@
 #endif
 
 #include <univalue.h>
+#include <wallet/rpcwallet.h>
+#include <veil/zerocoin/ztracker.h>
+#include <wallet/wallet.h>
 
 static UniValue validateaddress(const JSONRPCRequest& request)
 {
@@ -443,6 +446,48 @@ UniValue logging(const JSONRPCRequest& request)
     return result;
 }
 
+UniValue clearspendcache(const JSONRPCRequest& request)
+{
+    if(request.fHelp || request.params.size() != 0)
+        throw runtime_error(
+                "clearspendcache\n"
+                "\nClear the pre-computed zPIV spend cache, and database.\n"
+                "\nExamples\n" +
+                HelpExampleCli("clearspendcache", "") + HelpExampleRpc("clearspendcache", ""));
+
+
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    CzTracker* zTracker = pwallet->GetZTrackerPointer();
+
+    {
+        int nTries = 0;
+        while (nTries < 100) {
+            TRY_LOCK(zTracker->cs_spendcache, fLocked);
+            if (fLocked) {
+                if (zTracker->ClearSpendCache()) {
+                    fClearSpendCache = true;
+                    pprecomputeDB->EraseAllPrecomputes();
+                    return "Successfully Cleared the Precompute Spend Cache and Database";
+                }
+            } else {
+                fGlobalUnlockSpendCache = true;
+                nTries++;
+                MilliSleep(100);
+            }
+        }
+    }
+    throw JSONRPCError(RPC_WALLET_ERROR, "Error: Spend cache not cleared!");
+}
+
 static UniValue echo(const JSONRPCRequest& request)
 {
     if (request.fHelp)
@@ -477,6 +522,7 @@ static const CRPCCommand commands[] =
     { "util",               "createmultisig",         &createmultisig,         {"nrequired","keys"} },
     { "util",               "verifymessage",          &verifymessage,          {"address","signature","message"} },
     { "util",               "signmessagewithprivkey", &signmessagewithprivkey, {"privkey","message"} },
+    { "util",               "clearspendcache",        &clearspendcache,        {}},
 
     /* Not shown in help */
     { "hidden",             "setmocktime",            &setmocktime,            {"timestamp"}},

@@ -69,6 +69,7 @@ public:
     int GetChecksumHeightFromMint();
     int GetChecksumHeightFromSpend();
     uint256 GetChecksum();
+    uint256 GetSerialHash();
 
     static int HeightToModifierHeight(int nHeight);
 };
