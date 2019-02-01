@@ -1275,7 +1275,7 @@ bool CWallet::AbandonTransaction(const uint256& hashTx)
             MarkInputsDirty(wtx.tx);
         }
     }
-
+    LogPrintf("%s: Abandoned transaction %s\n", __func__, hashTx.GetHex());
     return true;
 }
 
@@ -2212,7 +2212,12 @@ void CWallet::ReacceptWalletTransactions()
     for (std::pair<const int64_t, CWalletTx*>& item : mapSorted) {
         CWalletTx& wtx = *(item.second);
         CValidationState state;
-        wtx.AcceptToMemoryPool(maxTxFee, state);
+        if (!wtx.AcceptToMemoryPool(maxTxFee, state)) {
+            //If this is an old tx that is no longer valid, just abandon
+            if (GetTime() - wtx.GetTxTime() > 60*60) {
+                AbandonTransaction(wtx.GetHash());
+            }
+        }
     }
 }
 
