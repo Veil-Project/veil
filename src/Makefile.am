@@ -213,6 +213,7 @@ BITCOIN_CORE_H = \
   veil/zerocoin/spendreceipt.h \
   veil/zerocoin/mintpool.h \
   veil/zerocoin/mintmeta.h \
+  veil/zerocoin/witness.h \
   veil/mnemonic/arrayslice.h \
   veil/mnemonic/dictionary.h \
   veil/mnemonic/generateseed.h \
@@ -342,6 +343,7 @@ libbitcoin_wallet_a_SOURCES = \
   veil/zerocoin/denomination_functions.cpp \
   veil/zerocoin/mintpool.cpp \
   veil/zerocoin/spendreceipt.cpp \
+  veil/zerocoin/witness.cpp \
   veil/zerocoin/zchain.cpp \
   veil/zerocoin/ztracker.cpp \
   veil/zerocoin/zwallet.cpp \

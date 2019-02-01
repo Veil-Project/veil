@@ -54,6 +54,7 @@
 #include <stdio.h>
 #include <veil/ringct/anon.h>
 #include <veil/zerocoin/zchain.h>
+#include <veil/zerocoin/witness.h>
 
 #ifndef WIN32
 #include <signal.h>
@@ -286,6 +287,7 @@ void Shutdown()
         pcoinsdbview.reset();
         pblocktree.reset();
         pzerocoinDB.reset();
+        pprecomputeDB.reset();
     }
     g_wallet_init_interface.Stop();
 
@@ -1541,6 +1543,10 @@ bool AppInitMain()
                 pzerocoinDB.reset();
                 pzerocoinDB.reset(new CZerocoinDB(0, false, fReindex));
 
+                //zerocoinDB
+                pprecomputeDB.reset();
+                pprecomputeDB.reset(new CPrecomputeDB(0, false, false));
+
                 if (fReset) {
                     pblocktree->WriteReindexing(true);
                     //If we're reindexing in prune mode, wipe away unusable block files and all undo data files
@@ -1902,6 +1908,11 @@ bool AppInitMain()
 
             GenerateBitcoins(true, nThreads, coinbase_script);
         }
+    }
+
+    if (gArgs.GetBoolArg("-precompute", true)) {
+        // Run a thread to precompute any zPIV spends
+        threadGroup.create_thread(boost::bind(&ThreadPrecomputeSpends));
     }
 
     return true;

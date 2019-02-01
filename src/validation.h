@@ -43,7 +43,9 @@ class CScriptCheck;
 class CBlockPolicyEstimator;
 class CTxMemPool;
 class CValidationState;
+class CPrecomputeDB;
 struct ChainTxData;
+
 
 struct PrecomputedTransactionData;
 struct LockPoints;
@@ -217,6 +219,12 @@ static const unsigned int DEFAULT_CHECKLEVEL = 4;
 // one 128MB block file + added 15% undo data = 147MB greater for a total of 545MB
 // Setting the target to > than 550MB will make it likely we can respect the target.
 static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
+
+/** Veil zerocoin precomputing variables */
+extern bool fClearSpendCache;
+static const int DEFAULT_PRECOMPUTE_LENGTH = 1000;
+static const int MIN_PRECOMPUTE_LENGTH = 500;
+static const int MAX_PRECOMPUTE_LENGTH = 2000;
 
 /**
  * Process an incoming block. This only returns after the best known valid
@@ -495,6 +503,9 @@ extern std::unique_ptr<CBlockTreeDB> pblocktree;
 
 /** Global variable that points to the active zerocoin database (protected by cs_main) */
 extern std::unique_ptr<CZerocoinDB> pzerocoinDB;
+
+/** Global variable that points to the active percompute database (protected by cs_main) */
+extern std::unique_ptr<CPrecomputeDB> pprecomputeDB;
 
 /**
  * Return the spend height, which is one more than the inputs.GetBestBlock().

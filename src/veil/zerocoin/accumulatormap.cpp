@@ -75,6 +75,11 @@ bool AccumulatorMap::Accumulate(const PublicCoin& pubCoin, bool fSkipValidation)
     return mapAccumulators.at(denom)->accumulate(pubCoin);
 }
 
+libzerocoin::Accumulator AccumulatorMap::GetAccumulator(libzerocoin::CoinDenomination denom)
+{
+    return libzerocoin::Accumulator(params, denom, GetValue(denom));
+}
+
 //Get the value of a specific accumulator
 CBigNum AccumulatorMap::GetValue(CoinDenomination denom)
 {

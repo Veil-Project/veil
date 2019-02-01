@@ -43,6 +43,7 @@ class uint256;
 class CDeterministicMint;
 class CZerocoinMint;
 class CZerocoinSpend;
+class CoinWitnessCacheData;
 
 /** Backend-agnostic database type. */
 using WalletDatabase = BerkeleyDatabase;
@@ -280,6 +281,7 @@ public:
     bool ReadZCount(uint32_t &nCount);
     std::map<CKeyID, std::vector<std::pair<uint256, uint32_t> > > MapMintPool();
     bool WriteMintPoolPair(const CKeyID& hashMasterSeed, const uint256& hashPubcoin, const uint32_t& nCount);
+
 protected:
     BerkeleyBatch m_batch;
     WalletDatabase& m_database;

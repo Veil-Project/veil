@@ -262,6 +262,8 @@ bool fEnableReplacement = DEFAULT_ENABLE_REPLACEMENT;
 unsigned int nStakeMinAge = 60;
 static bool fVerifyingDB = false;
 
+bool fClearSpendCache = false;
+
 
 uint256 hashAssumeValid;
 arith_uint256 nMinimumChainWork;
@@ -326,6 +328,7 @@ std::unique_ptr<CCoinsViewDB> pcoinsdbview;
 std::unique_ptr<CCoinsViewCache> pcoinsTip;
 std::unique_ptr<CBlockTreeDB> pblocktree;
 std::unique_ptr<CZerocoinDB> pzerocoinDB;
+std::unique_ptr<CPrecomputeDB> pprecomputeDB;
 
 enum class FlushStateMode {
     NONE,

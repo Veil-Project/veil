@@ -1338,6 +1338,49 @@ UniValue generatemintlist(const JSONRPCRequest& request)
     return arrRet;
 }
 
+UniValue showspendcaching(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+    UniValue params = request.params;
+    if(request.fHelp || params.size() != 0)
+        throw runtime_error(
+                "generatemintlist\n"
+                "\nShow spendable zerocoins and their precomputed zero knowledge proof status\n" +
+                HelpRequiringPassphrase(pwallet));
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    auto ztracker = pwallet->GetZTrackerPointer();
+
+    std::set<CMintMeta> setMints = ztracker->ListMints(true, true, false);
+    UniValue arrRet(UniValue::VARR);
+    int nHeightChain = chainActive.Height();
+    for (const CMintMeta& mint : setMints) {
+        UniValue obj(UniValue::VOBJ);
+        obj.pushKV("pubcoinhash", mint.hashPubcoin.GetHex());
+        obj.pushKV("height_from", mint.nHeight);
+
+        CoinWitnessData* witnessData = ztracker->GetSpendCache(mint.hashStake);
+        if (!witnessData)
+            continue;
+
+        obj.pushKV("computed_to", witnessData->nHeightAccEnd);
+        double nTotalToAccumulate = nHeightChain - mint.nHeight;
+        double nAccumulated = witnessData->nHeightAccEnd - mint.nHeight;
+        double nComputePercent = nAccumulated/nTotalToAccumulate;
+        if (nComputePercent < 0)
+            nComputePercent = 0;
+        obj.pushKV("percent_precompute", nComputePercent);
+        arrRet.push_back(obj);
+    }
+
+    return arrRet;
+}
+
+
 UniValue deterministiczerocoinstate(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1373,6 +1416,8 @@ UniValue deterministiczerocoinstate(const JSONRPCRequest& request)
 
     return obj;
 }
+
+
 
 void static SearchThread(CzWallet* zwallet, int nCountStart, int nCountEnd)
 {
@@ -1487,6 +1532,7 @@ static const CRPCCommand commands[] =
     { "zerocoin",           "listmintedzerocoins",              &listmintedzerocoins,           {"fVerbose", "vMatureOnly"} },
     { "zerocoin",           "lookupzerocoin",                   &lookupzerocoin,                {"id_type", "id"} },
     { "zerocoin",           "getzerocoinbalance",               &getzerocoinbalance,            {} },
+    { "zerocoin",           "showspendcaching",               &showspendcaching,            {} },
 };
 
 

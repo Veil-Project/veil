@@ -14,9 +14,10 @@
 #include "arith_uint256.h"
 
 class CBlockIndex;
+class CoinWitnessData;
 
 std::map<libzerocoin::CoinDenomination, int> GetMintMaturityHeight();
-bool GenerateAccumulatorWitness(const libzerocoin::PublicCoin &coin, libzerocoin::Accumulator& accumulator, libzerocoin::AccumulatorWitness& witness, int nSecurityLevel, int& nMintsAdded, std::string& strError, CBlockIndex* pindexCheckpoint = nullptr);
+bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& mapAccumulators, int nSecurityLevel, std::string& strError, CBlockIndex* pindexCheckpoint = nullptr);
 bool GetAccumulatorValueFromDB(uint256 nCheckpoint, libzerocoin::CoinDenomination denom, CBigNum& bnAccValue);
 bool GetAccumulatorValueFromChecksum(const uint256& hashChecksum, bool fMemoryOnly, CBigNum& bnAccValue);
 void AddAccumulatorChecksum(const uint256 nChecksum, const CBigNum &bnValue, bool fMemoryOnly);
@@ -27,5 +28,6 @@ bool EraseAccumulatorValues(const uint256& nCheckpointErase, const uint256& nChe
 uint256 GetChecksum(const CBigNum &bnValue);
 int GetChecksumHeight(uint256 nChecksum, libzerocoin::CoinDenomination denomination);
 bool ValidateAccumulatorCheckpoint(const CBlock& block, CBlockIndex* pindex, AccumulatorMap& mapAccumulators);
+void AccumulateRange(CoinWitnessData* coinWitness, int nHeightEnd);
 
 #endif //PIVX_ACCUMULATORS_H
