@@ -3755,10 +3755,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             nTxNewTime = nTimeMinBlock + 1;
 
         //iterates each utxo inside of CheckStakeKernelHash()
-        bool fWeightStake = false;
-        ThresholdState state = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_POS_WEIGHT, versionbitscache);
-        if (state == ThresholdState::ACTIVE || state == ThresholdState::LOCKED_IN)
-            fWeightStake = true;
+        bool fWeightStake = true;
         if (Stake(stakeInput.get(), nBits, pindexFrom->GetBlockTime(), nTxNewTime, pindexBest, hashProofOfStake, fWeightStake)) {
             int nHeight = 0;
             {
