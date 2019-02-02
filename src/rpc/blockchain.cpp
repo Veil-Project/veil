@@ -1132,15 +1132,6 @@ static UniValue SoftForkMajorityDesc(int version, CBlockIndex* pindex, const Con
     return rv;
 }
 
-static UniValue SoftForkDesc(const std::string &name, int version, CBlockIndex* pindex, const Consensus::Params& consensusParams)
-{
-    UniValue rv(UniValue::VOBJ);
-    rv.pushKV("id", name);
-    rv.pushKV("version", version);
-    rv.pushKV("reject", SoftForkMajorityDesc(version, pindex, consensusParams));
-    return rv;
-}
-
 static UniValue BIP9SoftForkDesc(const Consensus::Params& consensusParams, Consensus::DeploymentPos id)
 {
     UniValue rv(UniValue::VOBJ);
@@ -1240,12 +1231,36 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
+    double nDiffPoW = 0;
+    double nDiffPoS = 0;
+    auto pindex = chainActive.Tip();
+    if (pindex->IsProofOfWork()) {
+        nDiffPoW = GetDifficulty(pindex);
+        while (pindex->pprev) {
+            pindex = pindex->pprev;
+            if (pindex->IsProofOfStake()) {
+                nDiffPoS = GetDifficulty(pindex);
+                break;
+            }
+        }
+    } else {
+        nDiffPoS = GetDifficulty(pindex);
+        while (pindex->pprev) {
+            pindex = pindex->pprev;
+            if (pindex->IsProofOfWork()) {
+                nDiffPoW = GetDifficulty(pindex);
+                break;
+            }
+        }
+    }
+
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("chain",                 Params().NetworkIDString());
     obj.pushKV("blocks",                (int)chainActive.Height());
     obj.pushKV("headers",               pindexBestHeader ? pindexBestHeader->nHeight : -1);
     obj.pushKV("bestblockhash",         chainActive.Tip()->GetBlockHash().GetHex());
-    obj.pushKV("difficulty",            (double)GetDifficulty(chainActive.Tip()));
+    obj.pushKV("difficulty_pow",        nDiffPoW);
+    obj.pushKV("difficulty_pos",        nDiffPoS);
     obj.pushKV("mediantime",            (int64_t)chainActive.Tip()->GetMedianTimePast());
     obj.pushKV("verificationprogress",  GuessVerificationProgress(Params().TxData(), chainActive.Tip()));
     obj.pushKV("initialblockdownload",  IsInitialBlockDownload());
@@ -1271,16 +1286,10 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     }
 
     const Consensus::Params& consensusParams = Params().GetConsensus();
-    CBlockIndex* tip = chainActive.Tip();
-    UniValue softforks(UniValue::VARR);
     UniValue bip9_softforks(UniValue::VOBJ);
-//    softforks.push_back(SoftForkDesc("bip34", 2, tip, consensusParams));
-//    softforks.push_back(SoftForkDesc("bip66", 3, tip, consensusParams));
-//    softforks.push_back(SoftForkDesc("bip65", 4, tip, consensusParams));
     for (int pos = Consensus::DEPLOYMENT_POS_WEIGHT; pos != Consensus::MAX_VERSION_BITS_DEPLOYMENTS; ++pos) {
         BIP9SoftForkDescPushBack(bip9_softforks, consensusParams, static_cast<Consensus::DeploymentPos>(pos));
     }
-    //obj.pushKV("softforks",             softforks);
     obj.pushKV("bip9_softforks", bip9_softforks);
 
     obj.pushKV("warnings", GetWarnings("statusbar"));
