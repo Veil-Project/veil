@@ -1107,6 +1107,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 return state.DoS(100, error("%s: Failed to verify zerocoinspend proofs for tx %s", __func__,
                                             tx.GetHash().GetHex()), REJECT_INVALID);
             }
+            setBatchVerified.emplace(tx.GetHash());
         }
 
         if (test_accept) {
