@@ -1667,17 +1667,20 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
         }
 
         uint256 hashLastBlock;
+        CBlockHeader headerBestNode;
         for (const CBlockHeader& header : headers) {
             if (!hashLastBlock.IsNull() && header.hashPrevBlock != hashLastBlock) {
                 Misbehaving(pfrom->GetId(), 0, "non-continuous headers sequence");
                 return false;
             }
             hashLastBlock = header.GetHash();
+            headerBestNode = header;
         }
-
+        LogPrint(BCLog::NET, "%s: Peer's best sent header=%s\n", __func__, __LINE__, headerBestNode.GetHash().GetHex());
+        
         // If we don't have the last header, then they'll have given us
         // something new (if these headers are valid).
-        if (!LookupBlockIndex(hashLastBlock)) {
+        if (!LookupBlockIndex(hashLastBlock) || headerBestNode.hashPrevBlock == chainActive.Tip()->GetBlockHash()) {
             received_new_header = true;
         }
     }
@@ -1777,11 +1780,17 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
             const CBlockIndex *pindexWalk = pindexLast;
             // Calculate all the blocks we'd need to switch to pindexLast, up to a limit.
             while (pindexWalk && !chainActive.Contains(pindexWalk) && vToFetch.size() <= MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
-                if (!(pindexWalk->nStatus & BLOCK_HAVE_DATA) &&
-                        !mapBlocksInFlight.count(pindexWalk->GetBlockHash()) &&
-                        (!IsWitnessEnabled(pindexWalk->pprev, chainparams.GetConsensus()) || State(pfrom->GetId())->fHaveWitness)) {
+                if (!(pindexWalk->nStatus & BLOCK_HAVE_DATA) && (!IsWitnessEnabled(pindexWalk->pprev, chainparams.GetConsensus()) || State(pfrom->GetId())->fHaveWitness)) {
                     // We don't have this block, and it's not yet in flight.
-                    vToFetch.push_back(pindexWalk);
+                    bool fFetch = true;
+                    if (mapBlocksInFlight.count(pindexWalk->GetBlockHash())) {
+                        //Want to request new blocks from multiple peers to reduce bottleneck
+                        if (nodestate->nBlocksInFlight) {
+                            fFetch = false;
+                        }
+                    }
+                    if (fFetch)
+                        vToFetch.push_back(pindexWalk);
                 }
                 pindexWalk = pindexWalk->pprev;
             }
@@ -3083,14 +3092,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                         mapStagedBlocks.emplace(nHeightBlock, *pblock);
                         LogPrint(BCLog::NET, "staging block %s (%d) because only have prevheader and not prev block. Need:%d\n",
                                  pblock->GetHash().ToString(), pindexPrev->nHeight+1, nHeightNext);
-
-                        //Request previous block again
-                        CInv inv_block(MSG_BLOCK, pindexPrev->GetBlockHash());
-                        if (!AlreadyHave(inv_block)) {
-                            LogPrint(BCLog::NET, "Requesting %d from peer.\n", nHeightNext);
-                            MarkBlockAsInFlight(pfrom->GetId(), inv_block.hash);
-                            pfrom->AskFor(inv_block);
-                        }
                     } else {
                         LogPrint(BCLog::NET, "staging area full, discarding block %s (%d)\n",
                                 pblock->GetHash().ToString(), pindexPrev->nHeight+1);
