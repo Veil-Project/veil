@@ -26,6 +26,109 @@
 
 #include <memory>
 
+UniValue MintMetaToUniValue(const CMintMeta& mint)
+{
+    UniValue m(UniValue::VOBJ);
+    m.push_back(Pair("txid", mint.txid.GetHex()));
+    m.push_back(Pair("height", (double)mint.nHeight));
+    m.push_back(Pair("value", ValueFromAmount(libzerocoin::ZerocoinDenominationToAmount(mint.denom))));
+    m.push_back(Pair("pubcoinhash", mint.hashPubcoin.GetHex()));
+    m.push_back(Pair("serialhash", mint.hashSerial.GetHex()));
+    m.pushKV("is_spent", mint.isUsed);
+    m.pushKV("is_archived", mint.isArchived);
+    return m;
+}
+
+UniValue lookupzerocoin(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    UniValue params = request.params;
+
+    if (request.fHelp || params.size() < 1 || params.size() > 3)
+        throw std::runtime_error(
+                "lookupzerocoin identifier_type identifier\n"
+                "\nLookup a zerocoin held by the wallet\n"
+                "\nArguments:\n"
+                "1. id_type   (string, required) <serial, serialhash, pubcoin, pubcoinhash>\n"
+                "2. id        (string, required) The id associated with id_type"
+                "setting to true will result in loss of privacy and can reveal information about your wallet to the public!!\n"
+
+                "\nResult:\n"
+                "[\n"
+                "  {\n"
+                "    \"txid\": \"xxx\",         (string) Transaction ID.\n"
+                "    \"height\": \"xxx\",       (numeric) Height mint added to chain.\n"
+                "    \"value\": amount,       (numeric) Denomination amount.\n"
+                "    \"pubcoinhash\": \"xxx\",  (string) Hash of pubcoin in hex format.\n"
+                "    \"serialhash\": \"xxx\",   (string) Hash of serial in hex format.\n"
+                "    \"is_spent\": \"xxx\",     (bool) Whether the coin has been spent.\n"
+                "    \"is_archived\": nnn       (bool) Whether the coin has been archived by the wallet (considered an orphan or invalid).\n"
+                "  }\n"
+                "  ,...\n"
+                "]\n" +
+                HelpExampleCli("lookupzerocoin", "pubcoinhash f468259db68b913dadb8ed2b07631e56670dc3e1ab0ee73a71b0db6d19fc73a9") +
+                "\nAs a json rpc call\n" +
+                HelpExampleRpc("lookupzerocoin", "pubcoinhash f468259db68b913dadb8ed2b07631e56670dc3e1ab0ee73a71b0db6d19fc73a9"));
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    auto ztracker = pwallet->GetZTrackerPointer();
+
+    std::string strType = request.params[0].get_str();
+    std::string strID = request.params[1].get_str();
+
+    uint256 hashSerial = uint256();
+    CMintMeta mint;
+    if (strType == "serial") {
+        CBigNum bnSerial;
+        bnSerial.SetHex(strID);
+        hashSerial = GetSerialHash(bnSerial);
+    } else if (strType == "serialhash") {
+        hashSerial = uint256S(strID);
+    }
+
+    uint256 hashPubcoin = uint256();
+    if (hashSerial != uint256()) {
+        mint = ztracker->Get(hashSerial);
+    } else if (strType == "pubcoin") {
+        CBigNum bnPubcoin;
+        bnPubcoin.SetHex(strID);
+        hashPubcoin = GetPubCoinHash(bnPubcoin);
+    } else if (strType == "pubcoinhash") {
+        hashPubcoin = uint256S(strID);
+    } else {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "param 1 id_type is invalid");
+    }
+
+    if (hashPubcoin != uint256())
+        mint = ztracker->GetMetaFromPubcoin(hashPubcoin);
+
+    // Search archived coins if not found yet
+    if (mint.hashSerial == uint256()) {
+        //Check if it is archived
+        std::list<CDeterministicMint> listDMints = WalletBatch(pwallet->GetDBHandle()).ListArchivedDeterministicMints();
+        bool found = false;
+        for (const auto& dmint : listDMints) {
+            if (dmint.GetSerialHash() == hashSerial || dmint.GetPubcoinHash() == hashPubcoin) {
+                mint = dmint.ToMintMeta();
+                mint.isArchived = true;
+                found = true;
+                break;
+            }
+        }
+        if (!found)
+            throw JSONRPCError(RPC_WALLET_NOT_FOUND, "could not find zerocoin in wallet");
+    }
+
+    return MintMetaToUniValue(mint);
+}
+
 UniValue mintzerocoin(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1367,6 +1470,7 @@ static const CRPCCommand commands[] =
     { "zerocoin",           "listspentzerocoins",               &listspentzerocoins,            {} },
     { "zerocoin",           "listzerocoinamounts",              &listzerocoinamounts,           {} },
     { "zerocoin",           "listmintedzerocoins",              &listmintedzerocoins,           {"fVerbose", "vMatureOnly"} },
+    { "zerocoin",           "lookupzerocoin",                   &lookupzerocoin,                {"id_type", "id"} },
     { "zerocoin",           "getzerocoinbalance",               &getzerocoinbalance,            {} },
 };
 
