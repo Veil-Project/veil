@@ -2026,7 +2026,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
 
             nFeeNeeded = GetMinimumFee(*pwalletParent, nBytes, *coinControl, ::mempool, ::feeEstimator, &feeCalc);
             if (nFeeZerocoin)
-                nFeeNeeded = std::max(nFeeNeeded, nFeeZerocoin);
+                nFeeNeeded = nFeeZerocoin;
 
             // If we made it here and we aren't even able to meet the relay fee on the next pass, give up
             // because we must be at the maximum allowed fee.
@@ -2449,7 +2449,8 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             nBytes = GetVirtualTransactionSize(txNew);
 
             nFeeNeeded = GetMinimumFee(*pwalletParent, nBytes, *coinControl, ::mempool, ::feeEstimator, &feeCalc);
-            nFeeNeeded = std::max(nFeeNeeded, nFeeZerocoin);
+            if (nFeeZerocoin != 0)
+                nFeeNeeded = nFeeZerocoin;
 
             // If we made it here and we aren't even able to meet the relay fee on the next pass, give up
             // because we must be at the maximum allowed fee.
@@ -3176,7 +3177,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
 
             nFeeNeeded = GetMinimumFee(*pwalletParent, nBytes, *coinControl, ::mempool, ::feeEstimator, &feeCalc);
             if (nFeeZerocoin)
-                nFeeNeeded = std::max(nFeeNeeded, nFeeZerocoin);
+                nFeeNeeded = nFeeZerocoin;
 
             // If we made it here and we aren't even able to meet the relay fee on the next pass, give up
             // because we must be at the maximum allowed fee.
