@@ -145,25 +145,49 @@ int64_t CBlockIndex::GetBlockWork() const
     if (pprev && pprev->pprev)
         nTimeSpan = pprev->GetBlockTime() - pprev->pprev->GetBlockTime();
     int64_t nBlockWork = 1000 - nTimeSpan;
-    if (nBlockWork <= 0)
-        nBlockWork = 1;
 
     //PoS blocks have the final decision on consensus, if it is between a PoW block and PoS block
     // PoS blocks are also the only type of block that has the scoring of the block directly based on the elapsed time
     // of this block and the prev. PoW is not bound by timestamps the same way PoS is, so it is not as safe to do with PoW
     if (IsProofOfStake()) {
-        nBlockWork += 1000 + (GetBlockTime() - pprev->GetBlockTime());
+        nTimeSpan = GetBlockTime() - pprev->GetBlockTime();
+        if (nTimeSpan < 0)
+            nTimeSpan = 1;
+        nBlockWork += (1000 - nTimeSpan);
     }
-
+    if (nBlockWork <= 0)
+        nBlockWork = 1;
     return nBlockWork;
+}
+
+int64_t CBlockIndex::GetBlockPoW() const
+{
+    if (!IsProofOfWork())
+        return 0;
+
+    int64_t nBlockPoW = 0;
+    if (pprev) {
+        int64_t nTimeSpan = 0;
+        const CBlockIndex* pindexWalk = pprev;
+        while (pindexWalk->pprev) {
+            if (pindexWalk->IsProofOfWork()) {
+                nTimeSpan = GetBlockTime() - pindexWalk->GetBlockTime();
+                break;
+            }
+            pindexWalk = pindexWalk->pprev;
+        }
+        nBlockPoW = 1000 - nTimeSpan;
+    }
+    if (nBlockPoW < 1)
+        nBlockPoW = 1;
+    return nBlockPoW;
 }
 
 arith_uint256 CBlockIndex::GetChainPoW() const
 {
-    const CBlockIndex* pindexLastPoW = GetBestPoWAncestor();
-    if (!pindexLastPoW)
+    if (!pprev)
         return 0;
-    return pindexLastPoW->nChainPoW + (IsProofOfWork() ? GetBlockProof(*this) : 0);
+    return pprev->nChainPoW + (IsProofOfWork() ? GetBlockPoW() : 0);
 }
 
 arith_uint256 GetBlockProof(const CBlockIndex& block)

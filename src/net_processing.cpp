@@ -1667,17 +1667,20 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
         }
 
         uint256 hashLastBlock;
+        CBlockHeader headerBestNode;
         for (const CBlockHeader& header : headers) {
             if (!hashLastBlock.IsNull() && header.hashPrevBlock != hashLastBlock) {
                 Misbehaving(pfrom->GetId(), 0, "non-continuous headers sequence");
                 return false;
             }
             hashLastBlock = header.GetHash();
+            headerBestNode = header;
         }
-
+        LogPrint(BCLog::NET, "%s: Peer's best sent header=%s\n", __func__, __LINE__, headerBestNode.GetHash().GetHex());
+        
         // If we don't have the last header, then they'll have given us
         // something new (if these headers are valid).
-        if (!LookupBlockIndex(hashLastBlock)) {
+        if (!LookupBlockIndex(hashLastBlock) || headerBestNode.hashPrevBlock == chainActive.Tip()->GetBlockHash()) {
             received_new_header = true;
         }
     }
@@ -1777,11 +1780,17 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
             const CBlockIndex *pindexWalk = pindexLast;
             // Calculate all the blocks we'd need to switch to pindexLast, up to a limit.
             while (pindexWalk && !chainActive.Contains(pindexWalk) && vToFetch.size() <= MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
-                if (!(pindexWalk->nStatus & BLOCK_HAVE_DATA) &&
-                        !mapBlocksInFlight.count(pindexWalk->GetBlockHash()) &&
-                        (!IsWitnessEnabled(pindexWalk->pprev, chainparams.GetConsensus()) || State(pfrom->GetId())->fHaveWitness)) {
+                if (!(pindexWalk->nStatus & BLOCK_HAVE_DATA) && (!IsWitnessEnabled(pindexWalk->pprev, chainparams.GetConsensus()) || State(pfrom->GetId())->fHaveWitness)) {
                     // We don't have this block, and it's not yet in flight.
-                    vToFetch.push_back(pindexWalk);
+                    bool fFetch = true;
+                    if (mapBlocksInFlight.count(pindexWalk->GetBlockHash())) {
+                        //Want to request new blocks from multiple peers to reduce bottleneck
+                        if (nodestate->nBlocksInFlight) {
+                            fFetch = false;
+                        }
+                    }
+                    if (fFetch)
+                        vToFetch.push_back(pindexWalk);
                 }
                 pindexWalk = pindexWalk->pprev;
             }
@@ -2521,13 +2530,17 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         // Veil: check for dandelion
         int64_t nTimeStemPhase = 0;
-        if (strCommand == NetMsgType::TX_DAND && !fEnableDandelion) {
-            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::REJECT, strCommand, REJECT_DANDELION, std::string("Received tx_dand after opting out of dandelion")));
-            LOCK(cs_main);
-            Misbehaving(pfrom->GetId(), 1);
-            return false;
-        } else if (strCommand == NetMsgType::TX_DAND)
-            vRecv >> nTimeStemPhase;
+        {
+            LOCK(veil::dandelion.cs);
+            if (strCommand == NetMsgType::TX_DAND && !fEnableDandelion) {
+                connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::REJECT, strCommand, REJECT_DANDELION, std::string(
+                        "Received tx_dand after opting out of dandelion")));
+                LOCK(cs_main);
+                Misbehaving(pfrom->GetId(), 1);
+                return false;
+            } else if (strCommand == NetMsgType::TX_DAND)
+                vRecv >> nTimeStemPhase;
+        }
 
         CInv inv(MSG_TX, tx.GetHash(), nTimeStemPhase);
         pfrom->AddInventoryKnown(inv);
@@ -3104,7 +3117,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             }
         }
     }
-
 
     else if (strCommand == NetMsgType::GETADDR)
     {

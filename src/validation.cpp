@@ -1107,6 +1107,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 return state.DoS(100, error("%s: Failed to verify zerocoinspend proofs for tx %s", __func__,
                                             tx.GetHash().GetHex()), REJECT_INVALID);
             }
+            setBatchVerified.emplace(tx.GetHash());
         }
 
         if (test_accept) {
@@ -2981,14 +2982,14 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
             DoWarning(strWarning);
         }
     }
-    LogPrintf("%s: new best=%s height=%d version=0x%08x log2_work=%.8g tx=%lu date='%s' progress=%f cache=%.1fMiB(%utxo)", __func__, /* Continued */
-      pindexNew->GetBlockHash().ToString(), pindexNew->nHeight, pindexNew->nVersion,
-      log(pindexNew->nChainWork.getdouble())/log(2.0), (unsigned long)pindexNew->nChainTx,
-      FormatISO8601DateTime(pindexNew->GetBlockTime()),
-      GuessVerificationProgress(chainParams.TxData(), pindexNew), pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+    LogPrintf("%s: new best=%s height=%d type=%s version=0x%08x tx=%lu date='%s' cache=%.1fMiB(%utxo)\n", __func__, /* Continued */
+      pindexNew->GetBlockHash().ToString(), pindexNew->nHeight,
+      pindexNew->IsProofOfWork() ? "PoW" : "PoS", pindexNew->nVersion,
+      (unsigned long)pindexNew->nChainTx, FormatISO8601DateTime(pindexNew->GetBlockTime()),
+      pcoinsTip->DynamicMemoryUsage() * (1.0 / (1<<20)), pcoinsTip->GetCacheSize());
+    LogPrint(BCLog::CHAINSCORE, "  blockwork=%d chainwork=%d chainpow=%d\n", pindexNew->GetBlockWork(), pindexNew->nChainWork.GetLow64(), pindexNew->nChainPoW.GetLow64());
     if (!warningMessages.empty())
-        LogPrintf(" warning='%s'", warningMessages); /* Continued */
-    LogPrintf("\n");
+        LogPrintf(" warning='%s'\n", warningMessages); /* Continued */
 
 }
 
@@ -3651,16 +3652,15 @@ CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block, bool fProof
     }
     pindexNew->nTimeMax = (pindexNew->pprev ? std::max(pindexNew->pprev->nTimeMax, pindexNew->nTime) : pindexNew->nTime);
 
-    pindexNew->nChainWork = (pindexNew->pprev ? pindexNew->pprev->nChainWork : 0) + pindexNew->GetBlockWork();
-    pindexNew->nChainPoW = pindexNew->GetChainPoW();
-    pindexNew->RaiseValidity(BLOCK_VALID_TREE);
-
     //! This may be incorrect if sync headers first is enabled
     if (fProofOfStake)
         pindexNew->SetProofOfStake();
-
     if (fProofOfFullNode)
         pindexNew->fProofOfFullNode = true;
+
+    pindexNew->nChainWork = (pindexNew->pprev ? pindexNew->pprev->nChainWork : 0) + pindexNew->GetBlockWork();
+    pindexNew->nChainPoW = pindexNew->GetChainPoW();
+    pindexNew->RaiseValidity(BLOCK_VALID_TREE);
 
     if (pindexBestHeader == nullptr || pindexBestHeader->nChainWork < pindexNew->nChainWork)
         pindexBestHeader = pindexNew;

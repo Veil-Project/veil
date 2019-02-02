@@ -406,7 +406,9 @@ UniValue listmintedzerocoins(const JSONRPCRequest& request)
 
     EnsureWalletIsUnlocked(pwallet);
 
-   // WalletBatch walletdb(pwallet->GetDBHandle());
+    auto zwallet = pwallet->GetZWallet();
+    zwallet->SyncWithChain(false);
+
     set<CMintMeta> setMints = pwallet->ListMints(true, fMatureOnly, true);
 
     int nBestHeight = chainActive.Height();

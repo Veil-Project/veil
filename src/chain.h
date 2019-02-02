@@ -383,6 +383,7 @@ public:
     }
 
     int64_t GetBlockWork() const;
+    int64_t GetBlockPoW() const;
     arith_uint256 GetChainPoW() const;
 
     /** Returns the hash of the accumulator for the specified denomination. If it doesn't exist then a new uint256 is returned*/

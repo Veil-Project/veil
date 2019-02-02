@@ -1275,7 +1275,7 @@ bool CWallet::AbandonTransaction(const uint256& hashTx)
             MarkInputsDirty(wtx.tx);
         }
     }
-
+    LogPrintf("%s: Abandoned transaction %s\n", __func__, hashTx.GetHex());
     return true;
 }
 
@@ -2212,7 +2212,12 @@ void CWallet::ReacceptWalletTransactions()
     for (std::pair<const int64_t, CWalletTx*>& item : mapSorted) {
         CWalletTx& wtx = *(item.second);
         CValidationState state;
-        wtx.AcceptToMemoryPool(maxTxFee, state);
+        if (!wtx.AcceptToMemoryPool(maxTxFee, state)) {
+            //If this is an old tx that is no longer valid, just abandon
+            if (GetTime() - wtx.GetTxTime() > 60*60) {
+                AbandonTransaction(wtx.GetHash());
+            }
+        }
     }
 }
 
@@ -3750,10 +3755,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             nTxNewTime = nTimeMinBlock + 1;
 
         //iterates each utxo inside of CheckStakeKernelHash()
-        bool fWeightStake = false;
-        ThresholdState state = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_POS_WEIGHT, versionbitscache);
-        if (state == ThresholdState::ACTIVE || state == ThresholdState::LOCKED_IN)
-            fWeightStake = true;
+        bool fWeightStake = true;
         if (Stake(stakeInput.get(), nBits, pindexFrom->GetBlockTime(), nTxNewTime, pindexBest, hashProofOfStake, fWeightStake)) {
             int nHeight = 0;
             {
@@ -5287,6 +5289,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
         auto idExpect = zwallet->GetMasterSeedID();
         assert(keyZerocoin.GetPubKey().GetID() == idExpect);
         zwallet->SetMasterSeed(keyZerocoin);
+        zwallet->LoadMintPoolFromDB();
         zwallet->GenerateMintPool();
         zwallet->SyncWithChain();
 
