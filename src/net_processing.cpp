@@ -1676,7 +1676,7 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
             hashLastBlock = header.GetHash();
             headerBestNode = header;
         }
-        LogPrint(BCLog::NET, "%s: Peer's best sent header=%s\n", __func__, __LINE__, headerBestNode.GetHash().GetHex());
+        LogPrint(BCLog::NET, "%s: Peer's best sent header=%s\n", __func__, headerBestNode.GetHash().GetHex());
         
         // If we don't have the last header, then they'll have given us
         // something new (if these headers are valid).
