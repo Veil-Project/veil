@@ -2,6 +2,7 @@
 #define VEIL_DETERMINISTICMINT_H
 
 #include <libzerocoin/Denominations.h>
+#include <veil/zerocoin/mintmeta.h>
 #include <uint256.h>
 #include <serialize.h>
 
@@ -40,6 +41,7 @@ public:
     void SetStakeHash(const uint256& hashStake) { this->hashStake = hashStake; }
     void SetTxHash(const uint256& txid) { this->txid = txid; }
     void SetUsed(const bool isUsed) { this->isUsed = isUsed; }
+    CMintMeta ToMintMeta() const;
     std::string ToString() const;
 
     ADD_SERIALIZE_METHODS;

@@ -34,6 +34,21 @@ void CDeterministicMint::SetNull()
     isUsed = false;
 }
 
+CMintMeta CDeterministicMint::ToMintMeta() const
+{
+    CMintMeta meta;
+    meta.hashPubcoin = GetPubcoinHash();
+    meta.nHeight = GetHeight();
+    meta.nVersion = GetVersion();
+    meta.txid = GetTxHash();
+    meta.isUsed = IsUsed();
+    meta.hashSerial = GetSerialHash();
+    meta.hashStake = GetStakeHash();
+    meta.denom = GetDenomination();
+    meta.isDeterministic = true;
+    return meta;
+}
+
 std::string CDeterministicMint::ToString() const
 {
     return strprintf(" DeterministicMint:\n   version=%d\n   count=%d\n   hashseed=%s\n   hashSerial=%s\n   "
