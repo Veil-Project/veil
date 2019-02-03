@@ -2278,6 +2278,7 @@ UniValue OutputRecordToUniValue(const COutputRecord* record)
     obj.pushKV("n", record->n);
     obj.pushKV("scriptPubKey", HexStr(record->scriptPubKey));
     obj.pushKV("amount", FormatMoney(record->GetAmount()));
+    obj.pushKV("is_spent", record->IsSpent());
     if (record->IsChange())
         obj.pushKV("is_change", true);
 
