@@ -4504,6 +4504,13 @@ void AnonWallet::RescanWallet()
     AssertLockHeld(cs_main);
     AnonWalletDB wdb(*walletDatabase);
 
+    CCoinsView dummy;
+    CCoinsViewCache view(&dummy);
+
+    LOCK(mempool.cs);
+    CCoinsViewMemPool viewMemPool(pcoinsTip.get(), mempool);
+    view.SetBackend(viewMemPool);
+
     std::set<uint256> setErase;
     for (auto mi = mapRecords.begin(); mi != mapRecords.end(); mi++) {
         uint256 txid = mi->first;
@@ -4578,6 +4585,15 @@ void AnonWallet::RescanWallet()
                         }
                     }
                     it->SetValue(nValue);
+                }
+
+                // Check if it has the correct is_spent status //todo ringct outputs
+                if ((it->nFlags & ORF_OWNED) && it->nType == OUTPUT_CT) {
+                    bool isSpentOnChain = !view.HaveCoin(COutPoint(txid, it->n));
+                    if (isSpentOnChain != it->IsSpent()) {
+                        it->MarkSpent(isSpentOnChain);
+                        fUpdated = true;
+                    }
                 }
 
                 if (fUpdated) {
