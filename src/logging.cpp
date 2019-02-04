@@ -122,6 +122,7 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::ZEROCOINDB, "zerocoindb"},
     {BCLog::BLOCKCREATION, "blockcreation"},
     {BCLog::CHAINSCORE, "chainscore"},
+    {BCLog::STAGING, "staging"},
     {BCLog::ALL, "1"},
     {BCLog::ALL, "all"},
 };

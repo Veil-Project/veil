@@ -56,6 +56,7 @@ namespace BCLog {
         ZEROCOINDB  = (1 << 21),
         BLOCKCREATION = (1 << 22),
         CHAINSCORE = (1 << 23),
+        STAGING     = (1 << 24),
         ALL         = ~(uint32_t)0,
     };
 
