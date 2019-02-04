@@ -1874,7 +1874,8 @@ bool AppInitMain()
         threadGroupStaking.create_thread(&ThreadStakeMiner);
 
     //Start block staging thread
-    threadGroupStaging.create_thread(&ThreadStaging);
+    threadGroupStaging.create_thread(&ThreadStagingBlockProcessing);
+    threadGroupStaging.create_thread(&ThreadStagingBatchVerify);
 
     LinkPoWThreadGroup(&threadGroupPoWMining);
 

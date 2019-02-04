@@ -2433,6 +2433,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                     if (!setBatchVerified.count(txid)) {
                         vTxidProofs.emplace_back(txid);
                         vProofs.emplace_back(proof);
+                    } else {
+                        LogPrint(BCLog::STAGING, "%s: skipping validating already verified proof for tx %s\n", __func__, txid.GetHex());
                     }
                 }
                 nTimeZerocoinSpendCheck += GetTimeMicros() - nTimeSpendCheck;
@@ -2575,7 +2577,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     }
 
     // Skip signature verification if it's already been done or if the block height is below a checkpoint height
-    bool fSkipSigVerify = block.fSignaturesVerified ? true : fSkipComputation;
+    bool fSkipSigVerify = fSkipComputation;
     int64_t nTimeSigVerify = GetTimeMicros();
     if (!fSkipSigVerify && !vProofs.empty()) {
         if (!libzerocoin::SerialNumberSoKProof::BatchVerify(vProofs)) {
