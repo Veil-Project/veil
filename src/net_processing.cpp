@@ -1606,6 +1606,22 @@ void ProcessStaging()
     }
 }
 
+CCriticalSection cs_announcement;
+std::map<uint256, int> mapAskedForAnnouncement;
+int AskedForAnnouncement(const uint256& hashBlock)
+{
+    LOCK(cs_announcement);
+    if (mapAskedForAnnouncement.count(hashBlock))
+        return mapAskedForAnnouncement.at(hashBlock);
+    return 0;
+}
+
+void MarkAskedForAnnouncement(const uint256& hashBlock)
+{
+    LOCK(cs_announcement);
+    mapAskedForAnnouncement[hashBlock]++;
+}
+
 bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::vector<CBlockHeader>& headers, const CChainParams& chainparams, bool punish_duplicate_invalid)
 {
     const CNetMsgMaker msgMaker(pfrom->GetSendVersion());
@@ -1779,10 +1795,13 @@ bool static ProcessHeadersMessage(CNode *pfrom, CConnman *connman, const std::ve
                 if (!(pindexWalk->nStatus & BLOCK_HAVE_DATA) && (!IsWitnessEnabled(pindexWalk->pprev, chainparams.GetConsensus()) || State(pfrom->GetId())->fHaveWitness)) {
                     // We don't have this block, and it's not yet in flight.
                     bool fFetch = true;
-                    if (mapBlocksInFlight.count(pindexWalk->GetBlockHash())) {
-                        //Want to request new blocks from multiple peers to reduce bottleneck
-                        if (nodestate->nBlocksInFlight) {
+                    uint256 hashBlock = pindexWalk->GetBlockHash();
+                    if (mapBlocksInFlight.count(hashBlock)) {
+                        //Want to request new blocks from multiple peers to reduce bottleneck, but limit to 3
+                        if (nodestate->nBlocksInFlight || AskedForAnnouncement(hashBlock) > 3) {
                             fFetch = false;
+                        } else {
+                            MarkAskedForAnnouncement(hashBlock);
                         }
                     }
                     if (fFetch)
@@ -3073,9 +3092,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 nHeightBlock = pindexPrev->nHeight + 1;
                 bool isForReorg = nHeightBlock <= nHeightNext - 1 && !chainActive.Contains(pindexPrev);
 
-                //We need the full block data to process it
-                if (pblock->hashPrevBlock == Params().GenesisBlock().GetHash() || pindexPrev->nChainTx > 0 ||
+                int nHeightCheck;
+                if (IsBlockHashInChain(pblock->GetHash(), nHeightCheck, chainActive.Tip())) {
+                    fProcessBlock = false;
+                    fStageBlock = false;
+                    LogPrint(BCLog::STAGING, "%s: Skip block that is already in main chain\n", __func__);
+                } else if (pblock->hashPrevBlock == Params().GenesisBlock().GetHash() || pindexPrev->nChainTx > 0 ||
                     (isForReorg && forceProcessing)) {
+                    //We need the full block data to process it
                     fProcessBlock = true;
                 } else if (forceProcessing && nHeightBlock - nHeightNext < ASK_FOR_BLOCKS + 10 &&
                            nHeightNext <= nHeightBlock) {

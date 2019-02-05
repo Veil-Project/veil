@@ -2433,8 +2433,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                     if (!setBatchVerified.count(txid)) {
                         vTxidProofs.emplace_back(txid);
                         vProofs.emplace_back(proof);
-                    } else {
-                        LogPrint(BCLog::STAGING, "%s: skipping validating already verified proof for tx %s\n", __func__, txid.GetHex());
                     }
                 }
                 nTimeZerocoinSpendCheck += GetTimeMicros() - nTimeSpendCheck;
