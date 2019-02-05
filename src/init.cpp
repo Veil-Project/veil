@@ -53,6 +53,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <veil/ringct/anon.h>
+#include <veil/zerocoin/zchain.h>
 
 #ifndef WIN32
 #include <signal.h>
@@ -411,6 +412,7 @@ void SetupServerArgs()
             "(default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=%u = automatically prune block files to stay under the specified target size in MiB)", MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024), false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-reindex-zdb", "Rebuild zerocoin blockchain database", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-resync", "Delete blockchain folders and resync from scratch", false, OptionsCategory::OPTIONS);
 #ifndef WIN32
     gArgs.AddArg("-sysperms", "Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)", false, OptionsCategory::OPTIONS);
@@ -1638,6 +1640,14 @@ bool AppInitMain()
                     if (!CVerifyDB().VerifyDB(chainparams, pcoinsdbview.get(), gArgs.GetArg("-checklevel", DEFAULT_CHECKLEVEL),
                                   gArgs.GetArg("-checkblocks", DEFAULT_CHECKBLOCKS))) {
                         strLoadError = _("Corrupted block database detected");
+                        break;
+                    }
+                }
+
+                if (gArgs.GetBoolArg("-reindex-zdb", false)) {
+                    std::string strRet = ReindexZerocoinDB();
+                    if (strRet != "") {
+                        strLoadError = _(strRet.c_str());
                         break;
                     }
                 }
