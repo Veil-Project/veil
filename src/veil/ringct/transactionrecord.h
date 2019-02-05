@@ -111,11 +111,11 @@ public:
         return nValueIn;
     }
 
-    CAmount GetValueSent() const
+    CAmount GetValueSent(bool fExternalOnly = false) const
     {
         CAmount nValueSent = GetOwnedValueIn();
         for (const COutputRecord& record : vout) {
-            if (record.IsReceive())
+            if (fExternalOnly && record.IsReceive())
                 nValueSent -= record.GetAmount();
         }
         return nValueSent;

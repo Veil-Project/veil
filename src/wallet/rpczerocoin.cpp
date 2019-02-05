@@ -1315,6 +1315,7 @@ UniValue generatemintlist(const JSONRPCRequest& request)
         UniValue obj(UniValue::VOBJ);
         obj.push_back(Pair("count", i));
         obj.push_back(Pair("value", coin.getPublicCoin().getValue().GetHex()));
+        obj.push_back(Pair("pubcoinhash", GetPubCoinHash(coin.getPublicCoin().getValue()).GetHex()));
         obj.push_back(Pair("randomness", coin.getRandomness().GetHex()));
         obj.push_back(Pair("serial", coin.getSerialNumber().GetHex()));
         arrRet.push_back(obj);
