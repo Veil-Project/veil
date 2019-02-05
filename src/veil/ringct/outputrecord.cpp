@@ -6,6 +6,7 @@
 #include <boost/variant.hpp>
 #include <tinyformat.h>
 #include <utilmoneystr.h>
+#include <utilstrencodings.h>
 
 void COutputRecord::AddStealthAddress(const CKeyID& idStealth)
 {
@@ -92,5 +93,6 @@ bool COutputRecord::GetDestination(CTxDestination& dest) const
 
 std::string COutputRecord::ToString() const
 {
-    return strprintf("TransactionRecord:\n  n=%d\n  nValue=%s\n  nType=%d\n  spend=%d pending=%d\n  flags=%d\n", n, FormatMoney(GetAmount()), nType, nFlags&ORF_SPENT, nFlags&ORF_PENDING_SPEND, nFlags);
+    return strprintf("TransactionRecord:\n  n=%d\n  nValue=%s\n  nType=%d\n  spend=%d pending=%d\n  flags=%d\n  scriptpubkey=%s\n",
+            n, FormatMoney(GetAmount()), nType, nFlags&ORF_SPENT, nFlags&ORF_PENDING_SPEND, nFlags, HexStr(scriptPubKey));
 }

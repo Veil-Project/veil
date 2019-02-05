@@ -2270,14 +2270,39 @@ static UniValue listsinceblock(const JSONRPCRequest& request)
     return ret;
 }
 
-UniValue OutputRecordToUniValue(const COutputRecord* record)
+UniValue OutputRecordToUniValue(AnonWallet* panonwallet, const COutputRecord* record)
 {
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("type", record->nType);
     obj.pushKV("flags", record->nFlags);
     obj.pushKV("n", record->n);
     obj.pushKV("scriptPubKey", HexStr(record->scriptPubKey));
+    if (record->IsReceive() && !record->IsBasecoin()) {
+        CTxDestination dest;
+        bool haveAddress = false;
+        if (ExtractDestination(record->scriptPubKey, dest))
+            haveAddress = panonwallet->HaveAddress(dest);
+        obj.pushKV("have_address", haveAddress);
+
+        CKeyID keyID;
+        if (dest.type() == typeid(CKeyID)) {
+            keyID = boost::get<CKeyID>(dest);
+        } else {
+            obj.pushKV("is_keyid", false);
+        }
+
+        if (haveAddress) {
+            CStealthAddress sx;
+            if (panonwallet->GetStealthAddress(keyID, sx)) {
+                obj.pushKV("stealth_address", sx.ToString(true));
+            } else if (panonwallet->GetStealthLinked(keyID, sx)) {
+                obj.pushKV("stealth_address", sx.ToString(true));
+                obj.pushKV("stealth_destination", EncodeDestination(dest, true));
+            }
+        }
+    }
     obj.pushKV("amount", FormatMoney(record->GetAmount()));
+    obj.pushKV("is_spent", record->IsSpent());
     if (record->IsChange())
         obj.pushKV("is_change", true);
 
@@ -2463,7 +2488,7 @@ static UniValue gettransaction(const JSONRPCRequest& request)
                     if (mi != pwalletAnon->mapRecords.end()) {
                         const COutputRecord *oR = mi->second.GetOutput(txin.prevout.n);
                         if (oR)
-                            obj_vin.pushKV("output_record", OutputRecordToUniValue(oR));
+                            obj_vin.pushKV("output_record", OutputRecordToUniValue(pwalletAnon, oR));
                     }
                 }
             }
@@ -2486,7 +2511,7 @@ static UniValue gettransaction(const JSONRPCRequest& request)
 
                 CTxDestination dest;
                 if (ExtractDestination(*pout->GetPScriptPubKey(), dest)) {
-                    obj_out.pushKV("sent_to", CBitcoinAddress(dest).ToString());
+                    obj_out.pushKV("sent_to", EncodeDestination(dest, true));
                 }
             }
             obj_out.pushKV("amount", FormatMoney(pout->GetValue()));
@@ -2516,7 +2541,7 @@ static UniValue gettransaction(const JSONRPCRequest& request)
         if (mi != pwalletAnon->mapRecords.end()) {
             const COutputRecord *oR = mi->second.GetOutput(i);
             if (oR)
-                obj_out.pushKV("output_record", OutputRecordToUniValue(oR));
+                obj_out.pushKV("output_record", OutputRecordToUniValue(pwalletAnon, oR));
         }
         arr_vout.push_back(obj_out);
     }
