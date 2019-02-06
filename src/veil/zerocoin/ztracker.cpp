@@ -463,7 +463,7 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
         for (auto& dMint : listDeterministicDB) {
             Add(dMint);
         }
-        LogPrintf("%s: added %d dzpiv from DB\n", __func__, listDeterministicDB.size());
+        LogPrintf("%s: added %d deterministic zerocoins from DB\n", __func__, listDeterministicDB.size());
     }
 
     std::vector<CMintMeta> vOverWrite;
