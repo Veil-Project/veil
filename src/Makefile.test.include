@@ -96,7 +96,8 @@ BITCOIN_TESTS =\
   test/libzerocoin_tests.cpp \
   test/zerocoin_denomination_tests.cpp \
   test/zerocoin_implementation_tests.cpp \
-  test/zerocoin_transactions_tests.cpp
+  test/zerocoin_transactions_tests.cpp \
+  test/zerocoin_zkp_tests.cpp
 
 if ENABLE_WALLET
 BITCOIN_TESTS += \
