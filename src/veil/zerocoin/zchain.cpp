@@ -76,33 +76,34 @@ bool BlockToPubcoinList(const CBlock& block, std::list<libzerocoin::PublicCoin>&
     return true;
 }
 
-bool ThreadedBatchVerify(const std::vector<libzerocoin::SerialNumberSoKProof>* pvProofs)
+bool ThreadedBatchVerify(const std::vector<libzerocoin::SerialNumberSoKProof>* pvProofs, int nThreads)
 {
     int64_t nMaxThreads = gArgs.GetArg("-threadbatchverify", DEFAULT_BATCHVERIFY_THREADS);
+    if (nThreads != -1)
+        nMaxThreads = nThreads;
 
     // Assume that it doesn't give any gain to multithread, unless each thread has at least 6 proofs
-    int nThreadEfficiency = 6;
+    int nThreadEfficiency = 7;
 
     std::vector<std::vector<const libzerocoin::SerialNumberSoKProof*>> vProofGroups(1);
-    int nThreads = 1;
+    int nThreadsUsed = 1;
     if (pvProofs->size() > nThreadEfficiency)
-        nThreads = pvProofs->size() % nThreadEfficiency;
-    if (nThreads > nMaxThreads)
-        nThreads = nMaxThreads;
+        nThreadsUsed = pvProofs->size() / nThreadEfficiency;
+    if (nThreadsUsed > nMaxThreads)
+        nThreadsUsed = nMaxThreads;
 
-    vProofGroups.resize(nThreads);
-    std::vector<uint8_t> vReturn(nThreads);
+    vProofGroups.resize(nThreadsUsed);
+    std::vector<uint8_t> vReturn(nThreadsUsed);
     int nThreadSelected = 0;
 
     for (unsigned int i = 0; i < pvProofs->size(); i++) {
         vProofGroups[nThreadSelected].emplace_back(&pvProofs->at(i));
         nThreadSelected++;
-        if (nThreadSelected >= nThreads)
+        if (nThreadSelected >= nThreadsUsed)
             nThreadSelected = 0;
     }
 
     boost::thread_group* pthreadgroup = new boost::thread_group();
-
     for (unsigned int i = 0; i < vProofGroups.size(); i++) {
         pthreadgroup->create_thread(boost::bind(&libzerocoin::SerialNumberSoKProof::BatchVerify, vProofGroups[i], &vReturn[i]));
     }
