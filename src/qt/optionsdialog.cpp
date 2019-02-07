@@ -350,6 +350,7 @@ void OptionsDialog::updateDefaultProxyNets()
 void OptionsDialog::onHideOrphansCheck(bool state) {
     QSettings settings;
     settings.setValue("bHideOrphans", state);
+    settings.sync();
 }
 
 ProxyAddressValidator::ProxyAddressValidator(QObject *parent) :

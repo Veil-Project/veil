@@ -76,3 +76,11 @@ void openToastDialog(QString text, QWidget* gui){
     widget->activateWindow();
     widget->show();
 }
+
+
+QSettings * getSettings(){
+    QString m_path = QStandardPaths::writableLocation(QStandardPaths::ConfigLocation);
+    QString m_filename = "config.ini" ;
+    QSettings *settings = new QSettings(m_path + "/"+ m_filename,QSettings::IniFormat);
+    return settings;
+}

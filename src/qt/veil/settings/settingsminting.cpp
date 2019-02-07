@@ -9,6 +9,8 @@
 #include <qt/optionsmodel.h>
 #include <QIntValidator>
 
+#include <QSettings>
+#include <QStandardPaths>
 #include <QString>
 #include <iostream>
 #include <qt/veil/qtutils.h>
@@ -153,28 +155,35 @@ void SettingsMinting::mintzerocoins(){
 void SettingsMinting::onCheck10Clicked(bool res) {
     if(res && nPreferredDenom != 10){
         nPreferredDenom = 10;
+        saveSettings(nPreferredDenom);
     }
 }
 
 void SettingsMinting::onCheck100Clicked(bool res){
     if(res && nPreferredDenom != 100){
         nPreferredDenom = 100;
+        saveSettings(nPreferredDenom);
     }
 }
 
 void SettingsMinting::onCheck1000Clicked(bool res){
     if(res && nPreferredDenom != 1000){
         nPreferredDenom = 1000;
+        saveSettings(nPreferredDenom);
     }
 }
 
 void SettingsMinting::onCheck100000Clicked(bool res){
     if(res && nPreferredDenom != 10000){
         nPreferredDenom = 10000;
+        saveSettings(nPreferredDenom);
     }
 }
 
-void SettingsMinting::onEscapeClicked(){
+void SettingsMinting::saveSettings(int prefDenom){
+    QSettings* settings = getSettings();
+    settings->setValue("nAutomintDenom", prefDenom);
+    settings->sync();
 }
 
 SettingsMinting::~SettingsMinting()
