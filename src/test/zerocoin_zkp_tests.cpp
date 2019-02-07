@@ -8,6 +8,7 @@
 #include <iostream>
 #include <time.h>
 #include <random.h>
+#include <veil/zerocoin/zchain.h>
 
 
 using namespace libzerocoin;
@@ -376,15 +377,15 @@ BOOST_AUTO_TEST_CASE(inner_product_argument_tests)
 // ---------------------------------------------------------------------------------------------------
 // Signature Of Knowledge ----------------------------------------------------------------------------
 
-void printTime(clock_t start_time, int nProofs)
+void printTime(int64_t start_time, int nProofs)
 {
-    clock_t total_time = clock() - start_time;
-    double passed = total_time*1000.0/CLOCKS_PER_SEC;
-    std::string strPerProof = std::to_string(passed/nProofs) + " msec per proof";
-    std::cout << colorCyan << "\t(" << passed << " msec " << (nProofs ? strPerProof.c_str() : "") << ")"  << colorNormal << std::endl;
+    int64_t total_time = GetTimeMillis() - start_time;
+    int64_t nTimePer = nProofs ? total_time/nProofs : 0;
+    std::string strPerProof = std::to_string(nTimePer) + " msec per proof";
+    std::cout << colorCyan << "\t(" << total_time << " msec " << (nProofs ? strPerProof.c_str() : "") << ")"  << colorNormal << std::endl;
 }
 
-bool Test_batchVerify(std::vector<SerialNumberSoKProof> proofs, bool fReverseTest = false)
+bool Test_batchVerify(std::vector<const SerialNumberSoKProof*> proofs, bool fReverseTest = false)
 {
     zNumTests++;
     // verify the signature of the received SoKs
@@ -394,6 +395,25 @@ bool Test_batchVerify(std::vector<SerialNumberSoKProof> proofs, bool fReverseTes
     std::cout << "...";
 
     if (SerialNumberSoKProof::BatchVerify(proofs) == fReverseTest) {
+        std::cout << colorRed << Fail(fReverseTest) << colorNormal;
+        return false;
+    }
+
+    std::cout << colorGreen << Pass(fReverseTest) << colorNormal;
+    zSuccessfulTests++;
+    return true;
+}
+
+bool Test_threadedBatchVerify(std::vector<SerialNumberSoKProof>* proofs, int nThreads, bool fReverseTest = false)
+{
+    zNumTests++;
+    // verify the signature of the received SoKs
+    std::cout << "- Threaded verification of the Signatures of Knowledge";
+    if (fReverseTest)
+        std::cout << colorMagenta << " for dishonest prover" << colorNormal;
+    std::cout << "...";
+
+    if (ThreadedBatchVerify(proofs, nThreads) == fReverseTest) {
         std::cout << colorRed << Fail(fReverseTest) << colorNormal;
         return false;
     }
@@ -421,25 +441,30 @@ bool batch_signature_of_knowledge_tests(unsigned int start, unsigned int end, un
     ZerocoinParams *ZCParams = Params().Zerocoin_Params();
     (void)ZCParams;
 
-    for(unsigned int k=start; k<=end; k=k+step) {
+    std::vector<uint256> msghashList;
+    std::vector<PrivateCoin> coinList;
+    std::vector<Commitment> commitmentList;
+    std::vector<uint256> msghashList2;
+    std::vector<PrivateCoin> coinList2;
+    std::vector<SerialNumberSoK_small> sigList;
+    std::vector<libzerocoin::SerialNumberSoKProof> vProofs_threaded;
+    std::vector<Commitment> commitmentList2;
 
+    for(unsigned int k=start; k<=end; k=k+step) {
         // create k random message hashes
-        std::vector<uint256> msghashList;
-        for(unsigned int i=0; i<k; i++) {
+        for(unsigned int i=0; i<step; i++) {
             CBigNum rbn = CBigNum::randBignum(256);
             msghashList.push_back(rbn.getuint256());
         }
 
         // mint k coins
-        std::vector<PrivateCoin> coinList;
-        for(unsigned int i=0; i<k; i++) {
-            PrivateCoin newCoin(ZCParams, CoinDenomination::ZQ_TEN);
+        for(unsigned int i=0; i<step; i++) {
+            PrivateCoin newCoin(ZCParams, CoinDenomination::ZQ_TEN, true);
             coinList.push_back(newCoin);
         }
 
         // commit to these coins
-        std::vector<Commitment> commitmentList;
-        for(unsigned int i=0; i<k; i++) {
+        for(unsigned int i=0; i<step; i++) {
             const CBigNum newCoin_value = coinList[i].getPublicCoin().getValue();
             Commitment commitment(&(ZCParams->serialNumberSoKCommitmentGroup), newCoin_value);
             commitmentList.push_back(commitment);
@@ -447,112 +472,77 @@ bool batch_signature_of_knowledge_tests(unsigned int start, unsigned int end, un
 
         // WRONG (random) assignments
         // random messages
-        std::vector<uint256> msghashList2;
-        for(unsigned int i=0; i<k; i++) {
-            CBigNum rbn = CBigNum::randBignum(256);
-            msghashList2.push_back(rbn.getuint256());
-        }
+        CBigNum rbn = CBigNum::randBignum(256);
+        msghashList2.push_back(rbn.getuint256());
+
         // random coins
-        std::vector<PrivateCoin> coinList2;
-        for(unsigned int i=0; i<k; i++) {
-            PrivateCoin newCoin(ZCParams, CoinDenomination::ZQ_TEN);
-            coinList2.push_back(newCoin);
-        }
+        PrivateCoin newCoin(ZCParams, CoinDenomination::ZQ_TEN, true);
+        coinList2.push_back(newCoin);
+
         // commit to these coins
-        std::vector<Commitment> commitmentList2;
-        for(unsigned int i=0; i<k; i++) {
-            const CBigNum newCoin_value = coinList2[i].getPublicCoin().getValue();
-            Commitment commitment(&(ZCParams->serialNumberSoKCommitmentGroup), newCoin_value);
-            commitmentList2.push_back(commitment);
-        }
+        const CBigNum newCoin_value = coinList2[0].getPublicCoin().getValue();
+        Commitment commitment(&(ZCParams->serialNumberSoKCommitmentGroup), newCoin_value);
+        commitmentList2.push_back(commitment);
 
-
-        std::cout << "- Creating array of " << k << " Signatures of Knowledge...";
+        std::cout << "- Creating array of " << k << " Signatures of Knowledge...\n";
 
         // create k signatures of knowledge
-        std::vector<SerialNumberSoK_small> sigList;
 
-        clock_t start_time = clock();
-
-        for(unsigned int i=0; i<k; i++) {
+        int64_t start_time = GetTimeMillis();
+        for(unsigned int i=0; i<step; i++) {
             SerialNumberSoK_small sigOfKnowledge(ZCParams, coinList[i], commitmentList[i], msghashList[i]);
             sigList.push_back(sigOfKnowledge);
         }
 
         printTime(start_time, 0);
-        start_time = clock();
         std::cout << "- Packing and serializing the Signatures..." << std::endl;
 
         // pack the signatures of knowledge (honest prover)
-        std::vector<SerialNumberSoKProof> proofs;
-        for(unsigned int i=0; i<k; i++) {
-            SerialNumberSoKProof proof(sigList[i], coinList[i].getSerialNumber(),
-                                       commitmentList[i].getCommitmentValue(), msghashList[i]);
-            proofs.push_back(proof);
+        for(unsigned int i=0; i<step; i++) {
+            libzerocoin::SerialNumberSoKProof* p = new SerialNumberSoKProof(sigList[i], coinList[i].getSerialNumber(), commitmentList[i].getCommitmentValue(), msghashList[i]);
+            vProofs_threaded.emplace_back(*p);
         }
 
         // pack the signatures of knowledge (wrong msghash)
-        std::vector<SerialNumberSoKProof> proofs2;
-        for(unsigned int i=0; i<k; i++) {
-            SerialNumberSoKProof proof(sigList[i], coinList[i].getSerialNumber(),
-                                       commitmentList[i].getCommitmentValue(), msghashList2[i]);
-            proofs2.push_back(proof);
-        }
+        auto vProofs_threaded2 = vProofs_threaded;
+        libzerocoin::SerialNumberSoKProof* p_badmsg = new SerialNumberSoKProof(sigList[0], coinList[0].getSerialNumber(), commitmentList[0].getCommitmentValue(), msghashList2[0]);
+        vProofs_threaded2.emplace_back(*p_badmsg);
 
         // pack the signatures of knowledge (wrong commitment)
-        std::vector<SerialNumberSoKProof> proofs3;
-        for(unsigned int i=0; i<k; i++) {
-            SerialNumberSoKProof proof(sigList[i], coinList[i].getSerialNumber(),
-                                       commitmentList2[i].getCommitmentValue(), msghashList[i]);
-            proofs3.push_back(proof);
-        }
+        //   Test with only one bad element inserted at the front (should be single thread failure)
+        auto vProofs_threaded3 = vProofs_threaded;
+        libzerocoin::SerialNumberSoKProof* p_badsig = new SerialNumberSoKProof(sigList[0], coinList[0].getSerialNumber(), commitmentList2[0].getCommitmentValue(), msghashList[0]);
+        vProofs_threaded3[0] = *p_badsig;
 
         // pack the signatures of knowledge (wrong coin and commitment)
-        std::vector<SerialNumberSoKProof> proofs4;
-        for(unsigned int i=0; i<k; i++) {
-            SerialNumberSoKProof proof(sigList[i], coinList2[i].getSerialNumber(),
-                                       commitmentList2[i].getCommitmentValue(), msghashList[i]);
-            proofs4.push_back(proof);
-        }
+        //   Test with only one bad element inserted at the end (should be single thread failure)
+        auto vProofs_threaded4 = vProofs_threaded;
+        libzerocoin::SerialNumberSoKProof* p = new SerialNumberSoKProof(sigList[0], coinList[0].getSerialNumber(), commitmentList2[0].getCommitmentValue(), msghashList2[0]);
+        vProofs_threaded4.emplace_back(*p);
 
-        // serialize the proofs to a CDataStream object.
-        std::vector<CDataStream> serializedProofs(proofs.size(), CDataStream(SER_NETWORK, PROTOCOL_VERSION));
-        std::vector<CDataStream> serializedProofs2(proofs2.size(), CDataStream(SER_NETWORK, PROTOCOL_VERSION));
-        std::vector<CDataStream> serializedProofs3(proofs3.size(), CDataStream(SER_NETWORK, PROTOCOL_VERSION));
-        std::vector<CDataStream> serializedProofs4(proofs4.size(), CDataStream(SER_NETWORK, PROTOCOL_VERSION));
-        for(unsigned int i=0; i<serializedProofs.size(); i++) {
-            serializedProofs[i] << proofs[i];
-            serializedProofs2[i] << proofs2[i];
-            serializedProofs3[i] << proofs3[i];
-            serializedProofs4[i] << proofs4[i];
-        }
+        //Add a bad proof into a random spot
+        auto vProofs_threaded5 = vProofs_threaded;
+        vProofs_threaded5[k - 1] = *p_badmsg;
 
-        std::cout << "- Unserializing the Signatures of Knowledge..." << std::endl;
+        start_time = GetTimeMillis();
+        finalResult = finalResult & Test_threadedBatchVerify(&vProofs_threaded, 3);
+        printTime(start_time, vProofs_threaded.size());
 
-        // unserialize the CDataStream object into a fresh SoK object
-        std::vector<SerialNumberSoKProof> newproofs(serializedProofs.size(), SerialNumberSoKProof(ZCParams));
-        std::vector<SerialNumberSoKProof> newproofs2(serializedProofs.size(), SerialNumberSoKProof(ZCParams));
-        std::vector<SerialNumberSoKProof> newproofs3(serializedProofs.size(), SerialNumberSoKProof(ZCParams));
-        std::vector<SerialNumberSoKProof> newproofs4(serializedProofs.size(), SerialNumberSoKProof(ZCParams));
-        for(unsigned int i=0; i<serializedProofs.size(); i++) {
-            serializedProofs[i] >> newproofs[i];
-            serializedProofs2[i] >> newproofs2[i];
-            serializedProofs3[i] >> newproofs3[i];
-            serializedProofs4[i] >> newproofs4[i];
-        }
+        start_time = GetTimeMillis();
+        finalResult = finalResult & Test_threadedBatchVerify(&vProofs_threaded2, 3, true);
+        printTime(start_time, vProofs_threaded2.size());
 
-        start_time = clock();
-        finalResult = finalResult & Test_batchVerify(newproofs);
-        printTime(start_time, newproofs.size());
-        start_time = clock();
-        finalResult = finalResult & Test_batchVerify(newproofs2, true);
-        printTime(start_time, newproofs2.size());
-        start_time = clock();
-        finalResult = finalResult & Test_batchVerify(newproofs3, true);
-        printTime(start_time, newproofs3.size());
-        start_time = clock();
-        finalResult = finalResult & Test_batchVerify(newproofs4, true);
-        printTime(start_time, newproofs4.size());
+        start_time = GetTimeMillis();
+        finalResult = finalResult & Test_threadedBatchVerify(&vProofs_threaded3, 3, true);
+        printTime(start_time, vProofs_threaded3.size());
+
+        start_time = GetTimeMillis();
+        finalResult = finalResult & Test_threadedBatchVerify(&vProofs_threaded4, 3, true);
+        printTime(start_time, vProofs_threaded4.size());
+
+        start_time = GetTimeMillis();
+        finalResult = finalResult & Test_threadedBatchVerify(&vProofs_threaded5, 3, true);
+        printTime(start_time, vProofs_threaded5.size());
     }
     std::cout << std::endl;
     return finalResult;
@@ -569,7 +559,7 @@ BOOST_AUTO_TEST_CASE(bulletproofs_tests)
     BOOST_CHECK(parameters_tests());
     BOOST_CHECK(arithmetic_circuit_tests());
     BOOST_CHECK(polynomial_commitment_tests());
-    BOOST_CHECK(batch_signature_of_knowledge_tests(20, 20, 1));
+    BOOST_CHECK(batch_signature_of_knowledge_tests(8, 24, 8));
     std::cout << std::endl << zSuccessfulTests << " out of " << zNumTests << " tests passed." << std::endl << std::endl;
 }
 BOOST_AUTO_TEST_SUITE_END()
