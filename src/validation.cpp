@@ -902,10 +902,18 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "min relay fee not met", false, strprintf("%d < %d", nModifiedFees, ::minRelayTxFee.GetFee(nSize)));
         }
 
-        if (nAbsurdFee && nFees > nAbsurdFee)
-            return state.Invalid(false,
-                REJECT_HIGHFEE, "absurdly-high-fee",
-                strprintf("%d > %d", nFees, nAbsurdFee));
+        if (nAbsurdFee && nFees > nAbsurdFee) {
+            // Don't consider the higher minting fee as absurd
+            int nMints = 0;
+            if (tx.IsZerocoinMint()) {
+                for (const auto& pout : tx.vpout) {
+                    if (pout->IsZerocoinMint())
+                        nMints++;
+                }
+            }
+            if (nFees != nMints * Params().Zerocoin_MintFee())
+                return state.Invalid(false, REJECT_HIGHFEE, "absurdly-high-fee", strprintf("%d > %d", nFees, nAbsurdFee));
+        }
 
         // Calculate in-mempool ancestors, up to a limit.
         CTxMemPool::setEntries setAncestors;
@@ -2095,15 +2103,6 @@ public:
 
 // Protected by cs_main
 static ThresholdConditionCache warningcache[VERSIONBITS_NUM_BITS];
-
-// 0.13.0 was shipped with a segwit deployment defined for testnet, but not for
-// mainnet. We no longer need to support disabling the segwit deployment
-// except for testing purposes, due to limitations of the functional test
-// environment. See test/functional/p2p-segwit.py.
-static bool IsScriptWitnessEnabled(const Consensus::Params& params)
-{
-    return params.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout != 0;
-}
 
 static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consensus::Params& consensusparams) {
     AssertLockHeld(cs_main);
@@ -3963,7 +3962,7 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
                 pwalletMain->UpdateMint(coin.getValue(), pindex->nHeight, txid, denom);
 
                 // Add the transaction to the wallet
-                for (int i = 0; i < block.vtx.size(); i++) {
+                for (unsigned int i = 0; i < block.vtx.size(); i++) {
                     CTransactionRef tx = block.vtx.at(i);
                     if (!setAddedToWallet.count(txid)) {
                         CWalletTx wtx(pwalletMain.get(), tx);
@@ -4060,9 +4059,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     assert(pindexPrev != nullptr);
     const int nHeight = pindexPrev->nHeight + 1;
 
-    const Consensus::Params& consensusParams = params.GetConsensus();
     //! PoW/PoS check moved to contextual block checks
-
     // Check against checkpoints
     if (fCheckpointsEnabled) {
         // Don't accept any forks from the main chain prior to last checkpoint.
@@ -4320,7 +4317,8 @@ bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidatio
     if (first_invalid != nullptr) first_invalid->SetNull();
     {
         LOCK(cs_main);
-        CleanBlockIndexGarbage();
+        if (!IsInitialBlockDownload())
+            CleanBlockIndexGarbage();
         int nHeightMaxNonPoW = chainActive.Height() + Params().MaxHeaderRequestWithoutPoW();
         nHeightMaxNonPoW = std::max(nHeightMaxNonPoW, Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints()));
 
@@ -4518,7 +4516,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     return true;
 }
 
-bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool *fNewBlock)
+bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool *fNewBlock, bool fSkipComputation)
 {
     AssertLockNotHeld(cs_main);
 
@@ -4528,10 +4526,8 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
         CValidationState state;
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
-        bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
-
+        bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus(), fSkipComputation);
         LOCK(cs_main);
-
         if (ret) {
             // Store to disk
             ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
@@ -4829,8 +4825,6 @@ bool CChainState::LoadBlockIndex(const Consensus::Params& consensus_params, CBlo
     for (const std::pair<int, CBlockIndex*>& item : vSortedByHeight)
     {
         CBlockIndex* pindex = item.second;
-        int64_t nTimeSpan = 0;
-
         pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + pindex->GetBlockWork();
         pindex->nChainPoW = pindex->GetChainPoW();
         pindex->nTimeMax = (pindex->pprev ? std::max(pindex->pprev->nTimeMax, pindex->nTime) : pindex->nTime);
