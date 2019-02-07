@@ -34,6 +34,10 @@
 #include <boost/signals2/signal.hpp>
 #include <boost/thread/condition_variable.hpp> // for boost::thread_interrupted
 
+
+// Preferences.
+const int DEFAULT_AUTOMINT_DENOM = 10;
+
 // Application startup time (used for uptime calculation)
 int64_t GetStartupTime();
 

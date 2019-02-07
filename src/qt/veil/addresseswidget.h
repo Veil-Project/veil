@@ -72,7 +72,7 @@ private:
     bool isOnMyAddresses;
 
     void initAddressesView();
-    virtual void resizeEvent(QResizeEvent* event);
+    virtual void resizeEvent(QResizeEvent* event) override;
     void reloadTab(bool _isOnMyAddresses);
     void showList(bool show);
 

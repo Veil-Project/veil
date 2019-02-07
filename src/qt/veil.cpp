@@ -38,6 +38,8 @@
 
 #include <walletinitinterface.h>
 
+#include <qt/veil/qtutils.h>
+
 #include <memory>
 #include <stdint.h>
 
@@ -49,6 +51,7 @@
 #include <QLocale>
 #include <QMessageBox>
 #include <QSettings>
+#include <QString>
 #include <QThread>
 #include <QTimer>
 #include <QTranslator>
@@ -606,6 +609,14 @@ int main(int argc, char *argv[])
         QMessageBox::critical(0, QObject::tr(PACKAGE_NAME),
             QObject::tr("Error parsing command line arguments: %1.").arg(QString::fromStdString(error)));
         return EXIT_FAILURE;
+    }
+
+    // Preferences check
+    // If the UI settings have a different value than the server args then use the UI settings.
+    QSettings* settings = getSettings();
+    int tempPref = settings->value("nAutomintDenom").toInt();
+    if(tempPref != nPreferredDenom && tempPref != 0){
+        nPreferredDenom = tempPref;
     }
 
     // Now that the QApplication is setup and we have parsed our parameters, we can set the platform style
