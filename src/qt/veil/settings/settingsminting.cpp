@@ -50,7 +50,7 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
         case 1000:
             ui->radioButton1000->setChecked(true);
             break;
-        case 100000:
+        case 10000:
             ui->radioButton100000->setChecked(true);
             break;
     }
