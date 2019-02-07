@@ -2104,15 +2104,6 @@ public:
 // Protected by cs_main
 static ThresholdConditionCache warningcache[VERSIONBITS_NUM_BITS];
 
-// 0.13.0 was shipped with a segwit deployment defined for testnet, but not for
-// mainnet. We no longer need to support disabling the segwit deployment
-// except for testing purposes, due to limitations of the functional test
-// environment. See test/functional/p2p-segwit.py.
-static bool IsScriptWitnessEnabled(const Consensus::Params& params)
-{
-    return params.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout != 0;
-}
-
 static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consensus::Params& consensusparams) {
     AssertLockHeld(cs_main);
 
@@ -3971,7 +3962,7 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
                 pwalletMain->UpdateMint(coin.getValue(), pindex->nHeight, txid, denom);
 
                 // Add the transaction to the wallet
-                for (int i = 0; i < block.vtx.size(); i++) {
+                for (unsigned int i = 0; i < block.vtx.size(); i++) {
                     CTransactionRef tx = block.vtx.at(i);
                     if (!setAddedToWallet.count(txid)) {
                         CWalletTx wtx(pwalletMain.get(), tx);
@@ -4068,9 +4059,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     assert(pindexPrev != nullptr);
     const int nHeight = pindexPrev->nHeight + 1;
 
-    const Consensus::Params& consensusParams = params.GetConsensus();
     //! PoW/PoS check moved to contextual block checks
-
     // Check against checkpoints
     if (fCheckpointsEnabled) {
         // Don't accept any forks from the main chain prior to last checkpoint.
@@ -4837,8 +4826,6 @@ bool CChainState::LoadBlockIndex(const Consensus::Params& consensus_params, CBlo
     for (const std::pair<int, CBlockIndex*>& item : vSortedByHeight)
     {
         CBlockIndex* pindex = item.second;
-        int64_t nTimeSpan = 0;
-
         pindex->nChainWork = (pindex->pprev ? pindex->pprev->nChainWork : 0) + pindex->GetBlockWork();
         pindex->nChainPoW = pindex->GetChainPoW();
         pindex->nTimeMax = (pindex->pprev ? std::max(pindex->pprev->nTimeMax, pindex->nTime) : pindex->nTime);
