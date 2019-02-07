@@ -1588,7 +1588,12 @@ void ProcessStaging()
 
         LogPrint(BCLog::STAGING, "processing staged block %s\n", pblockStaged->GetHash().GetHex());
         bool fNewBlock = false;
-        if (!ProcessNewBlock(Params(), pblockStaged, true, &fNewBlock))
+        bool fSkipComputation = false;
+        int nHeightLastCheckpoint = Checkpoints::GetLastCheckpointHeight(Params().Checkpoints());
+        if (nHeightNext < nHeightLastCheckpoint)
+            fSkipComputation = true;
+
+        if (!ProcessNewBlock(Params(), pblockStaged, true, &fNewBlock, fSkipComputation))
             error("Staging thread failed to process block\n");
 
         {

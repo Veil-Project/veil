@@ -4317,7 +4317,8 @@ bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidatio
     if (first_invalid != nullptr) first_invalid->SetNull();
     {
         LOCK(cs_main);
-        CleanBlockIndexGarbage();
+        if (!IsInitialBlockDownload())
+            CleanBlockIndexGarbage();
         int nHeightMaxNonPoW = chainActive.Height() + Params().MaxHeaderRequestWithoutPoW();
         nHeightMaxNonPoW = std::max(nHeightMaxNonPoW, Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints()));
 
@@ -4515,7 +4516,7 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     return true;
 }
 
-bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool *fNewBlock)
+bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<const CBlock> pblock, bool fForceProcessing, bool *fNewBlock, bool fSkipComputation)
 {
     AssertLockNotHeld(cs_main);
 
@@ -4525,10 +4526,8 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
         CValidationState state;
         // Ensure that CheckBlock() passes before calling AcceptBlock, as
         // belt-and-suspenders.
-        bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus());
-
+        bool ret = CheckBlock(*pblock, state, chainparams.GetConsensus(), fSkipComputation);
         LOCK(cs_main);
-
         if (ret) {
             // Store to disk
             ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
