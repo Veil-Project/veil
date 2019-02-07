@@ -902,10 +902,18 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             return state.DoS(0, false, REJECT_INSUFFICIENTFEE, "min relay fee not met", false, strprintf("%d < %d", nModifiedFees, ::minRelayTxFee.GetFee(nSize)));
         }
 
-        if (nAbsurdFee && nFees > nAbsurdFee)
-            return state.Invalid(false,
-                REJECT_HIGHFEE, "absurdly-high-fee",
-                strprintf("%d > %d", nFees, nAbsurdFee));
+        if (nAbsurdFee && nFees > nAbsurdFee) {
+            // Don't consider the higher minting fee as absurd
+            int nMints = 0;
+            if (tx.IsZerocoinMint()) {
+                for (const auto& pout : tx.vpout) {
+                    if (pout->IsZerocoinMint())
+                        nMints++;
+                }
+            }
+            if (nFees != nMints * Params().Zerocoin_MintFee())
+                return state.Invalid(false, REJECT_HIGHFEE, "absurdly-high-fee", strprintf("%d > %d", nFees, nAbsurdFee));
+        }
 
         // Calculate in-mempool ancestors, up to a limit.
         CTxMemPool::setEntries setAncestors;
