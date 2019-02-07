@@ -42,6 +42,7 @@ bool RemoveSerialFromDB(const CBigNum& bnSerial);
 std::string ReindexZerocoinDB();
 std::shared_ptr<libzerocoin::CoinSpend> TxInToZerocoinSpend(const CTxIn& txin);
 bool OutputToPublicCoin(const CTxOutBase* out, libzerocoin::PublicCoin& coin);
+bool ThreadedBatchVerify(const std::vector<libzerocoin::SerialNumberSoKProof>* vProofs, int nThreads = -1);
 bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin);
 std::list<libzerocoin::CoinDenomination> ZerocoinSpendListFromBlock(const CBlock& block);
 

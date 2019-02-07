@@ -2453,7 +2453,7 @@ static UniValue gettransaction(const JSONRPCRequest& request)
     UniValue arr_vin(UniValue::VARR);
     for (auto txin : wtx.tx->vin) {
         UniValue obj_vin(UniValue::VOBJ);
-        bool fIsMyInput = pwallet->IsMine(txin);
+        bool fIsMyInput = pwallet->IsMine(txin, true, true);
 
         obj_vin.pushKV("from_me", fIsMyInput);
         if (txin.IsAnonInput()) {
@@ -2476,7 +2476,8 @@ static UniValue gettransaction(const JSONRPCRequest& request)
                 continue;
             }
 
-            obj_vin.pushKV("prevout", txin.prevout.ToString());
+            obj_vin.pushKV("prevout_hash", txin.prevout.hash.GetHex());
+            obj_vin.pushKV("prevout_n", (double)txin.prevout.n);
             auto nType = txPrev->vpout[txin.prevout.n]->GetType();
             if (nType == OUTPUT_STANDARD)
                 obj_vin.pushKV("type", "basecoin");

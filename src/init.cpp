@@ -420,6 +420,7 @@ void SetupServerArgs()
     hidden_args.emplace_back("-sysperms");
 #endif
     gArgs.AddArg("-txindex", strprintf("Maintain a full transaction index, used by the getrawtransaction rpc call (default: %u)", DEFAULT_TXINDEX), false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-threadbatchverify", strprintf("How many threads to run when batch verifying zeroknowledge proofs (default: %u)", DEFAULT_BATCHVERIFY_THREADS), false, OptionsCategory::OPTIONS);
 
     gArgs.AddArg("-addnode=<ip>", "Add a node to connect to and attempt to keep the connection open (see the `addnode` RPC command help for more info). This option can be specified multiple times to add multiple nodes.", false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-banscore=<n>", strprintf("Threshold for disconnecting misbehaving peers (default: %u)", DEFAULT_BANSCORE_THRESHOLD), false, OptionsCategory::CONNECTION);
@@ -1862,7 +1863,8 @@ bool AppInitMain()
         threadGroupStaking.create_thread(&ThreadStakeMiner);
 
     //Start block staging thread
-    threadGroupStaging.create_thread(&ThreadStaging);
+    threadGroupStaging.create_thread(&ThreadStagingBlockProcessing);
+    threadGroupStaging.create_thread(&ThreadStagingBatchVerify);
 
     LinkPoWThreadGroup(&threadGroupPoWMining);
 
