@@ -6120,7 +6120,7 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         CTransactionRecord rtx;
         CAmount nFeeRet;
 
-        if (0 != pAnonWalletMain->AddStandardInputs(wtx, rtx, vecSend, true, nFeeRet, &cControl, strFailReason, false, nChange)) {
+        if (0 != pAnonWalletMain->AddStandardInputs(wtx, rtx, vecSend, true, nFeeRet, &cControl, strFailReason, false, nTotalValue)) {
             strFailReason = strprintf("Failed to add ringctinputs: %s", strFailReason);
             return false;
         }
