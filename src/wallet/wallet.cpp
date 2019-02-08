@@ -6056,6 +6056,7 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         CCoinControl cControl;
         if (coinControl)
             cControl = *coinControl;
+        cControl.UnSelectAll();
 
         if (!SelectCoins(vAvailableCoins, nTotalValue, setCoins, nValueIn, cControl, coin_selection_params, fBool)) {
             strFailReason = "Insufficient confirmed funds, you might need to wait a few minutes and try again.";
@@ -6063,33 +6064,67 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         }
 
         // Fill vin
-        for (const CInputCoin& coin: setCoins)
-            txNew.vin.emplace_back(CTxIn(coin.outpoint.hash, coin.outpoint.n));
+        for (const CInputCoin& coin: setCoins) {
+//            txNew.vin.emplace_back(CTxIn(coin.outpoint.hash, coin.outpoint.n));
+            cControl.Select(coin.outpoint, coin.GetValue());
+        }
 
         //any change that is less than 0.0100000 will be ignored and given as an extra fee
         //also assume that a zerocoinspend that is minting the change will not have any change that goes to Piv
         CAmount nChange = nValueIn - nTotalValue; // Fee already accounted for in nTotalValue
-        if (nChange > Params().Zerocoin_MintFee()) {
-            // Fill a vout to ourself using the largest contributing address
-            CScript scriptChange = GetLargestContributor(setCoins);
 
-            //add to the transaction
-            CTxOut outChange(nChange, scriptChange);
-            txNew.vpout.emplace_back(outChange.GetSharedPtr());
-        } else {
-            if (reservekey)
-                reservekey->ReturnKey();
+        // Fill an output to ourself
+        CTempRecipient r;
+        r.nType = OUTPUT_CT;
+        r.fChange = true;
+        r.SetAmount(nChange);
+        r.isMine = true;
+
+        //If no change address is set, then generate a new stealth address to use for change
+        CStealthAddress stealthAddress;
+        if (!pAnonWalletMain->NewStealthKey(stealthAddress, 0, nullptr)) {
+            error("%s: failed to generate stealth address to use for change", __func__);
+            return false;
         }
 
-        // Sign if these are basecoin outputs - NOTE that zerocoin outputs are signed later in SoK
-        int nIn = 0;
-        for (const CInputCoin& coin : setCoins) {
-            if (!SignSignature(*this, coin.txout.scriptPubKey, txNew, nIn++, coin.txout.nValue, SIGHASH_ALL)) {
-                strFailReason = "Signing transaction failed";
-                return false;
-            }
-        }
+        r.address = stealthAddress;
 
+        if (!pAnonWalletMain->SetChangeDest(coinControl, r, strFailReason)) {
+            return errorN(1, strFailReason.c_str(), __func__, ("SetChangeDest failed: " + strFailReason));
+        }
+        vecSend.emplace_back(r);
+
+//        if (nChange > Params().Zerocoin_MintFee()) {
+//            // Fill a vout to ourself using the largest contributing address
+//            CScript scriptChange = GetLargestContributor(setCoins);
+//
+//            //add to the transaction
+//            CTxOut outChange(nChange, scriptChange);
+//            txNew.vpout.emplace_back(outChange.GetSharedPtr());
+//        } else {
+//            if (reservekey)
+//                reservekey->ReturnKey();
+//        }
+//
+//        // Sign if these are basecoin outputs - NOTE that zerocoin outputs are signed later in SoK
+//        int nIn = 0;
+//        for (const CInputCoin& coin : setCoins) {
+//            if (!SignSignature(*this, coin.txout.scriptPubKey, txNew, nIn++, coin.txout.nValue, SIGHASH_ALL)) {
+//                strFailReason = "Signing transaction failed";
+//                return false;
+//            }
+//        }
+
+        CTransactionRef tx_new;
+        CWalletTx wtx(this, tx_new);
+        CTransactionRecord rtx;
+        CAmount nFeeRet;
+
+        if (0 != pAnonWalletMain->AddStandardInputs(wtx, rtx, vecSend, true, nFeeRet, &cControl, strFailReason, false, nChange)) {
+            strFailReason = strprintf("Failed to add ringctinputs: %s", strFailReason);
+            return false;
+        }
+        txNew = CMutableTransaction(*wtx.tx);
         return true;
     } else {
         /** Select RingCT or CT Inputs **/
