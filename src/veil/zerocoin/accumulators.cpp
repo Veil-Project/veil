@@ -184,7 +184,6 @@ bool InitializeAccumulators(const int nHeight, int& nHeightCheckpoint, Accumulat
 //Get checkpoint value for a specific block height
 bool CalculateAccumulatorCheckpoint(int nHeight, std::map<libzerocoin::CoinDenomination, uint256>& mapCheckpoints, AccumulatorMap& mapAccumulators)
 {
-
     //the checkpoint is updated every ten blocks, return current active checkpoint if not update block
     if (nHeight % 10 != 0 || nHeight == 10) {
         mapCheckpoints = chainActive[nHeight - 1]->mapAccumulatorHashes;
@@ -205,10 +204,6 @@ bool CalculateAccumulatorCheckpoint(int nHeight, std::map<libzerocoin::CoinDenom
         return false;
 
     while (pindex->nHeight < nHeight - 10) {
-        // checking whether we should stop this process due to a shutdown request
-        if (ShutdownRequested())
-            return false;
-
         //grab mints from this block
         CBlock block;
         if(!ReadBlockFromDisk(block, pindex, Params().GetConsensus()))
