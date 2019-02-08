@@ -36,7 +36,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
     bool fZerocoinSpend = wtx.tx->IsZerocoinSpend();
     bool fZerocoinMint = wtx.tx->IsZerocoinMint();
 
-    if (!fZerocoinSpend && wtx.tx->HasBlindedValues() && wtx.txout_address.size()) {
+    if (!fZerocoinSpend && wtx.tx->HasBlindedValues()) {
         const CTransactionRecord &rtx = wtx.rtx;
 
         const uint256 &hash = wtx.tx->GetHash();
@@ -49,7 +49,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         CTxDestination address = CNoDestination();
         for (unsigned int i = 0; i < rtx.vout.size(); ++i) {
             const auto &r = rtx.vout[i];
-            if (r.IsChange())
+            if (!fZerocoinMint && r.IsChange())
                 continue;
 
             address = wtx.txout_address.at(i);
@@ -177,6 +177,14 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 case OUTPUT_STANDARD:
                     if (wtx.tx->IsZerocoinSpend())
                         sub.type = TransactionRecord::ZeroCoinRecv;
+                    else if (wtx.tx->IsZerocoinMint()) {
+                        if (inputType == OUTPUT_STANDARD)
+                            sub.type = TransactionRecord::ZeroCoinMint;
+                        else if (inputType == OUTPUT_CT)
+                            sub.type = TransactionRecord::ZeroCoinMintFromCt;
+                        else if (inputType == OUTPUT_RINGCT)
+                            sub.type = TransactionRecord::ZeroCoinMintFromRingCt;
+                    }
                     else
                         sub.type = TransactionRecord::RecvWithAddress;
                     break;

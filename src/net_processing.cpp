@@ -78,8 +78,6 @@ struct COrphanTx {
 static CCriticalSection g_cs_orphans;
 std::map<uint256, COrphanTx> mapOrphanTransactions GUARDED_BY(g_cs_orphans);
 std::map<int, CBlock> mapStagedBlocks;
-static int nStagedCacheSize = 0;
-static constexpr int STAGING_CACHE_SIZE = 1000000 * 100; //100mb cache
 static constexpr int ASK_FOR_BLOCKS = 50; //How many blocks to ask for at once
 static CCriticalSection cs_staging;
 
@@ -3102,7 +3100,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 if (IsBlockHashInChain(pblock->GetHash(), nHeightCheck, chainActive.Tip())) {
                     fProcessBlock = false;
                     fStageBlock = false;
-                    LogPrint(BCLog::STAGING, "%s: Skip block that is already in main chain\n", __func__);
+                    LogPrint(BCLog::STAGING, "%s: Skip block that is already in main chain (%d:%s) peer=%d\n", __func__, nHeightCheck, pblock->GetHash().GetHex(), pfrom->GetId());
                 } else if (pblock->hashPrevBlock == Params().GenesisBlock().GetHash() || pindexPrev->nChainTx > 0 ||
                     (isForReorg && forceProcessing)) {
                     //We need the full block data to process it
@@ -3124,12 +3122,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         if (fStageBlock) {
             //Keep a few blocks cached so we don't fetch them over and over
-            CDataStream ss(SER_DISK, PROTOCOL_VERSION);
-            ss << *pblock;
-            int nSizeBlock = ss.size();
-            if (nStagedCacheSize < STAGING_CACHE_SIZE) {
+            if (mapStagedBlocks.size() < ASK_FOR_BLOCKS + 10) {
                 LOCK(cs_staging);
-                nStagedCacheSize += nSizeBlock;
                 mapStagedBlocks.emplace(nHeightBlock, *pblock);
                 LogPrint(BCLog::STAGING, "staging block %s (%d) because only have prevheader and not prev block. Need:%d\n",
                          pblock->GetHash().ToString(), nHeightBlock, nHeightNext);
@@ -4167,16 +4161,12 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
         //
         std::vector<CInv> vGetData;
         bool fRequest = true;
-//        {
-//            LOCK(cs_staging);
-////            if (mapStagedBlocks.size() > 50)
-////                fRequest = false;
-//        }
         int nBestHeight = chainActive.Height();
 
         if (!pto->fClient && fRequest && ((fFetch && !pto->m_limited_node) /*|| !IsInitialBlockDownload()*/) && state.nBlocksInFlight < MAX_BLOCKS_IN_TRANSIT_PER_PEER) {
             std::vector<const CBlockIndex*> vToDownload;
             NodeId staller = -1;
+            LOCK(cs_staging);
             FindNextBlocksToDownload(pto->GetId(), MAX_BLOCKS_IN_TRANSIT_PER_PEER - state.nBlocksInFlight, vToDownload, staller, consensusParams);
             for (const CBlockIndex *pindex : vToDownload) {
                 uint32_t nFetchFlags = GetFetchFlags(pto);
@@ -4184,7 +4174,19 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                 fRequest = true;
                 CInv inv(MSG_BLOCK | nFetchFlags, pindex->GetBlockHash());
                 // Always request the next block, even if redundant.
-                if (pindex->nHeight != nBestHeight + 1) {
+                if (pindex->nHeight == nBestHeight + 1) {
+                    //Next block, give about 5 seconds before asking for it again
+                    auto mi = mapRequestedBlocks.find(inv.hash);
+                    if (mi != mapRequestedBlocks.end()) {
+                        if (GetTime() - mi->second < 5)
+                            fRequest = false;
+                    }
+                } else if (pindex->nHeight > nBestHeight + 1) {
+                    if (mapStagedBlocks.size() > ASK_FOR_BLOCKS + 15) {
+                        LogPrint(BCLog::STAGING, "%s: Skipping request of blocks because staging is full", __func__);
+                        break;
+                    }
+
                     auto mi = mapRequestedBlocks.find(inv.hash);
                     if (mi != mapRequestedBlocks.end()) {
                         if (GetTime() - mi->second < 5)
@@ -4200,10 +4202,9 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                             fRequest = false;
                         }
                     } else {
-                        //LOCK(cs_staging);
                         if (mapStagedBlocks.count(pindex->nHeight)) {
                             // If this block is already staged, dont request again
-                            if (pindex->GetBlockHash() == inv.hash)
+                            if (mapStagedBlocks.at(pindex->nHeight).GetHash() == inv.hash)
                                 fRequest = false;
                         }
                     }
