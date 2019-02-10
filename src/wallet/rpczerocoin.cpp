@@ -740,7 +740,7 @@ UniValue spendzerocoinmints(const JSONRPCRequest& request)
     if (arrMints.size() == 0)
         throw JSONRPCError(RPC_WALLET_ERROR, "No zerocoin selected");
     if (arrMints.size() > Params().Zerocoin_MaxSpendsPerTransaction())
-        throw JSONRPCError(RPC_WALLET_ERROR, "Too many mints included. Maximum zerocoins per spend: Params().Zerocoin_MaxSpendsPerTransaction()");
+        throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Too many mints included. Maximum zerocoins per spend: %d", Params().Zerocoin_MaxSpendsPerTransaction());
 
     CAmount nAmount(0);   // Spending amount
 
