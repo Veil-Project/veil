@@ -55,6 +55,7 @@
 #include <veil/ringct/anon.h>
 #include <veil/zerocoin/witness.h>
 #include <veil/zerocoin/zchain.h>
+#include <wallet/wallet.h>
 
 #ifndef WIN32
 #include <signal.h>
@@ -249,6 +250,9 @@ void Shutdown()
     if (g_is_mempool_loaded && gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         DumpMempool();
     }
+
+    // Try to dump the precomputes on shutdown
+    DumpPrecomputes();
 
     if (fFeeEstimatesInitialized)
     {

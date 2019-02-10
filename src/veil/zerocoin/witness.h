@@ -8,9 +8,13 @@
 #include "serialize.h"
 #include <dbwrapper.h>
 
-#define PRECOMPUTE_LRU_CACHE_SIZE 1000
-#define PRECOMPUTE_MAX_DIRTY_CACHE_SIZE 100
-#define PRECOMPUTE_FLUSH_TIME 300 // 5 minutes
+// The number of items allows in the precompute LRU cache, if the LRU cache gets bigger than this, they are removed from the LRU cache and placed in the
+// dirty map, which holds the PRECOMPUTE_MAX_DIRTY_CACHE_SIZE amount
+#define PRECOMPUTE_LRU_CACHE_SIZE 2000
+// This number represents how many items from the precompute LRU cache is held in memory before a database write is executed
+#define PRECOMPUTE_MAX_DIRTY_CACHE_SIZE 1000
+// How often precomputes will flush to database
+#define PRECOMPUTE_FLUSH_TIME 900 // 15 minutes
 
 class CoinWitnessCacheData;
 

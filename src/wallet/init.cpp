@@ -60,6 +60,9 @@ void WalletInit::AddWalletOptions() const
 
     gArgs.AddArg("-gen=<n>", strprintf("Enable CPU mining to true on the given number of threads (default: %u)", 0), false, OptionsCategory::WALLET);
     gArgs.AddArg("-genoverride", strprintf("Allows you to override the IsInitialBlockDownload check in BitcoinMiner for PoW mining (default: %u)", false), false, OptionsCategory::HIDDEN);
+
+    gArgs.AddArg("-precompute=<n>", strprintf(_("Enable precomputation of zerocoin spends and stakes (0-1, default %u)"), 1), false, OptionsCategory::WALLET);
+    gArgs.AddArg("-precomputecachelength=<n>", strprintf(_("Set the number of included blocks to precompute per cycle. (minimum: %d) (maximum: %d) (default: %d)"), MIN_PRECOMPUTE_LENGTH, MAX_PRECOMPUTE_LENGTH, DEFAULT_PRECOMPUTE_LENGTH), false, OptionsCategory::WALLET);
 }
 
 bool WalletInit::ParameterInteraction() const
