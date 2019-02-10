@@ -144,7 +144,7 @@ CAmount CzTracker::GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly) const
             CMintMeta meta = it.second;
             if (meta.isUsed || meta.isArchived)
                 continue;
-            bool fConfirmed = ((meta.nHeight < chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations()) && !(meta.nHeight == 0));
+            bool fConfirmed = ((meta.nHeight <= chainActive.Height()) && !(meta.nHeight == 0));
             if (fConfirmedOnly && !fConfirmed)
                 continue;
             if (fUnconfirmedOnly && fConfirmed)
@@ -172,7 +172,7 @@ std::vector<CMintMeta> CzTracker::GetMints(bool fConfirmedOnly) const
         CMintMeta mint = it.second;
         if (mint.isArchived || mint.isUsed)
             continue;
-        bool fConfirmed = (mint.nHeight < chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations());
+        bool fConfirmed = (mint.nHeight <= chainActive.Height());
         if (fConfirmed)
             mint.nMemFlags |= MINT_CONFIRMED;
         if (fConfirmedOnly && !fConfirmed)
@@ -449,6 +449,19 @@ bool CzTracker::UpdateStatusInternal(const std::set<uint256>& setMempool, const 
     return false;
 }
 
+uint8_t CzTracker::GetMintMemFlags(const CMintMeta& mint, int nBestHeight, const std::map<libzerocoin::CoinDenomination, int>& mapMaturity)
+{
+    uint8_t nMemFlags = 0;
+    if (mint.nHeight && mint.nHeight <= nBestHeight)
+        nMemFlags |= MINT_CONFIRMED;
+
+    // Not mature
+    if (mapMaturity.count(mint.denom) && mint.nHeight < mapMaturity.at(mint.denom) && mint.nHeight < nBestHeight - Params().Zerocoin_MintRequiredConfirmations())
+        nMemFlags |= MINT_MATURE;
+
+    return nMemFlags;
+}
+
 std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, bool fUpdateStatus)
 {
     WalletBatch walletdb(*walletDatabase);
@@ -499,24 +512,11 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
             continue;
 
         // Not confirmed
-        bool fInclude = true;
-        if (!mint.nHeight || mint.nHeight > nBestHeight - Params().Zerocoin_MintRequiredConfirmations()) {
-            if (fMatureOnly)
-                fInclude = false;
-        } else {
-            mint.nMemFlags |= MINT_CONFIRMED;
+        mint.nMemFlags = GetMintMemFlags(mint, nBestHeight, mapMaturity);
+        if (fMatureOnly) {
+            if (!(mint.nMemFlags & MINT_CONFIRMED) || !(mint.nMemFlags & MINT_MATURE))
+                continue;
         }
-
-        // Not mature
-        if (!mapMaturity.count(mint.denom) || mint.nHeight >= mapMaturity.at(mint.denom)) {
-            if (fMatureOnly)
-                fInclude = false;
-        } else {
-            mint.nMemFlags |= MINT_MATURE;
-        }
-
-        if (!fInclude)
-            continue;
 
         setMints.insert(mint);
     }
