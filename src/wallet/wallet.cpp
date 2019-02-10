@@ -3164,10 +3164,12 @@ CAmount CWallet::GetImmatureZerocoinBalance() const
     CAmount nBalance = 0;
     std::vector<CMintMeta> vMints = zTracker->GetMints(false);
     for (auto meta : vMints) {
-        if (meta.nMemFlags & MINT_CONFIRMED)
+        meta.nMemFlags = CzTracker::GetMintMemFlags(meta, nLastMaturityCheck, mapMintMaturity);
+        //If not confirmed, this is considered unconfirmed, not immature.
+        if (!(meta.nMemFlags & MINT_CONFIRMED) || meta.nMemFlags & MINT_MATURE)
             continue;
-        if (!mapMintMaturity.count(meta.denom) || meta.nHeight >= mapMintMaturity.at(meta.denom) || meta.nHeight >= chainActive.Height() || meta.nHeight == 0)
-            nBalance += libzerocoin::ZerocoinDenominationToAmount(meta.denom);
+        nBalance += libzerocoin::ZerocoinDenominationToAmount(meta.denom);
+
     }
     return nBalance;
 }

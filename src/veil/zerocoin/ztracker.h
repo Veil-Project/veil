@@ -53,6 +53,8 @@ public:
     bool UpdateZerocoinMint(const CZerocoinMint& mint);
     bool UpdateState(const CMintMeta& meta);
     void Clear();
+
+    static uint8_t GetMintMemFlags(const CMintMeta& mint, int nBestHeight, const std::map<libzerocoin::CoinDenomination, int>& mapMaturity);
 };
 
 #endif //VEIL_ZTRACKER_H

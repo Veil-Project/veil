@@ -11,6 +11,7 @@
 #include <rpc/util.h>
 #include <utilmoneystr.h>
 #include <validation.h>
+#include <veil/zerocoin/accumulators.h>
 #include <veil/zerocoin/zwallet.h>
 #include <veil/zerocoin/zchain.h>
 #include <veil/ringct/transactionrecord.h>
@@ -28,6 +29,9 @@
 
 UniValue MintMetaToUniValue(const CMintMeta& mint)
 {
+    std::map<libzerocoin::CoinDenomination, int> mapMaturity = GetMintMaturityHeight();
+    int nMemFlags = CzTracker::GetMintMemFlags(mint, chainActive.Height(), mapMaturity);
+
     UniValue m(UniValue::VOBJ);
     m.push_back(Pair("txid", mint.txid.GetHex()));
     m.push_back(Pair("height", (double)mint.nHeight));
@@ -36,6 +40,7 @@ UniValue MintMetaToUniValue(const CMintMeta& mint)
     m.push_back(Pair("serialhash", mint.hashSerial.GetHex()));
     m.pushKV("is_spent", mint.isUsed);
     m.pushKV("is_archived", mint.isArchived);
+    m.pushKV("flags", nMemFlags);
     return m;
 }
 
