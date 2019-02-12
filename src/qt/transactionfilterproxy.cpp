@@ -131,7 +131,7 @@ void TransactionFilterProxy::setHideOrphans(bool hide){
 }
 
 bool TransactionFilterProxy::isOrphan(const int status, const int type) const {
-    return ( (type == TransactionRecord::Generated ||
-              type == TransactionRecord::ZeroCoinStake  || type == TransactionRecord::CTGenerated || type == TransactionRecord::RingCTGenerated)
-             && (status == TransactionStatus::Conflicted || status == TransactionStatus::NotAccepted || TransactionStatus::Abandoned) );
+    bool isGenerated = (type == TransactionRecord::Generated || type == TransactionRecord::ZeroCoinStake  || type == TransactionRecord::CTGenerated || type == TransactionRecord::RingCTGenerated);
+    bool isConfirmed = (status != TransactionStatus::Unconfirmed && status != TransactionStatus::NotAccepted && status != TransactionStatus::Abandoned);
+    return isGenerated && !isConfirmed;
 }
