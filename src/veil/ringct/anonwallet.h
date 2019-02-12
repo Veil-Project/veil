@@ -265,6 +265,7 @@ public:
     bool RegenerateKey(const CKeyID& idKey, CKey& key) const;
     bool RegenerateExtKey(const CKeyID& idKey, CExtKey& extkey) const;
     bool RegenerateAccountExtKey(const CKeyID& idAccount, CExtKey& keyAccount) const;
+    bool MakeSigningKeystore(CBasicKeyStore& keystore, const CScript& scriptPubKey);
 
     bool NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefixBits, const char *pPrefix);
 
