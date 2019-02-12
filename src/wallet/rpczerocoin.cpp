@@ -331,6 +331,10 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
     bool fMinimizeChange = params[2].get_bool();    // Minimize change
     int nSecurityLevel = params[3].get_int();       // Security level
 
+    if (nSecurityLevel < 1 || nSecurityLevel > 100) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid security level value (%d). Must be in [1, 100] range.", nSecurityLevel));
+    }
+
     CTxDestination dest; // Optional sending address. Dummy initialization here.
     if (params.size() > 4) {
         // Destination address was supplied as request[4]. Optional parameters MUST be at the end
