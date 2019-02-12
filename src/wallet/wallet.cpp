@@ -6248,8 +6248,8 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 return false;
             }
 
-            if (nChange > 0 && !address) {
-                receipt.SetStatus("Need address because change is not exact", nStatus);
+            if (!address) {
+                receipt.SetStatus("No address provided", nStatus);
                 return false;
             }
 
