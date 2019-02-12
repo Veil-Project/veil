@@ -5684,73 +5684,39 @@ bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendRe
         return false;
     }
 
-    std::set<CMintMeta> setMints;
-    AvailableZerocoins(setMints);
-    if (setMints.empty()) {
-        receipt.SetStatus("Failed to find Zerocoins in wallet.dat", nStatus);
-        return false;
-    }
-
-    // If the input value is not an int, then we want the selection algorithm to round up to the next highest int
-    double dValue = static_cast<double>(nValue) / static_cast<double>(COIN);
-    bool fWholeNumber = floor(dValue) == dValue;
-    CAmount nValueToSelect = nValue;
-
-    // Select the z mints to use in this spend
-    std::map<libzerocoin::CoinDenomination, CAmount> DenomMap = GetMyZerocoinDistribution().first;
-    std::list<CMintMeta> listMints(setMints.begin(), setMints.end());
-    if (denomFilter != libzerocoin::CoinDenomination::ZQ_ERROR) {
-        //A specific denom was selected to spend with
-        listMints.clear();
-        for (const auto& mint : setMints) {
-            if (mint.denom == denomFilter)
-                listMints.emplace_back(mint);
-        }
-
-        //Set denom map to 0 values for non-matching denoms
-        for (auto mi = DenomMap.begin(); mi != DenomMap.end(); mi++) {
-            if (mi->first != denomFilter)
-                mi->second = 0;
-        }
-    }
-
-    CAmount nValueSelected;
-    int nCoinsReturned, nNeededSpends;
-    auto vMintsToFetch = SelectMintsFromList(nValueToSelect, nValueSelected, Params().Zerocoin_MaxSpendsPerTransaction(),
-                                             fMinimizeChange, nCoinsReturned, listMints, DenomMap, nNeededSpends);
-
-    for (auto& meta : vMintsToFetch) {
-        CZerocoinMint mint;
-        if (!GetMint(meta.hashSerial, mint))
-            return error("%s: failed to fetch hashSerial %s", __func__, meta.hashSerial.GetHex());
-
-        vMintsSelected.emplace_back(mint);
+    // If not already given pre-selected mints, then select mints from the wallet
+    CAmount nValueSelected = 0;
+    if (vMintsSelected.empty()) {
+        if(!CollectMintsForSpend(nValue, vMintsSelected, receipt, nStatus, fMinimizeChange, denomFilter))
+            return false;
     }
 
     // todo: should we use a different reserve key for each transaction?
     CReserveKey reserveKey(this);
     std::vector<std::tuple<CWalletTx, std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>> vCommitData;
+
+    const int nMaxSpends = Params().Zerocoin_MaxSpendsPerTransaction(); // Maximum possible spends for one z transaction
     CAmount nRemainingValue = nValue;
-    for (auto start = 0; start < vMintsSelected.size(); start += Params().Zerocoin_MaxSpendsPerTransaction()) {
+    for (auto start = 0; start < vMintsSelected.size(); start += nMaxSpends) {
         std::vector<CZerocoinMint> vBatchMints;
         auto itStart = vMintsSelected.begin() + start;
         CAmount nBatchValue = 0;
-        if (start + Params().Zerocoin_MaxSpendsPerTransaction() >= vMintsSelected.size()) {
+        if (start + nMaxSpends >= vMintsSelected.size()) {
             vBatchMints = std::vector<CZerocoinMint>(itStart, vMintsSelected.end());
             nBatchValue = nRemainingValue;
         } else {
-            vBatchMints = std::vector<CZerocoinMint>(itStart, itStart + Params().Zerocoin_MaxSpendsPerTransaction());
+            vBatchMints = std::vector<CZerocoinMint>(itStart, itStart + nMaxSpends);
             for (const auto& mint: vBatchMints)
                 nBatchValue += mint.GetDenominationAsAmount();
         }
 
         std::vector<CDeterministicMint> vCurNewMints;
         CWalletTx wtxCurrent(this, nullptr);
+
         if (!CreateZerocoinSpendTransaction(nBatchValue, nSecurityLevel, wtxCurrent, reserveKey, receipt,
                 vBatchMints, vCurNewMints, fMintChange, fMinimizeChange, addressTo)) {
             return false;
         }
-
         CValidationState state;
         LOCK(cs_main);
         if (!AcceptToMemoryPool(mempool, state, wtxCurrent.tx, nullptr /* pfMissingInputs */, nullptr /* plTxnReplaced */,
@@ -6131,66 +6097,96 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
     return false;
 }
 
-bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew,
-        CReserveKey& reserveKey, CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vSelectedMints,
-        std::vector<CDeterministicMint>& vNewMints, bool fMintChange,  bool fMinimizeChange, CTxDestination* address)
+bool CWallet::CollectMintsForSpend(CAmount nValue, std::vector<CZerocoinMint>& vMints, CZerocoinSpendReceipt& receipt, int nStatus, bool fMinimizeChange, libzerocoin::CoinDenomination denomFilter)
 {
     // Check available funds
-    int nStatus = ZTRX_FUNDS_PROBLEMS;
+    nStatus = ZTRX_FUNDS_PROBLEMS;
     CAmount nzBalance = GetZerocoinBalance(true);
     if (nValue > nzBalance) {
         receipt.SetStatus(strprintf("You don't have enough Zerocoins in your wallet. Balance: %s", FormatMoney(nzBalance)), nStatus);
         return false;
     }
 
-    if (nValue < 10) {
+    if (nValue < 10*COIN) {
         receipt.SetStatus("Value is below the smallest available denomination (= 1) of zerocoin", nStatus);
+        return false;
+    }
+
+    std::set<CMintMeta> setMints;
+    AvailableZerocoins(setMints);
+    if (setMints.empty()) {
+        receipt.SetStatus("Failed to find Zerocoins in wallet.dat", nStatus);
+        return false;
+    }
+
+    // If the input value is not an int, then we want the selection algorithm to round up to the next highest int
+    double dValue = static_cast<double>(nValue) / static_cast<double>(COIN);
+    bool fWholeNumber = floor(dValue) == dValue;
+    CAmount nValueToSelect = nValue;
+    if(!fWholeNumber)
+        nValueToSelect = static_cast<CAmount>(ceil(dValue) * COIN);
+
+    // Select the z mints to use in this spend
+    std::map<libzerocoin::CoinDenomination, CAmount> DenomMap = GetMyZerocoinDistribution().first;
+    std::list<CMintMeta> listMints(setMints.begin(), setMints.end());
+    if (denomFilter != libzerocoin::CoinDenomination::ZQ_ERROR) {
+        //A specific denom was selected to spend with
+        listMints.clear();
+        for (const auto& mint : setMints) {
+            if (mint.denom == denomFilter)
+                listMints.emplace_back(mint);
+        }
+
+        //Set denom map to 0 values for non-matching denoms
+        for (auto mi = DenomMap.begin(); mi != DenomMap.end(); mi++) {
+            if (mi->first != denomFilter)
+                mi->second = 0;
+        }
+    }
+
+    int nCoinsReturned, nNeededSpends;
+    CAmount nValueSelected;
+    auto vMintsToFetch = SelectMintsFromList(nValueToSelect, nValueSelected, Params().Zerocoin_MaxSpendsPerTransaction(),
+                                             fMinimizeChange, nCoinsReturned, listMints, DenomMap, nNeededSpends);
+
+    for (auto& meta : vMintsToFetch) {
+        CZerocoinMint mint;
+        if (!GetMint(meta.hashSerial, mint)) {
+            receipt.SetStatus(strprintf("%s: failed to fetch hashSerial %s", __func__, meta.hashSerial.GetHex()), nStatus);
+            return false;
+        }
+        vMints.emplace_back(mint);
+    }
+
+    return true;
+}
+
+bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew,
+        CReserveKey& reserveKey, CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vSelectedMints,
+        std::vector<CDeterministicMint>& vNewMints, bool fMintChange,  bool fMinimizeChange, CTxDestination* address)
+{
+    int nStatus = ZTRX_FUNDS_PROBLEMS;
+
+    // Check we have selected mints to spend
+    if (vSelectedMints.empty()) {
+        receipt.SetStatus(strprintf("%s: No mint selected", __func__), nStatus);
+        return false;
+    }
+
+    // Check that the included mints are at most Zerocoin_MaxSpendsPerTransaction
+    if ((static_cast<int>(vSelectedMints.size()) > Params().Zerocoin_MaxSpendsPerTransaction())) {
+        receipt.SetStatus("Failed to find coin set amongst held coins with less than maxNumber of Spends", nStatus);
         return false;
     }
 
     // Create transaction
     nStatus = ZTRX_CREATE;
-
-    // If not already given pre-selected mints, then select mints from the wallet
     WalletBatch walletdb(*this->database);
-    std::set<CMintMeta> setMints;
-    CAmount nValueSelected = 0;
-    int nCoinsReturned = 0; // Number of coins returned in change from function below (for debug)
-    int nNeededSpends = 0;  // Number of spends which would be needed if selection failed
-    const int nMaxSpends = Params().Zerocoin_MaxSpendsPerTransaction(); // Maximum possible spends for one z transaction
-    std::vector<CMintMeta> vMintsToFetch;
-    if (vSelectedMints.empty()) {
-        setMints = zTracker->ListMints(true, true, true); // need to find mints to spend
-        if(setMints.empty()) {
-            receipt.SetStatus("Failed to find Zerocoins in wallet.dat", nStatus);
-            return false;
-        }
-
-        // If the input value is not an int, then we want the selection algorithm to round up to the next highest int
-        double dValue = static_cast<double>(nValue) / static_cast<double>(COIN);
-        bool fWholeNumber = floor(dValue) == dValue;
-        CAmount nValueToSelect = nValue;
-        if(!fWholeNumber)
-            nValueToSelect = static_cast<CAmount>(ceil(dValue) * COIN);
-
-        // Select the z mints to use in this spend
-        std::map<libzerocoin::CoinDenomination, CAmount> DenomMap = GetMyZerocoinDistribution().first;
-        std::list<CMintMeta> listMints(setMints.begin(), setMints.end());
-        vMintsToFetch = SelectMintsFromList(nValueToSelect, nValueSelected, nMaxSpends, fMinimizeChange,
-                                            nCoinsReturned, listMints, DenomMap, nNeededSpends);
-        for (auto& meta : vMintsToFetch) {
-            CZerocoinMint mint;
-            if (!GetMint(meta.hashSerial, mint))
-                return error("%s: failed to fetch hashSerial %s", __func__, meta.hashSerial.GetHex());
-            vSelectedMints.emplace_back(mint);
-        }
-    } else {
-        for (const CZerocoinMint& mint : vSelectedMints)
-            nValueSelected += ZerocoinDenominationToAmount(mint.GetDenomination());
-    }
 
     int nArchived = 0;
+    CAmount nValueSelected = 0;
     for (const CZerocoinMint& mint : vSelectedMints) {
+        nValueSelected += ZerocoinDenominationToAmount(mint.GetDenomination());
         // see if this serial has already been spent
         int nHeightSpend;
         if (IsSerialInBlockchain(mint.GetSerialNumber(), nHeightSpend)) {
@@ -6226,22 +6222,6 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
     }
     if (nArchived)
         return false;
-
-    if (vSelectedMints.empty()) {
-        if (nNeededSpends > 0) {
-            // Too much spends needed, so abuse nStatus to report back the number of needed spends
-            receipt.SetStatus("Too many spends needed", nStatus, nNeededSpends);
-        } else {
-            receipt.SetStatus("Failed to select a zerocoin", nStatus);
-        }
-
-        return false;
-    }
-
-    if ((static_cast<int>(vSelectedMints.size()) > Params().Zerocoin_MaxSpendsPerTransaction())) {
-        receipt.SetStatus("Failed to find coin set amongst held coins with less than maxNumber of Spends", nStatus);
-        return false;
-    }
 
     // Create change if needed
     nStatus = ZTRX_CHANGE;
@@ -6369,8 +6349,11 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 std::string sError;
                 CCoinControl coinControl;
 
-                if (0 != pAnonWalletMain->AddStandardInputs(wtxNew, rtx, vecSend, false, nFeeRet, &coinControl, sError, true, nValueSelected))
+                if (0 != pAnonWalletMain->AddStandardInputs(wtxNew, rtx, vecSend, false, nFeeRet, &coinControl, sError, true, nValueSelected)) {
+                    receipt.SetStatus("Failed to add standard inputs", nStatus);
                     return error("%s: AddStandardInputs failed: %s", __func__, sError);
+
+                }
 
                 pAnonWalletMain->AddOutputRecordMetaData(rtx, vecSend);
             }
