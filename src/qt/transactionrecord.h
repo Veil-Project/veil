@@ -190,6 +190,30 @@ public:
      */
     bool statusUpdateNeeded(int numBlocks) const;
 
+    std::string statusToString(){
+        switch (status.status){
+            case TransactionStatus::Abandoned:
+                return "Abandoned";
+            case TransactionStatus::Confirmed:
+                return "Confirmed";
+            case TransactionStatus::OpenUntilDate:
+                return "OpenUntilDate";
+            case TransactionStatus::OpenUntilBlock:
+                return "OpenUntilBlock";
+            case TransactionStatus::Unconfirmed:
+                return "Unconfirmed";
+            case TransactionStatus::Confirming:
+                return "Confirming";
+            case TransactionStatus::Conflicted:
+                return "Conflicted";
+            case TransactionStatus::Immature:
+                return "Immature";
+            case TransactionStatus::NotAccepted:
+                return "NotAccepted";
+            default:
+                return "No status";
+        }
+    }
 
 };
 

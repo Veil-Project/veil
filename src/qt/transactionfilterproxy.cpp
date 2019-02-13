@@ -131,6 +131,10 @@ void TransactionFilterProxy::setHideOrphans(bool hide){
 }
 
 bool TransactionFilterProxy::isOrphan(const int status, const int type) const {
+
+    if(status == TransactionStatus::Confirmed)
+        return false;
+
     return ( (type == TransactionRecord::Generated ||
               type == TransactionRecord::ZeroCoinStake  || type == TransactionRecord::CTGenerated || type == TransactionRecord::RingCTGenerated)
              && (status == TransactionStatus::Conflicted || status == TransactionStatus::NotAccepted || TransactionStatus::Abandoned) );
