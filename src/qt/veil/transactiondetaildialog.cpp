@@ -25,6 +25,7 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
     ui->labelInputs->setProperty("cssClass" , "label-detail");
     ui->labelSend->setProperty("cssClass" , "label-detail");
     ui->labelSize->setProperty("cssClass" , "label-detail");
+    ui->labelStatus->setProperty("cssClass" , "label-detail");
 
     // Information
 
@@ -36,6 +37,7 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
     ui->textInputs->setProperty("cssClass" , "text-detail");
     ui->textSend->setProperty("cssClass" , "text-detail");
     ui->textSize->setProperty("cssClass" , "text-detail");
+    ui->textStatus->setProperty("cssClass" , "text-detail");
     connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(onEscapeClicked()));
 
     if(rec) {
@@ -54,6 +56,7 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
         // TODO: add size to TransactionRecord.
         ui->textSize->setText("n/a Kb");
         ui->textDate->setText(GUIUtil::dateTimeStr(QDateTime::fromTime_t(static_cast<uint>(rec->time))));
+        ui->textStatus->setText(QString::fromStdString(rec->statusToString()));
     }
 }
 
