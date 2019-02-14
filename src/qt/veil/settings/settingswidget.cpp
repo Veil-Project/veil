@@ -73,6 +73,10 @@ void SettingsWidget::openDialog(QDialog *dialog){
     openDialogWithOpaqueBackground(dialog, mainWindow->getGUI());
 }
 
+void SettingsWidget::onLabelStakingClicked(){
+    this->onCheckStakingClicked(false);
+}
+
 bool checkChangedManually = false;
 void SettingsWidget::onCheckStakingClicked(bool res) {
     if(checkChangedManually){
@@ -84,6 +88,7 @@ void SettingsWidget::onCheckStakingClicked(bool res) {
         if(!res){
             if(walletModel->getEncryptionStatus() == WalletModel::Unencrypted){
                 if (mainWindow->getGUI()->encryptWallet(true)){
+                    // This closes the wallet..
                     openToastDialog("Wallet encrypted", mainWindow->getGUI());
                 }else{
                     openToastDialog("Wallet not encrypted", mainWindow->getGUI());
@@ -113,8 +118,16 @@ void SettingsWidget::onCheckStakingClicked(bool res) {
         qDebug() << e.what();
         error = true;
     }
-    checkChangedManually = true;
-    ui->checkBoxStaking->setChecked(walletModel->isStakingEnabled() && walletModel->getEncryptionStatus() != WalletModel::Locked);
+
+    WalletModel::EncryptionStatus status = walletModel->getEncryptionStatus();
+    if(status != WalletModel::Unencrypted) {
+        bool isChecked = walletModel->isStakingEnabled() && status != WalletModel::Locked;
+        if(ui->checkBoxStaking->isChecked() != isChecked){
+            checkChangedManually = true;
+            ui->checkBoxStaking->setChecked(isChecked);
+        }
+        updateStakingCheckboxStatus();
+    }
 }
 
 
@@ -229,8 +242,17 @@ void SettingsWidget::onChangePasswordClicked(){
 
 void SettingsWidget::showEvent(QShowEvent *event){
 
-    checkChangedManually = true;
-    ui->checkBoxStaking->setChecked(walletModel->isStakingEnabled() && walletModel->getEncryptionStatus() != WalletModel::Locked);
+    if(isViewInitiated) {
+        WalletModel::EncryptionStatus status = walletModel->getEncryptionStatus();
+        if(status != WalletModel::Unencrypted) {
+            bool isChecked = walletModel->isStakingEnabled() && status != WalletModel::Locked;
+            if(ui->checkBoxStaking->isChecked() != isChecked){
+                checkChangedManually = true;
+                ui->checkBoxStaking->setChecked(isChecked);
+            }
+        }
+        updateStakingCheckboxStatus();
+    }
 
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
@@ -256,8 +278,26 @@ void SettingsWidget::hideEvent(QHideEvent *event){
 
 void SettingsWidget::setWalletModel(WalletModel *model){
     this->walletModel = model;
+
+    // Update unlock staking / encrypt wallet btn
+    this->updateStakingCheckboxStatus();
+
     ui->checkBoxStaking->setChecked(walletModel->isStakingEnabled() && walletModel->getEncryptionStatus() != WalletModel::Locked);
     connect(ui->checkBoxStaking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
+    connect(ui->labelStacking, SIGNAL(clicked()), this, SLOT(onLabelStakingClicked()));
+
+    isViewInitiated = true;
+}
+
+void SettingsWidget::updateStakingCheckboxStatus(){
+    if(walletModel->getEncryptionStatus() == WalletModel::Unencrypted){
+        ui->labelStacking->setText("Encrypt Wallet");
+        ui->labelStacking->setProperty("cssClass" , "btn-text-settings");
+        ui->checkBoxStaking->setVisible(false);
+    }else{
+        ui->labelStacking->setText("Unlock Wallet for Staking");
+        ui->checkBoxStaking->setVisible(true);
+    }
 }
 
 void SettingsWidget::refreshWalletStatus() {
@@ -268,6 +308,7 @@ void SettingsWidget::refreshWalletStatus() {
             checkChangedManually = true;
             ui->checkBoxStaking->setChecked(stakingStatus);
         }
+        updateStakingCheckboxStatus();
     }
 }
 
