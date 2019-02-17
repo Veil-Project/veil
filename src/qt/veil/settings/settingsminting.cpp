@@ -55,6 +55,9 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
         case 10000:
             ui->radioButton100000->setChecked(true);
             break;
+        case -1:
+            ui->checkAutomintInstant->setChecked(true);
+            break;
     }
 
     //
@@ -69,6 +72,8 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
     connect(ui->radioButton1000, SIGNAL(toggled(bool)), this, SLOT(onCheck1000Clicked(bool)));
     connect(ui->radioButton100000, SIGNAL(toggled(bool)), this, SLOT(onCheck100000Clicked(bool)));
     connect(ui->editAmount, SIGNAL(textChanged(const QString &)), this, SLOT(mintAmountChange(const QString &)));
+
+    connect(ui->checkAutomintInstant, SIGNAL(toggled(bool)), this, SLOT(onCheckFullMintClicked(bool)));
 
 }
 
@@ -176,6 +181,13 @@ void SettingsMinting::onCheck1000Clicked(bool res){
 void SettingsMinting::onCheck100000Clicked(bool res){
     if(res && nPreferredDenom != 10000){
         nPreferredDenom = 10000;
+        saveSettings(nPreferredDenom);
+    }
+}
+
+void SettingsMinting::onCheckFullMintClicked(bool res){
+    if(res && nPreferredDenom != -1){
+        nPreferredDenom = -1;
         saveSettings(nPreferredDenom);
     }
 }
