@@ -4800,20 +4800,28 @@ void CWallet::AutoZeromint()
             nToMintAmount = nPreferredDenom;  // Enough coins => mint preferred denomination
         else
             nToMintAmount = 0;                // Not enough coins => do nothing and wait for more coins
-    }
 
-    if (nToMintAmount >= ZQ_11110){
-        nMintAmount = ZQ_11110;
-    } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND){
-        nMintAmount = libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND;
-    } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND){
-        nMintAmount = libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND;
-    } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED){
-        nMintAmount = libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED;
-    } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_TEN){
-        nMintAmount = libzerocoin::CoinDenomination::ZQ_TEN;
-    } else {
-        nMintAmount = 0;
+        // Only one denom per cycle
+        if (nToMintAmount >= ZQ_11110){
+            nMintAmount = ZQ_11110;
+        } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND){
+            nMintAmount = libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND;
+        } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND){
+            nMintAmount = libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND;
+        } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED){
+            nMintAmount = libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED;
+        } else if (nToMintAmount >= libzerocoin::CoinDenomination::ZQ_TEN){
+            nMintAmount = libzerocoin::CoinDenomination::ZQ_TEN;
+        } else {
+            nMintAmount = 0;
+        }
+
+    }else{
+        // nPreferredDenom is -1 when the automatic full mint is selected
+        if(nPreferredDenom == -1){
+            nMintAmount = nBalance;
+        } else
+            nMintAmount = 0;
     }
 
     if (nMintAmount > 0){

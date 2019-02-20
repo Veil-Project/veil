@@ -279,6 +279,30 @@ to have automatically minted by automint</string>
               </property>
              </widget>
             </item>
+            <item alignment="Qt::AlignHCenter">
+             <widget class="QLabel" name="label">
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">color:#bababa;
+font-size:14px;</string>
+              </property>
+              <property name="text">
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Every 5 minutes the wallet will try to 
+&lt;br&gt;mint new zerocoins of the seleted denom&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignCenter</set>
+              </property>
+              <property name="wordWrap">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
             <item>
              <spacer name="verticalSpacer_6">
               <property name="orientation">
@@ -338,6 +362,16 @@ to have automatically minted by automint</string>
                 <widget class="QRadioButton" name="radioButton100000">
                  <property name="text">
                   <string>10000</string>
+                 </property>
+                </widget>
+               </item>
+               <item alignment="Qt::AlignHCenter">
+                <widget class="QRadioButton" name="checkAutomintInstant">
+                 <property name="styleSheet">
+                  <string notr="true"/>
+                 </property>
+                 <property name="text">
+                  <string>Automint full balance when it's possible</string>
                  </property>
                 </widget>
                </item>
