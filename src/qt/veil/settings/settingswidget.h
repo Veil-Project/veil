@@ -39,12 +39,17 @@ private Q_SLOTS:
     void onFaqClicked();
     void onAdvanceClicked();
     void onCheckStakingClicked(bool res);
+    void onLabelStakingClicked();
 private:
     Ui::SettingsWidget *ui;
     WalletView *mainWindow;
     WalletModel *walletModel = nullptr;
 
     void openDialog(QDialog *dialog);
+
+    void updateStakingCheckboxStatus();
+
+    bool isViewInitiated = false;
 };
 
 #endif // SETTINGSWIDGET_H
