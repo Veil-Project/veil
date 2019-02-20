@@ -29,6 +29,7 @@ public:
     ~ModalOverlay();
 
     void resizeOp();
+    virtual void showEvent(QShowEvent *event) override;
 
 public Q_SLOTS:
     void tipUpdate(int count, const QDateTime& blockDate, double nVerificationProgress);
