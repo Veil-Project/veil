@@ -45,6 +45,14 @@ QT_BEGIN_NAMESPACE
 class QTimer;
 QT_END_NAMESPACE
 
+enum WalletModelSpendType
+{
+    ZCSPEND,
+    CTSPEND,
+    RINGCTSPEND,
+    BASECOINSPEND
+};
+
 class SendCoinsRecipient
 {
 public:
@@ -163,10 +171,14 @@ public:
 
     // prepare transaction for getting txfee before sending coins
     SendCoinsReturn prepareTransaction(WalletModelTransaction &transaction, const CCoinControl& coinControl,
+            WalletModelSpendType &spendType, CZerocoinSpendReceipt& receipt, std::vector<std::tuple<CWalletTx,
+            std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>>& vCommitData,
             OutputTypes inputType = OUTPUT_RINGCT);
 
     // Send coins to a list of recipients
-    SendCoinsReturn sendCoins(WalletModelTransaction &transaction);
+    SendCoinsReturn sendCoins(WalletModelTransaction &transaction, bool fSkipCommitTx = false);
+    SendCoinsReturn sendZerocoins(CZerocoinSpendReceipt& receipt, std::vector<std::tuple<CWalletTx,
+            std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>>& vCommitData);
 
     // Wallet encryption
     bool setWalletEncrypted(bool encrypted, const SecureString &passphrase);

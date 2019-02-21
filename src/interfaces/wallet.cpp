@@ -52,7 +52,7 @@ public:
         LOCK2(cs_main, m_wallet.cs_wallet);
         CValidationState state;
 
-        if (!m_wallet.CommitTransaction(m_tx, std::move(value_map), std::move(order_form), m_key, g_connman.get(), state)) {
+        if (!m_wallet.CommitTransaction(m_tx, std::move(value_map), std::move(order_form), &m_key, g_connman.get(), state)) {
             reject_reason = state.GetRejectReason();
             return false;
         }
@@ -322,16 +322,23 @@ public:
         return m_wallet.MintZerocoin(nValue, wtx , vDMints, inputtype,coinControl);
     }
 
-    std::unique_ptr<PendingWalletTx> spendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
-                               std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
-                               CTxDestination* addressTo = NULL) override
+    std::unique_ptr<PendingWalletTx> prepareZerocoinSpend(CAmount nValue, int nSecurityLevel,
+            CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange,
+            bool fMinimizeChange, std::vector<CommitData>& vCommitData, libzerocoin::CoinDenomination denomFilter,
+            CTxDestination* addressTo = NULL) override
     {
         auto pending = MakeUnique<PendingWalletTxImpl>(m_wallet);
-        if (!m_wallet.SpendZerocoin(nValue, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, libzerocoin::CoinDenomination::ZQ_ERROR, addressTo))
+        if (!m_wallet.PrepareZerocoinSpend(nValue, nSecurityLevel, receipt, vMintsSelected, fMintChange,
+                fMinimizeChange, vCommitData, libzerocoin::CoinDenomination::ZQ_ERROR, addressTo))
             return {};
         auto vtx = receipt.GetTransactions();
         pending->m_tx = vtx[0];
         return std::move(pending);
+    }
+
+    bool commitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData) override
+    {
+        return m_wallet.CommitZerocoinSpend(receipt, vCommitData);
     }
 
     bool haveWatchOnly() override { return m_wallet.HaveWatchOnly(); };

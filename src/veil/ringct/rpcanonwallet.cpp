@@ -540,7 +540,7 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     CValidationState state;
     CReserveKey reservekey(wallet.get());
    // if (typeIn == OUTPUT_STANDARD && typeOut == OUTPUT_STANDARD) {
-        if (!wallet->CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, reservekey, g_connman.get(), state)) {
+        if (!wallet->CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, &reservekey, g_connman.get(), state)) {
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Transaction commit failed: %s", FormatStateMessage(state)));
         }
     //} else {

@@ -31,6 +31,7 @@
 class CCoinControl;
 class CFeeRate;
 class CKey;
+class CReserveKey;
 class CTempRecipient;
 class CWallet;
 class CWalletTx;
@@ -109,9 +110,15 @@ public:
     virtual std::string mintZerocoin(CAmount nValue, std::vector<CDeterministicMint>& vDMints, OutputTypes inputtype,
             const CCoinControl* coinControl) = 0;
 
-    virtual std::unique_ptr<PendingWalletTx> spendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
-            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
-            CTxDestination* addressTo = NULL) = 0;
+    virtual std::unique_ptr<PendingWalletTx> prepareZerocoinSpend(CAmount nValue, int nSecurityLevel,
+            CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange,
+            bool fMinimizeChange, std::vector<std::tuple<CWalletTx, std::vector<CDeterministicMint>,
+                    std::vector<CZerocoinMint>>>& vCommitData,
+                    libzerocoin::CoinDenomination denomFilter = libzerocoin::CoinDenomination::ZQ_ERROR,
+                    CTxDestination* addressTo = NULL) = 0;
+
+    virtual bool commitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<std::tuple<CWalletTx,
+            std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>>& vCommitData) = 0;
 
     //! Return whether wallet has watch only keys.
     virtual bool haveWatchOnly() = 0;

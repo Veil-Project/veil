@@ -130,16 +130,9 @@ bool WalletModel::isStealthAddress(const QString &address){
     return veilAddress.IsValidStealthAddress() && IsValidDestinationString(strAddress);
 }
 
-enum WalletModelSpendType
-{
-    ZCSPEND,
-    CTSPEND,
-    RINGCTSPEND,
-    BASECOINSPEND
-};
-
-WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransaction &transaction, const
-CCoinControl& coinControl, OutputTypes inputType)
+WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransaction &transaction,
+        const CCoinControl& coinControl, WalletModelSpendType &spendType, CZerocoinSpendReceipt &receipt,
+        std::vector<CommitData> &vCommitData, OutputTypes inputType)
 {
     CAmount total = 0;
     bool fSubtractFeeFromAmount = false;
@@ -209,8 +202,6 @@ CCoinControl& coinControl, OutputTypes inputType)
     }
 
     auto& newTx = transaction.getWtx();
-    WalletModelSpendType spendType;
-    CZerocoinSpendReceipt receipt;
     CAmount nBalance = 0;
     OutputTypes outputType;
     if (coinControl.HasSelected()) {
@@ -233,8 +224,9 @@ CCoinControl& coinControl, OutputTypes inputType)
             //todo, this does not support multi recipient spend yet
 
             std::vector<CZerocoinMint> vMintsSelected;
-            newTx = m_wallet->spendZerocoin(total, /*nSecurityLevel*/100, receipt, vMintsSelected, /*fMintChange*/true,
-                    /*fMinimizeChange*/false, &vecSend[0].address);
+            newTx = m_wallet->prepareZerocoinSpend(total, /*nSecurityLevel*/100, receipt, vMintsSelected,
+                    /*fMintChange*/true, /*fMinimizeChange*/false, vCommitData, libzerocoin::CoinDenomination::ZQ_ERROR,
+                    &vecSend[0].address);
             nBalance = balances.zerocoin_balance;
         } else {
             /** If not enough zerocoin balance, spend ringct **/
@@ -270,9 +262,6 @@ CCoinControl& coinControl, OutputTypes inputType)
 
     if(total > nBalance)
     {
-//        std::cout << "Balance: " << nBalance << std::endl;
-//        std::cout << "Total: " << total << std::endl;
-//        std::cout << "Type: " << inputType << std::endl;
         if(inputType == OUTPUT_STANDARD){
             return AmountExceedsBalance;
         }else{
@@ -315,7 +304,7 @@ CCoinControl& coinControl, OutputTypes inputType)
     return SendCoinsReturn(OK);
 }
 
-WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &transaction)
+WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &transaction, bool fSkipCommitTx)
 {
     QByteArray transaction_array; /* store serialized transaction */
 
@@ -341,7 +330,7 @@ WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &tran
 
         auto& newTx = transaction.getWtx();
         std::string rejectReason;
-        if (!newTx->commit({} /* mapValue */, std::move(vOrderForm), rejectReason))
+        if (!fSkipCommitTx && !newTx->commit({} /* mapValue */, std::move(vOrderForm), rejectReason))
             return SendCoinsReturn(TransactionCommitFailed, QString::fromStdString(rejectReason));
 
         CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
@@ -377,6 +366,16 @@ WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &tran
     }
 
     checkBalanceChanged(m_wallet->getBalances()); // update balance immediately, otherwise there could be a short noticeable delay until pollBalanceChanged hits
+
+    return SendCoinsReturn(OK);
+}
+
+WalletModel::SendCoinsReturn WalletModel::sendZerocoins(CZerocoinSpendReceipt& receipt,
+        std::vector<CommitData>& vCommitData)
+{
+    if (!m_wallet->commitZerocoinSpend(receipt, vCommitData)) {
+        return SendCoinsReturn(ZerocoinSpendFail, QString::fromStdString(receipt.GetStatusMessage()));
+    }
 
     return SendCoinsReturn(OK);
 }
