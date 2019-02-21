@@ -381,7 +381,7 @@ void SendCoinsDialog::on_sendButton_clicked()
     if (spendType == ZCSPEND)
         sendStatus = model->sendZerocoins(receipt, vCommitData);
     if (sendStatus.status == WalletModel::OK)
-        sendStatus = model->sendCoins(currentTransaction);
+        sendStatus = model->sendCoins(currentTransaction, spendType == ZCSPEND);
     // process sendStatus and on error generate message shown to user
     processSendCoinsReturn(sendStatus);
 
@@ -597,6 +597,9 @@ void SendCoinsDialog::processSendCoinsReturn(const WalletModel::SendCoinsReturn 
     case WalletModel::PaymentRequestExpired:
         msgParams.first = tr("Payment request expired.");
         msgParams.second = CClientUIInterface::MSG_ERROR;
+        break;
+    case WalletModel::ZerocoinSpendFail:
+        msgParams.first = tr("Zerocoinspend transaction failed. ") + msgParams.first;
         break;
     // included to prevent a compiler warning.
     case WalletModel::OK:

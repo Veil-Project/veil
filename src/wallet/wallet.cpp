@@ -3868,7 +3868,7 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInp
  * Call after CreateTransaction unless you want to abort
  */
 bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm,
-        CReserveKey& reservekey, CConnman* connman, CValidationState& state)
+        CReserveKey* reservekey, CConnman* connman, CValidationState& state)
 {
     {
         LOCK2(cs_main, cs_wallet);
@@ -3884,8 +3884,8 @@ bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
         LogPrintf("CommitTransaction:\n%s", wtxNew.tx->ToString()); /* Continued */
         {
             // Take key pair from key pool so it won't be used again
-            reservekey.KeepKey();
-
+            if (reservekey)
+                reservekey->KeepKey();
 
             if (wtxNew.tx->HasBlindedValues())
                 setAnonTx.emplace(wtxNew.tx->GetHash());
@@ -5649,7 +5649,7 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     //commit the transaction to the network
     CValidationState state;
     mapValue_t mapValue;
-    if (!CommitTransaction(wtxNew.tx, std::move(mapValue), {}, reserveKey, g_connman.get(), state)) {
+    if (!CommitTransaction(wtxNew.tx, std::move(mapValue), {}, &reserveKey, g_connman.get(), state)) {
         return _("Error: The transaction was rejected! This might happen if some of the coins in your wallet were already "
                  "spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
     } else {
@@ -5758,8 +5758,6 @@ bool CWallet::CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<Co
     CValidationState state;
     mapValue_t mapValue;
     int nStatus = ZSPEND_ERROR;
-    // TODO: Change once we replace or modify CReserveKeys to send change to a stealth address
-    CReserveKey reserveKey(this);
 
     std::vector<CTransactionRef> vtx = receipt.GetTransactions();
     for (unsigned int i = 0; i < vCommitData.size(); i++) {
@@ -5773,7 +5771,8 @@ bool CWallet::CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<Co
             error("%s: FIXME: vtx size does not match expected value!! vtx %d i=%d", __func__, vtx.size(), i);
             fTxFail = true;
         }
-        if (fTxFail || !CommitTransaction(vtx[i], {}, {}, reserveKey, g_connman.get(), state)) {
+
+        if (fTxFail || !CommitTransaction(vtx[i], {}, {}, /*CReserveKey*/nullptr, g_connman.get(), state)) {
             LogPrintf("%s: failed to commit\n", __func__);
             nStatus = ZCOMMIT_FAILED;
 
@@ -5781,7 +5780,6 @@ bool CWallet::CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<Co
             for (const CZerocoinMint& mint : vNewSelectedMints) {
                 uint256 hashPubcoin = GetPubCoinHash(mint.GetValue());
                 zTracker->SetPubcoinNotUsed(hashPubcoin);
-                // todo: this->NotifyZerocoinChanged(this, mint.GetValue().GetHex(), "New", CT_UPDATED);
             }
 
             //erase spends
@@ -5830,7 +5828,7 @@ bool CWallet::CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<Co
         }
     }
 
-    receipt.SetStatus("Spend Successful", ZSPEND_OKAY);  // When we reach this point spending zPIV was successful
+    receipt.SetStatus("Spend Successful", ZSPEND_OKAY);
     return true;
 }
 

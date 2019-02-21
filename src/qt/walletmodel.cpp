@@ -304,7 +304,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
     return SendCoinsReturn(OK);
 }
 
-WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &transaction)
+WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &transaction, bool fSkipCommitTx)
 {
     QByteArray transaction_array; /* store serialized transaction */
 
@@ -330,7 +330,7 @@ WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &tran
 
         auto& newTx = transaction.getWtx();
         std::string rejectReason;
-        if (!newTx->commit({} /* mapValue */, std::move(vOrderForm), rejectReason))
+        if (!fSkipCommitTx && !newTx->commit({} /* mapValue */, std::move(vOrderForm), rejectReason))
             return SendCoinsReturn(TransactionCommitFailed, QString::fromStdString(rejectReason));
 
         CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
@@ -374,8 +374,7 @@ WalletModel::SendCoinsReturn WalletModel::sendZerocoins(CZerocoinSpendReceipt& r
         std::vector<CommitData>& vCommitData)
 {
     if (!m_wallet->commitZerocoinSpend(receipt, vCommitData)) {
-        return SendCoinsReturn(TransactionCommitFailed,
-                QString::fromStdString(receipt.GetStatusMessage()));
+        return SendCoinsReturn(ZerocoinSpendFail, QString::fromStdString(receipt.GetStatusMessage()));
     }
 
     return SendCoinsReturn(OK);

@@ -176,7 +176,7 @@ public:
             OutputTypes inputType = OUTPUT_RINGCT);
 
     // Send coins to a list of recipients
-    SendCoinsReturn sendCoins(WalletModelTransaction &transaction);
+    SendCoinsReturn sendCoins(WalletModelTransaction &transaction, bool fSkipCommitTx = false);
     SendCoinsReturn sendZerocoins(CZerocoinSpendReceipt& receipt, std::vector<std::tuple<CWalletTx,
             std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>>& vCommitData);
 
