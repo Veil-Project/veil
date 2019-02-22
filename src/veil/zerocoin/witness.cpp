@@ -2,6 +2,7 @@
 #include <tinyformat.h>
 #include "witness.h"
 #include <util.h>
+#include <wallet/lrucache.h>
 #include <wallet/walletutil.h>
 #include <wallet/walletdb.h>
 
@@ -14,7 +15,7 @@ void CoinWitnessData::SetNull()
     nHeightMintAdded = 0;
     nHeightCheckpoint = 0;
     nHeightAccStart = 0;
-    nHeightAccEnd = 0;
+    nHeightPrecomputed = 0;
 }
 
 CoinWitnessData::CoinWitnessData()
@@ -28,9 +29,9 @@ std::string CoinWitnessData::ToString()
             "Height Mint added: %d\n"
             "Height Checkpoint: %d\n"
             "Height Acc Start: %d\n"
-            "Height Acc End: %d\n"
+            "Height Precomputed To: %d\n"
             "Amount: %s\n"
-            "Demon: %d\n", nMintsAdded, nHeightMintAdded, nHeightCheckpoint, nHeightAccStart, nHeightAccEnd, coin->getValue().GetHex(), coin->getDenomination());
+            "Demon: %d\n", nMintsAdded, nHeightMintAdded, nHeightCheckpoint, nHeightAccStart, nHeightPrecomputed, coin->getValue().GetHex(), coin->getDenomination());
 }
 
 CoinWitnessData::CoinWitnessData(CZerocoinMint& mint)
@@ -41,6 +42,7 @@ CoinWitnessData::CoinWitnessData(CZerocoinMint& mint)
     coin = std::unique_ptr<libzerocoin::PublicCoin>(new libzerocoin::PublicCoin(paramsCoin, mint.GetValue(), denom));
     libzerocoin::Accumulator accumulator1(Params().Zerocoin_Params(), denom);
     pWitness = std::unique_ptr<libzerocoin::AccumulatorWitness>(new libzerocoin::AccumulatorWitness(Params().Zerocoin_Params(), accumulator1, *coin));
+    pAccumulator = std::unique_ptr<libzerocoin::Accumulator>(new libzerocoin::Accumulator(Params().Zerocoin_Params(), denom));
     nHeightAccStart = mint.GetHeight();
 }
 
@@ -56,8 +58,41 @@ CoinWitnessData::CoinWitnessData(CoinWitnessCacheData& data)
     nHeightMintAdded = data.nHeightMintAdded;
     nHeightCheckpoint = data.nHeightCheckpoint;
     nHeightAccStart = data.nHeightAccStart;
-    nHeightAccEnd = data.nHeightAccEnd;
+    nHeightPrecomputed = data.nHeightPrecomputed;
     txid = data.txid;
+}
+
+CoinWitnessData::CoinWitnessData(const CoinWitnessData& other)
+{
+    SetNull();
+    denom = other.denom;
+    libzerocoin::ZerocoinParams* paramsCoin = Params().Zerocoin_Params();
+    coin = std::unique_ptr<libzerocoin::PublicCoin>(new libzerocoin::PublicCoin(paramsCoin, other.coin->getValue(), other.denom));
+    pAccumulator = std::unique_ptr<libzerocoin::Accumulator>(new libzerocoin::Accumulator(Params().Zerocoin_Params(), denom, other.pAccumulator->getValue()));
+    pWitness = std::unique_ptr<libzerocoin::AccumulatorWitness>(new libzerocoin::AccumulatorWitness(Params().Zerocoin_Params(), *pAccumulator, *coin));
+    nMintsAdded = other.nMintsAdded;
+    nHeightMintAdded = other.nHeightMintAdded;
+    nHeightCheckpoint = other.nHeightCheckpoint;
+    nHeightAccStart = other.nHeightAccStart;
+    nHeightPrecomputed = other.nHeightPrecomputed;
+    txid = other.txid;
+}
+
+CoinWitnessData& CoinWitnessData::operator=(const CoinWitnessData& other)
+{
+    SetNull();
+    denom = other.denom;
+    libzerocoin::ZerocoinParams* paramsCoin = Params().Zerocoin_Params();
+    coin = std::unique_ptr<libzerocoin::PublicCoin>(new libzerocoin::PublicCoin(paramsCoin, other.coin->getValue(), other.denom));
+    pAccumulator = std::unique_ptr<libzerocoin::Accumulator>(new libzerocoin::Accumulator(Params().Zerocoin_Params(), denom, other.pAccumulator->getValue()));
+    pWitness = std::unique_ptr<libzerocoin::AccumulatorWitness>(new libzerocoin::AccumulatorWitness(Params().Zerocoin_Params(), *pAccumulator, *coin));
+    nMintsAdded = other.nMintsAdded;
+    nHeightMintAdded = other.nHeightMintAdded;
+    nHeightCheckpoint = other.nHeightCheckpoint;
+    nHeightAccStart = other.nHeightAccStart;
+    nHeightPrecomputed = other.nHeightPrecomputed;
+    txid = other.txid;
+    return *this;
 }
 
 void CoinWitnessData::SetHeightMintAdded(int nHeight)
@@ -75,7 +110,7 @@ void CoinWitnessCacheData::SetNull()
     nHeightMintAdded = 0;
     nHeightCheckpoint = 0;
     nHeightAccStart = 0;
-    nHeightAccEnd = 0;
+    nHeightPrecomputed = 0;
     coinAmount = CBigNum(0);
     coinDenom = libzerocoin::CoinDenomination::ZQ_ERROR;
     accumulatorAmount = CBigNum(0);
@@ -97,7 +132,7 @@ CoinWitnessCacheData::CoinWitnessCacheData(CoinWitnessData* coinWitnessData)
     nHeightMintAdded = coinWitnessData->nHeightMintAdded;
     nHeightCheckpoint = coinWitnessData->nHeightCheckpoint;
     nHeightAccStart = coinWitnessData->nHeightAccStart;
-    nHeightAccEnd = coinWitnessData->nHeightAccEnd;
+    nHeightPrecomputed = coinWitnessData->nHeightPrecomputed;
     coinAmount = coinWitnessData->coin->getValue();
     coinDenom = coinWitnessData->coin->getDenomination();
     accumulatorAmount = coinWitnessData->pAccumulator->getValue();
@@ -108,7 +143,7 @@ CPrecomputeDB::CPrecomputeDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBW
 {
 }
 
-bool CPrecomputeDB::LoadPrecomputes(std::list<std::pair<uint256, CoinWitnessCacheData> >& itemList, std::map<uint256, std::list<std::pair<uint256, CoinWitnessCacheData> >::iterator>& itemMap)
+bool CPrecomputeDB::LoadPrecomputes(LRUCache* lru)
 {
 
     std::unique_ptr<CDBIterator> pcursor(NewIterator());
@@ -127,10 +162,8 @@ bool CPrecomputeDB::LoadPrecomputes(std::list<std::pair<uint256, CoinWitnessCach
                 return error("%s: cannot parse CCoins record", __func__);
             }
 
-            itemList.push_front(std::make_pair(key.second, data));
-            itemMap.insert(make_pair(key.second, itemList.begin()));
-
-            if (itemMap.size() == PRECOMPUTE_LRU_CACHE_SIZE)
+            lru->AddNew(key.second, data);
+            if (lru->Size() == PRECOMPUTE_LRU_CACHE_SIZE)
                 break;
 
             pcursor->Next();

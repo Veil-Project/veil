@@ -17,6 +17,7 @@
 #define PRECOMPUTE_FLUSH_TIME 900 // 15 minutes
 
 class CoinWitnessCacheData;
+class LRUCache;
 
 class CoinWitnessData
 {
@@ -28,13 +29,16 @@ public:
     int nHeightCheckpoint;
     int nHeightMintAdded;
     int nHeightAccStart;
-    int nHeightAccEnd;
+    int nHeightPrecomputed;
     int nMintsAdded;
     uint256 txid;
+    mutable CCriticalSection cs;
 
     CoinWitnessData();
     CoinWitnessData(CZerocoinMint& mint);
     CoinWitnessData(CoinWitnessCacheData& data);
+    CoinWitnessData(const CoinWitnessData& other);
+    CoinWitnessData& operator=(const CoinWitnessData& other);
     void SetHeightMintAdded(int nHeight);
     void SetNull();
     std::string ToString();
@@ -47,7 +51,7 @@ public:
     int nHeightCheckpoint;
     int nHeightMintAdded;
     int nHeightAccStart;
-    int nHeightAccEnd;
+    int nHeightPrecomputed;
     int nMintsAdded;
     uint256 txid;
     CBigNum coinAmount;
@@ -68,7 +72,7 @@ public:
         READWRITE(nHeightCheckpoint);
         READWRITE(nHeightMintAdded);
         READWRITE(nHeightAccStart);
-        READWRITE(nHeightAccEnd);
+        READWRITE(nHeightPrecomputed);
         READWRITE(nMintsAdded);
         READWRITE(txid);
         READWRITE(coinAmount); // used to create the PublicCoin
@@ -90,7 +94,7 @@ private:
 
 public:
     /** Veil zerocoin precompute database functions */
-    bool LoadPrecomputes(std::list<std::pair<uint256, CoinWitnessCacheData> >& itemList, std::map<uint256, std::list<std::pair<uint256, CoinWitnessCacheData> >::iterator>& itemMap);
+    bool LoadPrecomputes(LRUCache* lru);
     bool LoadPrecomputes(std::set<uint256> setHashes);
     void EraseAllPrecomputes();
     bool WritePrecompute(const uint256& hash, const CoinWitnessCacheData& data);

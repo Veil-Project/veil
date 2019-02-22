@@ -231,6 +231,7 @@ BITCOIN_CORE_H = \
   wallet/feebumper.h \
   wallet/fees.h \
   wallet/init.h \
+  wallet/lrucache.h \
   wallet/rpcwallet.h \
   wallet/wallet.h \
   wallet/walletbalances.h \
@@ -331,6 +332,7 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/feebumper.cpp \
   wallet/fees.cpp \
   wallet/init.cpp \
+  wallet/lrucache.cpp \
   wallet/rpcdump.cpp \
   wallet/rpcwallet.cpp \
   wallet/rpczerocoin.cpp \

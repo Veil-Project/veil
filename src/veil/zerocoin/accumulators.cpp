@@ -344,24 +344,20 @@ bool GetAccumulatorValue(int& nHeight, const libzerocoin::CoinDenomination denom
 
 void AccumulateRange(CoinWitnessData* coinWitness, int nHeightEnd)
 {
-    int64_t nTimeStart = GetTimeMicros();
-    int nHeightStart = std::max(coinWitness->nHeightAccStart, coinWitness->nHeightAccEnd + 1);
+    int nHeightStart = std::max(coinWitness->nHeightAccStart, coinWitness->nHeightPrecomputed + 1);
     CBlockIndex* pindex = chainActive[nHeightStart];
-
+    LogPrintf("%s:%d Accumulate %d until height %d\n", __func__, __LINE__, nHeightStart, nHeightEnd);
     libzerocoin::PublicCoin pubCoinSelected = *coinWitness->coin;
     while (pindex && pindex->nHeight <= nHeightEnd) {
         coinWitness->nMintsAdded += AddBlockMintsToAccumulator(pubCoinSelected, coinWitness->nHeightMintAdded, pindex, coinWitness->pAccumulator.get(), true);
-        coinWitness->nHeightAccEnd = pindex->nHeight;
+        coinWitness->nHeightPrecomputed = pindex->nHeight;
 
         pindex = chainActive.Next(pindex);
     }
-    int64_t nTimeEnd = GetTimeMicros();
 }
 
 bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& mapAccumulators, int nSecurityLevel, string& strError, CBlockIndex* pindexCheckpoint)
 {
-    LogPrintf("%s: generating\n", __func__);
-    CBlockIndex* pindex = nullptr;
     CBigNum bnAccValue = 0;
     int nHeightStop = 0;
     libzerocoin::PublicCoin coin = *coinwitness->coin;
@@ -369,10 +365,12 @@ bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& ma
         LOCK(cs_main);
 
         //If there is a Acc End height filled in, then this has already been partially accumulated.
-        if (!coinwitness->nHeightAccEnd) {
-            LogPrintf("RESET ACC\n");
+        if (!coinwitness->nHeightPrecomputed) {
+            LogPrintf("Starting precompute for mint %s accumulated height=%d\n", coinwitness->coin->getValue().GetHex().substr(0, 6), coinwitness->nHeightMintAdded);
             coinwitness->pAccumulator = std::unique_ptr<Accumulator>(new Accumulator(Params().Zerocoin_Params(), coinwitness->denom));
             coinwitness->pWitness = std::unique_ptr<AccumulatorWitness>(new AccumulatorWitness(Params().Zerocoin_Params(), *coinwitness->pAccumulator, coin));
+        } else {
+            LogPrintf("%s: Using precomputed coinspend witness. \n", __func__);
         }
 
         uint256 txid;
@@ -392,13 +390,13 @@ bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& ma
 
         //Get the accumulator that is right before the cluster of blocks containing our mint was added to the accumulator
         bnAccValue = 0;
-        if (!coinwitness->nHeightAccEnd && GetAccumulatorValue(coinwitness->nHeightCheckpoint, coin.getDenomination(), bnAccValue)) {
+        if (!coinwitness->nHeightPrecomputed && GetAccumulatorValue(coinwitness->nHeightCheckpoint, coin.getDenomination(), bnAccValue)) {
+            LogPrintf("%s: using new accumulator from checkpoint block %d\n", __func__, coinwitness->nHeightCheckpoint);
             libzerocoin::Accumulator witnessAccumulator(Params().Zerocoin_Params(), coinwitness->denom, bnAccValue);
             coinwitness->pAccumulator->setValue(witnessAccumulator.getValue());
         }
 
         //add the pubcoins from the blockchain up to the next checksum starting from the block
-        pindex = chainActive[coinwitness->nHeightCheckpoint - 10];
         int nChainHeight = chainActive.Height();
         nHeightStop = nChainHeight % 10;
         nHeightStop = nChainHeight - nHeightStop - 20; // at least two checkpoints deep
@@ -410,9 +408,8 @@ bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& ma
             LogPrintf("%s: using checkpoint height %d\n", __func__, pindexCheckpoint->nHeight);
         }
 
-        if (nHeightStop <= coinwitness->nHeightAccEnd)
-            return error("%s: trying to accumulate bad block range, start=%d end=%d", __func__, coinwitness->nHeightAccEnd, nHeightStop);
-
+        if (nHeightStop <= coinwitness->nHeightPrecomputed)
+            return error("%s: trying to accumulate bad block range, start=%d end=%d", __func__, coinwitness->nHeightPrecomputed, nHeightStop);
     }
 
     AccumulateRange(coinwitness, nHeightStop - 1);
@@ -420,38 +417,6 @@ bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& ma
     coinwitness->pWitness->resetValue(*coinwitness->pAccumulator, coin);
     if(!coinwitness->pWitness->VerifyWitness(mapAccumulators.GetAccumulator(coinwitness->denom), coin))
         return error("%s: failed to verify witness", __func__);
-/** Commited out because a similar task is being performs by the fucntion AccmulateRange called above */
-//    //Iterate through the chain and calculate the witness
-//    int nCheckpointsAdded = 0;
-//    RandomizeSecurityLevel(nSecurityLevel); //make security level not always the same and predictable
-//
-//    while (pindex) {
-//        {
-//            LOCK(cs_main);
-//            if (pindex->nHeight != coinwitness->nHeightAccStart &&
-//                pindex->pprev->mapAccumulatorHashes != pindex->mapAccumulatorHashes)
-//                ++nCheckpointsAdded;
-//
-//            //If the security level is satisfied, or the stop height is reached, then initialize the accumulator from here
-//            bool fSecurityLevelSatisfied = (nSecurityLevel != 100 && nCheckpointsAdded >= nSecurityLevel);
-//            if (pindex->nHeight >= nHeightStop || fSecurityLevelSatisfied) {
-//
-//                bnAccValue = 0;
-//                uint256 nCheckpointSpend = chainActive[pindex->nHeight + 10]->GetAccumulatorHash(
-//                        coin.getDenomination());
-//                if (!GetAccumulatorValueFromDB(nCheckpointSpend, coin.getDenomination(), bnAccValue) || bnAccValue == 0)
-//                    return error("%s : failed to find checksum in database for accumulator", __func__);
-//
-//                coinwitness->pAccumulator->setValue(bnAccValue);
-//                break;
-//            }
-//
-//            libzerocoin::PublicCoin pubCoinSelected = coin;
-//            //Do not lock cs_main here so that computation does not leave everything else bound up
-//            coinwitness->nMintsAdded += AddBlockMintsToAccumulator(pubCoinSelected, coinwitness->nHeightMintAdded, pindex, coinwitness->pAccumulator.get(), true);
-//            pindex = chainActive.Next(pindex);
-//        }
-//    }
 
     // A certain amount of accumulated coins are required
     if (coinwitness->nMintsAdded < Params().Zerocoin_RequiredAccumulation()) {

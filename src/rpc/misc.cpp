@@ -471,7 +471,7 @@ UniValue clearspendcache(const JSONRPCRequest& request)
     {
         int nTries = 0;
         while (nTries < 100) {
-            TRY_LOCK(zTracker->cs_spendcache, fLocked);
+            TRY_LOCK(zTracker->cs_modify_lock, fLocked);
             if (fLocked) {
                 if (zTracker->ClearSpendCache()) {
                     fClearSpendCache = true;

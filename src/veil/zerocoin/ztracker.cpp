@@ -528,24 +528,64 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
     return setMints;
 }
 
-
-CoinWitnessData* CzTracker::GetSpendCache(const uint256& hashStake)
+bool CzTracker::HasSpendCache(const uint256& hashSerial)
 {
-    AssertLockHeld(cs_spendcache);
-    if (!mapStakeCache.count(hashStake)) {
+    AssertLockHeld(cs_readlock);
+    return mapSpendCache.count(hashSerial) > 0;
+}
+
+CoinWitnessData* CzTracker::CreateSpendCache(const uint256& hashSerial)
+{
+    AssertLockHeld(cs_modify_lock);
+    if (!mapSpendCache.count(hashSerial)) {
+        //Create if not exists
         std::unique_ptr<CoinWitnessData> uptr(new CoinWitnessData());
-        mapStakeCache.insert(std::make_pair(hashStake, std::move(uptr)));
-        return mapStakeCache.at(hashStake).get();
+        mapSpendCache.insert(std::make_pair(hashSerial, std::move(uptr)));
+    }
+    return mapSpendCache.at(hashSerial).get();
+}
+
+CoinWitnessData* CzTracker::GetSpendCache(const uint256& hashSerial)
+{
+    AssertLockHeld(cs_readlock);
+    if (!mapSpendCache.count(hashSerial)) {
+        //Create if not exists
+        std::unique_ptr<CoinWitnessData> uptr(new CoinWitnessData());
+        mapSpendCache.insert(std::make_pair(hashSerial, std::move(uptr)));
     }
 
-    return mapStakeCache.at(hashStake).get();
+    return mapSpendCache.at(hashSerial).get();
+}
+
+bool CzTracker::GetCoinWitness(const uint256& hashSerial, CoinWitnessData& data)
+{
+    AssertLockHeld(cs_readlock);
+    data.SetNull();
+
+    if (!mapSpendCache.count(hashSerial))
+        return false;
+
+    auto pwitness = mapSpendCache.at(hashSerial).get();
+
+    auto denom = pwitness->denom;
+    data.denom = denom;
+    data.coin = std::unique_ptr<libzerocoin::PublicCoin>(new libzerocoin::PublicCoin(Params().Zerocoin_Params(), pwitness->coin->getValue(), denom));
+    data.pAccumulator = std::unique_ptr<libzerocoin::Accumulator>(new libzerocoin::Accumulator(Params().Zerocoin_Params(), denom, pwitness->pAccumulator->getValue()));
+    data.pWitness = std::unique_ptr<libzerocoin::AccumulatorWitness>(new libzerocoin::AccumulatorWitness(Params().Zerocoin_Params(), *data.pAccumulator.get(), *data.coin));
+    data.nHeightCheckpoint = pwitness->nHeightCheckpoint;
+    data.nHeightMintAdded = pwitness->nHeightMintAdded;
+    data.nHeightAccStart = pwitness->nHeightAccStart;
+    data.nHeightPrecomputed = pwitness->nHeightPrecomputed;
+    data.txid = pwitness->txid;
+
+    return true;
 }
 
 bool CzTracker::ClearSpendCache()
 {
-    AssertLockHeld(cs_spendcache);
-    if (!mapStakeCache.empty()) {
-        mapStakeCache.clear();
+    AssertLockHeld(cs_modify_lock);
+    if (!mapSpendCache.empty()) {
+        mapSpendCache.clear();
         return true;
     }
 
