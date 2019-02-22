@@ -30,5 +30,6 @@ int calculateChange(
         std::map<libzerocoin::CoinDenomination, CAmount>& mapOfDenomsUsed);
 
 void listSpends(const std::vector<CMintMeta>& vSelectedMints);
+bool oldest_first (const CMintMeta& first, const CMintMeta&  second);
 
 #endif //VEIL_DENOMINATION_FUNCTIONS_H

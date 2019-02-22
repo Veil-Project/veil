@@ -6152,6 +6152,9 @@ bool CWallet::CollectMintsForSpend(CAmount nValue, std::vector<CZerocoinMint>& v
         }
     }
 
+    // order the list of mints - oldest first
+    listMints.sort(oldest_first);
+
     int nCoinsReturned, nNeededSpends;
     CAmount nValueSelected;
     auto vMintsToFetch = SelectMintsFromList(nValueToSelect, nValueSelected, Params().Zerocoin_MaxSpendsPerTransaction(),
