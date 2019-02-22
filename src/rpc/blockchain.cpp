@@ -194,6 +194,64 @@ static UniValue getbestblockhash(const JSONRPCRequest& request)
     return chainActive.Tip()->GetBlockHash().GetHex();
 }
 
+static UniValue getzerocoinsupply(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "getzerocoinsupply height\n"
+            "\nReturns the Veil supply (in satoshis) held in zerocoins at a specified block height, or at current chain Tip.\n"
+            "\nArguments:\n"
+            "1. height         (numeric, optional) The height index. Default is chainactive tip\n"
+            "\nResult:\n"
+                "  [\n"
+                "     {\n"
+                "        \"denom\" : d,     (string) current denomination, or total\n"
+                "        \"amount\": n,     (numeric) supply in denominated zerocoins\n"
+                "        \"percent\": p     (numeric) percent of denominated zerocoins over total supply\n"
+                "     },\n"
+                "     ...\n"
+                "  ]\n"
+            "\nExamples:\n"
+            + HelpExampleCli("getzerocoinsupply", "1000")
+            + HelpExampleRpc("getzerocoinsupply", "1000")
+        );
+
+    LOCK(cs_main);
+
+    CBlockIndex* pblockindex;
+    if (request.params.size() == 1) {
+        int nHeight = request.params[0].get_int();
+        if (nHeight < 0 || nHeight > chainActive.Height())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
+        pblockindex = chainActive[nHeight];
+    } else {
+        pblockindex = chainActive.Tip();
+    }
+
+    int64_t totalSupply = pblockindex->nMoneySupply;
+
+    UniValue resArr(UniValue::VARR);
+    for (auto denom : libzerocoin::zerocoinDenomList) {
+        UniValue denomObj(UniValue::VOBJ);
+        denomObj.push_back(Pair("denom", to_string(denom)));
+        int64_t denomSupply = pblockindex->mapZerocoinSupply.at(denom) * (denom*COIN);
+        denomObj.push_back(Pair("amount", denomSupply));
+        double denomSupplyPercent = double(100.0 * denomSupply / totalSupply);
+        denomObj.push_back(Pair("percent", denomSupplyPercent));
+        resArr.push_back(denomObj);
+
+    }
+    UniValue totalObj(UniValue::VOBJ);
+    totalObj.push_back(Pair("denom", "total"));
+    int64_t totalzcSupply = pblockindex->GetZerocoinSupply();
+    totalObj.push_back(Pair("amount", totalzcSupply));
+    double totalzcSupplyPercent = double(100.0 * totalzcSupply / totalSupply);
+    totalObj.push_back(Pair("percent", totalzcSupplyPercent));
+    resArr.push_back(totalObj);
+
+    return resArr;
+}
+
 void RPCNotifyBlockChange(bool ibd, const CBlockIndex * pindex)
 {
     if(pindex) {
@@ -696,6 +754,7 @@ static UniValue getblockheader(const JSONRPCRequest& request)
             "  \"hash\" : \"hash\",     (string) the block hash (same as provided)\n"
             "  \"confirmations\" : n,   (numeric) The number of confirmations, or -1 if the block is not on the main chain\n"
             "  \"height\" : n,          (numeric) The block height or index\n"
+            "  \"moneysupply\": xxxxx,  (numeric) the current total coin supply (in satoshis)\n"
             "  \"version\" : n,         (numeric) The block version\n"
             "  \"versionHex\" : \"00000000\", (string) The block version formatted in hexadecimal\n"
             "  \"merkleroot\" : \"xxxx\", (string) The merkle root\n"
@@ -1185,6 +1244,15 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
             "  \"chain\": \"xxxx\",              (string) current network name as defined in BIP70 (main, test, regtest)\n"
             "  \"blocks\": xxxxxx,             (numeric) the current number of blocks processed in the server\n"
             "  \"moneysupply\": xxxxx,         (numeric) the current total coin supply (in satoshis)\n"
+            "  \"zerocoinsupply\":            (object) the current zerocoin supply\n"
+            "  [\n"
+            "     {\n"
+            "        \"denom\" : d,     (string) current denomination, or total\n"
+            "        \"amount\": n,     (numeric) supply in denominated zerocoins\n"
+            "        \"percent\": p     (numeric) percent of denominated zerocoins over total supply\n"
+            "     },\n"
+            "     ...\n"
+            "  ],\n"
             "  \"headers\": xxxxxx,            (numeric) the current number of headers we have validated\n"
             "  \"bestblockhash\": \"...\",       (string) the hash of the currently best block\n"
             "  \"difficulty\": xxxxxx,         (numeric) the current difficulty\n"
@@ -1259,6 +1327,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     obj.pushKV("chain",                 Params().NetworkIDString());
     obj.pushKV("blocks",                (int)chainActive.Height());
     obj.pushKV("moneysupply",           chainActive.Tip()->nMoneySupply);
+    obj.pushKV("zerocoinsupply",        getzerocoinsupply(request));
     obj.pushKV("headers",               pindexBestHeader ? pindexBestHeader->nHeight : -1);
     obj.pushKV("bestblockhash",         chainActive.Tip()->GetBlockHash().GetHex());
     obj.pushKV("difficulty_pow",        nDiffPoW);
@@ -2257,6 +2326,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getrawmempool",          &getrawmempool,          {"verbose"} },
     { "blockchain",         "gettxout",               &gettxout,               {"txid","n","include_mempool"} },
     { "blockchain",         "gettxoutsetinfo",        &gettxoutsetinfo,        {} },
+    { "blockchain",         "getzerocoinsupply",      &getzerocoinsupply,      {"height"} },
     { "blockchain",         "pruneblockchain",        &pruneblockchain,        {"height"} },
     { "blockchain",         "savemempool",            &savemempool,            {} },
     { "blockchain",         "verifychain",            &verifychain,            {"checklevel","nblocks"} },
