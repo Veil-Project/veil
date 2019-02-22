@@ -21,7 +21,7 @@ ZerocoinStake::ZerocoinStake(const libzerocoin::CoinSpend& spend)
     this->nChecksum = spend.getAccumulatorChecksum();
     this->denom = spend.getDenomination();
     uint256 nSerial = spend.getCoinSerialNumber().getuint256();
-    this->hashSerial = Hash(nSerial.begin(), nSerial.end());
+    this->hashStake = Hash(nSerial.begin(), nSerial.end());
     this->pindexFrom = nullptr;
     fMint = false;
 }
@@ -85,11 +85,9 @@ int ZerocoinStake::HeightToModifierHeight(int nHeight)
 //Use the first accumulator checkpoint that occurs 60 minutes after the block being staked from
 bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier)
 {
-
     CBlockIndex* pindex = GetIndexFrom();
     if (!pindex)
         return false;
-
 
     int nNearest100Block = ZerocoinStake::HeightToModifierHeight(pindex->nHeight);
 
@@ -109,9 +107,9 @@ bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier)
 
 CDataStream ZerocoinStake::GetUniqueness()
 {
-    //The unique identifier for a zPIV is a hash of the serial
+    //The unique identifier for a zerocoin stake is a hash of the serial using a datastream
     CDataStream ss(SER_GETHASH, 0);
-    ss << hashSerial;
+    ss << hashStake;
     return ss;
 }
 
@@ -122,8 +120,8 @@ bool ZerocoinStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
         return error("%s: failed to find checkpoint block index", __func__);
 
     CZerocoinMint mint;
-    if (!pwallet->GetMintFromStakeHash(hashSerial, mint))
-        return error("%s: failed to fetch mint associated with serial hash %s", __func__, hashSerial.GetHex());
+    if (!pwallet->GetMintFromStakeHash(hashStake, mint))
+        return error("%s: failed to fetch mint associated with serial hash %s", __func__, hashStake.GetHex());
 
     if (libzerocoin::ExtractVersionFromSerial(mint.GetSerialNumber()) < 2)
         return error("%s: serial extract is less than v2", __func__);
@@ -131,21 +129,9 @@ bool ZerocoinStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
     int nSecurityLevel = 100;
     CZerocoinSpendReceipt receipt;
 
-    int nLockAttempts = 0;
-    while (nLockAttempts < 100) {
-        TRY_LOCK(pwallet->GetZTrackerPointer()->cs_spendcache, lockSpendcache);
-        if (!lockSpendcache) {
-            fGlobalUnlockSpendCache = true;
-            MilliSleep(100);
-            ++nLockAttempts;
-            continue;
-        }
-
-        if (!pwallet->MintToTxIn(mint, nSecurityLevel, hashTxOut, txIn, receipt, libzerocoin::SpendType::STAKE,
-                                 GetIndexFrom()))
-            return error("%s\n", receipt.GetStatusMessage());
-        break;
-    }
+    if (!pwallet->MintToTxIn(mint, nSecurityLevel, hashTxOut, txIn, receipt, libzerocoin::SpendType::STAKE,
+                             GetIndexFrom()))
+        return error("%s\n", receipt.GetStatusMessage());
 
     return true;
 }
@@ -190,14 +176,14 @@ bool ZerocoinStake::MarkSpent(CWallet *pwallet, const uint256& txid)
 {
     CzTracker* zTracker = pwallet->GetZTrackerPointer();
     CMintMeta meta;
-    if (!zTracker->GetMetaFromStakeHash(hashSerial, meta))
+    if (!zTracker->GetMetaFromStakeHash(hashStake, meta))
         return error("%s: tracker does not have serialhash", __func__);
 
     zTracker->SetPubcoinUsed(meta.hashPubcoin, txid);
     return true;
 }
 
-uint256 ZerocoinStake::GetSerialHash()
+uint256 ZerocoinStake::GetSerialStakeHash()
 {
-    return hashSerial;
+    return hashStake;
 }

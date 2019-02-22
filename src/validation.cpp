@@ -2145,7 +2145,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     bool fSkipComputation = false;
     int nHeightLastCheckpoint = Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints());
-    if (pindex->nHeight < nHeightLastCheckpoint)
+    if (pindex->nHeight < nHeightLastCheckpoint || fReindex)
+        fSkipComputation = true;
+    if (pindex->GetBlockTime() < GetAdjustedTime() - 24*60*60)
         fSkipComputation = true;
 
     // Check it again in case a previous version let a bad block in
@@ -3329,6 +3331,7 @@ bool CChainState::ActivateBestChainStep(CValidationState& state, const CChainPar
                     return false;
                 }
             } else {
+                LogPrintf("%s:%d\n", __func__, __LINE__);
                 PruneBlockIndexCandidates();
                 if (!pindexOldTip || chainActive.Tip()->nChainWork > pindexOldTip->nChainWork) {
                     // We're in a better position than we were. Return temporarily to release the lock.
@@ -3511,6 +3514,7 @@ bool CChainState::PreciousBlock(CValidationState& state, const CChainParams& par
         }
         if (pindex->IsValid(BLOCK_VALID_TRANSACTIONS) && pindex->nChainTx) {
             setBlockIndexCandidates.insert(pindex);
+            LogPrintf("%s:%d\n", __func__, __LINE__);
             PruneBlockIndexCandidates();
         }
     }
@@ -4487,6 +4491,8 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
 
     int nHeightLastCheckpoint = Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints());
     bool fSkipComputation = pindex->nHeight < nHeightLastCheckpoint;
+    if (pindex->GetBlockTime() < GetAdjustedTime() - 24*60*60)
+        fSkipComputation = true;
     if (!CheckBlock(block, state, chainparams.GetConsensus(), fSkipComputation) ||
         !ContextualCheckBlock(block, state, chainparams.GetConsensus(), pindex->pprev)) {
         if (state.IsInvalid() && !state.CorruptionPossible()) {
@@ -4941,12 +4947,13 @@ bool LoadChainTip(const CChainParams& chainparams)
     }
     chainActive.SetTip(pindex);
 
-    g_chainstate.PruneBlockIndexCandidates();
+
 
     LogPrintf("Loaded best chain: hashBestChain=%s height=%d date=%s progress=%f\n",
         chainActive.Tip()->GetBlockHash().ToString(), chainActive.Height(),
         FormatISO8601DateTime(chainActive.Tip()->GetBlockTime()),
         GuessVerificationProgress(chainparams.TxData(), chainActive.Tip()));
+    g_chainstate.PruneBlockIndexCandidates();
     return true;
 }
 
@@ -5257,6 +5264,7 @@ bool CChainState::RewindBlockIndex(const CChainParams& params)
     if (chainActive.Tip() != nullptr) {
         // We can't prune block index candidates based on our tip if we have
         // no tip due to chainActive being empty!
+        LogPrintf("%s:%d\n", __func__, __LINE__);
         PruneBlockIndexCandidates();
 
         CheckBlockIndex(params.GetConsensus());

@@ -1358,24 +1358,39 @@ UniValue showspendcaching(const JSONRPCRequest& request)
     std::set<CMintMeta> setMints = ztracker->ListMints(true, true, false);
     UniValue arrRet(UniValue::VARR);
     int nHeightChain = chainActive.Height();
+
+    int nTotalAccumulated = 0;
+    double nTotalToAccumulate = 0;
     for (const CMintMeta& mint : setMints) {
         UniValue obj(UniValue::VOBJ);
         obj.pushKV("pubcoinhash", mint.hashPubcoin.GetHex());
         obj.pushKV("height_from", mint.nHeight);
 
-        CoinWitnessData* witnessData = ztracker->GetSpendCache(mint.hashStake);
+        CoinWitnessData* witnessData = ztracker->GetSpendCache(mint.hashSerial);
         if (!witnessData)
             continue;
 
-        obj.pushKV("computed_to", witnessData->nHeightAccEnd);
-        double nTotalToAccumulate = nHeightChain - mint.nHeight;
-        double nAccumulated = witnessData->nHeightAccEnd - mint.nHeight;
-        double nComputePercent = nAccumulated/nTotalToAccumulate;
+        obj.pushKV("computed_to", witnessData->nHeightPrecomputed);
+        double nToAccumulate = nHeightChain - mint.nHeight;
+        double nAccumulated = witnessData->nHeightPrecomputed - mint.nHeight;
+        double nComputePercent = nAccumulated/nToAccumulate;
+        if (nAccumulated > 1) {
+            nTotalAccumulated += nAccumulated;
+        }
+
+        nTotalToAccumulate += nToAccumulate;
+
         if (nComputePercent < 0)
             nComputePercent = 0;
-        obj.pushKV("percent_precompute", nComputePercent);
-        arrRet.push_back(obj);
+        obj.pushKV("percent_precompute", nComputePercent*100);
+        //arrRet.push_back(obj);
     }
+
+    UniValue objTotal(UniValue::VOBJ);
+    objTotal.pushKV("total_blocks_computed", nTotalAccumulated);
+    objTotal.pushKV("total_blocks_to_compute", nTotalToAccumulate);
+    objTotal.pushKV("percent_precomputed", (nTotalAccumulated/nTotalToAccumulate)*100);
+    arrRet.push_back(objTotal);
 
     return arrRet;
 }
