@@ -1790,6 +1790,8 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
             wtx.fFromMe = true;
 
             CAmount nValueToSelect = nValueOutCT;
+            if (!fZerocoinInputs)
+                nValueToSelect += nValueOutZerocoin;
             if (nSubtractFeeFromAmount == 0) {
                 nValueToSelect += nFeeRet;
             }
@@ -1882,7 +1884,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
 
             int nLastBlindedOutput = -1;
 
-            if (!fOnlyStandardOutputs) {
+            if (!fOnlyStandardOutputs || nZerocoinMintOuts) {
                 OUTPUT_PTR<CTxOutData> outFee = MAKE_OUTPUT<CTxOutData>();
                 outFee->vData.push_back(DO_FEE);
                 outFee->vData.resize(9); // More bytes than varint fee could use
@@ -2103,7 +2105,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
 
         coinControl->nChangePos = nChangePosInOut;
 
-        if (!fOnlyStandardOutputs) {
+        if (!fOnlyStandardOutputs || nZerocoinMintOuts) {
             std::vector<uint8_t> &vData = ((CTxOutData*)txNew.vpout[0].get())->vData;
             vData.resize(1);
             if (0 != PutVarInt(vData, nFeeRet)) {

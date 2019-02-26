@@ -5629,7 +5629,7 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     string strError;
     CMutableTransaction txNew;
     std::vector<CTempRecipient> vecSend;
-    if (!CreateZerocoinMintTransaction(nValue, txNew, vDMints, &reserveKey, nFeeRequired, strError, vecSend, inputtype, coinControl)) {
+    if (!CreateZerocoinMintTransaction(nValue, txNew, vDMints, nFeeRequired, strError, vecSend, inputtype, coinControl)) {
         if (nValue + nFeeRequired > GetBalance())
             return strprintf(_("Error: Failed to create transaction: %s"), strError);
         return strError;
@@ -5962,7 +5962,7 @@ bool CWallet::CreateZOutPut(libzerocoin::CoinDenomination denomination, CTxOut& 
 }
 
 bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransaction& txNew,
-        std::vector<CDeterministicMint>& vDMints, CReserveKey* reservekey, int64_t& nFeeRet, std::string& strFailReason,
+        std::vector<CDeterministicMint>& vDMints, int64_t& nFeeRet, std::string& strFailReason,
         std::vector<CTempRecipient>& vecSend, OutputTypes inputtype, const CCoinControl* coinControl, const bool isZCSpendChange)
 {
     if (IsLocked()) {
@@ -6036,88 +6036,40 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
 
     CAmount nValueIn = 0;
     std::set<CInputCoin> setCoins;
-    if (inputtype == OUTPUT_STANDARD) {
-        /** select basecoin UTXO's to use**/
-        CCoinControl defaultCoinControl;
-        if (coinControl == NULL)
-            coinControl = &defaultCoinControl;
 
-        std::vector<COutput> vAvailableCoins;
-        AvailableCoins(vAvailableCoins, true, coinControl);
-        CoinSelectionParams coin_selection_params; // todo: set selection params
-        coin_selection_params.use_bnb = false;
-        bool fBool = true;
+    /** Select RingCT or CT Inputs **/
+    // create output variables for add anon inputs
+    CTransactionRef tx_new;
+    CWalletTx wtx(this, tx_new);
 
-        CCoinControl cControl;
-        if (coinControl)
-            cControl = *coinControl;
+    // protecting against nullptr dereference
+    CCoinControl cControl;
+    if (coinControl)
+        cControl = *coinControl;
 
-        if (!SelectCoins(vAvailableCoins, nTotalValue, setCoins, nValueIn, cControl, coin_selection_params, fBool)) {
-            strFailReason = "Insufficient confirmed funds, you might need to wait a few minutes and try again.";
+    CTransactionRecord rtx;
+    std::string sError;
+
+    if (inputtype == OUTPUT_RINGCT)  {
+        // default parameters for ring sig
+        if (0 != pAnonWalletMain->AddAnonInputs(wtx, rtx, vecSend, true, Params().DefaultRingSize(), /**nInputsPerSig**/ 32, nFeeRet, &cControl, sError)) {
+            strFailReason = strprintf("Failed to add ringctinputs: %s", sError);
             return false;
         }
-
-        // Fill vin
-        for (const CInputCoin& coin: setCoins)
-            txNew.vin.emplace_back(CTxIn(coin.outpoint.hash, coin.outpoint.n));
-
-        //any change that is less than 0.0100000 will be ignored and given as an extra fee
-        //also assume that a zerocoinspend that is minting the change will not have any change that goes to Piv
-        CAmount nChange = nValueIn - nTotalValue; // Fee already accounted for in nTotalValue
-
-        // Fill a vout to ourself using the largest contributing address
-        CScript scriptChange = GetLargestContributor(setCoins);
-        //add to the transaction
-        CTxOut outChange(nChange, scriptChange);
-        if (!IsDust(outChange, dustRelayFee)) {
-            txNew.vpout.emplace_back(outChange.GetSharedPtr());
-        } else {
-            if (reservekey)
-                reservekey->ReturnKey();
+    } else if (inputtype == OUTPUT_CT) {
+        if (0 != pAnonWalletMain->AddBlindedInputs(wtx, rtx, vecSend, true, nFeeRet, &cControl, sError)) {
+            strFailReason = strprintf("Failed to add ringctinputs: %s", sError);
+            return false;
         }
-
-        // Sign if these are basecoin outputs - NOTE that zerocoin outputs are signed later in SoK
-        int nIn = 0;
-        for (const CInputCoin& coin : setCoins) {
-            if (!SignSignature(*this, coin.txout.scriptPubKey, txNew, nIn++, coin.txout.nValue, SIGHASH_ALL)) {
-                strFailReason = "Signing transaction failed";
-                return false;
-            }
+    } else if (inputtype == OUTPUT_STANDARD) {
+        if (0 != pAnonWalletMain->AddStandardInputs(wtx, rtx, vecSend, true, nFeeRet, &cControl, sError, /*fZerocoinInputs*/false, /*InputValue*/0)) {
+            strFailReason = strprintf("Failed to add basecoin inputs: %s", sError);
+            return false;
         }
-
-        return true;
-    } else {
-        /** Select RingCT or CT Inputs **/
-        // create output variables for add anon inputs
-        CTransactionRef tx_new;
-        CWalletTx wtx(this, tx_new);
-
-        // protecting against nullptr dereference
-        CCoinControl cControl;
-        if (coinControl)
-            cControl = *coinControl;
-
-        CTransactionRecord rtx;
-        std::string sError;
-
-        if (inputtype == OUTPUT_RINGCT)  {
-            // default parameters for ring sig
-            if (0 != pAnonWalletMain->AddAnonInputs(wtx, rtx, vecSend, true, Params().DefaultRingSize(), /**nInputsPerSig**/ 32, nFeeRet, &cControl, sError)) {
-                strFailReason = strprintf("Failed to add ringctinputs: %s", sError);
-                return false;
-            }
-        } else if (inputtype == OUTPUT_CT) {
-            if (0 != pAnonWalletMain->AddBlindedInputs(wtx, rtx, vecSend, true, nFeeRet, &cControl, sError)) {
-                strFailReason = strprintf("Failed to add ringctinputs: %s", sError);
-                return false;
-            }
-        }
-
-        txNew = CMutableTransaction(*wtx.tx);
-        return true;
     }
 
-    return false;
+    txNew = CMutableTransaction(*wtx.tx);
+    return true;
 }
 
 bool CWallet::CollectMintsForSpend(CAmount nValue, std::vector<CZerocoinMint>& vMints, CZerocoinSpendReceipt& receipt, int nStatus, bool fMinimizeChange, libzerocoin::CoinDenomination denomFilter)
@@ -6296,12 +6248,6 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                     vecSend.emplace_back(r);
                 } else {
                     scriptZerocoinSpend = GetScriptForDestination(*address);
-//                    if (nChange) {
-//                        // Reserve a new key pair from key pool
-//                        CPubKey vchPubKey;
-//                        assert(reserveKey.GetReservedKey(vchPubKey)); // should never fail
-//                        scriptChange = GetScriptForDestination(vchPubKey.GetID());
-//                    }
                 }
             }
 
@@ -6345,15 +6291,11 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                     //mint change as zerocoins and RingCT
                     CAmount nFeeRet = 0;
                     std::string strFailReason = "";
-
-                    // TODO: Replace reserve key with some alternative to send change to stealth address
-                    CReserveKey reserveKey(this);
-                    if (!CreateZerocoinMintTransaction(nChangeRemint, txNew, vNewMints, &reserveKey, nFeeRet,
-                                                       strFailReason, vecSend, /*inputtype*/OUTPUT_STANDARD, nullptr, true)) {
+                    if (!CreateZerocoinMintTransaction(nChangeRemint, txNew, vNewMints, nFeeRet, strFailReason, vecSend,
+                            /*inputtype*/OUTPUT_STANDARD, nullptr, true)) {
                         receipt.SetStatus("Failed to create mint", nStatus);
                         return false;
                     }
-                    reserveKey.KeepKey();
                 }
             }
 
@@ -6382,7 +6324,6 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 if (0 != pAnonWalletMain->AddStandardInputs(wtxNew, rtx, vecSend, false, nFeeRet, &coinControl, sError, true, nValueSelected)) {
                     receipt.SetStatus("Failed to add standard inputs", nStatus);
                     return error("%s: AddStandardInputs failed: %s", __func__, sError);
-
                 }
 
                 pAnonWalletMain->AddOutputRecordMetaData(rtx, vecSend);
