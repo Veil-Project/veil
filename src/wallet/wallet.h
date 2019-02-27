@@ -812,7 +812,7 @@ public:
     bool MintableCoins();
     bool CollectMintsForSpend(CAmount nValue, std::vector<CZerocoinMint>& vMints, CZerocoinSpendReceipt& receipt, int nStatus, bool fMinimizeChange, libzerocoin::CoinDenomination denomFilter);
     bool CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransaction& txNew, std::vector<CDeterministicMint>& vDMints,
-            CReserveKey* reservekey, int64_t& nFeeRet, std::string& strFailReason, std::vector<CTempRecipient>& vecSend, OutputTypes inputtype, const CCoinControl* coinControl = NULL,
+            int64_t& nFeeRet, std::string& strFailReason, std::vector<CTempRecipient>& vecSend, OutputTypes inputtype, const CCoinControl* coinControl = NULL,
             const bool isZCSpendChange = false);
     bool CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew,
             CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vSelectedMints,
