@@ -60,6 +60,37 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
             break;
     }
 
+    // Automint process time
+
+
+    // Automint time
+    ui->comboBoxAutomintTime->setProperty("cssClass" , "btn-text-primary-inactive");
+    QString minutesStr = tr("Minutes");
+    ui->comboBoxAutomintTime->addItem("20 " + minutesStr);
+    ui->comboBoxAutomintTime->addItem("10 " + minutesStr);
+    ui->comboBoxAutomintTime->addItem("5 " + minutesStr);
+    ui->comboBoxAutomintTime->addItem("2 " + minutesStr);
+    for (int i = 0 ; i < ui->comboBoxAutomintTime->count() ; ++i) {
+       ui->comboBoxAutomintTime->setItemData(i, Qt::AlignRight, Qt::TextAlignmentRole);
+    }
+    switch (automint_delay){
+        case (20 * 60):
+            ui->comboBoxAutomintTime->setCurrentIndex(0);
+            break;
+        case (10 * 60):
+            ui->comboBoxAutomintTime->setCurrentIndex(1);
+            break;
+        case (5 * 60):
+            ui->comboBoxAutomintTime->setCurrentIndex(2);
+            break;
+        case (2 * 60):
+            ui->comboBoxAutomintTime->setCurrentIndex(3);
+            break;
+    }
+    // combo selection:
+    connect(ui->comboBoxAutomintTime,SIGNAL(currentIndexChanged(const QString&)),this,SLOT(automintTime(const QString&)));
+
+
     //
     ui->errorMessage->setVisible(false);
 
@@ -196,6 +227,18 @@ void SettingsMinting::saveSettings(int prefDenom){
     QSettings* settings = getSettings();
     settings->setValue("nAutomintDenom", prefDenom);
     settings->sync();
+}
+
+void SettingsMinting::automintTime(const QString& timeSelected){
+    if(timeSelected.startsWith("20")){
+        automint_delay = (60 * 20);
+    }else if(timeSelected.startsWith("10")){
+        automint_delay = (60 * 10);
+    }else if(timeSelected.startsWith("5")){
+        automint_delay = (60 * 5);
+    }else if(timeSelected.startsWith("2")){
+        automint_delay = (60 * 2);
+    }
 }
 
 SettingsMinting::~SettingsMinting()

@@ -171,6 +171,7 @@ void Balance::setBalance(const interfaces::WalletBalances& balances){
     int unit = walletModel->getOptionsModel()->getDisplayUnit();
     m_balances = balances;
     // TODO: Change this balance calculation
+
     ui->labelBalance->setText(BitcoinUnits::formatWithUnit(
             unit,
             balances.basecoin_balance + balances.ct_balance + balances.ring_ct_balance + balances.zerocoin_balance,
@@ -178,23 +179,21 @@ void Balance::setBalance(const interfaces::WalletBalances& balances){
             BitcoinUnits::separatorAlways));
 
     ui->labelUnconfirmed->setText(
-            BitcoinUnits::formatWithUnit(unit,
-            balances.total_unconfirmed_balance,
-            false,
-            BitcoinUnits::separatorAlways
+            BitcoinUnits::formatWithUnit(
+                    unit,
+                    balances.total_unconfirmed_balance,
+                    false,
+                    BitcoinUnits::separatorAlways
             )
     );
-    ui->labelImmature->setText(BitcoinUnits::formatWithUnit(unit, balances.total_immature_balance, false, BitcoinUnits::separatorAlways));
-    //ui->labelTotal->setText(BitcoinUnits::formatWithUnit(unit, balances.balance + balances.unconfirmed_balance + balances.immature_balance, false, BitcoinUnits::separatorAlways));
-
-    // only show immature (newly mined) balance if it's non-zero, so as not to complicate things
-    // for the non-mining users
-    //bool showImmature = balances.total_immature_balance != 0;
-    //bool showWatchOnlyImmature = balances.immature_watch_only_balance != 0;
-
-    // for symmetry reasons also show immature label when the watch-only one is shown
-    //ui->labelImmature->setVisible(showImmature || showWatchOnlyImmature);
-    //ui->labelImmatureText->setVisible(showImmature || showWatchOnlyImmature);
+    ui->labelImmature->setText(
+            BitcoinUnits::formatWithUnit(
+                    unit,
+                    balances.total_immature_balance,
+                    false,
+                    BitcoinUnits::separatorAlways
+            )
+    );
 }
 
 

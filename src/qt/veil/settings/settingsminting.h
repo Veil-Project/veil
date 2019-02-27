@@ -30,6 +30,7 @@ private Q_SLOTS:
     void mintAmountChange(const QString &amount);
     void btnMint();
     void onCheckFullMintClicked(bool res);
+    void automintTime(const QString &timeSelected);
 private:
     Ui::SettingsMinting *ui;
     WalletModel *walletModel;

@@ -4757,8 +4757,8 @@ void CWallet::AutoZeromint()
 {
     // After sync wait even more to reduce load when wallet was just started
     int64_t nWaitTime = GetAdjustedTime() - nAutoMintStartupTime;
-    if (nWaitTime < AUTOMINT_DELAY){
-        LogPrint(BCLog::SELECTCOINS, "CWallet::AutoZeromint(): time since sync-completion or last Automint (%ld sec) < default waiting time (%ld sec). Waiting again...\n", nWaitTime, AUTOMINT_DELAY);
+    if (nWaitTime < automint_delay){
+        LogPrint(BCLog::SELECTCOINS, "CWallet::AutoZeromint(): time since sync-completion or last Automint (%ld sec) < default waiting time (%ld sec). Waiting again...\n", nWaitTime, automint_delay);
         return;
     }
 

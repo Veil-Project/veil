@@ -45,7 +45,7 @@ int64_t GetStartupTime();
 extern int nZeromintPercentage;
 extern bool fEnableZeromint;
 extern bool fEnableDandelion;
-extern const int64_t AUTOMINT_DELAY;
+extern int64_t automint_delay;
 extern int nPreferredDenom;
 
 /** Signals for translation. */
