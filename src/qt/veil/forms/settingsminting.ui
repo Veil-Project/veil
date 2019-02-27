@@ -374,7 +374,7 @@ to have automatically minted by automint</string>
 font-size:14px;</string>
               </property>
               <property name="text">
-               <string>Automing process will be triggered every:</string>
+               <string>Automint process will be triggered every:</string>
               </property>
              </widget>
             </item>
