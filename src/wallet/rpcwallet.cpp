@@ -2466,6 +2466,7 @@ static UniValue gettransaction(const JSONRPCRequest& request)
                 auto bnSerial = spend->getCoinSerialNumber();
                 obj_vin.pushKV("serial", bnSerial.GetHex());
                 obj_vin.pushKV("serial_hash", GetSerialHash(bnSerial).GetHex());
+                obj_vin.pushKV("denom", (int64_t)spend->getDenomination());
             }
         } else {
             //Have to specifically look up type to determine whether it is CT or Basecoin
