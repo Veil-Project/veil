@@ -770,9 +770,13 @@ void SendCoinsDialog::coinControlFeatureChanged(bool checked)
 // Coin Control: button inputs -> show actual coin control dialog
 void SendCoinsDialog::coinControlButtonClicked()
 {
-    CoinControlDialog dlg(platformStyle);
-    dlg.setModel(model);
-    dlg.exec();
+    mainWindow->getGUI()->showHide(true);
+
+    CoinControlDialog *dlg = new CoinControlDialog(platformStyle);
+    dlg->setModel(model);
+
+    openDialogWithOpaqueBackground(dlg, mainWindow->getGUI(), 4);
+
     coinControlUpdateLabels();
 }
 

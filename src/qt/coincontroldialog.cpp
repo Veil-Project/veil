@@ -169,6 +169,10 @@ void CoinControlDialog::buttonBoxClicked(QAbstractButton* button)
 {
     if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::AcceptRole)
         done(QDialog::Accepted); // closes the dialog
+
+    if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::RejectRole){
+        close();
+    }
 }
 
 // (un)select all
