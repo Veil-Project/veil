@@ -17,6 +17,7 @@
 #include <veil/ringct/transactionrecord.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
+#include <veil/zerocoin/denomination_functions.h>
 #include <veil/zerocoin/mintmeta.h>
 #include <txmempool.h>
 
@@ -484,29 +485,29 @@ UniValue listmintedzerocoins(const JSONRPCRequest& request)
                 "\nList all zerocoin mints in the wallet.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
 
-                                            "\nArguments:\n"
-                                            "1. fVerbose      (boolean, optional, default=false) Output mints metadata.\n"
-                                            "2. fMatureOnly      (boolean, optional, default=false) List only mature mints. (Set only if fVerbose is specified)\n"
+                "\nArguments:\n"
+                "1. fVerbose      (boolean, optional, default=false) Output mints metadata.\n"
+                "2. fMatureOnly      (boolean, optional, default=false) List only mature mints. (Set only if fVerbose is specified)\n"
 
-                                            "\nResult (with fVerbose=false):\n"
-                                            "[\n"
-                                            "  \"xxx\"      (string) Pubcoin in hex format.\n"
-                                            "  ,...\n"
-                                            "]\n"
+                "\nResult (with fVerbose=false):\n"
+                "[\n"
+                "  \"xxx\"      (string) mint serial hash in hex format.\n"
+                "  ,...\n"
+                "]\n"
 
-                                            "\nResult (with fVerbose=true):\n"
-                                            "[\n"
-                                            "  {\n"
-                                            "    \"serial hash\": \"xxx\",   (string) Mint serial hash in hex format.\n"
-                                            "    \"version\": n,   (numeric) Zerocoin version number.\n"
-                                            "    \"zerocoin ID\": \"xxx\",   (string) Pubcoin in hex format.\n"
-                                            "    \"denomination\": n,   (numeric) Coin denomination.\n"
-                                            "    \"confirmations\": n   (numeric) Number of confirmations.\n"
-                                            "  }\n"
-                                            "  ,..."
-                                            "]\n"
+                "\nResult (with fVerbose=true):\n"
+                "[\n"
+                "  {\n"
+                "    \"serial hash\": \"xxx\",   (string) Mint serial hash in hex format.\n"
+                "    \"version\": n,   (numeric) Zerocoin version number.\n"
+                "    \"zerocoin ID\": \"xxx\",   (string) Pubcoin in hex format.\n"
+                "    \"denomination\": n,   (numeric) Coin denomination.\n"
+                "    \"confirmations\": n   (numeric) Number of confirmations.\n"
+                "  }\n"
+                "  ,..."
+                "]\n"
 
-                                            "\nExamples:\n" +
+                "\nExamples:\n" +
                 HelpExampleCli("listmintedzerocoins", "") + HelpExampleRpc("listmintedzerocoins", "") +
                 HelpExampleCli("listmintedzerocoins", "true") + HelpExampleRpc("listmintedzerocoins", "true") +
                 HelpExampleCli("listmintedzerocoins", "true true") + HelpExampleRpc("listmintedzerocoins", "true, true"));
@@ -523,27 +524,31 @@ UniValue listmintedzerocoins(const JSONRPCRequest& request)
 
     set<CMintMeta> setMints = pwallet->ListMints(true, fMatureOnly, true);
 
+    // sort the mints by descending confirmations
+    std::list<CMintMeta> listMints(setMints.begin(), setMints.end());
+    listMints.sort(oldest_first);
+
     int nBestHeight = chainActive.Height();
 
     UniValue jsonList(UniValue::VARR);
     if (fVerbose) {
-        for (const CMintMeta& m : setMints) {
+        for (const CMintMeta& m : listMints) {
             // Construct mint object
             UniValue objMint(UniValue::VOBJ);
-            objMint.push_back(Pair("serial hash", m.hashSerial.GetHex()));  // Serial hash
-            objMint.push_back(Pair("version", m.nVersion));                 // Zerocoin version
-            objMint.push_back(Pair("zerocoin ID", m.hashPubcoin.GetHex()));     // PubCoin
+            objMint.push_back(Pair("serial hash", m.hashSerial.GetHex()));
+            objMint.push_back(Pair("version", m.nVersion));
+            objMint.push_back(Pair("zerocoin ID", m.hashPubcoin.GetHex()));
             int denom = libzerocoin::ZerocoinDenominationToInt(m.denom);
-            objMint.push_back(Pair("denomination", denom));                 // Denomination
+            objMint.push_back(Pair("denomination", denom));
             int nConfirmations = (m.nHeight && nBestHeight > m.nHeight) ? nBestHeight - m.nHeight : 0;
-            objMint.push_back(Pair("confirmations", nConfirmations));       // Confirmations
+            objMint.push_back(Pair("confirmations", nConfirmations));
             // Push back mint object
             jsonList.push_back(objMint);
         }
     } else {
-        for (const CMintMeta& m : setMints)
+        for (const CMintMeta& m : listMints)
             // Push back PubCoin
-            jsonList.push_back(m.hashPubcoin.GetHex());
+            jsonList.push_back(m.hashSerial.GetHex());
     }
     return jsonList;
 }
@@ -703,32 +708,32 @@ UniValue spendzerocoinmints(const JSONRPCRequest& request)
                 "\nSpend zerocoin mints to a VEIL address.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
 
-                                            "\nArguments:\n"
-                                            "1. mints_list     (string, required) A json array of zerocoin mints serial hashes\n"
-                                            "2. \"address\"     (string, optional, default=change) Send to specified address or to a new change address.\n"
+                "\nArguments:\n"
+                "1. mints_list     (string, required) A json array of zerocoin mints serial hashes\n"
+                "2. \"address\"     (string, optional, default=change) Send to specified address or to a new change address.\n"
 
-                                            "\nResult:\n"
-                                            "{\n"
-                                            "  \"txid\": \"xxx\",             (string) Transaction hash.\n"
-                                            "  \"bytes\": nnn,              (numeric) Transaction size.\n"
-                                            "  \"fee\": amount,             (numeric) Transaction fee (if any).\n"
-                                            "  \"spends\": [                (array) JSON array of input objects.\n"
-                                            "    {\n"
-                                            "      \"denomination\": nnn,   (numeric) Denomination value.\n"
-                                            "      \"pubcoin\": \"xxx\",      (string) Pubcoin in hex format.\n"
-                                            "      \"serial\": \"xxx\",       (string) Serial number in hex format.\n"
-                                            "      \"acc_checksum\": \"xxx\", (string) Accumulator checksum in hex format.\n"
-                                            "    }\n"
-                                            "    ,...\n"
-                                            "  ],\n"
-                                            "  \"outputs\": [                 (array) JSON array of output objects.\n"
-                                            "    {\n"
-                                            "      \"value\": amount,         (numeric) Value in VEIL.\n"
-                                            "      \"address\": \"xxx\"         (string) VEIL address or \"zerocoinmint\" for reminted change.\n"
-                                            "    }\n"
-                                            "    ,...\n"
-                                            "  ]\n"
-                                            "}\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"txid\": \"xxx\",             (string) Transaction hash.\n"
+                "  \"bytes\": nnn,              (numeric) Transaction size.\n"
+                "  \"fee\": amount,             (numeric) Transaction fee (if any).\n"
+                "  \"spends\": [                (array) JSON array of input objects.\n"
+                "    {\n"
+                "      \"denomination\": nnn,   (numeric) Denomination value.\n"
+                "      \"pubcoin\": \"xxx\",      (string) Pubcoin in hex format.\n"
+                "      \"serial\": \"xxx\",       (string) Serial number in hex format.\n"
+                "      \"acc_checksum\": \"xxx\", (string) Accumulator checksum in hex format.\n"
+                "    }\n"
+                "    ,...\n"
+                "  ],\n"
+                "  \"outputs\": [                 (array) JSON array of output objects.\n"
+                "    {\n"
+                "      \"value\": amount,         (numeric) Value in VEIL.\n"
+                "      \"address\": \"xxx\"         (string) VEIL address or \"zerocoinmint\" for reminted change.\n"
+                "    }\n"
+                "    ,...\n"
+                "  ]\n"
+                "}\n"
 
                                             "\nExamples\n" +
                 HelpExampleCli("spendzerocoinmints", "'[\"0d8c16eee7737e3cc1e4e70dc006634182b175e039700931283b202715a0818f\", \"dfe585659e265e6a509d93effb906d3d2a0ac2fe3464b2c3b6d71a3ef34c8ad7\"]' \"VSJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\"") +
