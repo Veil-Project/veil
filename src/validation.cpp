@@ -4167,18 +4167,20 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         }
     }
 
-    if (block.IsProofOfStake() && (pindexPrev->nHeight + 1 != veil::Budget().nBlocksPerPeriod && pindexPrev->nHeight != 0)) {
-        if (block.vtx[0]->vpout.size() != 1)
-            return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS non-superblock has invalid coinbase out"));
+    if (block.IsProofOfStake()) {
+        if (!veil::BudgetParams::IsSuperBlock(pindexPrev->nHeight + 1))
+        {
+            if (block.vtx[0]->vpout.size() != 1)
+                return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS non-superblock has invalid coinbase out"));
 
-        auto pTxBase = ((CTxOutStandard*) &*(block.vtx[0]->vpout[0]));
-        if (pTxBase->nValue != 0 || pTxBase->scriptPubKey != CScript() || pTxBase->nVersion != OUTPUT_STANDARD)
-            return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS non-superblock has invalid coinbase out"));
-
-    } else if (block.IsProofOfStake()) {
-
-        if (block.vtx[0]->vpout.size() > 3)
-            return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS superblock has invalid coinbase out"));
+            auto pTxBase = ((CTxOutStandard*) &*(block.vtx[0]->vpout[0]));
+            if (pTxBase->nValue != 0 || pTxBase->scriptPubKey != CScript() || pTxBase->nVersion != OUTPUT_STANDARD)
+                return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS non-superblock has invalid coinbase out"));
+        } else {
+            // next block is a superblock
+            if (block.vtx[0]->vpout.size() > 3)
+                return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS superblock has invalid coinbase out"));
+        }
     }
 
     // Verify that the budget output is valid
