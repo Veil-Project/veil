@@ -228,7 +228,12 @@ static UniValue getzerocoinsupply(const JSONRPCRequest& request)
         pblockindex = chainActive.Tip();
     }
 
-    int64_t totalSupply = pblockindex->nMoneySupply;
+    int64_t totalSupply = 0;
+    if(pblockindex)
+        totalSupply = pblockindex->nMoneySupply;
+
+   if(!totalSupply)
+       return NullUniValue;
 
     UniValue resArr(UniValue::VARR);
     for (auto denom : libzerocoin::zerocoinDenomList) {
