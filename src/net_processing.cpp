@@ -2485,7 +2485,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
 
         LOCK(cs_main);
-        if (!HeadersAndBlocksSynced() && !pfrom->fWhitelisted) {
+        //Skip if last block is over 12 hours ago
+        if (!gArgs.GetBoolArg("-genoverride", false) && (GetAdjustedTime() - chainActive.Tip()->GetBlockTime() > 12*60*60) && !pfrom->fWhitelisted) {
             LogPrint(BCLog::NET, "Ignoring getheaders from peer=%d because node is in initial block download\n", pfrom->GetId());
             return true;
         }
