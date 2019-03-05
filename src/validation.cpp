@@ -243,6 +243,7 @@ uint256 g_best_block;
 int nScriptCheckThreads = 0;
 std::atomic_bool fImporting(false);
 std::atomic_bool fReindex(false);
+std::atomic_bool fReindexChainState(false);
 std::atomic_bool fVerifying(false);
 bool fSkipRangeproof = false;
 bool fHavePruned = false;
@@ -2142,7 +2143,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     bool fSkipComputation = false;
     int nHeightLastCheckpoint = Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints());
-    if (pindex->nHeight < nHeightLastCheckpoint)
+    if (pindex->nHeight < nHeightLastCheckpoint || fReindexChainState || fReindex)
         fSkipComputation = true;
 
     // Check it again in case a previous version let a bad block in

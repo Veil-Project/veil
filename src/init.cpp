@@ -727,6 +727,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         return;
     }
 
+    fReindexChainState = false;
+
     if (gArgs.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT)) {
         LogPrintf("Stopping after block import\n");
         StartShutdown();
@@ -1491,7 +1493,7 @@ bool AppInitMain()
     }
 
     fReindex = gArgs.GetBoolArg("-reindex", false);
-    bool fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
+    fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
     fEnableZeromint = !gArgs.GetBoolArg("-exchangesandservicesmode", false);
 
     // cache size calculations
