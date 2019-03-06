@@ -4817,6 +4817,20 @@ bool FillPSBT(const CWallet* pwallet, PartiallySignedTransaction& psbtx, const C
             if (!pout->GetTxOut(utxo))
                 return error("%s: failed to get txout from output", __func__);
             input.witness_utxo = utxo;
+        } else {
+            // Lookup the transaction from blockchain data
+            CTransactionRef tx;
+            uint256 hashBlock;
+            if (GetTransaction(txhash, tx, Params().GetConsensus(), hashBlock, true)) {
+                input.non_witness_utxo = tx;
+                if (tx->vpout.size() >= txin.prevout.n) {
+                    auto pout = tx->vpout[txin.prevout.n];
+                    CTxOut utxo;
+                    if (pout->GetTxOut(utxo)) {
+                        input.witness_utxo = utxo;
+                    }
+                }
+            }
         }
 
         // Get the Sighash type
