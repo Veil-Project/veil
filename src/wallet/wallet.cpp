@@ -6463,6 +6463,10 @@ void ThreadPrecomputeSpends()
     LogPrintf("ThreadPrecomputeSpends exiting,\n");
 }
 
+
+// Create precompute lru cache
+LRUCache lru;
+
 void CWallet::PrecomputeSpends()
 {
     LogPrintf("Veil Precomputing Started\n");
@@ -6473,11 +6477,10 @@ void CWallet::PrecomputeSpends()
         return;
     }
 
-    LRUCache lru;
+    lru.Clear();
 
     // Initialize Variables
     bool fLoadedPrecomputesFromDB = false;
-    bool fOnFirstLoad = true;
     int64_t nLastCacheCleanUpTime = GetTime();
     int64_t nLastCacheWriteDB = nLastCacheCleanUpTime;
     int nRequiredStakeDepthBuffer = Params().Zerocoin_RequiredStakeDepth() + 10;
@@ -6641,7 +6644,6 @@ void CWallet::PrecomputeSpends()
                 /** Update LRU with new data **/
                 CoinWitnessCacheData serialData(witnessData);
                 lru.AddToCache(meta.hashSerial, serialData);
-                lru.FlushToDisk(pprecomputeDB.get());
             }
             // Sleep for 150ms to allow any potential spend attempt
             MilliSleep(150);
@@ -6652,7 +6654,7 @@ void CWallet::PrecomputeSpends()
         }
 
         // On first load, and every 5 minutes clean up our cache with only valid unspent inputs
-        if (fOnFirstLoad || nLastCacheCleanUpTime < GetTime() - PRECOMPUTE_FLUSH_TIME) {
+        if (nLastCacheCleanUpTime < GetTime() - PRECOMPUTE_FLUSH_TIME) {
             LogPrint(BCLog::PRECOMPUTE, "%s: Cleaning up precompute cache\n", __func__);
 
             // We only want to clear the cache if we have calculated new witness data
@@ -6685,12 +6687,20 @@ void CWallet::PrecomputeSpends()
             nLastCacheWriteDB = GetTime();
         }
 
-        fOnFirstLoad = false;
-
         if (ShutdownRequested())
             break;
 
         LogPrint(BCLog::PRECOMPUTE, "%s: Finished precompute round...\n\n", __func__);
         MilliSleep(5000);
     }
+}
+
+void DumpPrecomputes() {
+
+    if (!pprecomputeDB) {
+        return;
+    }
+
+    lru.FlushToDisk(pprecomputeDB.get());
+    LogPrint(BCLog::PRECOMPUTE, "%s: Writing precomputes to database. Precomputes size: %d\n", __func__, lru.Size());
 }

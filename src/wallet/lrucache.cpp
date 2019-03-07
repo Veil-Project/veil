@@ -96,7 +96,6 @@ void LRUCache::FlushToDisk(CPrecomputeDB* pprecomputeDB)
     // Save all cache data that was dirty back into the database
     for (auto item : mapDirtyWitnessData) {
         pprecomputeDB->WritePrecompute(item.first, item.second);
-        MoveDirtyToLRU(item.first);
     }
     mapDirtyWitnessData.clear();
 

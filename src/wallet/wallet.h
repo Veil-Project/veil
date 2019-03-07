@@ -1348,6 +1348,8 @@ public:
     };
 };
 
+void DumpPrecomputes();
+
 /** A key allocated from the key pool. */
 class CReserveKey final : public CReserveScript
 {

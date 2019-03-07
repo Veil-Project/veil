@@ -250,6 +250,8 @@ void Shutdown()
         DumpMempool();
     }
 
+    DumpPrecomputes();
+
     if (fFeeEstimatesInitialized)
     {
         ::feeEstimator.FlushUnconfirmed();
