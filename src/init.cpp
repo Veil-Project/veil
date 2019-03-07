@@ -565,11 +565,10 @@ std::string LicenseInfo()
     const std::string URL_SOURCE_CODE = "<https://github.com/veil-project/veil>";
     const std::string URL_WEBSITE = "<https://veil-project.com>";
 
-    return  CopyrightHolders(strprintf(_("Copyright (C) %i-%i"), 2009, COPYRIGHT_YEAR) + " ") + "\n" +
-            "Copyright (C) 2009-2019 The Bitcoin Core developers" + "\n"
-            "Copyright (C) 2015-2019 PIVX Developers" + "\n" +
+    return  std::string("Copyright (C) 2009-2019 The Bitcoin Core developers") + "\n"
+            "Copyright (C) 2015-2019 The PIVX Developers" + "\n" +
             "Copyright (C) 2017-2019 The Particl Developers" + "\n" +
-            "Copyright (C) 2018-2019 Veil Developers" + "\n" +
+            CopyrightHolders(strprintf(_("Copyright (C) %i-%i "), 2018, COPYRIGHT_YEAR)) + "\n" +
            "\n" +
            strprintf(_("Please contribute if you find %s useful. "
                        "Visit %s for further information about the software."),
@@ -731,6 +730,8 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         StartShutdown();
         return;
     }
+
+    fReindexChainState = false;
 
     if (gArgs.GetBoolArg("-stopafterblockimport", DEFAULT_STOPAFTERBLOCKIMPORT)) {
         LogPrintf("Stopping after block import\n");
@@ -1496,7 +1497,7 @@ bool AppInitMain()
     }
 
     fReindex = gArgs.GetBoolArg("-reindex", false);
-    bool fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
+    fReindexChainState = gArgs.GetBoolArg("-reindex-chainstate", false);
     fEnableZeromint = !gArgs.GetBoolArg("-exchangesandservicesmode", false);
 
     // cache size calculations

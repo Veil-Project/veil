@@ -2572,7 +2572,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                 if (!stx.GetBlind(coin.second, &vInputBlinds[nIn * 32])) {
                     //Try to manually get blinds
                     uint256 blind;
-                    if (!GetCTBlindsFromOutput((CTxOutCT*)stx.tx->vpout[coin.second].get(), blind))
+                    if (!GetCTBlindsFromOutput(stx.tx->vpout[coin.second].get(), blind))
                         return werrorN(1, "%s: GetBlind failed for %s, %d.\n", __func__, txhash.ToString().c_str(), coin.second);
                     memcpy(&vInputBlinds[nIn * 32], blind.begin(), 32);
                 }
@@ -4914,53 +4914,21 @@ bool AnonWallet::GetCTBlinds(CScript scriptPubKey, std::vector<uint8_t>& vData,
     return true;
 }
 
-bool AnonWallet::GetCTBlindsFromOutput(const CTxOutCT *pout, uint256& blind) const
+bool AnonWallet::GetCTBlindsFromOutput(const CTxOutBase *pout, uint256& blind) const
 {
-    CScript scriptPubKey;
-    if (!pout->GetScriptPubKey(scriptPubKey))
-        return error("%s: GetScriptPubKey failed.", __func__);
-
-    CTxDestination dest;
-    if (!ExtractDestination(scriptPubKey, dest))
-        return error("%s: ExtractDestination failed", __func__);
-
-    if (dest.which() != 1)
-        return error("%s: destination is not key id", __func__);
-    CKeyID idKey = boost::get<CKeyID>(dest);
-
-    CKey key;
-    if (!GetKey(idKey, key))
-        return error("%s: GetKey failed.", __func__);
-
-    if (pout->vData.size() < 33)
-        return error("%s: vData.size() < 33.", __func__);
-
-    CPubKey pkEphem;
-    pkEphem.Set(pout->vData.begin(), pout->vData.begin() + 33);
-
-    // Regenerate nonce
-    uint256 nonce = key.ECDH(pkEphem);
-    CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
-
-    uint64_t min_value, max_value;
-    uint8_t blindOut[32];
-    unsigned char msg[256]; // Currently narration is capped at 32 bytes
-    size_t mlen = sizeof(msg);
-    memset(msg, 0, mlen);
-    uint64_t amountOut;
-    if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
-                                         blindOut, &amountOut, msg, &mlen, nonce.begin(),
-                                         &min_value, &max_value,
-                                         &pout->commitment, pout->vRangeproof.data(), pout->vRangeproof.size(),
-                                         nullptr, 0,
-                                         secp256k1_generator_h)) {
-        return error("%s: secp256k1_rangeproof_rewind failed.", __func__);
+    int64_t nValue = 0;
+    if (pout->GetType() == OUTPUT_CT) {
+        auto txout = (CTxOutCT*)pout;
+        return GetCTBlinds(txout->scriptPubKey, txout->vData, &txout->commitment, txout->vRangeproof, blind, nValue);
+    } else if (pout->GetType() == OUTPUT_RINGCT) {
+        auto txout = (CTxOutRingCT*)pout;
+        CScript scriptPubKey;
+        if (!pout->GetScriptPubKey(scriptPubKey))
+            return error("%s: GetScriptPubKey failed.", __func__);
+        return GetCTBlinds(scriptPubKey, txout->vData, &txout->commitment, txout->vRangeproof, blind, nValue);
     }
 
-    blind = uint256();
-    memcpy(blind.begin(), blindOut, 32);
-
-    return true;
+    return false;
 }
 
 bool AnonWallet::HaveKeyID(const CKeyID& id)

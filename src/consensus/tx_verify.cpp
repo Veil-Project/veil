@@ -24,6 +24,7 @@
 #include <tinyformat.h>
 #include <libzerocoin/CoinSpend.h>
 #include <veil/zerocoin/zchain.h>
+#include <primitives/zerocoin.h>
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
@@ -233,16 +234,24 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
     return fValidated;
 }
 
+std::set<uint256> setValidatedPubcoin;
 bool CheckZerocoinMint(const CTxOut& txout, CBigNum& bnValue, CValidationState& state, bool fSkipZerocoinMintIsPrime)
 {
     libzerocoin::PublicCoin pubCoin(Params().Zerocoin_Params());
     if (!TxOutToPublicCoin(txout, pubCoin))
         return state.DoS(100, error("CheckZerocoinMint(): TxOutToPublicCoin() failed"));
 
-    if (!fSkipZerocoinMintIsPrime && !pubCoin.validate())
-        return state.DoS(100, error("CheckZerocoinMint() : PubCoin does not validate"));
-
     bnValue = pubCoin.getValue();
+    uint256 hashPubcoin = GetPubCoinHash(bnValue);
+
+    if (!fSkipZerocoinMintIsPrime && ! setValidatedPubcoin.count(hashPubcoin)) {
+        if (!pubCoin.validate())
+            return state.DoS(100, error("CheckZerocoinMint() : PubCoin does not validate"));
+        while (setValidatedPubcoin.size() > 5000)
+            setValidatedPubcoin.erase(setValidatedPubcoin.begin());
+        setValidatedPubcoin.emplace(hashPubcoin);
+    }
+
     return true;
 }
 
