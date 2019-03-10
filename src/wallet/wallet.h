@@ -114,7 +114,7 @@ enum WalletFeature
     FEATURE_LATEST = FEATURE_PRE_SPLIT_KEYPOOL
 };
 
-// Possible states for zPIV send
+// Possible states for Zerocoin send
 enum ZerocoinSpendStatus {
     ZSPEND_OKAY = 0,                            // No error
     ZSPEND_ERROR = 1,                           // Unspecified class of errors, more details are (hopefully) in the returning text

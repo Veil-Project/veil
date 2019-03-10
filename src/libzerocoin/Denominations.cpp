@@ -52,7 +52,7 @@ CoinDenomination AmountToZerocoinDenomination(CAmount amount)
 }
 
 // return the highest denomination that is less than or equal to the amount given
-// use case: converting PIV to zPIV without user worrying about denomination math themselves
+// use case: converting VEIL to Zerocoin-VEIL without user worrying about denomination math themselves
 CoinDenomination AmountToClosestDenomination(CAmount nAmount, CAmount& nRemaining)
 {
     if (nAmount < 10 * COIN)

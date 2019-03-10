@@ -44,13 +44,13 @@ class ZerocoinStake : public CStakeInput
 private:
     uint256 nChecksum;
     bool fMint;
-    uint256 hashStake;
+    uint256 hashSerial;
 
 public:
     explicit ZerocoinStake(libzerocoin::CoinDenomination denom, const uint256& hashStake)
     {
         this->denom = denom;
-        this->hashStake = hashStake;
+        this->hashSerial = hashStake;
         this->pindexFrom = nullptr;
         fMint = true;
     }
