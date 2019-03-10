@@ -47,10 +47,10 @@ private:
     uint256 hashSerial;
 
 public:
-    explicit ZerocoinStake(libzerocoin::CoinDenomination denom, const uint256& hashStake)
+    explicit ZerocoinStake(libzerocoin::CoinDenomination denom, const uint256& hashSerial)
     {
         this->denom = denom;
-        this->hashSerial = hashStake;
+        this->hashSerial = hashSerial;
         this->pindexFrom = nullptr;
         fMint = true;
     }
