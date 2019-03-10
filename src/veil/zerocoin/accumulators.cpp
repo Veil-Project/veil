@@ -346,7 +346,7 @@ void AccumulateRange(CoinWitnessData* coinWitness, int nHeightEnd)
 {
     int nHeightStart = std::max(coinWitness->nHeightAccStart, coinWitness->nHeightPrecomputed + 1);
     CBlockIndex* pindex = chainActive[nHeightStart];
-    LogPrintf("%s:%d Accumulate %d until height %d\n", __func__, __LINE__, nHeightStart, nHeightEnd);
+//    LogPrintf("%s:%d Accumulate %d until height %d\n", __func__, __LINE__, nHeightStart, nHeightEnd);
     libzerocoin::PublicCoin pubCoinSelected = *coinWitness->coin;
     while (pindex && pindex->nHeight <= nHeightEnd) {
         coinWitness->nMintsAdded += AddBlockMintsToAccumulator(pubCoinSelected, coinWitness->nHeightMintAdded, pindex, coinWitness->pAccumulator.get(), true);
@@ -366,11 +366,9 @@ bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& ma
 
         //If there is a Acc End height filled in, then this has already been partially accumulated.
         if (!coinwitness->nHeightPrecomputed) {
-            LogPrintf("Starting precompute for mint %s accumulated height=%d\n", coinwitness->coin->getValue().GetHex().substr(0, 6), coinwitness->nHeightMintAdded);
+//            LogPrintf("Starting precompute for mint %s accumulated height=%d\n", coinwitness->coin->getValue().GetHex().substr(0, 6), coinwitness->nHeightMintAdded);
             coinwitness->pAccumulator = std::unique_ptr<Accumulator>(new Accumulator(Params().Zerocoin_Params(), coinwitness->denom));
             coinwitness->pWitness = std::unique_ptr<AccumulatorWitness>(new AccumulatorWitness(Params().Zerocoin_Params(), *coinwitness->pAccumulator, coin));
-        } else {
-            LogPrintf("%s: Using precomputed coinspend witness. \n", __func__);
         }
 
         uint256 txid;
@@ -391,7 +389,7 @@ bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& ma
         //Get the accumulator that is right before the cluster of blocks containing our mint was added to the accumulator
         bnAccValue = 0;
         if (!coinwitness->nHeightPrecomputed && GetAccumulatorValue(coinwitness->nHeightCheckpoint, coin.getDenomination(), bnAccValue)) {
-            LogPrintf("%s: using new accumulator from checkpoint block %d\n", __func__, coinwitness->nHeightCheckpoint);
+//            LogPrintf("%s: using new accumulator from checkpoint block %d\n", __func__, coinwitness->nHeightCheckpoint);
             libzerocoin::Accumulator witnessAccumulator(Params().Zerocoin_Params(), coinwitness->denom, bnAccValue);
             coinwitness->pAccumulator->setValue(witnessAccumulator.getValue());
         }
@@ -405,7 +403,7 @@ bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& ma
         if (pindexCheckpoint) {
             nHeightStop = pindexCheckpoint->nHeight - 10;
             nHeightStop -= nHeightStop % 10;
-            LogPrintf("%s: using checkpoint height %d\n", __func__, pindexCheckpoint->nHeight);
+//            LogPrintf("%s: using checkpoint height %d\n", __func__, pindexCheckpoint->nHeight);
         }
 
         if (nHeightStop <= coinwitness->nHeightPrecomputed)
@@ -426,7 +424,7 @@ bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& ma
 
     // calculate how many mints of this denomination existed in the accumulator we initialized
     coinwitness->nMintsAdded += ComputeAccumulatedCoins(coinwitness->nHeightAccStart, coin.getDenomination());
-    LogPrintf("%s : %d mints added to witness\n", __func__, coinwitness->nMintsAdded);
+//    LogPrintf("%s : %d mints added to witness\n", __func__, coinwitness->nMintsAdded);
 
     return true;
 }

@@ -8,9 +8,9 @@
 #include "serialize.h"
 #include <dbwrapper.h>
 
-#define PRECOMPUTE_LRU_CACHE_SIZE 1000
-#define PRECOMPUTE_MAX_DIRTY_CACHE_SIZE 100
-#define PRECOMPUTE_FLUSH_TIME 300 // 5 minutes
+#define PRECOMPUTE_LRU_CACHE_SIZE 2000
+#define PRECOMPUTE_MAX_DIRTY_CACHE_SIZE 1000
+#define PRECOMPUTE_FLUSH_TIME 3600 // 1 Hour
 
 class CoinWitnessCacheData;
 class LRUCache;

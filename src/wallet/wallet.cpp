@@ -5546,7 +5546,6 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
             receipt.SetStatus(_("The new spend coin transaction did not verify"), ZINVALID_WITNESS);
             return false;
         }
-
         // Deserialize the CoinSpend intro a fresh object
         CDataStream serializedCoinSpend(SER_NETWORK, PROTOCOL_VERSION);
         serializedCoinSpend << spend;
@@ -5592,7 +5591,6 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
         receipt.SetStatus(_("CoinSpend: Accumulator witness does not verify"), ZINVALID_WITNESS);
         return false;
     }
-
     receipt.SetStatus(_("Spend Valid"), ZSPEND_OKAY); // Everything okay
 
     return true;
@@ -5713,9 +5711,12 @@ bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendRe
     std::vector<CommitData> vCommitData;
     if (!PrepareZerocoinSpend(nValue, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange,
             vCommitData, denomFilter, addressTo))
-        return false;
+        return error("%s : PrepareZerocoinSpend %s", __func__, receipt.GetStatusMessage());
 
-    return CommitZerocoinSpend(receipt, vCommitData);
+    if (!CommitZerocoinSpend(receipt, vCommitData))
+        return error("%s : CommitZerocoinSpend: %s", __func__, receipt.GetStatusMessage());
+
+    return true;
 }
 
 bool CWallet::PrepareZerocoinSpend(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
@@ -5757,14 +5758,14 @@ bool CWallet::PrepareZerocoinSpend(CAmount nValue, int nSecurityLevel, CZerocoin
         CWalletTx wtxCurrent(this, nullptr);
         if (!CreateZerocoinSpendTransaction(nBatchValue, nSecurityLevel, wtxCurrent, receipt,
                                             vBatchMints, vCurNewMints, fMintChange, fMinimizeChange, addressTo)) {
-            return false;
+            return error("%s : %s", __func__, receipt.GetStatusMessage());
         }
         CValidationState state;
         LOCK(cs_main);
         if (!AcceptToMemoryPool(mempool, state, wtxCurrent.tx, nullptr /* pfMissingInputs */, nullptr /* plTxnReplaced */,
                                 false /* bypass_limits */, maxTxFee, true)) {
             // failed mempool validation for one of the transactions so no partial transaction is being committed
-            return false;
+            return error("%s : %s", __func__, "Failed to get accepted to memory pool");
         }
 
         vCommitData.emplace_back(std::make_tuple(wtxCurrent, vCurNewMints, vBatchMints));
@@ -6363,8 +6364,9 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
             //add all of the mints to the transaction as inputs
             for (CZerocoinMint& mint : vSelectedMints) {
                 CTxIn newTxIn;
-                if (!MintToTxIn(mint, nSecurityLevel, hashTxOut, newTxIn, receipt, libzerocoin::SpendType::SPEND))
-                    return false;
+                if (!MintToTxIn(mint, nSecurityLevel, hashTxOut, newTxIn, receipt, libzerocoin::SpendType::SPEND)) {
+                    return error("%s: %s", __func__, receipt.GetStatusMessage());
+                }
                 mtx.vin.push_back(newTxIn);
             }
 
@@ -6527,12 +6529,11 @@ void CWallet::PrecomputeSpends()
             if (!pprecomputeDB->LoadPrecomputes(&lru))
                 LogPrint(BCLog::PRECOMPUTE, "%s: Failed to load precompute database\n", __func__);
             fLoadedPrecomputesFromDB = true;
-            LogPrint(BCLog::PRECOMPUTE, "%s: Loaded precomputes from database. Size of lru cache: %d\n", __func__,
-                     lru.Size());
 
-            // Link LRU cache to zTracker
+            // Link LRU cache and Database to zTracker on first load
             LOCK(zTracker->cs_readlock);
             for (const auto& meta : setMints) {
+
                 CoinWitnessData *witnessData;
                 if (zTracker->HasSpendCache(meta.hashSerial)) {
                     witnessData = zTracker->GetSpendCache(meta.hashSerial);
@@ -6541,14 +6542,17 @@ void CWallet::PrecomputeSpends()
                     witnessData = zTracker->CreateSpendCache(meta.hashSerial);
                 }
 
+                CoinWitnessCacheData cacheData;
                 if (lru.Contains(meta.hashSerial)) {
                     *witnessData = lru.GetWitnessData(meta.hashSerial);
+                } else if (pprecomputeDB->ReadPrecompute(meta.hashSerial, cacheData)) {
+                    *witnessData = CoinWitnessData(cacheData);
+                    lru.AddNew(meta.hashSerial, cacheData);
                 }
             }
         }
 
         // Do some precomputing of zerocoin spend knowledge proofs
-        std::set <uint256> setInputHashes;
         for (const CMintMeta& meta : setMints) {
             if (ShutdownRequested() || IsLocked())
                 break;
@@ -6571,7 +6575,6 @@ void CWallet::PrecomputeSpends()
                         break;
                     }
 
-                    setInputHashes.insert(meta.hashSerial);
                     if (zTracker->HasSpendCache(meta.hashSerial)) {
                         witnessData = zTracker->GetSpendCache(meta.hashSerial);
                     } else {
@@ -6653,12 +6656,14 @@ void CWallet::PrecomputeSpends()
             fGlobalUnlockSpendCache = false;
         }
 
-        // On first load, and every 5 minutes clean up our cache with only valid unspent inputs
-        if (nLastCacheCleanUpTime < GetTime() - PRECOMPUTE_FLUSH_TIME) {
+        // Every 2 hours clean up our database and cache with only valid unspent inputs
+        if (nLastCacheCleanUpTime < (GetTime() - (PRECOMPUTE_FLUSH_TIME * 2))) {
             LogPrint(BCLog::PRECOMPUTE, "%s: Cleaning up precompute cache\n", __func__);
 
-            // We only want to clear the cache if we have calculated new witness data
-            if (setInputHashes.size()) {
+            std::set<CMintMeta> setMints = zTracker->ListMints(/*fUnusedOnly*/true, /*fMatureOnly*/true, /*fUpdate*/true);
+
+
+            if (setMints.size()) {
                 // Get a list of hashes currently in the database
                 std::set<uint256> databaseHashes;
                 if (!pprecomputeDB->LoadPrecomputes(databaseHashes)) {
@@ -6666,8 +6671,8 @@ void CWallet::PrecomputeSpends()
                 }
 
                 // Remove old cache data
-                for (auto inputHash : setInputHashes) {
-                    databaseHashes.erase(inputHash);
+                for (auto mint : setMints) {
+                    databaseHashes.erase(mint.hashSerial);
                 }
 
                 // Erase all old hashes from the database
@@ -6681,9 +6686,8 @@ void CWallet::PrecomputeSpends()
         }
 
         // On first load, and every 5 minutes write the cache to database
-        if (lru.Size() > PRECOMPUTE_MAX_DIRTY_CACHE_SIZE || nLastCacheWriteDB < GetTime() - 30 /**PRECOMPUTE_FLUSH_TIME*/ || ShutdownRequested()) {
-            lru.FlushToDisk(pprecomputeDB.get());
-            LogPrint(BCLog::PRECOMPUTE, "%s: Writing precomputes to database. Precomputes size: %d\n", __func__, lru.Size());
+        if (lru.DirtyCacheSize() > PRECOMPUTE_MAX_DIRTY_CACHE_SIZE || nLastCacheWriteDB < GetTime() - PRECOMPUTE_FLUSH_TIME || ShutdownRequested()) {
+            DumpPrecomputes();
             nLastCacheWriteDB = GetTime();
         }
 

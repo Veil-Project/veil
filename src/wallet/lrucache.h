@@ -22,6 +22,7 @@ public:
     void MoveLastToDirtyIfFull();
     void Remove(const uint256& hash);
     int Size() const;
+    int DirtyCacheSize() const;
 };
 
 #endif //VEIL_LRUCACHE_H

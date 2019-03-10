@@ -26,6 +26,11 @@ int LRUCache::Size() const
     return mapCacheLocation.size();
 }
 
+int LRUCache::DirtyCacheSize() const
+{
+    return mapDirtyWitnessData.size();
+}
+
 bool LRUCache::Contains(const uint256& hash) const
 {
     return mapCacheLocation.count(hash) > 0 || mapDirtyWitnessData.count(hash) > 0;
