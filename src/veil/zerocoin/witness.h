@@ -92,7 +92,7 @@ public:
     /** Veil zerocoin precompute database functions */
     bool LoadPrecomputes(LRUCache* lru);
     bool LoadPrecomputes(std::set<uint256> setHashes);
-    void EraseAllPrecomputes();
+    bool EraseAllPrecomputes();
     bool WritePrecompute(const uint256& hash, const CoinWitnessCacheData& data);
     bool ReadPrecompute(const uint256& hash, CoinWitnessCacheData& data);
     bool ErasePrecompute(const uint256& hash);

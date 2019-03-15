@@ -459,25 +459,34 @@ UniValue clearspendcache(const JSONRPCRequest& request)
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CWallet* const pwallet = wallet.get();
 
-
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
         return NullUniValue;
     }
 
     EnsureWalletIsUnlocked(pwallet);
 
+    if (!pprecomputeDB)
+        throw JSONRPCError(RPC_WALLET_ERROR, "Precompute database pointer is null");
+
     CzTracker* zTracker = pwallet->GetZTrackerPointer();
+
+    if (!zTracker)
+        throw JSONRPCError(RPC_WALLET_ERROR, "zTracker pointer is null");
 
     {
         int nTries = 0;
+        fClearSpendCache = true;
+        // In order to make it so other processes don't use the cache and cause pointer failures.
+        // Sleep the main thread, while the precompute thread clears the cache
+        MilliSleep(3000);
         while (nTries < 100) {
             TRY_LOCK(zTracker->cs_modify_lock, fLocked);
             if (fLocked) {
-                if (zTracker->ClearSpendCache()) {
-                    fClearSpendCache = true;
-                    pprecomputeDB->EraseAllPrecomputes();
-                    return "Successfully Cleared the Precompute Spend Cache and Database";
-                }
+                zTracker->ClearSpendCache();
+                if(!pprecomputeDB->EraseAllPrecomputes())
+                    throw JSONRPCError(RPC_WALLET_ERROR, "Spend database not cleared");
+
+                return "Successfully Cleared the Precompute Spend Cache and Database";
             } else {
                 fGlobalUnlockSpendCache = true;
                 nTries++;

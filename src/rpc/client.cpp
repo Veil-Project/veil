@@ -199,6 +199,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "spendzerocoinmints", 0, "mints_list"},
     { "abandontransaction", 1, "remove_mempool"},
     { "restoreaddresses", 0, "generate_count"},
+    { "showspendcaching", 0, "fVerbose"},
 };
 
 class CRPCConvertTable

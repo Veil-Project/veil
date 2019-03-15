@@ -1345,13 +1345,40 @@ UniValue showspendcaching(const JSONRPCRequest& request)
     if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
         return NullUniValue;
     UniValue params = request.params;
-    if(request.fHelp || params.size() != 0)
+    if(request.fHelp || params.size() > 1)
         throw runtime_error(
-                "generatemintlist\n"
-                "\nShow spendable zerocoins and their precomputed zero knowledge proof status\n" +
-                HelpRequiringPassphrase(pwallet));
+                "showspendcaching (fVerbose)\n"
+                "\nShows total percentage of all zerocoins and their precomputed zero knowledge proof status.\n"
+                "Or each individual zerocoin and their precomputed zero knowledge proof status\n" +
+                HelpRequiringPassphrase(pwallet) + "\n"
+                                                   "\nArguments\n"
+                                                   "1. \"fVerbose\"  :  (boolean optional) (default=false) If true, individual precomputes will be displayed.\n"
+
+                                                   "\nResult: if fVerbose is false\n"
+                                                   "  {\n"
+                                                   "    \"total_blocks_computed\": n,      (numeric) Number of blocks precomputed.\n"
+                                                   "    \"total_blocks_to_compute\": n,    (numeric) Number of blocks to precompute\n"
+                                                   "    \"percent_precomputed\": n,        (numeric) Number representing total precomputed percentage\n"
+                                                   "  }\n"
+
+                                                   "\nResult: if fVerbose is true\n"
+                                                   "[\n"
+                                                   "  {\n"
+                                                   "    \"pubcoinhash\": \"xxx\",      (string) Hex encoded pubcoinhash value.\n"
+                                                   "    \"height_minted\": n,          (numeric) Block height the zerocoin was minted.\n"
+                                                   "    \"precomputed_to\": n,         (numeric) Block height the zerocoin is precomputed to\n"
+                                                   "    \"percent_precomputed\": n     (numeric) Number representing percentage of zerocoin precomputed\n"
+                                                   "  }\n"
+                                                   "  ,...\n"
+                                                   "]\n"
+                );
 
     EnsureWalletIsUnlocked(pwallet);
+
+    bool fVerbose = false;
+    if (params.size() > 0) {
+        fVerbose = request.params[0].get_bool();
+    }
 
     auto ztracker = pwallet->GetZTrackerPointer();
 
@@ -1362,15 +1389,12 @@ UniValue showspendcaching(const JSONRPCRequest& request)
     int nTotalAccumulated = 0;
     double nTotalToAccumulate = 0;
     for (const CMintMeta& mint : setMints) {
-        UniValue obj(UniValue::VOBJ);
-        obj.pushKV("pubcoinhash", mint.hashPubcoin.GetHex());
-        obj.pushKV("height_from", mint.nHeight);
+
 
         CoinWitnessData* witnessData = ztracker->GetSpendCache(mint.hashSerial);
         if (!witnessData)
             continue;
 
-        obj.pushKV("computed_to", witnessData->nHeightPrecomputed);
         double nToAccumulate = nHeightChain - mint.nHeight;
         double nAccumulated = witnessData->nHeightPrecomputed - mint.nHeight;
         double nComputePercent = nAccumulated/nToAccumulate;
@@ -1382,15 +1406,25 @@ UniValue showspendcaching(const JSONRPCRequest& request)
 
         if (nComputePercent < 0)
             nComputePercent = 0;
-        obj.pushKV("percent_precompute", nComputePercent*100);
-        //arrRet.push_back(obj);
+
+
+        if (fVerbose) {
+            UniValue obj(UniValue::VOBJ);
+            obj.pushKV("pubcoinhash", mint.hashPubcoin.GetHex());
+            obj.pushKV("height_minted", mint.nHeight);
+            obj.pushKV("precomputed_to", witnessData->nHeightPrecomputed);
+            obj.pushKV("percent_precomputed", nComputePercent * 100);
+            arrRet.push_back(obj);
+        }
     }
 
-    UniValue objTotal(UniValue::VOBJ);
-    objTotal.pushKV("total_blocks_computed", nTotalAccumulated);
-    objTotal.pushKV("total_blocks_to_compute", nTotalToAccumulate);
-    objTotal.pushKV("percent_precomputed", (nTotalAccumulated/nTotalToAccumulate)*100);
-    arrRet.push_back(objTotal);
+    if (!fVerbose) {
+        UniValue objTotal(UniValue::VOBJ);
+        objTotal.pushKV("total_blocks_computed", nTotalAccumulated);
+        objTotal.pushKV("total_blocks_to_compute", nTotalToAccumulate);
+        objTotal.pushKV("percent_precomputed", (nTotalAccumulated / nTotalToAccumulate) * 100);
+        arrRet.push_back(objTotal);
+    }
 
     return arrRet;
 }
@@ -1547,7 +1581,7 @@ static const CRPCCommand commands[] =
     { "zerocoin",           "listmintedzerocoins",              &listmintedzerocoins,           {"fVerbose", "vMatureOnly"} },
     { "zerocoin",           "lookupzerocoin",                   &lookupzerocoin,                {"id_type", "id"} },
     { "zerocoin",           "getzerocoinbalance",               &getzerocoinbalance,            {} },
-    { "zerocoin",           "showspendcaching",               &showspendcaching,            {} },
+    { "zerocoin",           "showspendcaching",                 &showspendcaching,              {"fVerbose"} },
 };
 
 

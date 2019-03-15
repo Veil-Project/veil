@@ -198,13 +198,41 @@ bool CPrecomputeDB::LoadPrecomputes(std::set<uint256> setHashes)
     return true;
 }
 
-void CPrecomputeDB::EraseAllPrecomputes()
+bool CPrecomputeDB::EraseAllPrecomputes()
 {
-    std::set<uint256> setHashes;
-    LoadPrecomputes(setHashes);
+    std::unique_ptr<CDBIterator> pcursor(NewIterator());
 
-    for (auto hash : setHashes)
-        ErasePrecompute(hash);
+    char type = 'P';
+    CDataStream ssKeySet(SER_DISK, CLIENT_VERSION);
+    ssKeySet << std::make_pair(type, uint256());
+    pcursor->Seek(ssKeySet.str());
+    // Load precomputes
+    std::set<uint256> setDelete;
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        try {
+            char chType;
+            pcursor->GetKey(chType);
+
+            if (chType == type) {
+                uint256 hash;
+                pcursor->GetValue(hash);
+                setDelete.insert(hash);
+                pcursor->Next();
+            } else {
+                break; // if shutdown requested
+            }
+        } catch (std::exception& e) {
+            return error("%s : Deserialize or I/O error - %s", __func__, e.what());
+        }
+    }
+
+    for (auto& hash : setDelete) {
+        if (!ErasePrecompute(hash))
+            LogPrintf("%s: error failed to delete %s\n", __func__, hash.GetHex());
+    }
+
+    return true;
 }
 
 bool CPrecomputeDB::WritePrecompute(const uint256& hash, const CoinWitnessCacheData& data)

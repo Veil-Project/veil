@@ -6506,6 +6506,7 @@ void CWallet::PrecomputeSpends()
             lru.Clear();
             nLastCacheCleanUpTime = GetTime();
             nLastCacheWriteDB = nLastCacheCleanUpTime;
+            MilliSleep(5000);
         }
 
         if (ShutdownRequested())
