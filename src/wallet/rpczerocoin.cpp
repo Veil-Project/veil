@@ -19,6 +19,7 @@
 #include <wallet/walletdb.h>
 #include <veil/zerocoin/denomination_functions.h>
 #include <veil/zerocoin/mintmeta.h>
+#include <veil/zerocoin/precompute.h>
 #include <txmempool.h>
 
 
@@ -1559,6 +1560,156 @@ UniValue searchdeterministiczerocoin(const JSONRPCRequest& request)
     return "done";
 }
 
+UniValue startprecomputing(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    UniValue params = request.params;
+    if(request.fHelp || params.size() > 1)
+        throw runtime_error(
+                "startprecomputing\n"
+                "\nStart precomputing zerocoin proofs\n" +
+                HelpRequiringPassphrase(pwallet) + "\n"
+
+                                                   "\nArguments\n"
+                                                   "1. \"nBlockPerCycle\"       (numeric, optional) Number of blocks to precompute per cycle.\n"
+
+                                                   "\nExamples\n" +
+                HelpExampleCli("startprecomputing", "100") + HelpExampleRpc("startprecomputing", "100"));
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    if (!pprecompute)
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Precompute pointer not initialized");
+
+    if (params.size() > 0) {
+        int nBPC = params[0].get_int();
+        pprecompute->SetBlocksPerCycle(nBPC);
+    }
+
+    std::string response = pprecompute->StartPrecomputing();
+
+    return response;
+}
+
+UniValue stopprecomputing(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    UniValue params = request.params;
+    if(request.fHelp || params.size() != 0)
+        throw runtime_error(
+                "stopprecomputing\n"
+                "\nStop precomputing zerocoin proofs\n" +
+                HelpRequiringPassphrase(pwallet) + "\n"
+
+                                                   "\nExamples\n" +
+                HelpExampleCli("stopprecomputing", "") + HelpExampleRpc("stopprecomputing", ""));
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    if (!pprecompute)
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Precompute pointer not initialized");
+
+    pprecompute->StopPrecomputing();
+
+    return "Precompute Stopping";
+}
+
+UniValue setprecomputeblockpercycle(const JSONRPCRequest& request)
+{
+    UniValue params = request.params;
+    if(request.fHelp || params.size() != 1)
+        throw runtime_error(
+                "setprecomputeblockpercycle\n"
+                "\nSet the number of block precomputed per cycle\n"
+                        "\nArguments\n"
+                        "1. \"nBlockPerCycle\"       (numeric, required) Number of blocks to precompute per cycle. Min = 100, Max = 2000\n"
+                                                   "\nExamples\n" +
+                HelpExampleCli("setprecomputeblockpercycle", "500") + HelpExampleRpc("setprecomputeblockpercycle", "500"));
+
+    if (!pprecompute)
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Precompute pointer not initialized");
+
+    int nBPC = params[0].get_int();
+    pprecompute->SetBlocksPerCycle(nBPC);
+
+    return "Blocks per cycle set to " + std::to_string(pprecompute->GetBlocksPerCycle());
+}
+
+UniValue getprecomputeblockpercycle(const JSONRPCRequest& request)
+{
+    UniValue params = request.params;
+    if(request.fHelp || params.size() != 0)
+        throw runtime_error(
+                "getprecomputeblockpercycle\n"
+                "\nReturns the number currently set for precompute blocks per cycle\n"
+
+                "\nExamples\n" +
+                HelpExampleCli("getprecomputeblockpercycle", "") + HelpExampleRpc("getprecomputeblockpercycle", ""));
+
+    if (!pprecompute)
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Precompute pointer not initialized");
+
+    return pprecompute->GetBlocksPerCycle();
+}
+
+UniValue clearspendcache(const JSONRPCRequest& request)
+{
+    if(request.fHelp || request.params.size() != 0)
+        throw runtime_error(
+                "clearspendcache\n"
+                "\nClear the pre-computed zerocoin spend cache, and database.\n"
+                "\nExamples\n" +
+                HelpExampleCli("clearspendcache", "") + HelpExampleRpc("clearspendcache", ""));
+
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    if (!pprecomputeDB)
+        throw JSONRPCError(RPC_WALLET_ERROR, "Precompute database pointer is null");
+
+    CzTracker* zTracker = pwallet->GetZTrackerPointer();
+
+    if (!zTracker)
+        throw JSONRPCError(RPC_WALLET_ERROR, "zTracker pointer is null");
+
+    {
+        int nTries = 0;
+        fClearSpendCache = true;
+        // In order to make it so other processes don't use the cache and cause pointer failures.
+        // Sleep the main thread, while the precompute thread clears the cache
+        MilliSleep(3000);
+        while (nTries < 100) {
+            TRY_LOCK(zTracker->cs_modify_lock, fLocked);
+            if (fLocked) {
+                zTracker->ClearSpendCache();
+                if(!pprecomputeDB->EraseAllPrecomputes())
+                    throw JSONRPCError(RPC_WALLET_ERROR, "Spend database not cleared");
+
+                return "Successfully Cleared the Precompute Spend Cache and Database";
+            } else {
+                fGlobalUnlockSpendCache = true;
+                nTries++;
+                MilliSleep(100);
+            }
+        }
+    }
+    throw JSONRPCError(RPC_WALLET_ERROR, "Error: Spend cache not cleared!");
+}
+
 static const CRPCCommand commands[] =
 {
      //  category              name                                actor (function)                argNames
@@ -1582,6 +1733,11 @@ static const CRPCCommand commands[] =
     { "zerocoin",           "lookupzerocoin",                   &lookupzerocoin,                {"id_type", "id"} },
     { "zerocoin",           "getzerocoinbalance",               &getzerocoinbalance,            {} },
     { "zerocoin",           "showspendcaching",                 &showspendcaching,              {"fVerbose"} },
+    { "zerocoin",           "startprecomputing",                &startprecomputing,             {"nBlockPerCycle"} },
+    { "zerocoin",           "stopprecomputing",                 &stopprecomputing,              {} },
+    { "zerocoin",           "setprecomputeblockpercycle",       &setprecomputeblockpercycle,    {"nBlockPerCycle"} },
+    { "zerocoin",           "getprecomputeblockpercycle",       &getprecomputeblockpercycle,    {} },
+    { "zerocoin",           "clearspendcache",                  &clearspendcache,               {}},
 };
 
 

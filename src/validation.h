@@ -44,6 +44,7 @@ class CBlockPolicyEstimator;
 class CTxMemPool;
 class CValidationState;
 class CPrecomputeDB;
+class Precompute;
 struct ChainTxData;
 
 
@@ -223,9 +224,6 @@ static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
 
 /** Veil zerocoin precomputing variables */
 extern bool fClearSpendCache;
-static const int DEFAULT_PRECOMPUTE_LENGTH = 1000;
-static const int MIN_PRECOMPUTE_LENGTH = 500;
-static const int MAX_PRECOMPUTE_LENGTH = 2000;
 
 /**
  * Process an incoming block. This only returns after the best known valid
@@ -507,6 +505,8 @@ extern std::unique_ptr<CZerocoinDB> pzerocoinDB;
 
 /** Global variable that points to the active percompute database (protected by cs_main) */
 extern std::unique_ptr<CPrecomputeDB> pprecomputeDB;
+
+extern std::unique_ptr<Precompute> pprecompute;
 
 /**
  * Return the spend height, which is one more than the inputs.GetBestBlock().

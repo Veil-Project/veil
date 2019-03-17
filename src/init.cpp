@@ -55,6 +55,7 @@
 #include <veil/ringct/anon.h>
 #include <veil/zerocoin/zchain.h>
 #include <veil/zerocoin/witness.h>
+#include <veil/zerocoin/precompute.h>
 
 #ifndef WIN32
 #include <signal.h>
@@ -181,6 +182,7 @@ static std::unique_ptr<ECCVerifyHandle> globalVerifyHandle;
 static boost::thread_group threadGroup;
 static boost::thread_group threadGroupStaking;
 static boost::thread_group threadGroupPoWMining;
+static boost::thread_group threadGroupPrecompute;
 static boost::thread_group threadGroupStaging;
 static CScheduler scheduler;
 
@@ -239,6 +241,8 @@ void Shutdown()
     threadGroupStaging.join_all();
     threadGroup.interrupt_all();
     threadGroup.join_all();
+    threadGroupPrecompute.interrupt_all();
+    threadGroupPrecompute.join_all();
 
     // After the threads that potentially access these pointers have been stopped,
     // destruct and reset all to nullptr.
@@ -290,6 +294,7 @@ void Shutdown()
         pblocktree.reset();
         pzerocoinDB.reset();
         pprecomputeDB.reset();
+        pprecompute.reset();
     }
     g_wallet_init_interface.Stop();
 
@@ -1550,6 +1555,9 @@ bool AppInitMain()
                 pprecomputeDB.reset();
                 pprecomputeDB.reset(new CPrecomputeDB(0, false, false));
 
+                pprecompute.reset();
+                pprecompute.reset(new Precompute());
+
                 if (fReset) {
                     pblocktree->WriteReindexing(true);
                     //If we're reindexing in prune mode, wipe away unusable block files and all undo data files
@@ -1888,6 +1896,7 @@ bool AppInitMain()
     threadGroupStaging.create_thread(&ThreadStagingBatchVerify);
 
     LinkPoWThreadGroup(&threadGroupPoWMining);
+    LinkPrecomputeThreadGroup(&threadGroupPrecompute);
 
     // Start wallet CPU mining if the -gen=<n> parameter is given
     int nThreads = gArgs.GetArg("-gen", 0);
@@ -1913,9 +1922,12 @@ bool AppInitMain()
         }
     }
 
-    if (gArgs.GetBoolArg("-precompute", true)) {
-        // Run a thread to precompute any zPIV spends
-        threadGroup.create_thread(boost::bind(&ThreadPrecomputeSpends));
+    if (pprecompute) {
+        pprecompute->SetBlocksPerCycle(gArgs.GetArg("-precomputeblockpercycle", DEFAULT_PRECOMPUTE_BPC));
+        if (gArgs.GetBoolArg("-precompute", false)) {
+            // Start precomputing zerocoin proofs
+            pprecompute->StartPrecomputing();
+        }
     }
 
     return true;

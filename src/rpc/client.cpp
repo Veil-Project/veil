@@ -200,6 +200,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "abandontransaction", 1, "remove_mempool"},
     { "restoreaddresses", 0, "generate_count"},
     { "showspendcaching", 0, "fVerbose"},
+    { "startprecomputing", 0, "nBlockPerCycle"},
+    { "setprecomputeblockpercycle", 0, "nBlockPerCycle"},
 };
 
 class CRPCConvertTable

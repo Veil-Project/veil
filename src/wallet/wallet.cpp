@@ -5,7 +5,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <wallet/wallet.h>
-#include <wallet/lrucache.h>
+#include <veil/zerocoin/lrucache.h>
 #include <veil/ringct/anonwallet.h>
 #include <veil/budget.h>
 
@@ -52,6 +52,9 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <util.h>
+#include "veil/zerocoin/precompute.h"
+
+#include <boost/thread.hpp>
 
 static const size_t OUTPUT_GROUP_MAX_ENTRIES = 10;
 int64_t nAutoMintStartupTime = GetTime(); //!< Client startup time for use with automint
@@ -6448,62 +6451,35 @@ bool CWallet::GetZerocoinKey(const CBigNum& bnSerial, CKey& key)
     return mint.GetKeyPair(key);
 }
 
-
-void ThreadPrecomputeSpends()
-{
-    boost::this_thread::interruption_point();
-    LogPrintf("ThreadPrecomputeSpends started\n");
-    auto pwallet = GetMainWallet();
-    try {
-        pwallet->PrecomputeSpends();
-        boost::this_thread::interruption_point();
-    } catch (std::exception& e) {
-        LogPrintf("ThreadPrecomputeSpends() exception: %s \n", e.what());
-    } catch (...) {
-        LogPrintf("ThreadPrecomputeSpends() error \n");
-    }
-    LogPrintf("ThreadPrecomputeSpends exiting,\n");
-}
-
-
-// Create precompute lru cache
-LRUCache lru;
-
 void CWallet::PrecomputeSpends()
 {
     LogPrintf("Veil Precomputing Started\n");
     RenameThread("veil-precomputer");
-
+    boost::this_thread::interruption_point();
     if (!pprecomputeDB) {
         LogPrintf("Veil Precomputing failed to get database pointer\n");
         return;
     }
 
-    lru.Clear();
+    if (!pprecompute) {
+        LogPrintf("Veil Precomputing failed to get precompute pointer\n");
+        return;
+    }
+
+    pprecompute->lru.Clear();
 
     // Initialize Variables
-    bool fLoadedPrecomputesFromDB = false;
+    bool fLoadedDB = false;
     int64_t nLastCacheCleanUpTime = GetTime();
     int64_t nLastCacheWriteDB = nLastCacheCleanUpTime;
     int nRequiredStakeDepthBuffer = Params().Zerocoin_RequiredStakeDepth() + 10;
-    //int nAdjustableCacheLength = gArgs.GetArg("-precomputecachelength", DEFAULT_PRECOMPUTE_LENGTH);
-    int nAdjustableCacheLength = 100;
-
-    // Force the cache length to be divisible by 10
-    if (nAdjustableCacheLength % 10)
-        nAdjustableCacheLength -= nAdjustableCacheLength % 10;
-
-//    if (nAdjustableCacheLength < MIN_PRECOMPUTE_LENGTH)
-//        nAdjustableCacheLength = MIN_PRECOMPUTE_LENGTH;
-//
-//    if (nAdjustableCacheLength > MAX_PRECOMPUTE_LENGTH)
-//        nAdjustableCacheLength = MAX_PRECOMPUTE_LENGTH;
 
     while (true) {
+        boost::this_thread::interruption_point();
         // Check to see if we need to clear the cache
         if (fClearSpendCache) {
             fClearSpendCache = false;
-            lru.Clear();
+            pprecompute->lru.Clear();
             nLastCacheCleanUpTime = GetTime();
             nLastCacheWriteDB = nLastCacheCleanUpTime;
             MilliSleep(5000);
@@ -6525,11 +6501,11 @@ void CWallet::PrecomputeSpends()
         }
 
         // If we haven't loaded from database yet, load the precomputes from the database
-        if (!fLoadedPrecomputesFromDB) {
+        if (!fLoadedDB) {
             // Load the precomputes into the LRU cache
-            if (!pprecomputeDB->LoadPrecomputes(&lru))
+            if (!pprecomputeDB->LoadPrecomputes(&(pprecompute->lru)))
                 LogPrint(BCLog::PRECOMPUTE, "%s: Failed to load precompute database\n", __func__);
-            fLoadedPrecomputesFromDB = true;
+            fLoadedDB = true;
 
             // Link LRU cache and Database to zTracker on first load
             LOCK(zTracker->cs_readlock);
@@ -6544,17 +6520,18 @@ void CWallet::PrecomputeSpends()
                 }
 
                 CoinWitnessCacheData cacheData;
-                if (lru.Contains(meta.hashSerial)) {
-                    *witnessData = lru.GetWitnessData(meta.hashSerial);
+                if (pprecompute->lru.Contains(meta.hashSerial)) {
+                    *witnessData = pprecompute->lru.GetWitnessData(meta.hashSerial);
                 } else if (pprecomputeDB->ReadPrecompute(meta.hashSerial, cacheData)) {
                     *witnessData = CoinWitnessData(cacheData);
-                    lru.AddNew(meta.hashSerial, cacheData);
+                    pprecompute->lru.AddNew(meta.hashSerial, cacheData);
                 }
             }
         }
 
         // Do some precomputing of zerocoin spend knowledge proofs
         for (const CMintMeta& meta : setMints) {
+            boost::this_thread::interruption_point();
             if (ShutdownRequested() || IsLocked())
                 break;
 
@@ -6595,14 +6572,14 @@ void CWallet::PrecomputeSpends()
 
                 /** If Witness is not already valid and loaded, then load/create it **/
                 if (!witnessData->nHeightAccStart) {
-                    if (lru.Contains(meta.hashSerial)) {
+                    if (pprecompute->lru.Contains(meta.hashSerial)) {
                         /** Load witness from cache **/
-                        *witnessData = lru.GetWitnessData(meta.hashSerial);
+                        *witnessData = pprecompute->lru.GetWitnessData(meta.hashSerial);
                         LogPrint(BCLog::PRECOMPUTE, "%s: Got Witness Data from lru cache: %s\n", __func__, witnessData->ToString());
                     } else if (pprecomputeDB->ReadPrecompute(meta.hashSerial, tempDataHolder)) {
                         /** Precompute was found on disk but not loaded to LRU **/
                         *witnessData = CoinWitnessData(tempDataHolder);
-                        lru.AddNew(meta.hashSerial, tempDataHolder);
+                        pprecompute->lru.AddNew(meta.hashSerial, tempDataHolder);
                         LogPrint(BCLog::PRECOMPUTE, "%s: Got Witness Data from precompute database: %s\n", __func__, witnessData->ToString());
                     } else {
                         /** No cache, so initialize new **/
@@ -6611,14 +6588,14 @@ void CWallet::PrecomputeSpends()
                             continue;
                         *witnessData = CoinWitnessData(mint);
                         nHeightStop = std::min(chainActive.Height() - nRequiredStakeDepthBuffer,
-                                               mint.GetHeight() + nAdjustableCacheLength);
+                                               mint.GetHeight() + pprecompute->GetBlocksPerCycle());
                     }
                 }
 
                 if (!nHeightStop) {
                     // Set the stop height from the variables received from the database cache
                     int nStakeHeight = chainActive.Height() - nRequiredStakeDepthBuffer;
-                    int nAdjustableHeight = (witnessData->nHeightPrecomputed ? witnessData->nHeightPrecomputed : witnessData->nHeightAccStart) + nAdjustableCacheLength;
+                    int nAdjustableHeight = (witnessData->nHeightPrecomputed ? witnessData->nHeightPrecomputed : witnessData->nHeightAccStart) + pprecompute->GetBlocksPerCycle();
                     nHeightStop = std::min(nStakeHeight, nAdjustableHeight);
                 }
 
@@ -6640,14 +6617,14 @@ void CWallet::PrecomputeSpends()
                 if (!GenerateAccumulatorWitness(witnessData, mapAccumulators, 100, strError, pindexStop)) {
                     LogPrintf("%s: Generate witness failed!\n", __func__);
                     // If we fail this check, we need to make sure we remove this from the LRU cache
-                    lru.Remove(meta.hashSerial);
+                    pprecompute->lru.Remove(meta.hashSerial);
                     pprecomputeDB->ErasePrecompute(meta.hashSerial);
                     continue;
                 }
 
                 /** Update LRU with new data **/
                 CoinWitnessCacheData serialData(witnessData);
-                lru.AddToCache(meta.hashSerial, serialData);
+                pprecompute->lru.AddToCache(meta.hashSerial, serialData);
             }
             // Sleep for 150ms to allow any potential spend attempt
             MilliSleep(150);
@@ -6678,7 +6655,7 @@ void CWallet::PrecomputeSpends()
 
                 // Erase all old hashes from the database
                 for (auto hash : databaseHashes) {
-                    lru.Remove(hash);
+                    pprecompute->lru.Remove(hash);
                     pprecomputeDB->ErasePrecompute(hash);
                 }
 
@@ -6687,7 +6664,7 @@ void CWallet::PrecomputeSpends()
         }
 
         // On first load, and every 5 minutes write the cache to database
-        if (lru.DirtyCacheSize() > PRECOMPUTE_MAX_DIRTY_CACHE_SIZE || nLastCacheWriteDB < GetTime() - PRECOMPUTE_FLUSH_TIME || ShutdownRequested()) {
+        if (pprecompute->lru.DirtyCacheSize() > PRECOMPUTE_MAX_DIRTY_CACHE_SIZE || nLastCacheWriteDB < GetTime() - PRECOMPUTE_FLUSH_TIME || ShutdownRequested()) {
             DumpPrecomputes();
             nLastCacheWriteDB = GetTime();
         }
@@ -6698,17 +6675,4 @@ void CWallet::PrecomputeSpends()
         LogPrint(BCLog::PRECOMPUTE, "%s: Finished precompute round...\n\n", __func__);
         MilliSleep(5000);
     }
-}
-
-void DumpPrecomputes() {
-
-    if (!pprecomputeDB) {
-        LogPrintf("Dump Precomputes: Database pointer not found\n");
-        return;
-    }
-
-    int64_t start = GetTimeMicros();
-    lru.FlushToDisk(pprecomputeDB.get());
-    int64_t end = GetTimeMicros();
-    LogPrintf("Dump Precomputes: %gs to dump\n", (end-start)*0.000001);
 }

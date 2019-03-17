@@ -2,7 +2,7 @@
 #include <tinyformat.h>
 #include "witness.h"
 #include <util.h>
-#include <wallet/lrucache.h>
+#include <veil/zerocoin/lrucache.h>
 #include <wallet/walletutil.h>
 #include <wallet/walletdb.h>
 

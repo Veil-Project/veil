@@ -32,9 +32,7 @@
 #endif
 
 #include <univalue.h>
-#include <veil/zerocoin/ztracker.h>
 #include <wallet/rpcwallet.h>
-#include <wallet/wallet.h>
 
 static UniValue validateaddress(const JSONRPCRequest& request)
 {
@@ -446,57 +444,6 @@ UniValue logging(const JSONRPCRequest& request)
     return result;
 }
 
-UniValue clearspendcache(const JSONRPCRequest& request)
-{
-    if(request.fHelp || request.params.size() != 0)
-        throw runtime_error(
-                "clearspendcache\n"
-                "\nClear the pre-computed zerocoin spend cache, and database.\n"
-                "\nExamples\n" +
-                HelpExampleCli("clearspendcache", "") + HelpExampleRpc("clearspendcache", ""));
-
-
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CWallet* const pwallet = wallet.get();
-
-    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
-        return NullUniValue;
-    }
-
-    EnsureWalletIsUnlocked(pwallet);
-
-    if (!pprecomputeDB)
-        throw JSONRPCError(RPC_WALLET_ERROR, "Precompute database pointer is null");
-
-    CzTracker* zTracker = pwallet->GetZTrackerPointer();
-
-    if (!zTracker)
-        throw JSONRPCError(RPC_WALLET_ERROR, "zTracker pointer is null");
-
-    {
-        int nTries = 0;
-        fClearSpendCache = true;
-        // In order to make it so other processes don't use the cache and cause pointer failures.
-        // Sleep the main thread, while the precompute thread clears the cache
-        MilliSleep(3000);
-        while (nTries < 100) {
-            TRY_LOCK(zTracker->cs_modify_lock, fLocked);
-            if (fLocked) {
-                zTracker->ClearSpendCache();
-                if(!pprecomputeDB->EraseAllPrecomputes())
-                    throw JSONRPCError(RPC_WALLET_ERROR, "Spend database not cleared");
-
-                return "Successfully Cleared the Precompute Spend Cache and Database";
-            } else {
-                fGlobalUnlockSpendCache = true;
-                nTries++;
-                MilliSleep(100);
-            }
-        }
-    }
-    throw JSONRPCError(RPC_WALLET_ERROR, "Error: Spend cache not cleared!");
-}
-
 static UniValue echo(const JSONRPCRequest& request)
 {
     if (request.fHelp)
@@ -531,7 +478,6 @@ static const CRPCCommand commands[] =
     { "util",               "createmultisig",         &createmultisig,         {"nrequired","keys"} },
     { "util",               "verifymessage",          &verifymessage,          {"address","signature","message"} },
     { "util",               "signmessagewithprivkey", &signmessagewithprivkey, {"privkey","message"} },
-    { "util",               "clearspendcache",        &clearspendcache,        {}},
 
     /* Not shown in help */
     { "hidden",             "setmocktime",            &setmocktime,            {"timestamp"}},

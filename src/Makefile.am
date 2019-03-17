@@ -210,6 +210,8 @@ BITCOIN_CORE_H = \
   veil/zerocoin/accumulators.h \
   veil/zerocoin/accumulatormap.h \
   veil/zerocoin/denomination_functions.h \
+  veil/zerocoin/lrucache.h \
+  veil/zerocoin/precompute.h \
   veil/zerocoin/spendreceipt.h \
   veil/zerocoin/mintpool.h \
   veil/zerocoin/mintmeta.h \
@@ -231,7 +233,6 @@ BITCOIN_CORE_H = \
   wallet/feebumper.h \
   wallet/fees.h \
   wallet/init.h \
-  wallet/lrucache.h \
   wallet/rpcwallet.h \
   wallet/wallet.h \
   wallet/walletbalances.h \
@@ -332,7 +333,6 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/feebumper.cpp \
   wallet/fees.cpp \
   wallet/init.cpp \
-  wallet/lrucache.cpp \
   wallet/rpcdump.cpp \
   wallet/rpcwallet.cpp \
   wallet/rpczerocoin.cpp \
@@ -343,7 +343,9 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/deterministicmint.cpp \
   primitives/zerocoin.cpp \
   veil/zerocoin/denomination_functions.cpp \
+  veil/zerocoin/lrucache.cpp \
   veil/zerocoin/mintpool.cpp \
+  veil/zerocoin/precompute.cpp \
   veil/zerocoin/spendreceipt.cpp \
   veil/zerocoin/witness.cpp \
   veil/zerocoin/zchain.cpp \

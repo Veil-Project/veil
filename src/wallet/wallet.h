@@ -1348,7 +1348,7 @@ public:
     };
 };
 
-void DumpPrecomputes();
+
 
 /** A key allocated from the key pool. */
 class CReserveKey final : public CReserveScript
@@ -1415,8 +1415,6 @@ public:
         }
     }
 };
-
-void ThreadPrecomputeSpends();
 
 // Calculate the size of the transaction assuming all signatures are max size
 // Use DummySignatureCreator, which inserts 71 byte signatures everywhere.
