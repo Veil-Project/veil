@@ -204,7 +204,7 @@ public:
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8"); //534292
+        consensus.defaultAssumeValid = uint256S("0x42145acdde948865d73a8b318fea09b9e9cb826f93007c7a21b4f103822da86d"); //534292
 
         consensus.nMinRCTOutputDepth = 12;
 
@@ -265,14 +265,15 @@ public:
                 { 29000, uint256S("0xb1f7b8cc4669ba57c341c3dd49da16d174f9c2a0673c5f3556225b9f8bb4454e")},
                 { 36000, uint256S("0x24d1d2662203f225bb16e9535928dd2493033c1ef10124f241d9a6f36d9bf242")},
                 { 52000, uint256S("0x96867cbf3f54e5dbdc19d237d264df6734eaea5975e30db41922aa3c14bd64c0")},
+                { 101000, uint256S("0x42145acdde948865d73a8b318fea09b9e9cb826f93007c7a21b4f103822da86d")},
             }
         };
 
         chainTxData = ChainTxData{
             // Data from rpc: getchaintxstats 4096 0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8
-            /* nTime    */ 1549688281,
-            /* nTxCount */ 166433,
-            /* dTxRate  */ 0.0558
+            /* nTime    */ 1552691880,
+            /* nTxCount */ 300585,
+            /* dTxRate  */ 0.0427
         };
 
         /* disable fallback fee on mainnet */
