@@ -118,6 +118,9 @@ std::string CoinSpend::ToString() const
 
 bool CoinSpend::HasValidSerial(ZerocoinParams* params) const
 {
+    if (coinSerialNumber.bitSize() > 256)
+        return false;
+
     return IsValidSerial(params, coinSerialNumber);
 }
 

@@ -281,6 +281,9 @@ public:
         unsigned int nSize = BN_bn2mpi(bn, NULL);
         if (nSize < 4)
             return 0;
+        if (bitSize() > 256) {
+            return MaxUint256();
+        }
         std::vector<unsigned char> vch(nSize);
         BN_bn2mpi(bn, &vch[0]);
         if (vch.size() > 4)
@@ -855,6 +858,10 @@ public:
     uint256 getuint256() const
     {
         uint256 n = uint256();
+        if (bitSize() > 256) {
+            return MaxUint256();
+        }
+
         mpz_export((unsigned char*)&n, NULL, -1, 1, 0, 0, bn);
         return n;
     }

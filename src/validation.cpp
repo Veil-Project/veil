@@ -760,6 +760,8 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 auto spend = TxInToZerocoinSpend(txin);
                 if (!spend)
                     return false;
+                if (spend->getVersion() < libzerocoin::CoinSpend::V3_SMALL_SOK)
+                    return state.Invalid(false, REJECT_OBSOLETE, "old-version-zerocoinspend");
                 auto bnSerial = spend->getCoinSerialNumber();
                 int nHeight;
                 if (IsSerialInBlockchain(bnSerial, nHeight))
@@ -4010,6 +4012,10 @@ bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::Publ
 bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock,
         CBlockIndex* pindex, bool fSkipSignatureVerify)
 {
+    //Before v3 should not even serialize correctly, but double check here
+    if (spend.getVersion() < libzerocoin::CoinSpend::V3_SMALL_SOK)
+        return error("%s: zerocoin spend less than minimum accepted version", __func__);
+
     if (!spend.HasValidSignature())
         return error("%s: zerocoin spend does not have a valid signature", __func__);
 
