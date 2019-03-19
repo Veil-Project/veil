@@ -5,6 +5,7 @@
 #include <veil/zerocoin/lrucache.h>
 #include <wallet/walletutil.h>
 #include <wallet/walletdb.h>
+#include <boost/thread.hpp>
 
 void CoinWitnessData::SetNull()
 {
