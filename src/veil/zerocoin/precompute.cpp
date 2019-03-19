@@ -43,7 +43,7 @@ std::string Precompute::StartPrecomputing()
 
     pthreadGroupPrecompute->create_thread(boost::bind(&ThreadPrecomputeSpends));
 
-    return "Start precomputing";
+    return "precomputing started";
 }
 
 void Precompute::StopPrecomputing()
