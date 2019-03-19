@@ -567,16 +567,30 @@ bool CzTracker::GetCoinWitness(const uint256& hashSerial, CoinWitnessData& data)
 
     auto pwitness = mapSpendCache.at(hashSerial).get();
 
-    auto denom = pwitness->denom;
-    data.denom = denom;
-    data.coin = std::unique_ptr<libzerocoin::PublicCoin>(new libzerocoin::PublicCoin(Params().Zerocoin_Params(), pwitness->coin->getValue(), denom));
-    data.pAccumulator = std::unique_ptr<libzerocoin::Accumulator>(new libzerocoin::Accumulator(Params().Zerocoin_Params(), denom, pwitness->pAccumulator->getValue()));
-    data.pWitness = std::unique_ptr<libzerocoin::AccumulatorWitness>(new libzerocoin::AccumulatorWitness(Params().Zerocoin_Params(), *data.pAccumulator.get(), *data.coin));
-    data.nHeightCheckpoint = pwitness->nHeightCheckpoint;
-    data.nHeightMintAdded = pwitness->nHeightMintAdded;
-    data.nHeightAccStart = pwitness->nHeightAccStart;
-    data.nHeightPrecomputed = pwitness->nHeightPrecomputed;
-    data.txid = pwitness->txid;
+    if (!pwitness->coin) {
+        return error("%s: Coin pointer was null: returning false", __func__);
+    }
+
+    if (!pwitness->pAccumulator) {
+        return error("%s: Accumulator pointer was null: returning false", __func__);
+    }
+
+    try {
+        data = *pwitness;
+    } catch(...) {
+        return error("%s: Failed to copy pwitness data", __func__);
+    }
+
+//    auto denom = pwitness->denom;
+//    data.denom = denom;
+//    data.coin = std::unique_ptr<libzerocoin::PublicCoin>(new libzerocoin::PublicCoin(Params().Zerocoin_Params(), pwitness->coin->getValue(), denom));
+//    data.pAccumulator = std::unique_ptr<libzerocoin::Accumulator>(new libzerocoin::Accumulator(Params().Zerocoin_Params(), denom, pwitness->pAccumulator->getValue()));
+//    data.pWitness = std::unique_ptr<libzerocoin::AccumulatorWitness>(new libzerocoin::AccumulatorWitness(Params().Zerocoin_Params(), *data.pAccumulator.get(), *data.coin));
+//    data.nHeightCheckpoint = pwitness->nHeightCheckpoint;
+//    data.nHeightMintAdded = pwitness->nHeightMintAdded;
+//    data.nHeightAccStart = pwitness->nHeightAccStart;
+//    data.nHeightPrecomputed = pwitness->nHeightPrecomputed;
+//    data.txid = pwitness->txid;
 
     return true;
 }
