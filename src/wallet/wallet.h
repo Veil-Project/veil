@@ -678,6 +678,8 @@ protected:
     std::unique_ptr<CzTracker> zTracker;
     bool fUnlockForStakingOnly = false;
     bool fStakingEnabled = true;
+    bool fPrecomputingEnabled = false;
+
 
     WalletBatch *encrypted_batch = nullptr;
 
@@ -966,6 +968,11 @@ public:
     bool IsUnlockedForStakingOnly() const { return fUnlockForStakingOnly; }
     void SetStakingEnabled(bool fStakingEnabled) { this->fStakingEnabled = fStakingEnabled; }
     bool IsStakingEnabled() const { return fStakingEnabled; }
+
+    bool StartPrecomputing(std::string& strStatus);
+    void StopPrecomputing();
+    void SetPrecomputingEnabled(bool fPrecomputingEnabled) { this->fPrecomputingEnabled = fPrecomputingEnabled; }
+    bool IsPrecomputingEnabled() const { return fPrecomputingEnabled; }
 
     /*
      * Rescan abort properties

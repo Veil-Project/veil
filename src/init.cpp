@@ -1922,11 +1922,14 @@ bool AppInitMain()
         }
     }
 
-    if (pprecompute) {
+    auto pt = GetMainWallet();
+    if (pprecompute && pt) {
         pprecompute->SetBlocksPerCycle(gArgs.GetArg("-precomputeblockpercycle", DEFAULT_PRECOMPUTE_BPC));
         if (gArgs.GetBoolArg("-precompute", false)) {
             // Start precomputing zerocoin proofs
-            pprecompute->StartPrecomputing();
+            std::string strStatus;
+            if (!pt->StartPrecomputing(strStatus))
+                error("Failed to start precomputing : %s", strStatus);
         }
     }
 

@@ -16,6 +16,7 @@ class Precompute
 {
 private:
     int nBlocksPerCycle;
+    PRECOMPUTE_STATUS status;
     boost::thread_group* pthreadGroupPrecompute;
 
 public:
@@ -27,7 +28,8 @@ public:
     boost::thread_group* GetThreadGroupPointer();
     void SetThreadGroupPointer(void* threadGroup);
     void SetThreadPointer();
-    std::string StartPrecomputing();
+    bool StartPrecomputing(std::string& strStatus);
+
     void StopPrecomputing();
     void SetBlocksPerCycle(const int& nNewBlockPerCycle);
     int GetBlocksPerCycle();

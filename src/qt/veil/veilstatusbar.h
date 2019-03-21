@@ -26,11 +26,13 @@ public:
     void setSyncStatusVisible(bool fVisible);
     void setWalletModel(WalletModel *model);
     void updateStakingCheckbox();
+    void updatePrecomputeCheckbox();
 
 private Q_SLOTS:
     void onBtnSyncClicked();
     void onBtnLockClicked();
     void onCheckStakingClicked(bool res);
+    void onCheckPrecomputeClicked(bool res);
 
 private:
     Ui::VeilStatusBar *ui;

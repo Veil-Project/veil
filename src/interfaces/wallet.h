@@ -296,6 +296,12 @@ public:
     virtual void setStakingEnabled(bool fEnableStaking) = 0;
     virtual bool isStakingEnabled() = 0;
 
+    // Enable or disable precomputing
+    virtual void setPrecomputingEnabled(bool fEnablePrecomputing) = 0;
+    virtual bool StartPrecomputing(std::string& strStatus) = 0;
+    virtual void StopPrecomputing() = 0;
+    virtual bool isPrecomputingEnabled() = 0;
+
     //! Register handler for unload message.
     using UnloadFn = std::function<void()>;
     virtual std::unique_ptr<Handler> handleUnload(UnloadFn fn) = 0;

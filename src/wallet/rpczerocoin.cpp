@@ -1589,8 +1589,11 @@ UniValue startprecomputing(const JSONRPCRequest& request)
         int nBPC = params[0].get_int();
         pprecompute->SetBlocksPerCycle(nBPC);
     }
+    std::string response;
 
-    std::string response = pprecompute->StartPrecomputing();
+    if (!pwallet->StartPrecomputing(response)) {
+        return "Failed to start precomputing: " + response;
+    }
 
     return response;
 }
@@ -1617,9 +1620,9 @@ UniValue stopprecomputing(const JSONRPCRequest& request)
     if (!pprecompute)
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Precompute pointer not initialized");
 
-    pprecompute->StopPrecomputing();
+    pwallet->StopPrecomputing();
 
-    return "Precompute Stopping";
+    return "precomputing stopping";
 }
 
 UniValue setprecomputeblockpercycle(const JSONRPCRequest& request)

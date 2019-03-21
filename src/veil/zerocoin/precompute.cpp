@@ -29,21 +29,23 @@ void Precompute::SetThreadGroupPointer(void* threadGroup)
     pthreadGroupPrecompute = (boost::thread_group*)threadGroup;
 }
 
-std::string Precompute::StartPrecomputing()
+bool Precompute::StartPrecomputing(std::string& strStatus)
 {
     if (!pthreadGroupPrecompute) {
         error("%s: pthreadGroupPrecompute is null! Cannot precompute.", __func__);
-        return "pthreadGroupPrecompute is null! Cannot precompute.";
+        strStatus = "Unable to start the precompute thread group";
+        return false;
     }
 
     // Close any active precomputing threads before starting new threads
     if (pthreadGroupPrecompute->size() > 0) {
-        StopPrecomputing();
+        this->StopPrecomputing();
     }
 
     pthreadGroupPrecompute->create_thread(boost::bind(&ThreadPrecomputeSpends));
 
-    return "precomputing started";
+    strStatus = "precomputing started";
+    return true;
 }
 
 void Precompute::StopPrecomputing()

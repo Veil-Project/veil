@@ -6451,6 +6451,27 @@ bool CWallet::GetZerocoinKey(const CBigNum& bnSerial, CKey& key)
     return mint.GetKeyPair(key);
 }
 
+bool CWallet::StartPrecomputing(std::string& strStatus)
+{
+    if (!pprecompute) {
+        strStatus = "Failed to access the precompute pointer";
+        return false;
+    }
+
+    SetPrecomputingEnabled(true);
+    return pprecompute->StartPrecomputing(strStatus);
+}
+
+void CWallet::StopPrecomputing()
+{
+    if (!pprecompute) {
+        return;
+    }
+
+    SetPrecomputingEnabled(false);
+    pprecompute->StopPrecomputing();
+}
+
 void CWallet::PrecomputeSpends()
 {
     LogPrintf("Veil Precomputing Started\n");
@@ -6488,7 +6509,7 @@ void CWallet::PrecomputeSpends()
         if (ShutdownRequested())
             break;
 
-        if (IsInitialBlockDownload() || !HeadersAndBlocksSynced()) {
+        if (IsInitialBlockDownload() || !HeadersAndBlocksSynced() || !IsPrecomputingEnabled()) {
             MilliSleep(5000);
             continue;
         }
