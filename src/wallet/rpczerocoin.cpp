@@ -1472,34 +1472,7 @@ UniValue deterministiczerocoinstate(const JSONRPCRequest& request)
 void static SearchThread(CzWallet* zwallet, int nCountStart, int nCountEnd)
 {
     LogPrintf("%s: start=%d end=%d\n", __func__, nCountStart, nCountEnd);
-    WalletBatch walletdb(zwallet->GetDBHandle());
-    try {
-        CKey keyMaster;
-        if (!zwallet->GetMasterSeed(keyMaster))
-            return;
-
-        CKeyID hashSeed = keyMaster.GetPubKey().GetID();
-        for(int i = nCountStart; i < nCountEnd; i++) {
-            boost::this_thread::interruption_point();
-            CDataStream ss(SER_GETHASH, 0);
-            ss << keyMaster.GetPrivKey_256() << i;
-            uint512 zerocoinSeed = Hash512(ss.begin(), ss.end());
-
-            CBigNum bnValue;
-            CBigNum bnSerial;
-            CBigNum bnRandomness;
-            CKey key;
-            zwallet->SeedToZerocoin(zerocoinSeed, bnValue, bnSerial, bnRandomness, key);
-
-            uint256 hashPubcoin = GetPubCoinHash(bnValue);
-            zwallet->AddToMintPool(make_pair(hashPubcoin, i), true);
-            walletdb.WriteMintPoolPair(hashSeed, hashPubcoin, i);
-        }
-    } catch (std::exception& e) {
-        LogPrintf("SearchThread() exception");
-    } catch (...) {
-        LogPrintf("SearchThread() exception");
-    }
+    zwallet->DeterministicSearch(nCountStart, nCountEnd);
 }
 
 UniValue searchdeterministiczerocoin(const JSONRPCRequest& request)

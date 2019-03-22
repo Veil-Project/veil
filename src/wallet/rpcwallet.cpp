@@ -4796,6 +4796,81 @@ void AddKeypathToMap(const CWallet* pwallet, const CKeyID& keyID, std::map<CPubK
     hd_keypaths.emplace(vchPubKey, keypath);
 }
 
+UniValue recoveraddresses(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() > 4)
+        throw std::runtime_error(
+                "recoveraddresses (count)\n"
+                        "\nRecover addresses after importing from a used seed. First: (count) of basecoin addresses will be added to the address pool.\n"
+                        "Second: (count) of stealth addresses will be added to the address pool.\n"
+                        "Third: (count) of deterministic zerocoin will be generated.\n"
+                        "Fourth: The entire blockchain will be rescanned to see if there is any activity on the new addresses and zerocoins that were generated.\n"
+                + HelpRequiringPassphrase(pwallet) + "\n"
+
+                        "\nArguments:\n"
+                        "1. count                      (int, optional, default=100) The amount of addresses to restore. Only use the minimum necessary amount.\n"
+                        "2. unused_buffer              (int, optional (experts only), default=20) The amount of stealth addresses to keep beyond the last detected used address.\n"
+                        "3. scan_from_block            (int, optional, default=0) The block to begin searching for transactions from.\n"
+                        "\nResult:\n"
+                        "{\n"
+                        "  \"success\" : true|false,    (string) If the operation completed successfully\n"
+                        "}\n"
+
+                        "\nExamples:\n"
+                + HelpExampleCli("recoveraddresses", "count")
+        );
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    int nCount = 100;
+    if (request.params.size() > 0)
+        nCount = request.params[0].get_int();
+
+    int nUnusedBuffer = 20;
+    if (request.params.size() > 1)
+        nUnusedBuffer = request.params[1].get_int();
+
+    int nHeightStart = 0;
+    if (request.params.size() > 2)
+        nHeightStart = request.params[2].get_int();
+
+    LOCK2(pwallet->cs_wallet, cs_main);
+
+    // Restore basecoin
+    if (!pwallet->RestoreBaseCoinAddresses(nCount))
+        throw JSONRPCError(RPC_WALLET_ERROR, "Failed to restore basecoin addresses");
+
+    // Restore CT and RingCT
+    if (!pwallet->GetAnonWallet()->RestoreAddresses(nCount))
+        throw JSONRPCError(RPC_WALLET_ERROR, "Failed to restore stealth addresses");
+
+    // Restore zerocoins
+    if (!pwallet->GetZWallet()->DeterministicSearch(0, nCount))
+        throw JSONRPCError(RPC_WALLET_ERROR, "Failed to search deterministic zerocoins");
+
+    // Do full wallet scan
+    auto pindexStart = chainActive[nHeightStart];
+    auto pindexStop = chainActive.Tip();
+    WalletRescanReserver reserver(pwallet);
+    if (!reserver.reserve())
+        throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
+    pwallet->ScanForWalletTransactions(pindexStart, pindexStop, reserver, true);
+
+    // Rollback unused stealth indexes (with small buffer), since the more stealth addresses held, the larger the computation required when scanning a transaction to see if it is owned
+    pwallet->GetAnonWallet()->ForgetUnusedStealthAddresses(nUnusedBuffer);
+
+    UniValue ret(UniValue::VOBJ);
+    ret.pushKV("success", true);
+    return ret;
+}
+
 bool FillPSBT(const CWallet* pwallet, PartiallySignedTransaction& psbtx, const CTransaction* txConst, int sighash_type, bool sign, bool bip32derivs)
 {
     LOCK(pwallet->cs_wallet);
@@ -5115,6 +5190,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "gettransaction",                   &gettransaction,                {"txid","include_watchonly"} },
     { "wallet",             "getunconfirmedbalance",            &getunconfirmedbalance,         {} },
     { "wallet",             "getwalletinfo",                    &getwalletinfo,                 {} },
+    { "wallet",             "recoveraddresses",                 &recoveraddresses,              {"count", "unused_buffer", "scan_from_block"} },
 
     { "wallet",             "importmulti",                      &importmulti,                   {"requests","options"} },
     { "wallet",             "importprivkey",                    &importprivkey,                 {"privkey","label","rescan"} },

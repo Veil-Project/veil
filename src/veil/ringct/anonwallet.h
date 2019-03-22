@@ -157,8 +157,11 @@ public:
     bool GetStealthAddressScanKey(CStealthAddress &sxAddr) const;
     bool GetStealthAddressSpendKey(CStealthAddress &sxAddr, CKey &key) const;
     bool GetAddressMeta(const CStealthAddress& address, CKeyID& idAccount, std::string& strPath) const;
+    int GetLastUsedAddressIndex(const CKeyID& idAccount) const;
+    void ForgetUnusedStealthAddresses(int nBuffer);
 
     bool ImportStealthAddress(const CStealthAddress &sxAddr, const CKey &skSpend);
+    bool RestoreAddresses(int nCount);
 
     std::map<CTxDestination, CAmount> GetAddressBalances() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
@@ -265,6 +268,7 @@ public:
     bool RegenerateKey(const CKeyID& idKey, CKey& key) const;
     bool RegenerateExtKey(const CKeyID& idKey, CExtKey& extkey) const;
     bool RegenerateAccountExtKey(const CKeyID& idAccount, CExtKey& keyAccount) const;
+    bool RegenerateKeyFromIndex(const CKeyID& idAccount, int nIndex, CExtKey& keyDerive) const;
     bool MakeSigningKeystore(CBasicKeyStore& keystore, const CScript& scriptPubKey);
 
     bool NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefixBits, const char *pPrefix);
