@@ -16,7 +16,6 @@ class Precompute
 {
 private:
     int nBlocksPerCycle;
-    PRECOMPUTE_STATUS status;
     boost::thread_group* pthreadGroupPrecompute;
 
 public:
