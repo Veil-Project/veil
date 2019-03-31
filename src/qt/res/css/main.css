@@ -291,7 +291,7 @@ QPushButton[cssClass~="btn-text-primary-inactive"]:hover {
 
 QPushButton[cssClass~="btn-text-settings"] {
     text-align: left;
-    font-size:14px;
+    font-size: 14pt;
     color: #575756;
     background-color:transparent;
     border:none;
