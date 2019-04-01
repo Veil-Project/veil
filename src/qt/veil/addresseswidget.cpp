@@ -81,12 +81,7 @@ public:
             amountRect.setRight(amountRect.right() - 42);
         } else{
             foreground = option.palette.color(QPalette::Text);
-        }
-
-        painter->setPen(foreground);        
-
-        QRect boundingRect;
-        painter->drawText(addressRect, Qt::AlignLeft|Qt::AlignVCenter, address, &boundingRect);
+        }             
 
         // Text size.
         QFont fontTemp = painter->font();
@@ -99,7 +94,10 @@ public:
             painter->setFont(font);
         }
 
-        painter->setPen(foreground);
+        painter->setPen(foreground);   
+
+        QRect boundingRect;
+        painter->drawText(addressRect, Qt::AlignLeft|Qt::AlignVCenter, address, &boundingRect);
 
         amountRect.setRight(amountRect.right() - 16);
         painter->drawText(amountRect, Qt::AlignRight|Qt::AlignVCenter, addressData);
