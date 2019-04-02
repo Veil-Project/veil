@@ -54,6 +54,7 @@ public:
     static QList<CAmount> payAmounts;
     static CCoinControl *coinControl();
     static bool fSubtractFeeFromAmount;
+    static int nCurrentCoinTypeSelected;
 
 private:
     Ui::CoinControlDialog *ui;
@@ -70,7 +71,7 @@ private:
     const PlatformStyle *platformStyle;
 
     void sortView(int, Qt::SortOrder);
-    void updateView(int nCoinType = 1); // 1 = OUTPUT_STANDARD
+    void updateView(int nCoinType = nCurrentCoinTypeSelected);
 
     enum
     {

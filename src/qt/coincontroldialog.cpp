@@ -36,6 +36,7 @@
 
 QList<CAmount> CoinControlDialog::payAmounts;
 bool CoinControlDialog::fSubtractFeeFromAmount = false;
+int CoinControlDialog::nCurrentCoinTypeSelected = OUTPUT_STANDARD;
 
 bool CCoinControlWidgetItem::operator<(const QTreeWidgetItem &other) const {
     int column = treeWidget()->sortColumn();
@@ -78,7 +79,6 @@ CoinControlDialog::CoinControlDialog(const PlatformStyle *_platformStyle, QWidge
     connect(copyTransactionHashAction, SIGNAL(triggered()), this, SLOT(copyTransactionHash()));
     connect(lockAction, SIGNAL(triggered()), this, SLOT(lockCoin()));
     connect(unlockAction, SIGNAL(triggered()), this, SLOT(unlockCoin()));
-    connect(ui->coinTypeComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(coinTypeChanged(int)));
 
     // clipboard actions
     QAction *clipboardQuantityAction = new QAction(tr("Copy quantity"), this);
@@ -142,11 +142,20 @@ CoinControlDialog::CoinControlDialog(const PlatformStyle *_platformStyle, QWidge
     if (settings.contains("nCoinControlSortColumn") && settings.contains("nCoinControlSortOrder"))
         sortView(settings.value("nCoinControlSortColumn").toInt(), (static_cast<Qt::SortOrder>(settings.value("nCoinControlSortOrder").toInt())));
 
+    // Setup the coin type combobox
     QStringList list;
     list << tr("Basecoin");
     list << tr("Ring CT");
     list << tr("CT");
     ui->coinTypeComboBox->addItems(list);
+    if (CoinControlDialog::nCurrentCoinTypeSelected != OUTPUT_STANDARD) {
+        if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_RINGCT)
+            ui->coinTypeComboBox->setCurrentIndex(1);
+        else if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_CT)
+            ui->coinTypeComboBox->setCurrentIndex(2);
+    }
+    // Add the connect after the combo is initialized
+    connect(ui->coinTypeComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(coinTypeChanged(int)));
 }
 
 CoinControlDialog::~CoinControlDialog()
@@ -685,6 +694,9 @@ void CoinControlDialog::updateView(int nCoinType)
 {
     if (!model || !model->getOptionsModel() || !model->getAddressTableModel())
         return;
+
+    // Set the coincontrols selected coin type
+    CoinControlDialog::nCurrentCoinTypeSelected = nCoinType;
 
     bool treeMode = ui->radioTreeMode->isChecked();
 
