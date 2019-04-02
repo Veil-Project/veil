@@ -405,12 +405,15 @@ bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& ma
             nHeightStop -= nHeightStop % 10;
 //            LogPrintf("%s: using checkpoint height %d\n", __func__, pindexCheckpoint->nHeight);
         }
-
-        if (nHeightStop <= coinwitness->nHeightPrecomputed)
-            return error("%s: trying to accumulate bad block range, start=%d end=%d", __func__, coinwitness->nHeightPrecomputed, nHeightStop);
     }
 
-    AccumulateRange(coinwitness, nHeightStop - 1);
+    // If we are already at the tip, no reason to Accumulate Range
+    if (nHeightStop <= coinwitness->nHeightPrecomputed) {
+        LogPrintf("%s: trying to accumulate bad block range, start=%d end=%d\n", __func__, coinwitness->nHeightPrecomputed, nHeightStop);
+    } else {
+        AccumulateRange(coinwitness, nHeightStop - 1);
+    }
+
     mapAccumulators.Load(chainActive[nHeightStop + 10]->mapAccumulatorHashes);
     coinwitness->pWitness->resetValue(*coinwitness->pAccumulator, coin);
     if(!coinwitness->pWitness->VerifyWitness(mapAccumulators.GetAccumulator(coinwitness->denom), coin))
