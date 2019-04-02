@@ -70,7 +70,7 @@ private:
     const PlatformStyle *platformStyle;
 
     void sortView(int, Qt::SortOrder);
-    void updateView();
+    void updateView(int nCoinType = 1); // 1 = OUTPUT_STANDARD
 
     enum
     {
@@ -108,6 +108,7 @@ private Q_SLOTS:
     void buttonBoxClicked(QAbstractButton*);
     void buttonSelectAllClicked();
     void updateLabelLocked();
+    void coinTypeChanged(int);
 };
 
 #endif // BITCOIN_QT_COINCONTROLDIALOG_H

@@ -47,6 +47,9 @@ public:
     void pasteEntry(const SendCoinsRecipient &rv);
     bool handlePaymentRequest(const SendCoinsRecipient &recipient);
 
+    void HideCoinControlLabels();
+    void ShowCoinCointrolLabels();
+
 public Q_SLOTS:
     void clear();
     void reject();
