@@ -582,30 +582,33 @@ void WalletModel::unsubscribeFromCoreSignals()
 // WalletModel::UnlockContext implementation
 WalletModel::UnlockContext WalletModel::requestUnlock()
 {
-    bool was_locked = getEncryptionStatus() == Locked;
-    if(was_locked)
+    auto status = getEncryptionStatus();
+    if(status == Locked || status == UnlockedForStakingOnly)
     {
         // Request UI to unlock wallet
         Q_EMIT requireUnlock();
     }
     // If wallet is still locked, unlock was failed or cancelled, mark context as invalid
-    bool valid = getEncryptionStatus() != Locked;
+    auto newStatus = getEncryptionStatus();
+    bool valid = newStatus != Locked && newStatus != UnlockedForStakingOnly;
 
-    return UnlockContext(this, valid, was_locked);
+    return UnlockContext(this, valid, status);
 }
 
-WalletModel::UnlockContext::UnlockContext(WalletModel *_wallet, bool _valid, bool _relock):
+WalletModel::UnlockContext::UnlockContext(WalletModel *_wallet, bool _valid, EncryptionStatus _statusReturn):
         wallet(_wallet),
         valid(_valid),
-        relock(_relock)
+        statusReturn(_statusReturn)
 {
 }
 
 WalletModel::UnlockContext::~UnlockContext()
 {
-    if(valid && relock)
+    if(valid)
     {
-        wallet->setWalletLocked(true, /*fUnlockForStakingOnly*/false);
+        bool fStakingOnly = statusReturn == UnlockedForStakingOnly;
+        if (statusReturn == Locked || fStakingOnly)
+            wallet->setWalletLocked(true, fStakingOnly);
     }
 }
 
@@ -613,7 +616,7 @@ void WalletModel::UnlockContext::CopyFrom(const UnlockContext& rhs)
 {
     // Transfer context; old object no longer relocks wallet
     *this = rhs;
-    rhs.relock = false;
+    rhs.statusReturn = Unlocked;
 }
 
 void WalletModel::loadReceiveRequests(std::vector<std::string>& vReceiveRequests)

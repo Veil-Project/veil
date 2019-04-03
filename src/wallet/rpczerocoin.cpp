@@ -327,6 +327,8 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
+    EnsureWalletIsUnlocked(pwallet);
+
     int64_t nTimeStart = GetTimeMillis();
     CAmount nAmount = AmountFromValue(params[0]);   // Spending amount
     bool fMintChange = params[1].get_bool();        // Mint change to zerocoin

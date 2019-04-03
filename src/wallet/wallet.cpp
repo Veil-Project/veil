@@ -4160,7 +4160,7 @@ bool CWallet::TopUpKeyPool(unsigned int kpSize)
     {
         LOCK(cs_wallet);
 
-        if (IsLocked())
+        if (IsLocked() || IsUnlockedForStakingOnly())
             return false;
 
         // Top up key pool
@@ -4217,7 +4217,7 @@ bool CWallet::ReserveKeyFromKeyPool(int64_t& nIndex, CKeyPool& keypool, bool fRe
     {
         LOCK(cs_wallet);
 
-        if (!IsLocked())
+        if (!IsLocked() && !IsUnlockedForStakingOnly())
             TopUpKeyPool();
 
         bool fReturningInternal = CWallet::IsHDEnabled() && CanSupportFeature(FEATURE_HD_SPLIT) && fRequestedInternal;
@@ -4290,7 +4290,7 @@ bool CWallet::GetKeyFromPool(CPubKey& result, bool internal)
         LOCK(cs_wallet);
         int64_t nIndex;
         if (!ReserveKeyFromKeyPool(nIndex, keypool, internal)) {
-            if (IsLocked()) return false;
+            if (IsLocked() || IsUnlockedForStakingOnly()) return false;
             WalletBatch batch(*database);
             result = GenerateNewKey(batch, internal);
             return true;
@@ -5299,7 +5299,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     walletInstance->zTracker->Init();
     CKey keyZerocoin;
     zwallet->LoadMintPoolFromDB();
-    if (!walletInstance->IsLocked()) {
+    if (!walletInstance->IsLocked() && !walletInstance->IsUnlockedForStakingOnly()) {
         assert(walletInstance->GetZerocoinSeed(keyZerocoin));
         zwallet = walletInstance->GetZWallet();
         auto idExpect = zwallet->GetMasterSeedID();
@@ -5647,7 +5647,7 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     CReserveKey reserveKey(this);
     int64_t nFeeRequired;
 
-    if (IsLocked()) {
+    if (IsLocked() || IsUnlockedForStakingOnly()) {
         string strError = _("Error: Wallet locked, unable to create transaction!");
         LogPrintf("MintZerocoin() : %s", strError.c_str());
         return strError;
@@ -5773,7 +5773,7 @@ bool CWallet::PrepareZerocoinSpend(CAmount nValue, int nSecurityLevel, CZerocoin
     // Default: assume something goes wrong. Depending on the problem this gets more specific below
     int nStatus = ZSPEND_ERROR;
 
-    if (IsLocked()) {
+    if (IsLocked() || IsUnlockedForStakingOnly()) {
         receipt.SetStatus("Error: Wallet locked, unable to create transaction!", ZWALLET_LOCKED);
         return false;
     }
@@ -6039,7 +6039,7 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
         std::vector<CDeterministicMint>& vDMints, int64_t& nFeeRet, std::string& strFailReason,
         std::vector<CTempRecipient>& vecSend, OutputTypes inputtype, const CCoinControl* coinControl, const bool isZCSpendChange)
 {
-    if (IsLocked()) {
+    if (IsLocked() || IsUnlockedForStakingOnly()) {
         strFailReason = "Error: Wallet locked, unable to create transaction!";
         LogPrintf("SpendZerocoin() : %s", strFailReason.c_str());
         return false;

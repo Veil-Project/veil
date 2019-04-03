@@ -91,7 +91,7 @@ bool EnsureWalletIsAvailable(CWallet * const pwallet, bool avoidException)
 
 void EnsureWalletIsUnlocked(CWallet * const pwallet)
 {
-    if (pwallet->IsLocked()) {
+    if (pwallet->IsLocked() || pwallet->IsUnlockedForStakingOnly()) {
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
     }
 }
@@ -186,7 +186,7 @@ static UniValue getnewbasecoinaddress(const JSONRPCRequest& request)
         }
     }
 
-    if (!pwallet->IsLocked()) {
+    if (!pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) {
         pwallet->TopUpKeyPool();
     }
 
@@ -239,7 +239,7 @@ static UniValue getnewminingaddress(const JSONRPCRequest& request)
     if (!request.params[0].isNull())
         label = LabelFromValue(request.params[0]);
 
-    if (!pwallet->IsLocked()) {
+    if (!pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) {
         pwallet->TopUpKeyPool();
     }
 
@@ -287,7 +287,7 @@ static UniValue getrawchangeaddress(const JSONRPCRequest& request)
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
-    if (!pwallet->IsLocked()) {
+    if (!pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) {
         pwallet->TopUpKeyPool();
     }
 
