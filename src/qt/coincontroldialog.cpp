@@ -555,7 +555,7 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         if (nDepth < 1)
             continue;
 
-        for(unsigned int i = 1; i < txRecord.vout.size(); i++) {
+        for(unsigned int i = 0; i < txRecord.vout.size(); i++) {
             COutputRecord outputRecord = txRecord.vout[i];
 
             // unselect already spent, very unlikely scenario, this could happen
