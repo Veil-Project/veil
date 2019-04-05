@@ -120,8 +120,17 @@ void SignVerifyMessageDialog::on_signMessageButton_SM_clicked()
         ui->statusLabel_SM->setText(tr("The entered address is invalid.") + QString(" ") + tr("Please check the address and try again."));
         return;
     }
-    const CKeyID* keyID = boost::get<CKeyID>(&destination);
-    if (!keyID) {
+
+    CKeyID* keyID = NULL;;
+    CStealthAddress* stealthID = NULL;
+
+    if (destination.type() == typeid(CKeyID)) {
+        keyID = boost::get<CKeyID>(&destination);
+    } else if (destination.type() == typeid(CStealthAddress)) {
+        stealthID = boost::get<CStealthAddress>(&destination);
+    }
+
+    if (!keyID && !stealthID) {
         ui->addressIn_SM->setValid(false);
         ui->statusLabel_SM->setStyleSheet("QLabel { color: red; }");
         ui->statusLabel_SM->setText(tr("The entered address does not refer to a key.") + QString(" ") + tr("Please check the address and try again."));
@@ -137,7 +146,8 @@ void SignVerifyMessageDialog::on_signMessageButton_SM_clicked()
     }
 
     CKey key;
-    if (!model->wallet().getPrivKey(*keyID, key))
+    bool gotPrivateKey = (keyID) ? model->wallet().getPrivKey(*keyID, key) : model->wallet().getPrivKey(*stealthID, key);
+    if (!gotPrivateKey)
     {
         ui->statusLabel_SM->setStyleSheet("QLabel { color: red; }");
         ui->statusLabel_SM->setText(tr("Private key for the entered address is not available."));
@@ -198,10 +208,20 @@ void SignVerifyMessageDialog::on_verifyMessageButton_VM_clicked()
         ui->statusLabel_VM->setText(tr("The entered address is invalid.") + QString(" ") + tr("Please check the address and try again."));
         return;
     }
-    if (!boost::get<CKeyID>(&destination)) {
-        ui->addressIn_VM->setValid(false);
-        ui->statusLabel_VM->setStyleSheet("QLabel { color: red; }");
-        ui->statusLabel_VM->setText(tr("The entered address does not refer to a key.") + QString(" ") + tr("Please check the address and try again."));
+
+    CKeyID* keyID = NULL;;
+    CStealthAddress* stealthID = NULL;
+
+    if (destination.type() == typeid(CKeyID)) {
+        keyID = boost::get<CKeyID>(&destination);
+    } else if (destination.type() == typeid(CStealthAddress)) {
+        stealthID = boost::get<CStealthAddress>(&destination);
+    }
+
+    if (!keyID && !stealthID) {
+        ui->addressIn_SM->setValid(false);
+        ui->statusLabel_SM->setStyleSheet("QLabel { color: red; }");
+        ui->statusLabel_SM->setText(tr("The entered address does not refer to a key.") + QString(" ") + tr("Please check the address and try again."));
         return;
     }
 
@@ -229,7 +249,10 @@ void SignVerifyMessageDialog::on_verifyMessageButton_VM_clicked()
         return;
     }
 
-    if (!(CTxDestination(pubkey.GetID()) == destination)) {
+    bool validSignature = false;
+    validSignature = (keyID) ? (pubkey.GetID() == *keyID) : (pubkey.GetID() == stealthID->GetID());
+
+    if (!validSignature) {
         ui->statusLabel_VM->setStyleSheet("QLabel { color: red; }");
         ui->statusLabel_VM->setText(QString("<nobr>") + tr("Message verification failed.") + QString("</nobr>"));
         return;
