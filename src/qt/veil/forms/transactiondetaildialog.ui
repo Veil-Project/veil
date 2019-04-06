@@ -6,7 +6,7 @@
             <rect>
                 <x>0</x>
                 <y>0</y>
-                <width>821</width>
+                <width>826</width>
                 <height>456</height>
             </rect>
         </property>
@@ -171,6 +171,37 @@
                                     <widget class="QLabel" name="textId">
                                         <property name="text">
                                             <string>null</string>
+                                        </property>
+                                    </widget>
+                                </item>
+                                <item>
+                                    <widget class="QPushButton" name="explorerButton">
+                                        <property name="maximumSize">
+                                            <size>
+                                                <width>40</width>
+                                                <height>24</height>
+                                            </size>
+                                        </property>
+                                        <property name="toolTip">
+                                            <string>View in Explorer</string>
+                                        </property>
+                                        <property name="cursor">
+                                            <cursorShape>PointingHandCursor</cursorShape>
+                                        </property>
+                                        <property name="styleSheet">
+                                            <string notr="true">background-color:transparent;
+                                                color:rgb(106,148,255);
+                                                border:0;
+                                                background-repeat:no-repeat;
+                                                background-position:center;
+                                            </string>
+                                        </property>
+                                        <property name="text">
+                                            <string/>
+                                        </property>
+                                        <property name="icon">
+                                            <iconset resource="../../veil.qrc">
+                                                <normaloff>:/icons/ic-watch-on3</normaloff>:/icons/ic-watch-on3</iconset>
                                         </property>
                                     </widget>
                                 </item>
