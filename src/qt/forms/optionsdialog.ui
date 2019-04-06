@@ -1099,11 +1099,28 @@ QValueComboBox::drop-down {
       <layout class="QVBoxLayout" name="verticalLayout_Buttons">
        <item>
         <widget class="QPushButton" name="openBitcoinConfButton">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+           <underline>true</underline>
+          </font>
+         </property>
+         <property name="cursor">
+          <cursorShape>PointingHandCursor</cursorShape>
+         </property>
          <property name="toolTip">
           <string>Open the %1 configuration file from the working directory.</string>
          </property>
+         <property name="styleSheet">
+          <string notr="true">color: rgb(106,148,255);</string>
+         </property>
          <property name="text">
           <string>Open Configuration File</string>
+         </property>
+         <property name="icon">
+          <iconset resource="../veil.qrc">
+           <normaloff>:/icons/open</normaloff>:/icons/open</iconset>
          </property>
          <property name="autoDefault">
           <bool>false</bool>
@@ -1112,8 +1129,21 @@ QValueComboBox::drop-down {
        </item>
        <item>
         <widget class="QPushButton" name="resetButton">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+           <underline>true</underline>
+          </font>
+         </property>
+         <property name="cursor">
+          <cursorShape>PointingHandCursor</cursorShape>
+         </property>
          <property name="toolTip">
           <string>Reset all client options to default.</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: rgb(106,148,255);</string>
          </property>
          <property name="text">
           <string>&amp;Reset Options</string>
