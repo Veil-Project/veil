@@ -16,6 +16,7 @@
 #include <utiltime.h>
 #include <wallet/wallet.h>
 #include <wallet/deterministicmint.h>
+#include "veil/zerocoin/witness.h"
 
 #include <atomic>
 #include <string>

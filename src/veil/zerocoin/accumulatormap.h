@@ -20,6 +20,7 @@ public:
     explicit AccumulatorMap(libzerocoin::ZerocoinParams* params);
     bool Load(const std::map<libzerocoin::CoinDenomination, uint256>& mapCheckpoints);
     bool Accumulate(const libzerocoin::PublicCoin& pubCoin, bool fSkipValidation = false);
+    libzerocoin::Accumulator GetAccumulator(libzerocoin::CoinDenomination denom);
     CBigNum GetValue(libzerocoin::CoinDenomination denom);
     std::map<libzerocoin::CoinDenomination, uint256> GetCheckpoints(bool fShowZeroIfEmpty = false);
     void Reset();

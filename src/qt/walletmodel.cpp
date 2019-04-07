@@ -462,6 +462,26 @@ bool WalletModel::isStakingEnabled()
     return m_wallet->isStakingEnabled();
 }
 
+void WalletModel::setPrecomputingEnabled(bool fPrecomputingStaking)
+{
+    m_wallet->setPrecomputingEnabled(fPrecomputingStaking);
+}
+
+bool WalletModel::StartPrecomputing(std::string& strStatus)
+{
+    return m_wallet->StartPrecomputing(strStatus);
+}
+
+void WalletModel::StopPrecomputing()
+{
+    m_wallet->StopPrecomputing();
+}
+
+bool WalletModel::isPrecomputingEnabled()
+{
+    return m_wallet->isPrecomputingEnabled();
+}
+
 // Handlers for core signals
 static void NotifyUnload(WalletModel* walletModel)
 {

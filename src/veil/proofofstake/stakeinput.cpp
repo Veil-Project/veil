@@ -85,11 +85,9 @@ int ZerocoinStake::HeightToModifierHeight(int nHeight)
 //Use the first accumulator checkpoint that occurs 60 minutes after the block being staked from
 bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier)
 {
-
     CBlockIndex* pindex = GetIndexFrom();
     if (!pindex)
         return false;
-
 
     int nNearest100Block = ZerocoinStake::HeightToModifierHeight(pindex->nHeight);
 
@@ -181,4 +179,9 @@ bool ZerocoinStake::MarkSpent(CWallet *pwallet, const uint256& txid)
 
     zTracker->SetPubcoinUsed(meta.hashPubcoin, txid);
     return true;
+}
+
+uint256 ZerocoinStake::GetSerialStakeHash()
+{
+    return hashSerial;
 }

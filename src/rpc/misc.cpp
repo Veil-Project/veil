@@ -32,6 +32,7 @@
 #endif
 
 #include <univalue.h>
+#include <wallet/rpcwallet.h>
 
 static UniValue validateaddress(const JSONRPCRequest& request)
 {

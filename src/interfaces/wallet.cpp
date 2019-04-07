@@ -304,6 +304,11 @@ public:
     }
     void setStakingEnabled(bool fEnableStaking) override { m_wallet.SetStakingEnabled(fEnableStaking); }
     bool isStakingEnabled() override { return m_wallet.IsStakingEnabled(); }
+    bool StartPrecomputing(std::string& strStatus) override { return m_wallet.StartPrecomputing(strStatus); }
+    void StopPrecomputing() override { m_wallet.StopPrecomputing(); }
+    void setPrecomputingEnabled(bool fEnabledPrecomputing) override { m_wallet.SetPrecomputingEnabled(fEnabledPrecomputing); }
+    bool isPrecomputingEnabled() override { return m_wallet.IsPrecomputingEnabled(); }
+
     void abortRescan() override { m_wallet.AbortRescan(); }
     bool backupWallet(const std::string& filename) override { return m_wallet.BackupWallet(filename); }
     std::string getWalletName() override { return m_wallet.GetName(); }
