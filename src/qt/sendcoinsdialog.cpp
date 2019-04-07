@@ -120,6 +120,9 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     if (!settings.contains("fPayOnlyMinFee"))
         settings.setValue("fPayOnlyMinFee", false);
     minimizeFeeSection(settings.value("fFeeSectionMinimized").toBool());
+
+    //Hide all coincontrol labels
+    HideCoinControlLabels();
 }
 
 void SendCoinsDialog::setClientModel(ClientModel *_clientModel)
@@ -195,6 +198,44 @@ SendCoinsDialog::~SendCoinsDialog()
     //settings.setValue("fPayOnlyMinFee", ui->checkBoxMinimumFee->isChecked());
 
     delete ui;
+}
+
+void SendCoinsDialog::HideCoinControlLabels()
+{
+    ui->horizontalSpacer_2->changeSize(1,1, QSizePolicy::Expanding, QSizePolicy::Fixed);
+    ui->labelCoinControlBytes->hide();
+    ui->labelCoinControlBytesText->hide();
+    ui->labelCoinControlQuantity->hide();
+    ui->labelCoinControlQuantityText->hide();
+    ui->labelCoinControlAmount->hide();
+    ui->labelCoinControlAmountText->hide();
+    ui->labelCoinControlLowOutput->hide();
+    ui->labelCoinControlLowOutputText->hide();
+    ui->labelCoinControlFee->hide();
+    ui->labelCoinControlFeeText->hide();
+    ui->labelCoinControlAfterFee->hide();
+    ui->labelCoinControlAfterFeeText->hide();
+    ui->labelCoinControlChange->hide();
+    ui->labelCoinControlChangeText->hide();
+}
+
+void SendCoinsDialog::ShowCoinCointrolLabels()
+{
+    ui->horizontalSpacer_2->changeSize(0,0, QSizePolicy::Fixed, QSizePolicy::Fixed);
+    ui->labelCoinControlBytes->show();
+    ui->labelCoinControlBytesText->show();
+    ui->labelCoinControlQuantity->show();
+    ui->labelCoinControlQuantityText->show();
+    ui->labelCoinControlAmount->show();
+    ui->labelCoinControlAmountText->show();
+    ui->labelCoinControlLowOutput->show();
+    ui->labelCoinControlLowOutputText->show();
+    ui->labelCoinControlFee->show();
+    ui->labelCoinControlFeeText->show();
+    ui->labelCoinControlAfterFee->show();
+    ui->labelCoinControlAfterFeeText->show();
+    ui->labelCoinControlChange->show();
+    ui->labelCoinControlChangeText->show();
 }
 
 void SendCoinsDialog::on_sendButton_clicked()
@@ -862,6 +903,7 @@ void SendCoinsDialog::coinControlChangeEdited(const QString& text)
 // Coin Control: update labels
 void SendCoinsDialog::coinControlUpdateLabels()
 {
+
     if (!model || !model->getOptionsModel())
         return;
 
@@ -885,15 +927,16 @@ void SendCoinsDialog::coinControlUpdateLabels()
 
     if (CoinControlDialog::coinControl()->HasSelected())
     {
+
         // actual coin control calculation
         CoinControlDialog::updateLabels(model, this);
 
-        // show coin control stats
-        //ui->labelCoinControlAutomaticallySelected->hide();
-        //ui->widgetCoinControl->show();
+        // Show coin control stats
+        ShowCoinCointrolLabels();
     }
     else
     {
+        HideCoinControlLabels();
         // hide coin control stats
         //ui->labelCoinControlAutomaticallySelected->show();
         //ui->widgetCoinControl->hide();
