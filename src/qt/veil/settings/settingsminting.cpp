@@ -42,6 +42,17 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
     ui->labelConvertableBasecoin->setText(BitcoinUnits::formatWithUnit(unit,balances.basecoin_balance, false, BitcoinUnits::separatorAlways));
     ui->labelConvertibleRingCt->setText(BitcoinUnits::formatWithUnit(unit,balances.ring_ct_balance, false, BitcoinUnits::separatorAlways));
 
+    CAmount nMinDenom = libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN);
+
+    if (balances.basecoin_balance < nMinDenom) {
+        ui->warnLabel->setText(ui->warnLabel->text().arg(libzerocoin::CoinDenomination::ZQ_TEN + 0.1));
+        ui->warnLabel->setVisible(true);
+        ui->btnSendMint->setEnabled(false);
+    } else {
+        ui->warnLabel->setVisible(false);
+        ui->btnSendMint->setEnabled(true);
+    }
+
     switch (nPreferredDenom){
         case 10:
             ui->radioButton10->setChecked(true);
