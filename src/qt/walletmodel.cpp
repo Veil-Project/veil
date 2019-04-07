@@ -216,6 +216,27 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
         spendType = WalletModelSpendType::BASECOINSPEND;
         outputType = OUTPUT_CT;
         nBalance = m_wallet->getAvailableBalance(coinControl);
+    } else if (inputType == OUTPUT_ZC) {
+        spendType = WalletModelSpendType::ZCSPEND;
+        // Get serialhash from coincontrol
+        std::vector<uint256> vSerialHashes;
+        coinControl.ListSelected(vSerialHashes);
+
+        // Create the selectedMints vector
+        std::vector<CZerocoinMint> vMintsSelected;
+        for (auto serialHash : vSerialHashes) {
+            CZerocoinMint mint;
+
+            if (!m_wallet->getMint(serialHash, mint))
+                continue;
+
+            vMintsSelected.emplace_back(mint);
+        }
+
+        newTx = m_wallet->prepareZerocoinSpend(total, /*nSecurityLevel*/100, receipt, vMintsSelected,
+                /*fMintChange*/true, /*fMinimizeChange*/false, vCommitData, libzerocoin::CoinDenomination::ZQ_ERROR,
+                                               &vecSend[0].address);
+        nBalance = m_wallet->getAvailableZerocoinBalance(coinControl);
     } else {
         auto balances = m_wallet->getBalances();
         if (!coinControl.HasSelected() && balances.zerocoin_balance > total) {
@@ -267,7 +288,6 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
         }else{
             return AmountExceedsBalance_NoBasecoinBalanceAccepted;
         }
-
     }
 
     {

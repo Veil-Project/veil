@@ -327,6 +327,11 @@ public:
         return m_wallet.MintZerocoin(nValue, wtx , vDMints, inputtype,coinControl);
     }
 
+    bool getMint(const uint256& serialHash, CZerocoinMint& mint) override
+    {
+        return m_wallet.GetMint(serialHash, mint);
+    }
+
     std::unique_ptr<PendingWalletTx> prepareZerocoinSpend(CAmount nValue, int nSecurityLevel,
             CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange,
             bool fMinimizeChange, std::vector<CommitData>& vCommitData, libzerocoin::CoinDenomination denomFilter,
@@ -712,6 +717,10 @@ public:
             return 0;
         }
         return m_wallet.GetAnonWallet()->GetAvailableAnonBalance(&coin_control);
+    }
+    CAmount getAvailableZerocoinBalance(const CCoinControl& coin_control) override
+    {
+        return m_wallet.GetAvailableZerocoinBalance(&coin_control);
     }
     CWallet* getWalletPointer() override
     {

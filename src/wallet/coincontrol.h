@@ -51,6 +51,7 @@ public:
     mutable bool fNeedHardwareKey = false;
     CAmount m_extrafee;
     std::map<COutPoint, CInputData> m_inputData;
+    std::map<uint256, CInputData> m_zcinputData;
     bool fAllowLocked = false;
     mutable int nChangePos = -1;
     bool m_addChangeOutput = true;
@@ -64,12 +65,17 @@ public:
 
     bool HasSelected() const
     {
-        return (setSelected.size() > 0);
+        return (setSelected.size() > 0) || (setZerocoinSelected.size() > 0);
     }
 
     bool IsSelected(const COutPoint& output) const
     {
         return (setSelected.count(output) > 0);
+    }
+
+    bool IsSelected(const uint256& serialHash) const
+    {
+        return (setZerocoinSelected.count(serialHash) > 0);
     }
 
     void Select(const COutPoint& output, CAmount nValue)
@@ -80,16 +86,32 @@ public:
         m_inputData.emplace(output, inputData);
     }
 
+    void Select(const uint256& serialHash, CAmount nValue) {
+        setZerocoinSelected.insert(serialHash);
+        CInputData inputData;
+        inputData.nValue = nValue;
+        m_zcinputData.emplace(serialHash, inputData);
+    }
+
     void UnSelect(const COutPoint& output)
     {
         setSelected.erase(output);
         m_inputData.erase(output);
     }
 
+    void UnSelect(const uint256& serialHash)
+    {
+        setZerocoinSelected.erase(serialHash);
+        m_zcinputData.erase(serialHash);
+    }
+
     void UnSelectAll()
     {
         setSelected.clear();
         m_inputData.clear();
+
+        setZerocoinSelected.clear();
+        m_zcinputData.clear();
     }
 
     void ListSelected(std::vector<COutPoint>& vOutpoints) const
@@ -97,21 +119,33 @@ public:
         vOutpoints.assign(setSelected.begin(), setSelected.end());
     }
 
+    void ListSelected(std::vector<uint256>& vSerialHashes) const
+    {
+        vSerialHashes.assign(setZerocoinSelected.begin(), setZerocoinSelected.end());
+    }
+
     CAmount GetValueSelected() const
     {
+
         CAmount nValue = 0;
-        for (const auto& p : m_inputData)
-            nValue += p.second.nValue;
+        if (setSelected.size()) {
+            for (const auto &p : m_inputData)
+                nValue += p.second.nValue;
+        } else if (setZerocoinSelected.size()) {
+            for (const auto &p : m_zcinputData)
+                nValue += p.second.nValue;
+        }
         return nValue;
     }
 
     size_t NumSelected()
     {
-        return setSelected.size();
+        return setSelected.size() + setZerocoinSelected.size();
     }
 
 //private:
     std::set<COutPoint> setSelected;
+    std::set<uint256> setZerocoinSelected;
 };
 
 #endif // BITCOIN_WALLET_COINCONTROL_H

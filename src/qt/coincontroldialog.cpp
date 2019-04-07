@@ -147,12 +147,15 @@ CoinControlDialog::CoinControlDialog(const PlatformStyle *_platformStyle, QWidge
     list << tr("Basecoin");
     list << tr("Ring CT");
     list << tr("CT");
+    list << tr("Zerocoin");
     ui->coinTypeComboBox->addItems(list);
     if (CoinControlDialog::nCurrentCoinTypeSelected != OUTPUT_STANDARD) {
         if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_RINGCT)
             ui->coinTypeComboBox->setCurrentIndex(1);
         else if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_CT)
             ui->coinTypeComboBox->setCurrentIndex(2);
+        else if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_ZC)
+            ui->coinTypeComboBox->setCurrentIndex(3);
     }
     // Add the connect after the combo is initialized
     connect(ui->coinTypeComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(coinTypeChanged(int)));
@@ -393,9 +396,12 @@ void CoinControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
     if (column == COLUMN_CHECKBOX && item->text(COLUMN_TXHASH).length() == 64) // transaction hash is 64 characters (this means it is a child node, so it is not a parent node in tree mode)
     {
         COutPoint outpt(uint256S(item->text(COLUMN_TXHASH).toStdString()), item->text(COLUMN_VOUT_INDEX).toUInt());
+        uint256 serialHash = uint256S(item->text(COLUMN_ADDRESS).toStdString());
 
-        if (item->checkState(COLUMN_CHECKBOX) == Qt::Unchecked)
+        if (item->checkState(COLUMN_CHECKBOX) == Qt::Unchecked) {
+            coinControl()->UnSelect(serialHash);
             coinControl()->UnSelect(outpt);
+        }
         else if (item->isDisabled()) // locked (this happens if "check all" through parent node)
             item->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
         else {
@@ -405,22 +411,19 @@ void CoinControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
                 nTypeExisting = coinControl()->nCoinType;
             }
 
-            int nTypeSelected = -1;
-            auto strSelection = item->text(COLUMN_COINTYPE);
-            if (strSelection.contains("(RingCT)"))
-                nTypeSelected = OUTPUT_RINGCT;
-            else if (strSelection.contains("(CT)"))
-                nTypeSelected = OUTPUT_CT;
-            else
-                nTypeSelected = OUTPUT_STANDARD;
-
             //Clear any other selections if not the same
-            if (nTypeExisting != -1 && nTypeExisting != nTypeSelected)
+            if (nTypeExisting != -1 && nTypeExisting != CoinControlDialog::nCurrentCoinTypeSelected) {
                 coinControl()->UnSelectAll();
-            coinControl()->nCoinType = nTypeSelected;
+            }
+
+            coinControl()->nCoinType = CoinControlDialog::nCurrentCoinTypeSelected;
 
             CAmount nValue = AmountFromValue(item->text(COLUMN_AMOUNT).toStdString());
-            coinControl()->Select(outpt, nValue);
+
+            if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_ZC)
+                coinControl()->Select(serialHash, nValue);
+            else
+                coinControl()->Select(outpt, nValue);
         }
 
         // selection changed -> update labels
@@ -571,6 +574,27 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         }
     }
 
+    std::vector<uint256> vCoinControlSerials;
+    coinControl()->ListSelected(vCoinControlSerials);
+
+    for (auto serialHash: vCoinControlSerials) {
+        CZerocoinMint mint;
+
+        if (!model->wallet().getMint(serialHash, mint)) {
+            coinControl()->UnSelect(serialHash);
+            continue;
+        }
+
+        if (mint.IsUsed()) {
+            coinControl()->UnSelect(serialHash);
+            continue;
+        }
+
+        nQuantity++;
+
+        nAmount += mint.GetDenominationAsAmount();
+    }
+
     // calculation
     if (nQuantity > 0)
     {
@@ -707,6 +731,9 @@ void CoinControlDialog::updateView(int nCoinType)
     QFlags<Qt::ItemFlag> flgTristate = Qt::ItemIsSelectable | Qt::ItemIsEnabled | Qt::ItemIsUserCheckable | Qt::ItemIsTristate;
 
     int nDisplayUnit = model->getOptionsModel()->getDisplayUnit();
+
+    ui->treeWidget->model()->setHeaderData(COLUMN_LABEL, Qt::Horizontal, tr("Received with label"));
+    ui->treeWidget->model()->setHeaderData(COLUMN_ADDRESS, Qt::Horizontal, tr("Received with address"));
 
     if (nCoinType == OUTPUT_STANDARD) {
         for (const auto &coins : model->wallet().listCoins()) {
@@ -851,7 +878,7 @@ void CoinControlDialog::updateView(int nCoinType)
                 if (out.IsSpent() || !(out.nFlags & ORF_OWNED) || out.IsBasecoin())
                     continue;
 
-                //Check against the coin type that is selecetd, only show the selceted coin type
+                //Check against the coin type that is selecetd, only show the selected coin type
                 if (out.nType != nCoinType)
                     continue;
 
@@ -982,6 +1009,124 @@ void CoinControlDialog::updateView(int nCoinType)
         }
     }
 
+    // Zerocoin
+    if (nCoinType == OUTPUT_ZC) {
+        ui->treeWidget->model()->setHeaderData(COLUMN_LABEL, Qt::Horizontal, tr("Precomputed %"));
+        ui->treeWidget->model()->setHeaderData(COLUMN_ADDRESS, Qt::Horizontal, tr("Serial Hash"));
+        map<libzerocoin::CoinDenomination, CCoinControlWidgetItem *> mapTreeWidgetItems;
+        map<libzerocoin::CoinDenomination, int> mapDenomAmount;
+        std::set<CMintMeta> setZerocoins;
+        model->wallet().getWalletPointer()->AvailableZerocoins(setZerocoins);
+
+        mapDenomAmount.insert(make_pair(libzerocoin::CoinDenomination::ZQ_TEN, 0));
+        mapDenomAmount.insert(make_pair(libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED, 0));
+        mapDenomAmount.insert(make_pair(libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND, 0));
+        mapDenomAmount.insert(make_pair(libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND, 0));
+
+        for (auto mint : setZerocoins) {
+            const CWalletTx *pwtx = model->wallet().getWalletPointer()->GetWalletTx(mint.txid);
+            CTransactionRef txRef;
+            int nDepth = 0;
+            unsigned int nTimeTx = 0;
+            if (pwtx) {
+                txRef = pwtx->tx;
+                nDepth = pwtx->GetDepthInMainChain();
+                nTimeTx = pwtx->GetTxTime();
+            } else {
+                uint256 hashBlock;
+                if (!GetTransaction(mint.txid, txRef, Params().GetConsensus(), hashBlock, true))
+                    continue;
+
+                auto it = mapBlockIndex.find(hashBlock);
+                if (it == mapBlockIndex.end())
+                    continue;
+
+                if (!chainActive.Contains(it->second))
+                    continue;
+
+                nDepth = chainActive.Height() - it->second->nHeight + 1;
+                nTimeTx = it->second->GetBlockTime();
+            }
+
+            // increase the count for each denom we see
+            if (mapDenomAmount.count(mint.denom)) {
+                mapDenomAmount.at(mint.denom)++;
+            } else
+                continue;
+
+            // insert denom and tree widget item into the map
+            if (!mapTreeWidgetItems.count(mint.denom)) {
+                CCoinControlWidgetItem *itemZerocoinInput = new CCoinControlWidgetItem();
+                itemZerocoinInput->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
+                mapTreeWidgetItems.insert(make_pair(mint.denom, itemZerocoinInput));
+            }
+
+            CCoinControlWidgetItem *itemOutput;
+            if (treeMode) itemOutput = new CCoinControlWidgetItem(mapTreeWidgetItems.at(mint.denom));
+            else itemOutput = new CCoinControlWidgetItem(ui->treeWidget);
+            itemOutput->setFlags(flgCheckbox);
+            itemOutput->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
+
+            // amount
+            itemOutput->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, ZerocoinDenominationToAmount(mint.denom)));
+            itemOutput->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant(
+                    (qlonglong) ZerocoinDenominationToAmount(mint.denom))); // padding so that sorting works correctly
+
+            // date
+            itemOutput->setText(COLUMN_DATE, GUIUtil::dateTimeStr(nTimeTx));
+            itemOutput->setData(COLUMN_DATE, Qt::UserRole, QVariant((qlonglong) nTimeTx));
+
+            // confirmations
+            itemOutput->setText(COLUMN_CONFIRMATIONS, QString::number(nDepth));
+            itemOutput->setData(COLUMN_CONFIRMATIONS, Qt::UserRole, QVariant((qlonglong) nDepth));
+
+            // transaction hash
+            itemOutput->setText(COLUMN_TXHASH, QString::fromStdString(mint.txid.GetHex()));
+
+            // vout index
+            itemOutput->setText(COLUMN_VOUT_INDEX, QString::number(0));
+
+            // hash serial
+            itemOutput->setText(COLUMN_ADDRESS, QString::fromStdString(mint.hashSerial.GetHex()));
+
+            double nPercent = 0;
+            if (model->wallet().getWalletPointer()->GetZerocoinPrecomputePercentage(mint.hashSerial, nPercent)) {
+                itemOutput->setText(COLUMN_LABEL, QString::number(nPercent, 'f', 2));
+            } else
+                itemOutput->setText(COLUMN_LABEL, "Not available");
+
+            // set checkbox
+            if (coinControl()->IsSelected(mint.hashSerial)) {
+                itemOutput->setCheckState(COLUMN_CHECKBOX, Qt::Checked);
+            }
+
+            itemOutput->setText(COLUMN_COINTYPE, QString("Zerocoin"));
+        }
+
+        // amount
+        if (treeMode) {
+            for (auto itemZerocoinInput : mapTreeWidgetItems) {
+
+                ui->treeWidget->addTopLevelItem(itemZerocoinInput.second);
+                itemZerocoinInput.second->setFlags(flgTristate);
+                itemZerocoinInput.second->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
+
+                itemZerocoinInput.second->setText(COLUMN_COINTYPE, tr("Denomination: ") + QString::fromStdString(std::to_string(itemZerocoinInput.first)));
+
+                // label
+                itemZerocoinInput.second->setText(COLUMN_LABEL, tr("(no label)"));
+
+
+                int count = mapDenomAmount.at(itemZerocoinInput.first);
+                CAmount nSum = count * ZerocoinDenominationToAmount(itemZerocoinInput.first);
+
+                itemZerocoinInput.second->setText(COLUMN_CHECKBOX, "(" + QString::number(count) + ")");
+                itemZerocoinInput.second->setText(COLUMN_AMOUNT, BitcoinUnits::format(nDisplayUnit, nSum));
+                itemZerocoinInput.second->setData(COLUMN_AMOUNT, Qt::UserRole, QVariant((qlonglong) nSum));
+            }
+        }
+    }
+
     // expand all partially selected
     if (treeMode)
     {
@@ -1003,6 +1148,8 @@ void CoinControlDialog::coinTypeChanged(int changedIndex)
         updateView(OUTPUT_RINGCT);
     } else if (changedIndex == 2) {
         updateView(OUTPUT_CT);
+    } else if (changedIndex == 3) {
+        updateView(OUTPUT_ZC);
     } else {
         updateView();
     }

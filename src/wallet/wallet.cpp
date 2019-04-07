@@ -5695,12 +5695,56 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     return "";
 }
 
-bool CWallet::AvailableZerocoins(std::set<CMintMeta>& setMints)
+
+bool CWallet::GetZerocoinPrecomputePercentage(const uint256 &nSerialHash, double &nPercent)
+{
+    // Link LRU cache and Database to zTracker on first load
+    LOCK(zTracker->cs_readlock);
+    CoinWitnessData* witnessData;
+    if (!zTracker->HasSpendCache(nSerialHash))
+        return false;
+
+    witnessData = zTracker->GetSpendCache(nSerialHash);
+
+    if (!witnessData)
+        return false;
+
+    int nHeightChain = chainActive.Height();
+    double nToAccumulate = nHeightChain - witnessData->nHeightMintAdded;
+    double nAccumulated = witnessData->nHeightPrecomputed - witnessData->nHeightMintAdded;
+    double nComputePercent = nAccumulated/nToAccumulate;
+
+    if (nComputePercent < 0)
+        nComputePercent = 0;
+
+    nPercent = nComputePercent * 100;
+
+    return true;
+}
+
+CAmount CWallet::GetAvailableZerocoinBalance(const CCoinControl* coinControl) const
+{
+    LOCK2(cs_main, cs_wallet);
+
+    CAmount balance = 0;
+    std::set<CMintMeta> setMeta;
+    AvailableZerocoins(setMeta, coinControl);
+    for (auto meta : setMeta) {
+        balance += meta.denom * COIN;
+    }
+    return balance;
+}
+
+bool CWallet::AvailableZerocoins(std::set<CMintMeta>& setMints, const CCoinControl *coinControl) const
 {
     auto setMintsTemp = zTracker->ListMints(true, true, true); // need to find mints to spend
     for (const CMintMeta& mint : setMintsTemp) {
         if (mint.nMemFlags & MINT_PENDINGSPEND)
             continue;
+
+        if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs && !coinControl->IsSelected(mint.hashSerial))
+            continue;
+
         setMints.emplace(mint);
     }
 

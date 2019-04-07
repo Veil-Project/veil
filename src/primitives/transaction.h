@@ -24,6 +24,7 @@ enum OutputTypes
     OUTPUT_CT               = 2,
     OUTPUT_RINGCT           = 3,
     OUTPUT_DATA             = 4,
+    OUTPUT_ZC               = 5,
 };
 
 enum TransactionTypes

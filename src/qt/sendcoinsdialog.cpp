@@ -293,6 +293,7 @@ void SendCoinsDialog::on_sendButton_clicked()
     WalletModelSpendType spendType;
     CZerocoinSpendReceipt receipt;
     std::vector<CommitData> vCommitData;
+
     prepareStatus = model->prepareTransaction(currentTransaction, ctrl, spendType, receipt, vCommitData);
     // process prepareStatus and on error generate message shown to user
     processSendCoinsReturn(prepareStatus,

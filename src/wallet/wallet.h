@@ -834,7 +834,9 @@ public:
             std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
             std::vector<CommitData>& vCommitData, libzerocoin::CoinDenomination denomFilter = libzerocoin::CoinDenomination::ZQ_ERROR, CTxDestination* addressTo = NULL);
     bool CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData);
-    bool AvailableZerocoins(std::set<CMintMeta>& setMints);
+    CAmount GetAvailableZerocoinBalance(const CCoinControl* coinControl) const;
+    bool AvailableZerocoins(std::set<CMintMeta>& setMints, const CCoinControl *coinControl = nullptr) const;
+    bool GetZerocoinPrecomputePercentage(const uint256 &nSerialHash, double &nPercent);
 //    std::string ResetMintZerocoin();
 //    std::string ResetSpentZerocoin();
     void ReconsiderZerocoins(std::list<CZerocoinMint>& listMintsRestored, std::list<CDeterministicMint>& listDMintsRestored);

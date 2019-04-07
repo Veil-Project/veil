@@ -110,6 +110,8 @@ public:
     virtual std::string mintZerocoin(CAmount nValue, std::vector<CDeterministicMint>& vDMints, OutputTypes inputtype,
             const CCoinControl* coinControl) = 0;
 
+    virtual bool getMint(const uint256& serialHash, CZerocoinMint& mint) = 0;
+
     virtual std::unique_ptr<PendingWalletTx> prepareZerocoinSpend(CAmount nValue, int nSecurityLevel,
             CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange,
             bool fMinimizeChange, std::vector<std::tuple<CWalletTx, std::vector<CDeterministicMint>,
@@ -238,6 +240,7 @@ public:
     virtual CAmount getAvailableBalance(const CCoinControl& coin_control) = 0;
     virtual CAmount getAvailableCTBalance(const CCoinControl& coin_control) { return 0; }
     virtual CAmount getAvailableRingCTBalance(const CCoinControl& coin_control) { return 0; }
+    virtual CAmount getAvailableZerocoinBalance(const CCoinControl& coin_control) = 0;
 
     //! Create a WalletTx without all the data filled in yet.
     virtual CWallet* getWalletPointer() { return nullptr; }
