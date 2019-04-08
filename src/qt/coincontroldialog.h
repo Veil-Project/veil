@@ -67,6 +67,7 @@ private:
     QAction *copyTransactionHashAction;
     QAction *lockAction;
     QAction *unlockAction;
+    QAction *copyStakeHash;
 
     const PlatformStyle *platformStyle;
 

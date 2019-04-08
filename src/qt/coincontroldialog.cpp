@@ -60,6 +60,7 @@ CoinControlDialog::CoinControlDialog(const PlatformStyle *_platformStyle, QWidge
              copyTransactionHashAction = new QAction(tr("Copy transaction ID"), this);  // we need to enable/disable this
              lockAction = new QAction(tr("Lock unspent"), this);                        // we need to enable/disable this
              unlockAction = new QAction(tr("Unlock unspent"), this);                    // we need to enable/disable this
+             copyStakeHash = new QAction(tr("Copy Stake Hash"), this);
 
     // context menu
     contextMenu = new QMenu(this);
@@ -67,6 +68,7 @@ CoinControlDialog::CoinControlDialog(const PlatformStyle *_platformStyle, QWidge
     contextMenu->addAction(copyLabelAction);
     contextMenu->addAction(copyAmountAction);
     contextMenu->addAction(copyTransactionHashAction);
+    contextMenu->addAction(copyStakeHash);
     contextMenu->addSeparator();
     contextMenu->addAction(lockAction);
     contextMenu->addAction(unlockAction);
@@ -79,6 +81,7 @@ CoinControlDialog::CoinControlDialog(const PlatformStyle *_platformStyle, QWidge
     connect(copyTransactionHashAction, SIGNAL(triggered()), this, SLOT(copyTransactionHash()));
     connect(lockAction, SIGNAL(triggered()), this, SLOT(lockCoin()));
     connect(unlockAction, SIGNAL(triggered()), this, SLOT(unlockCoin()));
+    connect(copyStakeHash, SIGNAL(triggered()), this, SLOT(copyAddress())); // Stake hash is in the same column as the address
 
     // clipboard actions
     QAction *clipboardQuantityAction = new QAction(tr("Copy quantity"), this);
@@ -157,6 +160,7 @@ CoinControlDialog::CoinControlDialog(const PlatformStyle *_platformStyle, QWidge
         else if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_ZC)
             ui->coinTypeComboBox->setCurrentIndex(3);
     }
+
     // Add the connect after the combo is initialized
     connect(ui->coinTypeComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(coinTypeChanged(int)));
 }
@@ -224,26 +228,33 @@ void CoinControlDialog::showMenu(const QPoint &point)
     {
         contextMenuItem = item;
 
-        // disable some items (like Copy Transaction ID, lock, unlock) for tree roots in context menu
-        if (item->text(COLUMN_TXHASH).length() == 64) // transaction hash is 64 characters (this means it is a child node, so it is not a parent node in tree mode)
-        {
-            copyTransactionHashAction->setEnabled(true);
-            if (model->wallet().isLockedCoin(COutPoint(uint256S(item->text(COLUMN_TXHASH).toStdString()), item->text(COLUMN_VOUT_INDEX).toUInt())))
-            {
-                lockAction->setEnabled(false);
-                unlockAction->setEnabled(true);
-            }
-            else
-            {
-                lockAction->setEnabled(true);
-                unlockAction->setEnabled(false);
-            }
-        }
-        else // this means click on parent node in tree mode -> disable all
-        {
-            copyTransactionHashAction->setEnabled(false);
+        if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_ZC) {
             lockAction->setEnabled(false);
             unlockAction->setEnabled(false);
+            copyStakeHash->setEnabled(true);
+
+        } else {
+            // If not zerocoin, disable the copy stake hash
+            copyStakeHash->setEnabled(false);
+            // disable some items (like Copy Transaction ID, lock, unlock) for tree roots in context menu
+            if (item->text(COLUMN_TXHASH).length() ==
+                64) // transaction hash is 64 characters (this means it is a child node, so it is not a parent node in tree mode)
+            {
+                copyTransactionHashAction->setEnabled(true);
+                if (model->wallet().isLockedCoin(COutPoint(uint256S(item->text(COLUMN_TXHASH).toStdString()),
+                                                           item->text(COLUMN_VOUT_INDEX).toUInt()))) {
+                    lockAction->setEnabled(false);
+                    unlockAction->setEnabled(true);
+                } else {
+                    lockAction->setEnabled(true);
+                    unlockAction->setEnabled(false);
+                }
+            } else // this means click on parent node in tree mode -> disable all
+            {
+                copyTransactionHashAction->setEnabled(false);
+                lockAction->setEnabled(false);
+                unlockAction->setEnabled(false);
+            }
         }
 
         // show context menu

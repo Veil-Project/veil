@@ -78,6 +78,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Quantity:</string>
             </property>
@@ -90,6 +93,9 @@
             </property>
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string notr="true">0</string>
@@ -107,6 +113,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Bytes:</string>
             </property>
@@ -119,6 +128,9 @@
             </property>
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string notr="true">0</string>
@@ -152,6 +164,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Amount:</string>
             </property>
@@ -164,6 +179,9 @@
             </property>
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string notr="true">0.00 Veil</string>
@@ -232,6 +250,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Fee:</string>
             </property>
@@ -244,6 +265,9 @@
             </property>
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string notr="true">0.00 Veil</string>
@@ -277,6 +301,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>After Fee:</string>
             </property>
@@ -289,6 +316,9 @@
             </property>
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string notr="true">0.00 Veil</string>
@@ -309,6 +339,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Change:</string>
             </property>
@@ -324,6 +357,9 @@
             </property>
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string notr="true">0.00 Veil</string>
@@ -409,11 +445,8 @@ font-size:13.5px;</string>
            </item>
            <item>
             <widget class="QComboBox" name="coinTypeComboBox">
-             <property name="currentText">
-              <string/>
-             </property>
-             <property name="maxVisibleItems">
-              <number>3</number>
+             <property name="styleSheet">
+              <string notr="true"/>
              </property>
             </widget>
            </item>
@@ -450,7 +483,9 @@ font-size:13.5px;</string>
         <property name="styleSheet">
          <string notr="true">background-color:white;
 color:#707070;
-font-size:13.5px;</string>
+font-size:13.5px;
+alternate-background-color:#7fb3d2;
+</string>
         </property>
         <property name="sortingEnabled">
          <bool>false</bool>
