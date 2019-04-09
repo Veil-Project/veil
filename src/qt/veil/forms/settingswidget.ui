@@ -107,6 +107,9 @@ background-color:white;</string>
          <string notr="true">border:none;
 background-color:white;</string>
         </property>
+        <property name="sizeAdjustPolicy">
+         <enum>QAbstractScrollArea::AdjustToContents</enum>
+        </property>
         <property name="widgetResizable">
          <bool>true</bool>
         </property>
@@ -118,6 +121,12 @@ background-color:white;</string>
            <width>791</width>
            <height>544</height>
           </rect>
+         </property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <property name="spacing">
@@ -141,6 +150,12 @@ background-color:white;</string>
           </item>
           <item>
            <widget class="QPushButton" name="btnBackup">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -163,6 +178,12 @@ border:0;</string>
           </item>
           <item>
            <widget class="QLabel" name="label">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
@@ -179,6 +200,12 @@ border:0;</string>
           </item>
           <item>
            <widget class="QPushButton" name="btnPassword">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -201,6 +228,12 @@ border:0;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_3">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
@@ -225,6 +258,12 @@ border:0;</string>
             </property>
             <item>
              <widget class="QPushButton" name="labelStacking">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="styleSheet">
                <string notr="true"> text-align: left;
   color: #575756;
@@ -238,6 +277,12 @@ border:0;</string>
             </item>
             <item>
              <widget class="QCheckBox" name="checkBoxStaking">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
               <property name="focusPolicy">
                <enum>Qt::NoFocus</enum>
               </property>
@@ -268,6 +313,12 @@ background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
           </item>
           <item>
            <widget class="QLabel" name="label_7">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
@@ -316,6 +367,12 @@ background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
           </item>
           <item>
            <widget class="QPushButton" name="btnPreferences">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -338,6 +395,12 @@ border:0;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_8">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
@@ -354,6 +417,12 @@ border:0;</string>
           </item>
           <item>
            <widget class="QPushButton" name="btnMinting">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -376,6 +445,12 @@ border:0;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_9">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
@@ -392,6 +467,12 @@ border:0;</string>
           </item>
           <item>
            <widget class="QPushButton" name="btnFaq">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -414,6 +495,12 @@ border:0;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_4">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
@@ -430,6 +517,12 @@ border:0;</string>
           </item>
           <item>
            <widget class="QPushButton" name="btnAdvance">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="minimumSize">
              <size>
               <width>0</width>
@@ -452,6 +545,12 @@ border:0;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_6">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="maximumSize">
              <size>
               <width>16777215</width>
