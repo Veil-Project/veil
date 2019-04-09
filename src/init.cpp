@@ -421,7 +421,7 @@ void SetupServerArgs()
             "(default: 0 = disable pruning blocks, 1 = allow manual pruning via RPC, >=%u = automatically prune block files to stay under the specified target size in MiB)", MIN_DISK_SPACE_FOR_BLOCK_FILES / 1024 / 1024), false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex", "Rebuild chain state and block index from the blk*.dat files on disk", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-reindex-chainstate", "Rebuild chain state from the currently indexed blocks", false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-reindex-zdb", "Rebuild zerocoin blockchain database", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-reindex-zdb", "Rebuild Zerocoin blockchain database", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-resync", "Delete blockchain folders and resync from scratch", false, OptionsCategory::OPTIONS);
 #ifndef WIN32
     gArgs.AddArg("-sysperms", "Create new files with system default permissions, instead of umask 077 (only effective with disabled wallet functionality)", false, OptionsCategory::OPTIONS);
@@ -440,7 +440,7 @@ void SetupServerArgs()
     gArgs.AddArg("-dns", strprintf("Allow DNS lookups for -addnode, -seednode and -connect (default: %u)", DEFAULT_NAME_LOOKUP), false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-dnsseed", "Query for peer addresses via DNS lookup, if low on addresses (default: 1 unless -connect used)", false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-enablebip61", strprintf("Send reject messages per BIP61 (default: %u)", DEFAULT_ENABLE_BIP61), false, OptionsCategory::CONNECTION);
-    gArgs.AddArg("-exchangesandservicesmode", "Opt out of staking, zerocoin automint, and dandelion (default: 0)", false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-exchangesandservicesmode", "Opt out of staking, zerocoin automint, and Dandelion (default: 0)", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-externalip=<ip>", "Specify your own public address", false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-forcednsseed", strprintf("Always query for peer addresses via DNS lookup (default: %u)", DEFAULT_FORCEDNSSEED), false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-listen", "Accept connections from outside (default: 1 if no -proxy or -connect)", false, OptionsCategory::CONNECTION);
@@ -535,7 +535,7 @@ void SetupServerArgs()
     gArgs.AddArg("-whitelistrelay", strprintf("Accept relayed transactions received from whitelisted peers even when not relaying transactions (default: %d)", DEFAULT_WHITELISTRELAY), false, OptionsCategory::NODE_RELAY);
 
     // default denom
-    gArgs.AddArg("-nautomintdenom=<n>", strprintf("Set preffered automint denomination (default: %d)", DEFAULT_AUTOMINT_DENOM), false, OptionsCategory::WALLET);
+    gArgs.AddArg("-nautomintdenom=<n>", strprintf("Set preferred automint denomination (default: %d)", DEFAULT_AUTOMINT_DENOM), false, OptionsCategory::WALLET);
 
     gArgs.AddArg("-blockmaxweight=<n>", strprintf("Set maximum BIP141 block weight (default: %d)", DEFAULT_BLOCK_MAX_WEIGHT), false, OptionsCategory::BLOCK_CREATION);
     gArgs.AddArg("-blockmintxfee=<amt>", strprintf("Set lowest fee rate (in %s/kB) for transactions to be included in block creation. (default: %s)", CURRENCY_UNIT, FormatMoney(DEFAULT_BLOCK_MIN_TX_FEE)), false, OptionsCategory::BLOCK_CREATION);
