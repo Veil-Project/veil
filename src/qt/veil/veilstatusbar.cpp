@@ -18,11 +18,8 @@ VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
 
     connect(ui->btnSync, SIGNAL(clicked()), this, SLOT(onBtnSyncClicked()));
 
-#ifdef ENABLE_WALLET 
+#ifdef ENABLE_WALLET
     if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
-        ui->checkStaking->setProperty("cssClass" , "switch");
-        ui->checkPrecompute->setProperty("cssClass" , "switch");
-
         connect(ui->btnLock, SIGNAL(clicked()), this, SLOT(onBtnLockClicked()));
     }
     else {
@@ -196,6 +193,13 @@ void VeilStatusBar::updateLockCheckbox(){
         if (ui->btnLock->isChecked() != lockStatus) {
             ui->btnLock->setChecked(lockStatus);
             ui->btnLock->setIcon(QIcon( (lockStatus) ? ":/icons/ic-locked-png" : ":/icons/ic-unlocked-png"));
+
+            QString strToolTip = tr("Wallet is locked for all transaction types.");
+            if (lockState == WalletModel::UnlockedForStakingOnly)
+                strToolTip = tr("Wallet is unlocked for staking transactions only.");
+            ui->btnLock->setStatusTip(strToolTip);
+            ui->btnLock->setToolTip(strToolTip);
+
             fBlockNextBtnLockSignal = true;
         }
     }
