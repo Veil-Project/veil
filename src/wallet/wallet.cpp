@@ -512,6 +512,7 @@ bool CWallet::LockWallet()
 {
     zwalletMain->Lock();
     pAnonWalletMain->Lock();
+    fUnlockForStakingOnly = false;
     return CCryptoKeyStore::Lock();
 }
 
@@ -585,7 +586,7 @@ bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase,
 
     {
         LOCK(cs_wallet);
-        Lock();
+        LockWallet();
 
         CCrypter crypter;
         CKeyingMaterial _vMasterKey;
@@ -616,7 +617,7 @@ bool CWallet::ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase,
                     return false;
                 WalletBatch(*database).WriteMasterKey(pMasterKey.first, pMasterKey.second);
                 if (fWasLocked)
-                    Lock();
+                    LockWallet();
                 return true;
             }
         }
@@ -873,6 +874,7 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
 
         NewKeyPool();
         CCryptoKeyStore::Lock();
+        fUnlockForStakingOnly = false;
 
         // Need to completely rewrite the wallet file; if we don't, bdb might keep
         // bits of the unencrypted private key in slack space in the database file.

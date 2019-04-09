@@ -2700,7 +2700,7 @@ static void LockWallet(CWallet* pWallet)
 {
     LOCK(pWallet->cs_wallet);
     pWallet->nRelockTime = 0;
-    pWallet->Lock();
+    pWallet->LockWallet();
 }
 
 static UniValue walletpassphrase(const JSONRPCRequest& request)
@@ -2865,7 +2865,7 @@ static UniValue walletlock(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_WRONG_ENC_STATE, "Error: running with an unencrypted wallet, but walletlock was called.");
     }
 
-    pwallet->Lock();
+    pwallet->LockWallet();
     pwallet->nRelockTime = 0;
 
     return NullUniValue;
@@ -3213,7 +3213,22 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
         obj.pushKV("hdmasterkeyid", seed_id.GetHex());
     }
     obj.pushKV("private_keys_enabled", !pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
-    obj.pushKV("staking_active", !mapHashedBlocks.empty());
+
+    // Determine if staking is recently active. Note that this is not immediate effect. Staking could be disabled and it could take up to 70 seconds to update state.
+    int64_t nTimeLastHashing = 0;
+    if (!mapHashedBlocks.empty()) {
+        auto pindexBest = chainActive.Tip();
+        if (mapHashedBlocks.count(pindexBest->GetBlockHash())) {
+            nTimeLastHashing = mapHashedBlocks.at(pindexBest->GetBlockHash());
+        } else if (mapHashedBlocks.count(pindexBest->pprev->GetBlockHash())) {
+            nTimeLastHashing = mapHashedBlocks.at(pindexBest->pprev->GetBlockHash());
+        }
+    }
+    bool fStakingActive = false;
+    if (nTimeLastHashing)
+        fStakingActive = GetAdjustedTime() + MAX_FUTURE_BLOCK_TIME - nTimeLastHashing < 70;
+
+    obj.pushKV("staking_active", fStakingActive);
 
     UniValue objSeedData(UniValue::VOBJ);
     auto pAnonWallet = pwallet->GetAnonWallet();
