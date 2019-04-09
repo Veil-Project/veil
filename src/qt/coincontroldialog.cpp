@@ -37,6 +37,7 @@
 QList<CAmount> CoinControlDialog::payAmounts;
 bool CoinControlDialog::fSubtractFeeFromAmount = false;
 int CoinControlDialog::nCurrentCoinTypeSelected = OUTPUT_STANDARD;
+bool CoinControlDialog::fSpendingZerocoin = false;
 
 bool CCoinControlWidgetItem::operator<(const QTreeWidgetItem &other) const {
     int column = treeWidget()->sortColumn();
@@ -152,14 +153,17 @@ CoinControlDialog::CoinControlDialog(const PlatformStyle *_platformStyle, QWidge
     list << tr("CT");
     list << tr("Zerocoin");
     ui->coinTypeComboBox->addItems(list);
-    if (CoinControlDialog::nCurrentCoinTypeSelected != OUTPUT_STANDARD) {
-        if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_RINGCT)
-            ui->coinTypeComboBox->setCurrentIndex(1);
-        else if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_CT)
-            ui->coinTypeComboBox->setCurrentIndex(2);
-        else if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_ZC)
+
+    if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_STANDARD) {
+        if (!CoinControlDialog::fSpendingZerocoin)
+            ui->coinTypeComboBox->setCurrentIndex(0);
+        else
             ui->coinTypeComboBox->setCurrentIndex(3);
     }
+    else if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_RINGCT)
+        ui->coinTypeComboBox->setCurrentIndex(1);
+    else if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_CT)
+        ui->coinTypeComboBox->setCurrentIndex(2);
 
     // Add the connect after the combo is initialized
     connect(ui->coinTypeComboBox, SIGNAL(currentIndexChanged(int)), this, SLOT(coinTypeChanged(int)));
@@ -228,7 +232,7 @@ void CoinControlDialog::showMenu(const QPoint &point)
     {
         contextMenuItem = item;
 
-        if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_ZC) {
+        if (CoinControlDialog::fSpendingZerocoin) {
             lockAction->setEnabled(false);
             unlockAction->setEnabled(false);
             copyStakeHash->setEnabled(true);
@@ -417,21 +421,24 @@ void CoinControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
             item->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
         else {
             int nTypeExisting = -1;
+            bool fZerocoinExisting = false;
             if (coinControl()->HasSelected()) {
                 // If coins are already selected make sure it matches other input types
                 nTypeExisting = coinControl()->nCoinType;
+                fZerocoinExisting = coinControl()->fZerocoinSelected;
             }
 
             //Clear any other selections if not the same
-            if (nTypeExisting != -1 && nTypeExisting != CoinControlDialog::nCurrentCoinTypeSelected) {
+            if (nTypeExisting != -1 && (nTypeExisting != CoinControlDialog::nCurrentCoinTypeSelected || CoinControlDialog::fSpendingZerocoin != fZerocoinExisting)) {
                 coinControl()->UnSelectAll();
             }
 
             coinControl()->nCoinType = CoinControlDialog::nCurrentCoinTypeSelected;
+            coinControl()->fZerocoinSelected = CoinControlDialog::fSpendingZerocoin;
 
             CAmount nValue = AmountFromValue(item->text(COLUMN_AMOUNT).toStdString());
 
-            if (CoinControlDialog::nCurrentCoinTypeSelected == OUTPUT_ZC)
+            if (CoinControlDialog::fSpendingZerocoin)
                 coinControl()->Select(serialHash, nValue);
             else
                 coinControl()->Select(outpt, nValue);
@@ -731,7 +738,12 @@ void CoinControlDialog::updateView(int nCoinType)
         return;
 
     // Set the coincontrols selected coin type
-    CoinControlDialog::nCurrentCoinTypeSelected = nCoinType;
+    if (nCoinType == OUTPUT_STANDARD && CoinControlDialog::fSpendingZerocoin) {
+        CoinControlDialog::nCurrentCoinTypeSelected = OUTPUT_STANDARD;
+    } else {
+        CoinControlDialog::fSpendingZerocoin = false;
+        CoinControlDialog::nCurrentCoinTypeSelected = nCoinType;
+    }
 
     bool treeMode = ui->radioTreeMode->isChecked();
 
@@ -746,7 +758,7 @@ void CoinControlDialog::updateView(int nCoinType)
     ui->treeWidget->model()->setHeaderData(COLUMN_LABEL, Qt::Horizontal, tr("Received with label"));
     ui->treeWidget->model()->setHeaderData(COLUMN_ADDRESS, Qt::Horizontal, tr("Received with address"));
 
-    if (nCoinType == OUTPUT_STANDARD) {
+    if (nCoinType == OUTPUT_STANDARD && !CoinControlDialog::fSpendingZerocoin) {
         for (const auto &coins : model->wallet().listCoins()) {
             CCoinControlWidgetItem *itemWalletAddress = new CCoinControlWidgetItem();
             itemWalletAddress->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
@@ -1021,7 +1033,7 @@ void CoinControlDialog::updateView(int nCoinType)
     }
 
     // Zerocoin
-    if (nCoinType == OUTPUT_ZC) {
+    if (CoinControlDialog::fSpendingZerocoin) {
         ui->treeWidget->model()->setHeaderData(COLUMN_LABEL, Qt::Horizontal, tr("Precomputed %"));
         ui->treeWidget->model()->setHeaderData(COLUMN_ADDRESS, Qt::Horizontal, tr("Serial Hash"));
         map<libzerocoin::CoinDenomination, CCoinControlWidgetItem *> mapTreeWidgetItems;
@@ -1154,14 +1166,14 @@ void CoinControlDialog::updateView(int nCoinType)
 void CoinControlDialog::coinTypeChanged(int changedIndex)
 {
     if (changedIndex == 0) {
+        CoinControlDialog::fSpendingZerocoin = false;
         updateView(OUTPUT_STANDARD);
     } else if (changedIndex == 1) {
         updateView(OUTPUT_RINGCT);
     } else if (changedIndex == 2) {
         updateView(OUTPUT_CT);
     } else if (changedIndex == 3) {
-        updateView(OUTPUT_ZC);
-    } else {
-        updateView();
+        CoinControlDialog::fSpendingZerocoin = true;
+        updateView(OUTPUT_STANDARD);
     }
 }

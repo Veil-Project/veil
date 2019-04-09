@@ -212,11 +212,11 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
         }
     }
 
-    if (inputType == OUTPUT_STANDARD) {
+    if (inputType == OUTPUT_STANDARD && !coinControl.fZerocoinSelected) {
         spendType = WalletModelSpendType::BASECOINSPEND;
         outputType = OUTPUT_CT;
         nBalance = m_wallet->getAvailableBalance(coinControl);
-    } else if (inputType == OUTPUT_ZC) {
+    } else if (inputType == OUTPUT_STANDARD && coinControl.fZerocoinSelected) {
         spendType = WalletModelSpendType::ZCSPEND;
         // Get serialhash from coincontrol
         std::vector<uint256> vSerialHashes;

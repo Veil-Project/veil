@@ -47,6 +47,7 @@ public:
     FeeEstimateMode m_fee_mode;
 
     int nCoinType;
+    mutable bool fZerocoinSelected = false;
     mutable bool fHaveAnonOutputs = false;
     mutable bool fNeedHardwareKey = false;
     CAmount m_extrafee;

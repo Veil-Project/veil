@@ -21,6 +21,7 @@ void CCoinControl::SetNull()
     //m_fee_mode = FeeEstimateMode::UNSET;
 
     nCoinType = OUTPUT_STANDARD;
+    fZerocoinSelected = false;
     fHaveAnonOutputs = false;
     m_extrafee = 0;
 
