@@ -121,16 +121,19 @@ void SignVerifyMessageDialog::on_signMessageButton_SM_clicked()
         return;
     }
 
-    CKeyID* keyID = NULL;;
-    CStealthAddress* stealthID = NULL;
+    CKeyID* keyID = nullptr;
+    WitnessV0KeyHash *witnessID = nullptr;
+    CStealthAddress* stealthID = nullptr;
 
     if (destination.type() == typeid(CKeyID)) {
         keyID = boost::get<CKeyID>(&destination);
     } else if (destination.type() == typeid(CStealthAddress)) {
         stealthID = boost::get<CStealthAddress>(&destination);
+    } else if (destination.type() == typeid(WitnessV0KeyHash)) {
+        witnessID = boost::get<WitnessV0KeyHash>(&destination);
     }
 
-    if (!keyID && !stealthID) {
+    if (!keyID && !stealthID && !witnessID) {
         ui->addressIn_SM->setValid(false);
         ui->statusLabel_SM->setStyleSheet("QLabel { color: red; }");
         ui->statusLabel_SM->setText(tr("The entered address does not refer to a key.") + QString(" ") + tr("Please check the address and try again."));
@@ -146,7 +149,16 @@ void SignVerifyMessageDialog::on_signMessageButton_SM_clicked()
     }
 
     CKey key;
-    bool gotPrivateKey = (keyID) ? model->wallet().getPrivKey(*keyID, key) : model->wallet().getPrivKey(*stealthID, key);
+    bool gotPrivateKey = false;
+    if (keyID) {
+        gotPrivateKey = model->wallet().getPrivKey(*keyID, key);
+    } else if (witnessID) {
+        gotPrivateKey = model->wallet().getPrivKey(CKeyID(*witnessID), key);
+    }
+    else {
+        gotPrivateKey = model->wallet().getPrivKey(*stealthID, key);
+    }
+
     if (!gotPrivateKey)
     {
         ui->statusLabel_SM->setStyleSheet("QLabel { color: red; }");
@@ -209,16 +221,19 @@ void SignVerifyMessageDialog::on_verifyMessageButton_VM_clicked()
         return;
     }
 
-    CKeyID* keyID = NULL;;
-    CStealthAddress* stealthID = NULL;
+    CKeyID* keyID = nullptr;
+    WitnessV0KeyHash *witnessID = nullptr;
+    CStealthAddress* stealthID = nullptr;
 
     if (destination.type() == typeid(CKeyID)) {
         keyID = boost::get<CKeyID>(&destination);
     } else if (destination.type() == typeid(CStealthAddress)) {
         stealthID = boost::get<CStealthAddress>(&destination);
+    } else if (destination.type() == typeid(WitnessV0KeyHash)) {
+        witnessID = boost::get<WitnessV0KeyHash>(&destination);
     }
 
-    if (!keyID && !stealthID) {
+    if (!keyID && !stealthID && !witnessID) {
         ui->addressIn_SM->setValid(false);
         ui->statusLabel_SM->setStyleSheet("QLabel { color: red; }");
         ui->statusLabel_SM->setText(tr("The entered address does not refer to a key.") + QString(" ") + tr("Please check the address and try again."));
@@ -250,7 +265,13 @@ void SignVerifyMessageDialog::on_verifyMessageButton_VM_clicked()
     }
 
     bool validSignature = false;
-    validSignature = (keyID) ? (pubkey.GetID() == *keyID) : (pubkey.GetID() == stealthID->GetID());
+    if (keyID) {
+        validSignature = (pubkey.GetID() == *keyID);
+    } else if (witnessID) {
+        validSignature = (pubkey.GetID() == CKeyID(*witnessID));
+    } else {
+        validSignature = (pubkey.GetID() == stealthID->GetID());
+    }
 
     if (!validSignature) {
         ui->statusLabel_VM->setStyleSheet("QLabel { color: red; }");
