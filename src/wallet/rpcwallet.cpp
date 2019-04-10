@@ -2714,7 +2714,7 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 3) {
         throw std::runtime_error(
-            "walletpassphrase \"passphrase\" timeout\n"
+            "walletpassphrase \"passphrase\" unlockforstakingonly timeout\n"
             "\nStores the wallet decryption key in memory for 'timeout' seconds.\n"
             "This is needed prior to performing transactions related to private keys such as sending veil\n"
             "\nArguments:\n"
@@ -5156,7 +5156,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "unloadwallet",                     &unloadwallet,                  {"wallet_name"} },
     { "wallet",             "walletlock",                       &walletlock,                    {} },
     { "wallet",             "walletpassphrasechange",           &walletpassphrasechange,        {"oldpassphrase","newpassphrase"} },
-    { "wallet",             "walletpassphrase",                 &walletpassphrase,              {"passphrase","timeout"} },
+    { "wallet",             "walletpassphrase",                 &walletpassphrase,              {"passphrase","unlockforstakingonly","timeout"} },
     { "wallet",             "removeprunedfunds",                &removeprunedfunds,             {"txid"} },
     { "wallet",             "rescanblockchain",                 &rescanblockchain,              {"start_height", "stop_height"} },
     { "wallet",             "sethdseed",                        &sethdseed,                     {"newkeypool","seed"} },
