@@ -155,6 +155,22 @@
          </layout>
         </item>
         <item>
+            <spacer name="hspacer">
+                <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeType">
+                    <enum>QSizePolicy::Fixed</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                    <size>
+                        <width>100</width>
+                        <height>20</height>
+                    </size>
+                </property>
+            </spacer>
+        </item>
+        <item>
          <widget class="QPushButton" name="btnSync">
           <property name="text">
            <string>100% Synced</string>
@@ -162,17 +178,85 @@
          </widget>
         </item>
         <item>
-         <spacer name="horizontalSpacer">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>100</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
+            <spacer name="hspacer">
+                <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeType">
+                    <enum>QSizePolicy::Expanding</enum>
+                </property>
+            </spacer>
+        </item>
+        <item>
+            <widget class="QLabel" name="stakeLabel">
+                <property name="styleSheet">
+                    <string notr="true">color:rgba(106,148,235);</string>
+                </property>
+                <property name="text">
+                    <string> Stake Counter: </string>
+                </property>
+            </widget>
+        </item>
+        <item>
+            <widget class="QComboBox" name="daySelector">
+                <property name="maximumSize">
+                    <size>
+                        <width>80</width>
+                        <height>16777215</height>
+                    </size>
+                </property>
+                <property name="styleSheet">
+                    <string notr="true">#daySelector{
+                        padding: 1px 1px 1px 1px;
+                        selection-background-color: rgba(236,236,236);
+                        margin-right:10px;
+                        font: 12pt;
+                        }</string>
+                </property>
+                <property name="layoutDirection">
+                    <enum>Qt::LeftToRight</enum>
+                </property>
+            </widget>
+        </item>
+        <item>
+            <widget class="QComboBox" name="hourSelector">
+                <property name="maximumSize">
+                    <size>
+                        <width>80</width>
+                        <height>16777215</height>
+                    </size>
+                </property>
+                <property name="styleSheet">
+                    <string notr="true">#hourSelector{
+                        padding: 1px 1px 1px 1px;
+                        selection-background-color: rgba(236,236,236);
+                        margin-right:12px;
+                        font: 12pt;
+                        }</string>
+                </property>
+                <property name="layoutDirection">
+                    <enum>Qt::LeftToRight</enum>
+                </property>
+            </widget>
+        </item>
+        <item>
+            <widget class="QLabel" name="counterLabel">
+                <property name="styleSheet">
+                    <string notr="true">color:rgba(106,148,235);</string>
+                </property>
+                <property name="alignment">
+                    <set>Qt::AlignCenter</set>
+                </property>
+                <property name="minimumSize">
+                    <size>
+                        <width>60</width>
+                        <height>16777215</height>
+                    </size>
+                </property>
+                <property name="text">
+                    <string> 0 </string>
+                </property>
+            </widget>
         </item>
         <item>
          <widget class="QPushButton" name="btnLock">

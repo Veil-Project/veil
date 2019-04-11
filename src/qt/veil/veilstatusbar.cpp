@@ -30,6 +30,31 @@ VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
 #ifdef ENABLE_WALLET
     }
 #endif
+
+    int days = 7, hours = 23;
+
+    ui->daySelector->setProperty("cssClass" , "btn-text-primary-inactive");
+    ui->daySelector->addItem(tr("Days"));
+    ui->daySelector->setItemData(0, Qt::AlignRight, Qt::TextAlignmentRole);
+    for (int i = 0 ; i <= days ; ++i) {
+        ui->daySelector->addItem( QString::number(i));
+        ui->daySelector->setItemData(i+1, Qt::AlignRight, Qt::TextAlignmentRole);
+    }
+
+    ui->hourSelector->setProperty("cssClass" , "btn-text-primary-inactive");
+    ui->hourSelector->addItem(tr("Hours"));
+    ui->hourSelector->setItemData(0, Qt::AlignRight, Qt::TextAlignmentRole);
+    for (int i = 0 ; i <= hours ; ++i) {
+        ui->hourSelector->addItem( QString::number(i));
+        ui->hourSelector->setItemData(i+1, Qt::AlignRight, Qt::TextAlignmentRole);
+    }
+
+    connect(ui->daySelector,SIGNAL(currentIndexChanged(const QString&)),this,SLOT(daySelected(const QString&)));
+    connect(ui->hourSelector,SIGNAL(currentIndexChanged(const QString&)),this,SLOT(hourSelected(const QString&)));
+
+    // Update status every 5 min
+    timerId = startTimer(5*60*1000);
+
 }
 
 bool VeilStatusBar::getSyncStatusVisible() {
@@ -41,6 +66,7 @@ void VeilStatusBar::updateSyncStatus(QString status){
 }
 
 void VeilStatusBar::setSyncStatusVisible(bool fVisible) {
+    this->setStakeCounterVisible(!fVisible);
     ui->btnSync->setVisible(fVisible);
 }
 
@@ -48,7 +74,55 @@ void VeilStatusBar::onBtnSyncClicked(){
     mainWindow->showModalOverlay();
 }
 
+void VeilStatusBar::setStakeCounterVisible(bool fVisible) {
+    ui->daySelector->setVisible(fVisible);
+    ui->hourSelector->setVisible(fVisible);
+    ui->counterLabel->setVisible(fVisible);
+    ui->stakeLabel->setVisible(fVisible);
+}
+
+void VeilStatusBar::updateCounter(uint64_t numberOfStakes) {
+    ui->counterLabel->setText(QString::number(numberOfStakes));
+}
+
+void VeilStatusBar::daySelected(const QString& selectedStr) {
+
+    int days = 0, hrs = 0;
+
+    days = selectedStr.toInt();
+    hrs = (ui->hourSelector->currentText()).toInt();
+    this->updateCounter(this->calculateStakes(days, hrs));
+}
+
+void VeilStatusBar::hourSelected(const QString& selectedStr) {
+    int days = 0, hrs = 0;
+
+    hrs = selectedStr.toInt();
+    days = (ui->daySelector->currentText()).toInt();
+    this->updateCounter(this->calculateStakes(days, hrs));
+}
+
+uint64_t VeilStatusBar::calculateStakes(int days, int hrs) {
+
+    interfaces::Wallet& wall = walletModel->wallet();
+    int64_t cutOff = (days*24 + hrs) * 60;
+
+    return wall.getCountOfStakes(GetTime() - cutOff);
+}
+
+void VeilStatusBar::timerEvent(QTimerEvent *event) {
+    QMetaObject::invokeMethod(this, "refreshCounter", Qt::QueuedConnection);
+}
+
+void VeilStatusBar::refreshCounter() {
+    int days = 0, hrs = 0;
+    days = (ui->daySelector->currentText()).toInt();
+    hrs = (ui->hourSelector->currentText()).toInt();
+    this->updateCounter(this->calculateStakes(days, hrs) + 90);
+}
+
 #ifdef ENABLE_WALLET
+
 bool fBlockNextStakeCheckSignal = false;
 void VeilStatusBar::onCheckStakingClicked(bool res) {
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
@@ -247,5 +321,6 @@ void VeilStatusBar::updatePrecomputeCheckbox()
 #endif
 VeilStatusBar::~VeilStatusBar()
 {
+    killTimer(timerId);
     delete ui;
 }

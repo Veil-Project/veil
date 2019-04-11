@@ -301,6 +301,7 @@ public:
     // Enable or disable staking
     virtual void setStakingEnabled(bool fEnableStaking) = 0;
     virtual bool isStakingEnabled() = 0;
+    virtual uint64_t getCountOfStakes(int64_t maxAge) = 0;
 
     // Enable or disable precomputing
     virtual void setPrecomputingEnabled(bool fEnablePrecomputing) = 0;

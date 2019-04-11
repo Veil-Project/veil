@@ -1067,6 +1067,7 @@ public:
     CAmount GetImmatureWatchOnlyBalance() const;
     CAmount GetLegacyBalance(const isminefilter& filter, int minDepth) const;
     CAmount GetAvailableBalance(const CCoinControl* coinControl = nullptr) const;
+    uint64_t GetNumberOfStakes(int64_t maxAge);
 
     /**
      * Get total balance that can be minted into zercoin.

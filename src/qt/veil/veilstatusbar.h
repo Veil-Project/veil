@@ -24,11 +24,16 @@ public:
     bool getSyncStatusVisible();
     void updateSyncStatus(QString status);
     void setSyncStatusVisible(bool fVisible);
+    void setStakeCounterVisible(bool fVisible);
+    void updateCounter(uint64_t numberOfStakes);
 #ifdef ENABLE_WALLET
     void setWalletModel(WalletModel *model);
     void updateStakingCheckbox();
     void updatePrecomputeCheckbox();
 #endif
+
+public Q_SLOTS:
+    void refreshCounter();
 
 private Q_SLOTS:
     void onBtnSyncClicked();
@@ -38,6 +43,9 @@ private Q_SLOTS:
     void onCheckPrecomputeClicked(bool res);
     void updateLockCheckbox();
 #endif
+    void daySelected(const QString& selectedStr);
+    void hourSelected(const QString& selectedStr);
+    void timerEvent(QTimerEvent *event);
 
 private:
     Ui::VeilStatusBar *ui;
@@ -46,6 +54,10 @@ private:
     UnlockPasswordDialog *unlockPasswordDialog = nullptr;
 
     bool preparingFlag = false;
+    int timerId;
+
+    uint64_t calculateStakes(int days, int hrs);
+
 };
 
 #endif // VEILSTATUSBAR_H

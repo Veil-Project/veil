@@ -216,6 +216,9 @@ Q_SIGNALS:
     /** Signal raised when a URI was entered or dragged to the GUI */
     void receivedURI(const QString &uri);
 
+    /** Signal raised when gui receives a new tx signal */
+    void receivedNewTx();
+
 public Q_SLOTS:
     /** Set number of connections shown in the UI */
     void setNumConnections(int count);

@@ -364,6 +364,7 @@ void BitcoinGUI::createActions()
         connect(addressesAction, SIGNAL(triggered()), this, SLOT(gotoAddressesPage()));
         connect(settingsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
         connect(settingsAction, SIGNAL(triggered()), this, SLOT(gotoSettingsPage()));
+        connect(this, SIGNAL(receivedNewTx()), veilStatusBar, SLOT(refreshCounter()));
     }
 #endif // ENABLE_WALLET
 
@@ -592,7 +593,6 @@ bool BitcoinGUI::addWallet(WalletModel *walletModel)
     // only supports one wallet
     balance->setWalletModel(walletModel);
     veilStatusBar->setWalletModel(walletModel);
-
     return walletFrame->addWallet(walletModel);
 }
 
@@ -1214,6 +1214,8 @@ void BitcoinGUI::incomingTransaction(const QString& date, int unit, const CAmoun
         msg += tr("Address: %1\n").arg(address);
     message((amount)<0 ? tr("Sent transaction") : tr("Incoming transaction"),
              msg, CClientUIInterface::MSG_INFORMATION);
+
+    Q_EMIT receivedNewTx();
 }
 #endif // ENABLE_WALLET
 

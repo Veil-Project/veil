@@ -308,7 +308,7 @@ public:
     void StopPrecomputing() override { m_wallet.StopPrecomputing(); }
     void setPrecomputingEnabled(bool fEnabledPrecomputing) override { m_wallet.SetPrecomputingEnabled(fEnabledPrecomputing); }
     bool isPrecomputingEnabled() override { return m_wallet.IsPrecomputingEnabled(); }
-
+    uint64_t getCountOfStakes(int64_t maxAge) override { return m_wallet.GetNumberOfStakes(maxAge);}
     void abortRescan() override { m_wallet.AbortRescan(); }
     bool backupWallet(const std::string& filename) override { return m_wallet.BackupWallet(filename); }
     std::string getWalletName() override { return m_wallet.GetName(); }

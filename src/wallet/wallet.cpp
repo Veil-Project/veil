@@ -2754,6 +2754,22 @@ CAmount CWallet::GetLegacyBalance(const isminefilter& filter, int minDepth) cons
     return balance;
 }
 
+uint64_t CWallet::GetNumberOfStakes(int64_t maxAge)
+{
+    LOCK2(cs_main, cs_wallet);
+    uint64_t total = 0;
+    for (const auto& entry : mapWallet)
+    {
+        const uint256& wtxid = entry.first;
+        const CWalletTx* pcoin = &entry.second;
+        // FFBATODO: variable names and logging
+        if (pcoin->tx->IsCoinStake() && pcoin->GetTxTime() >= maxAge) {
+            total++;
+        }
+    }
+    return total;
+}
+
 CAmount CWallet::GetAvailableBalance(const CCoinControl* coinControl) const
 {
     LOCK2(cs_main, cs_wallet);
