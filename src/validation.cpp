@@ -55,7 +55,9 @@
 #include <veil/proofofstake/kernel.h>
 #include <veil/ringct/blind.h>
 
+#ifdef ENABLE_WALLET
 #include <wallet/wallet.h>
+#endif
 
 #include <future>
 #include <sstream>
@@ -2940,11 +2942,15 @@ static void AppendWarning(std::string& res, const std::string& warn)
 /** Check warning conditions and do some notifications on new chain tip set. */
 void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainParams) {
 
-    //If Zerocoin automint is on, then Zerocoins will be minted
-    std::shared_ptr<CWallet> wMainWallet = GetMainWallet();
-    if (HeadersAndBlocksSynced() && wMainWallet->isZeromintEnabled()) {
-        wMainWallet->AutoZeromint();
+#ifdef ENABLE_WALLET
+    if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        //If Zerocoin automint is on, then Zerocoins will be minted
+        std::shared_ptr<CWallet> wMainWallet = GetMainWallet();
+        if (HeadersAndBlocksSynced() && wMainWallet->isZeromintEnabled()) {
+            wMainWallet->AutoZeromint();
+        }
     }
+#endif
 
     // New best block
     mempool.AddTransactionsUpdated(1);
@@ -3942,7 +3948,6 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
     const std::map<libzerocoin::PublicCoin, uint256>& mapMints, bool fJustCheck)
 {
     //TODO: VEIL-89
-    auto pwalletMain = GetMainWallet();
     // Initialize zerocoin supply to the supply from previous block
     if (pindex->pprev) {
         for (auto& denom : libzerocoin::zerocoinDenomList) {
@@ -3957,10 +3962,12 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
         std::set<uint256> setAddedToWallet;
         for (auto& pMint : mapMints) {
             const auto& coin = pMint.first;
-            const auto& txid = pMint.second;
             libzerocoin::CoinDenomination denom = coin.getDenomination();
             pindex->vMintDenominationsInBlock.push_back(denom);
             pindex->mapZerocoinSupply.at(denom)++;
+#ifdef ENABLE_WALLET
+            const auto& txid = pMint.second;
+            auto pwalletMain = GetMainWallet();
 
             //Remove any of our own mints from the mintpool
             if (!pwalletMain || fJustCheck)
@@ -3981,6 +3988,7 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
                     }
                 }
             }
+#endif
         }
 
         for (auto& pSpend : mapSpends) {

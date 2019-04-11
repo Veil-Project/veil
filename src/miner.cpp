@@ -25,7 +25,9 @@
 #include <utilmoneystr.h>
 #include <validationinterface.h>
 #include <key_io.h>
+#ifdef ENABLE_WALLET
 #include <wallet/wallet.h>
+#endif
 #include <shutdown.h>
 
 #include <veil/budget.h>
@@ -110,15 +112,22 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     int64_t nTimeStart = GetTimeMicros();
 
     resetBlock();
-
+#ifdef ENABLE_WALLET
     //Need wallet if this is for proof of stake,
     std::shared_ptr<CWallet> pwalletMain = nullptr;
+#endif
     if (fProofOfStake) {
-        pwalletMain = GetMainWallet();
+#ifdef ENABLE_WALLET
+        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+            pwalletMain = GetMainWallet();
+        }
         if (!pwalletMain) {
+#endif
             error("Failing to get the Main Wallet for CreateNewBlock with Proof of Stake\n");
             return nullptr;
+#ifdef ENABLE_WALLET
         }
+#endif
     }
 
     pblocktemplate.reset(new CBlockTemplate());
@@ -145,11 +154,15 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus(), true);
 
         uint32_t nTxNewTime = 0;
-        if (pwalletMain->CreateCoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime)) {
+#ifdef ENABLE_WALLET
+        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) && pwalletMain->CreateCoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime)) {
             pblock->nTime = nTxNewTime;
         } else {
+#endif
             return nullptr;
+#ifdef ENABLE_WALLET
         }
+#endif
     }
 
     LOCK(cs_main);
@@ -425,10 +438,14 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         auto bnSerial = spend->getCoinSerialNumber();
 
         CKey key;
-        if (!pwalletMain->GetZerocoinKey(bnSerial, key)) {
+#ifdef ENABLE_WALLET
+        if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) || !pwalletMain->GetZerocoinKey(bnSerial, key)) {
+#endif
             LogPrint(BCLog::BLOCKCREATION, "%s: Failed to get zerocoin key from wallet!\n", __func__);
             return nullptr;
+#ifdef ENABLE_WALLET
         }
+#endif
 
         if (!key.Sign(pblock->GetHash(), pblock->vchBlockSig)) {
             LogPrint(BCLog::BLOCKCREATION, "%s: Failed to sign block hash\n", __func__);
@@ -737,11 +754,16 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
     unsigned int nExtraNonce = 0;
     static const int nInnerLoopCount = 0x010000;
     static int nStakeHashesLast = 0;
+    bool enablewallet = false;
+#ifdef ENABLE_WALLET
+    enablewallet = !gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET);
+#endif
 
-    while (fGenerateBitcoins || fProofOfStake)
+    while (fGenerateBitcoins || fProofOfStake && enablewallet)
     {
         boost::this_thread::interruption_point();
-        if (fProofOfStake) {
+#ifdef ENABLE_WALLET
+        if (enablewallet && fProofOfStake) {
             //Need wallet if this is for proof of stake
             auto pwallet = GetMainWallet();
 
@@ -808,6 +830,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 }
             }
         }
+#endif
 
         if (fGenerateBitcoins && !fProofOfStake) { // If the miner was turned on and we are in IsInitialBlockDownload(), sleep 60 seconds, before trying again
             if (IsInitialBlockDownload() && !gArgs.GetBoolArg("-genoverride", false)) {

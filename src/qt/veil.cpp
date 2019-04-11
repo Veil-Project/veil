@@ -26,6 +26,7 @@
 #ifdef ENABLE_WALLET
 #include <qt/paymentserver.h>
 #include <qt/walletmodel.h>
+#include <wallet/wallet.h> // For DEFAULT_DISABLE_WALLET
 #endif
 
 #include <interfaces/handler.h>
@@ -333,8 +334,10 @@ BitcoinApplication::~BitcoinApplication()
     delete window;
     window = 0;
 #ifdef ENABLE_WALLET
-    delete paymentServer;
-    paymentServer = 0;
+    if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        delete paymentServer;
+        paymentServer = 0;
+    }
 #endif
     delete optionsModel;
     optionsModel = 0;
@@ -345,7 +348,9 @@ BitcoinApplication::~BitcoinApplication()
 #ifdef ENABLE_WALLET
 void BitcoinApplication::createPaymentServer()
 {
-    paymentServer = new PaymentServer(this);
+    if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        paymentServer = new PaymentServer(this);
+    }
 }
 #endif
 
@@ -424,11 +429,13 @@ void BitcoinApplication::requestShutdown()
     pollShutdownTimer->stop();
 
 #ifdef ENABLE_WALLET
-    window->removeAllWallets();
-    for (WalletModel *walletModel : m_wallet_models) {
-        delete walletModel;
+    if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        window->removeAllWallets();
+        for (WalletModel *walletModel : m_wallet_models) {
+            delete walletModel;
+        }
+        m_wallet_models.clear();
     }
-    m_wallet_models.clear();
 #endif
     delete clientModel;
     clientModel = 0;
@@ -442,6 +449,9 @@ void BitcoinApplication::requestShutdown()
 void BitcoinApplication::addWallet(WalletModel* walletModel)
 {
 #ifdef ENABLE_WALLET
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
+        return;
+
     window->addWallet(walletModel);
 
     if (m_wallet_models.empty()) {
@@ -459,6 +469,9 @@ void BitcoinApplication::addWallet(WalletModel* walletModel)
 void BitcoinApplication::removeWallet()
 {
 #ifdef ENABLE_WALLET
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
+        return;
+
     WalletModel* walletModel = static_cast<WalletModel*>(sender());
     m_wallet_models.erase(std::find(m_wallet_models.begin(), m_wallet_models.end(), walletModel));
     window->removeWallet(walletModel);
@@ -476,23 +489,27 @@ void BitcoinApplication::initializeResult(bool success)
         // Log this only after AppInitMain finishes, as then logging setup is guaranteed complete
         qWarning() << "Platform customization:" << platformStyle->getName();
 #ifdef ENABLE_WALLET
-        PaymentServer::LoadRootCAs();
-        paymentServer->setOptionsModel(optionsModel);
+        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+            PaymentServer::LoadRootCAs();
+            paymentServer->setOptionsModel(optionsModel);
+        }
 #endif
 
         clientModel = new ClientModel(m_node, optionsModel);
         window->setClientModel(clientModel);
 
 #ifdef ENABLE_WALLET
-        m_handler_load_wallet = m_node.handleLoadWallet([this](std::unique_ptr<interfaces::Wallet> wallet) {
-            WalletModel* wallet_model = new WalletModel(std::move(wallet), m_node, platformStyle, optionsModel, nullptr);
-            // Fix wallet model thread affinity.
-            wallet_model->moveToThread(thread());
-            QMetaObject::invokeMethod(this, "addWallet", Qt::QueuedConnection, Q_ARG(WalletModel*, wallet_model));
-        });
+        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+            m_handler_load_wallet = m_node.handleLoadWallet([this](std::unique_ptr<interfaces::Wallet> wallet) {
+                WalletModel* wallet_model = new WalletModel(std::move(wallet), m_node, platformStyle, optionsModel, nullptr);
+                // Fix wallet model thread affinity.
+                wallet_model->moveToThread(thread());
+                QMetaObject::invokeMethod(this, "addWallet", Qt::QueuedConnection, Q_ARG(WalletModel*, wallet_model));
+            });
 
-        for (auto& wallet : m_node.getWallets()) {
-            addWallet(new WalletModel(std::move(wallet), m_node, platformStyle, optionsModel));
+            for (auto& wallet : m_node.getWallets()) {
+                addWallet(new WalletModel(std::move(wallet), m_node, platformStyle, optionsModel));
+            }
         }
 #endif
 
@@ -508,15 +525,17 @@ void BitcoinApplication::initializeResult(bool success)
         Q_EMIT splashFinished(window);
 
 #ifdef ENABLE_WALLET
-        // Now that initialization/startup is done, process any command-line
-        // veil: URIs or payment requests:
-        connect(paymentServer, SIGNAL(receivedPaymentRequest(SendCoinsRecipient)),
-                         window, SLOT(handlePaymentRequest(SendCoinsRecipient)));
-        connect(window, SIGNAL(receivedURI(QString)),
-                         paymentServer, SLOT(handleURIOrFile(QString)));
-        connect(paymentServer, SIGNAL(message(QString,QString,unsigned int)),
-                         window, SLOT(message(QString,QString,unsigned int)));
-        QTimer::singleShot(100, paymentServer, SLOT(uiReady()));
+        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+            // Now that initialization/startup is done, process any command-line
+            // veil: URIs or payment requests:
+            connect(paymentServer, SIGNAL(receivedPaymentRequest(SendCoinsRecipient)),
+                             window, SLOT(handlePaymentRequest(SendCoinsRecipient)));
+            connect(window, SIGNAL(receivedURI(QString)),
+                             paymentServer, SLOT(handleURIOrFile(QString)));
+            connect(paymentServer, SIGNAL(message(QString,QString,unsigned int)),
+                             window, SLOT(message(QString,QString,unsigned int)));
+            QTimer::singleShot(100, paymentServer, SLOT(uiReady()));
+        }
 #endif
         pollShutdownTimer->start(200);
     } else {
@@ -597,7 +616,9 @@ int main(int argc, char *argv[])
     qRegisterMetaType< CAmount >("CAmount");
     qRegisterMetaType< std::function<void(void)> >("std::function<void(void)>");
 #ifdef ENABLE_WALLET
-    qRegisterMetaType<WalletModel*>("WalletModel*");
+    if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        qRegisterMetaType<WalletModel*>("WalletModel*");
+    }
 #endif
 
     /// 2. Parse command-line options. We do this after qt in order to show an error if there are problems parsing these
@@ -676,8 +697,10 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 #ifdef ENABLE_WALLET
-    // Parse URIs on command line -- this can affect Params()
-    PaymentServer::ipcParseCommandLine(*node, argc, argv);
+    if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        // Parse URIs on command line -- this can affect Params()
+        PaymentServer::ipcParseCommandLine(*node, argc, argv);
+    }
 #endif
 
     QScopedPointer<const NetworkStyle> networkStyle(NetworkStyle::instantiate(QString::fromStdString(Params().NetworkIDString())));
@@ -688,18 +711,20 @@ int main(int argc, char *argv[])
     initTranslations(qtTranslatorBase, qtTranslator, translatorBase, translator);
 
 #ifdef ENABLE_WALLET
-    /// 8. URI IPC sending
-    // - Do this early as we don't want to bother initializing if we are just calling IPC
-    // - Do this *after* setting up the data directory, as the data directory hash is used in the name
-    // of the server.
-    // - Do this after creating app and setting up translations, so errors are
-    // translated properly.
-    if (PaymentServer::ipcSendCommandLine())
-        exit(EXIT_SUCCESS);
+    if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        /// 8. URI IPC sending
+        // - Do this early as we don't want to bother initializing if we are just calling IPC
+        // - Do this *after* setting up the data directory, as the data directory hash is used in the name
+        // of the server.
+        // - Do this after creating app and setting up translations, so errors are
+        // translated properly.
+        if (PaymentServer::ipcSendCommandLine())
+            exit(EXIT_SUCCESS);
 
-    // Start up the payment server early, too, so impatient users that click on
-    // veil: links repeatedly have their payment requests routed to this process:
-    app.createPaymentServer();
+        // Start up the payment server early, too, so impatient users that click on
+        // veil: links repeatedly have their payment requests routed to this process:
+        app.createPaymentServer();
+    }
 #endif
 
     /// 9. Main GUI initialization

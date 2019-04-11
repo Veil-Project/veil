@@ -14,6 +14,7 @@
 #include <addrman.h>
 #include <amount.h>
 #include <veil/ringct/blind.h>
+#include <veil/ringct/stealth.h>
 #include <chain.h>
 #include <chainparams.h>
 #include <checkpoints.h>
@@ -88,6 +89,7 @@ static const bool DEFAULT_STOPAFTERBLOCKIMPORT = false;
 std::unique_ptr<CConnman> g_connman;
 std::unique_ptr<PeerLogicValidation> peerLogic;
 
+/*
 #if !(ENABLE_WALLET)
 class DummyWalletInit : public WalletInitInterface {
 public:
@@ -115,6 +117,7 @@ void DummyWalletInit::AddWalletOptions() const
 //const WalletInitInterface& g_wallet_init_interface = DummyWalletInit();
 #endif
 
+*/
 #ifdef WIN32
 // Win32 LevelDB doesn't use filedescriptors, and the ones used for
 // accessing block files don't count towards the fd_set size limit
@@ -180,9 +183,11 @@ static std::unique_ptr<CCoinsViewErrorCatcher> pcoinscatcher;
 static std::unique_ptr<ECCVerifyHandle> globalVerifyHandle;
 
 static boost::thread_group threadGroup;
+#ifdef ENABLE_WALLET
 static boost::thread_group threadGroupStaking;
-static boost::thread_group threadGroupPoWMining;
 static boost::thread_group threadGroupPrecompute;
+#endif
+static boost::thread_group threadGroupPoWMining;
 static boost::thread_group threadGroupStaging;
 static CScheduler scheduler;
 
@@ -220,7 +225,9 @@ void Shutdown()
     StopREST();
     StopRPC();
     StopHTTPServer();
+#ifdef ENABLE_WALLET
     g_wallet_init_interface.Flush();
+#endif
     StopMapPort();
 
     // Because these depend on each-other, we make sure that neither can be
@@ -235,14 +242,18 @@ void Shutdown()
     // CScheduler/checkqueue threadGroup
     threadGroupPoWMining.interrupt_all();
     threadGroupPoWMining.join_all();
-    threadGroupStaking.interrupt_all();
-    threadGroupStaking.join_all();
+#ifdef ENABLE_WALLET
+    if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
+        threadGroupStaking.interrupt_all();
+        threadGroupStaking.join_all();
+        threadGroupPrecompute.interrupt_all();
+        threadGroupPrecompute.join_all();
+    }
+#endif
     threadGroupStaging.interrupt_all();
     threadGroupStaging.join_all();
     threadGroup.interrupt_all();
     threadGroup.join_all();
-    threadGroupPrecompute.interrupt_all();
-    threadGroupPrecompute.join_all();
 
     // After the threads that potentially access these pointers have been stopped,
     // destruct and reset all to nullptr.
@@ -253,8 +264,11 @@ void Shutdown()
     if (g_is_mempool_loaded && gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         DumpMempool();
     }
-
-    DumpPrecomputes();
+#ifdef ENABLE_WALLET
+    if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
+        DumpPrecomputes();
+    }
+#endif
 
     if (fFeeEstimatesInitialized)
     {
@@ -296,7 +310,9 @@ void Shutdown()
         pprecomputeDB.reset();
         pprecompute.reset();
     }
+#ifdef ENABLE_WALLET
     g_wallet_init_interface.Stop();
+#endif
 
 #if ENABLE_ZMQ
     if (g_zmq_notification_interface) {
@@ -316,7 +332,9 @@ void Shutdown()
     UnregisterAllValidationInterfaces();
     GetMainSignals().UnregisterBackgroundSignalScheduler();
     GetMainSignals().UnregisterWithMempoolSignals(mempool);
+#ifdef ENABLE_WALLET
     g_wallet_init_interface.Close();
+#endif
     globalVerifyHandle.reset();
     ECC_Stop();
     ECC_Stop_Stealth();
@@ -473,8 +491,9 @@ void SetupServerArgs()
     gArgs.AddArg("-whitebind=<addr>", "Bind to given address and whitelist peers connecting to it. Use [host]:port notation for IPv6", false, OptionsCategory::CONNECTION);
     gArgs.AddArg("-whitelist=<IP address or network>", "Whitelist peers connecting from the given IP address (e.g. 1.2.3.4) or CIDR notated network (e.g. 1.2.3.0/24). Can be specified multiple times."
         " Whitelisted peers cannot be DoS banned and their transactions are always relayed, even if they are already in the mempool, useful e.g. for a gateway", false, OptionsCategory::CONNECTION);
-
+#ifdef ENABLE_WALLET
     g_wallet_init_interface.AddWalletOptions();
+#endif
 
 #if ENABLE_ZMQ
     gArgs.AddArg("-zmqpubhashblock=<address>", "Enable publish hash block in <address>", false, OptionsCategory::ZMQ);
@@ -533,9 +552,6 @@ void SetupServerArgs()
         CURRENCY_UNIT, FormatMoney(DEFAULT_MIN_RELAY_TX_FEE)), false, OptionsCategory::NODE_RELAY);
     gArgs.AddArg("-whitelistforcerelay", strprintf("Force relay of transactions from whitelisted peers even if they violate local relay policy (default: %d)", DEFAULT_WHITELISTFORCERELAY), false, OptionsCategory::NODE_RELAY);
     gArgs.AddArg("-whitelistrelay", strprintf("Accept relayed transactions received from whitelisted peers even when not relaying transactions (default: %d)", DEFAULT_WHITELISTRELAY), false, OptionsCategory::NODE_RELAY);
-
-    // default denom
-    gArgs.AddArg("-nautomintdenom=<n>", strprintf("Set preferred automint denomination (default: %d)", DEFAULT_AUTOMINT_DENOM), false, OptionsCategory::WALLET);
 
     gArgs.AddArg("-blockmaxweight=<n>", strprintf("Set maximum BIP141 block weight (default: %d)", DEFAULT_BLOCK_MAX_WEIGHT), false, OptionsCategory::BLOCK_CREATION);
     gArgs.AddArg("-blockmintxfee=<amt>", strprintf("Set lowest fee rate (in %s/kB) for transactions to be included in block creation. (default: %s)", CURRENCY_UNIT, FormatMoney(DEFAULT_BLOCK_MIN_TX_FEE)), false, OptionsCategory::BLOCK_CREATION);
@@ -1154,8 +1170,9 @@ bool AppInitParameterInteraction()
     if (chainparams.RequireStandard() && !fRequireStandard)
         return InitError(strprintf("acceptnonstdtxn is not currently supported for %s chain", chainparams.NetworkIDString()));
     nBytesPerSigOp = gArgs.GetArg("-bytespersigop", nBytesPerSigOp);
-
+#ifdef ENABLE_WALLET
     if (!g_wallet_init_interface.ParameterInteraction()) return false;
+#endif
 
     fIsBareMultisigStd = gArgs.GetBoolArg("-permitbaremultisig", DEFAULT_PERMIT_BAREMULTISIG);
     fAcceptDatacarrier = gArgs.GetBoolArg("-datacarrier", DEFAULT_ACCEPT_DATACARRIER);
@@ -1325,10 +1342,12 @@ bool AppInitMain()
      * available in the GUI RPC console even if external calls are disabled.
      */
     RegisterAllCoreRPCCommands(tableRPC);
-    g_wallet_init_interface.RegisterRPC(tableRPC);
-
 #ifdef ENABLE_WALLET
-    RegisterHDWalletRPCCommands(tableRPC);
+    if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
+        g_wallet_init_interface.RegisterRPC(tableRPC);
+
+        RegisterHDWalletRPCCommands(tableRPC);
+    }
 #endif
 
 #if ENABLE_ZMQ
@@ -1348,7 +1367,9 @@ bool AppInitMain()
     }
 
     // ********************************************************* Step 5: verify wallet database integrity
+#ifdef ENABLE_WALLET
     if (!g_wallet_init_interface.Verify()) return false;
+#endif
 
     // ********************************************************* Step 6: network initialization
     // Note that we absolutely cannot open any actual connections
@@ -1551,12 +1572,16 @@ bool AppInitMain()
                 pzerocoinDB.reset();
                 pzerocoinDB.reset(new CZerocoinDB(0, false, fReindex));
 
-                //zerocoinDB
-                pprecomputeDB.reset();
-                pprecomputeDB.reset(new CPrecomputeDB(0, false, false));
+#ifdef ENABLE_WALLET
+                if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
+                    //zerocoinDB
+                    pprecomputeDB.reset();
+                    pprecomputeDB.reset(new CPrecomputeDB(0, false, false));
 
-                pprecompute.reset();
-                pprecompute.reset(new Precompute());
+                    pprecompute.reset();
+                    pprecompute.reset(new Precompute());
+                }
+#endif
 
                 if (fReset) {
                     pblocktree->WriteReindexing(true);
@@ -1723,7 +1748,9 @@ bool AppInitMain()
     }
 
     // ********************************************************* Step 9: load wallet
+#ifdef ENABLE_WALLET
     if (!g_wallet_init_interface.Open()) return false;
+#endif
 
 
     // Automint denom
@@ -1885,53 +1912,58 @@ bool AppInitMain()
     SetRPCWarmupFinished();
     uiInterface.InitMessage(_("Done loading"));
 
-    g_wallet_init_interface.Start(scheduler);
-
-    //Start staking thread last
-    if (gArgs.GetBoolArg("-staking", true) && !gArgs.GetBoolArg("-exchangesandservicesmode", false))
-        threadGroupStaking.create_thread(&ThreadStakeMiner);
-
     //Start block staging thread
     threadGroupStaging.create_thread(&ThreadStagingBlockProcessing);
     threadGroupStaging.create_thread(&ThreadStagingBatchVerify);
 
     LinkPoWThreadGroup(&threadGroupPoWMining);
-    LinkPrecomputeThreadGroup(&threadGroupPrecompute);
 
-    // Start wallet CPU mining if the -gen=<n> parameter is given
-    int nThreads = gArgs.GetArg("-gen", 0);
-    if (nThreads) {
+#ifdef ENABLE_WALLET
+    if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
+        g_wallet_init_interface.Start(scheduler);
+
+        //Start staking thread last
+        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) && gArgs.GetBoolArg("-staking", true) && !gArgs.GetBoolArg("-exchangesandservicesmode", false))
+            threadGroupStaking.create_thread(&ThreadStakeMiner);
+
+        LinkPrecomputeThreadGroup(&threadGroupPrecompute);
+
+        // Start wallet CPU mining if the -gen=<n> parameter is given
+        int nThreads = gArgs.GetArg("-gen", 0);
+        if (nThreads) {
+            auto pt = GetMainWallet();
+            if (pt) {
+                std::shared_ptr<CReserveScript> coinbase_script;
+                pt->GetScriptForMining(coinbase_script);
+
+                // If the keypool is exhausted, no script is returned at all.  Catch this.
+                if (!coinbase_script) {
+                    error("Failed to start veilminer: Keypool ran out, please call keypoolrefill first");
+                    return true;
+                }
+
+                //throw an error if no script was provided
+                if (coinbase_script->reserveScript.empty()) {
+                    error("Failed to start veilminer: No coinbase script available");
+                    return true;
+                }
+
+                GenerateBitcoins(true, nThreads, coinbase_script);
+            }
+        }
+
         auto pt = GetMainWallet();
-        if (pt) {
-            std::shared_ptr<CReserveScript> coinbase_script;
-            pt->GetScriptForMining(coinbase_script);
-
-            // If the keypool is exhausted, no script is returned at all.  Catch this.
-            if (!coinbase_script) {
-                error("Failed to start veilminer: Keypool ran out, please call keypoolrefill first");
-                return true;
+        if (pprecompute && pt) {
+            pprecompute->SetBlocksPerCycle(gArgs.GetArg("-precomputeblockpercycle", DEFAULT_PRECOMPUTE_BPC));
+            if (gArgs.GetBoolArg("-precompute", false)) {
+                // Start precomputing zerocoin proofs
+                std::string strStatus;
+                if (!pt->StartPrecomputing(strStatus))
+                    error("Failed to start precomputing : %s", strStatus);
             }
-
-            //throw an error if no script was provided
-            if (coinbase_script->reserveScript.empty()) {
-                error("Failed to start veilminer: No coinbase script available");
-                return true;
-            }
-
-            GenerateBitcoins(true, nThreads, coinbase_script);
         }
     }
-
-    auto pt = GetMainWallet();
-    if (pprecompute && pt) {
-        pprecompute->SetBlocksPerCycle(gArgs.GetArg("-precomputeblockpercycle", DEFAULT_PRECOMPUTE_BPC));
-        if (gArgs.GetBoolArg("-precompute", false)) {
-            // Start precomputing zerocoin proofs
-            std::string strStatus;
-            if (!pt->StartPrecomputing(strStatus))
-                error("Failed to start precomputing : %s", strStatus);
-        }
-    }
+#endif // ENABLE_WALLET
 
     return true;
 }

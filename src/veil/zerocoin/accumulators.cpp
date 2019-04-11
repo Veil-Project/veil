@@ -355,7 +355,7 @@ void AccumulateRange(CoinWitnessData* coinWitness, int nHeightEnd)
         pindex = chainActive.Next(pindex);
     }
 }
-
+#ifdef ENABLE_WALLET
 bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& mapAccumulators, int nSecurityLevel, string& strError, CBlockIndex* pindexCheckpoint)
 {
     CBigNum bnAccValue = 0;
@@ -431,6 +431,7 @@ bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& ma
 
     return true;
 }
+#endif
 
 map<CoinDenomination, int> GetMintMaturityHeight()
 {

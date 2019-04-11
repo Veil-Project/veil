@@ -9,7 +9,6 @@
 #include <boost/foreach.hpp>
 
 #include "chainparams.h"
-#include "db.h"
 #include "kernel.h"
 #include "policy/policy.h"
 #include "script/interpreter.h"
