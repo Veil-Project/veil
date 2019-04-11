@@ -237,7 +237,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 if (pOut->IsZerocoinMint())
                     sub.credit += pOut->GetValue();
             }
-            sub.debit -= wtx.tx->vin[0].GetZerocoinSpent();
+
+			// Remove the denomination amount that won the stake.
+            sub.credit -= wtx.tx->vin[0].GetZerocoinSpent();
+
             parts.append(sub);
         }
     } else if (wtx.tx->IsZerocoinSpend()) {
