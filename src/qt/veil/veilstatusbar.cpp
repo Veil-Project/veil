@@ -5,6 +5,9 @@
 #include <qt/walletmodel.h>
 #include <qt/veil/qtutils.h>
 #include <iostream>
+#ifdef ENABLE_WALLET
+#include <wallet/wallet.h> // For DEFAULT_DISABLE_WALLET
+#endif
 
 VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
     QWidget(parent),
@@ -13,11 +16,23 @@ VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
 {
     ui->setupUi(this);
 
-    ui->checkStaking->setProperty("cssClass" , "switch");
-    ui->checkPrecompute->setProperty("cssClass" , "switch");
-
-    connect(ui->btnLock, SIGNAL(clicked()), this, SLOT(onBtnLockClicked()));
     connect(ui->btnSync, SIGNAL(clicked()), this, SLOT(onBtnSyncClicked()));
+
+#ifdef ENABLE_WALLET 
+    if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        ui->checkStaking->setProperty("cssClass" , "switch");
+        ui->checkPrecompute->setProperty("cssClass" , "switch");
+
+        connect(ui->btnLock, SIGNAL(clicked()), this, SLOT(onBtnLockClicked()));
+    }
+    else {
+#endif
+        ui->btnLock->setVisible(false);
+        ui->checkStaking->setVisible(false);
+        ui->checkPrecompute->setVisible(false);
+#ifdef ENABLE_WALLET
+    }
+#endif
 }
 
 bool VeilStatusBar::getSyncStatusVisible() {
@@ -36,8 +51,12 @@ void VeilStatusBar::onBtnSyncClicked(){
     mainWindow->showModalOverlay();
 }
 
+#ifdef ENABLE_WALLET
 bool fBlockNextStakeCheckSignal = false;
 void VeilStatusBar::onCheckStakingClicked(bool res) {
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
+        return;
+
     // When our own dialog internally changes the checkstate, block signal from executing
     if (fBlockNextStakeCheckSignal) {
         fBlockNextStakeCheckSignal = false;
@@ -68,6 +87,8 @@ void VeilStatusBar::onCheckStakingClicked(bool res) {
 
 bool fBlockNextPrecomputeCheckSignal = false;
 void VeilStatusBar::onCheckPrecomputeClicked(bool res) {
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
+        return;
 
     // When our own dialog internally changes the checkstate, block signal from executing
     if (fBlockNextPrecomputeCheckSignal) {
@@ -107,6 +128,9 @@ void VeilStatusBar::onCheckPrecomputeClicked(bool res) {
 bool fBlockNextBtnLockSignal = false;
 void VeilStatusBar::onBtnLockClicked()
 {
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
+        return;
+
     // When our own dialog internally changes the checkstate, block signal from executing
     if (fBlockNextBtnLockSignal) {
         fBlockNextBtnLockSignal = false;
@@ -148,6 +172,9 @@ void VeilStatusBar::onBtnLockClicked()
 
 void VeilStatusBar::setWalletModel(WalletModel *model)
 {
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
+        return;
+
     this->walletModel = model;
     connect(ui->checkStaking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
     connect(ui->checkPrecompute, SIGNAL(toggled(bool)), this, SLOT(onCheckPrecomputeClicked(bool)));
@@ -160,6 +187,9 @@ void VeilStatusBar::setWalletModel(WalletModel *model)
 }
 
 void VeilStatusBar::updateLockCheckbox(){
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
+        return;
+
     if(walletModel) {
         WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
         bool lockStatus = lockState == WalletModel::Locked || lockState == WalletModel::UnlockedForStakingOnly;
@@ -173,6 +203,9 @@ void VeilStatusBar::updateLockCheckbox(){
 
 void VeilStatusBar::updateStakingCheckbox()
 {
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
+        return;
+
     if(walletModel) {
         WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
         bool stakingStatus = walletModel->isStakingEnabled() && lockState != WalletModel::Locked;
@@ -186,6 +219,9 @@ void VeilStatusBar::updateStakingCheckbox()
 
 void VeilStatusBar::updatePrecomputeCheckbox()
 {
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
+        return;
+
     if(walletModel) {
         WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
         bool precomputeStatus = walletModel->isPrecomputingEnabled() && lockState != WalletModel::Locked;
@@ -196,7 +232,7 @@ void VeilStatusBar::updatePrecomputeCheckbox()
         }
     }
 }
-
+#endif
 VeilStatusBar::~VeilStatusBar()
 {
     delete ui;

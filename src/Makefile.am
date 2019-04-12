@@ -299,6 +299,8 @@ libbitcoin_server_a_SOURCES = \
   validationinterface.cpp \
   veil/proofoffullnode/proofoffullnode.cpp \
   veil/proofofstake/blockvalidation.cpp \
+  veil/proofofstake/kernel.cpp \
+  veil/proofofstake/stakeinput.cpp \
   veil/budget.cpp \
   versionbits.cpp \
   $(BITCOIN_CORE_H)
@@ -320,7 +322,6 @@ libbitcoin_wallet_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_wallet_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_wallet_a_SOURCES = \
   interfaces/wallet.cpp \
-  veil/proofofstake/kernel.cpp \
   veil/ringct/blind.cpp \
   veil/ringct/stealth.cpp \
   veil/mnemonic/dictionary.cpp \
@@ -347,8 +348,7 @@ libbitcoin_wallet_a_SOURCES = \
   veil/zerocoin/mintpool.cpp \
   veil/zerocoin/precompute.cpp \
   veil/zerocoin/spendreceipt.cpp \
-  veil/zerocoin/witness.cpp \
-  veil/zerocoin/zchain.cpp \
+	veil/zerocoin/witness.cpp \
   veil/zerocoin/ztracker.cpp \
   veil/zerocoin/zwallet.cpp \
   veil/ringct/temprecipient.cpp \
@@ -356,7 +356,6 @@ libbitcoin_wallet_a_SOURCES = \
   veil/ringct/anonwallet.cpp \
   veil/ringct/outputrecord.cpp \
   veil/ringct/rpcanonwallet.cpp \
-  veil/proofofstake/stakeinput.cpp \
   $(BITCOIN_CORE_H)
 
 # crypto primitives library
@@ -530,6 +529,7 @@ libbitcoin_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_common_a_SOURCES = \
   veil/zerocoin/accumulators.cpp \
   veil/zerocoin/accumulatormap.cpp \
+  veil/zerocoin/zchain.cpp \
   base58.cpp \
   bech32.cpp \
   chainparams.cpp \

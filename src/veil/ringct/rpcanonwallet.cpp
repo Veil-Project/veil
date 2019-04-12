@@ -32,7 +32,9 @@
 #include <veil/mnemonic/mnemonic.h>
 #include <crypto/sha256.h>
 #include <warnings.h>
-
+#ifdef ENABLE_WALLET
+#include <wallet/wallet.h> // For DEFAULT_DISABLE_WALLET
+#endif
 #include <univalue.h>
 #include <stdint.h>
 
@@ -1907,7 +1909,7 @@ static const CRPCCommand commands[] =
 
 void RegisterHDWalletRPCCommands(CRPCTable &t)
 {
-    if (gArgs.GetBoolArg("-disablewallet", false))
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
         return;
 
     for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)

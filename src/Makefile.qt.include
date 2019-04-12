@@ -682,6 +682,10 @@ RES_ICONS = \
   qt/res/icons/verify.png
 
 BITCOIN_QT_BASE_CPP = \
+  qt/splashscreenveil.cpp \
+  qt/veil/qtutils.cpp \
+  qt/veil/toast.cpp \
+  qt/veil/veilstatusbar.cpp \
   qt/bantablemodel.cpp \
   qt/bitcoinaddressvalidator.cpp \
   qt/bitcoinamountfield.cpp \
@@ -724,7 +728,6 @@ BITCOIN_QT_WALLET_CPP = \
   qt/sendcoinsdialog.cpp \
   qt/sendcoinsentry.cpp \
   qt/signverifymessagedialog.cpp \
-  qt/splashscreenveil.cpp \
   qt/transactiondesc.cpp \
   qt/transactiondescdialog.cpp \
   qt/transactionfilterproxy.cpp \
@@ -740,7 +743,6 @@ BITCOIN_QT_WALLET_CPP = \
   qt/veil/tutorialmnemoniccode.cpp \
   qt/veil/tutorialcreatewalletwidget.cpp \
   qt/veil/tutoriallanguageswidget.cpp \
-  qt/veil/qtutils.cpp \
   qt/veil/createpassword.cpp \
   qt/veil/settings/settingsadvanceconsole.cpp \
   qt/veil/settings/settingsadvanceinformation.cpp \
@@ -775,9 +777,7 @@ BITCOIN_QT_WALLET_CPP = \
   qt/veil/balance.cpp \
   qt/veil/sendconfirmation.cpp \
   qt/veil/tooltipbalance.cpp \
-  qt/veil/toast.cpp \
   qt/veil/unlockpassworddialog.cpp \
-  qt/veil/veilstatusbar.cpp \
   qt/veil/transactiondetaildialog.cpp \
   qt/veil/addressesmenu.cpp \
   qt/veil/updateaddress.cpp \

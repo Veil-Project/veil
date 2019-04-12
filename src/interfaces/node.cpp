@@ -35,7 +35,7 @@
 #ifdef ENABLE_WALLET
 #include <wallet/fees.h>
 #include <wallet/wallet.h>
-#define CHECK_WALLET(x) x
+#define CHECK_WALLET(x) if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) { throw std::logic_error("Wallet function called while wallet disabled."); } else { x; }
 #else
 #define CHECK_WALLET(x) throw std::logic_error("Wallet function called in non-wallet build.")
 #endif
@@ -222,11 +222,16 @@ class NodeImpl : public Node
     std::vector<std::unique_ptr<Wallet>> getWallets() override
     {
 #ifdef ENABLE_WALLET
-        std::vector<std::unique_ptr<Wallet>> wallets;
-        for (const std::shared_ptr<CWallet>& wallet : GetWallets()) {
-            wallets.emplace_back(MakeWallet(wallet));
+        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+            std::vector<std::unique_ptr<Wallet>> wallets;
+            for (const std::shared_ptr<CWallet>& wallet : GetWallets()) {
+                wallets.emplace_back(MakeWallet(wallet));
+            }
+            return wallets;
         }
-        return wallets;
+        else {
+            throw std::logic_error("Node::getWallets() called while wallet disabled.");
+        }
 #else
         throw std::logic_error("Node::getWallets() called in non-wallet build.");
 #endif

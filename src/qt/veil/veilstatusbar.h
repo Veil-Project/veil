@@ -24,16 +24,19 @@ public:
     bool getSyncStatusVisible();
     void updateSyncStatus(QString status);
     void setSyncStatusVisible(bool fVisible);
+#ifdef ENABLE_WALLET
     void setWalletModel(WalletModel *model);
     void updateStakingCheckbox();
     void updatePrecomputeCheckbox();
+#endif
 
 private Q_SLOTS:
     void onBtnSyncClicked();
+#ifdef ENABLE_WALLET
     void onBtnLockClicked();
     void onCheckStakingClicked(bool res);
     void onCheckPrecomputeClicked(bool res);
-
+#endif
 private:
     Ui::VeilStatusBar *ui;
     BitcoinGUI* mainWindow;
@@ -41,8 +44,9 @@ private:
     UnlockPasswordDialog *unlockPasswordDialog = nullptr;
 
     bool preparingFlag = false;
-
+#ifdef ENABLE_WALLET
     void updateLockCheckbox();
+#endif
 };
 
 #endif // VEILSTATUSBAR_H
