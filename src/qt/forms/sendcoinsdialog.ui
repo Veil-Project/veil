@@ -99,7 +99,7 @@ border:none;</string>
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>Quantity:</string>
@@ -112,7 +112,7 @@ border:none;</string>
              <cursorShape>IBeamCursor</cursorShape>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>0</string>
@@ -131,7 +131,7 @@ border:none;</string>
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>Bytes:</string>
@@ -144,7 +144,7 @@ border:none;</string>
              <cursorShape>IBeamCursor</cursorShape>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>0</string>
@@ -179,7 +179,7 @@ border:none;</string>
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>Amount:</string>
@@ -192,7 +192,7 @@ border:none;</string>
              <cursorShape>IBeamCursor</cursorShape>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>0.00 Veil</string>
@@ -208,7 +208,7 @@ border:none;</string>
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>Dust:</string>
@@ -221,7 +221,7 @@ border:none;</string>
              <cursorShape>IBeamCursor</cursorShape>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>no</string>
@@ -259,7 +259,7 @@ border:none;</string>
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>Fee:</string>
@@ -269,7 +269,7 @@ border:none;</string>
           <item row="0" column="1">
            <widget class="QLabel" name="labelCoinControlFee">
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>0.00 Veil</string>
@@ -301,7 +301,7 @@ border:none;</string>
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>After Fee:</string>
@@ -311,7 +311,7 @@ border:none;</string>
           <item row="0" column="1">
            <widget class="QLabel" name="labelCoinControlAfterFee">
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>0.00 Veil</string>
@@ -327,7 +327,7 @@ border:none;</string>
              </font>
             </property>
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>Change:</string>
@@ -337,7 +337,7 @@ border:none;</string>
           <item row="1" column="1">
            <widget class="QLabel" name="labelCoinControlChange">
             <property name="styleSheet">
-             <string notr="true">color: black</string>
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>0.00 Veil</string>

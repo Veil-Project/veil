@@ -55,6 +55,7 @@ public:
     static CCoinControl *coinControl();
     static bool fSubtractFeeFromAmount;
     static int nCurrentCoinTypeSelected;
+    static bool fSpendingZerocoin;
 
 private:
     Ui::CoinControlDialog *ui;
@@ -67,6 +68,7 @@ private:
     QAction *copyTransactionHashAction;
     QAction *lockAction;
     QAction *unlockAction;
+    QAction *copyStakeHash;
 
     const PlatformStyle *platformStyle;
 
