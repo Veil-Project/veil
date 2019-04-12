@@ -436,7 +436,7 @@ bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp, bool 
                 continue;
             }
 
-            if (txin.scriptSig.IsZerocoinSpend()) {
+            if (txin.IsZerocoinSpend()) {
                 prevheights[txinIndex] = tip->nHeight + 1;
                 continue;
             }
@@ -585,7 +585,7 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
         if (txin.IsAnonInput())
             continue;
 
-        if (txin.scriptSig.IsZerocoinSpend())
+        if (txin.IsZerocoinSpend())
             continue;
         const Coin& coin = view.AccessCoin(txin.prevout);
 
@@ -669,7 +669,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         }
 
         fHasStandardInputs = true;
-        if (txin.scriptSig.IsZerocoinSpend()) {
+        if (txin.IsZerocoinSpend()) {
             continue;
         }
         fHasBasecoinInputs = true;
@@ -756,7 +756,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
 
             //Veil: check for duplicate zerocoin spends
-            if (txin.scriptSig.IsZerocoinSpend()) {
+            if (txin.IsZerocoinSpend()) {
                 auto spend = TxInToZerocoinSpend(txin);
                 if (!spend)
                     return false;
@@ -1572,7 +1572,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
                 continue;
 
             txundo.vprevout.emplace_back();
-            if (txin.scriptSig.IsZerocoinSpend())
+            if (txin.IsZerocoinSpend())
                 continue;
             bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
             assert(is_spent);
@@ -1672,7 +1672,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
                     continue;
                 }
 
-                if (tx.vin[i].scriptSig.IsZerocoinSpend())
+                if (tx.vin[i].IsZerocoinSpend())
                     continue;
                 const COutPoint &prevout = tx.vin[i].prevout;
                 const Coin& coin = inputs.AccessCoin(prevout);
@@ -1987,7 +1987,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 if (in.IsAnonInput())
                     continue;
 
-                if (in.scriptSig.IsZerocoinSpend()) {
+                if (in.IsZerocoinSpend()) {
                     auto spend = TxInToZerocoinSpend(in);
                     if (!spend) {
                         error("DisconnectBlock(): failed to undo zerocoinspend");
@@ -2417,7 +2417,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
                 //Check for double spending of serial #'s
                 for (const CTxIn& txIn : tx.vin) {
-                    if (!txIn.scriptSig.IsZerocoinSpend())
+                    if (!txIn.IsZerocoinSpend())
                         continue;
                     auto spend = TxInToZerocoinSpend(txIn);
                     if (!spend)

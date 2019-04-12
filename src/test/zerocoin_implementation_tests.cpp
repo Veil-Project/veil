@@ -184,7 +184,7 @@ bool CheckZerocoinSpendNoDB(const CTransaction tx, string& strError)
     for (const CTxIn& txin : tx.vin) {
 
         //only check txin that is a zcspend
-        if (!txin.scriptSig.IsZerocoinSpend())
+        if (!txin.IsZerocoinSpend())
             continue;
 
         // extract the CoinSpend from the txin

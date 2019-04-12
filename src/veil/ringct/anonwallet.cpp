@@ -5164,7 +5164,7 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                 rtx.vin[k] = tx.vin[k].prevout;
             }
 
-            if (!tx.vin[0].scriptSig.IsZerocoinSpend()) {
+            if (!tx.vin[0].IsZerocoinSpend()) {
                 // Lookup 1st input to set type
                 Coin coin;
                 const auto &prevout0 = tx.vin[0].prevout;

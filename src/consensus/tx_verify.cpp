@@ -137,7 +137,7 @@ unsigned int GetP2SHSigOpCount(const CTransaction& tx, const CCoinsViewCache& in
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
         if (tx.vin[i].IsAnonInput())
             continue;
-        if (tx.vin[i].scriptSig.IsZerocoinSpend())
+        if (tx.vin[i].IsZerocoinSpend())
             continue;
         const Coin& coin = inputs.AccessCoin(tx.vin[i].prevout);
         assert(!coin.IsSpent());
@@ -162,7 +162,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
         if (tx.vin[i].IsAnonInput())
             continue;
-        if (tx.vin[i].scriptSig.IsZerocoinSpend())
+        if (tx.vin[i].IsZerocoinSpend())
             continue;
         const Coin& coin = inputs.AccessCoin(tx.vin[i].prevout);
         assert(!coin.IsSpent());
@@ -198,7 +198,7 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
     CAmount nTotalRedeemed = 0;
     for (const CTxIn& txin : tx.vin) {
         //only check txin that is a zcspend
-        if (!txin.scriptSig.IsZerocoinSpend())
+        if (!txin.IsZerocoinSpend())
             continue;
 
         auto newSpend = TxInToZerocoinSpend(txin);
@@ -409,7 +409,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fSki
     std::set<uint256> setZerocoinSpendHashes;
     int nAnonIn = 0;
     for (const auto& txin : tx.vin) {
-        if (txin.scriptSig.IsZerocoinSpend()) {
+        if (txin.IsZerocoinSpend()) {
             //Veil: Cheap check here by hashing the entire script. This could be worked around, so still needs
             // a final full check in ConnectBlock()
             auto hashSpend = Hash(txin.scriptSig.begin(), txin.scriptSig.end());
@@ -472,7 +472,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
             continue;
         }
 
-        if (tx.vin[i].scriptSig.IsZerocoinSpend()) {
+        if (tx.vin[i].IsZerocoinSpend()) {
             //Zerocoinspend uses nSequence as an easy reference to denomination
             CAmount nValue = tx.vin[i].nSequence & CTxIn::SEQUENCE_LOCKTIME_MASK;
             nValue *= COIN;

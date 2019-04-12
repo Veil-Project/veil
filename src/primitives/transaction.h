@@ -139,6 +139,7 @@ public:
     }
 
     CAmount GetZerocoinSpent() const;
+    bool IsZerocoinSpend() const;
 
     explicit CTxIn(COutPoint prevoutIn, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=SEQUENCE_FINAL);
     CTxIn(uint256 hashPrevTx, uint32_t nOut, CScript scriptSigIn=CScript(), uint32_t nSequenceIn=SEQUENCE_FINAL);

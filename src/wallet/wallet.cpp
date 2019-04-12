@@ -681,7 +681,7 @@ std::set<uint256> CWallet::GetConflicts(const uint256& txid) const
 
     for (const CTxIn& txin : wtx.tx->vin)
     {
-        if (mapTxSpends.count(txin.prevout) <= 1 || txin.scriptSig.IsZerocoinSpend())
+        if (mapTxSpends.count(txin.prevout) <= 1 || txin.IsZerocoinSpend())
             continue;  // No conflict if zero or one spends
         range = mapTxSpends.equal_range(txin.prevout);
         for (TxSpends::const_iterator _it = range.first; _it != range.second; ++_it)
@@ -1099,7 +1099,7 @@ void CWallet::LoadToWallet(const CWalletTx& wtxIn)
     AddToSpends(hash);
     for (const CTxIn& txin : wtx.tx->vin) {
         auto it = mapWallet.find(txin.prevout.hash);
-        if (it != mapWallet.end() && !txin.IsAnonInput() && !txin.scriptSig.IsZerocoinSpend()) {
+        if (it != mapWallet.end() && !txin.IsAnonInput() && !txin.IsZerocoinSpend()) {
             CWalletTx& prevtx = it->second;
             if (prevtx.nIndex == -1 && !prevtx.hashUnset()) {
                 MarkConflicted(prevtx.hashBlock, wtx.GetHash());
@@ -1148,7 +1148,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
 
         if (pIndex != nullptr) {
             for (const CTxIn& txin : tx.vin) {
-                if (txin.scriptSig.IsZerocoinSpend() || tx.IsCoinBase())
+                if (txin.IsZerocoinSpend() || tx.IsCoinBase())
                     continue;
 
                 //Anon wallet tx already added above
@@ -1461,7 +1461,7 @@ isminetype CWallet::IsMine(const CTxIn &txin, bool fCheckZerocoin, bool fCheckAn
 {
     {
         LOCK(cs_wallet);
-        if (fCheckZerocoin && txin.scriptSig.IsZerocoinSpend()) {
+        if (fCheckZerocoin && txin.IsZerocoinSpend()) {
             auto spend = TxInToZerocoinSpend(txin);
             if (!spend)
                 return ISMINE_NO;
@@ -2153,7 +2153,7 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
                         uint256 txid = block.vtx[posInBlock]->GetHash();
                         std::map<libzerocoin::CoinSpend, uint256> spendInfo;
                         for (auto& in : block.vtx[posInBlock]->vin) {
-                            if (!in.scriptSig.IsZerocoinSpend())
+                            if (!in.IsZerocoinSpend())
                                 continue;
 
                             auto spend = TxInToZerocoinSpend(in);
