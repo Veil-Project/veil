@@ -140,7 +140,7 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
         return error("CheckProofOfStake() : called on non-coinstake %s", txRef->GetHash().ToString().c_str());
 
     //Construct the stakeinput object
-    if (txRef->vin.size() != 1 && txRef->vin[0].scriptSig.IsZerocoinSpend())
+    if (txRef->vin.size() != 1 && txRef->vin[0].IsZerocoinSpend())
         return error("%s: Stake is not a zerocoinspend", __func__);
 
     const CTxIn& txin = txRef->vin[0];

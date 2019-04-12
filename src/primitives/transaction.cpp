@@ -33,7 +33,7 @@ std::string CTxIn::ToString() const
     std::string str;
     str += "CTxIn(";
     str += prevout.ToString();
-    if (prevout.IsNull() && !scriptSig.IsZerocoinSpend())
+    if (prevout.IsNull() && !IsZerocoinSpend())
         str += strprintf(", coinbase %s", HexStr(scriptSig));
     else
         str += strprintf(", scriptSig=%s", HexStr(scriptSig).substr(0, 24));
@@ -172,14 +172,14 @@ std::vector<CTxOutBaseRef> DeepCopy(const std::vector<CTxOutBaseRef> &from)
 
 CAmount CTxIn::GetZerocoinSpent() const
 {
-    if (!scriptSig.IsZerocoinSpend())
+    if (!IsZerocoinSpend())
         return 0;
     return (nSequence&CTxIn::SEQUENCE_LOCKTIME_MASK) * COIN;
 }
 
 bool CTxIn::IsZerocoinSpend() const
 {
-    return scriptSig.IsZerocoinSpend();
+    return IsZerocoinSpend();
 }
 
 CTxOut::CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn)
@@ -306,7 +306,7 @@ bool CTransaction::IsCoinStake() const
     if (vin.empty())
         return false;
 
-    if (vin.size() != 1 || !vin[0].scriptSig.IsZerocoinSpend())
+    if (vin.size() != 1 || !vin[0].IsZerocoinSpend())
         return false;
 
     // the coin stake transaction is marked with the first output empty
@@ -356,7 +356,7 @@ CAmount CTransaction::GetZerocoinSpent() const
 
     CAmount nValueOut = 0;
     for (const CTxIn& txin : vin) {
-        if(!txin.scriptSig.IsZerocoinSpend())
+        if(!txin.IsZerocoinSpend())
             continue;
 
         nValueOut += txin.GetZerocoinSpent();

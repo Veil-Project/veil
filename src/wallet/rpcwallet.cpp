@@ -2459,7 +2459,7 @@ static UniValue gettransaction(const JSONRPCRequest& request)
         if (txin.IsAnonInput()) {
             obj_vin.pushKV("type", "ringct");
             obj_vin.pushKV("is_mine_ki", pwalletAnon->IsMyAnonInput(txin));
-        } else if (txin.scriptSig.IsZerocoinSpend()) {
+        } else if (txin.IsZerocoinSpend()) {
             obj_vin.pushKV("type", "zerocoinspend");
             auto spend = TxInToZerocoinSpend(txin);
             if (spend) {
