@@ -177,6 +177,11 @@ CAmount CTxIn::GetZerocoinSpent() const
     return (nSequence&CTxIn::SEQUENCE_LOCKTIME_MASK) * COIN;
 }
 
+bool CTxIn::IsZerocoinSpend() const
+{
+    return scriptSig.IsZerocoinSpend();
+}
+
 CTxOut::CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn)
 {
     nValue = nValueIn;
@@ -337,8 +342,11 @@ bool CTransaction::IsZerocoinMint() const
 
 bool CTransaction::IsZerocoinSpend() const
 {
-    auto nDenom = vin[0].nSequence&CTxIn::SEQUENCE_LOCKTIME_MASK;
-    return (vin.size() > 0 && vin[0].prevout.hash == uint256() && vin[0].scriptSig[0] == OP_ZEROCOINSPEND &&  nDenom <= 10000 && nDenom >= 10);
+    for (const CTxIn& in : vin) {
+        if (in.IsZerocoinSpend())
+            return true;
+    }
+    return false;
 }
 
 CAmount CTransaction::GetZerocoinSpent() const
