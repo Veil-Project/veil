@@ -759,7 +759,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
     enablewallet = !gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET);
 #endif
 
-    while (fGenerateBitcoins || fProofOfStake && enablewallet)
+    while (fGenerateBitcoins || (fProofOfStake && enablewallet))
     {
         boost::this_thread::interruption_point();
 #ifdef ENABLE_WALLET
@@ -769,18 +769,15 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
 
             int nHeight;
             int64_t nTimeLastBlock = 0;
-            int64_t nTimeBestHeader = 0;
             uint256 hashBestBlock;
             {
                 LOCK(cs_main);
                 nHeight = chainActive.Height();
                 nTimeLastBlock = chainActive.Tip()->GetBlockTime();
                 hashBestBlock = chainActive.Tip()->GetBlockHash();
-                if (pindexBestHeader)
-                    nTimeBestHeader = pindexBestHeader->GetBlockTime();
             }
 
-            if (!gArgs.GetBoolArg("-genoverride", false) && (nTimeBestHeader - nTimeLastBlock > 60*60 || IsInitialBlockDownload())) {
+            if (!gArgs.GetBoolArg("-genoverride", false) && (GetAdjustedTime() - nTimeLastBlock > 60*60 || IsInitialBlockDownload())) {
                 MilliSleep(5000);
                 continue;
             }
