@@ -29,7 +29,7 @@ AddressNewContact::AddressNewContact(QWidget *parent, WalletModel* _walletModel)
     ui->editContactName->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->editContactName->setProperty("cssClass" , "edit-primary");
 
-    ui->editAddress->setPlaceholderText("Enter address");
+    ui->editAddress->setPlaceholderText("Enter address label");
     ui->editAddress->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->editAddress->setProperty("cssClass" , "edit-primary");
 
