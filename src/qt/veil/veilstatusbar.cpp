@@ -175,9 +175,13 @@ void VeilStatusBar::setWalletModel(WalletModel *model)
     this->walletModel = model;
     connect(ui->checkStaking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
     connect(ui->checkPrecompute, SIGNAL(toggled(bool)), this, SLOT(onCheckPrecomputeClicked(bool)));
+    connect(walletModel, SIGNAL(encryptionStatusChanged()), this, SLOT(updateLockCheckbox()));
+
     WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
     bool lockStatus = lockState == WalletModel::Locked || lockState == WalletModel::UnlockedForStakingOnly;
+    ui->btnLock->setChecked(lockStatus);
     ui->btnLock->setIcon(QIcon( (lockStatus) ? ":/icons/ic-locked-png" : ":/icons/ic-unlocked-png"));
+
     updateStakingCheckbox();
     updatePrecomputeCheckbox();
     updateLockCheckbox();
@@ -193,15 +197,19 @@ void VeilStatusBar::updateLockCheckbox(){
         if (ui->btnLock->isChecked() != lockStatus) {
             ui->btnLock->setChecked(lockStatus);
             ui->btnLock->setIcon(QIcon( (lockStatus) ? ":/icons/ic-locked-png" : ":/icons/ic-unlocked-png"));
-
-            QString strToolTip = tr("Wallet is locked for all transaction types.");
-            if (lockState == WalletModel::UnlockedForStakingOnly)
-                strToolTip = tr("Wallet is unlocked for staking transactions only.");
-            ui->btnLock->setStatusTip(strToolTip);
-            ui->btnLock->setToolTip(strToolTip);
-
             fBlockNextBtnLockSignal = true;
         }
+
+        QString strToolTip;
+        if (lockState == WalletModel::Locked)
+            strToolTip = tr("Wallet is locked for all transaction types.");
+        else if (lockState == WalletModel::UnlockedForStakingOnly)
+            strToolTip = tr("Wallet is unlocked for staking transactions only.");
+        else
+            strToolTip = tr("Wallet is unlocked.");
+        
+        ui->btnLock->setStatusTip(strToolTip);
+        ui->btnLock->setToolTip(strToolTip);
     }
 }
 
