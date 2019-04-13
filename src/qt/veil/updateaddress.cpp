@@ -32,7 +32,7 @@ UpdateAddress::UpdateAddress(const QModelIndex &_index, QString addressStr, std:
     ui->errorMessage->setVisible(false);
 
 
-    ui->editLabel->setPlaceholderText("Enter address");
+    ui->editLabel->setPlaceholderText("Enter address label");
     ui->editLabel->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->editLabel->setProperty("cssClass" , "edit-primary");
 
