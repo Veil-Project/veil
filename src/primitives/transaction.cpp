@@ -179,7 +179,7 @@ CAmount CTxIn::GetZerocoinSpent() const
 
 bool CTxIn::IsZerocoinSpend() const
 {
-    return IsZerocoinSpend();
+    return scriptSig.IsZerocoinSpend();
 }
 
 CTxOut::CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn)
