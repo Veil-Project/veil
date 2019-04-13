@@ -6327,38 +6327,45 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
 
             //add change output if we are spending too much (only applies to spending multiple at once)
             if (nChange) {
-                //Any change below the smallest zerocoin denom is not remintable and is considered dust to be sent to ringct
-                auto nAmountSmallestDenom = libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN);
-                nChangeDust = nChange % nAmountSmallestDenom;
-                nChangeRemint = nChange - nChangeDust;
 
-                //See how many mints will be created and ensure enough fee is subtracted from the changedust
-                int nMintCount = 0;
-                CAmount nAmountDummy = nChangeRemint;
-                while (nAmountDummy >= nAmountSmallestDenom) {
-                    CAmount nRemaining;
-                    auto denomdummy = libzerocoin::AmountToClosestDenomination(nAmountDummy, nRemaining);
-                    nMintCount++;
-                    nAmountDummy -= libzerocoin::ZerocoinDenominationToAmount(denomdummy);
-                }
-                //Subtract any fee from changedust
-                CAmount nFeeRequired = Params().Zerocoin_MintFee() * nMintCount;
-                if (nChangeDust >= nFeeRequired) {
-                    nChangeDust -= nFeeRequired;
-                } else if (nMintCount == 1) {
-                    //Can't pay the fee and mint the change, do all change as ringct
+                // Try and mint the change as zerocoin
+                if (fMintChange) {
+                    //Any change below the smallest zerocoin denom is not remintable and is considered dust to be sent to ct
+                    auto nAmountSmallestDenom = libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN);
+                    nChangeDust = nChange % nAmountSmallestDenom;
+                    nChangeRemint = nChange - nChangeDust;
+
+                    //See how many mints will be created and ensure enough fee is subtracted from the changedust
+                    int nMintCount = 0;
+                    CAmount nAmountDummy = nChangeRemint;
+                    while (nAmountDummy >= nAmountSmallestDenom) {
+                        CAmount nRemaining;
+                        auto denomdummy = libzerocoin::AmountToClosestDenomination(nAmountDummy, nRemaining);
+                        nMintCount++;
+                        nAmountDummy -= libzerocoin::ZerocoinDenominationToAmount(denomdummy);
+                    }
+                    //Subtract any fee from changedust
+                    CAmount nFeeRequired = Params().Zerocoin_MintFee() * nMintCount;
+                    if (nChangeDust >= nFeeRequired) {
+                        nChangeDust -= nFeeRequired;
+                    } else if (nMintCount == 1) {
+                        //Can't pay the fee and mint the change, do all change as ct
+                        nChangeRemint = 0;
+                        nChangeDust = nChange;
+                    } else {
+                        //Reduce the minting amount by the lowest denomination in order to pay fees, add the remainder to ct change
+                        nChangeRemint -= nAmountSmallestDenom;
+                        nChangeDust += nAmountSmallestDenom;
+
+                        //Sanity
+                        if (nChangeRemint < nAmountSmallestDenom) {
+                            receipt.SetStatus("Failed to properly calculate change outputs", nStatus);
+                            return false;
+                        }
+                    }
+                } else { // Mint the change as ct
                     nChangeRemint = 0;
                     nChangeDust = nChange;
-                } else {
-                    //Reduce the minting amount by the lowest denomination in order to pay fees, add the remainder to ringct change
-                    nChangeRemint -= nAmountSmallestDenom;
-                    nChangeDust += nAmountSmallestDenom;
-
-                    //Sanity
-                    if (nChangeRemint < nAmountSmallestDenom) {
-                        receipt.SetStatus("Failed to properly calculate change outputs", nStatus);
-                        return false;
-                    }
                 }
 
                 if (nChangeRemint > 0) {
