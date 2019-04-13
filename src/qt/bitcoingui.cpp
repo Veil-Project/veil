@@ -877,7 +877,7 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
             }
             break;
         case BlockSource::REINDEX:
-            veilStatusBar->updateSyncStatus(tr("Reindexing blocks on disk..."));
+            veilStatusBar->updateSyncStatus(tr("Reindexing blocks on disk...(%1%)").arg(QString::number(nVerificationProgress * 100, 'f', 2)));
             break;
         case BlockSource::NONE:
             if (header) {
