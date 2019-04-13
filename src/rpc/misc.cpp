@@ -189,8 +189,19 @@ static UniValue verifymessage(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid address");
     }
 
-    const CKeyID *keyID = boost::get<CKeyID>(&destination);
-    if (!keyID) {
+    CKeyID* keyID = nullptr;
+    WitnessV0KeyHash *witnessID = nullptr;
+    CStealthAddress* stealthID = nullptr;
+
+    if (destination.type() == typeid(CKeyID)) {
+        keyID = boost::get<CKeyID>(&destination);
+    } else if (destination.type() == typeid(CStealthAddress)) {
+        stealthID = boost::get<CStealthAddress>(&destination);
+    } else if (destination.type() == typeid(WitnessV0KeyHash)) {
+        witnessID = boost::get<WitnessV0KeyHash>(&destination);
+    }
+
+    if (!keyID && !stealthID && !witnessID) {
         throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to key");
     }
 
@@ -208,7 +219,16 @@ static UniValue verifymessage(const JSONRPCRequest& request)
     if (!pubkey.RecoverCompact(ss.GetHash(), vchSig))
         return false;
 
-    return (pubkey.GetID() == *keyID);
+    bool validSignature = false;
+    if (keyID) {
+        validSignature = (pubkey.GetID() == *keyID);
+    } else if (witnessID) {
+        validSignature = (pubkey.GetID() == CKeyID(*witnessID));
+    } else {
+        validSignature = (pubkey.GetID() == stealthID->GetID());
+    }
+
+    return validSignature;
 }
 
 static UniValue signmessagewithprivkey(const JSONRPCRequest& request)
