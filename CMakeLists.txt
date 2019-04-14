@@ -3,6 +3,8 @@ project(veil)
 
 set(CMAKE_CXX_STANDARD 11)
 
+add_compile_definitions(ENABLE_WALLET=1)
+
 include_directories(src)
 include_directories(src/bench)
 include_directories(src/compat)
