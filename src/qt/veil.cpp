@@ -703,6 +703,9 @@ int main(int argc, char *argv[])
 #endif
 
     /// 9. Main GUI initialization
+    // Set the style sheet for the application. QT Tooltip bug workaround: https://bugreports.qt.io/browse/QTBUG-64550
+    app.setStyleSheet(GUIUtil::loadStyleSheet());
+
     // Install global event filter that makes sure that long tooltips can be word-wrapped
     app.installEventFilter(new GUIUtil::ToolTipToRichTextFilter(TOOLTIP_WRAP_THRESHOLD, &app));
 #if defined(Q_OS_WIN)
