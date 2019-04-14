@@ -2877,10 +2877,20 @@ int AnonWallet::PlaceRealOutputs(std::vector<std::vector<int64_t> > &vMI, size_t
                     return wserrorN(1, sError, __func__, _("Not anon output %s %d"), txhash.ToString().c_str(), coin.second);
                 }
 
-                const CCmpPubKey &pk = ((CTxOutRingCT*)stx.tx->vpout[coin.second].get())->pk;
+                CCmpPubKey pk = ((CTxOutRingCT*)stx.tx->vpout[coin.second].get())->pk;
 
                 if (!stx.GetBlind(coin.second, &vInputBlinds[k * 32])) {
-                    return werrorN(1, "%s: GetBlind failed for %s, %d.\n", __func__, txhash.ToString().c_str(), coin.second);
+                    //Try to manually get blinds
+                    CTransactionRef ptx;
+                    uint256 hashBlock;
+                    if (!GetTransaction(txhash, ptx, Params().GetConsensus(), hashBlock, true))
+                        return werrorN(1, "%s: Failed to gettransaction for %s, %d.\n", __func__, txhash.ToString().c_str(), coin.second);
+                    uint256 blind;
+                    if (!GetCTBlindsFromOutput(ptx->vpout[coin.second].get(), blind))
+                        return werrorN(1, "%s: GetBlind failed for %s, %d.\n", __func__, txhash.ToString().c_str(), coin.second);
+                    memcpy(&vInputBlinds[k * 32], blind.begin(), 32);
+
+                    pk = ((CTxOutRingCT*)ptx->vpout[coin.second].get())->pk;
                 }
 
                 int64_t index;
@@ -4649,6 +4659,17 @@ void AnonWallet::MarkOutputSpent(const COutPoint& outpoint, bool isSpent)
     SaveRecord(outpoint.hash, record);
 }
 
+bool KeyIdFromScriptPubKey(const CScript& script, CKeyID& id)
+{
+    CTxDestination dest;
+    if (!ExtractDestination(script, dest))
+        return false;
+    if (dest.which() != 1)
+        return false;
+    id = boost::get<CKeyID>(dest);
+    return true;
+}
+
 void AnonWallet::RescanWallet()
 {
     AssertLockHeld(pwalletParent->cs_wallet);
@@ -4736,7 +4757,10 @@ void AnonWallet::RescanWallet()
                     bool fBlindsSuccess = true;
                     if (it->nType == OUTPUT_CT) {
                         auto pout = (CTxOutCT*) txRef->vpout[it->n].get();
-                        if (GetCTBlinds(it->scriptPubKey, pout->vData, &pout->commitment, pout->vRangeproof, blind, nValue)) {
+                        CKeyID idKey;
+                        if (!KeyIdFromScriptPubKey(pout->scriptPubKey, idKey))
+                            continue;
+                        if (GetCTBlinds(idKey, pout->vData, &pout->commitment, pout->vRangeproof, blind, nValue)) {
                             if (nValue != 0) {
                                 fUpdated = true;
                                 LogPrintf("%s: Recovered %s that was marked as 0 \n", __func__, FormatMoney(nValue));
@@ -4745,7 +4769,7 @@ void AnonWallet::RescanWallet()
                         }
                     } else if (it->nType == OUTPUT_RINGCT) {
                         auto pout = (CTxOutRingCT*) txRef->vpout[it->n].get();
-                        if (GetCTBlinds(it->scriptPubKey, pout->vData, &pout->commitment, pout->vRangeproof, blind, nValue)) {
+                        if (GetCTBlinds(pout->pk.GetID(), pout->vData, &pout->commitment, pout->vRangeproof, blind, nValue)) {
                             if (nValue != 0) {
                                 fUpdated = true;
                                 LogPrintf("%s: Recovered %s that was marked as 0 \n", __func__, FormatMoney(nValue));
@@ -4786,11 +4810,37 @@ void AnonWallet::RescanWallet()
                 }
 
                 // Check if it has the correct is_spent status //todo ringct outputs
-                if ((it->nFlags & ORF_OWNED) && it->nType == OUTPUT_CT) {
-                    bool isSpentOnChain = !view.HaveCoin(COutPoint(txid, it->n));
-                    if (isSpentOnChain != it->IsSpent()) {
-                        it->MarkSpent(isSpentOnChain);
-                        fUpdated = true;
+                if ((it->nFlags & ORF_OWNED)) {
+                    if (it->nType == OUTPUT_CT) {
+                        bool isSpentOnChain = !view.HaveCoin(COutPoint(txid, it->n));
+                        if (isSpentOnChain != it->IsSpent()) {
+                            it->MarkSpent(isSpentOnChain);
+                            fUpdated = true;
+                        }
+                    } else if (it->nType == OUTPUT_RINGCT) {
+                        LogPrintf("%s:%d\n", __func__, __LINE__);
+                        auto txout = (CTxOutRingCT*)pout.get();
+                        CKeyID idk = txout->pk.GetID();
+                        CKey key;
+                        if (GetKey(idk, key)) {
+                            LogPrintf("%s:%d\n", __func__, __LINE__);
+                            // Keyimage is required for the tx hash
+                            CCmpPubKey ki;
+                            if (secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), txout->pk.begin(), key.begin()) == 0) {
+                                LogPrintf("%s:%d\n", __func__, __LINE__);
+                                // Double check key image is not used...
+                                uint256 txhashKI;
+                                if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
+                                    COutPoint out;
+                                    LogPrintf("%s:%d\n", __func__, __LINE__);
+                                    if (wdb.ReadAnonKeyImage(ki, out)) {
+                                        MarkOutputSpent(out, true);
+                                        LogPrintf("%s: marking ringct output %s:%d spent\n", __func__, txid.GetHex(),
+                                                  it->n);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -5003,20 +5053,12 @@ bool AnonWallet::OwnBlindOut(AnonWalletDB *pwdb, const uint256 &txhash, const CT
     return true;
 }
 
-bool AnonWallet::GetCTBlinds(CScript scriptPubKey, std::vector<uint8_t>& vData,
+bool AnonWallet::GetCTBlinds(CKeyID idKey, std::vector<uint8_t>& vData,
         secp256k1_pedersen_commitment* commitment, std::vector<uint8_t>& vRangeproof, uint256 &blind, int64_t& nValue) const
 {
-    CTxDestination dest;
-    if (!ExtractDestination(scriptPubKey, dest))
-        return error("%s: ExtractDestination failed", __func__);
-
-    if (dest.which() != 1)
-        return error("%s: destination is not key id", __func__);
-    CKeyID idKey = boost::get<CKeyID>(dest);
-
     CKey key;
     if (!GetKey(idKey, key))
-        return false;
+        return error("%s: could not locate key for id %s\n", __func__, idKey.GetHex());
 
     if (vData.size() < 33)
         return error("%s: vData.size() < 33.", __func__);
@@ -5055,13 +5097,13 @@ bool AnonWallet::GetCTBlindsFromOutput(const CTxOutBase *pout, uint256& blind) c
     int64_t nValue = 0;
     if (pout->GetType() == OUTPUT_CT) {
         auto txout = (CTxOutCT*)pout;
-        return GetCTBlinds(txout->scriptPubKey, txout->vData, &txout->commitment, txout->vRangeproof, blind, nValue);
+        CKeyID id;
+        if (!KeyIdFromScriptPubKey(txout->scriptPubKey, id))
+            return false;
+        return GetCTBlinds(id, txout->vData, &txout->commitment, txout->vRangeproof, blind, nValue);
     } else if (pout->GetType() == OUTPUT_RINGCT) {
         auto txout = (CTxOutRingCT*)pout;
-        CScript scriptPubKey;
-        if (!pout->GetScriptPubKey(scriptPubKey))
-            return error("%s: GetScriptPubKey failed.", __func__);
-        return GetCTBlinds(scriptPubKey, txout->vData, &txout->commitment, txout->vRangeproof, blind, nValue);
+        return GetCTBlinds(txout->pk.GetID(), txout->vData, &txout->commitment, txout->vRangeproof, blind, nValue);
     }
 
     return false;
