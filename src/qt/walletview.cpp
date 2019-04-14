@@ -310,7 +310,8 @@ void WalletView::unlockWallet()
     if(!walletModel)
         return;
     // Unlock wallet when requested by wallet model
-    if (walletModel->getEncryptionStatus() == WalletModel::Locked)
+    auto status = walletModel->getEncryptionStatus();
+    if (status == WalletModel::Locked || status == WalletModel::UnlockedForStakingOnly)
     {
         gui->showHide(true);
         AskPassphraseDialog *dlg = new AskPassphraseDialog(AskPassphraseDialog::Unlock, gui);

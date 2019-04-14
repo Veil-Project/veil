@@ -258,6 +258,8 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
     std::unique_ptr<CDBIterator> pcursor(NewIterator());
 
     pcursor->Seek(std::make_pair(DB_BLOCK_INDEX, uint256()));
+    
+    std::set<uint256> setBlockHash;
 
     // Load mapBlockIndex
     while (pcursor->Valid()) {

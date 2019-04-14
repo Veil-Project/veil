@@ -113,8 +113,15 @@ void SettingsMinting::btnMint(){
     mintzerocoins();
 }
 
-void SettingsMinting::mintzerocoins(){
+void SettingsMinting::mintzerocoins()
+{
     // check if wallet is unlocked..
+    interfaces::Wallet& wallet = walletModel->wallet();
+    if (wallet.isLocked() || wallet.isUnlockedForStakingOnly()) {
+        openToastDialog("Wallet Is Locked.", this);
+        return;
+    }
+
     bool isAmountValid = false;
     std::string strError;
     CAmount nAmount = parseAmount(ui->editAmount->text(), isAmountValid, strError);
@@ -127,8 +134,6 @@ void SettingsMinting::mintzerocoins(){
     }
 
     bool fUseBasecoin = ui->useBasecoin->isChecked();
-
-    interfaces::Wallet& wallet = walletModel->wallet();
     std::vector<CDeterministicMint> vDMints;
     std::vector<COutPoint> vOutpts;
     OutputTypes inputtype = OUTPUT_NULL;

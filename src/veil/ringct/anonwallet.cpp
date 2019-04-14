@@ -1059,7 +1059,7 @@ void AnonWallet::Lock()
 
 bool AnonWallet::IsLocked() const
 {
-    return pkeyMaster.get() == nullptr;
+    return pkeyMaster.get() == nullptr || pwalletParent->IsUnlockedForStakingOnly();
 }
 
 CAmount AnonWallet::GetAvailableAnonBalance(const CCoinControl* coinControl) const
@@ -3699,7 +3699,7 @@ bool AnonWallet::RegenerateKey(const CKeyID& idKey, CKey& key) const
 
 bool AnonWallet::RegenerateAccountExtKey(const CKeyID& idAccount, CExtKey& keyAccount) const
 {
-    if (IsLocked())
+    if (IsLocked() || pwalletParent->IsUnlockedForStakingOnly())
         return error("%s Wallet must be unlocked to derive hardened keys.", __func__);
 
     if (!mapKeyPaths.count(idAccount))

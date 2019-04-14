@@ -25,13 +25,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">background-color:white;
-border:none;
-padding:0px;
-margin:0px;
-</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <property name="spacing">
     <number>0</number>
@@ -49,20 +42,12 @@ margin:0px;
     <number>0</number>
    </property>
    <item>
-    <widget class="QFrame" name="frame">
+    <widget class="QFrame" name="frameStatusBar">
      <property name="maximumSize">
       <size>
        <width>16777215</width>
        <height>40</height>
       </size>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">#frame{
-background-color:white;
-border-bottom:0px;
-border-right:0px;
-border-left:0px;
-}</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -100,9 +85,6 @@ border-left:0px;
           <height>1</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">background-color:#bababa;</string>
-        </property>
         <property name="text">
          <string/>
         </property>
@@ -134,26 +116,6 @@ border-left:0px;
            <widget class="QCheckBox" name="checkStaking">
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">
- #checkStaking::indicator {
-     border: 0;
-     background: none;
- }
-
- #checkStaking {
- background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
- background-repeat:no-repeat;
- background-position:left center;
- padding:8 4 8 30px;
- color:#bababa;
- }
-
- #checkStaking:checked {
- background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
- color:#105aef;
- }</string>
             </property>
             <property name="text">
              <string>Staking</string>
@@ -194,16 +156,6 @@ border-left:0px;
         </item>
         <item>
          <widget class="QPushButton" name="btnSync">
-          <property name="styleSheet">
-           <string notr="true">#btnSync{
-color:#707070;
-background-color:transparent;
-border:none;
-padding:0px;
-margin:0px;
-background:transparent;
-}</string>
-          </property>
           <property name="text">
            <string>100% Synced</string>
           </property>

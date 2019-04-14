@@ -777,12 +777,12 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 hashBestBlock = chainActive.Tip()->GetBlockHash();
             }
 
-            if (!gArgs.GetBoolArg("-genoverride", false) && (GetAdjustedTime() - nTimeLastBlock > 60*60 || IsInitialBlockDownload())) {
+            if (!gArgs.GetBoolArg("-genoverride", false) && (GetAdjustedTime() - nTimeLastBlock > 60*60 || IsInitialBlockDownload() || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || nHeight < Params().HeightPoSStart())) {
                 MilliSleep(5000);
                 continue;
             }
 
-            if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || !pwallet->IsStakingEnabled() || nHeight < Params().HeightPoSStart()) {
+            if (!pwallet || !pwallet->IsStakingEnabled() || (pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly())) {
                 MilliSleep(5000);
                 continue;
             }
@@ -795,7 +795,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             }
 
             bool fNextIter = false;
-            while ((pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) || !fMintableCoins || GetAdjustedTime() < nTimeLastBlock - MAX_PAST_BLOCK_TIME) {
+            while (!fMintableCoins || GetAdjustedTime() < nTimeLastBlock - MAX_PAST_BLOCK_TIME) {
                 // Do a separate 1 minute check here to ensure fMintableCoins is updated
                 if (!fMintableCoins) {
                     if (GetTime() - nMintableLastCheck > 1 * 60) // 1 minute check time

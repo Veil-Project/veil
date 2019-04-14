@@ -91,7 +91,7 @@ bool EnsureWalletIsAvailable(CWallet * const pwallet, bool avoidException)
 
 void EnsureWalletIsUnlocked(CWallet * const pwallet)
 {
-    if (pwallet->IsLocked()) {
+    if (pwallet->IsLocked() || pwallet->IsUnlockedForStakingOnly()) {
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
     }
 }
@@ -186,7 +186,7 @@ static UniValue getnewbasecoinaddress(const JSONRPCRequest& request)
         }
     }
 
-    if (!pwallet->IsLocked()) {
+    if (!pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) {
         pwallet->TopUpKeyPool();
     }
 
@@ -239,7 +239,7 @@ static UniValue getnewminingaddress(const JSONRPCRequest& request)
     if (!request.params[0].isNull())
         label = LabelFromValue(request.params[0]);
 
-    if (!pwallet->IsLocked()) {
+    if (!pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) {
         pwallet->TopUpKeyPool();
     }
 
@@ -287,7 +287,7 @@ static UniValue getrawchangeaddress(const JSONRPCRequest& request)
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
-    if (!pwallet->IsLocked()) {
+    if (!pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) {
         pwallet->TopUpKeyPool();
     }
 
@@ -2700,7 +2700,7 @@ static void LockWallet(CWallet* pWallet)
 {
     LOCK(pWallet->cs_wallet);
     pWallet->nRelockTime = 0;
-    pWallet->Lock();
+    pWallet->LockWallet();
 }
 
 static UniValue walletpassphrase(const JSONRPCRequest& request)
@@ -2714,7 +2714,7 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 3) {
         throw std::runtime_error(
-            "walletpassphrase \"passphrase\" timeout\n"
+            "walletpassphrase \"passphrase\" unlockforstakingonly timeout\n"
             "\nStores the wallet decryption key in memory for 'timeout' seconds.\n"
             "This is needed prior to performing transactions related to private keys such as sending veil\n"
             "\nArguments:\n"
@@ -2865,7 +2865,7 @@ static UniValue walletlock(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_WRONG_ENC_STATE, "Error: running with an unencrypted wallet, but walletlock was called.");
     }
 
-    pwallet->Lock();
+    pwallet->LockWallet();
     pwallet->nRelockTime = 0;
 
     return NullUniValue;
@@ -3213,7 +3213,22 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
         obj.pushKV("hdmasterkeyid", seed_id.GetHex());
     }
     obj.pushKV("private_keys_enabled", !pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
-    obj.pushKV("staking_active", !mapHashedBlocks.empty());
+
+    // Determine if staking is recently active. Note that this is not immediate effect. Staking could be disabled and it could take up to 70 seconds to update state.
+    int64_t nTimeLastHashing = 0;
+    if (!mapHashedBlocks.empty()) {
+        auto pindexBest = chainActive.Tip();
+        if (mapHashedBlocks.count(pindexBest->GetBlockHash())) {
+            nTimeLastHashing = mapHashedBlocks.at(pindexBest->GetBlockHash());
+        } else if (mapHashedBlocks.count(pindexBest->pprev->GetBlockHash())) {
+            nTimeLastHashing = mapHashedBlocks.at(pindexBest->pprev->GetBlockHash());
+        }
+    }
+    bool fStakingActive = false;
+    if (nTimeLastHashing)
+        fStakingActive = GetAdjustedTime() + MAX_FUTURE_BLOCK_TIME - nTimeLastHashing < 70;
+
+    obj.pushKV("staking_active", fStakingActive);
 
     UniValue objSeedData(UniValue::VOBJ);
     auto pAnonWallet = pwallet->GetAnonWallet();
@@ -5141,7 +5156,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "unloadwallet",                     &unloadwallet,                  {"wallet_name"} },
     { "wallet",             "walletlock",                       &walletlock,                    {} },
     { "wallet",             "walletpassphrasechange",           &walletpassphrasechange,        {"oldpassphrase","newpassphrase"} },
-    { "wallet",             "walletpassphrase",                 &walletpassphrase,              {"passphrase","timeout"} },
+    { "wallet",             "walletpassphrase",                 &walletpassphrase,              {"passphrase","unlockforstakingonly","timeout"} },
     { "wallet",             "removeprunedfunds",                &removeprunedfunds,             {"txid"} },
     { "wallet",             "rescanblockchain",                 &rescanblockchain,              {"start_height", "stop_height"} },
     { "wallet",             "sethdseed",                        &sethdseed,                     {"newkeypool","seed"} },
