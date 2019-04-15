@@ -318,6 +318,14 @@ public:
     }
     bool getPubKey(const CKeyID& address, CPubKey& pub_key) override { return m_wallet.GetPubKey(address, pub_key); }
     bool getPrivKey(const CKeyID& address, CKey& key) override { return m_wallet.GetKey(address, key); }
+    bool getPrivKey(CStealthAddress& address, CKey& key) override
+    {
+        if (m_wallet.GetAnonWallet()->GetStealthAddressScanKey(address)) {
+            key = address.scan_secret;
+            return true;
+        }
+        return false;
+    }
     bool isSpendable(const CTxDestination& dest) override { return IsMine(m_wallet, dest) & ISMINE_SPENDABLE; }
 
     std::string mintZerocoin(CAmount nValue, std::vector<CDeterministicMint>& vDMints, OutputTypes inputtype,

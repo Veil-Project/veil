@@ -745,13 +745,37 @@ static UniValue signmessage(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid address");
     }
 
-    const CKeyID *keyID = boost::get<CKeyID>(&dest);
-    if (!keyID) {
+    CKeyID* keyID = nullptr;
+    WitnessV0KeyHash *witnessID = nullptr;
+    CStealthAddress* stealthID = nullptr;
+
+    if (dest.type() == typeid(CKeyID)) {
+        keyID = boost::get<CKeyID>(&dest);
+    } else if (dest.type() == typeid(CStealthAddress)) {
+        stealthID = boost::get<CStealthAddress>(&dest);
+    } else if (dest.type() == typeid(WitnessV0KeyHash)) {
+        witnessID = boost::get<WitnessV0KeyHash>(&dest);
+    }
+
+    if (!keyID && !stealthID && !witnessID) {
         throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to key");
     }
 
     CKey key;
-    if (!pwallet->GetKey(*keyID, key)) {
+    bool gotPrivateKey = false;
+    if (keyID) {
+        gotPrivateKey = pwallet->GetKey(*keyID, key);
+    } else if (witnessID) {
+        gotPrivateKey = pwallet->GetKey(CKeyID(*witnessID), key);
+    }
+    else {
+        if (pwallet->GetAnonWallet()->GetStealthAddressScanKey(*stealthID)) {
+            key = stealthID->scan_secret;
+            gotPrivateKey = true;
+        }
+    }
+
+    if (!gotPrivateKey) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Private key not available");
     }
 

@@ -104,6 +104,9 @@ public:
     //! Get private key.
     virtual bool getPrivKey(const CKeyID& address, CKey& key) = 0;
 
+    //! Get secret key of stealth address
+    virtual bool getPrivKey(CStealthAddress& address, CKey& key) = 0;
+
     //! Return whether wallet has private key.
     virtual bool isSpendable(const CTxDestination& dest) = 0;
 
