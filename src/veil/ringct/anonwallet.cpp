@@ -1814,7 +1814,8 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 }
             }
 
-            const CAmount nChange = nValueIn - nValueToSelect;
+            // Subtract the already minted zerocoin change from the total change if it exists
+            const CAmount nChange = nValueIn - nValueToSelect - nValueOutZerocoin;
 
             // Remove fee outputs from last round
             for (size_t i = 0; i < vecSend.size(); ++i) {
@@ -1937,7 +1938,6 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 && !secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainInputCommitment, &vBlindPlain[0], (uint64_t) nValueIn, secp256k1_generator_h)) {
                 return wserrorN(1, sError, __func__, "secp256k1_pedersen_commit failed for plain in.");
             }
-
             nValueOutPlain += nValueOutZerocoin + nFeeRet;
             if (nValueOutPlain > 0) {
                 vpBlinds.push_back(&vBlindPlain[0]);
@@ -2099,8 +2099,6 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 // Include more fee and try again.
                 nFeeRet = nFeeNeeded;
             }
-            if (fZerocoinInputs)
-                return werrorN(1, "%s: Failed to calc fee\n", __func__);
         }
 
         coinControl->nChangePos = nChangePosInOut;

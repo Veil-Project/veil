@@ -173,7 +173,7 @@ public:
     SendCoinsReturn prepareTransaction(WalletModelTransaction &transaction, const CCoinControl& coinControl,
             WalletModelSpendType &spendType, CZerocoinSpendReceipt& receipt, std::vector<std::tuple<CWalletTx,
             std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>>& vCommitData,
-            OutputTypes inputType = OUTPUT_RINGCT);
+            OutputTypes inputType = OUTPUT_RINGCT, bool fMintChange = true);
 
     // Send coins to a list of recipients
     SendCoinsReturn sendCoins(WalletModelTransaction &transaction, bool fSkipCommitTx = false);

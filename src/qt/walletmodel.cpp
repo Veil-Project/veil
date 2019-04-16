@@ -132,7 +132,7 @@ bool WalletModel::isStealthAddress(const QString &address){
 
 WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransaction &transaction,
         const CCoinControl& coinControl, WalletModelSpendType &spendType, CZerocoinSpendReceipt &receipt,
-        std::vector<CommitData> &vCommitData, OutputTypes inputType)
+        std::vector<CommitData> &vCommitData, OutputTypes inputType, bool fMintChange)
 {
     CAmount total = 0;
     bool fSubtractFeeFromAmount = false;
@@ -246,7 +246,7 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
 
             std::vector<CZerocoinMint> vMintsSelected;
             newTx = m_wallet->prepareZerocoinSpend(total, /*nSecurityLevel*/100, receipt, vMintsSelected,
-                    /*fMintChange*/true, /*fMinimizeChange*/false, vCommitData, libzerocoin::CoinDenomination::ZQ_ERROR,
+                    fMintChange, /*fMinimizeChange*/false, vCommitData, libzerocoin::CoinDenomination::ZQ_ERROR,
                     &vecSend[0].address);
             nBalance = balances.zerocoin_balance;
         } else {
