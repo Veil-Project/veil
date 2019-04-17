@@ -282,6 +282,39 @@ void CzWallet::SyncWithChain(bool fGenerateMintPool)
     }
 }
 
+bool CzWallet::DeterministicSearch(int nCountStart, int nCountEnd)
+{
+    try {
+        CKey keyMaster;
+        if (!GetMasterSeed(keyMaster))
+            return false;
+
+        WalletBatch walletdb(*walletDatabase);
+
+        CKeyID hashSeed = keyMaster.GetPubKey().GetID();
+        for(int i = nCountStart; i < nCountEnd; i++) {
+            boost::this_thread::interruption_point();
+            CDataStream ss(SER_GETHASH, 0);
+            ss << keyMaster.GetPrivKey_256() << i;
+            uint512 zerocoinSeed = Hash512(ss.begin(), ss.end());
+
+            CBigNum bnValue;
+            CBigNum bnSerial;
+            CBigNum bnRandomness;
+            CKey key;
+            SeedToZerocoin(zerocoinSeed, bnValue, bnSerial, bnRandomness, key);
+
+            uint256 hashPubcoin = GetPubCoinHash(bnValue);
+            AddToMintPool(make_pair(hashPubcoin, i), true);
+            walletdb.WriteMintPoolPair(hashSeed, hashPubcoin, i);
+        }
+    } catch (...) {
+        return error("%s: caught exception while running", __func__);
+    }
+
+    return true;
+}
+
 bool CzWallet::SetMintSeen(const CBigNum& bnValue, const int& nHeight, const uint256& txid, const CoinDenomination& denom)
 {
     if (!mintPool.Has(bnValue))

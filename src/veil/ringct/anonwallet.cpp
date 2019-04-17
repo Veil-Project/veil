@@ -387,10 +387,106 @@ bool AnonWallet::GetAddressMeta(const CStealthAddress& address, CKeyID& idAccoun
     if (mapKeyPaths.count(sxAddr.GetID())) {
         auto accountpair = mapKeyPaths.at(sxAddr.GetID());
         idAccount = accountpair.first;
+        std::string strPathToKey = BIP32PathToString(accountpair.second);
+
+        //The path of the account is what provides context
+        if (!mapKeyPaths.count(idAccount))
+            return false;
+        accountpair = mapKeyPaths.at(idAccount);
         strPath = BIP32PathToString(accountpair.second);
+        strPath += strPathToKey;
     }
 
     return true;
+}
+
+CStealthAddress GenerateStealthAddressFromIndex(const CExtKey& keyStealthAddress, int nIndex)
+{
+    //Generate the extkey for spend and scan
+    BIP32Path vPathNew;
+    vPathNew.emplace_back(nIndex, true);
+    CExtKey extKeyScan = DeriveKeyFromPath(keyStealthAddress, vPathNew);
+    vPathNew.clear();
+    vPathNew.emplace_back(nIndex+1, true);
+    CExtKey extKeySpend = DeriveKeyFromPath(keyStealthAddress, vPathNew);
+    CKey keyScan = extKeyScan.key;
+    CKey keySpend = extKeySpend.key;
+    CPubKey pkSpend = keySpend.GetPubKey();
+
+    // Make a stealth address
+    CStealthAddress stealthAddress;
+    stealthAddress.SetNull();
+    stealthAddress.scan_pubkey = keyScan.GetPubKey().Raw();
+    stealthAddress.spend_pubkey = pkSpend.Raw();
+    stealthAddress.scan_secret.Set(keyScan.begin(), true);
+    stealthAddress.spend_secret_id = pkSpend.GetID();
+
+    return stealthAddress;
+}
+
+//! Return the last index in this account that has received coins
+int AnonWallet::GetLastUsedAddressIndex(const CKeyID& idAccount) const
+{
+    if (!mapAccountCounter.count(idAccount))
+        return -1;
+
+    int nLastGenerated = mapAccountCounter.at(idAccount);
+    int n = nLastGenerated - 1;
+    while (n > 0) {
+        //Regenerate address for this path
+        CExtKey keyStealthAccount;
+        if (!RegenerateKeyFromIndex(idAccount, n, keyStealthAccount))
+            return -1;
+
+        //Regenerate the stealth address and then get full address from 
+        CStealthAddress stealthAddress = GenerateStealthAddressFromIndex(keyStealthAccount, 1);
+        if (!mapStealthAddresses.count(stealthAddress.GetID()))
+            return -2;
+
+        stealthAddress = mapStealthAddresses.at(stealthAddress.GetID());
+
+        //If this address has any stealth destinations, then it is used and is the last used address.
+        if (!stealthAddress.setStealthDestinations.empty())
+            return n;
+
+        n--;
+    }
+    return -1;
+}
+
+void AnonWallet::ForgetUnusedStealthAddresses(int nBuffer)
+{
+    int nIndexLastUsed = GetLastUsedAddressIndex(idStealthAccount);
+    if (nIndexLastUsed < 0)
+        return;
+
+    // Get the last used address (this must be done after rescanning the chain)
+    int nLastGenerated = mapAccountCounter.at(idStealthAccount);
+    if (nLastGenerated - nIndexLastUsed <= nBuffer)
+        return;
+
+    // Remove knowledge of each account beyond the buffer.
+    AnonWalletDB wdb(*walletDatabase);
+    CExtKey keyStealthAddress;
+    int n = nIndexLastUsed + nBuffer;
+
+    while (n <= nLastGenerated && RegenerateKeyFromIndex(idStealthAccount, n, keyStealthAddress)) {
+        // Erase stealth address
+        auto address = GenerateStealthAddressFromIndex(keyStealthAddress, 0);
+        wdb.EraseStealthAddress(address);
+        mapStealthAddresses.erase(address.GetID());
+        mapKeyPaths.erase(address.GetID());
+
+        // Erase account
+        auto idAccount = keyStealthAddress.key.GetPubKey().GetID();
+        wdb.EraseExtKey(idAccount);
+        mapKeyPaths.erase(idAccount);
+        n++;
+    }
+
+    // Change account counter back
+    mapAccountCounter[idStealthAccount] = nIndexLastUsed + nBuffer;
+    wdb.WriteAccountCounter(idStealthAccount, nIndexLastUsed + nBuffer);
 }
 
 
@@ -3717,6 +3813,19 @@ bool AnonWallet::RegenerateKey(const CKeyID& idKey, CKey& key) const
     return true;
 }
 
+bool AnonWallet::RegenerateKeyFromIndex(const CKeyID& idAccount, int nIndex, CExtKey& keyDerive) const
+{
+    CExtKey keyAccount;
+    if (!RegenerateAccountExtKey(idAccount, keyAccount))
+        return error("%s: failed to regenerate account key", __func__);
+
+    BIP32Path vPathNew;
+    vPathNew.emplace_back(nIndex, true);
+    keyDerive = DeriveKeyFromPath(keyAccount, vPathNew);
+
+    return true;
+}
+
 bool AnonWallet::RegenerateAccountExtKey(const CKeyID& idAccount, CExtKey& keyAccount) const
 {
     if (IsLocked() || pwalletParent->IsUnlockedForStakingOnly())
@@ -3816,8 +3925,6 @@ bool AnonWallet::CreateAccountWithKey(const CExtKey& key)
     AnonWalletDB wdb(*walletDatabase, "r+");
     wdb.WriteAccountCounter(idAccount, (uint32_t)1);
 
-    auto idParent = mapKeyPaths.at(idAccount).first;
-
     return true;
 }
 
@@ -3872,6 +3979,16 @@ bool AnonWallet::NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefix
         return error("%s: failed to write stealth address to db", __func__);
     mapStealthAddresses.emplace(stealthAddress.GetID(), stealthAddress);
 
+    return true;
+}
+
+bool AnonWallet::RestoreAddresses(int nCount)
+{
+    for (int i = 0; i < nCount; i++) {
+        CStealthAddress stealthAddress;
+        if (!NewStealthKey(stealthAddress, 0, nullptr))
+            return false;
+    }
     return true;
 }
 
@@ -4585,7 +4702,7 @@ void AnonWallet::RescanWallet()
 
             for (auto it = txrecord->vout.begin(); it != txrecord->vout.end(); it++) {
                 bool fUpdated = false;
-                if (txRef->vpout.size() < it->n + 1)
+                if (txRef->vpout.size() < static_cast<unsigned int>(it->n + 1))
                     continue;
 
                 auto pout = txRef->vpout[it->n];
@@ -4727,7 +4844,6 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
                     MarkOutputSpent(prevout, true);
 
                     fIsFromMe = true;
-                    continue;
                 }
 
                 if (fIsFromMe)
@@ -5250,7 +5366,7 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
 
         pout->n = i;
         pout->nType = txout->nVersion;
-        bool fAdded = false;
+
         switch (txout->nVersion) {
             case OUTPUT_STANDARD:
                 {
@@ -5262,7 +5378,6 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                 if (OwnBlindOut(&wdb, txhash, (CTxOutCT*)txout.get(), *pout, stx, fUpdated)
                     && !fHave) {
                     fUpdated = true;
-                    fAdded = true;
                 } else {
                     //Just set as from me.
                     if (rtx.nFlags & ORF_FROM) {
@@ -5277,7 +5392,6 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                 if (OwnAnonOut(&wdb, txhash, (CTxOutRingCT*)txout.get(), *pout, stx, fUpdated)
                     && !fHave) {
                     fUpdated = true;
-                    fAdded = true;
                 } else {
                     //Just set as from me.
                     if (rtx.nFlags & ORF_FROM) {

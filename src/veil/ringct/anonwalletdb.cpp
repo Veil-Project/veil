@@ -94,6 +94,11 @@ bool AnonWalletDB::WriteExtKey(const CKeyID& idAccount, const CKeyID &idNew, con
     return WriteIC(std::make_pair(std::string("ek32_n"), idNew), pLocation, true);
 }
 
+bool AnonWalletDB::EraseExtKey(const CKeyID& idKey)
+{
+    return EraseIC(std::make_pair(std::string("ek32_n"), idKey));
+}
+
 bool AnonWalletDB::WriteAccountCounter(const CKeyID& idAccount, const uint32_t& nCount)
 {
     return WriteIC(std::make_pair(std::string("acct_c"), idAccount), nCount);

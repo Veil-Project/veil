@@ -87,7 +87,7 @@ bool ThreadedBatchVerify(const std::vector<libzerocoin::SerialNumberSoKProof>* p
 
     std::vector<std::vector<const libzerocoin::SerialNumberSoKProof*>> vProofGroups(1);
     int nThreadsUsed = 1;
-    if (pvProofs->size() > nThreadEfficiency)
+    if ((int)pvProofs->size() > nThreadEfficiency)
         nThreadsUsed = pvProofs->size() / nThreadEfficiency;
     if (nThreadsUsed > nMaxThreads)
         nThreadsUsed = nMaxThreads;

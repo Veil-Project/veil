@@ -508,6 +508,15 @@ bool CWallet::LoadWatchOnly(const CScript &dest)
     return CCryptoKeyStore::AddWatchOnly(dest);
 }
 
+bool CWallet::RestoreBaseCoinAddresses(int nCount)
+{
+    WalletBatch wdb(GetDBHandle());
+    for (unsigned int i = 0; i < nCount; i++) {
+        GenerateNewKey(wdb, false);
+    }
+    return true;
+}
+
 bool CWallet::LockWallet()
 {
     zwalletMain->Lock();

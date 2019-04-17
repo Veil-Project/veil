@@ -358,6 +358,7 @@ public:
 
     bool ReadExtKey(const CKeyID &identifier, CKeyID& idAccount, BIP32Path& vPath);
     bool WriteExtKey(const CKeyID& idAccount, const CKeyID &idNew, const BIP32Path& vPath);
+    bool EraseExtKey(const CKeyID& idKey);
 
     bool WriteAccountCounter(const CKeyID& idAccount, const uint32_t& nCount);
 
