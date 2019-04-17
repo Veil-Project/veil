@@ -213,6 +213,8 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
             result.is_my_zerocoin_spend = wallet.IsMyZerocoinSpend(spend->getCoinSerialNumber());
     }
 
+    result.computetime = wtx.nComputeTime;
+
     return result;
 }
 /*
@@ -354,9 +356,9 @@ public:
         return std::move(pending);
     }
 
-    bool commitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData) override
+    bool commitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData, int computeTime) override
     {
-        return m_wallet.CommitZerocoinSpend(receipt, vCommitData);
+        return m_wallet.CommitZerocoinSpend(receipt, vCommitData, computeTime);
     }
 
     bool haveWatchOnly() override { return m_wallet.HaveWatchOnly(); };

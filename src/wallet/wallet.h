@@ -378,6 +378,7 @@ public:
      *     "timesmart"       - serialized nTimeSmart value
      *     "spent"           - serialized vfSpent value that existed prior to
      *                         2014 (removed in commit 93a18a3)
+     *     "computetime"     - serialized nComputeTime value
      */
     mapValue_t mapValue;
     std::vector<std::pair<std::string, std::string> > vOrderForm;
@@ -393,6 +394,7 @@ public:
      * CWallet::ComputeTimeSmart().
      */
     unsigned int nTimeSmart;
+    unsigned int nComputeTime;
     /**
      * From me flag is set to 1 for transactions that were created by the wallet
      * on this veil node, and set to 0 for transactions that were created
@@ -441,6 +443,7 @@ public:
         fTimeReceivedIsTxTime = false;
         nTimeReceived = 0;
         nTimeSmart = 0;
+        nComputeTime = 0;
         fFromMe = false;
         fDebitCached = false;
         fCreditCached = false;
@@ -475,6 +478,9 @@ public:
         if (nTimeSmart) {
             mapValueCopy["timesmart"] = strprintf("%u", nTimeSmart);
         }
+        if (nComputeTime) {
+            mapValueCopy["computetime"] = strprintf("%u", nComputeTime);
+        }
 
         s << static_cast<const CMerkleTx&>(*this);
         std::vector<CMerkleTx> vUnused; //!< Used to be vtxPrev
@@ -493,11 +499,13 @@ public:
 
         ReadOrderPos(nOrderPos, mapValue);
         nTimeSmart = mapValue.count("timesmart") ? (unsigned int)atoi64(mapValue["timesmart"]) : 0;
+        nComputeTime = mapValue.count("computetime") ? (unsigned int)atoi64(mapValue["computetime"]) : 0;
 
         mapValue.erase("fromaccount");
         mapValue.erase("spent");
         mapValue.erase("n");
         mapValue.erase("timesmart");
+        mapValue.erase("computetime");
     }
 
     //! make sure balances are recalculated
@@ -833,7 +841,7 @@ public:
     bool PrepareZerocoinSpend(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
             std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
             std::vector<CommitData>& vCommitData, libzerocoin::CoinDenomination denomFilter = libzerocoin::CoinDenomination::ZQ_ERROR, CTxDestination* addressTo = NULL);
-    bool CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData);
+    bool CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData, int computeTime = 0);
     CAmount GetAvailableZerocoinBalance(const CCoinControl* coinControl) const;
     bool AvailableZerocoins(std::set<CMintMeta>& setMints, const CCoinControl *coinControl = nullptr) const;
     bool GetZerocoinPrecomputePercentage(const uint256 &nSerialHash, double &nPercent);
@@ -1102,7 +1110,7 @@ public:
     bool CreateTransaction(const std::vector<CRecipient>& vecSend, CTransactionRef& tx, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
                            std::string& strFailReason, const CCoinControl& coin_control, bool sign = true);
     bool CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm,
-            CReserveKey* reservekey, CConnman* connman, CValidationState& state);
+            CReserveKey* reservekey, CConnman* connman, CValidationState& state, int computeTime = 0);
 
     bool DummySignTx(CMutableTransaction &txNew, const std::set<CTxOut> &txouts, bool use_max_sig = false) const
     {

@@ -391,9 +391,9 @@ WalletModel::SendCoinsReturn WalletModel::sendCoins(WalletModelTransaction &tran
 }
 
 WalletModel::SendCoinsReturn WalletModel::sendZerocoins(CZerocoinSpendReceipt& receipt,
-        std::vector<CommitData>& vCommitData)
+        std::vector<CommitData>& vCommitData, int computeTime)
 {
-    if (!m_wallet->commitZerocoinSpend(receipt, vCommitData)) {
+    if (!m_wallet->commitZerocoinSpend(receipt, vCommitData, computeTime)) {
         return SendCoinsReturn(ZerocoinSpendFail, QString::fromStdString(receipt.GetStatusMessage()));
     }
 

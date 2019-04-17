@@ -178,7 +178,7 @@ public:
     // Send coins to a list of recipients
     SendCoinsReturn sendCoins(WalletModelTransaction &transaction, bool fSkipCommitTx = false);
     SendCoinsReturn sendZerocoins(CZerocoinSpendReceipt& receipt, std::vector<std::tuple<CWalletTx,
-            std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>>& vCommitData);
+            std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>>& vCommitData, int computeTime);
 
     // Wallet encryption
     bool setWalletEncrypted(bool encrypted, const SecureString &passphrase);

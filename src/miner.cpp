@@ -40,11 +40,12 @@
 #include <boost/thread.hpp>
 #include "veil/zerocoin/accumulators.h"
 
+std::map<uint256, int64_t>mapComputeTimeTransactions;
+
 // Unconfirmed transactions in the memory pool often depend on other
 // transactions in the memory pool. When we select transactions from the
 // pool, we select by highest fee rate of a transaction combined with all
 // its ancestors.
-
 uint64_t nLastBlockTx = 0;
 uint64_t nLastBlockWeight = 0;
 
@@ -110,6 +111,7 @@ void BlockAssembler::resetBlock()
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, bool fProofOfStake, bool fProofOfFullNode)
 {
     int64_t nTimeStart = GetTimeMicros();
+    int64_t nComputeTimeStart = GetTimeMillis();
 
     resetBlock();
 #ifdef ENABLE_WALLET
@@ -461,8 +463,14 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
 
     int64_t nTime2 = GetTimeMicros();
+    int64_t nComputeTimeFinish = GetTimeMillis();
 
     LogPrint(BCLog::BENCH, "CreateNewBlock() packages: %.2fms (%d packages, %d updated descendants), validity: %.2fms (total %.2fms)\n", 0.001 * (nTime1 - nTimeStart), nPackagesSelected, nDescendantsUpdated, 0.001 * (nTime2 - nTime1), 0.001 * (nTime2 - nTimeStart));
+
+    if (fProofOfStake) {
+        mapComputeTimeTransactions.clear();
+        mapComputeTimeTransactions[pblock->vtx[1]->GetHash()] = nComputeTimeFinish - nComputeTimeStart; //store the compute time of this transaction
+    }
 
     return std::move(pblocktemplate);
 }
