@@ -1005,7 +1005,7 @@ bool AnonWallet::GetBalances(BalanceList &bal)
 
         bool fTrusted = IsTrusted(txhash, rtx.blockHash);
         int nDepth = GetDepthInMainChain(rtx.blockHash, 0);
-        bool fConfirmed = nDepth >= 11;
+        bool fConfirmed = nDepth > 11;
         bool fInMempool = false;
         if (!fTrusted) {
             CTransactionRef ptx = mempool.get(txhash);
