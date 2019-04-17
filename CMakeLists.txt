@@ -467,7 +467,7 @@ add_executable(veil
         src/qt/bitcoinamountfield.h
         src/qt/bitcoingui.cpp
         src/qt/bitcoingui.h
-        src/qt/bitcoinstrings.cpp
+        src/qt/veilstrings.cpp
         src/qt/bitcoinunits.cpp
         src/qt/bitcoinunits.h
         src/qt/callback.h

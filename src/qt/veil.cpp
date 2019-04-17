@@ -588,7 +588,7 @@ int main(int argc, char *argv[])
 
     /// 1. Basic Qt initialization (not dependent on parameters or configuration)
     Q_INIT_RESOURCE(veil);
-    Q_INIT_RESOURCE(bitcoin_locale);
+    Q_INIT_RESOURCE(veil_locale);
 
     BitcoinApplication app(*node, argc, argv);
 #if QT_VERSION > 0x050100
