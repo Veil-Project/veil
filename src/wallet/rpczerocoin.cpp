@@ -643,10 +643,10 @@ UniValue DoZerocoinSpend(CWallet* pwallet, const CAmount nAmount, bool fMintChan
     bool fSuccess;
 
     if(address_str != "") { // Spend to supplied destination address
-        CBitcoinAddress address(address_str);
-        dest = CBitcoinAddress(address_str).Get();
-        if(!address.IsValid())
+        dest = DecodeDestination(address_str);
+        if(!IsValidDestination(dest))
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid VEIL address");
+
         fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, libzerocoin::CoinDenomination::ZQ_ERROR, &dest);
     } else                   // Spend to newly generated local address
         fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, libzerocoin::CoinDenomination::ZQ_ERROR);
