@@ -1702,6 +1702,19 @@ bool AnonWallet::SaveRecord(const uint256& txid, const CTransactionRecord& rtx)
     return true;
 }
 
+bool GetScriptPubKeyFromOutpoint(const COutPoint& outpoint, CScript& scriptPubKey)
+{
+    //output record does not have the signing key, find it manually
+    CTransactionRef ptx;
+    uint256 hashBlock;
+    if (!GetTransaction(outpoint.hash, ptx, Params().GetConsensus(), hashBlock, /*allowslow*/true))
+        return error("Failed to find input transaction %s", outpoint.hash.GetHex());
+    if (ptx->vpout.size() <= outpoint.n)
+        return error("Failed to find input output %s:%d does not exist", outpoint.hash.GetHex(), outpoint.n);
+
+    return ptx->vpout[outpoint.n]->GetScriptPubKey(scriptPubKey);
+}
+
 int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
         bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs, CAmount nInputValue)
 {
@@ -2290,7 +2303,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
 
         std::vector<std::pair<MapRecords_t::const_iterator, unsigned int> > setCoins;
         std::vector<COutputR> vAvailableCoins;
-        AvailableBlindedCoins(vAvailableCoins, true, coinControl);
+        AvailableBlindedCoins(vAvailableCoins, true, coinControl, /*nMinimumAmount*/2);
 
         CAmount nValueOutPlain = 0;
         int nChangePosInOut = -1;
@@ -2434,8 +2447,13 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             int nIn = 0;
             for (const auto &coin : setCoins) {
                 const uint256 &txhash = coin.first->first;
-                const COutputRecord *oR = coin.first->second.GetOutput(coin.second);
-                const CScript &scriptPubKey = oR->scriptPubKey;
+                const COutputRecord *outputRecord = coin.first->second.GetOutput(coin.second);
+                CScript scriptPubKey = outputRecord->scriptPubKey;
+
+                if (scriptPubKey.empty()) {
+                    if (!GetScriptPubKeyFromOutpoint(COutPoint(txhash, outputRecord->n), scriptPubKey))
+                        return wserrorN(1, sError, __func__, strprintf("Failed to find input scriptpubkey for tx %s", txhash.GetHex()));
+                }
 
                 CBasicKeyStore keystore;
                 if (!MakeSigningKeystore(keystore, scriptPubKey))
@@ -2651,7 +2669,11 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                     return werrorN(1, "%s: GetOutput %s failed.\n", __func__, txhash.ToString().c_str());
                 }
 
-                const CScript &scriptPubKey = outputRecord->scriptPubKey;
+                CScript scriptPubKey = outputRecord->scriptPubKey;
+                if (scriptPubKey.empty()) {
+                    if (!GetScriptPubKeyFromOutpoint(COutPoint(txhash, outputRecord->n), scriptPubKey))
+                        return wserrorN(1, sError, __func__, strprintf("Failed to find input scriptpubkey in tx %s", txhash.GetHex()));
+                }
 
                 CBasicKeyStore keystore;
                 if (!MakeSigningKeystore(keystore, scriptPubKey))
