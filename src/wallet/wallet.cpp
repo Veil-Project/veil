@@ -4849,7 +4849,8 @@ void CWallet::AutoZeromint()
     }else{
         // nPreferredDenom is -1 when the automatic full mint is selected
         if(nPreferredDenom == -1){
-            nMintAmount = nSelectedCoinBalance;
+            nMintAmount = nSelectedCoinBalance / COIN; // We are are multiplying by COIN later, so divide it
+            nMintAmount = nMintAmount - (nMintAmount % 10); // Make sure this value is divisible by 10
         } else
             nMintAmount = 0;
     }
@@ -4871,6 +4872,14 @@ void CWallet::AutoZeromint()
                 return;
             }
         }
+
+        // Instead of making one mint at a time, try to make up to 9 at a time if the balance supports it
+        int div = nSelectedCoinBalance / (nMintAmount * COIN);
+        if (div < 1)
+            div = 1;
+        if (div > 9)
+            div = 9;
+        nMintAmount = nMintAmount * div;
 
         CWalletTx wtx(NULL, NULL);
         std::vector<CDeterministicMint> vDMints;
