@@ -470,13 +470,13 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
         for (auto& mint : listMintsDB) {
             Add(mint);
         }
-        LogPrintf("%s: added %d zerocoinmints from DB\n", __func__, listMintsDB.size());
+        LogPrint(BCLog::ZEROCOINDB, "%s : added %d zerocoinmints from DB\n", __func__, listMintsDB.size());
 
         std::list<CDeterministicMint> listDeterministicDB = walletdb.ListDeterministicMints();
         for (auto& dMint : listDeterministicDB) {
             Add(dMint);
         }
-        LogPrintf("%s: added %d deterministic zerocoins from DB\n", __func__, listDeterministicDB.size());
+        LogPrint(BCLog::ZEROCOINDB, "%s: added %d deterministic zerocoins from DB\n", __func__, listDeterministicDB.size());
     }
 
     std::vector<CMintMeta> vOverWrite;

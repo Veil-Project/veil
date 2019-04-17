@@ -4778,8 +4778,30 @@ void CWallet::AutoZeromint()
     CCoinControl coinControl;
     CAmount nBalance = GetMintableBalance(vOutputs); // won't consider locked outputs or basecoin address
 
-    if (nBalance <= libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN)){
-        LogPrint(BCLog::SELECTCOINS, "CWallet::AutoZeromint(): available balance (%ld) too small for minting Zerocoin\n", nBalance);
+    CAmount nSelectedCoinBalance = 0;
+    BalanceList bal;
+    int inputtype = OUTPUT_NULL;
+    if (GetMainWallet()->GetBalances(bal)) {
+        if (bal.nRingCT > libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN) && chainActive.Tip()->nAnonOutputs > 20) {
+            inputtype = OUTPUT_RINGCT;
+            nSelectedCoinBalance = bal.nRingCT;
+        }
+        else if (bal.nCT > libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN)) {
+            if (bal.nCT > nSelectedCoinBalance) {
+                inputtype = OUTPUT_CT;
+                nSelectedCoinBalance = bal.nCT;
+            }
+        }
+    }
+    if (nBalance > libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN)) {
+        if (nBalance > nSelectedCoinBalance) {
+            inputtype = OUTPUT_STANDARD;
+            nSelectedCoinBalance = nBalance;
+        }
+    }
+
+    if (inputtype == OUTPUT_NULL) {
+        LogPrint(BCLog::SELECTCOINS, "CWallet::AutoZeromint(): all available basecoin (%ld) available ringct (%ld) available ct (%ld) ringctoutputcoount (%ld) too small for minting Zerocoin\n", nBalance, bal.nRingCT, bal.nCT, chainActive.Tip()->nAnonOutputs);
         return;
     }
 
@@ -4793,7 +4815,7 @@ void CWallet::AutoZeromint()
     }
 
     // Zerocoin amount needed for the target percentage
-    nToMintAmount = ((nZerocoinBalance + nBalance) * nZeromintPercentage / 100);
+    nToMintAmount = ((nZerocoinBalance + nSelectedCoinBalance) * nZeromintPercentage / 100);
 
     // Zerocoin amount missing from target (must be minted)
     nToMintAmount = (nToMintAmount - nZerocoinBalance) / COIN;
@@ -4827,24 +4849,33 @@ void CWallet::AutoZeromint()
     }else{
         // nPreferredDenom is -1 when the automatic full mint is selected
         if(nPreferredDenom == -1){
-            nMintAmount = nBalance;
+            nMintAmount = nSelectedCoinBalance;
         } else
             nMintAmount = 0;
     }
 
     if (nMintAmount > 0){
 
-        CAmount nValueSelected = 0;
-        for (const COutput& out : vOutputs) {
-            nValueSelected += out.tx->tx->vpout[out.i]->GetValue();
-            coinControl.Select(COutPoint(out.tx->GetHash(), out.i), out.tx->tx->vpout[out.i]->GetValue());
-            if (nValueSelected > nMintAmount)
-                break;
+        if (inputtype == OUTPUT_STANDARD) {
+            if (nSelectedCoinBalance < nMintAmount * COIN) {
+                LogPrintf("%s : Can't auto mint, mintable basecoin value (%lu) is less than the selected denomination: (%ld)\n", __func__, nSelectedCoinBalance, nMintAmount);
+                return;
+            }
+        } else if (inputtype == OUTPUT_RINGCT || inputtype == OUTPUT_CT) {
+            if (nSelectedCoinBalance < nMintAmount * COIN) {
+                std::string strType = "ringct";
+                if (inputtype == OUTPUT_CT)
+                    strType = "ct";
+
+                LogPrintf("%s : Can't auto mint, mintable %s value (%lu) is less than the selected denomination: (%ld)\n", __func__, strType, nSelectedCoinBalance, nMintAmount);
+                return;
+            }
         }
 
         CWalletTx wtx(NULL, NULL);
         std::vector<CDeterministicMint> vDMints;
-        string strError = GetMainWallet()->MintZerocoin(nMintAmount*COIN, wtx, vDMints, /*inputtype*/OUTPUT_STANDARD, &coinControl);
+
+        string strError = GetMainWallet()->MintZerocoin(nMintAmount*COIN, wtx, vDMints, OutputTypes(inputtype), nullptr);
 
         // Return if something went wrong during minting
         if (strError != ""){
@@ -4853,8 +4884,17 @@ void CWallet::AutoZeromint()
         }
         nZerocoinBalance = GetZerocoinBalance(false);
         std::vector<COutput> vOutputs;
-        CAmount nBalance = GetMintableBalance(vOutputs);
-        dPercentage = 100 * (double)nZerocoinBalance / (double)(nZerocoinBalance + nBalance);
+        CAmount nNewBalance = 0;
+        if (inputtype == OUTPUT_STANDARD) {
+            nNewBalance = GetMintableBalance(vOutputs);
+        } else {
+            GetBalances(bal);
+            if (inputtype == OUTPUT_RINGCT) {
+                nNewBalance = bal.nRingCT;
+            } else if (inputtype == OUTPUT_CT)
+                nNewBalance = bal.nCT;
+        }
+        dPercentage = 100 * (double)nZerocoinBalance / (double)(nZerocoinBalance + nNewBalance);
         LogPrintf("CWallet::AutoZeromint() @ block %ld: successfully minted %ld Zerocoin. Current percentage of Zerocoin: %lf%%\n",
                   chainActive.Tip()->nHeight, nMintAmount, dPercentage);
         // Re-adjust startup time to delay next Automint for 5 minutes
@@ -5658,7 +5698,8 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     string strError;
     CMutableTransaction txNew;
     std::vector<CTempRecipient> vecSend;
-    if (!CreateZerocoinMintTransaction(nValue, txNew, vDMints, nFeeRequired, strError, vecSend, inputtype, coinControl)) {
+    if (!CreateZerocoinMintTransaction(nValue, txNew, vDMints, nFeeRequired, strError, vecSend, inputtype,
+                                       coinControl)) {
         if (nValue + nFeeRequired > GetBalance())
             return strprintf(_("Error: Failed to create transaction: %s"), strError);
         return strError;
