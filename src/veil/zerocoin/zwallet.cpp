@@ -13,6 +13,7 @@
 #include "validation.h"
 #include "consensus/validation.h"
 #include "shutdown.h"
+#include "boost/thread.hpp"
 
 using namespace libzerocoin;
 
