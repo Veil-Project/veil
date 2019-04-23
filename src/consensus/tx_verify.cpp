@@ -25,6 +25,7 @@
 #include <libzerocoin/CoinSpend.h>
 #include <veil/zerocoin/zchain.h>
 #include <primitives/zerocoin.h>
+#include <veil/zerocoin/lrucache.h>
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
@@ -234,7 +235,9 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
     return fValidated;
 }
 
-std::set<uint256> setValidatedPubcoin;
+// Create a lru cache to hold the currently validated pubcoins with a max size of 5000
+LRUCacheTemplate<std::string,bool> cacheValidatedPubcoin(5000);
+
 bool CheckZerocoinMint(const CTxOut& txout, CBigNum& bnValue, CValidationState& state, bool fSkipZerocoinMintIsPrime)
 {
     libzerocoin::PublicCoin pubCoin(Params().Zerocoin_Params());
@@ -244,12 +247,12 @@ bool CheckZerocoinMint(const CTxOut& txout, CBigNum& bnValue, CValidationState& 
     bnValue = pubCoin.getValue();
     uint256 hashPubcoin = GetPubCoinHash(bnValue);
 
-    if (!fSkipZerocoinMintIsPrime && ! setValidatedPubcoin.count(hashPubcoin)) {
+    bool value;
+    if (!fSkipZerocoinMintIsPrime && !cacheValidatedPubcoin.get(hashPubcoin.GetHex(), value)) {
         if (!pubCoin.validate())
             return state.DoS(100, error("CheckZerocoinMint() : PubCoin does not validate"));
-        while (setValidatedPubcoin.size() > 5000)
-            setValidatedPubcoin.erase(setValidatedPubcoin.begin());
-        setValidatedPubcoin.emplace(hashPubcoin);
+
+        cacheValidatedPubcoin.set(hashPubcoin.GetHex(), true);
     }
 
     return true;
