@@ -49,11 +49,15 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     ui->pruneSize->setEnabled(false);
     connect(ui->prune, SIGNAL(toggled(bool)), ui->pruneSize, SLOT(setEnabled(bool)));
 
-    // Hide orphans
     QSettings settings;
-    ui->hideOrphans->setChecked(settings.value("bHideOrphans", true).toBool());
 
+    // Hide orphans
+    ui->hideOrphans->setChecked(settings.value("bHideOrphans", true).toBool());
     connect(ui->hideOrphans, SIGNAL(toggled(bool)), this, SLOT(onHideOrphansCheck(bool)));
+
+    // Show compute time
+    ui->showComputeTime->setChecked(settings.value("bShowComputeTime", false).toBool());
+    connect(ui->showComputeTime, SIGNAL(toggled(bool)), this, SLOT(onShowComputeTimeCheck(bool)));
 
     /* Network elements init */
 #ifndef USE_UPNP
@@ -350,6 +354,12 @@ void OptionsDialog::updateDefaultProxyNets()
 void OptionsDialog::onHideOrphansCheck(bool state) {
     QSettings settings;
     settings.setValue("bHideOrphans", state);
+    settings.sync();
+}
+
+void OptionsDialog::onShowComputeTimeCheck(bool state) {
+    QSettings settings;
+    settings.setValue("bShowComputeTime", state);
     settings.sync();
 }
 

@@ -9,6 +9,7 @@
 #include <qt/walletmodel.h>
 #include <qt/optionsmodel.h>
 #include <QDateTime>
+#include <QSettings>
 
 TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRecord *rec, WalletModel *walletModel) :
     QDialog(parent),
@@ -61,16 +62,25 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
         ui->textStatus->setText(QString::fromStdString(rec->statusToString()));
         if (rec->getComputeTime()) {
             if ( rec->getComputeTime() < 1000 ){
-                ui->textComputeTime->setText(tr("%1 ms").arg(rec->getComputeTime()));
+                ui->textComputeTime->setText(tr("%1 milliseconds").arg(rec->getComputeTime()));
             }
             else {
-                ui->textComputeTime->setText(tr("%1 s").arg(QString::number(0.001 * rec->getComputeTime(), 'f', 2)));
+                ui->textComputeTime->setText(tr("%1 seconds").arg(QString::number(0.001 * rec->getComputeTime(), 'f', 2)));
             }
         }
         else {
             ui->textComputeTime->setText(tr("N/A"));
         }
     }
+
+    QSettings settings;
+    bool bShowComputeTime = settings.value("bShowComputeTime", false).toBool();
+    ui->separatorComputeTime->setVisible(bShowComputeTime);
+    ui->labelComputeTime->setVisible(bShowComputeTime);
+    ui->textComputeTime->setVisible(bShowComputeTime);
+
+//    ui->frameComputeTime->setVisible(settings.value("bShowComputeTime", false).toBool());
+
 }
 
 void TransactionDetailDialog::onEscapeClicked(){
