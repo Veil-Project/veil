@@ -3732,7 +3732,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
     return true;
 }
 
-bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime)
+bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart)
 {
     // The following split & combine thresholds are important to security
     // Should not be adjusted if you don't understand the consequences
@@ -3794,6 +3794,8 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
                 }
                 nHeight = chainActive.Height();
             }
+
+            nComputeTimeStart = GetTimeMillis();
 
             // Found a kernel
             LogPrintf("CreateCoinStake : kernel found\n");
