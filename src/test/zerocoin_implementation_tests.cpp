@@ -1,3 +1,4 @@
+// Copyright (c) 2019 The Veil developers
 // Copyright (c) 2017-2019 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -9,6 +10,7 @@
 #include "txdb.h"
 //#include "primitives/deterministicmint.h"
 #include "key.h"
+#include "libzerocoin/PubcoinSignature.h"
 //#include "accumulatorcheckpoints.h"
 #include "libzerocoin/bignum.h"
 #include <boost/test/unit_test.hpp>
@@ -34,7 +36,6 @@ BOOST_AUTO_TEST_CASE(zcparams_test)
     cout << "Running zcparams_test...\n";
     RandomInit();
     ECC_Start();
-
     bool fPassed = true;
     try{
         SelectParams(CBaseChainParams::MAIN);

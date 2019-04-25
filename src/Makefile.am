@@ -442,6 +442,7 @@ libzerocoin_libbitcoin_zerocoin_a_SOURCES = \
   libzerocoin/Commitment.cpp \
   libzerocoin/ParamGeneration.cpp \
   libzerocoin/Params.cpp \
+  libzerocoin/PubcoinSignature.cpp \
   libzerocoin/PolynomialCommitment.cpp \
   libzerocoin/SerialNumberSignatureOfKnowledge.cpp \
   libzerocoin/SerialNumberSoK_small.cpp \
@@ -456,6 +457,7 @@ libzerocoin_libbitcoin_zerocoin_a_SOURCES = \
   libzerocoin/Denominations.h \
   libzerocoin/ParamGeneration.h \
   libzerocoin/Params.h \
+  libzerocoin/PubcoinSignature.h \
   libzerocoin/PolynomialCommitment.h \
   libzerocoin/SerialNumberSignatureOfKnowledge.h \
   libzerocoin/SerialNumberSoK_small.h \
