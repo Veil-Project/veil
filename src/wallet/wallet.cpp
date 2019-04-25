@@ -5553,7 +5553,12 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
         return error("%s: could not find checksum used for spend\n", __func__);
 
     try {
-        libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), privateCoin, accumulator, nChecksum, *coinwitness.pWitness, hashTxOut, spendType);
+
+        ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+        bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
+        uint8_t nVersion = fZCLimpMode ? libzerocoin::CoinSpend::V4_LIMP : libzerocoin::CoinSpend::V3_SMALL_SOK;
+
+        libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), privateCoin, accumulator, nChecksum, *coinwitness.pWitness, hashTxOut, spendType, nVersion);
 
         std::string strError;
         if (!spend.Verify(accumulator, strError, true)) {
