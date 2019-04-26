@@ -545,6 +545,7 @@ BOOST_AUTO_TEST_CASE(deterministic_tests)
 
 BOOST_AUTO_TEST_CASE(test_zerocoinspend_ringct_change)
 {
+    cout << "Testing zerocoin ringct change\n";
     //initialize and Accumulator and AccumulatorWitness
     PrivateCoin coin(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN, true);
     auto pubCoin = coin.getPublicCoin();
@@ -621,5 +622,61 @@ BOOST_AUTO_TEST_CASE(test_zerocoinspend_ringct_change)
 //    SetCTOutVData(txout->vData, pkEphem, r.nStealthPrefix);
 
 }
+
+BOOST_AUTO_TEST_CASE(test_coinspendv4)
+{
+    cout << "Testing coinspendv4\n";
+
+    //initialize and Accumulator and AccumulatorWitness
+    PrivateCoin coin(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN, true);
+    auto pubCoin = coin.getPublicCoin();
+    Accumulator accumulator(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN);
+    AccumulatorWitness witness(Params().Zerocoin_Params(), accumulator, pubCoin);
+
+    std::vector<libzerocoin::PublicCoin> vPubcoins;
+    for (unsigned int i = 0; i < 10; i++) {
+        PrivateCoin c(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN, true);
+        vPubcoins.emplace_back(c.getPublicCoin());
+    }
+
+    //populate the witness and accumulators
+    accumulator += pubCoin;
+    for (const auto& pub : vPubcoins) {
+        BOOST_CHECK_MESSAGE(accumulator.accumulate(pub), "accumulator failed accumulating pubcoin");
+        witness += pub;
+    }
+
+    uint256 ptxHash = uint256();
+    uint256 checksum = uint256();
+    CoinSpend spend(Params().Zerocoin_Params(), coin, accumulator, checksum, witness, ptxHash, SpendType::SPEND, CoinSpend::V4_LIMP);
+
+    std::string strError;
+    bool fValid = spend.Verify(accumulator, strError, true);
+    strError = std::string("Valid v4 coinspend failed to verify: ") + strError;
+    BOOST_CHECK_MESSAGE(fValid, strError);
+
+    //try serializing
+    CDataStream ss(0,0);
+    bool threw = false;
+    try {
+        ss << spend;
+    } catch (...) {
+        threw = true;
+    }
+
+    BOOST_CHECK_MESSAGE(!threw, "Serialization error with version 4 CoinSpend object");
+
+    threw = false;
+    try {
+        CoinSpend spendss(Params().Zerocoin_Params(), ss);
+        BOOST_CHECK_MESSAGE(spendss.getPubcoinValue() == coin.getPublicCoin().getValue(), "deserialized spend contains the wrong pubcoin");
+    } catch (...) {
+        threw = true;
+    }
+
+    BOOST_CHECK_MESSAGE(!threw, "Deserialization error with version 4 CoinSpend object");
+}
+
+
 
 BOOST_AUTO_TEST_SUITE_END()

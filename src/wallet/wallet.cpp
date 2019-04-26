@@ -5561,7 +5561,7 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
         libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), privateCoin, accumulator, nChecksum, *coinwitness.pWitness, hashTxOut, spendType, nVersion);
 
         std::string strError;
-        if (!spend.Verify(accumulator, strError, true)) {
+        if (!spend.Verify(accumulator, strError, true, fZCLimpMode)) {
             receipt.SetStatus(_("The new spend coin transaction did not verify"), ZINVALID_WITNESS);
             return false;
         }
