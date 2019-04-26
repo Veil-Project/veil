@@ -1681,12 +1681,14 @@ bool AppInitMain()
                                 "Only rebuild the block database if you are sure that your computer's date and time are correct");
                         break;
                     }
-
+                    fVerifying = true;
                     if (!CVerifyDB().VerifyDB(chainparams, pcoinsdbview.get(), gArgs.GetArg("-checklevel", DEFAULT_CHECKLEVEL),
                                   gArgs.GetArg("-checkblocks", DEFAULT_CHECKBLOCKS))) {
                         strLoadError = _("Corrupted block database detected");
+                        fVerifying = false;
                         break;
                     }
+                    fVerifying = false;
                 }
 
                 if (gArgs.GetBoolArg("-reindex-zdb", false)) {

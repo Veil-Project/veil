@@ -4040,7 +4040,7 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
         int nHeightTx;
         uint256 txid;
         const CBigNum& bnPubcoin = spend.getPubcoinValue();
-        if (!IsPubcoinInBlockchain(GetPubCoinHash(bnPubcoin), nHeightTx, txid, pindex))
+        if ((!fVerifying && !fReindex) && !IsPubcoinInBlockchain(GetPubCoinHash(bnPubcoin), nHeightTx, txid, pindex->pprev))
             return error("%s: pubcoinhash %s is not found in the blockchain", __func__, GetPubCoinHash(bnPubcoin).GetHex());
     }
 
