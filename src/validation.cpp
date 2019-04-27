@@ -776,7 +776,9 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-in-mempool");
                 }
 
-                if (!ContextualCheckZerocoinSpend(tx, *spend, pindexBestHeader->GetBlockHash(), pindexBestHeader, /*fSkipVerify*/true))
+                ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+                bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
+                if (!ContextualCheckZerocoinSpend(tx, *spend, pindexBestHeader->GetBlockHash(), pindexBestHeader, fZCLimpMode,/*fSkipVerify*/true))
                     return state.Invalid(false, REJECT_INVALID, "failed-zcspend-context-checks");
 
                 libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
@@ -2349,6 +2351,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     std::set <CBigNum> setSerialsInBlock;
     std::map<libzerocoin::CoinSpend, uint256> mapSpends;
     std::map<libzerocoin::PublicCoin, uint256> mapMints;
+    ThresholdState tstate = VersionBitsState(pindex->pprev, Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+    bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
 
     CAmount nBlockValueIn = 0;
     CAmount nBlockValueOut = 0;
@@ -2434,7 +2438,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
                     setSerialsInBlock.emplace(spend->getCoinSerialNumber());
                     mapSpends.emplace(*spend, tx.GetHash());
-                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, /*fSkipVerify*/true))
+                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, fZCLimpMode, /*fSkipVerify*/true))
                         return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
                                                     tx.GetHash().GetHex()), REJECT_INVALID);
                     libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
@@ -4018,7 +4022,7 @@ bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::Publ
 }
 
 bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock,
-        CBlockIndex* pindex, bool fSkipSignatureVerify)
+        CBlockIndex* pindex, bool fZCLimpMode, bool fSkipSignatureVerify)
 {
     //Before v3 should not even serialize correctly, but double check here
     if (spend.getVersion() < libzerocoin::CoinSpend::V3_SMALL_SOK)
@@ -4026,6 +4030,21 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
 
     if (!spend.HasValidSignature())
         return error("%s: zerocoin spend does not have a valid signature", __func__);
+
+    //Turn on enforcement of de-anonymization of zerocoins
+    if (fZCLimpMode) {
+        if (spend.getVersion() != libzerocoin::CoinSpend::V4_LIMP)
+            return error("%s zerocoin spend is required to be V4", __func__);
+
+        //Get pubcoin and check if it has been accumulated
+        int nHeightTx;
+        uint256 txid;
+        const CBigNum& bnPubcoin = spend.getPubcoinValue();
+        if ((!fVerifying && !fReindex) && !IsPubcoinInBlockchain(GetPubCoinHash(bnPubcoin), nHeightTx, txid, pindex->pprev))
+            return error("%s: pubcoinhash %s is not found in the blockchain", __func__, GetPubCoinHash(bnPubcoin).GetHex());
+    } else if (spend.getVersion() == libzerocoin::CoinSpend::V4_LIMP) {
+        return error("%s: zerocoinspend v4 while v4 is not active", __func__);
+    }
 
     libzerocoin::SpendType expectedType = libzerocoin::SpendType::SPEND;
     if (tx.IsCoinStake())
@@ -4057,7 +4076,7 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
 
         //Check that the coin has been accumulated
         std::string strError;
-        if (!spend.Verify(accumulator, strError, true))
+        if (!spend.Verify(accumulator, strError, true, fZCLimpMode))
             return error("CheckZerocoinSpend(): zerocoin spend did not verify");
     }
 

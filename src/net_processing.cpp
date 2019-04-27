@@ -1979,12 +1979,16 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             return false;
         }
 
-        int nMinPeerVersion = MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT;
-        if (chainActive.Height() > Params().HeightProtocolBumpEnforcement()) {
-            nMinPeerVersion = MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT;
+        bool fNewEnforcement = false;
+        if (chainActive.Tip()) {
+            ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+            fNewEnforcement = tstate == ThresholdState::ACTIVE;
         }
-        if (Params().NetworkIDString() == "test")
-            nMinPeerVersion = MIN_PEER_PROTO_VERSION_TESTNET;
+
+        int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT : MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
+        if (Params().NetworkIDString() == "test") {
+            nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT_TESTNET : MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT_TESTNET);;
+        }
         if (nVersion < nMinPeerVersion)
         {
             // disconnect from peers older than this proto version
@@ -2128,12 +2132,23 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         return false;
     }
 
-    if (chainActive.Height() > Params().HeightProtocolBumpEnforcement() && pfrom->nVersion < MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT) {
+    bool fNewEnforcement = false;
+    if (chainActive.Tip()) {
+        ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+        fNewEnforcement = tstate == ThresholdState::ACTIVE;
+    }
+
+    int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT :MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
+    if (Params().NetworkIDString() == "test") {
+        nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT_TESTNET : MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT_TESTNET);;
+    }
+
+    if (fNewEnforcement && pfrom->nVersion < nMinPeerVersion) {
         // disconnect from peers older than this proto version
         LogPrint(BCLog::NET, "peer=%d using obsolete version %i; disconnecting\n", pfrom->GetId(), pfrom->nVersion);
         if (enable_bip61) {
             connman->PushMessage(pfrom, CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::REJECT, strCommand, REJECT_OBSOLETE,
-                                                                              strprintf("Version must be %d or greater", MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT)));
+                                                                              strprintf("Version must be %d or greater", nMinPeerVersion)));
         }
         pfrom->fDisconnect = true;
         return false;

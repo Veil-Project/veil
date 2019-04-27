@@ -180,8 +180,8 @@ public:
         consensus.nDgwPastBlocks = 30; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 1080; // 75% of confirmation window
-        consensus.nMinerConfirmationWindow = 1440; // 1 day at 1 block per minute
+        consensus.nRuleChangeActivationThreshold = 84; // 70% of confirmation window
+        consensus.nMinerConfirmationWindow = 120; // 2 hours at 1 block per minute
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
@@ -198,7 +198,11 @@ public:
 
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = 1548161817;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1579805817;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1556226440;
+
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].bit = 3;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = 1556347500;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = 1579805817;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
@@ -331,8 +335,8 @@ public:
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 84; // 75% for testchains
-        consensus.nMinerConfirmationWindow = 120; // 2 hours
+        consensus.nRuleChangeActivationThreshold = 15; // 75% for testchains
+        consensus.nMinerConfirmationWindow = 20; // 20 minutes
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
@@ -349,7 +353,11 @@ public:
 
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = 1548269817;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1579805817;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1556226440;
+
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].bit = 3;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = 1556321954;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = 1579805817;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
@@ -434,7 +442,7 @@ public:
                           "31438167899885040445364023527381951378636564391212010397122822120720357";
         nMaxZerocoinSpendsPerTransaction = 20; // Assume about 6.5kb each
         nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
-        nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
+        nMintRequiredConfirmations = 10; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zerocoin to be stakable

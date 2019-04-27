@@ -164,6 +164,7 @@ extern uint256 g_best_block;
 extern std::atomic_bool fImporting;
 extern std::atomic_bool fReindex;
 extern std::atomic_bool fReindexChainState;
+extern std::atomic_bool fVerifying;
 extern bool fSkipRangeproof;
 extern bool fBusyImporting;
 extern int nScriptCheckThreads;
@@ -378,7 +379,7 @@ bool TestLockPointValidity(const LockPoints* lp);
  */
 bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp = nullptr, bool useExistingLockPoints = false);
 
-bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock, CBlockIndex* pindex, bool fSkipSignatureVerify = false);
+bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock, CBlockIndex* pindex, bool fZCLimpMode, bool fSkipSignatureVerify = false);
 bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::PublicCoin& coin, CBlockIndex* pindex);
 
 /**

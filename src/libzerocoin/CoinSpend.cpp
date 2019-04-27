@@ -64,9 +64,13 @@ namespace libzerocoin
     this->pubkey = coin.getPubKey();
     if (!coin.sign(hashSig, this->vchSig))
         throw std::runtime_error("Coinspend failed to sign signature hash");
+
+    if (version == V4_LIMP) {
+        pubcoinSig = PubcoinSignature(params, coin.getPublicCoin().getValue(), fullCommitmentToCoinUnderSerialParams);
+    }
 }
 
-bool CoinSpend::Verify(const Accumulator& a, std::string& strError, bool verifySoK) const
+bool CoinSpend::Verify(const Accumulator& a, std::string& strError, bool verifySoK, bool verifyPubcoin) const
 {
     // Double check that the version is the same as marked in the serial
     if (a.getDenomination() != this->denomination) {
@@ -89,6 +93,18 @@ bool CoinSpend::Verify(const Accumulator& a, std::string& strError, bool verifyS
         if (!smallSoK.Verify(coinSerialNumber, serialCommitmentToCoinValue, signatureHash())) {
             strError = "CoinsSpend::Verify: serialNumberSoK failed. sighash:";
             strError += signatureHash().GetHex();
+            return false;
+        }
+    }
+
+    if (verifyPubcoin) {
+        if (version != V4_LIMP) {
+            strError = "CoinSpend::Verify version is not V4_LIMP";
+            return false;
+        }
+        std::string err;
+        if (!pubcoinSig.Verify(serialCommitmentToCoinValue, err)) {
+            strError = std::string("CoinSpend::Verify pubcoin signature is invalid: ") + err;
             return false;
         }
     }
@@ -133,6 +149,11 @@ bool CoinSpend::HasValidSignature() const
         return false;
 
     return pubkey.Verify(signatureHash(), vchSig);
+}
+
+CBigNum CoinSpend::getPubcoinValue() const
+{
+    return pubcoinSig.GetPubcoinValue();
 }
 
 } /* namespace libzerocoin */
