@@ -13,7 +13,7 @@
 #define PRECOMPUTE_FLUSH_TIME 3600 // 1 Hour
 
 class CoinWitnessCacheData;
-class LRUCache;
+class PrecomputeLRUCache;
 
 class CoinWitnessData
 {
@@ -90,7 +90,7 @@ private:
 
 public:
     /** Veil zerocoin precompute database functions */
-    bool LoadPrecomputes(LRUCache* lru);
+    bool LoadPrecomputes(PrecomputeLRUCache* lru);
     bool LoadPrecomputes(std::set<uint256> setHashes);
     bool EraseAllPrecomputes();
     bool WritePrecompute(const uint256& hash, const CoinWitnessCacheData& data);

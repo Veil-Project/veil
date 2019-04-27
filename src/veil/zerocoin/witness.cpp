@@ -144,7 +144,7 @@ CPrecomputeDB::CPrecomputeDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBW
 {
 }
 
-bool CPrecomputeDB::LoadPrecomputes(LRUCache* lru)
+bool CPrecomputeDB::LoadPrecomputes(PrecomputeLRUCache* lru)
 {
 
     std::unique_ptr<CDBIterator> pcursor(NewIterator());

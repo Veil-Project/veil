@@ -20,7 +20,7 @@ private:
 
 public:
 
-    LRUCache lru;
+    PrecomputeLRUCache lru;
 
     Precompute();
     void SetNull();

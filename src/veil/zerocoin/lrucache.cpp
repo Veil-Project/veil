@@ -4,19 +4,19 @@
 
 #include "lrucache.h"
 
-LRUCache::LRUCache()
+PrecomputeLRUCache::PrecomputeLRUCache()
 {
     Clear();
 }
 
-void LRUCache::Clear()
+void PrecomputeLRUCache::Clear()
 {
     cache_list.clear();
     mapCacheLocation.clear();
     mapDirtyWitnessData.clear();
 }
 
-void LRUCache::AddNew(const uint256& hash, CoinWitnessCacheData& data)
+void PrecomputeLRUCache::AddNew(const uint256& hash, CoinWitnessCacheData& data)
 {
     cache_list.push_front(std::make_pair(hash, data));
     mapCacheLocation.insert(make_pair(hash, cache_list.begin()));
@@ -25,29 +25,29 @@ void LRUCache::AddNew(const uint256& hash, CoinWitnessCacheData& data)
     mapDirtyWitnessData.erase(hash);
 }
 
-int LRUCache::Size() const
+int PrecomputeLRUCache::Size() const
 {
     return mapCacheLocation.size();
 }
 
-int LRUCache::DirtyCacheSize() const
+int PrecomputeLRUCache::DirtyCacheSize() const
 {
     return mapDirtyWitnessData.size();
 }
 
-bool LRUCache::Contains(const uint256& hash) const
+bool PrecomputeLRUCache::Contains(const uint256& hash) const
 {
     return mapCacheLocation.count(hash) > 0 || mapDirtyWitnessData.count(hash) > 0;
 }
 
-void LRUCache::MoveDirtyToLRU(const uint256& hash)
+void PrecomputeLRUCache::MoveDirtyToLRU(const uint256& hash)
 {
     auto data = CoinWitnessData(mapDirtyWitnessData.at(hash));
     auto cachedata = CoinWitnessCacheData(&data);
     AddNew(hash, cachedata);
 }
 
-void LRUCache::MoveLastToDirtyIfFull()
+void PrecomputeLRUCache::MoveLastToDirtyIfFull()
 {
     if (mapCacheLocation.size() > PRECOMPUTE_LRU_CACHE_SIZE) {
         auto last_it = cache_list.end(); last_it --;
@@ -58,7 +58,7 @@ void LRUCache::MoveLastToDirtyIfFull()
     }
 }
 
-CoinWitnessData LRUCache::GetWitnessData(const uint256& hash)
+CoinWitnessData PrecomputeLRUCache::GetWitnessData(const uint256& hash)
 {
     if (mapDirtyWitnessData.count(hash)) {
         MoveDirtyToLRU(hash);
@@ -74,7 +74,7 @@ CoinWitnessData LRUCache::GetWitnessData(const uint256& hash)
     return CoinWitnessData();
 }
 
-void LRUCache::Remove(const uint256& hash)
+void PrecomputeLRUCache::Remove(const uint256& hash)
 {
     auto it = mapCacheLocation.find(hash);
     if (it != mapCacheLocation.end()) {
@@ -84,7 +84,7 @@ void LRUCache::Remove(const uint256& hash)
     mapDirtyWitnessData.erase(hash);
 }
 
-void LRUCache::AddToCache(const uint256& hash, CoinWitnessCacheData& serialData)
+void PrecomputeLRUCache::AddToCache(const uint256& hash, CoinWitnessCacheData& serialData)
 {
     // If the LRU cache already has a entry for it, update the entry and move it to the front of the list
     auto it = mapCacheLocation.find(hash);
@@ -100,7 +100,7 @@ void LRUCache::AddToCache(const uint256& hash, CoinWitnessCacheData& serialData)
     MoveLastToDirtyIfFull();
 }
 
-void LRUCache::FlushToDisk(CPrecomputeDB* pprecomputeDB)
+void PrecomputeLRUCache::FlushToDisk(CPrecomputeDB* pprecomputeDB)
 {
     // Save all cache data that was dirty back into the database
     for (auto item : mapDirtyWitnessData) {
