@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test241)
             nTotalAmount += currentAmount;
             CBigNum value;
             CBigNum rand;
-            CBigNum serial = CBigNum::RandKBitBigum(256);
+            CBigNum serial = CBigNum::randKBitBignum(256);
             bool isUsed = false;
             CMintMeta meta;
             meta.denom = denom;
@@ -176,7 +176,7 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test115)
             nTotalAmount += currentAmount;
             CBigNum value;
             CBigNum rand;
-            CBigNum serial = CBigNum::RandKBitBigum(256);
+            CBigNum serial = CBigNum::randKBitBignum(256);
             bool isUsed = false;
             CMintMeta meta;
             meta.denom = denom;
@@ -260,7 +260,7 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test_from_245)
             nTotalAmount += currentAmount;
             CBigNum value;
             CBigNum rand;
-            CBigNum serial = CBigNum::RandKBitBigum(256);
+            CBigNum serial = CBigNum::randKBitBignum(256);
             bool isUsed = false;
             CMintMeta meta;
             meta.denom = denom;
@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test_from_145)
             nTotalAmount += currentAmount;
             CBigNum value;
             CBigNum rand;
-            CBigNum serial = CBigNum::RandKBitBigum(256);
+            CBigNum serial = CBigNum::randKBitBignum(256);
             bool isUsed = false;
             CMintMeta meta;
             meta.denom = denom;
@@ -468,7 +468,7 @@ BOOST_AUTO_TEST_CASE(zerocoin_spend_test99)
             nTotalAmount += currentAmount;
             CBigNum value;
             CBigNum rand;
-            CBigNum serial = CBigNum::RandKBitBigum(256);
+            CBigNum serial = CBigNum::randKBitBignum(256);
             bool isUsed = false;
             CMintMeta meta;
             meta.denom = denom;
