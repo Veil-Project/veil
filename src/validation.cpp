@@ -4042,6 +4042,8 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
         const CBigNum& bnPubcoin = spend.getPubcoinValue();
         if ((!fVerifying && !fReindex) && !IsPubcoinInBlockchain(GetPubCoinHash(bnPubcoin), nHeightTx, txid, pindex->pprev))
             return error("%s: pubcoinhash %s is not found in the blockchain", __func__, GetPubCoinHash(bnPubcoin).GetHex());
+    } else if (spend.getVersion() == libzerocoin::CoinSpend::V4_LIMP) {
+        return error("%s: zerocoinspend v4 while v4 is not active", __func__);
     }
 
     libzerocoin::SpendType expectedType = libzerocoin::SpendType::SPEND;
