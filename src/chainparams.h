@@ -135,6 +135,7 @@ public:
     int EnforceWeightReductionTime() const { return nTimeEnforceWeightReduction; }
     int HeightProtocolBumpEnforcement() const { return nHeightProtocolBumpEnforcement; }
     int MaxHeaderRequestWithoutPoW() const { return nMaxHeaderRequestWithoutPoW; }
+    int BIP9Period() const { return consensus.nMinerConfirmationWindow; }
 
 protected:
     CChainParams() {}

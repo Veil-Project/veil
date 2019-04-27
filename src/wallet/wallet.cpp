@@ -5554,8 +5554,18 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
 
     try {
 
-        ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
-        bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
+        //Figure out if limp mod is enabled. If this is a PoS tx need to see if the next block will have it enabled too
+        bool fZCLimpMode = false;
+        BIP9Stats statsStruct = VersionBitsTipStatistics(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP);
+        ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP);
+        if (thresholdState == ThresholdState::LOCKED_IN && spendType == libzerocoin::STAKE) {
+            int nHeightSince = VersionBitsTipStateSinceHeight(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP);
+            if (chainActive.Height()+1 - nHeightSince == Params().BIP9Period())
+                fZCLimpMode = true;
+        } else if (thresholdState == ThresholdState::ACTIVE) {
+            fZCLimpMode = true;
+        }
+
         uint8_t nVersion = fZCLimpMode ? libzerocoin::CoinSpend::V4_LIMP : libzerocoin::CoinSpend::V3_SMALL_SOK;
 
         libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), privateCoin, accumulator, nChecksum, *coinwitness.pWitness, hashTxOut, spendType, nVersion);
