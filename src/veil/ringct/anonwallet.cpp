@@ -1923,8 +1923,8 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 }
             }
 
-            // Subtract the already minted zerocoin change from the total change if it exists
-            const CAmount nChange = nValueIn - nValueToSelect - nValueOutZerocoin;
+            // Subtract the already minted zerocoin change from the total change if there were zerocoin inputs
+            const CAmount nChange = nValueIn - nValueToSelect - (fZerocoinInputs ? nValueOutZerocoin : 0);
 
             // Remove fee outputs from last round
             for (size_t i = 0; i < vecSend.size(); ++i) {
