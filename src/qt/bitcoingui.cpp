@@ -924,6 +924,8 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
             break;
     }
 
+    veilStatusBar->updateSyncIndicator(count);
+
     QString tooltip;
 
     QDateTime currentDate = QDateTime::currentDateTime();
