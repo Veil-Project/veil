@@ -503,6 +503,9 @@ public:
         pchMessageStart[3] = 0xda;
         nDefaultPort = 58821;
         nPruneAfterHeight = 1000;
+        nConsecutivePoWHeight = 1000000;
+        nLastPOWBlock = 2000000;
+        nHeightSupplyCreationStop = 9816000;
 
         genesis = CreateGenesisBlock(1296688602, 3962663, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
