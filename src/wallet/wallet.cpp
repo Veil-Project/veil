@@ -5868,17 +5868,16 @@ bool CWallet::PrepareZerocoinSpend(CAmount nValue, int nSecurityLevel, CZerocoin
 {
     // Default: assume something goes wrong. Depending on the problem this gets more specific below
     int nStatus = ZSPEND_ERROR;
-
     if (IsLocked() || IsUnlockedForStakingOnly()) {
         receipt.SetStatus("Error: Wallet locked, unable to create transaction!", ZWALLET_LOCKED);
-        return false;
+        return error("%s : %s", __func__, receipt.GetStatusMessage());
     }
-
     // If not already given pre-selected mints, then select mints from the wallet
     CAmount nValueSelected = 0;
     if (vMintsSelected.empty()) {
-        if(!CollectMintsForSpend(nValue, vMintsSelected, receipt, nStatus, fMinimizeChange, denomFilter))
-            return false;
+        if(!CollectMintsForSpend(nValue, vMintsSelected, receipt, nStatus, fMinimizeChange, denomFilter)) {
+            return error("%s : %s", __func__, receipt.GetStatusMessage());
+        }
     }
 
     // todo: should we use a different reserve key for each transaction?
@@ -6249,11 +6248,6 @@ bool CWallet::CollectMintsForSpend(CAmount nValue, std::vector<CZerocoinMint>& v
     CAmount nzBalance = GetZerocoinBalance(true);
     if (nValue > nzBalance) {
         receipt.SetStatus(strprintf("You don't have enough Zerocoins in your wallet. Balance: %s", FormatMoney(nzBalance)), nStatus);
-        return false;
-    }
-
-    if (nValue < 10*COIN) {
-        receipt.SetStatus("Value is below the smallest available denomination (= 1) of zerocoin", nStatus);
         return false;
     }
 

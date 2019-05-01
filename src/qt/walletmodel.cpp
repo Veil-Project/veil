@@ -243,7 +243,6 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             /**Spend Zerocoins first**/
             spendType = WalletModelSpendType::ZCSPEND;
             //todo, this does not support multi recipient spend yet
-
             std::vector<CZerocoinMint> vMintsSelected;
             newTx = m_wallet->prepareZerocoinSpend(total, /*nSecurityLevel*/100, receipt, vMintsSelected,
                     fMintChange, /*fMinimizeChange*/false, vCommitData, libzerocoin::CoinDenomination::ZQ_ERROR,
