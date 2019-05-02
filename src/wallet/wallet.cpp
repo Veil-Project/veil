@@ -2125,7 +2125,8 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
 
     {
         fAbortRescan = false;
-        ShowProgress(strprintf("%s " + _("Rescanning..."), GetDisplayName()), 0); // show rescan progress in GUI as dialog or on splashscreen, if -rescan on startup
+        uiInterface.ShowProgress(strprintf("%s " + _("Rescanning..."), GetDisplayName()), 0, false); // show rescan progress in GUI as dialog or on splashscreen, if -rescan on startup
+
         CBlockIndex* tip = nullptr;
         double progress_begin;
         double progress_end;
@@ -2142,8 +2143,9 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
         double progress_current = progress_begin;
         while (pindex && !fAbortRescan && !ShutdownRequested())
         {
+            int percentageDone = std::max(1, std::min(99, (int)((progress_current - progress_begin) / (progress_end - progress_begin) * 100)));
             if (pindex->nHeight % 100 == 0 && progress_end - progress_begin > 0.0) {
-                ShowProgress(strprintf("%s " + _("Rescanning..."), GetDisplayName()), std::max(1, std::min(99, (int)((progress_current - progress_begin) / (progress_end - progress_begin) * 100))));
+                uiInterface.ShowProgress(strprintf("%s " + _("Rescanning..."), GetDisplayName()), percentageDone, 0);
             }
             if (GetTime() >= nNow + 60) {
                 nNow = GetTime();
@@ -2199,7 +2201,7 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
         } else if (pindex && ShutdownRequested()) {
             WalletLogPrintf("Rescan interrupted by shutdown request at block %d. Progress=%f\n", pindex->nHeight, progress_current);
         }
-        ShowProgress(strprintf("%s " + _("Rescanning..."), GetDisplayName()), 100); // hide progress dialog in GUI
+        uiInterface.ShowProgress(strprintf("%s " + _("Rescanning..."), GetDisplayName()), 100, 0); // hide progress dialog in GUI
     }
     return ret;
 }
