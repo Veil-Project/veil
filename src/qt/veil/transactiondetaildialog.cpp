@@ -9,6 +9,7 @@
 #include <qt/walletmodel.h>
 #include <qt/optionsmodel.h>
 #include <QDateTime>
+#include <QSettings>
 
 TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRecord *rec, WalletModel *walletModel) :
     QDialog(parent),
@@ -26,6 +27,7 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
     ui->labelSend->setProperty("cssClass" , "label-detail");
     ui->labelSize->setProperty("cssClass" , "label-detail");
     ui->labelStatus->setProperty("cssClass" , "label-detail");
+    ui->labelComputeTime->setProperty("cssClass" , "label-detail");
 
     // Information
 
@@ -38,6 +40,7 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
     ui->textSend->setProperty("cssClass" , "text-detail");
     ui->textSize->setProperty("cssClass" , "text-detail");
     ui->textStatus->setProperty("cssClass" , "text-detail");
+    ui->textComputeTime->setProperty("cssClass" , "text-detail");
     connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(onEscapeClicked()));
 
     if(rec) {
@@ -57,7 +60,27 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
         ui->textSize->setText("n/a Kb");
         ui->textDate->setText(GUIUtil::dateTimeStr(QDateTime::fromTime_t(static_cast<uint>(rec->time))));
         ui->textStatus->setText(QString::fromStdString(rec->statusToString()));
+        if (rec->getComputeTime()) {
+            if ( rec->getComputeTime() < 1000 ){
+                ui->textComputeTime->setText(tr("%1 milliseconds").arg(rec->getComputeTime()));
+            }
+            else {
+                ui->textComputeTime->setText(tr("%1 seconds").arg(QString::number(0.001 * rec->getComputeTime(), 'f', 2)));
+            }
+        }
+        else {
+            ui->textComputeTime->setText(tr("N/A"));
+        }
     }
+
+    QSettings settings;
+    bool bShowComputeTime = settings.value("bShowComputeTime", false).toBool();
+    ui->separatorComputeTime->setVisible(bShowComputeTime);
+    ui->labelComputeTime->setVisible(bShowComputeTime);
+    ui->textComputeTime->setVisible(bShowComputeTime);
+
+//    ui->frameComputeTime->setVisible(settings.value("bShowComputeTime", false).toBool());
+
 }
 
 void TransactionDetailDialog::onEscapeClicked(){

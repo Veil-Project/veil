@@ -279,6 +279,8 @@ void SendCoinsDialog::on_sendButton_clicked()
         return;
     }
 
+    int64_t nComputeTimeStart = GetTimeMillis();
+
     // prepare transaction for getting txFee earlier
     WalletModelTransaction currentTransaction(recipients);
     WalletModel::SendCoinsReturn prepareStatus;
@@ -305,6 +307,8 @@ void SendCoinsDialog::on_sendButton_clicked()
     }
 
     CAmount txFee = currentTransaction.getTransactionFee();
+
+    int64_t nComputeTimeFinish = GetTimeMillis();
 
     // Format confirmation message
     QStringList formatted;
@@ -421,7 +425,7 @@ void SendCoinsDialog::on_sendButton_clicked()
     // now send the prepared transaction
     WalletModel::SendCoinsReturn sendStatus;
     if (spendType == ZCSPEND)
-        sendStatus = model->sendZerocoins(receipt, vCommitData);
+        sendStatus = model->sendZerocoins(receipt, vCommitData, nComputeTimeFinish - nComputeTimeStart);
     if (sendStatus.status == WalletModel::OK)
         sendStatus = model->sendCoins(currentTransaction, spendType == ZCSPEND);
     // process sendStatus and on error generate message shown to user

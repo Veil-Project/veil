@@ -123,7 +123,7 @@ public:
                     CTxDestination* addressTo = NULL) = 0;
 
     virtual bool commitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<std::tuple<CWalletTx,
-            std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>>& vCommitData) = 0;
+            std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>>& vCommitData, int computeTime) = 0;
 
     //! Return whether wallet has watch only keys.
     virtual bool haveWatchOnly() = 0;
@@ -434,6 +434,7 @@ struct WalletTx
     std::map<unsigned int, CAmount> map_anon_value_in;
     std::pair<int, CAmount> ct_fee;
     CTransactionRecord rtx;
+    int64_t computetime;
 };
 
 //! Updated transaction status.

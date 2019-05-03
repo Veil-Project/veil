@@ -324,6 +324,13 @@ padding:9px;
                </property>
               </widget>
              </item>
+             <item>
+              <widget class="QCheckBox" name="showComputeTime">
+               <property name="text">
+                <string>Show compute time</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </widget>
           </item>

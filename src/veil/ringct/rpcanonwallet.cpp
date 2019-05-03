@@ -245,6 +245,8 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
     }
 
+    int64_t nComputeTimeStart = GetTimeMillis();
+
     CAmount nTotal = 0;
 
     std::vector<CTempRecipient> vecSend;
@@ -539,10 +541,12 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         }
     }
 
+    int64_t nComputeTimeFinish = GetTimeMillis();
+
     CValidationState state;
     CReserveKey reservekey(wallet.get());
    // if (typeIn == OUTPUT_STANDARD && typeOut == OUTPUT_STANDARD) {
-        if (!wallet->CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, &reservekey, g_connman.get(), state)) {
+        if (!wallet->CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, &reservekey, g_connman.get(), state, nComputeTimeFinish - nComputeTimeStart)) {
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Transaction commit failed: %s", FormatStateMessage(state)));
         }
     //} else {

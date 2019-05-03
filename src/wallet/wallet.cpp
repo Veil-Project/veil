@@ -56,6 +56,8 @@
 
 #include <boost/thread.hpp>
 
+extern std::map<uint256, int64_t>mapComputeTimeTransactions;
+
 static const size_t OUTPUT_GROUP_MAX_ENTRIES = 10;
 int64_t nAutoMintStartupTime = GetTime(); //!< Client startup time for use with automint
 
@@ -1017,6 +1019,9 @@ bool CWallet::AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose)
     wtx.BindWallet(this);
     bool fInsertedNew = ret.second;
     if (fInsertedNew) {
+        if (mapComputeTimeTransactions.count(hash)) {
+            wtx.nComputeTime = mapComputeTimeTransactions.at(hash);
+        }
         wtx.nTimeReceived = GetAdjustedTime();
         wtx.nOrderPos = IncOrderPosNext(&batch);
         wtx.m_it_wtxOrdered = wtxOrdered.insert(std::make_pair(wtx.nOrderPos, &wtx));
@@ -3727,7 +3732,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
     return true;
 }
 
-bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime)
+bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart)
 {
     // The following split & combine thresholds are important to security
     // Should not be adjusted if you don't understand the consequences
@@ -3789,6 +3794,8 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
                 }
                 nHeight = chainActive.Height();
             }
+
+            nComputeTimeStart = GetTimeMillis();
 
             // Found a kernel
             LogPrintf("CreateCoinStake : kernel found\n");
@@ -3888,7 +3895,7 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listI
  * Call after CreateTransaction unless you want to abort
  */
 bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm,
-        CReserveKey* reservekey, CConnman* connman, CValidationState& state)
+        CReserveKey* reservekey, CConnman* connman, CValidationState& state, int computeTime)
 {
     {
         LOCK2(cs_main, cs_wallet);
@@ -3898,6 +3905,8 @@ bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
         wtxNew.vOrderForm = std::move(orderForm);
         wtxNew.fTimeReceivedIsTxTime = true;
         wtxNew.fFromMe = true;
+        if (computeTime)
+            wtxNew.nComputeTime = computeTime;
 
         if (!wtxNew.tx)
             return error("%s: FIXME wallet transaction is not linked to a tx", __func__);
@@ -5721,6 +5730,8 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     if (nValueRequired > nBalance)
         return strprintf("Insufficient %s Funds", strTypeName);
 
+    int64_t nComputeTimeStart = GetTimeMillis();
+
     CReserveKey reserveKey(this);
     int64_t nFeeRequired;
 
@@ -5754,7 +5765,10 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     //commit the transaction to the network
     CValidationState state;
     mapValue_t mapValue;
-    if (!CommitTransaction(wtxNew.tx, std::move(mapValue), {}, &reserveKey, g_connman.get(), state)) {
+
+    int64_t nComputeTimeFinish = GetTimeMillis();
+
+    if (!CommitTransaction(wtxNew.tx, std::move(mapValue), {}, &reserveKey, g_connman.get(), state, nComputeTimeFinish - nComputeTimeStart)) {
         return _("Error: The transaction was rejected! This might happen if some of the coins in your wallet were already "
                  "spent, such as if you used a copy of wallet.dat and coins were spent in the copy but not marked as spent here.");
     } else {
@@ -5833,12 +5847,16 @@ bool CWallet::SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendRe
         std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
         libzerocoin::CoinDenomination denomFilter, CTxDestination* addressTo)
 {
+    int64_t nComputeTimeStart = GetTimeMillis();
+
     std::vector<CommitData> vCommitData;
     if (!PrepareZerocoinSpend(nValue, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange,
             vCommitData, denomFilter, addressTo))
         return error("%s : PrepareZerocoinSpend %s", __func__, receipt.GetStatusMessage());
 
-    if (!CommitZerocoinSpend(receipt, vCommitData))
+    int64_t nComputeTimeFinish = GetTimeMillis();
+
+    if (!CommitZerocoinSpend(receipt, vCommitData, nComputeTimeFinish - nComputeTimeStart))
         return error("%s : CommitZerocoinSpend: %s", __func__, receipt.GetStatusMessage());
 
     return true;
@@ -5904,7 +5922,7 @@ bool CWallet::PrepareZerocoinSpend(CAmount nValue, int nSecurityLevel, CZerocoin
     return true;
 }
 
-bool CWallet::CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData)
+bool CWallet::CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData, int computeTime)
 {
     WalletBatch walletdb(*this->database);
     CValidationState state;
@@ -5924,7 +5942,7 @@ bool CWallet::CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<Co
             fTxFail = true;
         }
 
-        if (fTxFail || !CommitTransaction(vtx[i], {}, {}, /*CReserveKey*/nullptr, g_connman.get(), state)) {
+        if (fTxFail || !CommitTransaction(vtx[i], {}, {}, /*CReserveKey*/nullptr, g_connman.get(), state, computeTime)) {
             LogPrintf("%s: failed to commit\n", __func__);
             nStatus = ZCOMMIT_FAILED;
 

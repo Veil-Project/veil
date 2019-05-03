@@ -16,7 +16,6 @@
 
 #include <veil/ringct/anonwallet.h>
 
-
 /* Return positive answer if transaction should be shown in list.
  */
 bool TransactionRecord::showTransaction()
@@ -42,6 +41,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
         const uint256 &hash = wtx.tx->GetHash();
         int64_t nTime = wtx.time;
         TransactionRecord sub(hash, nTime);
+        sub.computetime = wtx.computetime;
 
         uint8_t nFlags = 0;
         OutputTypes outputType = OutputTypes::OUTPUT_NULL;
@@ -228,6 +228,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
     if (wtx.is_coinstake) {
         if (wtx.tx->IsZerocoinSpend() && (wtx.is_my_zerocoin_spend || wtx.is_my_zerocoin_mint)) {
             TransactionRecord sub(hash, nTime);
+            sub.computetime = wtx.computetime;
             sub.involvesWatchAddress = false;
             sub.type = TransactionRecord::ZeroCoinStake;
             sub.address = mapValue["zerocoinmint"];
@@ -274,6 +275,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     continue;
 
                 TransactionRecord sub(hash, nTime);
+                sub.computetime = wtx.computetime;
                 sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
                 sub.type = TransactionRecord::ZeroCoinSpendRemint;
                 sub.address = mapValue["zerocoinmint"];
@@ -297,6 +299,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             // a zerocoinspend that was sent to an address held by this wallet
             if (mine || (precord && precord->IsReceive())) {
                 TransactionRecord sub(hash, nTime);
+                sub.computetime = wtx.computetime;
                 sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
                 if (wtx.is_my_zerocoin_spend) {
                     sub.type = TransactionRecord::ZeroCoinSpendSelf;
@@ -340,6 +343,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
 
             // zerocoin spend that was sent to someone else
             TransactionRecord sub(hash, nTime);
+            sub.computetime = wtx.computetime;
             sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
             if (pOut->GetType() == OUTPUT_STANDARD)
                 sub.debit = -pOut->GetValue();
@@ -377,6 +381,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 continue;
 
             TransactionRecord sub(hash, nTime);
+            sub.computetime = wtx.computetime;
             sub.idx = i;
             sub.involvesWatchAddress = mine & ISMINE_WATCH_ONLY;
 
@@ -445,11 +450,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 recordType = TransactionRecord::ZeroCoinMint;
             }
 
-
             parts.append(
                     TransactionRecord(
                             hash, nTime, recordType, "",
-                    -(nDebit - nChange), nCredit - nChange, nTxFee, wtx.tx->GetNumVOuts(), wtx.tx->GetNumVOuts(), 0
+                    -(nDebit - nChange), nCredit - nChange, nTxFee, wtx.tx->GetNumVOuts(), wtx.tx->GetNumVOuts(), 0, wtx.computetime
                     )
             );
             parts.last().involvesWatchAddress = involvesWatchAddress;   // maybe pass to TransactionRecord as constructor argument
@@ -463,6 +467,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
 
             for (unsigned int nOut = 0; nOut < wtx.tx->vpout.size(); nOut++) {
                 TransactionRecord sub(hash, nTime);
+                sub.computetime = wtx.computetime;
                 sub.idx = nOut;
                 sub.involvesWatchAddress = involvesWatchAddress;
                 sub.fee = nTxFee;
