@@ -494,16 +494,19 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x00");
+        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x00");
+        consensus.defaultAssumeValid = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
+
+        consensus.nMinRCTOutputDepth = 12;
 
         pchMessageStart[0] = 0xfa;
         pchMessageStart[1] = 0xbf;
         pchMessageStart[2] = 0xb5;
         pchMessageStart[3] = 0xda;
         nDefaultPort = 58821;
+
         nPruneAfterHeight = 1000;
         nConsecutivePoWHeight = 1000000;
         nLastPOWBlock = 2000000;
@@ -536,15 +539,25 @@ public:
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
         base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
+        base58Prefixes[STEALTH_ADDRESS]    = {0x84}; // v
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
-        bech32_hrp_stealth = "bcrt";
+        bech32Prefixes[STEALTH_ADDRESS].assign("tps","tps"+3);
+        bech32Prefixes[BASE_ADDRESS].assign("tv", "tv"+2);
+
+        bech32_hrp_stealth = "tps";
+        bech32_hrp_base = "tv";
+
+        fDefaultConsistencyChecks = false;
+        fRequireStandard = false;
+        fMineBlocksOnDemand = false;
 
         /* enable fallback fee on regtest */
         m_fallback_fee_enabled = true;
 
-        strNetworkRewardAddress = "2N9sWUmygPRy1c14eFWt8FzA8YF4JgA6j6a";
+        strNetworkRewardAddress = "tv1qhzkv6xdc7zpfx9ldsrqpk84hkcf36kclsyyeeh";
+        nMaxNetworkReward = 10 * COIN;
 
         /** Zerocoin */
         zerocoinModulus = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784"
@@ -553,13 +566,22 @@ public:
                           "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
                           "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
                           "31438167899885040445364023527381951378636564391212010397122822120720357";
-        nMaxZerocoinSpendsPerTransaction = 7; // Assume about 20kb each
+        nMaxZerocoinSpendsPerTransaction = 20; // Assume about 6.5kb each
         nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
-        nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
+        nMintRequiredConfirmations = 10; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
-        nZerocoinRequiredStakeDepth = 400; //The required confirmations for a zerocoin to be stakable
+        nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zerocoin to be stakable
+        nHeightPoSStart = 100;
+        nKernelModulus = 10;
+        nCoinbaseMaturity = 10;
+        nProofOfFullNodeRounds = 4;
+        nLastPOWBlock = 2000000;
+        nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
+
+        /** RingCT/Stealth **/
+        nDefaultRingSize = 11;
 
         nMaxHeaderRequestWithoutPoW = 50;
     }

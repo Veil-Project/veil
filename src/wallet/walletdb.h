@@ -189,6 +189,10 @@ public:
     bool WriteName(const std::string& strAddress, const std::string& strName);
     bool EraseName(const std::string& strAddress);
 
+    bool WriteAutoSpend(const std::string& strAddress);
+    bool ReadAutoSpend(std::string& strAddress);
+    bool EraseAutoSpend();
+
     bool WritePurpose(const std::string& strAddress, const std::string& purpose);
     bool ErasePurpose(const std::string& strAddress);
 

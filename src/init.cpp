@@ -186,6 +186,7 @@ static boost::thread_group threadGroup;
 #ifdef ENABLE_WALLET
 static boost::thread_group threadGroupStaking;
 static boost::thread_group threadGroupPrecompute;
+static boost::thread_group threadGroupAutoSpend;
 #endif
 static boost::thread_group threadGroupPoWMining;
 static boost::thread_group threadGroupStaging;
@@ -248,6 +249,8 @@ void Shutdown()
         threadGroupStaking.join_all();
         threadGroupPrecompute.interrupt_all();
         threadGroupPrecompute.join_all();
+        threadGroupAutoSpend.interrupt_all();
+        threadGroupAutoSpend.join_all();
     }
 #endif
     threadGroupStaging.interrupt_all();
@@ -1928,11 +1931,14 @@ bool AppInitMain()
         if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) && gArgs.GetBoolArg("-staking", true) && !gArgs.GetBoolArg("-exchangesandservicesmode", false))
             threadGroupStaking.create_thread(&ThreadStakeMiner);
 
+        // Link thread groups
         LinkPrecomputeThreadGroup(&threadGroupPrecompute);
+        LinkAutoSpendThreadGroup(&threadGroupAutoSpend);
 
         // Start wallet CPU mining if the -gen=<n> parameter is given
         int nThreads = gArgs.GetArg("-gen", 0);
         if (nThreads) {
+            bool fSkip = false;
             auto pt = GetMainWallet();
             if (pt) {
                 std::shared_ptr<CReserveScript> coinbase_script;
@@ -1941,16 +1947,17 @@ bool AppInitMain()
                 // If the keypool is exhausted, no script is returned at all.  Catch this.
                 if (!coinbase_script) {
                     error("Failed to start veilminer: Keypool ran out, please call keypoolrefill first");
-                    return true;
+                    fSkip = true;
                 }
 
                 //throw an error if no script was provided
                 if (coinbase_script->reserveScript.empty()) {
                     error("Failed to start veilminer: No coinbase script available");
-                    return true;
+                    fSkip = true;
                 }
 
-                GenerateBitcoins(true, nThreads, coinbase_script);
+                if (!fSkip)
+                    GenerateBitcoins(true, nThreads, coinbase_script);
             }
         }
 
@@ -1963,6 +1970,25 @@ bool AppInitMain()
                 if (!pt->StartPrecomputing(strStatus))
                     error("Failed to start precomputing : %s", strStatus);
             }
+        }
+
+        if (gArgs.GetBoolArg("-autospend", false)) {
+            int nNumberToSpend = gArgs.GetArg("-autospendcount", 3);
+            int nDenomToSpend = gArgs.GetArg("-autospenddenom", 10);
+            std::string strAutoSpendAddress = gArgs.GetArg("-autospendaddress", "");
+
+            if (!strAutoSpendAddress.empty()) {
+                CTxDestination destination;
+                CBitcoinAddress addr(strAutoSpendAddress);
+                destination = addr.Get();
+
+                if (!addr.IsValidStealthAddress()) {
+                    return InitError(strprintf(_("Invalid stealth address with -autospendaddress: '%s'"), strAutoSpendAddress));
+                }
+            }
+
+            SetAutoSpendParameters(nNumberToSpend, nDenomToSpend, strAutoSpendAddress);
+            StartAutoSpend();
         }
     }
 #endif // ENABLE_WALLET

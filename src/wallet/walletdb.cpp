@@ -39,6 +39,21 @@ bool WalletBatch::EraseName(const std::string& strAddress)
     return EraseIC(std::make_pair(std::string("name"), strAddress));
 }
 
+bool WalletBatch::WriteAutoSpend(const std::string& strAddress)
+{
+    return WriteIC(std::string("autospendaddress"), strAddress);
+}
+
+bool WalletBatch::ReadAutoSpend(std::string& strAddress)
+{
+    return m_batch.Read(std::string("autospendaddress"), strAddress);
+}
+
+bool WalletBatch::EraseAutoSpend()
+{
+    return EraseIC(std::string("autospendaddress"));
+}
+
 bool WalletBatch::WritePurpose(const std::string& strAddress, const std::string& strPurpose)
 {
     return WriteIC(std::make_pair(std::string("purpose"), strAddress), strPurpose);
@@ -420,11 +435,12 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
                 return false;
             }
         } else if (strType != "bestblock" && strType != "bestblock_nomerkle" &&
-                strType != "minversion" && strType != "acentry") {
+                strType != "minversion" && strType != "acentry" && strType != "autospendaddress") {
             wss.m_unknown_records++;
         }
     } catch (...)
     {
+        LogPrintf("Failing here, on %s\n", strType);
         return false;
     }
     return true;
