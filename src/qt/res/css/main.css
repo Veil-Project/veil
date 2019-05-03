@@ -726,7 +726,7 @@ QPushButton#btnLock > QToolTip {
 QToolTip {
     color: #ffffff;
     background-color: #6f9bf5;
-    font-size:13px;
+    font-size:11pt;
     border: none;
     border-radius:20px;
     padding:6px;

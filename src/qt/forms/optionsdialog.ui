@@ -251,19 +251,6 @@ padding:9px;
             </item>
            </layout>
           </item>
-          <item>
-           <spacer name="verticalSpacer_Main">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>50</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
          </layout>
         </widget>
        </item>
@@ -762,7 +749,7 @@ padding:9px;
          <property name="minimumSize">
           <size>
            <width>0</width>
-           <height>0</height>
+           <height>100</height>
           </size>
          </property>
          <property name="styleSheet">
@@ -778,63 +765,96 @@ padding:9px;
          <property name="frameShadow">
           <enum>QFrame::Raised</enum>
          </property>
-         <widget class="QCheckBox" name="minimizeToTray">
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>32</y>
-            <width>533</width>
-            <height>23</height>
-           </rect>
+         <layout class="QVBoxLayout" name="verticalLayout_77">
+          <property name="leftMargin">
+           <number>0</number>
           </property>
-          <property name="toolTip">
-           <string>Show only a tray icon after minimizing the window.</string>
+          <property name="topMargin">
+           <number>0</number>
           </property>
-          <property name="styleSheet">
-           <string notr="true">background-color:transparent;</string>
+          <property name="rightMargin">
+           <number>0</number>
           </property>
-          <property name="text">
-           <string>&amp;Minimize to the tray instead of the taskbar</string>
+          <property name="bottomMargin">
+           <number>0</number>
           </property>
-         </widget>
-         <widget class="QCheckBox" name="hideTrayIcon">
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>3</y>
-            <width>533</width>
-            <height>23</height>
-           </rect>
-          </property>
-          <property name="toolTip">
-           <string>Hide the icon from the system tray.</string>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">background-color:transparent;</string>
-          </property>
-          <property name="text">
-           <string>&amp;Hide tray icon</string>
-          </property>
-         </widget>
-         <widget class="QCheckBox" name="minimizeOnClose">
-          <property name="geometry">
-           <rect>
-            <x>0</x>
-            <y>61</y>
-            <width>533</width>
-            <height>23</height>
-           </rect>
-          </property>
-          <property name="toolTip">
-           <string>Minimize instead of exit the application when the window is closed. When this option is enabled, the application will be closed only after selecting Exit in the menu.</string>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">background-color:transparent;</string>
-          </property>
-          <property name="text">
-           <string>M&amp;inimize on close</string>
-          </property>
-         </widget>
+          <item>
+            <widget class="QFrame" name="frame_9">
+              <property name="minimumSize">
+                <size>
+                  <width>0</width>
+                  <height>0</height>
+                </size>
+              </property>
+              <property name="styleSheet">
+                <string notr="true">background-color:transparent;</string>
+              </property>
+              <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+              </property>
+              <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_10">
+                <property name="leftMargin">
+                  <number>0</number>
+                </property>
+                <property name="topMargin">
+                  <number>0</number>
+                </property>
+                <property name="rightMargin">
+                  <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                  <number>0</number>
+                </property>
+                <item>
+                 <widget class="QCheckBox" name="minimizeToTray">
+                  <property name="toolTip">
+                   <string>Show only a tray icon after minimizing the window.</string>
+                  </property>
+                  <property name="text">
+                   <string>&amp;Minimize to the tray instead of the taskbar</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QCheckBox" name="hideTrayIcon">
+                  <property name="toolTip">
+                   <string>Hide the icon from the system tray.</string>
+                  </property>
+                  <property name="text">
+                   <string>&amp;Hide tray icon</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QCheckBox" name="minimizeOnClose">
+                  <property name="toolTip">
+                   <string>Minimize instead of exit the application when the window is closed. When this option is enabled, the application will be closed only after selecting Exit in the menu.</string>
+                  </property>
+                  <property name="text">
+                   <string>M&amp;inimize on close</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="verticalSpacer_2">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+              </layout>
+            </widget>
+           </item>
+         </layout>
         </widget>
        </item>
       </layout>
@@ -942,6 +962,17 @@ QValueComboBox QFrame{
 QValueComboBox::drop-down {
    background-color:white;
    color:#bababa;
+}
+QToolTip {
+    color: #ffffff;
+    background-color: #6f9bf5;
+    font-size:11pt;
+    border: none;
+    border-radius:20px;
+    padding:6px;
+    margin:0px;
+    min-height: 35px;
+    qproperty-alignment: 'AlignVCenter | AlignCenter';
 }</string>
                  </property>
                 </widget>
@@ -985,6 +1016,18 @@ QValueComboBox QFrame{
 QValueComboBox::drop-down {
    background-color:white;
    color:#bababa;
+}
+
+QToolTip {
+    color: #ffffff;
+    background-color: #6f9bf5;
+    font-size:11pt;
+    border: none;
+    border-radius:20px;
+    padding:6px;
+    margin:0px;
+    min-height: 35px;
+    qproperty-alignment: 'AlignVCenter | AlignCenter';
 }</string>
                  </property>
                 </widget>
