@@ -23,6 +23,7 @@ public:
 
     bool getSyncStatusVisible();
     void updateSyncStatus(QString status);
+    void updateSyncIndicator(int height);
     void setSyncStatusVisible(bool fVisible);
 #ifdef ENABLE_WALLET
     void setWalletModel(WalletModel *model);
