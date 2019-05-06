@@ -308,6 +308,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             continue;
         }
 
+        //Make sure tx's that overwrite other tx's do not get in (BIP30)
+        for (size_t o = 0; o < pblock->vtx[i]->GetNumVOuts(); o++) {
+            if (viewCheck.HaveCoin(COutPoint(pblock->vtx[i]->GetHash(), o))) {
+                continue;
+            }
+        }
+
         vtxReplace.emplace_back(pblock->vtx[i]);
     }
     pblock->vtx = vtxReplace;
