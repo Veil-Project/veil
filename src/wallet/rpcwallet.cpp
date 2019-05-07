@@ -1101,6 +1101,38 @@ static UniValue getbalance(const JSONRPCRequest& request)
     return ValueFromAmount(pwallet->GetBalance(filter, min_depth));
 }
 
+static UniValue getspendablebalance(const JSONRPCRequest& request){
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet *const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || (request.params.size() > 0 )){
+        throw std::runtime_error(
+            std::string(
+                "getspendablebalance ()\n"
+                "\nreturns the sum of all spendable balances (base + ringct + ct + zero)\n"
+                "\nResult:\n"
+                "total_spendable    (numeric) The sum of \"basecoin_spendable\", \"ringct_spendable\", \"ct_spendable\" & \"zerocoin_spendable\"\n"
+                "\nExamples:\n"
+                "\nGet the sum of all spendable balances.\n"
+                + HelpExampleCli("getspendablebalance", "")
+            )
+        );
+    }
+
+    pwallet->BlockUntilSyncedToCurrentChain();
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    BalanceList balancelist;
+    if (!pwallet->GetBalances(balancelist))
+        throw JSONRPCError(RPC_WALLET_ERROR, "failed to get balances from wallet");
+
+    return ValueFromAmount(balancelist.nVeil + balancelist.nCT + balancelist.nRingCT + balancelist.nZerocoin);
+}
+
 static UniValue getunconfirmedbalance(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1123,6 +1155,7 @@ static UniValue getunconfirmedbalance(const JSONRPCRequest &request)
 
     return ValueFromAmount(pwallet->GetUnconfirmedBalance());
 }
+
 
 static UniValue sendfrom(const JSONRPCRequest& request)
 {
@@ -5240,6 +5273,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "encryptwallet",                    &encryptwallet,                 {"passphrase"} },
     { "wallet",             "getaddressinfo",                   &getaddressinfo,                {"address"} },
     { "wallet",             "getbalance",                       &getbalance,                    {"account|dummy","minconf","include_watchonly"} },
+    { "wallet",             "getspendablebalance",              &getspendablebalance,           {} },
     { "wallet",             "getbalances",                      &getbalances,                   {} },
     { "wallet",             "getnewbasecoinaddress",            &getnewbasecoinaddress,         {"label|account","address_type"} },
     { "wallet",             "getnewminingaddress",              &getnewminingaddress,           {"label"} },
