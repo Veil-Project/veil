@@ -28,7 +28,8 @@ public:
     CzWallet(CWallet* wallet);
 
     void AddToMintPool(const std::pair<uint256, uint32_t>& pMint, bool fVerbose);
-    bool DeterministicSearch(int nCountStart, int nCountEnd);
+    void ThreadedDeterministicSearch(int nCountStart, int nCountEnd, int nThreads);
+    bool DeterministicSearch(int nCountStart, int nCountEnd, int* progress = nullptr);
     bool HasEmptySeed() const { return mapMasterSeeds.empty() || mapMasterSeeds.count(seedMasterID) == 0; }
     bool GetMasterSeed(CKey& key) const;
     CKeyID GetMasterSeedID() { return seedMasterID; }
