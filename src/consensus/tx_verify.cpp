@@ -237,7 +237,7 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
 
 // Create a lru cache to hold the currently validated pubcoins with a max size of 5000
 LRUCacheTemplate<std::string,bool> cacheValidatedPubcoin(5000);
-
+CCriticalSection cs_pubcoinCache;
 bool CheckZerocoinMint(const CTxOut& txout, CBigNum& bnValue, CValidationState& state, bool fSkipZerocoinMintIsPrime)
 {
     libzerocoin::PublicCoin pubCoin(Params().Zerocoin_Params());
@@ -247,12 +247,21 @@ bool CheckZerocoinMint(const CTxOut& txout, CBigNum& bnValue, CValidationState& 
     bnValue = pubCoin.getValue();
     uint256 hashPubcoin = GetPubCoinHash(bnValue);
 
+    //CheckZerocoinMint can be done from different threads at the same time. Lock static containers. If try_lock fails,
+    //don't wait, just do full validation.
+    TRY_LOCK(cs_pubcoinCache, fLocked);
     bool value;
-    if (!fSkipZerocoinMintIsPrime && !cacheValidatedPubcoin.get(hashPubcoin.GetHex(), value)) {
-        if (!pubCoin.validate())
-            return state.DoS(100, error("CheckZerocoinMint() : PubCoin does not validate"));
+    if (!fSkipZerocoinMintIsPrime) {
+        bool fRunValidation = !fLocked || (fLocked && !cacheValidatedPubcoin.get(hashPubcoin.GetHex(), value));
+        if (fRunValidation) {
+            if (!pubCoin.validate())
+                return state.DoS(100, error("CheckZerocoinMint() : PubCoin does not validate"));
+            if (fLocked) {
+                cacheValidatedPubcoin.set(hashPubcoin.GetHex(), true);
+            }
+        }
 
-        cacheValidatedPubcoin.set(hashPubcoin.GetHex(), true);
+
     }
 
     return true;
