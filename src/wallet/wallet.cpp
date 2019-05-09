@@ -6421,7 +6421,8 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 // Try and mint the change as zerocoin
                 if (fMintChange) {
                     //Any change below the smallest zerocoin denom is not remintable and is considered dust to be sent to ct
-                    auto nAmountSmallestDenom = libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN);
+                    auto nAmountSmallestDenom = libzerocoin::ZerocoinDenominationToAmount(
+                            libzerocoin::CoinDenomination::ZQ_TEN);
                     nChangeDust = nChange % nAmountSmallestDenom;
                     nChangeRemint = nChange - nChangeDust;
 
@@ -6453,7 +6454,8 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                             return false;
                         }
                     }
-                } else { // Mint the change as ct
+                } else {
+                    // Mint the change as ct by default
                     nChangeRemint = 0;
                     nChangeDust = nChange;
                 }
@@ -6467,6 +6469,31 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                         receipt.SetStatus("Failed to create mint", nStatus);
                         return false;
                     }
+                }
+
+                //If spending zerocoin to a basecoin address. Mint the change as basecoin instead of CT
+                if (nChangeDust && !fStealthOutput) {
+                    // Get a internal key for generating a new change address
+                    CReserveKey reservekey(this);
+                    CPubKey vchPubKey;
+                    if (!reservekey.GetReservedKey(vchPubKey, true)) {
+                        receipt.SetStatus("Failed to create a change address for this transaction", nStatus);
+                        return false;
+                    }
+
+                    reservekey.KeepKey();
+
+                    LearnRelatedScripts(vchPubKey, OutputType::BECH32);
+                    CTxDestination dest = GetDestinationForKey(vchPubKey, OutputType::BECH32);
+
+                    // Create the change script
+                    CScript basecoinChange = GetScriptForDestination(dest);
+
+                    // Create the change txout
+                    CTxOut txOutBaseCoinChange(nChangeDust, basecoinChange);
+
+                    // Add the txout to the transaction
+                    txNew.vpout.emplace_back(txOutBaseCoinChange.GetSharedPtr());
                 }
             }
 
