@@ -2974,9 +2974,17 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
             WarningBitsConditionChecker checker(bit);
             ThresholdState state = checker.GetStateFor(pindex, chainParams.GetConsensus(), warningcache[bit]);
             if (state == ThresholdState::ACTIVE || state == ThresholdState::LOCKED_IN) {
+                bool fPrintWarning = true;
+                for (auto deployment : chainParams.GetConsensus().vDeployments) {
+                    //Only print warnings if this is something that we have no knowledge of.
+                    if (deployment.bit == bit)
+                        fPrintWarning = false;
+                }
+
                 const std::string strWarning = strprintf(_("Warning: unknown new rules activated (versionbit %i)"), bit);
                 if (state == ThresholdState::ACTIVE) {
-                    DoWarning(strWarning);
+                    if (fPrintWarning)
+                        DoWarning(strWarning);
                 } else {
                     AppendWarning(warningMessages, strWarning);
                 }
