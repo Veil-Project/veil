@@ -56,8 +56,7 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
         } else{
             ui->textSend->setText(QString::fromStdString((rec->getAddress())));
         }
-        // TODO: add size to TransactionRecord.
-        ui->textSize->setText("n/a Kb");
+        ui->textSize->setText(tr("%1 Bytes").arg(rec->size));
         ui->textDate->setText(GUIUtil::dateTimeStr(QDateTime::fromTime_t(static_cast<uint>(rec->time))));
         ui->textStatus->setText(QString::fromStdString(rec->statusToString()));
         if (rec->getComputeTime()) {
