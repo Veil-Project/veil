@@ -133,12 +133,6 @@ void VeilStatusBar::onBtnLockClicked()
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
         return;
 
-    // When our own dialog internally changes the checkstate, block signal from executing
-    if (fBlockNextBtnLockSignal) {
-        fBlockNextBtnLockSignal = false;
-        return;
-    }
-
     if(walletModel->getEncryptionStatus() == WalletModel::Unlocked || walletModel->getEncryptionStatus() == WalletModel::UnlockedForStakingOnly){
         if (walletModel->setWalletLocked(true, false)){
             ui->btnLock->setIcon(QIcon(":/icons/ic-locked-png"));
@@ -202,7 +196,6 @@ void VeilStatusBar::updateLockCheckbox(){
         if (ui->btnLock->isChecked() != lockStatus) {
             ui->btnLock->setChecked(lockStatus);
             ui->btnLock->setIcon(QIcon( (lockStatus) ? ":/icons/ic-locked-png" : ":/icons/ic-unlocked-png"));
-            fBlockNextBtnLockSignal = true;
         }
 
         QString strToolTip;

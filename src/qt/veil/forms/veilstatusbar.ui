@@ -187,7 +187,7 @@
         <item>
          <widget class="QPushButton" name="btnLock">
           <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
+           <enum>Qt::StrongFocus</enum>
           </property>
           <property name="layoutDirection">
            <enum>Qt::LeftToRight</enum>
@@ -196,7 +196,7 @@
            <string/>
           </property>
           <property name="icon">
-           <iconset>
+           <iconset resource="../../veil.qrc">
             <normaloff>:/icons/ic-locked-png</normaloff>
             <selectedoff>:/icons/ic-unlocked-png</selectedoff>:/icons/ic-locked-png</iconset>
           </property>
@@ -215,5 +215,8 @@
    </item>
   </layout>
  </widget>
+ <resources>
+  <include location="../../veil.qrc"/>
+ </resources>
  <connections/>
 </ui>
