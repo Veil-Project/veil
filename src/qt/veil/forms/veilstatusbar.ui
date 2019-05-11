@@ -114,16 +114,61 @@
           </property>
           <item>
            <widget class="QCheckBox" name="checkStaking">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="font">
+             <font>
+              <stylestrategy>PreferAntialias</stylestrategy>
+             </font>
+            </property>
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
             </property>
+            <property name="styleSheet">
+             <string notr="true">
+ #checkStaking::indicator {
+    border: 0;
+    background: none;
+	 margin: 0;
+	 padding: 0;
+	width:40px;
+	height:30px;
+ }
+
+ #checkStaking {
+ background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
+ background-repeat:no-repeat;
+ background-position:left center;
+ color:#bababa;
+ }
+
+ #checkStaking:checked {
+ background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
+ color:#105aef;
+ }</string>
+            </property>
             <property name="text">
              <string>Staking</string>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>16</width>
+              <height>16</height>
+             </size>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QCheckBox" name="checkPrecompute">
+            <property name="font">
+             <font>
+              <stylestrategy>PreferAntialias</stylestrategy>
+             </font>
+            </property>
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
             </property>
@@ -132,13 +177,16 @@
  #checkPrecompute::indicator {
      border: 0;
      background: none;
+	 margin: 0;
+	 padding: 0;
+	 width:40px;
+    height:30px;
  }
 
  #checkPrecompute {
  background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
  background-repeat:no-repeat;
  background-position:left center;
- padding:8 4 8 30px;
  color:#bababa;
  }
 
@@ -196,7 +244,7 @@
            <string/>
           </property>
           <property name="icon">
-           <iconset>
+           <iconset resource="../../veil.qrc">
             <normaloff>:/icons/ic-locked-png</normaloff>
             <selectedoff>:/icons/ic-unlocked-png</selectedoff>:/icons/ic-locked-png</iconset>
           </property>
@@ -215,5 +263,8 @@
    </item>
   </layout>
  </widget>
+ <resources>
+  <include location="../../veil.qrc"/>
+ </resources>
  <connections/>
 </ui>
