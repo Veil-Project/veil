@@ -278,7 +278,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
         TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromRingCt)
     );
 
-    ui->comboFilter->addItem(tr("Minted"),
+    ui->comboFilter->addItem(tr("Mined"),
         TransactionFilterProxy::TYPE(TransactionRecord::Generated)
     );
 
