@@ -315,7 +315,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
     );
 
     ui->comboFilter->addItem(tr("RingCT"),
-        TransactionFilterProxy::                     TYPE(TransactionRecord::RingCTSendToSelf) |
+        TransactionFilterProxy::TYPE(TransactionRecord::RingCTSendToSelf) |
         TransactionFilterProxy::TYPE(TransactionRecord::RingCTSendToAddress) |
         TransactionFilterProxy::TYPE(TransactionRecord::RingCTRecvWithAddress) |
         TransactionFilterProxy::TYPE(TransactionRecord::RingCTGenerated) |
@@ -326,7 +326,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
         TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromRingCt)
     );
 
-    ui->comboFilter->addItem(tr("ZeroCoin"),
+    ui->comboFilter->addItem(tr("Zerocoin"),
         TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMint) |
         TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinSpendRemint) |
         TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromCt) |
