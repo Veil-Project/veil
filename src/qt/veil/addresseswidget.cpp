@@ -257,6 +257,7 @@ void AddressesWidget::initAddressesView(){
     // Complete me..
 }
 
+
 void AddressesWidget::showEvent(QShowEvent *event){
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
@@ -267,6 +268,7 @@ void AddressesWidget::showEvent(QShowEvent *event){
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
     reloadTab(isOnMyAddresses);
+
 }
 
 void AddressesWidget::hideEvent(QHideEvent *event){
@@ -279,6 +281,7 @@ void AddressesWidget::hideEvent(QHideEvent *event){
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
     connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
+
 
     if(menu != nullptr){
         menu->hide();
