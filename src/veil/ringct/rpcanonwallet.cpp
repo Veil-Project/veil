@@ -146,9 +146,14 @@ static UniValue rescanringctwallet(const JSONRPCRequest &request)
 
     if (request.fHelp || !request.params.empty())
         throw std::runtime_error(
-                "rescanringctwallet\n"
-                "Rescans all transactions in the ringct wallet (CT and RingCT transactions)"
-                + HelpRequiringPassphrase(wallet.get()));
+                "rescanringctwallet()\n"
+                "Rescans all transactions in the RingCT & CT Wallets."
+                + HelpRequiringPassphrase(wallet.get()) +
+                "\nExamples:\n"
+                + HelpExampleCli("rescanringctwallet", "")
+                + HelpExampleRpc("rescanringctwallet", ""));
+
+
 
     EnsureWalletIsUnlocked(wallet.get());
     auto pAnonWallet = wallet->GetAnonWallet();
