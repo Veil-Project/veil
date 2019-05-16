@@ -59,6 +59,7 @@ private Q_SLOTS:
     void updateWatchOnlyLabels(bool showWatchOnly);
     void handleOutOfSyncWarningClicks();
     void sortTxes(const QString& selectedStr);
+    void filterTxes(int selectedTxType);
     void onFaqClicked();
     virtual void showEvent(QShowEvent *event) override;
 

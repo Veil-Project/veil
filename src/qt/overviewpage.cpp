@@ -24,6 +24,9 @@
 #include <QSettings>
 #include <QDesktopWidget>
 
+#include <QDebug>
+
+
 #define DECORATION_SIZE 54
 #define NUM_ITEMS 3
 
@@ -228,8 +231,124 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
     for (int i = 0 ; i < ui->comboSort->count() ; ++i) {
        ui->comboSort->setItemData(i, Qt::AlignRight, Qt::TextAlignmentRole);
     }
+
+    // Filter
+    ui->comboFilter->setProperty("cssClass" , "btn-text-primary-inactive");
+
+    // Filter Default Option
+    ui->comboFilter->addItem(tr("Filter Type"), TransactionFilterProxy::ALL_TYPES);
+
+
+    ui->comboFilter->addItem(tr("Sent"),
+        TransactionFilterProxy::TYPE(TransactionRecord::SendToAddress) |
+        TransactionFilterProxy::TYPE(TransactionRecord::SendToOther) |
+        TransactionFilterProxy::TYPE(TransactionRecord::SendToSelf) |
+        TransactionFilterProxy::TYPE(TransactionRecord::CTSendToSelf) |
+        TransactionFilterProxy::TYPE(TransactionRecord::CTSendToAddress) |
+        TransactionFilterProxy::TYPE(TransactionRecord::RingCTSendToSelf) |
+        TransactionFilterProxy::TYPE(TransactionRecord::RingCTSendToAddress) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinSpend) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinSpendSelf) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinSpend)
+    );
+
+
+    ui->comboFilter->addItem(tr("Received"),
+        TransactionFilterProxy::TYPE(TransactionRecord::RecvWithAddress) |
+        TransactionFilterProxy::TYPE(TransactionRecord::RecvFromOther) |
+        TransactionFilterProxy::TYPE(TransactionRecord::SendToSelf) |
+        TransactionFilterProxy::TYPE(TransactionRecord::CTSendToSelf) |
+        TransactionFilterProxy::TYPE(TransactionRecord::CTRecvWithAddress) |
+        TransactionFilterProxy::TYPE(TransactionRecord::CTGenerated) |
+        TransactionFilterProxy::TYPE(TransactionRecord::RingCTSendToSelf) |
+        TransactionFilterProxy::TYPE(TransactionRecord::RingCTRecvWithAddress) |
+        TransactionFilterProxy::TYPE(TransactionRecord::RingCTGenerated) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMint) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinSpendRemint) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinRecv) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinStake) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertBasecoinToCT) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertBasecoinToRingCT) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertCtToRingCT) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertCtToBasecoin) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertRingCtToCt) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertRingCtToBasecoin) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertZerocoinToCt) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromCt) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromRingCt)
+    );
+
+    ui->comboFilter->addItem(tr("Mined"),
+        TransactionFilterProxy::TYPE(TransactionRecord::Generated)
+    );
+
+    ui->comboFilter->addItem(tr("Minted"),
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMint) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinSpendRemint) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromCt) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromRingCt)
+    );
+
+    ui->comboFilter->addItem(tr("Stake"),
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinStake)
+    );
+
+    ui->comboFilter->addItem(tr("Basecoin"),
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertBasecoinToCT) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertBasecoinToRingCT) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertCtToBasecoin) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertRingCtToBasecoin)
+    );
+
+
+    ui->comboFilter->addItem(tr("CT"),
+        TransactionFilterProxy::TYPE(TransactionRecord::CTSendToSelf) |
+        TransactionFilterProxy::TYPE(TransactionRecord::CTSendToAddress) |
+        TransactionFilterProxy::TYPE(TransactionRecord::CTRecvWithAddress) |
+        TransactionFilterProxy::TYPE(TransactionRecord::CTGenerated) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertBasecoinToCT) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertCtToRingCT) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertCtToBasecoin) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertZerocoinToCt) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromCt) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertRingCtToCt)
+    );
+
+    ui->comboFilter->addItem(tr("RingCT"),
+        TransactionFilterProxy::TYPE(TransactionRecord::RingCTSendToSelf) |
+        TransactionFilterProxy::TYPE(TransactionRecord::RingCTSendToAddress) |
+        TransactionFilterProxy::TYPE(TransactionRecord::RingCTRecvWithAddress) |
+        TransactionFilterProxy::TYPE(TransactionRecord::RingCTGenerated) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertBasecoinToRingCT) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertCtToRingCT) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertRingCtToCt) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertRingCtToBasecoin) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromRingCt)
+    );
+
+    ui->comboFilter->addItem(tr("Zerocoin"),
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMint) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinSpendRemint) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromCt) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromRingCt) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinSpend) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinSpendSelf) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinRecv) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinStake) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ConvertZerocoinToCt) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromCt) |
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMintFromRingCt)
+    );
+
+    ui->comboFilter->addItem(tr("All"), TransactionFilterProxy::ALL_TYPES);
+
+    for (int i = 0 ; i < ui->comboFilter->count() ; ++i) {
+       ui->comboFilter->setItemData(i, Qt::AlignRight, Qt::TextAlignmentRole);
+    }
+
     // combo selection:
     connect(ui->comboSort,SIGNAL(currentIndexChanged(const QString&)),this,SLOT(sortTxes(const QString&)));
+    connect(ui->comboFilter,SIGNAL(currentIndexChanged(int)),this,SLOT(filterTxes(int)));
 
     this->setContentsMargins(0,0,0,0);
 
@@ -282,6 +401,10 @@ void OverviewPage::sortTxes(const QString& selectedStr){
     }
 }
 
+void OverviewPage::filterTxes(int type){
+    filter->setTypeFilter(ui->comboFilter->itemData(type).toInt());
+}
+
 void OverviewPage::handleOutOfSyncWarningClicks()
 {
     Q_EMIT outOfSyncWarningClicked();
@@ -329,7 +452,16 @@ void OverviewPage::setWalletModel(WalletModel *model)
         filter->setDynamicSortFilter(true);
         filter->setSortRole(Qt::EditRole);
         filter->setShowInactive(false);
+
+
+
         filter->sort(TransactionTableModel::Date, Qt::DescendingOrder);
+
+        // Set default filtering to show all transaction types.
+        // filter->sort(TransactionTableModel::Date, Qt::DescendingOrder);
+
+
+
 
         ui->listTransactions->setModel(filter.get());
         ui->listTransactions->setModelColumn(TransactionTableModel::ToAddress);
