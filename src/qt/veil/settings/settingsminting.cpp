@@ -67,6 +67,7 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
 
     connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(close()));
     connect(ui->btnSendMint,SIGNAL(clicked()),this, SLOT(btnMint()));
+    connect(ui->editAmount, SIGNAL(returnPressed()), this, SLOT(btnMint()));
     connect(ui->radioButton10, SIGNAL(toggled(bool)), this, SLOT(onCheck10Clicked(bool)));
     connect(ui->radioButton100, SIGNAL(toggled(bool)), this, SLOT(onCheck100Clicked(bool)));
     connect(ui->radioButton1000, SIGNAL(toggled(bool)), this, SLOT(onCheck1000Clicked(bool)));

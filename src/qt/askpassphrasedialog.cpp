@@ -100,6 +100,9 @@ AskPassphraseDialog::AskPassphraseDialog(Mode _mode, QWidget *parent) :
     ui->btnSave->setEnabled(false);
     connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(close()));
     connect(ui->btnSave,SIGNAL(clicked()),this, SLOT(accept()));
+    connect(ui->passEdit1, SIGNAL(returnPressed()), this, SLOT(accept()));
+    connect(ui->passEdit2, SIGNAL(returnPressed()), this, SLOT(accept()));
+    connect(ui->passEdit3, SIGNAL(returnPressed()), this, SLOT(accept()));
 }
 
 AskPassphraseDialog::~AskPassphraseDialog()
