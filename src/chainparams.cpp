@@ -198,7 +198,7 @@ public:
 
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = 1548161817;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1556226440;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1576226440;
 
         consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].bit = 3;
         consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = 1556347500;
