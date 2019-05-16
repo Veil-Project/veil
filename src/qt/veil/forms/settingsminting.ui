@@ -853,6 +853,19 @@ font-size:18px;</string>
               </property>
              </widget>
             </item>
+            <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
+                <widget class="QLabel" name="warnLabel">
+                    <property name="styleSheet">
+                        <string notr="true">color:#fd1337;</string>
+                    </property>
+                    <property name="visible">
+                        <bool>false</bool>
+                    </property>
+                    <property name="text">
+                        <string>You need a minimum of %1 basecoin to mint zerocoin.</string>
+                    </property>
+                </widget>
+            </item>
             <item>
              <spacer name="verticalSpacer_8">
               <property name="orientation">
@@ -864,7 +877,7 @@ font-size:18px;</string>
               <property name="sizeHint" stdset="0">
                <size>
                 <width>20</width>
-                <height>30</height>
+                <height>10</height>
                </size>
               </property>
              </spacer>
@@ -947,12 +960,23 @@ background-color:transparent;</string>
                  <enum>Qt::NoFocus</enum>
                 </property>
                 <property name="styleSheet">
-                 <string notr="true">#btnSendMint {
+                    <string notr="true">#btnSendMint:enabled {
 border-radius: 6px;
 color: #105aef;
 font-size: 16px;
 background-color:#FFFFFF;
 border:1px solid #105aef;
+line-height:10px;
+padding:8px 12px 8px 12px ;
+padding-bottom:10px;
+}
+
+#btnSendMint:disabled {
+border-radius: 6px;
+color: #C0C0C0;
+font-size: 16px;
+background-color:#FFFFFF;
+border:1px solid #B0C4DE;
 line-height:10px;
 padding:8px 12px 8px 12px ;
 padding-bottom:10px;
