@@ -300,6 +300,18 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
     return true;
 }
 
+std::vector<std::vector<COutPoint>> GetTxRingCtInputs(const CTransactionRef ptx)
+{
+    std::vector<std::vector<COutPoint> > vTxRingCtInputs;
+    for (const CTxIn& txin : ptx->vin) {
+        if (txin.IsAnonInput()) {
+            std::vector<COutPoint> vInputs = GetRingCtInputs(txin);
+            vTxRingCtInputs.emplace_back(vInputs);
+        }
+    }
+    return vTxRingCtInputs;
+}
+
 std::vector<COutPoint> GetRingCtInputs(const CTxIn& txin)
 {
     std::vector<COutPoint> vInputs;

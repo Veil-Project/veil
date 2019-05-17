@@ -11,6 +11,7 @@
 #include <vector>
 
 class CBlock;
+class COutPoint;
 class CScript;
 class CTransaction;
 struct CMutableTransaction;
@@ -35,6 +36,6 @@ std::string EncodeHexTx(const CTransaction& tx, const int serializeFlags = 0);
 std::string SighashToStr(unsigned char sighash_type);
 void ScriptPubKeyToUniv(const CScript& scriptPubKey, UniValue& out, bool fIncludeHex);
 void ScriptToUniv(const CScript& script, UniValue& out, bool include_address);
-void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, bool include_hex = true, int serialize_flags = 0);
+void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vector<std::vector<COutPoint>>& vTxRingCtInputs, UniValue& entry, bool include_hex = true, int serialize_flags = 0);
 
 #endif // BITCOIN_CORE_IO_H
