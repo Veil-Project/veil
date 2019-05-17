@@ -2995,7 +2995,7 @@ int AnonWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size_
 }
 
 /**Compute whether an anon input's key images belongs to us**/
-bool AnonWallet::IsMyAnonInput(const CTxIn& txin)
+bool AnonWallet::IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint)
 {
     uint32_t nInputs, nRingSize;
     txin.GetAnonInfo(nInputs, nRingSize);
@@ -3030,20 +3030,21 @@ bool AnonWallet::IsMyAnonInput(const CTxIn& txin)
             ofs += nB;
 
             CAnonOutput ao;
-            if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
+            if (!pblocktree->ReadRCTOutput(nIndex, ao))
                 return false;
-            }
 
             CKeyID stealthDest = ao.pubkey.GetID();
             CKey key;
             if (GetKey(stealthDest, key)) {
                 std::vector<uint8_t> vchKeyImage(33);
-                if (0 != secp256k1_get_keyimage(secp256k1_ctx_blind, vchKeyImage.data(), ao.pubkey.begin(), key.begin())) {
+                if (0 != secp256k1_get_keyimage(secp256k1_ctx_blind, vchKeyImage.data(), ao.pubkey.begin(), key.begin()))
                     continue;
-                }
-                CCmpPubKey keyImage(vchKeyImage);
-                if (vchKeyImage == image)
+
+                if (vchKeyImage == image) {
+                    myOutpoint = ao.outpoint;
                     return true;
+                }
+
             }
         }
     }
@@ -4818,25 +4819,20 @@ void AnonWallet::RescanWallet()
                             fUpdated = true;
                         }
                     } else if (it->nType == OUTPUT_RINGCT) {
-                        LogPrintf("%s:%d\n", __func__, __LINE__);
                         auto txout = (CTxOutRingCT*)pout.get();
                         CKeyID idk = txout->pk.GetID();
                         CKey key;
                         if (GetKey(idk, key)) {
-                            LogPrintf("%s:%d\n", __func__, __LINE__);
                             // Keyimage is required for the tx hash
                             CCmpPubKey ki;
                             if (secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), txout->pk.begin(), key.begin()) == 0) {
-                                LogPrintf("%s:%d\n", __func__, __LINE__);
                                 // Double check key image is not used...
                                 uint256 txhashKI;
                                 if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
                                     COutPoint out;
-                                    LogPrintf("%s:%d\n", __func__, __LINE__);
                                     if (wdb.ReadAnonKeyImage(ki, out)) {
                                         MarkOutputSpent(out, true);
-                                        LogPrintf("%s: marking ringct output %s:%d spent\n", __func__, txid.GetHex(),
-                                                  it->n);
+                                        LogPrintf("%s: marking ringct output %s:%d spent\n", __func__, txid.GetHex(), it->n);
                                     }
                                 }
                             }

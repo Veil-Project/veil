@@ -37,6 +37,7 @@
 #include <veil/zerocoin/zwallet.h>
 #include <veil/zerocoin/zchain.h>
 #include <veil/ringct/anonwallet.h>
+#include <veil/ringct/anon.h>
 
 #include <stdint.h>
 
@@ -2530,7 +2531,24 @@ static UniValue gettransaction(const JSONRPCRequest& request)
         obj_vin.pushKV("from_me", fIsMyInput);
         if (txin.IsAnonInput()) {
             obj_vin.pushKV("type", "ringct");
-            obj_vin.pushKV("is_mine_ki", pwalletAnon->IsMyAnonInput(txin));
+            COutPoint myOutpoint;
+            bool isMyInput = pwalletAnon->IsMyAnonInput(txin, myOutpoint);
+            obj_vin.pushKV("is_mine_ki", isMyInput);
+            if (isMyInput) {
+                UniValue obj(UniValue::VOBJ);
+                obj.pushKV("txid", myOutpoint.hash.GetHex());
+                obj.pushKV("vout.n", (uint64_t)myOutpoint.n);
+                obj_vin.pushKV("outpoint_spent", obj);
+            }
+            std::vector<COutPoint> vInputs = GetRingCtInputs(txin);
+            UniValue arrRing(UniValue::VARR);
+            for (auto outpoint : vInputs) {
+                UniValue obj(UniValue::VOBJ);
+                obj.pushKV("txid", outpoint.hash.GetHex());
+                obj.pushKV("vout.n", (uint64_t)outpoint.n);
+                arrRing.push_back(obj);
+            }
+            obj_vin.pushKV("ringct_inputs", arrRing);
         } else if (txin.IsZerocoinSpend()) {
             obj_vin.pushKV("type", "zerocoinspend");
             auto spend = TxInToZerocoinSpend(txin);
