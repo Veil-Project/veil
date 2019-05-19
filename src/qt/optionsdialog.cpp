@@ -92,7 +92,7 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     }
 	   
 	/*  Set the tooltip style here to override the OS style.*/
-    QString tooltipStyle = QString("QToolTip {color: #ffffff; background-color: #6f9bf5; font-size:11pt; border: none; border-radius:20px; padding:6px; margin:0px; min-height: 35px; qproperty-alignment: 'AlignVCenter | AlignCenter';}");
+    QString tooltipStyle = QString("QCheckBox {background:none;} QToolTip {color: #ffffff; background-color: #6f9bf5; font-size:11pt; border: none; border-radius:20px; padding:6px; margin:0px; min-height: 35px; qproperty-alignment: 'AlignVCenter | AlignCenter';}");
     ui->bitcoinAtStartup->setStyleSheet(tooltipStyle);
     ui->prune->setStyleSheet(tooltipStyle);
     ui->openBitcoinConfButton->setStyleSheet(tooltipStyle);
@@ -115,6 +115,8 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     ui->minimizeOnClose->setStyleSheet(tooltipStyle);
     ui->thirdPartyTxUrlsLabel->setStyleSheet(tooltipStyle);
     ui->thirdPartyTxUrls->setStyleSheet(tooltipStyle);
+    ui->hideOrphans->setStyleSheet(tooltipStyle);
+    ui->showComputeTime->setStyleSheet(tooltipStyle);
 
     /* Display elements init */
     QDir translations(":translations");
