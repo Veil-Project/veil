@@ -41,15 +41,17 @@ public:
 
     static int const V3_SMALL_SOK = 3;
     static int const V4_LIMP = 4;
+    static int const V5_LIMP_LITE = 5;
 
     //! \param paramsV1 - if this is a V1 zerocoin, then use params that existed with initial modulus, ignored otherwise
     //! \param paramsV2 - params that begin when V2 zerocoins begin on the VEIL network
     //! \param strm - a serialized CoinSpend
     template <typename Stream>
-    CoinSpend(const ZerocoinParams* params, Stream& strm) :
-        accumulatorPoK(&params->accumulatorParams),
-        smallSoK(params),
-        commitmentPoK(&params->serialNumberSoKCommitmentGroup, &params->accumulatorParams.accumulatorPoKCommitmentGroup)
+    CoinSpend(const ZerocoinParams* _params, Stream& strm) :
+        accumulatorPoK(&_params->accumulatorParams),
+        smallSoK(_params),
+        commitmentPoK(&_params->serialNumberSoKCommitmentGroup, &_params->accumulatorParams.accumulatorPoKCommitmentGroup),
+        params(_params)
     {
         strm >> *this;
     }
@@ -120,7 +122,7 @@ public:
         return hashSig;
     }
 
-    bool Verify(const Accumulator& a, std::string& strError, bool verifySoK = true, bool verifyPubcoin = false) const;
+    bool Verify(const Accumulator& a, std::string& strError, bool verifySoK = true, uint8_t nVersionRequired = V3_SMALL_SOK) const;
     bool HasValidSerial(ZerocoinParams* params) const;
     bool HasValidSignature() const;
     std::string ToString() const;
@@ -142,12 +144,16 @@ public:
         READWRITE(accumulatorPoK);
         READWRITE(smallSoK);
         READWRITE(commitmentPoK);
-        if (version == V4_LIMP) {
+        if (version >= V4_LIMP) {
             READWRITE(pubcoinSig);
+        }
+        if (version >= V5_LIMP_LITE) {
+            READWRITE(bnCoinRandomness);
         }
     }
 
 private:
+    const ZerocoinParams* params;
     const uint256 signatureHash() const;
     CoinDenomination denomination;
     uint256 accChecksum;
@@ -170,6 +176,9 @@ private:
 
     // Version 4 "Limp Mode"
     PubcoinSignature pubcoinSig;
+
+    // Version 5 "Limp Mode Lite"
+    CBigNum bnCoinRandomness;
 };
 
 } /* namespace libzerocoin */

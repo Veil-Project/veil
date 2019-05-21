@@ -54,7 +54,8 @@ namespace libzerocoin
 
     // Now generate the two core ZK proofs:
     // 3. Proves that the committed public coin is in the Accumulator (PoK of "witness")
-    this->accumulatorPoK = AccumulatorProofOfKnowledge(&params->accumulatorParams, fullCommitmentToCoinUnderAccParams, witness, a);
+    if (version < V5_LIMP_LITE)
+        this->accumulatorPoK = AccumulatorProofOfKnowledge(&params->accumulatorParams, fullCommitmentToCoinUnderAccParams, witness, a);
 
     // 4. Proves that the coin is correct w.r.t. serial number and hidden coin secret
     // (This proof is bound to the coin 'metadata', i.e., transaction hash)
@@ -65,12 +66,13 @@ namespace libzerocoin
     if (!coin.sign(hashSig, this->vchSig))
         throw std::runtime_error("Coinspend failed to sign signature hash");
 
-    if (version == V4_LIMP) {
+    if (version >= V4_LIMP)
         pubcoinSig = PubcoinSignature(params, coin.getPublicCoin().getValue(), fullCommitmentToCoinUnderSerialParams);
-    }
+    if (version == V5_LIMP_LITE)
+        bnCoinRandomness = coin.getRandomness();
 }
 
-bool CoinSpend::Verify(const Accumulator& a, std::string& strError, bool verifySoK, bool verifyPubcoin) const
+bool CoinSpend::Verify(const Accumulator& a, std::string& strError, bool verifySoK, uint8_t nVersionRequired) const
 {
     // Double check that the version is the same as marked in the serial
     if (a.getDenomination() != this->denomination) {
@@ -89,22 +91,31 @@ bool CoinSpend::Verify(const Accumulator& a, std::string& strError, bool verifyS
         return false;
     }
 
-    if (verifySoK) {
-        if (!smallSoK.Verify(coinSerialNumber, serialCommitmentToCoinValue, signatureHash())) {
-            strError = "CoinsSpend::Verify: serialNumberSoK failed. sighash:";
-            strError += signatureHash().GetHex();
-            return false;
-        }
-    }
-
-    if (verifyPubcoin) {
-        if (version != V4_LIMP) {
+    if (nVersionRequired >= V4_LIMP) {
+        //Version 4, add information about the pubcoin used.
+        if (version != nVersionRequired) {
             strError = "CoinSpend::Verify version is not V4_LIMP";
             return false;
         }
         std::string err;
         if (!pubcoinSig.Verify(serialCommitmentToCoinValue, err)) {
             strError = std::string("CoinSpend::Verify pubcoin signature is invalid: ") + err;
+            return false;
+        }
+    }
+
+    if (version == V5_LIMP_LITE) {
+        //Version 5, rely on signature from private coin associated with coin serial number instead of Signature of Knowledge
+        Commitment comCheckCoin(&params->coinCommitmentGroup, coinSerialNumber, bnCoinRandomness);
+        if (comCheckCoin.getCommitmentValue() != pubcoinSig.GetPubcoinValue()) {
+            strError = "CoinsSpend::Verify: value from pubcoin sig does not match commitment using coin serial and randomness.";
+            return false;
+        }
+        return pubkey.Verify(signatureHash(), vchSig);
+    } else if (verifySoK) {
+        if (!smallSoK.Verify(coinSerialNumber, serialCommitmentToCoinValue, signatureHash())) {
+            strError = "CoinsSpend::Verify: serialNumberSoK failed. sighash:";
+            strError += signatureHash().GetHex();
             return false;
         }
     }

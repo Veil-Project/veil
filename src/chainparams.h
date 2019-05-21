@@ -121,6 +121,7 @@ public:
     int Zerocoin_RequiredAccumulation() const { return nRequiredAccumulation; }
     int Zerocoin_DefaultSpendSecurity() const { return nDefaultSecurityLevel; }
     int Zerocoin_RequiredStakeDepth() const { return nZerocoinRequiredStakeDepth; }
+    int Zerocoin_HeightV4Active() const { return nZerocoinHeightV4Active; }
 
     /** RingCT and Stealth **/
     int DefaultRingSize() const { return nDefaultRingSize; }
@@ -190,6 +191,7 @@ protected:
     //Time and height enforcements
     int nTimeEnforceWeightReduction;
     int nHeightProtocolBumpEnforcement; // the height a new protobump is enforced
+    int nZerocoinHeightV4Active;
 
     //Settings that are not chain critical, but should not be edited unless the person changing understands the consequence
     int nMaxHeaderRequestWithoutPoW;

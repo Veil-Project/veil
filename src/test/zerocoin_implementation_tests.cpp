@@ -98,6 +98,11 @@ BOOST_AUTO_TEST_CASE(checkzerocoinmint_test)
 
 
     cout << "Running check_zerocoinmint_test...\n";
+
+    SerialNumberSoK_small sok;
+    CDataStream ss(0, 0);
+    ss << sok;
+    cout << "sok empty size: " << ss.size() << std::endl;
 //    CTransaction tx;
 //    //BOOST_CHECK(DecodeHexTx(tx, rawTx1));
 
@@ -246,6 +251,9 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     CoinSpend* pspend = nullptr;
     try {
         pspend = new CoinSpend(Params().Zerocoin_Params(), coin, accumulator, hashChecksum, witness, uint256(), SpendType::SPEND);
+        CDataStream ss(0,0);
+        ss << pspend->getSmallSoK();
+        std::cout << "Full SoK size: " << ss.size() << std::endl;
     } catch (...) {
         BOOST_CHECK_MESSAGE(false, "Coinspend threw runtime error on creation");
     }

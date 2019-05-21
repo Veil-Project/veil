@@ -723,6 +723,11 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     if (fHasBasecoinInputs && fHasZerocoinInputs)
         return state.Invalid(error("%s: tx mixes zerocoin and basecoin inputs", __func__, REJECT_INVALID, "txn-mixed-zerocoin-inputs"));
 
+    ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+    uint8_t nZerocoinVersionRequired = libzerocoin::CoinSpend::V4_LIMP;
+    if (tstate == ThresholdState::ACTIVE)
+        nZerocoinVersionRequired = libzerocoin::CoinSpend::V5_LIMP_LITE;
+
     std::vector<libzerocoin::SerialNumberSoKProof> vProofs;
     {
         CCoinsView dummy;
@@ -762,8 +767,8 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 auto spend = TxInToZerocoinSpend(txin);
                 if (!spend)
                     return false;
-                if (spend->getVersion() < libzerocoin::CoinSpend::V3_SMALL_SOK)
-                    return state.Invalid(false, REJECT_OBSOLETE, "old-version-zerocoinspend");
+                if (spend->getVersion() != nZerocoinVersionRequired)
+                    return state.Invalid(false, REJECT_OBSOLETE, "invalid-version-zerocoinspend");
                 auto bnSerial = spend->getCoinSerialNumber();
                 int nHeight;
                 if (IsSerialInBlockchain(bnSerial, nHeight))
@@ -776,9 +781,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-in-mempool");
                 }
 
-                ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
-                bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
-                if (!ContextualCheckZerocoinSpend(tx, *spend, pindexBestHeader->GetBlockHash(), pindexBestHeader, fZCLimpMode,/*fSkipVerify*/true))
+                if (!ContextualCheckZerocoinSpend(tx, *spend, pindexBestHeader->GetBlockHash(), pindexBestHeader, nZerocoinVersionRequired,/*fSkipVerify*/true))
                     return state.Invalid(false, REJECT_INVALID, "failed-zcspend-context-checks");
 
                 libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
@@ -1122,7 +1125,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         }
 
         // Last we batch verify zerocoin spend proofs
-        if (!vProofs.empty()) {
+        if (!vProofs.empty() && nZerocoinVersionRequired != libzerocoin::CoinSpend::V5_LIMP_LITE) {
             if (!ThreadedBatchVerify(&vProofs)) {
                 return state.DoS(100, error("%s: Failed to verify zerocoinspend proofs for tx %s", __func__,
                                             tx.GetHash().GetHex()), REJECT_INVALID);
@@ -2351,8 +2354,13 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     std::set <CBigNum> setSerialsInBlock;
     std::map<libzerocoin::CoinSpend, uint256> mapSpends;
     std::map<libzerocoin::PublicCoin, uint256> mapMints;
+
+    uint8_t nVersionZerocoinRequired = libzerocoin::CoinSpend::V3_SMALL_SOK;
+    if (pindex->nHeight > Params().Zerocoin_HeightV4Active())
+        nVersionZerocoinRequired = libzerocoin::CoinSpend::V4_LIMP;
     ThresholdState tstate = VersionBitsState(pindex->pprev, Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
-    bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
+    if (tstate == ThresholdState::ACTIVE)
+        nVersionZerocoinRequired = libzerocoin::CoinSpend::V5_LIMP_LITE;
 
     CAmount nBlockValueIn = 0;
     CAmount nBlockValueOut = 0;
@@ -2438,7 +2446,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
                     setSerialsInBlock.emplace(spend->getCoinSerialNumber());
                     mapSpends.emplace(*spend, tx.GetHash());
-                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, fZCLimpMode, /*fSkipVerify*/true))
+                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, nVersionZerocoinRequired, /*fSkipVerify*/true))
                         return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
                                                     tx.GetHash().GetHex()), REJECT_INVALID);
                     libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
@@ -4030,7 +4038,7 @@ bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::Publ
 }
 
 bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock,
-        CBlockIndex* pindex, bool fZCLimpMode, bool fSkipSignatureVerify)
+        CBlockIndex* pindex, uint8_t nVersionRequired, bool fSkipSignatureVerify)
 {
     //Before v3 should not even serialize correctly, but double check here
     if (spend.getVersion() < libzerocoin::CoinSpend::V3_SMALL_SOK)
@@ -4040,8 +4048,8 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
         return error("%s: zerocoin spend does not have a valid signature", __func__);
 
     //Turn on enforcement of de-anonymization of zerocoins
-    if (fZCLimpMode) {
-        if (spend.getVersion() != libzerocoin::CoinSpend::V4_LIMP)
+    if (nVersionRequired >= libzerocoin::CoinSpend::V4_LIMP) {
+        if (spend.getVersion() != nVersionRequired)
             return error("%s zerocoin spend is required to be V4", __func__);
 
         //Get pubcoin and check if it has been accumulated
@@ -4050,8 +4058,8 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
         const CBigNum& bnPubcoin = spend.getPubcoinValue();
         if ((!fVerifying && !fReindex) && !IsPubcoinInBlockchain(GetPubCoinHash(bnPubcoin), nHeightTx, txid, pindex->pprev))
             return error("%s: pubcoinhash %s is not found in the blockchain", __func__, GetPubCoinHash(bnPubcoin).GetHex());
-    } else if (spend.getVersion() == libzerocoin::CoinSpend::V4_LIMP) {
-        return error("%s: zerocoinspend v4 while v4 is not active", __func__);
+    } else if (spend.getVersion() >= libzerocoin::CoinSpend::V4_LIMP) {
+        return error("%s: zerocoinspend version is higher than allowed", __func__);
     }
 
     libzerocoin::SpendType expectedType = libzerocoin::SpendType::SPEND;
@@ -4079,12 +4087,12 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
 
     //Check the signature of the spend
     // Skip signature verification during initial block download
-    if (!fSkipSignatureVerify) {
+    if (!fSkipSignatureVerify && nVersionRequired != libzerocoin::CoinSpend::V5_LIMP_LITE) {
         libzerocoin::Accumulator accumulator(Params().Zerocoin_Params(), spend.getDenomination(), bnAccumulatorValue);
 
         //Check that the coin has been accumulated
         std::string strError;
-        if (!spend.Verify(accumulator, strError, true, fZCLimpMode))
+        if (!spend.Verify(accumulator, strError, true, nVersionRequired))
             return error("CheckZerocoinSpend(): zerocoin spend did not verify");
     }
 
