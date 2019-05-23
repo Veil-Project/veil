@@ -44,11 +44,27 @@ Balance::Balance(QWidget *parent, BitcoinGUI* gui) :
 //    ui->copyAddress->setIcon(ButtonIcon);
 //    ui->copyAddress->setIconSize(QSize(20, 20));
 
+    ui->btnBalance->installEventFilter(this);
+    ui->btnUnconfirmed->installEventFilter(this);
+    ui->btnImmature->installEventFilter(this);
+
     connect(ui->btnBalance, SIGNAL(clicked()), this, SLOT(onBtnBalanceClicked()));
     connect(ui->btnUnconfirmed, SIGNAL(clicked()), this, SLOT(onBtnUnconfirmedClicked()));
     connect(ui->btnImmature, SIGNAL(clicked()), this, SLOT(onBtnImmatureClicked()));
     connect(ui->copyAddress, SIGNAL(clicked()), this, SLOT(on_btnCopyAddress_clicked()));
 
+}
+
+bool Balance::eventFilter(QObject *obj, QEvent *event) {
+    if (obj == ui->btnBalance || obj == ui->btnUnconfirmed || obj == ui->btnImmature) {
+        if (event->type() == QEvent::Leave) {
+            if (tooltip && tooltip->isVisible()) {
+                tooltip->hide();
+                return true;
+            }
+        }
+    }
+    return QWidget::eventFilter(obj, event);;
 }
 
 Balance::~Balance()
