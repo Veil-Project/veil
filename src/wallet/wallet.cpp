@@ -5584,12 +5584,27 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
         return false;
     }
 
+    //Figure out if limp lite is enabled. If this is a PoS tx need to see if the next block will have it enabled too
+    uint8_t nZerocoinVersionRequired = libzerocoin::CoinSpend::V4_LIMP;
+    ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE);
+    if (thresholdState == ThresholdState::LOCKED_IN && spendType == libzerocoin::STAKE) {
+        int nHeightSince = VersionBitsTipStateSinceHeight(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE);
+        if (chainActive.Height()+1 - nHeightSince == Params().BIP9Period())
+            nZerocoinVersionRequired = libzerocoin::CoinSpend::V5_LIMP_LITE;
+    } else if (thresholdState == ThresholdState::ACTIVE) {
+        nZerocoinVersionRequired = libzerocoin::CoinSpend::V5_LIMP_LITE;
+    }
+
     // 3. Compute Accumulator and Witness
     string strFailReason = "";
     AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
-    if (!GenerateAccumulatorWitness(&coinwitness, mapAccumulators, nSecurityLevel, strFailReason, pindexCheckpoint)) {
-        receipt.SetStatus(_("Try to spend with a higher security level to include more coins"), ZFAILED_ACCUMULATOR_INITIALIZATION);
-        return error("%s : %s", __func__, receipt.GetStatusMessage());
+    if (nZerocoinVersionRequired != libzerocoin::CoinSpend::V5_LIMP_LITE) {
+        if (!GenerateAccumulatorWitness(&coinwitness, mapAccumulators, nSecurityLevel, strFailReason,
+                                        pindexCheckpoint)) {
+            receipt.SetStatus(_("Try to spend with a higher security level to include more coins"),
+                              ZFAILED_ACCUMULATOR_INITIALIZATION);
+            return error("%s : %s", __func__, receipt.GetStatusMessage());
+        }
     }
 
     // Construct the CoinSpend object. This acts like a signature on the transaction.
@@ -5613,18 +5628,6 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
         return error("%s: could not find checksum used for spend\n", __func__);
 
     try {
-
-        //Figure out if limp mod is enabled. If this is a PoS tx need to see if the next block will have it enabled too
-        uint8_t nZerocoinVersionRequired = libzerocoin::CoinSpend::V4_LIMP;
-        BIP9Stats statsStruct = VersionBitsTipStatistics(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE);
-        ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE);
-        if (thresholdState == ThresholdState::LOCKED_IN && spendType == libzerocoin::STAKE) {
-            int nHeightSince = VersionBitsTipStateSinceHeight(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE);
-            if (chainActive.Height()+1 - nHeightSince == Params().BIP9Period())
-                nZerocoinVersionRequired = libzerocoin::CoinSpend::V5_LIMP_LITE;
-        } else if (thresholdState == ThresholdState::ACTIVE) {
-            nZerocoinVersionRequired = libzerocoin::CoinSpend::V5_LIMP_LITE;
-        }
 
         libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), privateCoin, accumulator, nChecksum, *coinwitness.pWitness, hashTxOut, spendType, nZerocoinVersionRequired);
 
