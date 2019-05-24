@@ -204,6 +204,10 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = 1556347500;
         consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = 1579805817;
 
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP_LITE].bit = 4;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP_LITE].nStartTime = 1559656603;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP_LITE].nTimeout = 1579805817;
+
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
 
@@ -359,6 +363,10 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].bit = 3;
         consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = 1556321954;
         consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = 1579805817;
+
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP_LITE].bit = 4;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP_LITE].nStartTime = 1559656603;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP_LITE].nTimeout = 1579805817;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");

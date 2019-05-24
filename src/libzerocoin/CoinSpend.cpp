@@ -80,15 +80,18 @@ bool CoinSpend::Verify(const Accumulator& a, std::string& strError, bool verifyS
         return false;
     }
 
-    // Verify both of the sub-proofs using the given meta-data
-    if (!commitmentPoK.Verify(serialCommitmentToCoinValue, accCommitmentToCoinValue)) {
-        strError = "CoinsSpend::Verify: commitmentPoK failed";
-        return false;
-    }
+    //Accumulation will be checked externally if using v5
+    if (nVersionRequired < V5_LIMP_LITE) {
+        // Verify both of the sub-proofs using the given meta-data
+        if (!commitmentPoK.Verify(serialCommitmentToCoinValue, accCommitmentToCoinValue)) {
+            strError = "CoinsSpend::Verify: commitmentPoK failed";
+            return false;
+        }
 
-    if (!accumulatorPoK.Verify(a, accCommitmentToCoinValue)) {
-        strError = "CoinsSpend::Verify: accumulatorPoK failed";
-        return false;
+        if (!accumulatorPoK.Verify(a, accCommitmentToCoinValue)) {
+            strError = "CoinsSpend::Verify: accumulatorPoK failed";
+            return false;
+        }
     }
 
     if (nVersionRequired >= V4_LIMP) {

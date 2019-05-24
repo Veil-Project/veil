@@ -1981,7 +1981,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         bool fNewEnforcement = false;
         if (chainActive.Tip()) {
-            ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+            ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE, versionbitscache);
             fNewEnforcement = tstate == ThresholdState::ACTIVE;
         }
 
@@ -2134,7 +2134,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
     bool fNewEnforcement = false;
     if (chainActive.Tip()) {
-        ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+        ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE, versionbitscache);
         fNewEnforcement = tstate == ThresholdState::ACTIVE;
     }
 

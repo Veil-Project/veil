@@ -5615,23 +5615,21 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
     try {
 
         //Figure out if limp mod is enabled. If this is a PoS tx need to see if the next block will have it enabled too
-        bool fZCLimpMode = false;
-        BIP9Stats statsStruct = VersionBitsTipStatistics(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP);
-        ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP);
+        uint8_t nZerocoinVersionRequired = libzerocoin::CoinSpend::V4_LIMP;
+        BIP9Stats statsStruct = VersionBitsTipStatistics(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE);
+        ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE);
         if (thresholdState == ThresholdState::LOCKED_IN && spendType == libzerocoin::STAKE) {
-            int nHeightSince = VersionBitsTipStateSinceHeight(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP);
+            int nHeightSince = VersionBitsTipStateSinceHeight(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE);
             if (chainActive.Height()+1 - nHeightSince == Params().BIP9Period())
-                fZCLimpMode = true;
+                nZerocoinVersionRequired = libzerocoin::CoinSpend::V5_LIMP_LITE;
         } else if (thresholdState == ThresholdState::ACTIVE) {
-            fZCLimpMode = true;
+            nZerocoinVersionRequired = libzerocoin::CoinSpend::V5_LIMP_LITE;
         }
 
-        uint8_t nVersion = fZCLimpMode ? libzerocoin::CoinSpend::V4_LIMP : libzerocoin::CoinSpend::V3_SMALL_SOK;
-
-        libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), privateCoin, accumulator, nChecksum, *coinwitness.pWitness, hashTxOut, spendType, nVersion);
+        libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), privateCoin, accumulator, nChecksum, *coinwitness.pWitness, hashTxOut, spendType, nZerocoinVersionRequired);
 
         std::string strError;
-        if (!spend.Verify(accumulator, strError, true, fZCLimpMode)) {
+        if (!spend.Verify(accumulator, strError, true, nZerocoinVersionRequired)) {
             receipt.SetStatus(_("The new spend coin transaction did not verify"), ZINVALID_WITNESS);
             return false;
         }

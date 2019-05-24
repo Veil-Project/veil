@@ -723,7 +723,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     if (fHasBasecoinInputs && fHasZerocoinInputs)
         return state.Invalid(error("%s: tx mixes zerocoin and basecoin inputs", __func__, REJECT_INVALID, "txn-mixed-zerocoin-inputs"));
 
-    ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+    ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE, versionbitscache);
     uint8_t nZerocoinVersionRequired = libzerocoin::CoinSpend::V4_LIMP;
     if (tstate == ThresholdState::ACTIVE)
         nZerocoinVersionRequired = libzerocoin::CoinSpend::V5_LIMP_LITE;
@@ -2358,7 +2358,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     uint8_t nVersionZerocoinRequired = libzerocoin::CoinSpend::V3_SMALL_SOK;
     if (pindex->nHeight > Params().Zerocoin_HeightV4Active())
         nVersionZerocoinRequired = libzerocoin::CoinSpend::V4_LIMP;
-    ThresholdState tstate = VersionBitsState(pindex->pprev, Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+    ThresholdState tstate = VersionBitsState(pindex->pprev, Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE, versionbitscache);
     if (tstate == ThresholdState::ACTIVE)
         nVersionZerocoinRequired = libzerocoin::CoinSpend::V5_LIMP_LITE;
 
@@ -4058,6 +4058,19 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
         const CBigNum& bnPubcoin = spend.getPubcoinValue();
         if ((!fVerifying && !fReindex) && !IsPubcoinInBlockchain(GetPubCoinHash(bnPubcoin), nHeightTx, txid, pindex->pprev))
             return error("%s: pubcoinhash %s is not found in the blockchain", __func__, GetPubCoinHash(bnPubcoin).GetHex());
+
+        //Make sure that the linked accumulator is correct
+        if (nVersionRequired == libzerocoin::CoinSpend::V5_LIMP_LITE) {
+            uint256 checksum = spend.getAccumulatorChecksum();
+            int nHeightChecksum = GetChecksumHeight(checksum, spend.getDenomination());
+            if (nHeightChecksum <= nHeightTx)
+                return error("%s: Invalid height of checksum", __func__);
+
+            //Check that the correct denomination is used.
+            const CBlockIndex* pindexChecksum = pindex->GetAncestor(nHeightChecksum);
+            if (pindexChecksum->mapAccumulatorHashes.at(spend.getDenomination()) != checksum)
+                return error("%s: Invalid spend denomination. Accumulator checksum does not match.", __func__);
+        }
     } else if (spend.getVersion() >= libzerocoin::CoinSpend::V4_LIMP) {
         return error("%s: zerocoinspend version is higher than allowed", __func__);
     }
