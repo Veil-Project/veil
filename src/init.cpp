@@ -1957,7 +1957,9 @@ bool AppInitMain()
         auto pt = GetMainWallet();
         if (pprecompute && pt) {
             pprecompute->SetBlocksPerCycle(gArgs.GetArg("-precomputeblockpercycle", DEFAULT_PRECOMPUTE_BPC));
-            if (gArgs.GetBoolArg("-precompute", false)) {
+
+            ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP_LITE, versionbitscache);
+            if (tstate != ThresholdState::ACTIVE && gArgs.GetBoolArg("-precompute", false)) {
                 // Start precomputing zerocoin proofs
                 std::string strStatus;
                 if (!pt->StartPrecomputing(strStatus))
