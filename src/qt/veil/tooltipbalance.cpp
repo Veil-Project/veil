@@ -61,8 +61,6 @@ void TooltipBalance::showEvent(QShowEvent *event){
     a->setEndValue(1);
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
-
-    QTimer::singleShot(5000, this, SLOT(hide()));
 }
 
 void TooltipBalance::hideEvent(QHideEvent *event){

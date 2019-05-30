@@ -171,7 +171,7 @@ bool CTxMemPool::CalculateMemPoolAncestors(const CTxMemPoolEntry &entry, setEntr
         // GetMemPoolParents() is only valid for entries in the mempool, so we
         // iterate mapTx to find parents.
         for (unsigned int i = 0; i < tx.vin.size(); i++) {
-            if (tx.vin[i].IsAnonInput() || tx.vin[i].scriptSig.IsZerocoinSpend()) {
+            if (tx.vin[i].IsAnonInput() || tx.vin[i].IsZerocoinSpend()) {
                 continue;
             }
 
@@ -420,7 +420,7 @@ void CTxMemPool::addUnchecked(const uint256& hash, const CTxMemPoolEntry &entry,
     const CTransaction& tx = newit->GetTx();
     std::set<uint256> setParentTransactions;
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
-        if (tx.vin[i].IsAnonInput() || tx.vin[i].scriptSig.IsZerocoinSpend())
+        if (tx.vin[i].IsAnonInput() || tx.vin[i].IsZerocoinSpend())
             continue;
 
         mapNextTx.insert(std::make_pair(&tx.vin[i].prevout, &tx));
@@ -777,7 +777,7 @@ void CTxMemPool::check(const CCoinsViewCache *pcoins) const
         int64_t parentSizes = 0;
         int64_t parentSigOpCost = 0;
         for (const CTxIn &txin : tx.vin) {
-            if (txin.IsAnonInput() || txin.scriptSig.IsZerocoinSpend())
+            if (txin.IsAnonInput() || txin.IsZerocoinSpend())
                 continue;
 
             // Check that every mempool transaction's inputs refer to available coins, or other mempool tx's.

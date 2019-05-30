@@ -20,9 +20,9 @@ private:
     std::string budgetAddress;
     std::string founderAddress;
     std::string labAddress;
-    static bool IsSuperBlock(int nBlockHeight);
 
 public:
+    static bool IsSuperBlock(int nBlockHeight);
     static BudgetParams* Get();
 
     static void GetBlockRewards(int nBlockHeight,

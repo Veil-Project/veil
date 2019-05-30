@@ -87,7 +87,7 @@ bool ThreadedBatchVerify(const std::vector<libzerocoin::SerialNumberSoKProof>* p
 
     std::vector<std::vector<const libzerocoin::SerialNumberSoKProof*>> vProofGroups(1);
     int nThreadsUsed = 1;
-    if (pvProofs->size() > nThreadEfficiency)
+    if ((int)pvProofs->size() > nThreadEfficiency)
         nThreadsUsed = pvProofs->size() / nThreadEfficiency;
     if (nThreadsUsed > nMaxThreads)
         nThreadsUsed = nMaxThreads;
@@ -349,7 +349,7 @@ std::string ReindexZerocoinDB()
                     //Record Serials
                     if (tx->IsZerocoinSpend()) {
                         for (auto& in : tx->vin) {
-                            if (!in.scriptSig.IsZerocoinSpend())
+                            if (!in.IsZerocoinSpend())
                                 continue;
 
                             auto spend = TxInToZerocoinSpend(in);
@@ -473,7 +473,7 @@ std::list<libzerocoin::CoinDenomination> ZerocoinSpendListFromBlock(const CBlock
             continue;
 
         for (const CTxIn& txin : tx->vin) {
-            if (!txin.scriptSig.IsZerocoinSpend())
+            if (!txin.IsZerocoinSpend())
                 continue;
 
             libzerocoin::CoinDenomination c = libzerocoin::IntToZerocoinDenomination(txin.nSequence&CTxIn::SEQUENCE_LOCKTIME_MASK);

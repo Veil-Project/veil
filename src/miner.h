@@ -200,4 +200,5 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
 void ThreadStakeMiner();
 void LinkPoWThreadGroup(void* pthreadgroup);
 
+
 #endif // BITCOIN_MINER_H

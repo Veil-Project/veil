@@ -139,7 +139,7 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason)
     for (unsigned int i = 0; i < tx.vin.size(); i++)
     {
         const CTxIn& txin = tx.vin[i];
-        if (txin.scriptSig.IsZerocoinSpend()) {
+        if (txin.IsZerocoinSpend()) {
             if (!fZerocoinSpend && i > 0) {
                 reason = "malformed-zerocoinspend";
                 return false;
@@ -222,7 +222,7 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
 
     for (unsigned int i = 0; i < tx.vin.size(); i++)
     {
-        if (tx.vin[i].scriptSig.IsZerocoinSpend() || tx.vin[i].IsAnonInput())
+        if (tx.vin[i].IsZerocoinSpend() || tx.vin[i].IsAnonInput())
             continue;
 
         const CTxOut& prev = mapInputs.AccessCoin(tx.vin[i].prevout).out;

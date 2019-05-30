@@ -157,8 +157,11 @@ public:
     bool GetStealthAddressScanKey(CStealthAddress &sxAddr) const;
     bool GetStealthAddressSpendKey(CStealthAddress &sxAddr, CKey &key) const;
     bool GetAddressMeta(const CStealthAddress& address, CKeyID& idAccount, std::string& strPath) const;
+    int GetLastUsedAddressIndex(const CKeyID& idAccount) const;
+    void ForgetUnusedStealthAddresses(int nBuffer);
 
     bool ImportStealthAddress(const CStealthAddress &sxAddr, const CKey &skSpend);
+    bool RestoreAddresses(int nCount);
 
     std::map<CTxDestination, CAmount> GetAddressBalances() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
@@ -265,6 +268,8 @@ public:
     bool RegenerateKey(const CKeyID& idKey, CKey& key) const;
     bool RegenerateExtKey(const CKeyID& idKey, CExtKey& extkey) const;
     bool RegenerateAccountExtKey(const CKeyID& idAccount, CExtKey& keyAccount) const;
+    bool RegenerateKeyFromIndex(const CKeyID& idAccount, int nIndex, CExtKey& keyDerive) const;
+    bool MakeSigningKeystore(CBasicKeyStore& keystore, const CScript& scriptPubKey);
 
     bool NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefixBits, const char *pPrefix);
 
@@ -296,7 +301,7 @@ public:
 
     int InsertTempTxn(const uint256 &txid, const CTransactionRecord *rtx) const;
 
-    bool GetCTBlindsFromOutput(const CTxOutCT *pout, uint256& blind) const;
+    bool GetCTBlindsFromOutput(const CTxOutBase *pout, uint256& blind) const;
     bool GetCTBlinds(CScript scriptPubKey, std::vector<uint8_t>& vData, secp256k1_pedersen_commitment* commitment, std::vector<uint8_t>& vRangeproof, uint256 &blind, int64_t& nValue) const;
     bool OwnBlindOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxOutCT *pout, COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated);
     int OwnAnonOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxOutRingCT *pout, COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated);

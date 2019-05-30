@@ -25,7 +25,9 @@
 #include <utilmoneystr.h>
 #include <validationinterface.h>
 #include <key_io.h>
+#ifdef ENABLE_WALLET
 #include <wallet/wallet.h>
+#endif
 #include <shutdown.h>
 
 #include <veil/budget.h>
@@ -38,11 +40,12 @@
 #include <boost/thread.hpp>
 #include "veil/zerocoin/accumulators.h"
 
+std::map<uint256, int64_t>mapComputeTimeTransactions;
+
 // Unconfirmed transactions in the memory pool often depend on other
 // transactions in the memory pool. When we select transactions from the
 // pool, we select by highest fee rate of a transaction combined with all
 // its ancestors.
-
 uint64_t nLastBlockTx = 0;
 uint64_t nLastBlockWeight = 0;
 
@@ -108,17 +111,25 @@ void BlockAssembler::resetBlock()
 std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, bool fProofOfStake, bool fProofOfFullNode)
 {
     int64_t nTimeStart = GetTimeMicros();
+    int64_t nComputeTimeStart = GetTimeMillis();
 
     resetBlock();
-
+#ifdef ENABLE_WALLET
     //Need wallet if this is for proof of stake,
     std::shared_ptr<CWallet> pwalletMain = nullptr;
+#endif
     if (fProofOfStake) {
-        pwalletMain = GetMainWallet();
+#ifdef ENABLE_WALLET
+        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+            pwalletMain = GetMainWallet();
+        }
         if (!pwalletMain) {
+#endif
             error("Failing to get the Main Wallet for CreateNewBlock with Proof of Stake\n");
             return nullptr;
+#ifdef ENABLE_WALLET
         }
+#endif
     }
 
     pblocktemplate.reset(new CBlockTemplate());
@@ -145,11 +156,15 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus(), true);
 
         uint32_t nTxNewTime = 0;
-        if (pwalletMain->CreateCoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime)) {
+#ifdef ENABLE_WALLET
+        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) && pwalletMain->CreateCoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime, nComputeTimeStart)) {
             pblock->nTime = nTxNewTime;
         } else {
+#endif
             return nullptr;
+#ifdef ENABLE_WALLET
         }
+#endif
     }
 
     LOCK(cs_main);
@@ -293,6 +308,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             continue;
         }
 
+        //Make sure tx's that overwrite other tx's do not get in (BIP30)
+        for (size_t o = 0; o < pblock->vtx[i]->GetNumVOuts(); o++) {
+            if (viewCheck.HaveCoin(COutPoint(pblock->vtx[i]->GetHash(), o))) {
+                continue;
+            }
+        }
+
         vtxReplace.emplace_back(pblock->vtx[i]);
     }
     pblock->vtx = vtxReplace;
@@ -425,10 +447,14 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         auto bnSerial = spend->getCoinSerialNumber();
 
         CKey key;
-        if (!pwalletMain->GetZerocoinKey(bnSerial, key)) {
+#ifdef ENABLE_WALLET
+        if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) || !pwalletMain->GetZerocoinKey(bnSerial, key)) {
+#endif
             LogPrint(BCLog::BLOCKCREATION, "%s: Failed to get zerocoin key from wallet!\n", __func__);
             return nullptr;
+#ifdef ENABLE_WALLET
         }
+#endif
 
         if (!key.Sign(pblock->GetHash(), pblock->vchBlockSig)) {
             LogPrint(BCLog::BLOCKCREATION, "%s: Failed to sign block hash\n", __func__);
@@ -444,8 +470,14 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
 
     int64_t nTime2 = GetTimeMicros();
+    int64_t nComputeTimeFinish = GetTimeMillis();
 
     LogPrint(BCLog::BENCH, "CreateNewBlock() packages: %.2fms (%d packages, %d updated descendants), validity: %.2fms (total %.2fms)\n", 0.001 * (nTime1 - nTimeStart), nPackagesSelected, nDescendantsUpdated, 0.001 * (nTime2 - nTime1), 0.001 * (nTime2 - nTimeStart));
+
+    if (fProofOfStake) {
+        mapComputeTimeTransactions.clear();
+        mapComputeTimeTransactions[pblock->vtx[1]->GetHash()] = nComputeTimeFinish - nComputeTimeStart; //store the compute time of this transaction
+    }
 
     return std::move(pblocktemplate);
 }
@@ -737,33 +769,35 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
     unsigned int nExtraNonce = 0;
     static const int nInnerLoopCount = 0x010000;
     static int nStakeHashesLast = 0;
+    bool enablewallet = false;
+#ifdef ENABLE_WALLET
+    enablewallet = !gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET);
+#endif
 
-    while (fGenerateBitcoins || fProofOfStake)
+    while (fGenerateBitcoins || (fProofOfStake && enablewallet))
     {
         boost::this_thread::interruption_point();
-        if (fProofOfStake) {
+#ifdef ENABLE_WALLET
+        if (enablewallet && fProofOfStake) {
             //Need wallet if this is for proof of stake
             auto pwallet = GetMainWallet();
 
             int nHeight;
             int64_t nTimeLastBlock = 0;
-            int64_t nTimeBestHeader = 0;
             uint256 hashBestBlock;
             {
                 LOCK(cs_main);
                 nHeight = chainActive.Height();
                 nTimeLastBlock = chainActive.Tip()->GetBlockTime();
                 hashBestBlock = chainActive.Tip()->GetBlockHash();
-                if (pindexBestHeader)
-                    nTimeBestHeader = pindexBestHeader->GetBlockTime();
             }
 
-            if (!gArgs.GetBoolArg("-genoverride", false) && nTimeBestHeader - nTimeLastBlock > 60*60 || IsInitialBlockDownload()) {
+            if (!gArgs.GetBoolArg("-genoverride", false) && (GetAdjustedTime() - nTimeLastBlock > 60*60 || IsInitialBlockDownload() || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || nHeight < Params().HeightPoSStart())) {
                 MilliSleep(5000);
                 continue;
             }
 
-            if (!pwallet || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || !pwallet->IsStakingEnabled() || nHeight < Params().HeightPoSStart()) {
+            if (!pwallet || !pwallet->IsStakingEnabled() || (pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly())) {
                 MilliSleep(5000);
                 continue;
             }
@@ -776,7 +810,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             }
 
             bool fNextIter = false;
-            while ((pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) || !fMintableCoins || GetAdjustedTime() < nTimeLastBlock - MAX_PAST_BLOCK_TIME) {
+            while (!fMintableCoins || GetAdjustedTime() < nTimeLastBlock - MAX_PAST_BLOCK_TIME) {
                 // Do a separate 1 minute check here to ensure fMintableCoins is updated
                 if (!fMintableCoins) {
                     if (GetTime() - nMintableLastCheck > 1 * 60) // 1 minute check time
@@ -808,6 +842,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 }
             }
         }
+#endif
 
         if (fGenerateBitcoins && !fProofOfStake) { // If the miner was turned on and we are in IsInitialBlockDownload(), sleep 60 seconds, before trying again
             if (IsInitialBlockDownload() && !gArgs.GetBoolArg("-genoverride", false)) {

@@ -167,6 +167,11 @@ inline uint256 uint256S(const std::string& str)
     return rv;
 }
 
+inline uint256 MaxUint256()
+{
+    return uint256S("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+}
+
 template<unsigned int BITS>
 inline base_blob<BITS> uintS(const char *str)
 {

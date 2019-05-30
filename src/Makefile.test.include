@@ -94,8 +94,10 @@ BITCOIN_TESTS =\
   test/versionbits_tests.cpp \
   test/monthly_rewards_tests.cpp \
   test/libzerocoin_tests.cpp \
+  test/zerocoin_bignum_tests.cpp \
   test/zerocoin_denomination_tests.cpp \
   test/zerocoin_implementation_tests.cpp \
+  test/zerocoin_pubcoinsig_tests.cpp \
   test/zerocoin_transactions_tests.cpp \
   test/zerocoin_zkp_tests.cpp
 

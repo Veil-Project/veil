@@ -29,6 +29,7 @@ private Q_SLOTS:
     void onCheck100000Clicked(bool res);
     void mintAmountChange(const QString &amount);
     void btnMint();
+    void onCheckFullMintClicked(bool res);
 private:
     Ui::SettingsMinting *ui;
     WalletModel *walletModel;

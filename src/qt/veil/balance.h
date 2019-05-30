@@ -29,6 +29,7 @@ public:
     void setClientModel(ClientModel *clientModel);
     void setWalletModel(WalletModel *walletModel);
     void refreshWalletStatus();
+    bool eventFilter(QObject *obj, QEvent *event);
 
 public Q_SLOTS:
     void setBalance(const interfaces::WalletBalances& balances);

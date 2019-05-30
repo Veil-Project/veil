@@ -18,6 +18,7 @@
 #include <wallet/walletutil.h>
 #include <veil/ringct/anonwallet.h>
 #include <veil/zerocoin/zwallet.h>
+#include <veil/zerocoin/precompute.h>
 
 void WalletInit::AddWalletOptions() const
 {
@@ -36,6 +37,9 @@ void WalletInit::AddWalletOptions() const
     gArgs.AddArg("-keypool=<n>", strprintf("Set key pool size to <n> (default: %u)", DEFAULT_KEYPOOL_SIZE), false, OptionsCategory::WALLET);
     gArgs.AddArg("-mintxfee=<amt>", strprintf("Fees (in %s/kB) smaller than this are considered zero fee for transaction creation (default: %s)",
                                                             CURRENCY_UNIT, FormatMoney(DEFAULT_TRANSACTION_MINFEE)), false, OptionsCategory::WALLET);
+    // default denom
+    gArgs.AddArg("-nautomintdenom=<n>", strprintf("Set preferred automint denomination (default: %d)", DEFAULT_AUTOMINT_DENOM), false, OptionsCategory::WALLET);
+
     gArgs.AddArg("-paytxfee=<amt>", strprintf("Fee (in %s/kB) to add to transactions you send (default: %s)",
                                                             CURRENCY_UNIT, FormatMoney(CFeeRate{DEFAULT_PAY_TX_FEE}.GetFeePerK())), false, OptionsCategory::WALLET);
     gArgs.AddArg("-rescan", "Rescan the block chain for missing wallet transactions on startup", false, OptionsCategory::WALLET);
@@ -60,6 +64,10 @@ void WalletInit::AddWalletOptions() const
 
     gArgs.AddArg("-gen=<n>", strprintf("Enable CPU mining to true on the given number of threads (default: %u)", 0), false, OptionsCategory::WALLET);
     gArgs.AddArg("-genoverride", strprintf("Allows you to override the IsInitialBlockDownload check in BitcoinMiner for PoW mining (default: %u)", false), false, OptionsCategory::HIDDEN);
+
+    gArgs.AddArg("-precompute=<n>", strprintf("Enable the wallet to start solving zerocoin spend proofs inorder to make staking and spending zerocoin faster (default: %u)", false), false, OptionsCategory::WALLET);
+    gArgs.AddArg("-precomputeblockpercycle=<n>", strprintf("Set the number of included blocks to precompute per cycle. (minimum: %d) (maximum: %d) (default: %d)", MIN_PRECOMPUTE_BPC, DEFAULT_PRECOMPUTE_BPC, MIN_PRECOMPUTE_BPC), false, OptionsCategory::WALLET);
+
 }
 
 bool WalletInit::ParameterInteraction() const
@@ -68,6 +76,8 @@ bool WalletInit::ParameterInteraction() const
         for (const std::string& wallet : gArgs.GetArgs("-wallet")) {
             LogPrintf("%s: parameter interaction: -disablewallet -> ignoring -wallet=%s\n", __func__, wallet);
         }
+        if (gArgs.SoftSetBoolArg("-staking", false))
+            LogPrintf("%s: parameter interaction: -disablewallet -> disabeling staking\n", __func__);
 
         return true;
     }
@@ -221,6 +231,11 @@ bool WalletInit::Open() const
 
 void WalletInit::Start(CScheduler& scheduler) const
 {
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        LogPrintf("Wallet disabled!\n");
+        return;
+    }
+
     for (const std::shared_ptr<CWallet>& pwallet : GetWallets()) {
         pwallet->postInitProcess();
     }
@@ -231,6 +246,11 @@ void WalletInit::Start(CScheduler& scheduler) const
 
 void WalletInit::Flush() const
 {
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        LogPrintf("Wallet disabled!\n");
+        return;
+    }
+
     for (const std::shared_ptr<CWallet>& pwallet : GetWallets()) {
         pwallet->Flush(false);
     }
@@ -238,6 +258,11 @@ void WalletInit::Flush() const
 
 void WalletInit::Stop() const
 {
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        LogPrintf("Wallet disabled!\n");
+        return;
+    }
+
     for (const std::shared_ptr<CWallet>& pwallet : GetWallets()) {
         pwallet->Flush(true);
     }
@@ -245,6 +270,11 @@ void WalletInit::Stop() const
 
 void WalletInit::Close() const
 {
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        LogPrintf("Wallet disabled!\n");
+        return;
+    }
+
     for (const std::shared_ptr<CWallet>& pwallet : GetWallets()) {
         RemoveWallet(pwallet);
     }

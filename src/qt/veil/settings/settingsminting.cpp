@@ -42,6 +42,17 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
     ui->labelConvertableBasecoin->setText(BitcoinUnits::formatWithUnit(unit,balances.basecoin_balance, false, BitcoinUnits::separatorAlways));
     ui->labelConvertibleRingCt->setText(BitcoinUnits::formatWithUnit(unit,balances.ring_ct_balance, false, BitcoinUnits::separatorAlways));
 
+    CAmount nMinDenom = libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN);
+
+    if (balances.basecoin_balance < nMinDenom) {
+        ui->warnLabel->setText(ui->warnLabel->text().arg(libzerocoin::CoinDenomination::ZQ_TEN + 0.1));
+        ui->warnLabel->setVisible(true);
+        ui->btnSendMint->setEnabled(false);
+    } else {
+        ui->warnLabel->setVisible(false);
+        ui->btnSendMint->setEnabled(true);
+    }
+
     switch (nPreferredDenom){
         case 10:
             ui->radioButton10->setChecked(true);
@@ -54,6 +65,9 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
             break;
         case 10000:
             ui->radioButton100000->setChecked(true);
+            break;
+        case -1:
+            ui->checkAutomintInstant->setChecked(true);
             break;
     }
 
@@ -69,6 +83,8 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
     connect(ui->radioButton1000, SIGNAL(toggled(bool)), this, SLOT(onCheck1000Clicked(bool)));
     connect(ui->radioButton100000, SIGNAL(toggled(bool)), this, SLOT(onCheck100000Clicked(bool)));
     connect(ui->editAmount, SIGNAL(textChanged(const QString &)), this, SLOT(mintAmountChange(const QString &)));
+
+    connect(ui->checkAutomintInstant, SIGNAL(toggled(bool)), this, SLOT(onCheckFullMintClicked(bool)));
 
 }
 
@@ -108,8 +124,15 @@ void SettingsMinting::btnMint(){
     mintzerocoins();
 }
 
-void SettingsMinting::mintzerocoins(){
+void SettingsMinting::mintzerocoins()
+{
     // check if wallet is unlocked..
+    interfaces::Wallet& wallet = walletModel->wallet();
+    if (wallet.isLocked() || wallet.isUnlockedForStakingOnly()) {
+        openToastDialog("Wallet Is Locked.", this);
+        return;
+    }
+
     bool isAmountValid = false;
     std::string strError;
     CAmount nAmount = parseAmount(ui->editAmount->text(), isAmountValid, strError);
@@ -122,8 +145,6 @@ void SettingsMinting::mintzerocoins(){
     }
 
     bool fUseBasecoin = ui->useBasecoin->isChecked();
-
-    interfaces::Wallet& wallet = walletModel->wallet();
     std::vector<CDeterministicMint> vDMints;
     std::vector<COutPoint> vOutpts;
     OutputTypes inputtype = OUTPUT_NULL;
@@ -176,6 +197,13 @@ void SettingsMinting::onCheck1000Clicked(bool res){
 void SettingsMinting::onCheck100000Clicked(bool res){
     if(res && nPreferredDenom != 10000){
         nPreferredDenom = 10000;
+        saveSettings(nPreferredDenom);
+    }
+}
+
+void SettingsMinting::onCheckFullMintClicked(bool res){
+    if(res && nPreferredDenom != -1){
+        nPreferredDenom = -1;
         saveSettings(nPreferredDenom);
     }
 }

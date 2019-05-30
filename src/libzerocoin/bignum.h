@@ -118,7 +118,7 @@ public:
     * @param range The upper bound on the number.
     * @return
     */
-    static CBigNum  randBignum(const CBigNum& range) {
+    static CBigNum randBignum(const CBigNum& range) {
         CBigNum ret;
         if(!BN_rand_range(ret.bn, range.bn)){
             throw bignum_error("CBigNum:rand element : BN_rand_range failed");
@@ -130,7 +130,7 @@ public:
     * @param k The bit length of the number.
     * @return
     */
-    static CBigNum RandKBitBigum(const uint32_t k){
+    static CBigNum randKBitBignum(const uint32_t k){
         CBigNum ret;
         if(!BN_rand(ret.bn, k, -1, 0)){
             throw bignum_error("CBigNum:rand element : BN_rand failed");
@@ -281,6 +281,9 @@ public:
         unsigned int nSize = BN_bn2mpi(bn, NULL);
         if (nSize < 4)
             return 0;
+        if (bitSize() > 256) {
+            return MaxUint256();
+        }
         std::vector<unsigned char> vch(nSize);
         BN_bn2mpi(bn, &vch[0]);
         if (vch.size() > 4)
@@ -775,12 +778,18 @@ public:
         setvch(vch);
     }
 
+    /** PRNGs use OpenSSL for consistency with seed initialization **/
+
     /** Generates a cryptographically secure random number between zero and range exclusive
     * i.e. 0 < returned number < range
+    * (returns 0 if range = 0 or 1)
     * @param range The upper bound on the number.
     * @return
     */
     static CBigNum randBignum(const CBigNum& range) {
+        if (range < 2)
+            return 0;
+
         size_t size = (mpz_sizeinbase (range.bn, 2) + CHAR_BIT-1) / CHAR_BIT;
         std::vector<unsigned char> buf(size);
 
@@ -790,14 +799,14 @@ public:
         CBigNum ret(buf);
         if (ret < 0)
             mpz_neg(ret.bn, ret.bn);
-        return ret;
+        return 1 + (ret % (range-1));
     }
 
     /** Generates a cryptographically secure random k-bit number
     * @param k The bit length of the number.
     * @return
     */
-    static CBigNum RandKBitBigum(const uint32_t k){
+    static CBigNum randKBitBignum(const uint32_t k){
         std::vector<unsigned char> buf((k+7)/8);
 
         RandAddSeed();
@@ -806,7 +815,7 @@ public:
         CBigNum ret(buf);
         if (ret < 0)
             mpz_neg(ret.bn, ret.bn);
-        return ret;
+        return ret % (CBigNum(1) << k);
     }
 
     /**Returns the size in bits of the underlying bignum.
@@ -855,6 +864,10 @@ public:
     uint256 getuint256() const
     {
         uint256 n = uint256();
+        if (bitSize() > 256) {
+            return MaxUint256();
+        }
+
         mpz_export((unsigned char*)&n, NULL, -1, 1, 0, 0, bn);
         return n;
     }
@@ -1026,7 +1039,7 @@ public:
      * @return the prime
      */
     static CBigNum generatePrime(const unsigned int numBits, bool safe = false) {
-        CBigNum rand = RandKBitBigum(numBits);
+        CBigNum rand = randKBitBignum(numBits);
         CBigNum prime;
         mpz_nextprime(prime.bn, rand.bn);
         return prime;

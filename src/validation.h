@@ -43,7 +43,10 @@ class CScriptCheck;
 class CBlockPolicyEstimator;
 class CTxMemPool;
 class CValidationState;
+class CPrecomputeDB;
+class Precompute;
 struct ChainTxData;
+
 
 struct PrecomputedTransactionData;
 struct LockPoints;
@@ -160,6 +163,8 @@ extern CConditionVariable g_best_block_cv;
 extern uint256 g_best_block;
 extern std::atomic_bool fImporting;
 extern std::atomic_bool fReindex;
+extern std::atomic_bool fReindexChainState;
+extern std::atomic_bool fVerifying;
 extern bool fSkipRangeproof;
 extern bool fBusyImporting;
 extern int nScriptCheckThreads;
@@ -217,6 +222,9 @@ static const unsigned int DEFAULT_CHECKLEVEL = 4;
 // one 128MB block file + added 15% undo data = 147MB greater for a total of 545MB
 // Setting the target to > than 550MB will make it likely we can respect the target.
 static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
+
+/** Veil zerocoin precomputing variables */
+extern bool fClearSpendCache;
 
 /**
  * Process an incoming block. This only returns after the best known valid
@@ -371,7 +379,7 @@ bool TestLockPointValidity(const LockPoints* lp);
  */
 bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp = nullptr, bool useExistingLockPoints = false);
 
-bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock, CBlockIndex* pindex, bool fSkipSignatureVerify = false);
+bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock, CBlockIndex* pindex, bool fZCLimpMode, bool fSkipSignatureVerify = false);
 bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::PublicCoin& coin, CBlockIndex* pindex);
 
 /**
@@ -495,6 +503,11 @@ extern std::unique_ptr<CBlockTreeDB> pblocktree;
 
 /** Global variable that points to the active zerocoin database (protected by cs_main) */
 extern std::unique_ptr<CZerocoinDB> pzerocoinDB;
+
+/** Global variable that points to the active percompute database (protected by cs_main) */
+extern std::unique_ptr<CPrecomputeDB> pprecomputeDB;
+
+extern std::unique_ptr<Precompute> pprecompute;
 
 /**
  * Return the spend height, which is one more than the inputs.GetBestBlock().

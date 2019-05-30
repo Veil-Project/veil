@@ -262,6 +262,8 @@ public:
             result.pushKV("balance", batch[ID_WALLETINFO]["result"]["balance"]);
         }
         result.pushKV("blocks", batch[ID_BLOCKCHAININFO]["result"]["blocks"]);
+        result.pushKV("moneysupply", batch[ID_BLOCKCHAININFO]["result"]["moneysupply"]);
+        result.pushKV("zerocoinsupply", batch[ID_BLOCKCHAININFO]["result"]["zerocoinsupply"]);
         result.pushKV("timeoffset", batch[ID_NETWORKINFO]["result"]["timeoffset"]);
         result.pushKV("connections", batch[ID_NETWORKINFO]["result"]["connections"]);
         result.pushKV("proxy", batch[ID_NETWORKINFO]["result"]["networks"][0]["proxy"]);

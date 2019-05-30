@@ -111,31 +111,31 @@ public:
     static const int RecommendedNumConfirmations = 6;
 
     TransactionRecord():
-            hash(), time(0), type(Other), address(""), debit(0), credit(0), idx(0)
+            hash(), time(0), size(0), type(Other), address(""), debit(0), credit(0), idx(0)
     {
     }
 
-    TransactionRecord(uint256 _hash, qint64 _time):
-            hash(_hash), time(_time), type(Other), address(""), debit(0),
+    TransactionRecord(uint256 _hash, qint64 _time, int _size):
+            hash(_hash), time(_time), size(_size), type(Other), address(""), debit(0),
             credit(0), idx(0)
     {
     }
 
-    TransactionRecord(uint256 _hash, qint64 _time,
+    TransactionRecord(uint256 _hash, qint64 _time, int _size,
                 Type _type, const std::string &_address,
                 const CAmount& _debit, const CAmount& _credit):
-            hash(_hash), time(_time), type(_type), address(_address), debit(_debit), credit(_credit),
+            hash(_hash), time(_time), size (_size), type(_type), address(_address), debit(_debit), credit(_credit),
             idx(0)
     {
     }
 
-    TransactionRecord(uint256 _hash, qint64 _time,
+    TransactionRecord(uint256 _hash, qint64 _time, int _size,
                       Type _type, const std::string &_address,
                       const CAmount& _debit, const CAmount& _credit,
-                        const CAmount& _fee, int _outputsSize, int _inputsSize, int _confirmations):
+                        const CAmount& _fee, int _outputsSize, int _inputsSize, int _confirmations, int _computetime):
 
-            hash(_hash), time(_time), type(_type), address(_address), debit(_debit), credit(_credit),
-            idx(0), fee(_fee), outputsSize(_outputsSize), inputsSize(_inputsSize), confirmations(_confirmations)
+            hash(_hash), time(_time), size(_size), type(_type), address(_address), debit(_debit), credit(_credit),
+            idx(0), fee(_fee), outputsSize(_outputsSize), inputsSize(_inputsSize), confirmations(_confirmations), computetime(_computetime)
     {
     }
 
@@ -148,6 +148,7 @@ public:
       @{*/
     uint256 hash;
     qint64 time;
+    int size;
     Type type;
     std::string address;
     CAmount debit = 0;
@@ -156,6 +157,7 @@ public:
     int outputsSize = 0;
     int inputsSize = 0;
     int confirmations = 0;
+    int computetime = 0;
 
     /**@}*/
 
@@ -178,6 +180,7 @@ public:
     int getInputsSize() {return this->inputsSize;}
     int getConfirmations() {return this->confirmations;}
     std::string getAddress() {return this->address;}
+    int getComputeTime() {return this->computetime;}
 
     /** Return the output index of the subtransaction  */
     int getOutputIndex() const;

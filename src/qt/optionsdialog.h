@@ -61,6 +61,7 @@ private Q_SLOTS:
     void updateDefaultProxyNets();
 
     void onHideOrphansCheck(bool state);
+    void onShowComputeTimeCheck(bool state);
 
 Q_SIGNALS:
     void proxyIpChecks(QValidatedLineEdit *pUiProxyIp, int nProxyPort);

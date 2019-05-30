@@ -16,7 +16,7 @@ bool ValidateBlockSignature(const CBlock& block)
     if (block.IsProofOfWork())
         return true;
 
-    if (block.vtx.size() < 2 || block.vtx[1]->vin.empty() || !block.vtx[1]->vin[0].scriptSig.IsZerocoinSpend())
+    if (block.vtx.size() < 2 || block.vtx[1]->vin.empty() || !block.vtx[1]->vin[0].IsZerocoinSpend())
         return error("%s: Block transaction structure is not compatible with Veil's Proof of Stake validation", __func__);
 
     //Get the zerocoin that was staked

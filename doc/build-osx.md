@@ -23,6 +23,13 @@ See [dependencies.md](dependencies.md) for a complete overview.
 If you want to build the disk image with `make deploy` (.dmg / optional), you need RSVG
 
     brew install librsvg
+    
+Clone the Repo
+--------------
+    
+1. Clone the Veil source code and cd into `veil`
+
+        git clone https://github.com/Veil-Project/veil.git
 
 Berkeley DB
 -----------
@@ -38,12 +45,11 @@ from the root of the repository.
 
 **Note**: You only need Berkeley DB if the wallet is enabled (see the section *Disable-Wallet mode* below).
 
-Build Bitcoin Core
+Build Veil Core
 ------------------------
 
-1. Clone the Veil source code and cd into `veil`
+1. Cd into `veil`
 
-        git clone https://github.com/Veil-Project/veil.git
         cd veil
 
 2.  Build Veil:

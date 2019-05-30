@@ -17,7 +17,9 @@
 #include <veil/ringct/transactionrecord.h>
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
+#include <veil/zerocoin/denomination_functions.h>
 #include <veil/zerocoin/mintmeta.h>
+#include <veil/zerocoin/precompute.h>
 #include <txmempool.h>
 
 
@@ -325,6 +327,8 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
+    EnsureWalletIsUnlocked(pwallet);
+
     int64_t nTimeStart = GetTimeMillis();
     CAmount nAmount = AmountFromValue(params[0]);   // Spending amount
     bool fMintChange = params[1].get_bool();        // Mint change to zerocoin
@@ -484,29 +488,29 @@ UniValue listmintedzerocoins(const JSONRPCRequest& request)
                 "\nList all zerocoin mints in the wallet.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
 
-                                            "\nArguments:\n"
-                                            "1. fVerbose      (boolean, optional, default=false) Output mints metadata.\n"
-                                            "2. fMatureOnly      (boolean, optional, default=false) List only mature mints. (Set only if fVerbose is specified)\n"
+                "\nArguments:\n"
+                "1. fVerbose      (boolean, optional, default=false) Output mints metadata.\n"
+                "2. fMatureOnly      (boolean, optional, default=false) List only mature mints. (Set only if fVerbose is specified)\n"
 
-                                            "\nResult (with fVerbose=false):\n"
-                                            "[\n"
-                                            "  \"xxx\"      (string) Pubcoin in hex format.\n"
-                                            "  ,...\n"
-                                            "]\n"
+                "\nResult (with fVerbose=false):\n"
+                "[\n"
+                "  \"xxx\"      (string) mint serial hash in hex format.\n"
+                "  ,...\n"
+                "]\n"
 
-                                            "\nResult (with fVerbose=true):\n"
-                                            "[\n"
-                                            "  {\n"
-                                            "    \"serial hash\": \"xxx\",   (string) Mint serial hash in hex format.\n"
-                                            "    \"version\": n,   (numeric) Zerocoin version number.\n"
-                                            "    \"zerocoin ID\": \"xxx\",   (string) Pubcoin in hex format.\n"
-                                            "    \"denomination\": n,   (numeric) Coin denomination.\n"
-                                            "    \"confirmations\": n   (numeric) Number of confirmations.\n"
-                                            "  }\n"
-                                            "  ,..."
-                                            "]\n"
+                "\nResult (with fVerbose=true):\n"
+                "[\n"
+                "  {\n"
+                "    \"serial hash\": \"xxx\",   (string) Mint serial hash in hex format.\n"
+                "    \"version\": n,   (numeric) Zerocoin version number.\n"
+                "    \"zerocoin ID\": \"xxx\",   (string) Pubcoin in hex format.\n"
+                "    \"denomination\": n,   (numeric) Coin denomination.\n"
+                "    \"confirmations\": n   (numeric) Number of confirmations.\n"
+                "  }\n"
+                "  ,..."
+                "]\n"
 
-                                            "\nExamples:\n" +
+                "\nExamples:\n" +
                 HelpExampleCli("listmintedzerocoins", "") + HelpExampleRpc("listmintedzerocoins", "") +
                 HelpExampleCli("listmintedzerocoins", "true") + HelpExampleRpc("listmintedzerocoins", "true") +
                 HelpExampleCli("listmintedzerocoins", "true true") + HelpExampleRpc("listmintedzerocoins", "true, true"));
@@ -523,27 +527,31 @@ UniValue listmintedzerocoins(const JSONRPCRequest& request)
 
     set<CMintMeta> setMints = pwallet->ListMints(true, fMatureOnly, true);
 
+    // sort the mints by descending confirmations
+    std::list<CMintMeta> listMints(setMints.begin(), setMints.end());
+    listMints.sort(oldest_first);
+
     int nBestHeight = chainActive.Height();
 
     UniValue jsonList(UniValue::VARR);
     if (fVerbose) {
-        for (const CMintMeta& m : setMints) {
+        for (const CMintMeta& m : listMints) {
             // Construct mint object
             UniValue objMint(UniValue::VOBJ);
-            objMint.push_back(Pair("serial hash", m.hashSerial.GetHex()));  // Serial hash
-            objMint.push_back(Pair("version", m.nVersion));                 // Zerocoin version
-            objMint.push_back(Pair("zerocoin ID", m.hashPubcoin.GetHex()));     // PubCoin
+            objMint.push_back(Pair("serial hash", m.hashSerial.GetHex()));
+            objMint.push_back(Pair("version", m.nVersion));
+            objMint.push_back(Pair("zerocoin ID", m.hashPubcoin.GetHex()));
             int denom = libzerocoin::ZerocoinDenominationToInt(m.denom);
-            objMint.push_back(Pair("denomination", denom));                 // Denomination
+            objMint.push_back(Pair("denomination", denom));
             int nConfirmations = (m.nHeight && nBestHeight > m.nHeight) ? nBestHeight - m.nHeight : 0;
-            objMint.push_back(Pair("confirmations", nConfirmations));       // Confirmations
+            objMint.push_back(Pair("confirmations", nConfirmations));
             // Push back mint object
             jsonList.push_back(objMint);
         }
     } else {
-        for (const CMintMeta& m : setMints)
+        for (const CMintMeta& m : listMints)
             // Push back PubCoin
-            jsonList.push_back(m.hashPubcoin.GetHex());
+            jsonList.push_back(m.hashSerial.GetHex());
     }
     return jsonList;
 }
@@ -635,10 +643,10 @@ UniValue DoZerocoinSpend(CWallet* pwallet, const CAmount nAmount, bool fMintChan
     bool fSuccess;
 
     if(address_str != "") { // Spend to supplied destination address
-        CBitcoinAddress address(address_str);
-        dest = CBitcoinAddress(address_str).Get();
-        if(!address.IsValid())
+        dest = DecodeDestination(address_str);
+        if(!IsValidDestination(dest))
             throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid VEIL address");
+
         fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, libzerocoin::CoinDenomination::ZQ_ERROR, &dest);
     } else                   // Spend to newly generated local address
         fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, libzerocoin::CoinDenomination::ZQ_ERROR);
@@ -703,32 +711,32 @@ UniValue spendzerocoinmints(const JSONRPCRequest& request)
                 "\nSpend zerocoin mints to a VEIL address.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
 
-                                            "\nArguments:\n"
-                                            "1. mints_list     (string, required) A json array of zerocoin mints serial hashes\n"
-                                            "2. \"address\"     (string, optional, default=change) Send to specified address or to a new change address.\n"
+                "\nArguments:\n"
+                "1. mints_list     (string, required) A json array of zerocoin mints serial hashes\n"
+                "2. \"address\"     (string, optional, default=change) Send to specified address or to a new change address.\n"
 
-                                            "\nResult:\n"
-                                            "{\n"
-                                            "  \"txid\": \"xxx\",             (string) Transaction hash.\n"
-                                            "  \"bytes\": nnn,              (numeric) Transaction size.\n"
-                                            "  \"fee\": amount,             (numeric) Transaction fee (if any).\n"
-                                            "  \"spends\": [                (array) JSON array of input objects.\n"
-                                            "    {\n"
-                                            "      \"denomination\": nnn,   (numeric) Denomination value.\n"
-                                            "      \"pubcoin\": \"xxx\",      (string) Pubcoin in hex format.\n"
-                                            "      \"serial\": \"xxx\",       (string) Serial number in hex format.\n"
-                                            "      \"acc_checksum\": \"xxx\", (string) Accumulator checksum in hex format.\n"
-                                            "    }\n"
-                                            "    ,...\n"
-                                            "  ],\n"
-                                            "  \"outputs\": [                 (array) JSON array of output objects.\n"
-                                            "    {\n"
-                                            "      \"value\": amount,         (numeric) Value in VEIL.\n"
-                                            "      \"address\": \"xxx\"         (string) VEIL address or \"zerocoinmint\" for reminted change.\n"
-                                            "    }\n"
-                                            "    ,...\n"
-                                            "  ]\n"
-                                            "}\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"txid\": \"xxx\",             (string) Transaction hash.\n"
+                "  \"bytes\": nnn,              (numeric) Transaction size.\n"
+                "  \"fee\": amount,             (numeric) Transaction fee (if any).\n"
+                "  \"spends\": [                (array) JSON array of input objects.\n"
+                "    {\n"
+                "      \"denomination\": nnn,   (numeric) Denomination value.\n"
+                "      \"pubcoin\": \"xxx\",      (string) Pubcoin in hex format.\n"
+                "      \"serial\": \"xxx\",       (string) Serial number in hex format.\n"
+                "      \"acc_checksum\": \"xxx\", (string) Accumulator checksum in hex format.\n"
+                "    }\n"
+                "    ,...\n"
+                "  ],\n"
+                "  \"outputs\": [                 (array) JSON array of output objects.\n"
+                "    {\n"
+                "      \"value\": amount,         (numeric) Value in VEIL.\n"
+                "      \"address\": \"xxx\"         (string) VEIL address or \"zerocoinmint\" for reminted change.\n"
+                "    }\n"
+                "    ,...\n"
+                "  ]\n"
+                "}\n"
 
                                             "\nExamples\n" +
                 HelpExampleCli("spendzerocoinmints", "'[\"0d8c16eee7737e3cc1e4e70dc006634182b175e039700931283b202715a0818f\", \"dfe585659e265e6a509d93effb906d3d2a0ac2fe3464b2c3b6d71a3ef34c8ad7\"]' \"VSJRSsuU9zfyrvxVaAEFQqK4MxZg6vgeS6\"") +
@@ -1333,6 +1341,98 @@ UniValue generatemintlist(const JSONRPCRequest& request)
     return arrRet;
 }
 
+UniValue showspendcaching(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+    UniValue params = request.params;
+    if(request.fHelp || params.size() > 1)
+        throw runtime_error(
+                "showspendcaching (fVerbose)\n"
+                "\nShows total percentage of all zerocoins and their precomputed zero knowledge proof status.\n"
+                "Or each individual zerocoin and their precomputed zero knowledge proof status\n" +
+                HelpRequiringPassphrase(pwallet) + "\n"
+                                                   "\nArguments\n"
+                                                   "1. \"fVerbose\"  :  (boolean optional) (default=false) If true, individual precomputes will be displayed.\n"
+
+                                                   "\nResult: if fVerbose is false\n"
+                                                   "  {\n"
+                                                   "    \"total_blocks_computed\": n,      (numeric) Number of blocks precomputed.\n"
+                                                   "    \"total_blocks_to_compute\": n,    (numeric) Number of blocks to precompute\n"
+                                                   "    \"percent_precomputed\": n,        (numeric) Number representing total precomputed percentage\n"
+                                                   "  }\n"
+
+                                                   "\nResult: if fVerbose is true\n"
+                                                   "[\n"
+                                                   "  {\n"
+                                                   "    \"pubcoinhash\": \"xxx\",      (string) Hex encoded pubcoinhash value.\n"
+                                                   "    \"height_minted\": n,          (numeric) Block height the zerocoin was minted.\n"
+                                                   "    \"precomputed_to\": n,         (numeric) Block height the zerocoin is precomputed to\n"
+                                                   "    \"percent_precomputed\": n     (numeric) Number representing percentage of zerocoin precomputed\n"
+                                                   "  }\n"
+                                                   "  ,...\n"
+                                                   "]\n"
+                );
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    bool fVerbose = false;
+    if (params.size() > 0) {
+        fVerbose = request.params[0].get_bool();
+    }
+
+    auto ztracker = pwallet->GetZTrackerPointer();
+
+    std::set<CMintMeta> setMints = ztracker->ListMints(true, true, false);
+    UniValue arrRet(UniValue::VARR);
+    int nHeightChain = chainActive.Height();
+
+    int nTotalAccumulated = 0;
+    double nTotalToAccumulate = 0;
+    for (const CMintMeta& mint : setMints) {
+
+
+        CoinWitnessData* witnessData = ztracker->GetSpendCache(mint.hashSerial);
+        if (!witnessData)
+            continue;
+
+        double nToAccumulate = nHeightChain - mint.nHeight;
+        double nAccumulated = witnessData->nHeightPrecomputed - mint.nHeight;
+        double nComputePercent = nAccumulated/nToAccumulate;
+        if (nAccumulated > 1) {
+            nTotalAccumulated += nAccumulated;
+        }
+
+        nTotalToAccumulate += nToAccumulate;
+
+        if (nComputePercent < 0)
+            nComputePercent = 0;
+
+
+        if (fVerbose) {
+            UniValue obj(UniValue::VOBJ);
+            obj.pushKV("pubcoinhash", mint.hashPubcoin.GetHex());
+            obj.pushKV("height_minted", mint.nHeight);
+            obj.pushKV("precomputed_to", witnessData->nHeightPrecomputed);
+            obj.pushKV("percent_precomputed", nComputePercent * 100);
+            arrRet.push_back(obj);
+        }
+    }
+
+    if (!fVerbose) {
+        UniValue objTotal(UniValue::VOBJ);
+        objTotal.pushKV("total_blocks_computed", nTotalAccumulated);
+        objTotal.pushKV("total_blocks_to_compute", nTotalToAccumulate);
+        objTotal.pushKV("percent_precomputed", (nTotalAccumulated / nTotalToAccumulate) * 100);
+        arrRet.push_back(objTotal);
+    }
+
+    return arrRet;
+}
+
+
 UniValue deterministiczerocoinstate(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1369,37 +1469,12 @@ UniValue deterministiczerocoinstate(const JSONRPCRequest& request)
     return obj;
 }
 
+
+
 void static SearchThread(CzWallet* zwallet, int nCountStart, int nCountEnd)
 {
     LogPrintf("%s: start=%d end=%d\n", __func__, nCountStart, nCountEnd);
-    WalletBatch walletdb(zwallet->GetDBHandle());
-    try {
-        CKey keyMaster;
-        if (!zwallet->GetMasterSeed(keyMaster))
-            return;
-
-        CKeyID hashSeed = keyMaster.GetPubKey().GetID();
-        for(int i = nCountStart; i < nCountEnd; i++) {
-            boost::this_thread::interruption_point();
-            CDataStream ss(SER_GETHASH, 0);
-            ss << keyMaster.GetPrivKey_256() << i;
-            uint512 zerocoinSeed = Hash512(ss.begin(), ss.end());
-
-            CBigNum bnValue;
-            CBigNum bnSerial;
-            CBigNum bnRandomness;
-            CKey key;
-            zwallet->SeedToZerocoin(zerocoinSeed, bnValue, bnSerial, bnRandomness, key);
-
-            uint256 hashPubcoin = GetPubCoinHash(bnValue);
-            zwallet->AddToMintPool(make_pair(hashPubcoin, i), true);
-            walletdb.WriteMintPoolPair(hashSeed, hashPubcoin, i);
-        }
-    } catch (std::exception& e) {
-        LogPrintf("SearchThread() exception");
-    } catch (...) {
-        LogPrintf("SearchThread() exception");
-    }
+    zwallet->DeterministicSearch(nCountStart, nCountEnd);
 }
 
 UniValue searchdeterministiczerocoin(const JSONRPCRequest& request)
@@ -1460,6 +1535,159 @@ UniValue searchdeterministiczerocoin(const JSONRPCRequest& request)
     return "done";
 }
 
+UniValue startprecomputing(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    UniValue params = request.params;
+    if(request.fHelp || params.size() > 1)
+        throw runtime_error(
+                "startprecomputing\n"
+                "\nStart precomputing zerocoin proofs\n" +
+                HelpRequiringPassphrase(pwallet) + "\n"
+
+                                                   "\nArguments\n"
+                                                   "1. \"nBlockPerCycle\"       (numeric, optional) Number of blocks to precompute per cycle.\n"
+
+                                                   "\nExamples\n" +
+                HelpExampleCli("startprecomputing", "100") + HelpExampleRpc("startprecomputing", "100"));
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    if (!pprecompute)
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Precompute pointer not initialized");
+
+    if (params.size() > 0) {
+        int nBPC = params[0].get_int();
+        pprecompute->SetBlocksPerCycle(nBPC);
+    }
+    std::string response;
+
+    if (!pwallet->StartPrecomputing(response)) {
+        return "Failed to start precomputing: " + response;
+    }
+
+    return response;
+}
+
+UniValue stopprecomputing(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    UniValue params = request.params;
+    if(request.fHelp || params.size() != 0)
+        throw runtime_error(
+                "stopprecomputing\n"
+                "\nStop precomputing zerocoin proofs\n" +
+                HelpRequiringPassphrase(pwallet) + "\n"
+
+                                                   "\nExamples\n" +
+                HelpExampleCli("stopprecomputing", "") + HelpExampleRpc("stopprecomputing", ""));
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    if (!pprecompute)
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Precompute pointer not initialized");
+
+    pwallet->StopPrecomputing();
+
+    return "precomputing stopping";
+}
+
+UniValue setprecomputeblockpercycle(const JSONRPCRequest& request)
+{
+    UniValue params = request.params;
+    if(request.fHelp || params.size() != 1)
+        throw runtime_error(
+                "setprecomputeblockpercycle\n"
+                "\nSet the number of block precomputed per cycle\n"
+                        "\nArguments\n"
+                        "1. \"nBlockPerCycle\"       (numeric, required) Number of blocks to precompute per cycle. Min = 100, Max = 2000\n"
+                                                   "\nExamples\n" +
+                HelpExampleCli("setprecomputeblockpercycle", "500") + HelpExampleRpc("setprecomputeblockpercycle", "500"));
+
+    if (!pprecompute)
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Precompute pointer not initialized");
+
+    int nBPC = params[0].get_int();
+    pprecompute->SetBlocksPerCycle(nBPC);
+
+    return "Blocks per cycle set to " + std::to_string(pprecompute->GetBlocksPerCycle());
+}
+
+UniValue getprecomputeblockpercycle(const JSONRPCRequest& request)
+{
+    UniValue params = request.params;
+    if(request.fHelp || params.size() != 0)
+        throw runtime_error(
+                "getprecomputeblockpercycle\n"
+                "\nReturns the number currently set for precompute blocks per cycle\n"
+
+                "\nExamples\n" +
+                HelpExampleCli("getprecomputeblockpercycle", "") + HelpExampleRpc("getprecomputeblockpercycle", ""));
+
+    if (!pprecompute)
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Precompute pointer not initialized");
+
+    return pprecompute->GetBlocksPerCycle();
+}
+
+UniValue clearspendcache(const JSONRPCRequest& request)
+{
+    if(request.fHelp || request.params.size() != 0)
+        throw runtime_error(
+                "clearspendcache\n"
+                "\nClear the pre-computed zerocoin spend cache, and database.\n"
+                "\nExamples\n" +
+                HelpExampleCli("clearspendcache", "") + HelpExampleRpc("clearspendcache", ""));
+
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    if (!pprecomputeDB)
+        throw JSONRPCError(RPC_WALLET_ERROR, "Precompute database pointer is null");
+
+    CzTracker* zTracker = pwallet->GetZTrackerPointer();
+
+    if (!zTracker)
+        throw JSONRPCError(RPC_WALLET_ERROR, "zTracker pointer is null");
+
+    {
+        int nTries = 0;
+        fClearSpendCache = true;
+        // In order to make it so other processes don't use the cache and cause pointer failures.
+        // Sleep the main thread, while the precompute thread clears the cache
+        MilliSleep(3000);
+        while (nTries < 100) {
+            TRY_LOCK(zTracker->cs_modify_lock, fLocked);
+            if (fLocked) {
+                zTracker->ClearSpendCache();
+                if(!pprecomputeDB->EraseAllPrecomputes())
+                    throw JSONRPCError(RPC_WALLET_ERROR, "Spend database not cleared");
+
+                return "Successfully Cleared the Precompute Spend Cache and Database";
+            } else {
+                fGlobalUnlockSpendCache = true;
+                nTries++;
+                MilliSleep(100);
+            }
+        }
+    }
+    throw JSONRPCError(RPC_WALLET_ERROR, "Error: Spend cache not cleared!");
+}
+
 static const CRPCCommand commands[] =
 {
      //  category              name                                actor (function)                argNames
@@ -1482,6 +1710,12 @@ static const CRPCCommand commands[] =
     { "zerocoin",           "listmintedzerocoins",              &listmintedzerocoins,           {"fVerbose", "vMatureOnly"} },
     { "zerocoin",           "lookupzerocoin",                   &lookupzerocoin,                {"id_type", "id"} },
     { "zerocoin",           "getzerocoinbalance",               &getzerocoinbalance,            {} },
+    { "zerocoin",           "showspendcaching",                 &showspendcaching,              {"fVerbose"} },
+    { "zerocoin",           "startprecomputing",                &startprecomputing,             {"nBlockPerCycle"} },
+    { "zerocoin",           "stopprecomputing",                 &stopprecomputing,              {} },
+    { "zerocoin",           "setprecomputeblockpercycle",       &setprecomputeblockpercycle,    {"nBlockPerCycle"} },
+    { "zerocoin",           "getprecomputeblockpercycle",       &getprecomputeblockpercycle,    {} },
+    { "zerocoin",           "clearspendcache",                  &clearspendcache,               {}},
 };
 
 

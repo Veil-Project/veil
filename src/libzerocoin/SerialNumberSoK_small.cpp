@@ -467,6 +467,9 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<const SerialNumberSoKProof*> 
         if( ComD < bnZero || ComD > p )
             return error("wrong value for ComD");
 
+        if (ComA.size() < m || ComB.size() < m || ComC_.size() < m)
+            return error ("null values for ComA, ComB, or ComC");
+
         for(int i=0; i<m; i++) {
             if( ComA[i] < bnZero || ComA[i] > p )
                 return error("wrong value for ComA at %d", i);

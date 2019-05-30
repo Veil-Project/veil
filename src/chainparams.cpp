@@ -180,8 +180,8 @@ public:
         consensus.nDgwPastBlocks = 30; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 1080; // 75% of confirmation window
-        consensus.nMinerConfirmationWindow = 1440; // 1 day at 1 block per minute
+        consensus.nRuleChangeActivationThreshold = 84; // 70% of confirmation window
+        consensus.nMinerConfirmationWindow = 120; // 2 hours at 1 block per minute
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
@@ -198,13 +198,17 @@ public:
 
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = 1548161817;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1579805817;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1576226440;
+
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].bit = 3;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = 1556347500;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = 1579805817;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8"); //534292
+        consensus.defaultAssumeValid = uint256S("0x42145acdde948865d73a8b318fea09b9e9cb826f93007c7a21b4f103822da86d"); //534292
 
         consensus.nMinRCTOutputDepth = 12;
 
@@ -265,14 +269,16 @@ public:
                 { 29000, uint256S("0xb1f7b8cc4669ba57c341c3dd49da16d174f9c2a0673c5f3556225b9f8bb4454e")},
                 { 36000, uint256S("0x24d1d2662203f225bb16e9535928dd2493033c1ef10124f241d9a6f36d9bf242")},
                 { 52000, uint256S("0x96867cbf3f54e5dbdc19d237d264df6734eaea5975e30db41922aa3c14bd64c0")},
+                { 101000, uint256S("0x42145acdde948865d73a8b318fea09b9e9cb826f93007c7a21b4f103822da86d")},
+                { 175500, uint256S("0xf0db2fb676587ccd8e65f509b970b782d2095e1010939bab4a6d59debd633aa8")},
             }
         };
 
         chainTxData = ChainTxData{
             // Data from rpc: getchaintxstats 4096 0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8
-            /* nTime    */ 1549688281,
-            /* nTxCount */ 166433,
-            /* dTxRate  */ 0.0558
+            /* nTime    */ 1557260034,
+            /* nTxCount */ 516105,
+            /* dTxRate  */ 0.0698
         };
 
         /* disable fallback fee on mainnet */
@@ -303,6 +309,7 @@ public:
         nLastPOWBlock = 2000000;
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548619029; //Stake weight must be reduced for higher denominations
+        nHeightProtocolBumpEnforcement = 86350; // 50 blocks before superblock
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
@@ -329,8 +336,8 @@ public:
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 84; // 75% for testchains
-        consensus.nMinerConfirmationWindow = 120; // 2 hours
+        consensus.nRuleChangeActivationThreshold = 15; // 75% for testchains
+        consensus.nMinerConfirmationWindow = 20; // 20 minutes
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
@@ -347,13 +354,17 @@ public:
 
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = 1548269817;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1579805817;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1556226440;
+
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].bit = 3;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = 1556321954;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = 1579805817;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000000000000037a8cd3e06cd5edbfe9dd1dbcc5dacab279376ef7cfc2b4c75"); //1354312
+        consensus.defaultAssumeValid = uint256S("0xe95fc76c6c9016e8ed2e4e4a2641dfc91dbf6bad4df659f664d8f7614bc010c0"); //103000
 
         consensus.nMinRCTOutputDepth = 12;
 
@@ -406,17 +417,8 @@ public:
 
         checkpointData = {
             {
-//                {42, uint256S("37cf752dfcda2c1c3f1a1a3ff3b7ef47c40d0e06f8c16e058a3b04cfa1566acb")},
-//                {1600, uint256S("66959ef58a234711c64c5f609f6b44a597b02ccfedea6557e1ee08fe792fb747")},
-//                {3000, uint256S("eac7585e03c690e7b12da0d330e7dc8cdb60c24d300f50712dd7b6e3583f5cad")},
-//                {3300, uint256S("0f273634343a8aeebe80305a21663749288f351e59da263242dd7846ce375ee3")},
-//                {4400, uint256S("6455521644d55f58000a32d285017f288d05388c868d4fc40bbdce70a4b1debd")},
-//                {7000, uint256S("4894c80ccfc672a9e91d5ebfb5b5f1510a96486e3c0792dff77fcb642ef59f23")},
-//                {8000, uint256S("ae3dbf201952e2e382759381f9dcdea4c97c8c03199605963b35de4b448d0c8d")},
-//                {8300, uint256S("30e86f6e98cebf5d6306648056e4a1c6e653109223965736260b9d47efaa9be3")},
-//                {8500, uint256S("7e4bcfd3a4c4efd0724d8b8c2c3964844ca1a76d3c61af96d3293c5a685913b1")},
-//                {8700, uint256S("74f188b3dc86c00f97fdd216af7a4f416042b67ac0b9b899deb5b46cdb4b1f50")},
-//                {9100, uint256S("cbc788271338f927d9c1499d0c24489b518496c704028595d247971cb7795446")},
+                    {98429, uint256S("fecff045e98e30c6e077d160883d73500e4d96463d8333436403298fea5ecda3")},
+                    {103000, uint256S("e95fc76c6c9016e8ed2e4e4a2641dfc91dbf6bad4df659f664d8f7614bc010c0")},
             }
         };
 
@@ -442,7 +444,7 @@ public:
                           "31438167899885040445364023527381951378636564391212010397122822120720357";
         nMaxZerocoinSpendsPerTransaction = 20; // Assume about 6.5kb each
         nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
-        nMintRequiredConfirmations = 20; //the maximum amount of confirmations until accumulated in 19
+        nMintRequiredConfirmations = 10; //the maximum amount of confirmations until accumulated in 19
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zerocoin to be stakable
@@ -503,6 +505,9 @@ public:
         pchMessageStart[3] = 0xda;
         nDefaultPort = 58821;
         nPruneAfterHeight = 1000;
+        nConsecutivePoWHeight = 1000000;
+        nLastPOWBlock = 2000000;
+        nHeightSupplyCreationStop = 9816000;
 
         genesis = CreateGenesisBlock(1296688602, 3962663, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();

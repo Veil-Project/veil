@@ -291,7 +291,7 @@ QPushButton[cssClass~="btn-text-primary-inactive"]:hover {
 
 QPushButton[cssClass~="btn-text-settings"] {
     text-align: left;
-    font-size:14px;
+    font-size: 14pt;
     color: #575756;
     background-color:transparent;
     border:none;
@@ -453,7 +453,6 @@ QCheckBox[cssClass~="switch"] {
 background-image: url(":/icons/ic-switch-off") ;
 background-repeat:no-repeat;
 background-position:left center;
-padding:4px 4px 8px 30px;
 }
 
 QCheckBox[cssClass~="switch"]:checked {
@@ -662,10 +661,100 @@ QRadioButton[cssClass~="radio-button-faq"]::indicator {
     color: red; background-color: #FFFFFF; border: none;padding:10px;margin:10px;
 }
 
-QToolTip {
+QWidget#VeilStatusBar {
+    background-color: white;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+QFrame#frameStatusBar {
+    background-color:white;
+    border-bottom:0px;
+    border-right:0px;
+    border-left:0px;
+}
+
+QLabel#line{
+    background-color: #bababa;
+}
+
+QCheckBox#checkStaking::indicator {
+    border: 0;
+    background: none;
+    margin: 0;
+    padding: 0;
+    width:40px;
+    height:25px;
+}
+
+QCheckBox#checkStaking {
+    background-image: url(":/icons/ic-switch-off-png");
+    background-repeat:no-repeat;
+    background-position:left center;
+    color:#bababa;
+    margin-right:5px;
+}
+
+QCheckBox#checkStaking:checked {
+    background-image: url(":/icons/ic-switch-on-png");
+    color:#105aef;
+}
+
+
+#checkPrecompute::indicator {
+    border: 0;
+    background: none;
+    margin: 0;
+    padding: 0;
+    width:40px;
+    height:25px;
+}
+
+#checkPrecompute {
+    background-image: url(":/icons/ic-switch-off-png") ;
+    background-repeat:no-repeat;
+    background-position:left center;
+    color:#bababa;
+    margin-right:5px;
+
+}
+
+#checkPrecompute:checked {
+    background-image: url(":/icons/ic-switch-on-png") ;
+    color:#105aef;
+}
+
+
+QPushButton#btnSync{
+    color:#707070;
+    border:none;
+    padding:0;
+    margin:0;
+    background:transparent;
+}
+
+QPushButton#btnLock {
+    border:none;
+    background:transparent;
+}
+
+QPushButton#btnLock > QToolTip {
     color: #ffffff;
     background-color: #6f9bf5;
     font-size:13px;
+    border: none;
+    border-radius:20px;
+    padding:6px;
+    margin:0px;
+    min-height: 35px;
+    qproperty-alignment: 'AlignVCenter | AlignCenter';
+}
+
+QToolTip {
+    color: #ffffff;
+    background-color: #6f9bf5;
+    font-size:11pt;
     border: none;
     border-radius:20px;
     padding:6px;

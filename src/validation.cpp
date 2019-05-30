@@ -55,7 +55,9 @@
 #include <veil/proofofstake/kernel.h>
 #include <veil/ringct/blind.h>
 
+#ifdef ENABLE_WALLET
 #include <wallet/wallet.h>
+#endif
 
 #include <future>
 #include <sstream>
@@ -63,6 +65,7 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/thread.hpp>
 #include "veil/zerocoin/accumulators.h"
+#include "veil/zerocoin/precompute.h"
 
 #if defined(NDEBUG)
 # error "Veil cannot be compiled without assertions."
@@ -243,6 +246,7 @@ uint256 g_best_block;
 int nScriptCheckThreads = 0;
 std::atomic_bool fImporting(false);
 std::atomic_bool fReindex(false);
+std::atomic_bool fReindexChainState(false);
 std::atomic_bool fVerifying(false);
 bool fSkipRangeproof = false;
 bool fHavePruned = false;
@@ -262,6 +266,8 @@ bool fEnableReplacement = DEFAULT_ENABLE_REPLACEMENT;
 unsigned int nStakeMinAge = 60;
 static bool fVerifyingDB = false;
 
+// Used in the precomputing thread
+bool fClearSpendCache = false;
 
 uint256 hashAssumeValid;
 arith_uint256 nMinimumChainWork;
@@ -326,6 +332,8 @@ std::unique_ptr<CCoinsViewDB> pcoinsdbview;
 std::unique_ptr<CCoinsViewCache> pcoinsTip;
 std::unique_ptr<CBlockTreeDB> pblocktree;
 std::unique_ptr<CZerocoinDB> pzerocoinDB;
+std::unique_ptr<CPrecomputeDB> pprecomputeDB;
+std::unique_ptr<Precompute> pprecompute;
 
 enum class FlushStateMode {
     NONE,
@@ -430,7 +438,7 @@ bool CheckSequenceLocks(const CTransaction &tx, int flags, LockPoints* lp, bool 
                 continue;
             }
 
-            if (txin.scriptSig.IsZerocoinSpend()) {
+            if (txin.IsZerocoinSpend()) {
                 prevheights[txinIndex] = tip->nHeight + 1;
                 continue;
             }
@@ -579,7 +587,7 @@ static bool CheckInputsFromMempoolAndCache(const CTransaction& tx, CValidationSt
         if (txin.IsAnonInput())
             continue;
 
-        if (txin.scriptSig.IsZerocoinSpend())
+        if (txin.IsZerocoinSpend())
             continue;
         const Coin& coin = view.AccessCoin(txin.prevout);
 
@@ -663,7 +671,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         }
 
         fHasStandardInputs = true;
-        if (txin.scriptSig.IsZerocoinSpend()) {
+        if (txin.IsZerocoinSpend()) {
             continue;
         }
         fHasBasecoinInputs = true;
@@ -750,10 +758,12 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             }
 
             //Veil: check for duplicate zerocoin spends
-            if (txin.scriptSig.IsZerocoinSpend()) {
+            if (txin.IsZerocoinSpend()) {
                 auto spend = TxInToZerocoinSpend(txin);
                 if (!spend)
                     return false;
+                if (spend->getVersion() < libzerocoin::CoinSpend::V3_SMALL_SOK)
+                    return state.Invalid(false, REJECT_OBSOLETE, "old-version-zerocoinspend");
                 auto bnSerial = spend->getCoinSerialNumber();
                 int nHeight;
                 if (IsSerialInBlockchain(bnSerial, nHeight))
@@ -766,7 +776,9 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-in-mempool");
                 }
 
-                if (!ContextualCheckZerocoinSpend(tx, *spend, pindexBestHeader->GetBlockHash(), pindexBestHeader, /*fSkipVerify*/true))
+                ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+                bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
+                if (!ContextualCheckZerocoinSpend(tx, *spend, pindexBestHeader->GetBlockHash(), pindexBestHeader, fZCLimpMode,/*fSkipVerify*/true))
                     return state.Invalid(false, REJECT_INVALID, "failed-zcspend-context-checks");
 
                 libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
@@ -1564,7 +1576,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
                 continue;
 
             txundo.vprevout.emplace_back();
-            if (txin.scriptSig.IsZerocoinSpend())
+            if (txin.IsZerocoinSpend())
                 continue;
             bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
             assert(is_spent);
@@ -1664,7 +1676,7 @@ bool CheckInputs(const CTransaction& tx, CValidationState &state, const CCoinsVi
                     continue;
                 }
 
-                if (tx.vin[i].scriptSig.IsZerocoinSpend())
+                if (tx.vin[i].IsZerocoinSpend())
                     continue;
                 const COutPoint &prevout = tx.vin[i].prevout;
                 const Coin& coin = inputs.AccessCoin(prevout);
@@ -1979,7 +1991,7 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 if (in.IsAnonInput())
                     continue;
 
-                if (in.scriptSig.IsZerocoinSpend()) {
+                if (in.IsZerocoinSpend()) {
                     auto spend = TxInToZerocoinSpend(in);
                     if (!spend) {
                         error("DisconnectBlock(): failed to undo zerocoinspend");
@@ -2142,7 +2154,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     bool fSkipComputation = false;
     int nHeightLastCheckpoint = Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints());
-    if (pindex->nHeight < nHeightLastCheckpoint)
+    if (pindex->nHeight < nHeightLastCheckpoint || fReindexChainState || fReindex)
         fSkipComputation = true;
 
     // Check it again in case a previous version let a bad block in
@@ -2339,6 +2351,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     std::set <CBigNum> setSerialsInBlock;
     std::map<libzerocoin::CoinSpend, uint256> mapSpends;
     std::map<libzerocoin::PublicCoin, uint256> mapMints;
+    ThresholdState tstate = VersionBitsState(pindex->pprev, Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+    bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
 
     CAmount nBlockValueIn = 0;
     CAmount nBlockValueOut = 0;
@@ -2409,7 +2423,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
                 //Check for double spending of serial #'s
                 for (const CTxIn& txIn : tx.vin) {
-                    if (!txIn.scriptSig.IsZerocoinSpend())
+                    if (!txIn.IsZerocoinSpend())
                         continue;
                     auto spend = TxInToZerocoinSpend(txIn);
                     if (!spend)
@@ -2424,7 +2438,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
                     setSerialsInBlock.emplace(spend->getCoinSerialNumber());
                     mapSpends.emplace(*spend, tx.GetHash());
-                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, /*fSkipVerify*/true))
+                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, fZCLimpMode, /*fSkipVerify*/true))
                         return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
                                                     tx.GetHash().GetHex()), REJECT_INVALID);
                     libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
@@ -2932,11 +2946,15 @@ static void AppendWarning(std::string& res, const std::string& warn)
 /** Check warning conditions and do some notifications on new chain tip set. */
 void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainParams) {
 
-    //If Zerocoin automint is on, then Zerocoins will be minted
-    std::shared_ptr<CWallet> wMainWallet = GetMainWallet();
-    if (HeadersAndBlocksSynced() && wMainWallet->isZeromintEnabled()) {
-        wMainWallet->AutoZeromint();
+#ifdef ENABLE_WALLET
+    if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        //If Zerocoin automint is on, then Zerocoins will be minted
+        std::shared_ptr<CWallet> wMainWallet = GetMainWallet();
+        if (HeadersAndBlocksSynced() && wMainWallet->isZeromintEnabled()) {
+            wMainWallet->AutoZeromint();
+        }
     }
+#endif
 
     // New best block
     mempool.AddTransactionsUpdated(1);
@@ -2956,9 +2974,17 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
             WarningBitsConditionChecker checker(bit);
             ThresholdState state = checker.GetStateFor(pindex, chainParams.GetConsensus(), warningcache[bit]);
             if (state == ThresholdState::ACTIVE || state == ThresholdState::LOCKED_IN) {
+                bool fPrintWarning = true;
+                for (auto deployment : chainParams.GetConsensus().vDeployments) {
+                    //Only print warnings if this is something that we have no knowledge of.
+                    if (deployment.bit == bit)
+                        fPrintWarning = false;
+                }
+
                 const std::string strWarning = strprintf(_("Warning: unknown new rules activated (versionbit %i)"), bit);
                 if (state == ThresholdState::ACTIVE) {
-                    DoWarning(strWarning);
+                    if (fPrintWarning)
+                        DoWarning(strWarning);
                 } else {
                     AppendWarning(warningMessages, strWarning);
                 }
@@ -3934,7 +3960,6 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
     const std::map<libzerocoin::PublicCoin, uint256>& mapMints, bool fJustCheck)
 {
     //TODO: VEIL-89
-    auto pwalletMain = GetMainWallet();
     // Initialize zerocoin supply to the supply from previous block
     if (pindex->pprev) {
         for (auto& denom : libzerocoin::zerocoinDenomList) {
@@ -3949,10 +3974,12 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
         std::set<uint256> setAddedToWallet;
         for (auto& pMint : mapMints) {
             const auto& coin = pMint.first;
-            const auto& txid = pMint.second;
             libzerocoin::CoinDenomination denom = coin.getDenomination();
             pindex->vMintDenominationsInBlock.push_back(denom);
             pindex->mapZerocoinSupply.at(denom)++;
+#ifdef ENABLE_WALLET
+            const auto& txid = pMint.second;
+            auto pwalletMain = GetMainWallet();
 
             //Remove any of our own mints from the mintpool
             if (!pwalletMain || fJustCheck)
@@ -3973,6 +4000,7 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
                     }
                 }
             }
+#endif
         }
 
         for (auto& pSpend : mapSpends) {
@@ -4002,10 +4030,29 @@ bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::Publ
 }
 
 bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock,
-        CBlockIndex* pindex, bool fSkipSignatureVerify)
+        CBlockIndex* pindex, bool fZCLimpMode, bool fSkipSignatureVerify)
 {
+    //Before v3 should not even serialize correctly, but double check here
+    if (spend.getVersion() < libzerocoin::CoinSpend::V3_SMALL_SOK)
+        return error("%s: zerocoin spend less than minimum accepted version", __func__);
+
     if (!spend.HasValidSignature())
         return error("%s: zerocoin spend does not have a valid signature", __func__);
+
+    //Turn on enforcement of de-anonymization of zerocoins
+    if (fZCLimpMode) {
+        if (spend.getVersion() != libzerocoin::CoinSpend::V4_LIMP)
+            return error("%s zerocoin spend is required to be V4", __func__);
+
+        //Get pubcoin and check if it has been accumulated
+        int nHeightTx;
+        uint256 txid;
+        const CBigNum& bnPubcoin = spend.getPubcoinValue();
+        if ((!fVerifying && !fReindex) && !IsPubcoinInBlockchain(GetPubCoinHash(bnPubcoin), nHeightTx, txid, pindex->pprev))
+            return error("%s: pubcoinhash %s is not found in the blockchain", __func__, GetPubCoinHash(bnPubcoin).GetHex());
+    } else if (spend.getVersion() == libzerocoin::CoinSpend::V4_LIMP) {
+        return error("%s: zerocoinspend v4 while v4 is not active", __func__);
+    }
 
     libzerocoin::SpendType expectedType = libzerocoin::SpendType::SPEND;
     if (tx.IsCoinStake())
@@ -4037,7 +4084,7 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
 
         //Check that the coin has been accumulated
         std::string strError;
-        if (!spend.Verify(accumulator, strError, true))
+        if (!spend.Verify(accumulator, strError, true, fZCLimpMode))
             return error("CheckZerocoinSpend(): zerocoin spend did not verify");
     }
 
@@ -4167,18 +4214,20 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
         }
     }
 
-    if (block.IsProofOfStake() && (pindexPrev->nHeight + 1 != veil::Budget().nBlocksPerPeriod && pindexPrev->nHeight != 0)) {
-        if (block.vtx[0]->vpout.size() != 1)
-            return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS non-superblock has invalid coinbase out"));
+    if (block.IsProofOfStake()) {
+        if (!veil::BudgetParams::IsSuperBlock(pindexPrev->nHeight + 1))
+        {
+            if (block.vtx[0]->vpout.size() != 1)
+                return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS non-superblock has invalid coinbase out"));
 
-        auto pTxBase = ((CTxOutStandard*) &*(block.vtx[0]->vpout[0]));
-        if (pTxBase->nValue != 0 || pTxBase->scriptPubKey != CScript() || pTxBase->nVersion != OUTPUT_STANDARD)
-            return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS non-superblock has invalid coinbase out"));
-
-    } else if (block.IsProofOfStake()) {
-
-        if (block.vtx[0]->vpout.size() > 3)
-            return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS superblock has invalid coinbase out"));
+            auto pTxBase = ((CTxOutStandard*) &*(block.vtx[0]->vpout[0]));
+            if (pTxBase->nValue != 0 || pTxBase->scriptPubKey != CScript() || pTxBase->nVersion != OUTPUT_STANDARD)
+                return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS non-superblock has invalid coinbase out"));
+        } else {
+            // next block is a superblock
+            if (block.vtx[0]->vpout.size() > 3)
+                return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS superblock has invalid coinbase out"));
+        }
     }
 
     // Verify that the budget output is valid

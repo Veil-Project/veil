@@ -29,6 +29,7 @@
 #include <utilstrencodings.h>
 #ifdef ENABLE_WALLET
 #include <wallet/rpcwallet.h>
+#include <wallet/wallet.h> // For DEFAULT_DISABLE_WALLET
 #endif
 
 #include <future>
@@ -1019,7 +1020,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
             "The third optional argument (may be null) is an array of base58-encoded private\n"
             "keys that, if given, will be the only keys used to sign the transaction.\n"
 #ifdef ENABLE_WALLET
-            + HelpRequiringPassphrase(pwallet) + "\n"
+            + (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) ? HelpRequiringPassphrase(pwallet) + "\n" : ""
 #endif
             "\nArguments:\n"
             "1. \"hexstring\"     (string, required) The transaction hex string\n"
@@ -1091,15 +1092,16 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
         return signrawtransactionwithkey(new_request);
     } else {
 #ifdef ENABLE_WALLET
-        // Otherwise sign with the wallet which does not take a privkeys parameter
-        new_request.params.push_back(request.params[0]);
-        new_request.params.push_back(request.params[1]);
-        new_request.params.push_back(request.params[3]);
-        return signrawtransactionwithwallet(new_request);
-#else
+        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+            // Otherwise sign with the wallet which does not take a privkeys parameter
+            new_request.params.push_back(request.params[0]);
+            new_request.params.push_back(request.params[1]);
+            new_request.params.push_back(request.params[3]);
+            return signrawtransactionwithwallet(new_request);
+        }
+#endif
         // If we have made it this far, then wallet is disabled and no private keys were given, so fail here.
         throw JSONRPCError(RPC_INVALID_PARAMETER, "No private keys available.");
-#endif
     }
 }
 #include <iostream>

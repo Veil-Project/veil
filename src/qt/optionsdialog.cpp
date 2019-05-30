@@ -49,11 +49,15 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     ui->pruneSize->setEnabled(false);
     connect(ui->prune, SIGNAL(toggled(bool)), ui->pruneSize, SLOT(setEnabled(bool)));
 
-    // Hide orphans
     QSettings settings;
-    ui->hideOrphans->setChecked(settings.value("bHideOrphans", true).toBool());
 
+    // Hide orphans
+    ui->hideOrphans->setChecked(settings.value("bHideOrphans", true).toBool());
     connect(ui->hideOrphans, SIGNAL(toggled(bool)), this, SLOT(onHideOrphansCheck(bool)));
+
+    // Show compute time
+    ui->showComputeTime->setChecked(settings.value("bShowComputeTime", false).toBool());
+    connect(ui->showComputeTime, SIGNAL(toggled(bool)), this, SLOT(onShowComputeTimeCheck(bool)));
 
     /* Network elements init */
 #ifndef USE_UPNP
@@ -86,15 +90,40 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     if (!enableWallet) {
         ui->tabWidget->removeTab(ui->tabWidget->indexOf(ui->tabWallet));
     }
+	   
+	/*  Set the tooltip style here to override the OS style.*/
+    QString tooltipStyle = QString("QCheckBox {background:none;} QToolTip {color: #ffffff; background-color: #6f9bf5; font-size:11pt; border: none; border-radius:20px; padding:6px; margin:0px; min-height: 35px; qproperty-alignment: 'AlignVCenter | AlignCenter';}");
+    ui->bitcoinAtStartup->setStyleSheet(tooltipStyle);
+    ui->prune->setStyleSheet(tooltipStyle);
+    ui->openBitcoinConfButton->setStyleSheet(tooltipStyle);
+    ui->resetButton->setStyleSheet(tooltipStyle);
+    ui->threadsScriptVerif->setStyleSheet(tooltipStyle);
+    ui->spendZeroConfChange->setStyleSheet(tooltipStyle);
+    ui->mapPortUpnp->setStyleSheet(tooltipStyle);
+    ui->allowIncoming->setStyleSheet(tooltipStyle);
+    ui->connectSocks->setStyleSheet(tooltipStyle);
+    ui->proxyIp->setStyleSheet(tooltipStyle);
+    ui->proxyPort->setStyleSheet(tooltipStyle);
+    ui->proxyReachIPv4->setStyleSheet(tooltipStyle);
+    ui->proxyReachIPv6->setStyleSheet(tooltipStyle);
+    ui->proxyReachTor->setStyleSheet(tooltipStyle);
+    ui->connectSocksTor->setStyleSheet(tooltipStyle);
+    ui->proxyIpTor->setStyleSheet(tooltipStyle);
+    ui->proxyPortTor->setStyleSheet(tooltipStyle);
+    ui->minimizeToTray->setStyleSheet(tooltipStyle);
+    ui->hideTrayIcon->setStyleSheet(tooltipStyle);
+    ui->minimizeOnClose->setStyleSheet(tooltipStyle);
+    ui->thirdPartyTxUrlsLabel->setStyleSheet(tooltipStyle);
+    ui->thirdPartyTxUrls->setStyleSheet(tooltipStyle);
+    ui->hideOrphans->setStyleSheet(tooltipStyle);
+    ui->showComputeTime->setStyleSheet(tooltipStyle);
 
     /* Display elements init */
     QDir translations(":translations");
 
     ui->bitcoinAtStartup->setToolTip(ui->bitcoinAtStartup->toolTip().arg(tr(PACKAGE_NAME)));
     ui->bitcoinAtStartup->setText(ui->bitcoinAtStartup->text().arg(tr(PACKAGE_NAME)));
-
     ui->openBitcoinConfButton->setToolTip(ui->openBitcoinConfButton->toolTip().arg(tr(PACKAGE_NAME)));
-
     ui->lang->setToolTip(ui->lang->toolTip().arg(tr(PACKAGE_NAME)));
     ui->lang->addItem(QString("(") + tr("default") + QString(")"), QVariant(""));
     for (const QString &langStr : translations.entryList())
@@ -350,6 +379,12 @@ void OptionsDialog::updateDefaultProxyNets()
 void OptionsDialog::onHideOrphansCheck(bool state) {
     QSettings settings;
     settings.setValue("bHideOrphans", state);
+    settings.sync();
+}
+
+void OptionsDialog::onShowComputeTimeCheck(bool state) {
+    QSettings settings;
+    settings.setValue("bShowComputeTime", state);
     settings.sync();
 }
 

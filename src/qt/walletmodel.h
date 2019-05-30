@@ -45,6 +45,14 @@ QT_BEGIN_NAMESPACE
 class QTimer;
 QT_END_NAMESPACE
 
+enum WalletModelSpendType
+{
+    ZCSPEND,
+    CTSPEND,
+    RINGCTSPEND,
+    BASECOINSPEND
+};
+
 class SendCoinsRecipient
 {
 public:
@@ -163,10 +171,14 @@ public:
 
     // prepare transaction for getting txfee before sending coins
     SendCoinsReturn prepareTransaction(WalletModelTransaction &transaction, const CCoinControl& coinControl,
-            OutputTypes inputType = OUTPUT_RINGCT);
+            WalletModelSpendType &spendType, CZerocoinSpendReceipt& receipt, std::vector<std::tuple<CWalletTx,
+            std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>>& vCommitData,
+            OutputTypes inputType = OUTPUT_RINGCT, bool fMintChange = true);
 
     // Send coins to a list of recipients
-    SendCoinsReturn sendCoins(WalletModelTransaction &transaction);
+    SendCoinsReturn sendCoins(WalletModelTransaction &transaction, bool fSkipCommitTx = false);
+    SendCoinsReturn sendZerocoins(CZerocoinSpendReceipt& receipt, std::vector<std::tuple<CWalletTx,
+            std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>>& vCommitData, int computeTime);
 
     // Wallet encryption
     bool setWalletEncrypted(bool encrypted, const SecureString &passphrase);
@@ -178,7 +190,7 @@ public:
     class UnlockContext
     {
     public:
-        UnlockContext(WalletModel *wallet, bool valid, bool relock);
+        UnlockContext(WalletModel *wallet, bool valid, EncryptionStatus _statusReturn);
         ~UnlockContext();
 
         bool isValid() const { return valid; }
@@ -189,7 +201,7 @@ public:
     private:
         WalletModel *wallet;
         bool valid;
-        mutable bool relock; // mutable, as it can be set to false by copying
+        mutable EncryptionStatus statusReturn; // mutable, as it can be set to false by copying
 
         void CopyFrom(const UnlockContext& rhs);
     };
@@ -198,6 +210,11 @@ public:
 
     void setStakingEnabled(bool fEnableStaking);
     bool isStakingEnabled();
+
+    bool StartPrecomputing(std::string& strStatus);
+    void StopPrecomputing();
+    void setPrecomputingEnabled(bool fEnablePrecomputing);
+    bool isPrecomputingEnabled();
 
     void loadReceiveRequests(std::vector<std::string>& vReceiveRequests);
     bool saveReceiveRequest(const std::string &sAddress, const int64_t nId, const std::string &sRequest);

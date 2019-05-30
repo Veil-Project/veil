@@ -13,13 +13,13 @@ UnlockPasswordDialog::UnlockPasswordDialog(bool fForStakingOnly, WalletModel* mo
     this->fForStakingOnly = fForStakingOnly;
 
     ui->labelTitle->setProperty("cssClass" , "title-dialog");
-    ui->btnSave->setProperty("cssClass" , "btn-text-primary");
+    ui->btnUnlock->setProperty("cssClass" , "btn-text-primary");
     ui->btnCancel->setProperty("cssClass" , "btn-text-primary-inactive");
     ui->editPassword->setPlaceholderText("Enter password ");
     ui->editPassword->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->editPassword->setProperty("cssClass" , "edit-primary");
     connect(ui->btnCancel,SIGNAL(clicked()),this, SLOT(onEscapeClicked()));
-    connect(ui->btnSave,SIGNAL(clicked()),this, SLOT(onUnlockClicked()));
+    connect(ui->btnUnlock,SIGNAL(clicked()),this, SLOT(onUnlockClicked()));
 
     QString strUnlockTitle = "Unlock Wallet For Staking";
     QString strDescripton = "Enter password to unlock wallet for staking only";

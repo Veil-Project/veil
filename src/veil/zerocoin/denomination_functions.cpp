@@ -441,3 +441,11 @@ std::vector<CMintMeta> SelectMintsFromList(const CAmount nValueTarget, CAmount& 
     //}
     return vSelectedMints;
 }
+
+// -------------------------------------------------------------------------------------------------------
+// CMintMeta comparison by mint nHeight - Oldest mints first
+// -------------------------------------------------------------------------------------------------------
+bool oldest_first (const CMintMeta& first, const CMintMeta&  second)
+{
+    return first.nHeight < second.nHeight;
+}

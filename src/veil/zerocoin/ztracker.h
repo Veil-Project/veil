@@ -8,6 +8,7 @@
 #include "primitives/zerocoin.h"
 #include "wallet/walletdb.h"
 #include <list>
+#include "veil/zerocoin/witness.h"
 
 class CDeterministicMint;
 class CWallet;
@@ -24,6 +25,7 @@ private:
     std::map<SerialHash, CMintMeta> mapSerialHashes;
     std::map<SerialHash, uint256> mapPendingSpends; //serialhash, txid of spend
     std::map<PubCoinHash, SerialHash> mapHashPubCoin;
+    std::map<SerialHash, std::unique_ptr<CoinWitnessData> > mapSpendCache; //serialhash, witness value, height
     bool UpdateStatusInternal(const std::set<uint256>& setMempoolTx, const std::map<uint256, uint256>& mapMempoolSerials, CMintMeta& mint);
 public:
     CzTracker(CWallet* wallet);
@@ -53,6 +55,13 @@ public:
     bool UpdateZerocoinMint(const CZerocoinMint& mint);
     bool UpdateState(const CMintMeta& meta);
     void Clear();
+    mutable CCriticalSection cs_modify_lock;
+    mutable CCriticalSection cs_readlock;
+    bool HasSpendCache(const uint256& hashSerial) EXCLUSIVE_LOCKS_REQUIRED(cs_readlock);
+    CoinWitnessData* CreateSpendCache(const uint256& hashSerial) EXCLUSIVE_LOCKS_REQUIRED(cs_modify_lock);
+    CoinWitnessData* GetSpendCache(const uint256& hashSerial) EXCLUSIVE_LOCKS_REQUIRED(cs_readlock);
+    bool GetCoinWitness(const uint256& hashSerial, CoinWitnessData& data) EXCLUSIVE_LOCKS_REQUIRED(cs_readlock);
+    bool ClearSpendCache() EXCLUSIVE_LOCKS_REQUIRED(cs_modify_lock);
 
     static uint8_t GetMintMemFlags(const CMintMeta& mint, int nBestHeight, const std::map<libzerocoin::CoinDenomination, int>& mapMaturity);
 };

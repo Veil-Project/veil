@@ -213,3 +213,7 @@ void ModalOverlay::closeClicked()
     showHide(true);
     userClosed = true;
 }
+
+void ModalOverlay::showEvent(QShowEvent *event){
+    resizeOp();
+}

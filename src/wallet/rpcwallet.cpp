@@ -91,7 +91,7 @@ bool EnsureWalletIsAvailable(CWallet * const pwallet, bool avoidException)
 
 void EnsureWalletIsUnlocked(CWallet * const pwallet)
 {
-    if (pwallet->IsLocked()) {
+    if (pwallet->IsLocked() || pwallet->IsUnlockedForStakingOnly()) {
         throw JSONRPCError(RPC_WALLET_UNLOCK_NEEDED, "Error: Please enter the wallet passphrase with walletpassphrase first.");
     }
 }
@@ -118,6 +118,7 @@ static void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
     entry.pushKV("walletconflicts", conflicts);
     entry.pushKV("time", wtx.GetTxTime());
     entry.pushKV("timereceived", (int64_t)wtx.nTimeReceived);
+    entry.pushKV("computetime", (int64_t)wtx.nComputeTime);
 
     // Add opt-in RBF status
     std::string rbfStatus = "no";
@@ -186,7 +187,7 @@ static UniValue getnewbasecoinaddress(const JSONRPCRequest& request)
         }
     }
 
-    if (!pwallet->IsLocked()) {
+    if (!pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) {
         pwallet->TopUpKeyPool();
     }
 
@@ -239,7 +240,7 @@ static UniValue getnewminingaddress(const JSONRPCRequest& request)
     if (!request.params[0].isNull())
         label = LabelFromValue(request.params[0]);
 
-    if (!pwallet->IsLocked()) {
+    if (!pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) {
         pwallet->TopUpKeyPool();
     }
 
@@ -287,7 +288,7 @@ static UniValue getrawchangeaddress(const JSONRPCRequest& request)
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
-    if (!pwallet->IsLocked()) {
+    if (!pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly()) {
         pwallet->TopUpKeyPool();
     }
 
@@ -518,6 +519,8 @@ static CTransactionRef SendMoney(CWallet * const pwallet, const CTxDestination &
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
     }
 
+    int64_t nComputeTimeStart = GetTimeMillis();
+
     // Parse Veil address
     CScript scriptPubKey = GetScriptForDestination(address);
 
@@ -535,8 +538,11 @@ static CTransactionRef SendMoney(CWallet * const pwallet, const CTxDestination &
             strError = strprintf("Error: This transaction requires a transaction fee of at least %s", FormatMoney(nFeeRequired));
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
     }
+
+    int64_t nComputeTimeFinish = GetTimeMillis();
+
     CValidationState state;
-    if (!pwallet->CommitTransaction(tx, std::move(mapValue), {} /* orderForm */, reservekey, g_connman.get(), state)) {
+    if (!pwallet->CommitTransaction(tx, std::move(mapValue), {} /* orderForm */, &reservekey, g_connman.get(), state, nComputeTimeFinish - nComputeTimeStart)) {
         strError = strprintf("Error: The transaction was rejected! Reason given: %s", FormatStateMessage(state));
         throw JSONRPCError(RPC_WALLET_ERROR, strError);
     }
@@ -745,13 +751,37 @@ static UniValue signmessage(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_TYPE_ERROR, "Invalid address");
     }
 
-    const CKeyID *keyID = boost::get<CKeyID>(&dest);
-    if (!keyID) {
+    CKeyID* keyID = nullptr;
+    WitnessV0KeyHash *witnessID = nullptr;
+    CStealthAddress* stealthID = nullptr;
+
+    if (dest.type() == typeid(CKeyID)) {
+        keyID = boost::get<CKeyID>(&dest);
+    } else if (dest.type() == typeid(CStealthAddress)) {
+        stealthID = boost::get<CStealthAddress>(&dest);
+    } else if (dest.type() == typeid(WitnessV0KeyHash)) {
+        witnessID = boost::get<WitnessV0KeyHash>(&dest);
+    }
+
+    if (!keyID && !stealthID && !witnessID) {
         throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to key");
     }
 
     CKey key;
-    if (!pwallet->GetKey(*keyID, key)) {
+    bool gotPrivateKey = false;
+    if (keyID) {
+        gotPrivateKey = pwallet->GetKey(*keyID, key);
+    } else if (witnessID) {
+        gotPrivateKey = pwallet->GetKey(CKeyID(*witnessID), key);
+    }
+    else {
+        if (pwallet->GetAnonWallet()->GetStealthAddressScanKey(*stealthID)) {
+            key = stealthID->scan_secret;
+            gotPrivateKey = true;
+        }
+    }
+
+    if (!gotPrivateKey) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Private key not available");
     }
 
@@ -1071,6 +1101,38 @@ static UniValue getbalance(const JSONRPCRequest& request)
     return ValueFromAmount(pwallet->GetBalance(filter, min_depth));
 }
 
+static UniValue getspendablebalance(const JSONRPCRequest& request){
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet *const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || (request.params.size() > 0 )){
+        throw std::runtime_error(
+            std::string(
+                "getspendablebalance ()\n"
+                "\nreturns the sum of all spendable balances (base + ringct + ct + zero)\n"
+                "\nResult:\n"
+                "total_spendable    (numeric) The sum of \"basecoin_spendable\", \"ringct_spendable\", \"ct_spendable\" & \"zerocoin_spendable\"\n"
+                "\nExamples:\n"
+                "\nGet the sum of all spendable balances.\n"
+                + HelpExampleCli("getspendablebalance", "")
+            )
+        );
+    }
+
+    pwallet->BlockUntilSyncedToCurrentChain();
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    BalanceList balancelist;
+    if (!pwallet->GetBalances(balancelist))
+        throw JSONRPCError(RPC_WALLET_ERROR, "failed to get balances from wallet");
+
+    return ValueFromAmount(balancelist.nVeil + balancelist.nCT + balancelist.nRingCT + balancelist.nZerocoin);
+}
+
 static UniValue getunconfirmedbalance(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1093,6 +1155,7 @@ static UniValue getunconfirmedbalance(const JSONRPCRequest &request)
 
     return ValueFromAmount(pwallet->GetUnconfirmedBalance());
 }
+
 
 static UniValue sendfrom(const JSONRPCRequest& request)
 {
@@ -1319,6 +1382,8 @@ static UniValue sendmany(const JSONRPCRequest& request)
     std::set<CTxDestination> destinations;
     std::vector<CRecipient> vecSend;
 
+    int64_t nComputeTimeStart = GetTimeMillis();
+
     CAmount totalAmount = 0;
     std::vector<std::string> keys = sendTo.getKeys();
     for (const std::string& name_ : keys) {
@@ -1369,7 +1434,10 @@ static UniValue sendmany(const JSONRPCRequest& request)
     if (!fCreated)
         throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, strFailReason);
     CValidationState state;
-    if (!pwallet->CommitTransaction(tx, std::move(mapValue), {} /* orderForm */, keyChange, g_connman.get(), state)) {
+
+    int64_t nComputeTimeFinish = GetTimeMillis();
+
+    if (!pwallet->CommitTransaction(tx, std::move(mapValue), {} /* orderForm */, &keyChange, g_connman.get(), state, nComputeTimeFinish - nComputeTimeStart)) {
         strFailReason = strprintf("Transaction commit failed:: %s", FormatStateMessage(state));
         throw JSONRPCError(RPC_WALLET_ERROR, strFailReason);
     }
@@ -1982,6 +2050,7 @@ UniValue listtransactions(const JSONRPCRequest& request)
             "    \"txid\": \"transactionid\", (string) The transaction id.\n"
             "    \"time\": xxx,              (numeric) The transaction time in seconds since epoch (midnight Jan 1 1970 GMT).\n"
             "    \"timereceived\": xxx,      (numeric) The time received in seconds since epoch (midnight Jan 1 1970 GMT).\n"
+            "    \"computetime\": xxx,       (numeric) The time (in ms) it took the wallet to compute the transaction (0=n/a).\n"
             "    \"comment\": \"...\",       (string) If a comment is associated with the transaction.\n"
             "    \"bip125-replaceable\": \"yes|no|unknown\",  (string) Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
             "                                                     may be unknown for unconfirmed transactions not in the mempool\n"
@@ -2036,6 +2105,7 @@ UniValue listtransactions(const JSONRPCRequest& request)
             "    \"time\": xxx,              (numeric) The transaction time in seconds since epoch (midnight Jan 1 1970 GMT).\n"
             "    \"timereceived\": xxx,      (numeric) The time received in seconds since epoch (midnight Jan 1 1970 GMT). Available \n"
             "                                          for 'send' and 'receive' category of transactions.\n"
+            "    \"computetime\": xxx,       (numeric) The time (in ms) it took the wallet to compute the transaction (0=n/a).\n"
             "    \"comment\": \"...\",       (string) If a comment is associated with the transaction.\n"
             "    \"otheraccount\": \"accountname\",  (string) DEPRECATED. This field will be removed in V0.18. For the 'move' category of transactions, the account the funds came \n"
             "                                          from (for receiving funds, positive amounts), or went to (for sending funds,\n"
@@ -2168,6 +2238,7 @@ static UniValue listsinceblock(const JSONRPCRequest& request)
             "    \"txid\": \"transactionid\",  (string) The transaction id. Available for 'send' and 'receive' category of transactions.\n"
             "    \"time\": xxx,              (numeric) The transaction time in seconds since epoch (Jan 1 1970 GMT).\n"
             "    \"timereceived\": xxx,      (numeric) The time received in seconds since epoch (Jan 1 1970 GMT). Available for 'send' and 'receive' category of transactions.\n"
+            "    \"computetime\": xxx,       (numeric) The time (in ms) it took the wallet to compute the transaction (0=n/a).\n"
             "    \"bip125-replaceable\": \"yes|no|unknown\",  (string) Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
             "                                                   may be unknown for unconfirmed transactions not in the mempool\n"
             "    \"abandoned\": xxx,         (bool) 'true' if the transaction has been abandoned (inputs are respendable). Only available for the 'send' category of transactions.\n"
@@ -2365,6 +2436,7 @@ static UniValue gettransaction(const JSONRPCRequest& request)
             "  \"txid\" : \"transactionid\",   (string) The transaction id.\n"
             "  \"time\" : ttt,            (numeric) The transaction time in seconds since epoch (1 Jan 1970 GMT)\n"
             "  \"timereceived\" : ttt,    (numeric) The time received in seconds since epoch (1 Jan 1970 GMT)\n"
+            "  \"computetime\": ttt,      (numeric) The time (in ms) it took the wallet to compute the transaction (0=n/a).\n"
             "  \"bip125-replaceable\": \"yes|no|unknown\",  (string) Whether this transaction could be replaced due to BIP125 (replace-by-fee);\n"
             "                                                   may be unknown for unconfirmed transactions not in the mempool\n"
             "  \"details\" : [\n"
@@ -2459,13 +2531,18 @@ static UniValue gettransaction(const JSONRPCRequest& request)
         if (txin.IsAnonInput()) {
             obj_vin.pushKV("type", "ringct");
             obj_vin.pushKV("is_mine_ki", pwalletAnon->IsMyAnonInput(txin));
-        } else if (txin.scriptSig.IsZerocoinSpend()) {
+        } else if (txin.IsZerocoinSpend()) {
             obj_vin.pushKV("type", "zerocoinspend");
             auto spend = TxInToZerocoinSpend(txin);
             if (spend) {
                 auto bnSerial = spend->getCoinSerialNumber();
                 obj_vin.pushKV("serial", bnSerial.GetHex());
                 obj_vin.pushKV("serial_hash", GetSerialHash(bnSerial).GetHex());
+                obj_vin.pushKV("denom", (int64_t)spend->getDenomination());
+                obj_vin.pushKV("version", (int64_t)spend->getVersion());
+                if (spend->getVersion() == 4) {
+                    obj_vin.pushKV("pubcoin", spend->getPubcoinValue().GetHex());
+                }
             }
         } else {
             //Have to specifically look up type to determine whether it is CT or Basecoin
@@ -2699,7 +2776,7 @@ static void LockWallet(CWallet* pWallet)
 {
     LOCK(pWallet->cs_wallet);
     pWallet->nRelockTime = 0;
-    pWallet->Lock();
+    pWallet->LockWallet();
 }
 
 static UniValue walletpassphrase(const JSONRPCRequest& request)
@@ -2713,7 +2790,7 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 3) {
         throw std::runtime_error(
-            "walletpassphrase \"passphrase\" timeout\n"
+            "walletpassphrase \"passphrase\" unlockforstakingonly timeout\n"
             "\nStores the wallet decryption key in memory for 'timeout' seconds.\n"
             "This is needed prior to performing transactions related to private keys such as sending veil\n"
             "\nArguments:\n"
@@ -2864,7 +2941,7 @@ static UniValue walletlock(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_WALLET_WRONG_ENC_STATE, "Error: running with an unencrypted wallet, but walletlock was called.");
     }
 
-    pwallet->Lock();
+    pwallet->LockWallet();
     pwallet->nRelockTime = 0;
 
     return NullUniValue;
@@ -3212,7 +3289,22 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
         obj.pushKV("hdmasterkeyid", seed_id.GetHex());
     }
     obj.pushKV("private_keys_enabled", !pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
-    obj.pushKV("staking_active", !mapHashedBlocks.empty());
+
+    // Determine if staking is recently active. Note that this is not immediate effect. Staking could be disabled and it could take up to 70 seconds to update state.
+    int64_t nTimeLastHashing = 0;
+    if (!mapHashedBlocks.empty()) {
+        auto pindexBest = chainActive.Tip();
+        if (mapHashedBlocks.count(pindexBest->GetBlockHash())) {
+            nTimeLastHashing = mapHashedBlocks.at(pindexBest->GetBlockHash());
+        } else if (mapHashedBlocks.count(pindexBest->pprev->GetBlockHash())) {
+            nTimeLastHashing = mapHashedBlocks.at(pindexBest->pprev->GetBlockHash());
+        }
+    }
+    bool fStakingActive = false;
+    if (nTimeLastHashing)
+        fStakingActive = GetAdjustedTime() + MAX_FUTURE_BLOCK_TIME - nTimeLastHashing < 70;
+
+    obj.pushKV("staking_active", fStakingActive);
 
     UniValue objSeedData(UniValue::VOBJ);
     auto pAnonWallet = pwallet->GetAnonWallet();
@@ -4795,6 +4887,81 @@ void AddKeypathToMap(const CWallet* pwallet, const CKeyID& keyID, std::map<CPubK
     hd_keypaths.emplace(vchPubKey, keypath);
 }
 
+UniValue recoveraddresses(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() > 4)
+        throw std::runtime_error(
+                "recoveraddresses (count)\n"
+                        "\nRecover addresses after importing from a used seed. First: (count) of basecoin addresses will be added to the address pool.\n"
+                        "Second: (count) of stealth addresses will be added to the address pool.\n"
+                        "Third: (count) of deterministic zerocoin will be generated.\n"
+                        "Fourth: The entire blockchain will be rescanned to see if there is any activity on the new addresses and zerocoins that were generated.\n"
+                + HelpRequiringPassphrase(pwallet) + "\n"
+
+                        "\nArguments:\n"
+                        "1. count                      (int, optional, default=100) The amount of addresses to restore. Only use the minimum necessary amount.\n"
+                        "2. unused_buffer              (int, optional (experts only), default=20) The amount of stealth addresses to keep beyond the last detected used address.\n"
+                        "3. scan_from_block            (int, optional, default=0) The block to begin searching for transactions from.\n"
+                        "\nResult:\n"
+                        "{\n"
+                        "  \"success\" : true|false,    (string) If the operation completed successfully\n"
+                        "}\n"
+
+                        "\nExamples:\n"
+                + HelpExampleCli("recoveraddresses", "count")
+        );
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    int nCount = 100;
+    if (request.params.size() > 0)
+        nCount = request.params[0].get_int();
+
+    int nUnusedBuffer = 20;
+    if (request.params.size() > 1)
+        nUnusedBuffer = request.params[1].get_int();
+
+    int nHeightStart = 0;
+    if (request.params.size() > 2)
+        nHeightStart = request.params[2].get_int();
+
+    LOCK2(pwallet->cs_wallet, cs_main);
+
+    // Restore basecoin
+    if (!pwallet->RestoreBaseCoinAddresses(nCount))
+        throw JSONRPCError(RPC_WALLET_ERROR, "Failed to restore basecoin addresses");
+
+    // Restore CT and RingCT
+    if (!pwallet->GetAnonWallet()->RestoreAddresses(nCount))
+        throw JSONRPCError(RPC_WALLET_ERROR, "Failed to restore stealth addresses");
+
+    // Restore zerocoins
+    if (!pwallet->GetZWallet()->DeterministicSearch(0, nCount))
+        throw JSONRPCError(RPC_WALLET_ERROR, "Failed to search deterministic zerocoins");
+
+    // Do full wallet scan
+    auto pindexStart = chainActive[nHeightStart];
+    auto pindexStop = chainActive.Tip();
+    WalletRescanReserver reserver(pwallet);
+    if (!reserver.reserve())
+        throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait.");
+    pwallet->ScanForWalletTransactions(pindexStart, pindexStop, reserver, true);
+
+    // Rollback unused stealth indexes (with small buffer), since the more stealth addresses held, the larger the computation required when scanning a transaction to see if it is owned
+    pwallet->GetAnonWallet()->ForgetUnusedStealthAddresses(nUnusedBuffer);
+
+    UniValue ret(UniValue::VOBJ);
+    ret.pushKV("success", true);
+    return ret;
+}
+
 bool FillPSBT(const CWallet* pwallet, PartiallySignedTransaction& psbtx, const CTransaction* txConst, int sighash_type, bool sign, bool bip32derivs)
 {
     LOCK(pwallet->cs_wallet);
@@ -4816,6 +4983,20 @@ bool FillPSBT(const CWallet* pwallet, PartiallySignedTransaction& psbtx, const C
             if (!pout->GetTxOut(utxo))
                 return error("%s: failed to get txout from output", __func__);
             input.witness_utxo = utxo;
+        } else {
+            // Lookup the transaction from blockchain data
+            CTransactionRef tx;
+            uint256 hashBlock;
+            if (GetTransaction(txhash, tx, Params().GetConsensus(), hashBlock, true)) {
+                input.non_witness_utxo = tx;
+                if (tx->vpout.size() >= txin.prevout.n) {
+                    auto pout = tx->vpout[txin.prevout.n];
+                    CTxOut utxo;
+                    if (pout->GetTxOut(utxo)) {
+                        input.witness_utxo = utxo;
+                    }
+                }
+            }
         }
 
         // Get the Sighash type
@@ -5092,6 +5273,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "encryptwallet",                    &encryptwallet,                 {"passphrase"} },
     { "wallet",             "getaddressinfo",                   &getaddressinfo,                {"address"} },
     { "wallet",             "getbalance",                       &getbalance,                    {"account|dummy","minconf","include_watchonly"} },
+    { "wallet",             "getspendablebalance",              &getspendablebalance,           {} },
     { "wallet",             "getbalances",                      &getbalances,                   {} },
     { "wallet",             "getnewbasecoinaddress",            &getnewbasecoinaddress,         {"label|account","address_type"} },
     { "wallet",             "getnewminingaddress",              &getnewminingaddress,           {"label"} },
@@ -5100,6 +5282,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "gettransaction",                   &gettransaction,                {"txid","include_watchonly"} },
     { "wallet",             "getunconfirmedbalance",            &getunconfirmedbalance,         {} },
     { "wallet",             "getwalletinfo",                    &getwalletinfo,                 {} },
+    { "wallet",             "recoveraddresses",                 &recoveraddresses,              {"count", "unused_buffer", "scan_from_block"} },
 
     { "wallet",             "importmulti",                      &importmulti,                   {"requests","options"} },
     { "wallet",             "importprivkey",                    &importprivkey,                 {"privkey","label","rescan"} },
@@ -5126,7 +5309,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "unloadwallet",                     &unloadwallet,                  {"wallet_name"} },
     { "wallet",             "walletlock",                       &walletlock,                    {} },
     { "wallet",             "walletpassphrasechange",           &walletpassphrasechange,        {"oldpassphrase","newpassphrase"} },
-    { "wallet",             "walletpassphrase",                 &walletpassphrase,              {"passphrase","timeout"} },
+    { "wallet",             "walletpassphrase",                 &walletpassphrase,              {"passphrase","unlockforstakingonly","timeout"} },
     { "wallet",             "removeprunedfunds",                &removeprunedfunds,             {"txid"} },
     { "wallet",             "rescanblockchain",                 &rescanblockchain,              {"start_height", "stop_height"} },
     { "wallet",             "sethdseed",                        &sethdseed,                     {"newkeypool","seed"} },

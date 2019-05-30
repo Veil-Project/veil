@@ -32,7 +32,9 @@
 #include <veil/mnemonic/mnemonic.h>
 #include <crypto/sha256.h>
 #include <warnings.h>
-
+#ifdef ENABLE_WALLET
+#include <wallet/wallet.h> // For DEFAULT_DISABLE_WALLET
+#endif
 #include <univalue.h>
 #include <stdint.h>
 
@@ -144,9 +146,14 @@ static UniValue rescanringctwallet(const JSONRPCRequest &request)
 
     if (request.fHelp || !request.params.empty())
         throw std::runtime_error(
-                "rescanringctwallet\n"
-                "Rescans all transactions in the ringct wallet (CT and RingCT transactions)"
-                + HelpRequiringPassphrase(wallet.get()));
+                "rescanringctwallet()\n"
+                "Rescans all transactions in the RingCT & CT Wallets."
+                + HelpRequiringPassphrase(wallet.get()) +
+                "\nExamples:\n"
+                + HelpExampleCli("rescanringctwallet", "")
+                + HelpExampleRpc("rescanringctwallet", ""));
+
+
 
     EnsureWalletIsUnlocked(wallet.get());
     auto pAnonWallet = wallet->GetAnonWallet();
@@ -242,6 +249,8 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     if (wallet->GetBroadcastTransactions() && !g_connman) {
         throw JSONRPCError(RPC_CLIENT_P2P_DISABLED, "Error: Peer-to-peer functionality missing or disabled");
     }
+
+    int64_t nComputeTimeStart = GetTimeMillis();
 
     CAmount nTotal = 0;
 
@@ -537,10 +546,12 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
         }
     }
 
+    int64_t nComputeTimeFinish = GetTimeMillis();
+
     CValidationState state;
     CReserveKey reservekey(wallet.get());
    // if (typeIn == OUTPUT_STANDARD && typeOut == OUTPUT_STANDARD) {
-        if (!wallet->CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, reservekey, g_connman.get(), state)) {
+        if (!wallet->CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, &reservekey, g_connman.get(), state, nComputeTimeFinish - nComputeTimeStart)) {
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Transaction commit failed: %s", FormatStateMessage(state)));
         }
     //} else {
@@ -1907,7 +1918,7 @@ static const CRPCCommand commands[] =
 
 void RegisterHDWalletRPCCommands(CRPCTable &t)
 {
-    if (gArgs.GetBoolArg("-disablewallet", false))
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
         return;
 
     for (unsigned int vcidx = 0; vcidx < ARRAYLEN(commands); vcidx++)

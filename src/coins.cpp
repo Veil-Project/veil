@@ -285,7 +285,7 @@ bool CCoinsViewCache::HaveInputs(const CTransaction& tx) const
 {
     if (!tx.IsCoinBase()) {
         for (unsigned int i = 0; i < tx.vin.size(); i++) {
-            if (tx.vin[i].scriptSig.IsZerocoinSpend())
+            if (tx.vin[i].IsZerocoinSpend())
                 continue;
             if (tx.vin[i].IsAnonInput())
                 continue;

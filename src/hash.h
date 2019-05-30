@@ -231,7 +231,7 @@ public:
     }
 };
 
-/** A hasher class for zPIV-Bulletproofs Protocol */
+/** A hasher class for Veils Zerocoin-Bulletproofs Protocol */
 /** given buffer x returns 1024 bits where the first (left-most) 512 bits
  ** are SHA512(x) and the second (right-most) 512 bits are SHA512(SHA512(x))
  **/

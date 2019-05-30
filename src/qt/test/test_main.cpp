@@ -16,6 +16,7 @@
 #include <qt/test/addressbooktests.h>
 #include <qt/test/paymentservertests.h>
 #include <qt/test/wallettests.h>
+#include <wallet/wallet.h> // For DEFAULT_DISABLE_WALLET
 #endif
 
 #include <QApplication>
@@ -75,9 +76,11 @@ int main(int argc, char *argv[])
         fInvalid = true;
     }
 #ifdef ENABLE_WALLET
-    PaymentServerTests test2;
-    if (QTest::qExec(&test2) != 0) {
-        fInvalid = true;
+    if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        PaymentServerTests test2;
+        if (QTest::qExec(&test2) != 0) {
+            fInvalid = true;
+        }
     }
 #endif
     RPCNestedTests test3;
@@ -89,13 +92,15 @@ int main(int argc, char *argv[])
         fInvalid = true;
     }
 #ifdef ENABLE_WALLET
-    WalletTests test5;
-    if (QTest::qExec(&test5) != 0) {
-        fInvalid = true;
-    }
-    AddressBookTests test6;
-    if (QTest::qExec(&test6) != 0) {
-        fInvalid = true;
+    if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+        WalletTests test5;
+        if (QTest::qExec(&test5) != 0) {
+            fInvalid = true;
+        }
+        AddressBookTests test6;
+        if (QTest::qExec(&test6) != 0) {
+            fInvalid = true;
+        }
     }
 #endif
 

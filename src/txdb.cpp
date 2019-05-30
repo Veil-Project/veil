@@ -258,6 +258,8 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
     std::unique_ptr<CDBIterator> pcursor(NewIterator());
 
     pcursor->Seek(std::make_pair(DB_BLOCK_INDEX, uint256()));
+    
+    std::set<uint256> setBlockHash;
 
     // Load mapBlockIndex
     while (pcursor->Valid()) {
@@ -266,6 +268,14 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
         if (pcursor->GetKey(key) && key.first == DB_BLOCK_INDEX) {
             CDiskBlockIndex diskindex;
             if (pcursor->GetValue(diskindex)) {
+                // For some reason Veil has a tendency to duplicate an index, and store the second under a different key
+                // ignore any duplicates and mark them to be erased
+                uint256 hashBlock = diskindex.GetBlockHash();
+                if (hashBlock != key.second) {
+                    pcursor->Next();
+                    continue;
+                }
+
                 // Construct block index object
                 CBlockIndex* pindexNew = insertBlockIndex(diskindex.GetBlockHash());
                 pindexNew->pprev          = insertBlockIndex(diskindex.hashPrev);

@@ -1,3 +1,4 @@
+// Copyright (c) 2019 The Veil developers
 // Copyright (c) 2017-2019 The PIVX developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -9,6 +10,7 @@
 #include "txdb.h"
 //#include "primitives/deterministicmint.h"
 #include "key.h"
+#include "libzerocoin/PubcoinSignature.h"
 //#include "accumulatorcheckpoints.h"
 #include "libzerocoin/bignum.h"
 #include <boost/test/unit_test.hpp>
@@ -34,7 +36,6 @@ BOOST_AUTO_TEST_CASE(zcparams_test)
     cout << "Running zcparams_test...\n";
     RandomInit();
     ECC_Start();
-
     bool fPassed = true;
     try{
         SelectParams(CBaseChainParams::MAIN);
@@ -53,47 +54,6 @@ std::string zerocoinModulus = "2519590847565789349402718324004839857142928212620
 "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
 "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
 "31438167899885040445364023527381951378636564391212010397122822120720357";
-
-std::string strHexModulus = "c7970ceedcc3b0754490201a7aa613cd73911081c790f5f1a8726f463550bb5b7ff0db8e1ea1189ec72f93d1650011bd721aeeacc2acde32a04107f0648c2813a31f5b0b7765ff8b44b4b6ffc93384b646eb09c7cf5e8592d40ea33c80039f35b4f14a04b51f7bfd781be4d1673164ba8eb991c2c4d730bbbe35f592bdef524af7e8daefd26c66fc02c479af89d64d373f442709439de66ceb955f3ea37d5159f6135809f85334b5cb1813addc80cd05609f10ac6a95ad65872c909525bdad32bc729592642920f24c61dc5b3c3b7923e56b16a4d9d373d8721f24a3fc0f1b3131f55615172866bccc30f95054c824e733a5eb6817f7bc16399d48c6361cc7e5";
-
-BOOST_AUTO_TEST_CASE(bignum_setdecimal)
-{
-    CBigNum bnDec;
-    bnDec.SetDec(zerocoinModulus);
-    CBigNum bnHex;
-    bnHex.SetHex(strHexModulus);
-    BOOST_CHECK_MESSAGE(bnDec == bnHex, "CBigNum.SetDec() does not work correctly");
-}
-
-std::string negstrHexModulus = "-c7970ceedcc3b0754490201a7aa613cd73911081c790f5f1a8726f463550bb5b7ff0db8e1ea1189ec72f93d1650011bd721aeeacc2acde32a04107f0648c2813a31f5b0b7765ff8b44b4b6ffc93384b646eb09c7cf5e8592d40ea33c80039f35b4f14a04b51f7bfd781be4d1673164ba8eb991c2c4d730bbbe35f592bdef524af7e8daefd26c66fc02c479af89d64d373f442709439de66ceb955f3ea37d5159f6135809f85334b5cb1813addc80cd05609f10ac6a95ad65872c909525bdad32bc729592642920f24c61dc5b3c3b7923e56b16a4d9d373d8721f24a3fc0f1b3131f55615172866bccc30f95054c824e733a5eb6817f7bc16399d48c6361cc7e5";
-std::string str_a = "775897c5463939bf29a02816aba7b1741162e1f6b052cd32fec36c44dfee7d4b5162de78bb0b448cb305b0a9bd7e006aec62d7c1e94a31003c2decbdc6fd7c9b261cb88801c51e7cee71a215ff113ccbd02069cf29671e6302944ca5780a2f626eb9046fa6872968addc93c74d09cf6b2872bc4c6bd08e89324cc7e9fb921488";
-std::string str_b = "-775897c5463939bf29a02816aba7b1741162e1f6b052cd32fec36c44dfee7d4b5162de78bb0b448cb305b0a9bd7e006aec62d7c1e94a31003c2decbdc6fd7c9b261cb88801c51e7cee71a215ff113ccbd02069cf29671e6302944ca5780a2f626eb9046fa6872968addc93c74d09cf6b2872bc4c6bd08e89324cc7e9fb921488";
-
-BOOST_AUTO_TEST_CASE(bignum_basic_tests)
-{
-    CBigNum bn, bn2;
-    std::vector<unsigned char> vch;
-
-    bn.SetHex(strHexModulus);
-    vch = bn.getvch();
-    bn2.setvch(vch);
-    BOOST_CHECK_MESSAGE(bn2 == bn, "CBigNum.setvch() or CBigNum.getvch() does not work correctly");
-
-    bn.SetHex(negstrHexModulus);
-    vch = bn.getvch();
-    bn2.setvch(vch);
-    BOOST_CHECK_MESSAGE(bn2 == bn, "CBigNum.setvch() or CBigNum.getvch() does not work correctly");
-
-    bn.SetHex(str_a);
-    vch = bn.getvch();
-    bn2.setvch(vch);
-    BOOST_CHECK_MESSAGE(bn2 == bn, "CBigNum.setvch() or CBigNum.getvch() does not work correctly");
-
-    bn.SetHex(str_b);
-    vch = bn.getvch();
-    bn2.setvch(vch);
-    BOOST_CHECK_MESSAGE(bn2 == bn, "CBigNum.setvch() or CBigNum.getvch() does not work correctly");
-}
 
 //ZQ_TEN mints
 std::string rawTx1 = "0100000001983d5fd91685bb726c0ebc3676f89101b16e663fd896fea53e19972b95054c49000000006a473044022010fbec3e78f9c46e58193d481caff715ceb984df44671d30a2c0bde95c54055f0220446a97d9340da690eaf2658e5b2bf6a0add06f1ae3f1b40f37614c7079ce450d012103cb666bd0f32b71cbf4f32e95fa58e05cd83869ac101435fcb8acee99123ccd1dffffffff0200e1f5050000000086c10280004c80c3a01f94e71662f2ae8bfcd88dfc5b5e717136facd6538829db0c7f01e5fd793cccae7aa1958564518e0223d6d9ce15b1e38e757583546e3b9a3f85bd14408120cd5192a901bb52152e8759fdd194df230d78477706d0e412a66398f330be38a23540d12ab147e9fb19224913f3fe552ae6a587fb30a68743e52577150ff73042c0f0d8f000000001976a914d6042025bd1fff4da5da5c432d85d82b3f26a01688ac00000000";
@@ -184,7 +144,7 @@ bool CheckZerocoinSpendNoDB(const CTransaction tx, string& strError)
     for (const CTxIn& txin : tx.vin) {
 
         //only check txin that is a zcspend
-        if (!txin.scriptSig.IsZerocoinSpend())
+        if (!txin.IsZerocoinSpend())
             continue;
 
         // extract the CoinSpend from the txin
@@ -388,7 +348,7 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
 
     //Get the checksum of the accumulator we use for the spend and also add it to our checksum map
 //    auto hashChecksum_v2 = GetChecksum(accumulator_v2.getValue());
-//    uint256 ptxHash = CBigNum::RandKBitBigum(256).getuint256();
+//    uint256 ptxHash = CBigNum::randKBitBignum(256).getuint256();
 //    try {
 //        CoinSpend coinSpend_v2(Params().Zerocoin_Params(), coin, accumulator_v2, hashChecksum_v2, witness_v2,
 //                               ptxHash, SpendType::SPEND);
@@ -544,6 +504,7 @@ BOOST_AUTO_TEST_CASE(deterministic_tests)
 
 BOOST_AUTO_TEST_CASE(test_zerocoinspend_ringct_change)
 {
+    cout << "Testing zerocoin ringct change\n";
     //initialize and Accumulator and AccumulatorWitness
     PrivateCoin coin(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN, true);
     auto pubCoin = coin.getPublicCoin();
@@ -565,7 +526,7 @@ BOOST_AUTO_TEST_CASE(test_zerocoinspend_ringct_change)
     }
 
     uint256 nChecksum = GetChecksum(accumulator.getValue());
-    uint256 ptxHash = CBigNum::RandKBitBigum(256).getuint256();
+    uint256 ptxHash = CBigNum::randKBitBignum(256).getuint256();
     bool fSpendValid = true;
     CoinSpend* pspend;
     try {
@@ -620,5 +581,61 @@ BOOST_AUTO_TEST_CASE(test_zerocoinspend_ringct_change)
 //    SetCTOutVData(txout->vData, pkEphem, r.nStealthPrefix);
 
 }
+
+BOOST_AUTO_TEST_CASE(test_coinspendv4)
+{
+    cout << "Testing coinspendv4\n";
+
+    //initialize and Accumulator and AccumulatorWitness
+    PrivateCoin coin(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN, true);
+    auto pubCoin = coin.getPublicCoin();
+    Accumulator accumulator(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN);
+    AccumulatorWitness witness(Params().Zerocoin_Params(), accumulator, pubCoin);
+
+    std::vector<libzerocoin::PublicCoin> vPubcoins;
+    for (unsigned int i = 0; i < 10; i++) {
+        PrivateCoin c(Params().Zerocoin_Params(), CoinDenomination::ZQ_TEN, true);
+        vPubcoins.emplace_back(c.getPublicCoin());
+    }
+
+    //populate the witness and accumulators
+    accumulator += pubCoin;
+    for (const auto& pub : vPubcoins) {
+        BOOST_CHECK_MESSAGE(accumulator.accumulate(pub), "accumulator failed accumulating pubcoin");
+        witness += pub;
+    }
+
+    uint256 ptxHash = uint256();
+    uint256 checksum = uint256();
+    CoinSpend spend(Params().Zerocoin_Params(), coin, accumulator, checksum, witness, ptxHash, SpendType::SPEND, CoinSpend::V4_LIMP);
+
+    std::string strError;
+    bool fValid = spend.Verify(accumulator, strError, true);
+    strError = std::string("Valid v4 coinspend failed to verify: ") + strError;
+    BOOST_CHECK_MESSAGE(fValid, strError);
+
+    //try serializing
+    CDataStream ss(0,0);
+    bool threw = false;
+    try {
+        ss << spend;
+    } catch (...) {
+        threw = true;
+    }
+
+    BOOST_CHECK_MESSAGE(!threw, "Serialization error with version 4 CoinSpend object");
+
+    threw = false;
+    try {
+        CoinSpend spendss(Params().Zerocoin_Params(), ss);
+        BOOST_CHECK_MESSAGE(spendss.getPubcoinValue() == coin.getPublicCoin().getValue(), "deserialized spend contains the wrong pubcoin");
+    } catch (...) {
+        threw = true;
+    }
+
+    BOOST_CHECK_MESSAGE(!threw, "Deserialization error with version 4 CoinSpend object");
+}
+
+
 
 BOOST_AUTO_TEST_SUITE_END()

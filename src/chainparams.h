@@ -133,7 +133,9 @@ public:
     int HeightSupplyCreationStop() const { return nHeightSupplyCreationStop; }
     int ProofOfFullNodeRounds() const {return nProofOfFullNodeRounds; }
     int EnforceWeightReductionTime() const { return nTimeEnforceWeightReduction; }
+    int HeightProtocolBumpEnforcement() const { return nHeightProtocolBumpEnforcement; }
     int MaxHeaderRequestWithoutPoW() const { return nMaxHeaderRequestWithoutPoW; }
+    int BIP9Period() const { return consensus.nMinerConfirmationWindow; }
 
 protected:
     CChainParams() {}
@@ -187,6 +189,7 @@ protected:
 
     //Time and height enforcements
     int nTimeEnforceWeightReduction;
+    int nHeightProtocolBumpEnforcement; // the height a new protobump is enforced
 
     //Settings that are not chain critical, but should not be edited unless the person changing understands the consequence
     int nMaxHeaderRequestWithoutPoW;

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>440</width>
+    <width>500</width>
     <height>40</height>
    </rect>
   </property>
@@ -25,13 +25,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">background-color:white;
-border:none;
-padding:0px;
-margin:0px;
-</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <property name="spacing">
     <number>0</number>
@@ -49,20 +42,12 @@ margin:0px;
     <number>0</number>
    </property>
    <item>
-    <widget class="QFrame" name="frame">
+    <widget class="QFrame" name="frameStatusBar">
      <property name="maximumSize">
       <size>
        <width>16777215</width>
        <height>40</height>
       </size>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">#frame{
-background-color:white;
-border-bottom:0px;
-border-right:0px;
-border-left:0px;
-}</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -100,16 +85,13 @@ border-left:0px;
           <height>1</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">background-color:#bababa;</string>
-        </property>
         <property name="text">
          <string/>
         </property>
        </widget>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,4,1">
+       <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0,0,0">
         <property name="leftMargin">
          <number>9</number>
         </property>
@@ -123,22 +105,44 @@ border-left:0px;
          <number>3</number>
         </property>
         <item>
-         <widget class="QCheckBox" name="checkStaking">
-          <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
+         <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0">
+          <property name="spacing">
+           <number>2</number>
           </property>
-          <property name="styleSheet">
-           <string notr="true">
+          <property name="sizeConstraint">
+           <enum>QLayout::SetMinimumSize</enum>
+          </property>
+          <item>
+           <widget class="QCheckBox" name="checkStaking">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="font">
+             <font>
+              <stylestrategy>PreferAntialias</stylestrategy>
+             </font>
+            </property>
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">
  #checkStaking::indicator {
-     border: 0;
-     background: none;
+    border: 0;
+    background: none;
+	 margin: 0;
+	 padding: 0;
+	width:40px;
+	height:30px;
  }
 
  #checkStaking {
  background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
  background-repeat:no-repeat;
  background-position:left center;
- padding:8 4 8 30px;
  color:#bababa;
  }
 
@@ -146,33 +150,92 @@ border-left:0px;
  background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
  color:#105aef;
  }</string>
-          </property>
-          <property name="text">
-           <string>Staking</string>
-          </property>
-         </widget>
+            </property>
+            <property name="text">
+             <string>Staking</string>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>16</width>
+              <height>16</height>
+             </size>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkPrecompute">
+            <property name="font">
+             <font>
+              <stylestrategy>PreferAntialias</stylestrategy>
+             </font>
+            </property>
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">
+ #checkPrecompute::indicator {
+     border: 0;
+     background: none;
+	 margin: 0;
+	 padding: 0;
+	 width:40px;
+    height:30px;
+ }
+
+ #checkPrecompute {
+ background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
+ background-repeat:no-repeat;
+ background-position:left center;
+ color:#bababa;
+ }
+
+ #checkPrecompute:checked {
+ background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
+ color:#105aef;
+ }</string>
+            </property>
+            <property name="text">
+             <string>Precompute</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </item>
         <item>
          <widget class="QPushButton" name="btnSync">
-          <property name="styleSheet">
-           <string notr="true">#btnSync{
-color:#707070;
-background-color:transparent;
-border:none;
-padding:0px;
-margin:0px;
-background:transparent;
-}</string>
-          </property>
           <property name="text">
            <string>100% Synced</string>
           </property>
          </widget>
         </item>
-        <item alignment="Qt::AlignRight">
+        <item>
+         <spacer name="horizontalSpacer">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Expanding</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>100</width>
+            <height>20</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QLabel" name="btnSyncIndicator">
+          <property name="text">
+           <string>0</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="btnLock">
           <property name="focusPolicy">
-           <enum>Qt::NoFocus</enum>
+           <enum>Qt::StrongFocus</enum>
           </property>
           <property name="layoutDirection">
            <enum>Qt::LeftToRight</enum>
@@ -200,6 +263,8 @@ background:transparent;
    </item>
   </layout>
  </widget>
- <resources/>
+ <resources>
+  <include location="../../veil.qrc"/>
+ </resources>
  <connections/>
 </ui>

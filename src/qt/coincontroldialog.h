@@ -54,6 +54,8 @@ public:
     static QList<CAmount> payAmounts;
     static CCoinControl *coinControl();
     static bool fSubtractFeeFromAmount;
+    static int nCurrentCoinTypeSelected;
+    static bool fSpendingZerocoin;
 
 private:
     Ui::CoinControlDialog *ui;
@@ -66,11 +68,12 @@ private:
     QAction *copyTransactionHashAction;
     QAction *lockAction;
     QAction *unlockAction;
+    QAction *copyStakeHash;
 
     const PlatformStyle *platformStyle;
 
     void sortView(int, Qt::SortOrder);
-    void updateView();
+    void updateView(int nCoinType = nCurrentCoinTypeSelected);
 
     enum
     {
@@ -108,6 +111,7 @@ private Q_SLOTS:
     void buttonBoxClicked(QAbstractButton*);
     void buttonSelectAllClicked();
     void updateLabelLocked();
+    void coinTypeChanged(int);
 };
 
 #endif // BITCOIN_QT_COINCONTROLDIALOG_H

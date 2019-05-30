@@ -14,8 +14,9 @@ class CScheduler;
 class CWallet;
 
 class WalletInitInterface;
+#ifdef ENABLE_WALLET
 extern const WalletInitInterface& g_wallet_init_interface;
-
+#endif
 namespace boost
 {
 class thread_group;

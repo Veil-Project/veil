@@ -387,10 +387,106 @@ bool AnonWallet::GetAddressMeta(const CStealthAddress& address, CKeyID& idAccoun
     if (mapKeyPaths.count(sxAddr.GetID())) {
         auto accountpair = mapKeyPaths.at(sxAddr.GetID());
         idAccount = accountpair.first;
+        std::string strPathToKey = BIP32PathToString(accountpair.second);
+
+        //The path of the account is what provides context
+        if (!mapKeyPaths.count(idAccount))
+            return false;
+        accountpair = mapKeyPaths.at(idAccount);
         strPath = BIP32PathToString(accountpair.second);
+        strPath += strPathToKey;
     }
 
     return true;
+}
+
+CStealthAddress GenerateStealthAddressFromIndex(const CExtKey& keyStealthAddress, int nIndex)
+{
+    //Generate the extkey for spend and scan
+    BIP32Path vPathNew;
+    vPathNew.emplace_back(nIndex, true);
+    CExtKey extKeyScan = DeriveKeyFromPath(keyStealthAddress, vPathNew);
+    vPathNew.clear();
+    vPathNew.emplace_back(nIndex+1, true);
+    CExtKey extKeySpend = DeriveKeyFromPath(keyStealthAddress, vPathNew);
+    CKey keyScan = extKeyScan.key;
+    CKey keySpend = extKeySpend.key;
+    CPubKey pkSpend = keySpend.GetPubKey();
+
+    // Make a stealth address
+    CStealthAddress stealthAddress;
+    stealthAddress.SetNull();
+    stealthAddress.scan_pubkey = keyScan.GetPubKey().Raw();
+    stealthAddress.spend_pubkey = pkSpend.Raw();
+    stealthAddress.scan_secret.Set(keyScan.begin(), true);
+    stealthAddress.spend_secret_id = pkSpend.GetID();
+
+    return stealthAddress;
+}
+
+//! Return the last index in this account that has received coins
+int AnonWallet::GetLastUsedAddressIndex(const CKeyID& idAccount) const
+{
+    if (!mapAccountCounter.count(idAccount))
+        return -1;
+
+    int nLastGenerated = mapAccountCounter.at(idAccount);
+    int n = nLastGenerated - 1;
+    while (n > 0) {
+        //Regenerate address for this path
+        CExtKey keyStealthAccount;
+        if (!RegenerateKeyFromIndex(idAccount, n, keyStealthAccount))
+            return -1;
+
+        //Regenerate the stealth address and then get full address from 
+        CStealthAddress stealthAddress = GenerateStealthAddressFromIndex(keyStealthAccount, 1);
+        if (!mapStealthAddresses.count(stealthAddress.GetID()))
+            return -2;
+
+        stealthAddress = mapStealthAddresses.at(stealthAddress.GetID());
+
+        //If this address has any stealth destinations, then it is used and is the last used address.
+        if (!stealthAddress.setStealthDestinations.empty())
+            return n;
+
+        n--;
+    }
+    return -1;
+}
+
+void AnonWallet::ForgetUnusedStealthAddresses(int nBuffer)
+{
+    int nIndexLastUsed = GetLastUsedAddressIndex(idStealthAccount);
+    if (nIndexLastUsed < 0)
+        return;
+
+    // Get the last used address (this must be done after rescanning the chain)
+    int nLastGenerated = mapAccountCounter.at(idStealthAccount);
+    if (nLastGenerated - nIndexLastUsed <= nBuffer)
+        return;
+
+    // Remove knowledge of each account beyond the buffer.
+    AnonWalletDB wdb(*walletDatabase);
+    CExtKey keyStealthAddress;
+    int n = nIndexLastUsed + nBuffer;
+
+    while (n <= nLastGenerated && RegenerateKeyFromIndex(idStealthAccount, n, keyStealthAddress)) {
+        // Erase stealth address
+        auto address = GenerateStealthAddressFromIndex(keyStealthAddress, 0);
+        wdb.EraseStealthAddress(address);
+        mapStealthAddresses.erase(address.GetID());
+        mapKeyPaths.erase(address.GetID());
+
+        // Erase account
+        auto idAccount = keyStealthAddress.key.GetPubKey().GetID();
+        wdb.EraseExtKey(idAccount);
+        mapKeyPaths.erase(idAccount);
+        n++;
+    }
+
+    // Change account counter back
+    mapAccountCounter[idStealthAccount] = nIndexLastUsed + nBuffer;
+    wdb.WriteAccountCounter(idStealthAccount, nIndexLastUsed + nBuffer);
 }
 
 
@@ -1005,7 +1101,7 @@ bool AnonWallet::GetBalances(BalanceList &bal)
 
         bool fTrusted = IsTrusted(txhash, rtx.blockHash);
         int nDepth = GetDepthInMainChain(rtx.blockHash, 0);
-        bool fConfirmed = nDepth >= 11;
+        bool fConfirmed = nDepth > 11;
         bool fInMempool = false;
         if (!fTrusted) {
             CTransactionRef ptx = mempool.get(txhash);
@@ -1059,7 +1155,7 @@ void AnonWallet::Lock()
 
 bool AnonWallet::IsLocked() const
 {
-    return pkeyMaster.get() == nullptr;
+    return pkeyMaster.get() == nullptr || pwalletParent->IsUnlockedForStakingOnly();
 }
 
 CAmount AnonWallet::GetAvailableAnonBalance(const CCoinControl* coinControl) const
@@ -1702,6 +1798,19 @@ bool AnonWallet::SaveRecord(const uint256& txid, const CTransactionRecord& rtx)
     return true;
 }
 
+bool GetScriptPubKeyFromOutpoint(const COutPoint& outpoint, CScript& scriptPubKey)
+{
+    //output record does not have the signing key, find it manually
+    CTransactionRef ptx;
+    uint256 hashBlock;
+    if (!GetTransaction(outpoint.hash, ptx, Params().GetConsensus(), hashBlock, /*allowslow*/true))
+        return error("Failed to find input transaction %s", outpoint.hash.GetHex());
+    if (ptx->vpout.size() <= outpoint.n)
+        return error("Failed to find input output %s:%d does not exist", outpoint.hash.GetHex(), outpoint.n);
+
+    return ptx->vpout[outpoint.n]->GetScriptPubKey(scriptPubKey);
+}
+
 int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
         bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs, CAmount nInputValue)
 {
@@ -1790,6 +1899,8 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
             wtx.fFromMe = true;
 
             CAmount nValueToSelect = nValueOutCT;
+            if (!fZerocoinInputs)
+                nValueToSelect += nValueOutZerocoin;
             if (nSubtractFeeFromAmount == 0) {
                 nValueToSelect += nFeeRet;
             }
@@ -1812,7 +1923,8 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 }
             }
 
-            const CAmount nChange = nValueIn - nValueToSelect;
+            // Subtract the already minted zerocoin change from the total change if there were zerocoin inputs
+            const CAmount nChange = nValueIn - nValueToSelect - (fZerocoinInputs ? nValueOutZerocoin : 0);
 
             // Remove fee outputs from last round
             for (size_t i = 0; i < vecSend.size(); ++i) {
@@ -1882,7 +1994,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
 
             int nLastBlindedOutput = -1;
 
-            if (!fOnlyStandardOutputs) {
+            if (!fOnlyStandardOutputs || nZerocoinMintOuts) {
                 OUTPUT_PTR<CTxOutData> outFee = MAKE_OUTPUT<CTxOutData>();
                 outFee->vData.push_back(DO_FEE);
                 outFee->vData.resize(9); // More bytes than varint fee could use
@@ -1935,7 +2047,6 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 && !secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainInputCommitment, &vBlindPlain[0], (uint64_t) nValueIn, secp256k1_generator_h)) {
                 return wserrorN(1, sError, __func__, "secp256k1_pedersen_commit failed for plain in.");
             }
-
             nValueOutPlain += nValueOutZerocoin + nFeeRet;
             if (nValueOutPlain > 0) {
                 vpBlinds.push_back(&vBlindPlain[0]);
@@ -2097,13 +2208,11 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 // Include more fee and try again.
                 nFeeRet = nFeeNeeded;
             }
-            if (fZerocoinInputs)
-                return werrorN(1, "%s: Failed to calc fee\n", __func__);
         }
 
         coinControl->nChangePos = nChangePosInOut;
 
-        if (!fOnlyStandardOutputs) {
+        if (!fOnlyStandardOutputs || nZerocoinMintOuts) {
             std::vector<uint8_t> &vData = ((CTxOutData*)txNew.vpout[0].get())->vData;
             vData.resize(1);
             if (0 != PutVarInt(vData, nFeeRet)) {
@@ -2213,6 +2322,25 @@ int AnonWallet::AddStandardInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::
     return 0;
 }
 
+bool AnonWallet::MakeSigningKeystore(CBasicKeyStore& keystore, const CScript& scriptPubKey)
+{
+    CTxDestination dest;
+    if (!ExtractDestination(scriptPubKey, dest))
+        return error("%s: Failed to extract destination", __func__);
+
+    if (dest.type() != typeid(CKeyID))
+        return error("%s: Destination is not type keyid", __func__);
+
+    CKey key;
+    CKeyID keyID = boost::get<CKeyID>(dest);
+    if (!GetKey(keyID, key))
+        return error("%s: Failed to fetch key", __func__);
+
+    keystore.AddKey(key);
+
+    return true;
+}
+
 int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
     bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
 {
@@ -2271,7 +2399,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
 
         std::vector<std::pair<MapRecords_t::const_iterator, unsigned int> > setCoins;
         std::vector<COutputR> vAvailableCoins;
-        AvailableBlindedCoins(vAvailableCoins, true, coinControl);
+        AvailableBlindedCoins(vAvailableCoins, true, coinControl, /*nMinimumAmount*/2);
 
         CAmount nValueOutPlain = 0;
         int nChangePosInOut = -1;
@@ -2415,16 +2543,25 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             int nIn = 0;
             for (const auto &coin : setCoins) {
                 const uint256 &txhash = coin.first->first;
-                const COutputRecord *oR = coin.first->second.GetOutput(coin.second);
-                const CScript &scriptPubKey = oR->scriptPubKey;
-                SignatureData sigdata;
+                const COutputRecord *outputRecord = coin.first->second.GetOutput(coin.second);
+                CScript scriptPubKey = outputRecord->scriptPubKey;
+
+                if (scriptPubKey.empty()) {
+                    if (!GetScriptPubKeyFromOutpoint(COutPoint(txhash, outputRecord->n), scriptPubKey))
+                        return wserrorN(1, sError, __func__, strprintf("Failed to find input scriptpubkey for tx %s", txhash.GetHex()));
+                }
+
+                CBasicKeyStore keystore;
+                if (!MakeSigningKeystore(keystore, scriptPubKey))
+                    return wserrorN(1, sError, __func__, "Could not locate signing key");
 
                 // Use witness size estimate if set
                 COutPoint prevout(txhash, coin.second);
                 std::map<COutPoint, CInputData>::const_iterator it = coinControl->m_inputData.find(prevout);
+                SignatureData sigdata;
                 if (it != coinControl->m_inputData.end()) {
                     sigdata.scriptWitness = it->second.scriptWitness;
-                } else if (!ProduceSignature(*pwalletParent, DUMMY_SIGNATURE_CREATOR, scriptPubKey, sigdata)) {
+                } else if (!ProduceSignature(keystore, DUMMY_SIGNATURE_CREATOR, scriptPubKey, sigdata)) {
                     return wserrorN(1, sError, __func__, "Dummy signature failed.");
                 }
                 UpdateInput(txNew.vin[nIn], sigdata);
@@ -2547,7 +2684,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                 if (!stx.GetBlind(coin.second, &vInputBlinds[nIn * 32])) {
                     //Try to manually get blinds
                     uint256 blind;
-                    if (!GetCTBlindsFromOutput((CTxOutCT*)stx.tx->vpout[coin.second].get(), blind))
+                    if (!GetCTBlindsFromOutput(stx.tx->vpout[coin.second].get(), blind))
                         return werrorN(1, "%s: GetBlind failed for %s, %d.\n", __func__, txhash.ToString().c_str(), coin.second);
                     memcpy(&vInputBlinds[nIn * 32], blind.begin(), 32);
                 }
@@ -2628,7 +2765,15 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                     return werrorN(1, "%s: GetOutput %s failed.\n", __func__, txhash.ToString().c_str());
                 }
 
-                const CScript &scriptPubKey = outputRecord->scriptPubKey;
+                CScript scriptPubKey = outputRecord->scriptPubKey;
+                if (scriptPubKey.empty()) {
+                    if (!GetScriptPubKeyFromOutpoint(COutPoint(txhash, outputRecord->n), scriptPubKey))
+                        return wserrorN(1, sError, __func__, strprintf("Failed to find input scriptpubkey in tx %s", txhash.GetHex()));
+                }
+
+                CBasicKeyStore keystore;
+                if (!MakeSigningKeystore(keystore, scriptPubKey))
+                    return wserrorN(1, sError, __func__, "Could not locate signing key");
 
                 CStoredTransaction stx;
                 if (!AnonWalletDB(*walletDatabase).ReadStoredTx(txhash, stx)) {
@@ -2639,7 +2784,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
 
                 SignatureData sigdata;
 
-                if (!ProduceSignature(*pwalletParent, MutableTransactionSignatureCreator(&txNew, nIn, vchAmount, SIGHASH_ALL), scriptPubKey, sigdata))
+                if (!ProduceSignature(keystore, MutableTransactionSignatureCreator(&txNew, nIn, vchAmount, SIGHASH_ALL), scriptPubKey, sigdata))
                     return wserrorN(1, sError, __func__, _("Signing transaction failed"));
                 UpdateInput(txNew.vin[nIn], sigdata);
 
@@ -3668,9 +3813,22 @@ bool AnonWallet::RegenerateKey(const CKeyID& idKey, CKey& key) const
     return true;
 }
 
+bool AnonWallet::RegenerateKeyFromIndex(const CKeyID& idAccount, int nIndex, CExtKey& keyDerive) const
+{
+    CExtKey keyAccount;
+    if (!RegenerateAccountExtKey(idAccount, keyAccount))
+        return error("%s: failed to regenerate account key", __func__);
+
+    BIP32Path vPathNew;
+    vPathNew.emplace_back(nIndex, true);
+    keyDerive = DeriveKeyFromPath(keyAccount, vPathNew);
+
+    return true;
+}
+
 bool AnonWallet::RegenerateAccountExtKey(const CKeyID& idAccount, CExtKey& keyAccount) const
 {
-    if (IsLocked())
+    if (IsLocked() || pwalletParent->IsUnlockedForStakingOnly())
         return error("%s Wallet must be unlocked to derive hardened keys.", __func__);
 
     if (!mapKeyPaths.count(idAccount))
@@ -3767,8 +3925,6 @@ bool AnonWallet::CreateAccountWithKey(const CExtKey& key)
     AnonWalletDB wdb(*walletDatabase, "r+");
     wdb.WriteAccountCounter(idAccount, (uint32_t)1);
 
-    auto idParent = mapKeyPaths.at(idAccount).first;
-
     return true;
 }
 
@@ -3823,6 +3979,16 @@ bool AnonWallet::NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefix
         return error("%s: failed to write stealth address to db", __func__);
     mapStealthAddresses.emplace(stealthAddress.GetID(), stealthAddress);
 
+    return true;
+}
+
+bool AnonWallet::RestoreAddresses(int nCount)
+{
+    for (int i = 0; i < nCount; i++) {
+        CStealthAddress stealthAddress;
+        if (!NewStealthKey(stealthAddress, 0, nullptr))
+            return false;
+    }
     return true;
 }
 
@@ -4536,7 +4702,7 @@ void AnonWallet::RescanWallet()
 
             for (auto it = txrecord->vout.begin(); it != txrecord->vout.end(); it++) {
                 bool fUpdated = false;
-                if (txRef->vpout.size() < it->n + 1)
+                if (txRef->vpout.size() < static_cast<unsigned int>(it->n + 1))
                     continue;
 
                 auto pout = txRef->vpout[it->n];
@@ -4678,7 +4844,6 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
                     MarkOutputSpent(prevout, true);
 
                     fIsFromMe = true;
-                    continue;
                 }
 
                 if (fIsFromMe)
@@ -4885,53 +5050,21 @@ bool AnonWallet::GetCTBlinds(CScript scriptPubKey, std::vector<uint8_t>& vData,
     return true;
 }
 
-bool AnonWallet::GetCTBlindsFromOutput(const CTxOutCT *pout, uint256& blind) const
+bool AnonWallet::GetCTBlindsFromOutput(const CTxOutBase *pout, uint256& blind) const
 {
-    CScript scriptPubKey;
-    if (!pout->GetScriptPubKey(scriptPubKey))
-        return error("%s: GetScriptPubKey failed.", __func__);
-
-    CTxDestination dest;
-    if (!ExtractDestination(scriptPubKey, dest))
-        return error("%s: ExtractDestination failed", __func__);
-
-    if (dest.which() != 1)
-        return error("%s: destination is not key id", __func__);
-    CKeyID idKey = boost::get<CKeyID>(dest);
-
-    CKey key;
-    if (!GetKey(idKey, key))
-        return error("%s: GetKey failed.", __func__);
-
-    if (pout->vData.size() < 33)
-        return error("%s: vData.size() < 33.", __func__);
-
-    CPubKey pkEphem;
-    pkEphem.Set(pout->vData.begin(), pout->vData.begin() + 33);
-
-    // Regenerate nonce
-    uint256 nonce = key.ECDH(pkEphem);
-    CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
-
-    uint64_t min_value, max_value;
-    uint8_t blindOut[32];
-    unsigned char msg[256]; // Currently narration is capped at 32 bytes
-    size_t mlen = sizeof(msg);
-    memset(msg, 0, mlen);
-    uint64_t amountOut;
-    if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
-                                         blindOut, &amountOut, msg, &mlen, nonce.begin(),
-                                         &min_value, &max_value,
-                                         &pout->commitment, pout->vRangeproof.data(), pout->vRangeproof.size(),
-                                         nullptr, 0,
-                                         secp256k1_generator_h)) {
-        return error("%s: secp256k1_rangeproof_rewind failed.", __func__);
+    int64_t nValue = 0;
+    if (pout->GetType() == OUTPUT_CT) {
+        auto txout = (CTxOutCT*)pout;
+        return GetCTBlinds(txout->scriptPubKey, txout->vData, &txout->commitment, txout->vRangeproof, blind, nValue);
+    } else if (pout->GetType() == OUTPUT_RINGCT) {
+        auto txout = (CTxOutRingCT*)pout;
+        CScript scriptPubKey;
+        if (!pout->GetScriptPubKey(scriptPubKey))
+            return error("%s: GetScriptPubKey failed.", __func__);
+        return GetCTBlinds(scriptPubKey, txout->vData, &txout->commitment, txout->vRangeproof, blind, nValue);
     }
 
-    blind = uint256();
-    memcpy(blind.begin(), blindOut, 32);
-
-    return true;
+    return false;
 }
 
 bool AnonWallet::HaveKeyID(const CKeyID& id)
@@ -5167,7 +5300,7 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                 rtx.vin[k] = tx.vin[k].prevout;
             }
 
-            if (!tx.vin[0].scriptSig.IsZerocoinSpend()) {
+            if (!tx.vin[0].IsZerocoinSpend()) {
                 // Lookup 1st input to set type
                 Coin coin;
                 const auto &prevout0 = tx.vin[0].prevout;
@@ -5233,7 +5366,7 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
 
         pout->n = i;
         pout->nType = txout->nVersion;
-        bool fAdded = false;
+
         switch (txout->nVersion) {
             case OUTPUT_STANDARD:
                 {
@@ -5245,7 +5378,6 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                 if (OwnBlindOut(&wdb, txhash, (CTxOutCT*)txout.get(), *pout, stx, fUpdated)
                     && !fHave) {
                     fUpdated = true;
-                    fAdded = true;
                 } else {
                     //Just set as from me.
                     if (rtx.nFlags & ORF_FROM) {
@@ -5260,7 +5392,6 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                 if (OwnAnonOut(&wdb, txhash, (CTxOutRingCT*)txout.get(), *pout, stx, fUpdated)
                     && !fHave) {
                     fUpdated = true;
-                    fAdded = true;
                 } else {
                     //Just set as from me.
                     if (rtx.nFlags & ORF_FROM) {

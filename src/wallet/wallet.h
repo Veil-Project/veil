@@ -49,6 +49,8 @@ std::shared_ptr<CWallet> GetMainWallet();
 
 extern CCriticalSection cs_main;
 
+extern bool fGlobalUnlockSpendCache; // Bool used for letting the precomputing thread know that zerospends need to use the cs_spendcache
+
 //! Default for -keypool
 static const unsigned int DEFAULT_KEYPOOL_SIZE = 1000;
 //! -paytxfee default
@@ -76,6 +78,7 @@ static const bool DEFAULT_DISABLE_WALLET = false;
 
 typedef std::vector<std::pair<uint32_t, bool> > BIP32Path;
 typedef std::map<libzerocoin::CoinDenomination, CAmount> ZerocoinSpread;
+typedef std::tuple<CWalletTx, std::vector<CDeterministicMint>, std::vector<CZerocoinMint>> CommitData;
 
 class CBlockIndex;
 class CCoinControl;
@@ -90,6 +93,7 @@ struct FeeCalculation;
 enum class FeeEstimateMode;
 class AnonWallet;
 class CTransactionRecord;
+class CoinWitnessCacheData;
 
 /** (client) version numbers for particular wallet features */
 enum WalletFeature
@@ -110,7 +114,7 @@ enum WalletFeature
     FEATURE_LATEST = FEATURE_PRE_SPLIT_KEYPOOL
 };
 
-// Possible states for zPIV send
+// Possible states for Zerocoin send
 enum ZerocoinSpendStatus {
     ZSPEND_OKAY = 0,                            // No error
     ZSPEND_ERROR = 1,                           // Unspecified class of errors, more details are (hopefully) in the returning text
@@ -127,8 +131,9 @@ enum ZerocoinSpendStatus {
     ZINVALID_WITNESS = 12,                      // Spend coin transaction did not verify
     ZBAD_SERIALIZATION = 13,                    // Transaction verification failed
     ZSPENT_USED_ZPIV = 14,                      // Coin has already been spend
-    ZTX_TOO_LARGE = 15,                          // The transaction is larger than the max tx size
-    ZSPEND_V1_SEC_LEVEL                         // Spend is V1 and security level is not set to 100
+    ZTX_TOO_LARGE = 15,                         // The transaction is larger than the max tx size
+    ZSPEND_V1_SEC_LEVEL = 16,                   // Spend is V1 and security level is not set to 100
+    ZSPEND_PREPARED = 17                        // No error thus far, but spending not yet fully finished
 };
 
 //! Default for -addresstype
@@ -373,6 +378,7 @@ public:
      *     "timesmart"       - serialized nTimeSmart value
      *     "spent"           - serialized vfSpent value that existed prior to
      *                         2014 (removed in commit 93a18a3)
+     *     "computetime"     - serialized nComputeTime value
      */
     mapValue_t mapValue;
     std::vector<std::pair<std::string, std::string> > vOrderForm;
@@ -388,6 +394,7 @@ public:
      * CWallet::ComputeTimeSmart().
      */
     unsigned int nTimeSmart;
+    unsigned int nComputeTime;
     /**
      * From me flag is set to 1 for transactions that were created by the wallet
      * on this veil node, and set to 0 for transactions that were created
@@ -436,6 +443,7 @@ public:
         fTimeReceivedIsTxTime = false;
         nTimeReceived = 0;
         nTimeSmart = 0;
+        nComputeTime = 0;
         fFromMe = false;
         fDebitCached = false;
         fCreditCached = false;
@@ -470,6 +478,9 @@ public:
         if (nTimeSmart) {
             mapValueCopy["timesmart"] = strprintf("%u", nTimeSmart);
         }
+        if (nComputeTime) {
+            mapValueCopy["computetime"] = strprintf("%u", nComputeTime);
+        }
 
         s << static_cast<const CMerkleTx&>(*this);
         std::vector<CMerkleTx> vUnused; //!< Used to be vtxPrev
@@ -488,11 +499,13 @@ public:
 
         ReadOrderPos(nOrderPos, mapValue);
         nTimeSmart = mapValue.count("timesmart") ? (unsigned int)atoi64(mapValue["timesmart"]) : 0;
+        nComputeTime = mapValue.count("computetime") ? (unsigned int)atoi64(mapValue["computetime"]) : 0;
 
         mapValue.erase("fromaccount");
         mapValue.erase("spent");
         mapValue.erase("n");
         mapValue.erase("timesmart");
+        mapValue.erase("computetime");
     }
 
     //! make sure balances are recalculated
@@ -673,6 +686,8 @@ protected:
     std::unique_ptr<CzTracker> zTracker;
     bool fUnlockForStakingOnly = false;
     bool fStakingEnabled = true;
+    bool fPrecomputingEnabled = false;
+
 
     WalletBatch *encrypted_batch = nullptr;
 
@@ -810,9 +825,9 @@ public:
     bool MintableCoins();
     bool CollectMintsForSpend(CAmount nValue, std::vector<CZerocoinMint>& vMints, CZerocoinSpendReceipt& receipt, int nStatus, bool fMinimizeChange, libzerocoin::CoinDenomination denomFilter);
     bool CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransaction& txNew, std::vector<CDeterministicMint>& vDMints,
-            CReserveKey* reservekey, int64_t& nFeeRet, std::string& strFailReason, std::vector<CTempRecipient>& vecSend, OutputTypes inputtype, const CCoinControl* coinControl = NULL,
+            int64_t& nFeeRet, std::string& strFailReason, std::vector<CTempRecipient>& vecSend, OutputTypes inputtype, const CCoinControl* coinControl = NULL,
             const bool isZCSpendChange = false);
-    bool CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew, CReserveKey& reserveKey,
+    bool CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel, CWalletTx& wtxNew,
             CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vSelectedMints,
             std::vector<CDeterministicMint>& vNewMints, bool fMintChange,  bool fMinimizeChange, CTxDestination* address = NULL);
     bool MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, const uint256& hashTxOut, CTxIn& newTxIn,
@@ -820,10 +835,16 @@ public:
     std::string MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
             const std::vector<COutPoint> vOutpts);
     std::string MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints, OutputTypes inputtype,
-            const CCoinControl* coinControl = NULL);
+            const CCoinControl* coinControl = nullptr);
     bool SpendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
-            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, libzerocoin::CoinDenomination denomFilter, CTxDestination* addressTo = NULL);
-    bool AvailableZerocoins(std::set<CMintMeta>& setMints);
+            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange, libzerocoin::CoinDenomination denomFilter = libzerocoin::CoinDenomination::ZQ_ERROR, CTxDestination* addressTo = NULL);
+    bool PrepareZerocoinSpend(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
+            std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
+            std::vector<CommitData>& vCommitData, libzerocoin::CoinDenomination denomFilter = libzerocoin::CoinDenomination::ZQ_ERROR, CTxDestination* addressTo = NULL);
+    bool CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData, int computeTime = 0);
+    CAmount GetAvailableZerocoinBalance(const CCoinControl* coinControl) const;
+    bool AvailableZerocoins(std::set<CMintMeta>& setMints, const CCoinControl *coinControl = nullptr) const;
+    bool GetZerocoinPrecomputePercentage(const uint256 &nSerialHash, double &nPercent);
 //    std::string ResetMintZerocoin();
 //    std::string ResetSpentZerocoin();
     void ReconsiderZerocoins(std::list<CZerocoinMint>& listMintsRestored, std::list<CDeterministicMint>& listDMintsRestored);
@@ -842,6 +863,7 @@ public:
     void SetSerialSpent(const uint256& bnSerial, const uint256& txid);
     void ArchiveZerocoin(CMintMeta& meta);
     void AutoZeromint();
+    void PrecomputeSpends();
 
     CzTracker* GetZTrackerPointer() {
         return zTracker.get();
@@ -957,6 +979,11 @@ public:
     void SetStakingEnabled(bool fStakingEnabled) { this->fStakingEnabled = fStakingEnabled; }
     bool IsStakingEnabled() const { return fStakingEnabled; }
 
+    bool StartPrecomputing(std::string& strStatus);
+    void StopPrecomputing();
+    void SetPrecomputingEnabled(bool fPrecomputingEnabled) { this->fPrecomputingEnabled = fPrecomputingEnabled; }
+    bool IsPrecomputingEnabled() const { return fPrecomputingEnabled; }
+
     /*
      * Rescan abort properties
      */
@@ -978,6 +1005,8 @@ public:
     //! Load metadata (used by LoadWallet)
     void LoadKeyMetadata(const CKeyID& keyID, const CKeyMetadata &metadata) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void LoadScriptMetadata(const CScriptID& script_id, const CKeyMetadata &metadata) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+
+    bool RestoreBaseCoinAddresses(int nCount) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     bool LoadMinVersion(int nVersion) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) { AssertLockHeld(cs_wallet); nWalletVersion = nVersion; nWalletMaxVersion = std::max(nWalletMaxVersion, nVersion); return true; }
     void UpdateTimeFirstKey(int64_t nCreateTime) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -1057,8 +1086,8 @@ public:
     CAmount GetZerocoinBalance(bool fMatureOnly) const;
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
-    bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime);
-    bool SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount);
+    bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
+    bool SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs, CAmount nTargetAmount);
 
     // sub wallet seeds
     bool GetZerocoinSeed(CKey& keyZerocoinMaster);
@@ -1081,7 +1110,7 @@ public:
     bool CreateTransaction(const std::vector<CRecipient>& vecSend, CTransactionRef& tx, CReserveKey& reservekey, CAmount& nFeeRet, int& nChangePosInOut,
                            std::string& strFailReason, const CCoinControl& coin_control, bool sign = true);
     bool CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::vector<std::pair<std::string, std::string>> orderForm,
-            CReserveKey& reservekey, CConnman* connman, CValidationState& state);
+            CReserveKey* reservekey, CConnman* connman, CValidationState& state, int computeTime = 0);
 
     bool DummySignTx(CMutableTransaction &txNew, const std::set<CTxOut> &txouts, bool use_max_sig = false) const
     {
@@ -1337,6 +1366,8 @@ public:
         LogPrintf(("%s " + fmt).c_str(), GetDisplayName(), parameters...);
     };
 };
+
+
 
 /** A key allocated from the key pool. */
 class CReserveKey final : public CReserveScript

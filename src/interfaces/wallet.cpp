@@ -52,7 +52,7 @@ public:
         LOCK2(cs_main, m_wallet.cs_wallet);
         CValidationState state;
 
-        if (!m_wallet.CommitTransaction(m_tx, std::move(value_map), std::move(order_form), m_key, g_connman.get(), state)) {
+        if (!m_wallet.CommitTransaction(m_tx, std::move(value_map), std::move(order_form), &m_key, g_connman.get(), state)) {
             reject_reason = state.GetRejectReason();
             return false;
         }
@@ -213,6 +213,8 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
             result.is_my_zerocoin_spend = wallet.IsMyZerocoinSpend(spend->getCoinSerialNumber());
     }
 
+    result.computetime = wtx.nComputeTime;
+
     return result;
 }
 /*
@@ -304,6 +306,11 @@ public:
     }
     void setStakingEnabled(bool fEnableStaking) override { m_wallet.SetStakingEnabled(fEnableStaking); }
     bool isStakingEnabled() override { return m_wallet.IsStakingEnabled(); }
+    bool StartPrecomputing(std::string& strStatus) override { return m_wallet.StartPrecomputing(strStatus); }
+    void StopPrecomputing() override { m_wallet.StopPrecomputing(); }
+    void setPrecomputingEnabled(bool fEnabledPrecomputing) override { m_wallet.SetPrecomputingEnabled(fEnabledPrecomputing); }
+    bool isPrecomputingEnabled() override { return m_wallet.IsPrecomputingEnabled(); }
+
     void abortRescan() override { m_wallet.AbortRescan(); }
     bool backupWallet(const std::string& filename) override { return m_wallet.BackupWallet(filename); }
     std::string getWalletName() override { return m_wallet.GetName(); }
@@ -313,6 +320,14 @@ public:
     }
     bool getPubKey(const CKeyID& address, CPubKey& pub_key) override { return m_wallet.GetPubKey(address, pub_key); }
     bool getPrivKey(const CKeyID& address, CKey& key) override { return m_wallet.GetKey(address, key); }
+    bool getPrivKey(CStealthAddress& address, CKey& key) override
+    {
+        if (m_wallet.GetAnonWallet()->GetStealthAddressScanKey(address)) {
+            key = address.scan_secret;
+            return true;
+        }
+        return false;
+    }
     bool isSpendable(const CTxDestination& dest) override { return IsMine(m_wallet, dest) & ISMINE_SPENDABLE; }
 
     std::string mintZerocoin(CAmount nValue, std::vector<CDeterministicMint>& vDMints, OutputTypes inputtype,
@@ -322,16 +337,28 @@ public:
         return m_wallet.MintZerocoin(nValue, wtx , vDMints, inputtype,coinControl);
     }
 
-    std::unique_ptr<PendingWalletTx> spendZerocoin(CAmount nValue, int nSecurityLevel, CZerocoinSpendReceipt& receipt,
-                               std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange, bool fMinimizeChange,
-                               CTxDestination* addressTo = NULL) override
+    bool getMint(const uint256& serialHash, CZerocoinMint& mint) override
+    {
+        return m_wallet.GetMint(serialHash, mint);
+    }
+
+    std::unique_ptr<PendingWalletTx> prepareZerocoinSpend(CAmount nValue, int nSecurityLevel,
+            CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vMintsSelected, bool fMintChange,
+            bool fMinimizeChange, std::vector<CommitData>& vCommitData, libzerocoin::CoinDenomination denomFilter,
+            CTxDestination* addressTo = NULL) override
     {
         auto pending = MakeUnique<PendingWalletTxImpl>(m_wallet);
-        if (!m_wallet.SpendZerocoin(nValue, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, libzerocoin::CoinDenomination::ZQ_ERROR, addressTo))
+        if (!m_wallet.PrepareZerocoinSpend(nValue, nSecurityLevel, receipt, vMintsSelected, fMintChange,
+                fMinimizeChange, vCommitData, libzerocoin::CoinDenomination::ZQ_ERROR, addressTo))
             return {};
         auto vtx = receipt.GetTransactions();
         pending->m_tx = vtx[0];
         return std::move(pending);
+    }
+
+    bool commitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData, int computeTime) override
+    {
+        return m_wallet.CommitZerocoinSpend(receipt, vCommitData, computeTime);
     }
 
     bool haveWatchOnly() override { return m_wallet.HaveWatchOnly(); };
@@ -700,6 +727,10 @@ public:
             return 0;
         }
         return m_wallet.GetAnonWallet()->GetAvailableAnonBalance(&coin_control);
+    }
+    CAmount getAvailableZerocoinBalance(const CCoinControl& coin_control) override
+    {
+        return m_wallet.GetAvailableZerocoinBalance(&coin_control);
     }
     CWallet* getWalletPointer() override
     {

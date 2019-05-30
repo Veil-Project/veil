@@ -19,6 +19,7 @@
 #include "Coin.h"
 #include "Commitment.h"
 #include "Params.h"
+#include "PubcoinSignature.h"
 #include "SerialNumberSignatureOfKnowledge.h"
 #include "SpendType.h"
 
@@ -39,9 +40,10 @@ class CoinSpend
 public:
 
     static int const V3_SMALL_SOK = 3;
+    static int const V4_LIMP = 4;
 
     //! \param paramsV1 - if this is a V1 zerocoin, then use params that existed with initial modulus, ignored otherwise
-    //! \param paramsV2 - params that begin when V2 zerocoins begin on the PIVX network
+    //! \param paramsV2 - params that begin when V2 zerocoins begin on the VEIL network
     //! \param strm - a serialized CoinSpend
     template <typename Stream>
     CoinSpend(const ZerocoinParams* params, Stream& strm) :
@@ -107,6 +109,7 @@ public:
     CBigNum getSerialComm() const { return serialCommitmentToCoinValue; }
     SerialNumberSoK_small getSmallSoK() const { return smallSoK; }
     uint8_t getVersion() const { return version; }
+    CBigNum getPubcoinValue() const;
     CPubKey getPubKey() const { return pubkey; }
     SpendType getSpendType() const { return spendType; }
     std::vector<unsigned char> getSignature() const { return vchSig; }
@@ -117,7 +120,7 @@ public:
         return hashSig;
     }
 
-    bool Verify(const Accumulator& a, std::string& strError, bool verifySoK = true) const;
+    bool Verify(const Accumulator& a, std::string& strError, bool verifySoK = true, bool verifyPubcoin = false) const;
     bool HasValidSerial(ZerocoinParams* params) const;
     bool HasValidSignature() const;
     std::string ToString() const;
@@ -139,6 +142,9 @@ public:
         READWRITE(accumulatorPoK);
         READWRITE(smallSoK);
         READWRITE(commitmentPoK);
+        if (version == V4_LIMP) {
+            READWRITE(pubcoinSig);
+        }
     }
 
 private:
@@ -161,6 +167,9 @@ private:
 
     // Cached hashSig
     uint256 hashSig;
+
+    // Version 4 "Limp Mode"
+    PubcoinSignature pubcoinSig;
 };
 
 } /* namespace libzerocoin */

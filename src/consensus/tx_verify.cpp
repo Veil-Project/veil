@@ -24,6 +24,8 @@
 #include <tinyformat.h>
 #include <libzerocoin/CoinSpend.h>
 #include <veil/zerocoin/zchain.h>
+#include <primitives/zerocoin.h>
+#include <veil/zerocoin/lrucache.h>
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
@@ -136,7 +138,7 @@ unsigned int GetP2SHSigOpCount(const CTransaction& tx, const CCoinsViewCache& in
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
         if (tx.vin[i].IsAnonInput())
             continue;
-        if (tx.vin[i].scriptSig.IsZerocoinSpend())
+        if (tx.vin[i].IsZerocoinSpend())
             continue;
         const Coin& coin = inputs.AccessCoin(tx.vin[i].prevout);
         assert(!coin.IsSpent());
@@ -161,7 +163,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
         if (tx.vin[i].IsAnonInput())
             continue;
-        if (tx.vin[i].scriptSig.IsZerocoinSpend())
+        if (tx.vin[i].IsZerocoinSpend())
             continue;
         const Coin& coin = inputs.AccessCoin(tx.vin[i].prevout);
         assert(!coin.IsSpent());
@@ -197,7 +199,7 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
     CAmount nTotalRedeemed = 0;
     for (const CTxIn& txin : tx.vin) {
         //only check txin that is a zcspend
-        if (!txin.scriptSig.IsZerocoinSpend())
+        if (!txin.IsZerocoinSpend())
             continue;
 
         auto newSpend = TxInToZerocoinSpend(txin);
@@ -233,16 +235,35 @@ bool CheckZerocoinSpend(const CTransaction& tx, CValidationState& state)
     return fValidated;
 }
 
+// Create a lru cache to hold the currently validated pubcoins with a max size of 5000
+LRUCacheTemplate<std::string,bool> cacheValidatedPubcoin(5000);
+CCriticalSection cs_pubcoinCache;
 bool CheckZerocoinMint(const CTxOut& txout, CBigNum& bnValue, CValidationState& state, bool fSkipZerocoinMintIsPrime)
 {
     libzerocoin::PublicCoin pubCoin(Params().Zerocoin_Params());
     if (!TxOutToPublicCoin(txout, pubCoin))
         return state.DoS(100, error("CheckZerocoinMint(): TxOutToPublicCoin() failed"));
 
-    if (!pubCoin.validate())
-        return state.DoS(100, error("CheckZerocoinMint() : PubCoin does not validate"));
-
     bnValue = pubCoin.getValue();
+    uint256 hashPubcoin = GetPubCoinHash(bnValue);
+
+    //CheckZerocoinMint can be done from different threads at the same time. Lock static containers. If try_lock fails,
+    //don't wait, just do full validation.
+    TRY_LOCK(cs_pubcoinCache, fLocked);
+    bool value;
+    if (!fSkipZerocoinMintIsPrime) {
+        bool fRunValidation = !fLocked || (fLocked && !cacheValidatedPubcoin.get(hashPubcoin.GetHex(), value));
+        if (fRunValidation) {
+            if (!pubCoin.validate())
+                return state.DoS(100, error("CheckZerocoinMint() : PubCoin does not validate"));
+            if (fLocked) {
+                cacheValidatedPubcoin.set(hashPubcoin.GetHex(), true);
+            }
+        }
+
+
+    }
+
     return true;
 }
 
@@ -400,7 +421,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fSki
     std::set<uint256> setZerocoinSpendHashes;
     int nAnonIn = 0;
     for (const auto& txin : tx.vin) {
-        if (txin.scriptSig.IsZerocoinSpend()) {
+        if (txin.IsZerocoinSpend()) {
             //Veil: Cheap check here by hashing the entire script. This could be worked around, so still needs
             // a final full check in ConnectBlock()
             auto hashSpend = Hash(txin.scriptSig.begin(), txin.scriptSig.end());
@@ -463,7 +484,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
             continue;
         }
 
-        if (tx.vin[i].scriptSig.IsZerocoinSpend()) {
+        if (tx.vin[i].IsZerocoinSpend()) {
             //Zerocoinspend uses nSequence as an easy reference to denomination
             CAmount nValue = tx.vin[i].nSequence & CTxIn::SEQUENCE_LOCKTIME_MASK;
             nValue *= COIN;

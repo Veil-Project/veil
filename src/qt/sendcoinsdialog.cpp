@@ -120,6 +120,9 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     if (!settings.contains("fPayOnlyMinFee"))
         settings.setValue("fPayOnlyMinFee", false);
     minimizeFeeSection(settings.value("fFeeSectionMinimized").toBool());
+
+    //Hide all coincontrol labels
+    HideCoinControlLabels();
 }
 
 void SendCoinsDialog::setClientModel(ClientModel *_clientModel)
@@ -197,6 +200,44 @@ SendCoinsDialog::~SendCoinsDialog()
     delete ui;
 }
 
+void SendCoinsDialog::HideCoinControlLabels()
+{
+    ui->horizontalSpacer_2->changeSize(1,1, QSizePolicy::Expanding, QSizePolicy::Fixed);
+    ui->labelCoinControlBytes->hide();
+    ui->labelCoinControlBytesText->hide();
+    ui->labelCoinControlQuantity->hide();
+    ui->labelCoinControlQuantityText->hide();
+    ui->labelCoinControlAmount->hide();
+    ui->labelCoinControlAmountText->hide();
+    ui->labelCoinControlLowOutput->hide();
+    ui->labelCoinControlLowOutputText->hide();
+    ui->labelCoinControlFee->hide();
+    ui->labelCoinControlFeeText->hide();
+    ui->labelCoinControlAfterFee->hide();
+    ui->labelCoinControlAfterFeeText->hide();
+    ui->labelCoinControlChange->hide();
+    ui->labelCoinControlChangeText->hide();
+}
+
+void SendCoinsDialog::ShowCoinCointrolLabels()
+{
+    ui->horizontalSpacer_2->changeSize(0,0, QSizePolicy::Fixed, QSizePolicy::Fixed);
+    ui->labelCoinControlBytes->show();
+    ui->labelCoinControlBytesText->show();
+    ui->labelCoinControlQuantity->show();
+    ui->labelCoinControlQuantityText->show();
+    ui->labelCoinControlAmount->show();
+    ui->labelCoinControlAmountText->show();
+    ui->labelCoinControlLowOutput->show();
+    ui->labelCoinControlLowOutputText->show();
+    ui->labelCoinControlFee->show();
+    ui->labelCoinControlFeeText->show();
+    ui->labelCoinControlAfterFee->show();
+    ui->labelCoinControlAfterFeeText->show();
+    ui->labelCoinControlChange->show();
+    ui->labelCoinControlChangeText->show();
+}
+
 void SendCoinsDialog::on_sendButton_clicked()
 {
     if(!model || !model->getOptionsModel())
@@ -238,6 +279,8 @@ void SendCoinsDialog::on_sendButton_clicked()
         return;
     }
 
+    int64_t nComputeTimeStart = GetTimeMillis();
+
     // prepare transaction for getting txFee earlier
     WalletModelTransaction currentTransaction(recipients);
     WalletModel::SendCoinsReturn prepareStatus;
@@ -249,7 +292,11 @@ void SendCoinsDialog::on_sendButton_clicked()
 
     updateCoinControlState(ctrl);
 
-    prepareStatus = model->prepareTransaction(currentTransaction, ctrl);
+    WalletModelSpendType spendType;
+    CZerocoinSpendReceipt receipt;
+    std::vector<CommitData> vCommitData;
+
+    prepareStatus = model->prepareTransaction(currentTransaction, ctrl, spendType, receipt, vCommitData);
     // process prepareStatus and on error generate message shown to user
     processSendCoinsReturn(prepareStatus,
         BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), currentTransaction.getTransactionFee()));
@@ -260,6 +307,8 @@ void SendCoinsDialog::on_sendButton_clicked()
     }
 
     CAmount txFee = currentTransaction.getTransactionFee();
+
+    int64_t nComputeTimeFinish = GetTimeMillis();
 
     // Format confirmation message
     QStringList formatted;
@@ -374,7 +423,11 @@ void SendCoinsDialog::on_sendButton_clicked()
     }
 
     // now send the prepared transaction
-    WalletModel::SendCoinsReturn sendStatus = model->sendCoins(currentTransaction);
+    WalletModel::SendCoinsReturn sendStatus;
+    if (spendType == ZCSPEND)
+        sendStatus = model->sendZerocoins(receipt, vCommitData, nComputeTimeFinish - nComputeTimeStart);
+    if (sendStatus.status == WalletModel::OK)
+        sendStatus = model->sendCoins(currentTransaction, spendType == ZCSPEND);
     // process sendStatus and on error generate message shown to user
     processSendCoinsReturn(sendStatus);
 
@@ -591,6 +644,9 @@ void SendCoinsDialog::processSendCoinsReturn(const WalletModel::SendCoinsReturn 
         msgParams.first = tr("Payment request expired.");
         msgParams.second = CClientUIInterface::MSG_ERROR;
         break;
+    case WalletModel::ZerocoinSpendFail:
+        msgParams.first = tr("Zerocoinspend transaction failed. ") + msgParams.first;
+        break;
     // included to prevent a compiler warning.
     case WalletModel::OK:
     default:
@@ -770,9 +826,13 @@ void SendCoinsDialog::coinControlFeatureChanged(bool checked)
 // Coin Control: button inputs -> show actual coin control dialog
 void SendCoinsDialog::coinControlButtonClicked()
 {
-    CoinControlDialog dlg(platformStyle);
-    dlg.setModel(model);
-    dlg.exec();
+    mainWindow->getGUI()->showHide(true);
+
+    CoinControlDialog *dlg = new CoinControlDialog(platformStyle);
+    dlg->setModel(model);
+
+    openDialogWithOpaqueBackground(dlg, mainWindow->getGUI(), 4);
+
     coinControlUpdateLabels();
 }
 
@@ -848,6 +908,7 @@ void SendCoinsDialog::coinControlChangeEdited(const QString& text)
 // Coin Control: update labels
 void SendCoinsDialog::coinControlUpdateLabels()
 {
+
     if (!model || !model->getOptionsModel())
         return;
 
@@ -871,15 +932,16 @@ void SendCoinsDialog::coinControlUpdateLabels()
 
     if (CoinControlDialog::coinControl()->HasSelected())
     {
+
         // actual coin control calculation
         CoinControlDialog::updateLabels(model, this);
 
-        // show coin control stats
-        //ui->labelCoinControlAutomaticallySelected->hide();
-        //ui->widgetCoinControl->show();
+        // Show coin control stats
+        ShowCoinCointrolLabels();
     }
     else
     {
+        HideCoinControlLabels();
         // hide coin control stats
         //ui->labelCoinControlAutomaticallySelected->show();
         //ui->widgetCoinControl->hide();

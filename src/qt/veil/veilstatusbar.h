@@ -23,14 +23,22 @@ public:
 
     bool getSyncStatusVisible();
     void updateSyncStatus(QString status);
+    void updateSyncIndicator(int height);
     void setSyncStatusVisible(bool fVisible);
+#ifdef ENABLE_WALLET
     void setWalletModel(WalletModel *model);
     void updateStakingCheckbox();
+    void updatePrecomputeCheckbox();
+#endif
 
 private Q_SLOTS:
     void onBtnSyncClicked();
+#ifdef ENABLE_WALLET
     void onBtnLockClicked();
     void onCheckStakingClicked(bool res);
+    void onCheckPrecomputeClicked(bool res);
+    void updateLockCheckbox();
+#endif
 
 private:
     Ui::VeilStatusBar *ui;
@@ -39,8 +47,6 @@ private:
     UnlockPasswordDialog *unlockPasswordDialog = nullptr;
 
     bool preparingFlag = false;
-
-    void updateLockCheckbox();
 };
 
 #endif // VEILSTATUSBAR_H

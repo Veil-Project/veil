@@ -257,8 +257,12 @@ int StealthSecret(const CKey &secret, const ec_point &pubkey, const ec_point &pk
     uint8_t tmp33[33];
     secp256k1_ec_pubkey_serialize(secp256k1_ctx_stealth, tmp33, &len, &Q, SECP256K1_EC_COMPRESSED); // Returns: 1 always.
 
-    sharedSOut.MakeNewKey(true); //initialize the key
-    CSHA256().Write(tmp33, 33).Finalize(sharedSOut.begin_nc());
+    std::vector<unsigned char> vKey;
+    vKey.resize(32);
+    CSHA256().Write(tmp33, 33).Finalize(vKey.data());
+    memcpy(sharedSOut.begin_nc(), vKey.data(), 32);
+    sharedSOut.SetFlags(/*valide*/true, /*compressed*/true);
+    vKey.clear();
 
     //if (!secp256k1_ec_seckey_verify(secp256k1_ctx_stealth, sharedSOut.begin()))
     //    return errorN(1, "%s: secp256k1_ec_seckey_verify failed.", __func__); // Start again with a new ephemeral key

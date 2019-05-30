@@ -12,7 +12,9 @@
 #include "validation.h"
 #include "stakeinput.h"
 #include "veil/proofofstake/kernel.h"
+#ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
+#endif
 
 typedef std::vector<unsigned char> valtype;
 
@@ -46,7 +48,7 @@ uint256 ZerocoinStake::GetChecksum()
     return nChecksum;
 }
 
-// The zPIV block index is the first appearance of the accumulator checksum that was used in the spend
+// The Zerocoin block index is the first appearance of the accumulator checksum that was used in the spend
 // note that this also means when staking that this checksum should be from a block that is beyond 60 minutes old and
 // 100 blocks deep.
 CBlockIndex* ZerocoinStake::GetIndexFrom()
@@ -85,11 +87,9 @@ int ZerocoinStake::HeightToModifierHeight(int nHeight)
 //Use the first accumulator checkpoint that occurs 60 minutes after the block being staked from
 bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier)
 {
-
     CBlockIndex* pindex = GetIndexFrom();
     if (!pindex)
         return false;
-
 
     int nNearest100Block = ZerocoinStake::HeightToModifierHeight(pindex->nHeight);
 
@@ -109,7 +109,7 @@ bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier)
 
 CDataStream ZerocoinStake::GetUniqueness()
 {
-    //The unique identifier for a zPIV is a hash of the serial
+    //The unique identifier for a Zerocoin VEIL is a hash of the serial
     CDataStream ss(SER_GETHASH, 0);
     ss << hashSerial;
     return ss;
@@ -117,6 +117,13 @@ CDataStream ZerocoinStake::GetUniqueness()
 
 bool ZerocoinStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
 {
+#ifdef ENABLE_WALLET
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+#endif
+        return error("%s: wallet disabled", __func__);
+#ifdef ENABLE_WALLET
+    }
+
     CBlockIndex* pindexCheckpoint = GetIndexFrom();
     if (!pindexCheckpoint)
         return error("%s: failed to find checkpoint block index", __func__);
@@ -134,11 +141,19 @@ bool ZerocoinStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
         return error("%s\n", receipt.GetStatusMessage());
 
     return true;
+#endif
 }
 
 bool ZerocoinStake::CreateTxOuts(CWallet* pwallet, vector<CTxOut>& vout, CAmount nTotal)
 {
-    //Create an output returning the zPIV that was staked
+#ifdef ENABLE_WALLET
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+#endif
+        return error("%s: wallet disabled", __func__);
+#ifdef ENABLE_WALLET
+    }
+
+    //Create an output returning the Zerocoin VEIL that was staked
     CTxOut outReward;
     libzerocoin::CoinDenomination denomStaked = libzerocoin::AmountToZerocoinDenomination(this->GetValue());
     CDeterministicMint dMint;
@@ -148,7 +163,7 @@ bool ZerocoinStake::CreateTxOuts(CWallet* pwallet, vector<CTxOut>& vout, CAmount
 
     //Add new staked denom to our wallet
     if (!pwallet->DatabaseMint(dMint))
-        return error("%s: failed to database the staked zPIV", __func__);
+        return error("%s: failed to database the staked Zerocoin", __func__);
 
     CAmount nRewardOut = 0;
     while (nRewardOut < nTotal) {
@@ -156,7 +171,7 @@ bool ZerocoinStake::CreateTxOuts(CWallet* pwallet, vector<CTxOut>& vout, CAmount
         CDeterministicMint dMintReward;
         auto denomReward = libzerocoin::CoinDenomination::ZQ_TEN;
         if (!pwallet->CreateZOutPut(denomReward, out, dMintReward))
-            return error("%s: failed to create zPIV output", __func__);
+            return error("%s: failed to create Zerocoin output", __func__);
         vout.emplace_back(out);
 
         if (!pwallet->DatabaseMint(dMintReward))
@@ -165,6 +180,7 @@ bool ZerocoinStake::CreateTxOuts(CWallet* pwallet, vector<CTxOut>& vout, CAmount
     }
 
     return true;
+#endif
 }
 
 bool ZerocoinStake::GetTxFrom(CTransaction& tx)
@@ -174,6 +190,13 @@ bool ZerocoinStake::GetTxFrom(CTransaction& tx)
 
 bool ZerocoinStake::MarkSpent(CWallet *pwallet, const uint256& txid)
 {
+#ifdef ENABLE_WALLET
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+#endif
+        return error("%s: wallet disabled", __func__);
+#ifdef ENABLE_WALLET
+    }
+
     CzTracker* zTracker = pwallet->GetZTrackerPointer();
     CMintMeta meta;
     if (!zTracker->GetMetaFromStakeHash(hashSerial, meta))
@@ -181,4 +204,10 @@ bool ZerocoinStake::MarkSpent(CWallet *pwallet, const uint256& txid)
 
     zTracker->SetPubcoinUsed(meta.hashPubcoin, txid);
     return true;
+#endif
+}
+
+uint256 ZerocoinStake::GetSerialStakeHash()
+{
+    return hashSerial;
 }
