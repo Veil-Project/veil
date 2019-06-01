@@ -6,7 +6,7 @@ Veil integration/staging tree
 https://veil-project.com
 
 What is Veil?
-----------------
+---------------
 
 Veil is a cryptocurrency intending to set a new standard in the space of privacy-focused networks. Combining the Zerocoin protocol with RingCT, Veil provides always-on anonymity. Dandelion and Bulletproofs provide for enhanced privacy and decreased data size, respectively, for its network transactions. 
 
