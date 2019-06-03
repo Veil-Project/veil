@@ -1469,14 +1469,6 @@ UniValue deterministiczerocoinstate(const JSONRPCRequest& request)
     return obj;
 }
 
-
-
-void static SearchThread(CzWallet* zwallet, int nCountStart, int nCountEnd)
-{
-    LogPrintf("%s: start=%d end=%d\n", __func__, nCountStart, nCountEnd);
-    zwallet->DeterministicSearch(nCountStart, nCountEnd);
-}
-
 UniValue searchdeterministiczerocoin(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1515,18 +1507,7 @@ UniValue searchdeterministiczerocoin(const JSONRPCRequest& request)
 
     CzWallet* zwallet = pwallet->GetZWallet();
 
-    boost::thread_group* dzThreads = new boost::thread_group();
-    int nRangePerThread = nRange / nThreads;
-
-    int nPrevThreadEnd = nCount - 1;
-    for (int i = 0; i < nThreads; i++) {
-        int nStart = nPrevThreadEnd + 1;;
-        int nEnd = nStart + nRangePerThread;
-        nPrevThreadEnd = nEnd;
-        dzThreads->create_thread(boost::bind(&SearchThread, zwallet, nStart, nEnd));
-    }
-
-    dzThreads->join_all();
+    zwallet->ThreadedDeterministicSearch(nCount, nCount + nRange, nThreads);
 
     zwallet->RemoveMintsFromPool(pwallet->GetZTrackerPointer()->GetSerialHashes());
     zwallet->SyncWithChain(false);
