@@ -446,6 +446,8 @@ bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const CBlockIndex* pindex
 
 /** Functions for validating blocks and updating the block tree */
 
+bool CheckConsecutivePoW(const CBlock& block, const CBlockIndex* pindexPrev);
+
 /** Context-independent validity checks */
 bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fSkipComputation = false, bool fCheckPOW = true, bool fCheckMerkleRoot = true);
 

@@ -683,6 +683,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
 
     result.pushKV("accumulatorhashes", mapaccumulatorhashes);
     result.pushKV("proofoffullnodehash", pblock->hashPoFN.GetHex());
+    result.pushKV("mining_disabled", (!CheckConsecutivePoW(*pblock , pindexPrev))? true : false );
 
     return result;
 }
