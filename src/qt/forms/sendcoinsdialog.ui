@@ -64,6 +64,13 @@ border:none;</string>
          </widget>
         </item>
         <item>
+         <widget class="QLabel" name="labelCreationStatus">
+          <property name="text">
+           <string>Tx Status</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <spacer name="horizontalSpacer_2">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -363,8 +370,8 @@ margin:0px;</string>
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>842</width>
-           <height>526</height>
+           <width>832</width>
+           <height>500</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0">
