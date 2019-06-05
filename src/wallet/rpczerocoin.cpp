@@ -281,9 +281,9 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
 
     UniValue params = request.params;
 
-    if (request.fHelp || params.size() > 6 || params.size() < 4)
+    if (request.fHelp || params.size() > 6 || params.size() < 5)
         throw std::runtime_error(
-                "spendzerocoin amount mintchange minimizechange securitylevel d( \"address\" denomination)\n"
+                "spendzerocoin amount mintchange minimizechange securitylevel  \"address\"  d(denomination)\n"
                 "\nSpend zerocoin to a veil address.\n"
                 "\nArguments:\n"
                 "1. amount          (numeric, required) Amount to spend.\n"
@@ -294,8 +294,7 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
                 "                       The more checkpoints that are added, the more untraceable the transaction.\n"
                 "                       Use [100] to add the maximum amount of checkpoints available.\n"
                 "                       Adding more checkpoints makes the minting process take longer\n"
-                "5. \"address\"     (string, optional, default=change) Send to specified address or to a new change address.\n"
-                "                       If there is change then an address is required\n"
+                "5. \"address\"      (string, required) Send to specified address.\n"
                 "6. denomination    (numeric, optional) Only select from a specific zerocoin denomination\n"
 
                 "\nResult:\n"
@@ -335,15 +334,11 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
     bool fMinimizeChange = params[2].get_bool();    // Minimize change
     int nSecurityLevel = params[3].get_int();       // Security level
 
+    CTxDestination dest;
+    dest = DecodeDestination(params[4].get_str());
+
     if (nSecurityLevel < 1 || nSecurityLevel > 100) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid security level value (%d). Must be in [1, 100] range.", nSecurityLevel));
-    }
-
-    CTxDestination dest; // Optional sending address. Dummy initialization here.
-    if (params.size() > 4) {
-        // Destination address was supplied as request[4]. Optional parameters MUST be at the end
-        // to avoid type confusion from the JSON interpreter
-        dest = DecodeDestination(params[4].get_str());
     }
 
     libzerocoin::CoinDenomination denomFilter = libzerocoin::CoinDenomination::ZQ_ERROR;
@@ -357,10 +352,7 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
     CZerocoinSpendReceipt receipt;
     bool fSuccess;
 
-    if(params.size() > 4) // Spend to supplied destination address
-        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, denomFilter, &dest);
-    else                   // Spend to newly generated local address
-        fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, denomFilter);
+    fSuccess = pwallet->SpendZerocoin(nAmount, nSecurityLevel, receipt, vMintsSelected, fMintChange, fMinimizeChange, denomFilter, &dest);
 
     if (!fSuccess)
         throw JSONRPCError(RPC_WALLET_ERROR, receipt.GetStatusMessage());
@@ -619,7 +611,7 @@ UniValue listspentzerocoins(const JSONRPCRequest& request)
 
                                             "\nExamples:\n" +
                 HelpExampleCli("listspentzerocoins", "") + HelpExampleRpc("listspentzerocoins", ""));
-    
+
     LOCK2(cs_main, pwallet->cs_wallet);
 
     EnsureWalletIsUnlocked(pwallet);
