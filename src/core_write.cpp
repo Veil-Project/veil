@@ -257,7 +257,7 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
     out.pushKV("addresses", a);
 }
 
-void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, bool include_hex, int serialize_flags)
+void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vector<std::vector<COutPoint>>& vTxRingCtInputs, UniValue& entry, bool include_hex, int serialize_flags)
 {
     entry.pushKV("txid", tx.GetHash().GetHex());
     entry.pushKV("hash", tx.GetWitnessHash().GetHex());
@@ -279,6 +279,19 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
             txin.GetAnonInfo(nSigInputs, nSigRingSize);
             in.pushKV("num_inputs", (int) nSigInputs);
             in.pushKV("ring_size", (int) nSigRingSize);
+
+            //Add ring ct inputs
+            if (vTxRingCtInputs.size() > i) {
+                std::vector<COutPoint> vRingCtInputs = vTxRingCtInputs[i];
+                UniValue arrRing(UniValue::VARR);
+                for (const COutPoint& outpoint : vRingCtInputs) {
+                    UniValue obj(UniValue::VOBJ);
+                    obj.pushKV("txid", outpoint.hash.GetHex());
+                    obj.pushKV("vout.n", (uint64_t) outpoint.n);
+                    arrRing.push_back(obj);
+                }
+                in.pushKV("ringct_inputs", arrRing);
+            }
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
             if (txin.IsZerocoinSpend()) {

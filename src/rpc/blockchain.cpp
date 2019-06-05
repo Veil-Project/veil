@@ -32,6 +32,7 @@
 #include <hash.h>
 #include <validationinterface.h>
 #include <warnings.h>
+#include <veil/ringct/anon.h>
 
 #include <assert.h>
 #include <stdint.h>
@@ -137,7 +138,8 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
         if(txDetails)
         {
             UniValue objTx(UniValue::VOBJ);
-            TxToUniv(*tx, uint256(), objTx, true, RPCSerializationFlags());
+            auto vInputs = GetTxRingCtInputs(tx);
+            TxToUniv(*tx, uint256(), vInputs, objTx, true, RPCSerializationFlags());
             txs.push_back(objTx);
         }
         else
