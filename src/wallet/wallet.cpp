@@ -6411,13 +6411,19 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                     r.fExemptFeeSub = false;
                     vecSend.emplace_back(r);
                 } else {
-                    scriptZerocoinSpend = GetScriptForDestination(*address);
+                    CTempRecipient r;
+                    r.nType = OUTPUT_STANDARD;
+                    r.fZerocoin = false;
+                    r.SetAmount(nValue);
+                    r.fSubtractFeeFromAmount = false;
+                    r.address = *address;
+                    r.fExemptFeeSub = false;
+                    vecSend.emplace_back(r);
                 }
             }
 
             //add change output if we are spending too much (only applies to spending multiple at once)
             if (nChange) {
-
                 // Try and mint the change as zerocoin
                 if (fMintChange) {
                     //Any change below the smallest zerocoin denom is not remintable and is considered dust to be sent to ct
@@ -6470,40 +6476,9 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                         return false;
                     }
                 }
-
-                //If spending zerocoin to a basecoin address. Mint the change as basecoin instead of CT
-                if (nChangeDust && !fStealthOutput) {
-                    // Get a internal key for generating a new change address
-                    CReserveKey reservekey(this);
-                    CPubKey vchPubKey;
-                    if (!reservekey.GetReservedKey(vchPubKey, true)) {
-                        receipt.SetStatus("Failed to create a change address for this transaction", nStatus);
-                        return false;
-                    }
-
-                    reservekey.KeepKey();
-
-                    LearnRelatedScripts(vchPubKey, OutputType::BECH32);
-                    CTxDestination dest = GetDestinationForKey(vchPubKey, OutputType::BECH32);
-
-                    // Create the change script
-                    CScript basecoinChange = GetScriptForDestination(dest);
-
-                    // Create the change txout
-                    CTxOut txOutBaseCoinChange(nChangeDust, basecoinChange);
-
-                    // Add the txout to the transaction
-                    txNew.vpout.emplace_back(txOutBaseCoinChange.GetSharedPtr());
-                }
             }
 
-            //add output to veil address to the transaction (the actual primary spend taking place)
-            if (!fStealthOutput) {
-                CTxOut txOutZerocoinSpend(nValue, scriptZerocoinSpend);
-                txNew.vpout.emplace_back(txOutZerocoinSpend.GetSharedPtr());
-            } else {
-                txNew.vpout.clear();
-            }
+            txNew.vpout.clear();
 
             CTransactionRef txRef = std::make_shared<CTransaction>(txNew);
 
