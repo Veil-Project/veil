@@ -7,6 +7,7 @@
 
 #include <QDialog>
 #include <QWidget>
+#include <QUrl>
 
 class WalletModel;
 class TransactionRecord;
@@ -26,8 +27,10 @@ public:
 
 private Q_SLOTS:
     void onEscapeClicked();
+    void onExplorerClicked();
 private:
     Ui::TransactionDetailDialog *ui;
+    QUrl explorerLink;
 };
 
 #endif // TRANSACTIONDETAILDIALOG_H
