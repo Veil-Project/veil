@@ -65,7 +65,7 @@ SendCoinsDialog::SendCoinsDialog(const PlatformStyle *_platformStyle, QWidget *p
     platformStyle(_platformStyle)
 {
     ui->setupUi(this);
-    prepareData = nullptr;
+    m_prepareData = nullptr;
     m_statusAnimationState = 0;
     m_timerStatus = new QTimer(this);
     connect(m_timerStatus, SIGNAL(timeout()), this, SLOT(StatusTimerTimeout()));
@@ -292,9 +292,9 @@ void SendCoinsDialog::SetTransactionLabelState(TxPrepState state)
     }
 }
 
-void SendCoinsDialog::AsyncPrepareTransaction()
+void SendCoinsDialog::PrepareTransaction()
 {
-    prepareData->prepareStatus = model->prepareTransaction(*prepareData->tx, prepareData->ctrl, prepareData->spendType, prepareData->receipt, prepareData->vCommitData);
+    m_prepareData->prepareStatus = model->prepareTransaction(*m_prepareData->tx, m_prepareData->ctrl, m_prepareData->spendType, m_prepareData->receipt, m_prepareData->vCommitData);
     Q_EMIT TransactionPrepared();
 }
 
@@ -303,16 +303,16 @@ void SendCoinsDialog::PrepareTransactionFinished()
     SetTransactionLabelState(TxPrepState::WAITING_USER);
 
     // process prepareStatus and on error generate message shown to user
-    processSendCoinsReturn(prepareData->prepareStatus,
-                           BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), prepareData->tx->getTransactionFee()));
+    processSendCoinsReturn(m_prepareData->prepareStatus,
+                           BitcoinUnits::formatWithUnit(model->getOptionsModel()->getDisplayUnit(), m_prepareData->tx->getTransactionFee()));
 
-    if (prepareData->prepareStatus.status != WalletModel::OK) {
+    if (m_prepareData->prepareStatus.status != WalletModel::OK) {
         fNewRecipientAllowed = true;
         SetTransactionLabelState(TxPrepState::DONE);
         return;
     }
 
-    CAmount txFee = prepareData->tx->getTransactionFee();
+    CAmount txFee = m_prepareData->tx->getTransactionFee();
 
     int64_t nComputeTimeFinish = GetTimeMillis();
 
@@ -320,8 +320,8 @@ void SendCoinsDialog::PrepareTransactionFinished()
     QStringList formatted;
     QStringList formattedAddresses;
 
-    bool isOne = prepareData->tx->getRecipients().size() == 1;
-    for (const SendCoinsRecipient &rcp : prepareData->tx->getRecipients())
+    bool isOne = m_prepareData->tx->getRecipients().size() == 1;
+    for (const SendCoinsRecipient &rcp : m_prepareData->tx->getRecipients())
     {
         // generate bold amount string with wallet name in case of multiwallet
         QString amount = "<b align=right>" + BitcoinUnits::formatHtmlWithUnit(model->getOptionsModel()->getDisplayUnit(), rcp.amount);
@@ -379,7 +379,7 @@ void SendCoinsDialog::PrepareTransactionFinished()
         questionString.append("</b>");
 
         // append transaction size
-        questionString.append(" (" + QString::number((double)prepareData->tx->getTransactionSize() / 1000) + " kB): ");
+        questionString.append(" (" + QString::number((double)m_prepareData->tx->getTransactionSize() / 1000) + " kB): ");
 
         // append transaction fee value
         questionString.append("<span style='color:#aa0000; font-weight:bold;'>");
@@ -398,7 +398,7 @@ void SendCoinsDialog::PrepareTransactionFinished()
 
     // add total amount in all subdivision units
     questionString.append("<hr />");
-    CAmount totalAmount = prepareData->tx->getTotalTransactionAmount() + txFee;
+    CAmount totalAmount = m_prepareData->tx->getTotalTransactionAmount() + txFee;
     QStringList alternativeUnits;
     for (BitcoinUnits::Unit u : BitcoinUnits::availableUnits())
     {
@@ -430,10 +430,10 @@ void SendCoinsDialog::PrepareTransactionFinished()
 
     // now send the prepared transaction
     WalletModel::SendCoinsReturn sendStatus;
-    if (prepareData->spendType == ZCSPEND)
-        sendStatus = model->sendZerocoins(prepareData->receipt, prepareData->vCommitData, nComputeTimeFinish - prepareData->nComputeTimeStart);
+    if (m_prepareData->spendType == ZCSPEND)
+        sendStatus = model->sendZerocoins(m_prepareData->receipt, m_prepareData->vCommitData, nComputeTimeFinish - m_prepareData->nComputeTimeStart);
     if (sendStatus.status == WalletModel::OK)
-        sendStatus = model->sendCoins(*prepareData->tx, prepareData->spendType == ZCSPEND);
+        sendStatus = model->sendCoins(*m_prepareData->tx, m_prepareData->spendType == ZCSPEND);
     // process sendStatus and on error generate message shown to user
     processSendCoinsReturn(sendStatus);
 
@@ -442,7 +442,7 @@ void SendCoinsDialog::PrepareTransactionFinished()
         accept();
         CoinControlDialog::coinControl()->UnSelectAll();
         coinControlUpdateLabels();
-        uint256 hashCurrentTx = prepareData->tx->getWtx()->get().GetHash();
+        uint256 hashCurrentTx = m_prepareData->tx->getWtx()->get().GetHash();
         if (fDandelion) {
             LOCK(veil::dandelion.cs);
             veil::dandelion.Add(hashCurrentTx, GetAdjustedTime() + veil::dandelion.nDefaultStemTime, veil::dandelion.nDefaultNodeID);
@@ -494,18 +494,18 @@ void SendCoinsDialog::on_sendButton_clicked()
         return;
     }
 
-    prepareData = new PrepareTxData();
-    prepareData->nComputeTimeStart = GetTimeMillis();
-    prepareData->tx = new WalletModelTransaction(recipients);
+    m_prepareData.reset(new PrepareTxData());
+    m_prepareData->nComputeTimeStart = GetTimeMillis();
+    m_prepareData->tx = new WalletModelTransaction(recipients);
 
     // Always use a CCoinControl instance, use the CoinControlDialog instance if CoinControl has been enabled
     CCoinControl ctrl;
     if (model->getOptionsModel()->getCoinControlFeatures())
         ctrl = *CoinControlDialog::coinControl();
 
-    prepareData->ctrl = ctrl;
+    m_prepareData->ctrl = ctrl;
     updateCoinControlState(ctrl);
-    QtConcurrent::run(this, &SendCoinsDialog::AsyncPrepareTransaction);
+    QtConcurrent::run(this, &SendCoinsDialog::PrepareTransaction);
 
     //Show a message box that says transaction is being generated
     SetTransactionLabelState(TxPrepState::GENERATING);

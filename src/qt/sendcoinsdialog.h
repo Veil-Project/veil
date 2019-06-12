@@ -96,7 +96,7 @@ private:
     bool fFeeMinimized;
     bool fDandelion = false;
     const PlatformStyle *platformStyle;
-    PrepareTxData* prepareData;
+    std::unique_ptr<PrepareTxData> m_prepareData;
     QTimer* m_timerStatus;
     int m_statusAnimationState;
 
@@ -109,7 +109,7 @@ private:
     // Update the passed in CCoinControl with state from the GUI
     void updateCoinControlState(CCoinControl& ctrl);
 
-    void AsyncPrepareTransaction();
+    void PrepareTransaction();
     void SetTransactionLabelState(TxPrepState state);
 
 private Q_SLOTS:
