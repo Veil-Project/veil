@@ -403,7 +403,7 @@ void AddressesWidget::setModel(AddressTableModel *_model)
 void AddressesWidget::onForeground(){
     if(walletModel){
         interfaces::Wallet& wallet = walletModel->wallet();
-        const size_t listsize = wallet.getAddresses().size();
+        auto listsize = model->rowCount(QModelIndex());
         ui->empty->setVisible(listsize == 0);
         showList(listsize > 0);
     }

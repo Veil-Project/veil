@@ -543,5 +543,7 @@ void OverviewPage::hideOrphans(bool fHide)
 
 void OverviewPage::showEvent(QShowEvent *event){
     QSettings settings;
-    hideOrphans(settings.value("bHideOrphans", true).toBool());
+    bool fHide = settings.value("bHideOrphans", true).toBool();
+    if (fHide != filter->orphansHidden())
+        hideOrphans(fHide);
 }
