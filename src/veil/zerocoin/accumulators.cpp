@@ -390,7 +390,10 @@ bool GenerateAccumulatorWitness(CoinWitnessData* coinwitness, AccumulatorMap& ma
     }
 
     if (nSecurityLevel != 100) {
-        nHeightStop = std::min(coinwitness->nHeightCheckpoint + nSecurityLevel*100, nHeightStop);
+        nHeightStop = std::min(coinwitness->nHeightCheckpoint + nSecurityLevel*10, nHeightStop);
+        //Height stop needs to be a multiple of 10
+        if (nHeightStop % 10)
+            nHeightStop -= nHeightStop % 10;
     }
 
     // If we are already at the tip, no reason to Accumulate Range
