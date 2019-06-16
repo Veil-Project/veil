@@ -48,6 +48,8 @@ SettingsFaq::SettingsFaq(QWidget *parent, bool howToObtainVeil) :
     connect(ui->radioButton_10,SIGNAL(clicked()),this, SLOT(onRadioButton10Clicked()));
     //connect(ui->radioButton_11,SIGNAL(clicked()),this, SLOT(onRadioButton11Clicked()));
 
+
+
     faq01 = new SettingsFaq01(this);
 
     ui->stackedWidget->addWidget(faq01);
