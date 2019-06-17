@@ -732,6 +732,9 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         CCoinsViewMemPool viewMemPool(pcoinsTip.get(), pool);
         view.SetBackend(viewMemPool);
 
+        ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
+        bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
+
         // do all inputs exist?
         std::set<CBigNum> setSerials;
         for (const CTxIn& txin : tx.vin) {
@@ -762,7 +765,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 auto spend = TxInToZerocoinSpend(txin);
                 if (!spend)
                     return false;
-                if (spend->getVersion() < libzerocoin::CoinSpend::V3_SMALL_SOK)
+                if (spend->getVersion() < libzerocoin::CoinSpend::V3_SMALL_SOK || (fZCLimpMode && spend->getVersion() != libzerocoin::CoinSpend::V4_LIMP))
                     return state.Invalid(false, REJECT_OBSOLETE, "old-version-zerocoinspend");
                 auto bnSerial = spend->getCoinSerialNumber();
                 int nHeight;
@@ -776,8 +779,6 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-in-mempool");
                 }
 
-                ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
-                bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
                 if (!ContextualCheckZerocoinSpend(tx, *spend, pindexBestHeader->GetBlockHash(), pindexBestHeader, fZCLimpMode,/*fSkipVerify*/true))
                     return state.Invalid(false, REJECT_INVALID, "failed-zcspend-context-checks");
 
