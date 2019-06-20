@@ -384,12 +384,12 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 1493596800; // May 1st 2017
 
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = 1548269817;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1556226440;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].bit = 3;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = 1556321954;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = 1579805817;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
@@ -421,7 +421,8 @@ public:
         vSeeds.emplace_back("veilseedtestnet.presstab.pw");
         vSeeds.emplace_back("veil-testnet.seed.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
         vSeeds.emplace_back("veil-testnet.seed2.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
-        vSeeds.emplace_back("45.34.187.118", "45.34.187.118"); // blondfrogs single IP
+        vSeeds.emplace_back("veilseedtestnet.veil-stats.com"); // Codeofalltrades seeder
+        vSeeds.emplace_back("veil-testnet-seed.asoftwaresolution.com");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -448,8 +449,8 @@ public:
 
         checkpointData = {
             {
-                    {98429, uint256S("fecff045e98e30c6e077d160883d73500e4d96463d8333436403298fea5ecda3")},
-                    {103000, uint256S("e95fc76c6c9016e8ed2e4e4a2641dfc91dbf6bad4df659f664d8f7614bc010c0")},
+                    { 1, uint256S("0x918ebe520f7666375d7e4dbb0c269f675440b96b0413ab92bbf28b85126197cd")},
+                    { 95, uint256S("0x1c1d4a474a167a3d474ad7ebda5dfc5560445f885519cb98595aab6f818b1f6f")}
             }
         };
 
