@@ -39,6 +39,7 @@ void WalletInit::AddWalletOptions() const
                                                             CURRENCY_UNIT, FormatMoney(DEFAULT_TRANSACTION_MINFEE)), false, OptionsCategory::WALLET);
     // default denom
     gArgs.AddArg("-nautomintdenom=<n>", strprintf("Set preferred automint denomination (default: %d)", DEFAULT_AUTOMINT_DENOM), false, OptionsCategory::WALLET);
+    gArgs.AddArg("-automintoff", strprintf("Disable automint (default: %u)", false), false, OptionsCategory::WALLET);
 
     gArgs.AddArg("-paytxfee=<amt>", strprintf("Fee (in %s/kB) to add to transactions you send (default: %s)",
                                                             CURRENCY_UNIT, FormatMoney(CFeeRate{DEFAULT_PAY_TX_FEE}.GetFeePerK())), false, OptionsCategory::WALLET);

@@ -344,6 +344,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         OUTPUT_PTR<CTxOutStandard> outCoinbase = MAKE_OUTPUT<CTxOutStandard>();
         outCoinbase->scriptPubKey = scriptPubKeyIn;
         outCoinbase->nValue = nMinerReward;
+
+        // Add extra coins for testnet, and regtest
+        if (nHeight == 1 && Params().NetworkIDString() != CBaseChainParams::MAIN) {
+            outCoinbase->nValue += 15000000 * COIN;
+        }
+
         coinbaseTx.vpout[0] = (std::move(outCoinbase));
     }
 

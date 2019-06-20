@@ -2686,9 +2686,13 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 FormatMoney(networkReward), FormatMoney(nFounderPayment), FormatMoney(nBudgetPayment),
                 FormatMoney(nLabPayment));
 
-        return state.DoS(100, error("ConnectBlock(): coinbase pays too much (actual=%s vs limit=%s)\n %s",
-                                    FormatMoney(nCreated), FormatMoney(nCreationLimit), block.vtx[0]->ToString()),
-                         REJECT_INVALID, "bad-cb-amount");
+        // On testnet and regtest, we allow the first block to mine lots of coins to make testing easier
+        // We need to make sure this isn't allow on Mainnet.
+        if (Params().NetworkIDString() == CBaseChainParams::MAIN || pindex->nHeight != 1) {
+            return state.DoS(100, error("ConnectBlock(): coinbase pays too much (actual=%s vs limit=%s)\n %s",
+                                        FormatMoney(nCreated), FormatMoney(nCreationLimit), block.vtx[0]->ToString()),
+                             REJECT_INVALID, "bad-cb-amount");
+        }
     }
 
     // Ensure that accumulator checkpoints are valid and in the same state as this instance of the chain
