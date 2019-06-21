@@ -336,6 +336,9 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
 
     CTxDestination dest;
     dest = DecodeDestination(params[4].get_str());
+    if (!IsValidDestination(dest)) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Error: Invalid address");
+    }
 
     if (nSecurityLevel < 1 || nSecurityLevel > 100) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Invalid security level value (%d). Must be in [1, 100] range.", nSecurityLevel));
