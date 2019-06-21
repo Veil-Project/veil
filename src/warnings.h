@@ -10,6 +10,7 @@
 #include <string>
 
 void SetMiscWarning(const std::string& strWarning);
+void SetfUpdateFound(bool flag);
 void SetfLargeWorkForkFound(bool flag);
 bool GetfLargeWorkForkFound();
 void SetfLargeWorkInvalidChainFound(bool flag);

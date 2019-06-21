@@ -17,6 +17,15 @@ static const unsigned int DEFAULT_BLOCK_RECONSTRUCTION_EXTRA_TXN = 100;
 /** Default for BIP61 (sending reject messages) */
 static constexpr bool DEFAULT_ENABLE_BIP61 = true;
 
+extern bool fUpdateCheck;
+extern int higherVerPeers;
+extern int currentVerPeers;
+extern int lowerVerPeers;
+extern bool shouldUpgrade;
+
+int CheckForUpdates(std::string addr, std::string ver);
+void replaceAll(std::string& str, const std::string& from, const std::string& to);
+
 class PeerLogicValidation final : public CValidationInterface, public NetEventsInterface {
 private:
     CConnman* const connman;

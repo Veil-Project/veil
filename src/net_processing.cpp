@@ -10,8 +10,10 @@
 #include <blockencodings.h>
 #include <chainparams.h>
 #include <checkpoints.h>
+#include <clientversion.h>
 #include <consensus/validation.h>
 #include <hash.h>
+#include <warnings.h>
 #include <validation.h>
 #include <merkleblock.h>
 #include <netmessagemaker.h>
@@ -80,6 +82,33 @@ std::map<uint256, COrphanTx> mapOrphanTransactions GUARDED_BY(g_cs_orphans);
 std::map<int, CBlock> mapStagedBlocks;
 static constexpr int ASK_FOR_BLOCKS = 50; //How many blocks to ask for at once
 static CCriticalSection cs_staging;
+
+bool fUpdateCheck = true;
+
+bool shouldUpgrade = false;
+
+// --------------------------------------------------
+// Upgrade Majority
+// This is the magic number for deciding when enough
+// peers have a higher version to be considered the
+// 'majority' of the network for updating the software.
+
+// Higher means more secure and less false-positives,
+// but lengthens time before the update is triggered.
+
+// Peers / nUpgradeMajority = Minimum peers for update.
+// An additional protection against false-positives
+// is the Updater will not fire unless there's atleast
+// two higher peers, minimum, even if the percentage
+// majority (With 4 or less peers) is high enough.
+
+int nUpgradeMajority = 2; // 50% of peers is 'majority'.
+// --------------------------------------------------
+
+// Track all peer version differences
+int higherVerPeers = 0;
+int currentVerPeers = 0;
+int lowerVerPeers = 0;
 
 void EraseOrphansFor(NodeId peer);
 
@@ -2065,9 +2094,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         // Potentially mark this peer as a preferred download peer.
         {
-        LOCK(cs_main);
-        UpdatePreferredDownload(pfrom, State(pfrom->GetId()));
+            LOCK(cs_main);
+            UpdatePreferredDownload(pfrom, State(pfrom->GetId()));
         }
+        
+        // Check the peer's version and compare it to us
+        CheckForUpdates(pfrom->addr.ToString(), pfrom->strSubVer);
 
         if (!pfrom->fInbound)
         {
@@ -4309,6 +4341,70 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
         }
     }
     return true;
+}
+
+int CheckForUpdates (std::string addr, std::string ver)
+{
+  if (fUpdateCheck == true)
+  {
+    /*
+        - JSKitty
+       
+        Due to the nature of this splicing mechanic, a version integer over 10
+        will cause the updater to get 'confused'.
+        
+        For example, v1.2.3 would equate to 123 when spliced, but v1.10.3 would
+        equate to 1103, which, even though in versioning terms is an OLDER
+        version, the updater cannot see that in integer form.
+        
+        This problem is avoided if you do less than 10 major / minor / patch
+        updates in a row, but if that cannot be done, I'd recommend we find
+        a way to splice without breaking version tracking over 10 updates.
+    */
+
+    // Splice raw version integer from the Sub Version of the peer and ourselves
+    replaceAll(ver, "/", "");
+    replaceAll(ver, ".", "");
+    replaceAll(ver, "Veil:", "");
+    int verInt = std::stoi(ver);
+
+    std::string localVer = FormatFullVersion();
+    replaceAll(localVer, "v", "");
+    replaceAll(localVer, ".", "");
+    localVer = localVer.substr(0, localVer.find("-"));
+    int localVerInt = std::stoi(localVer);
+
+    // Compare our version integer to the connected node
+    if (verInt > localVerInt) {
+      higherVerPeers++;
+    } else if (verInt == localVerInt) {
+      currentVerPeers++;
+    } else lowerVerPeers++;
+
+    // Calculate peers needed for a 'majority' upgrade
+    int peersForUpgrade = (higherVerPeers + currentVerPeers + lowerVerPeers) / nUpgradeMajority;
+
+    // Ensure minimum is atleast 2 peers
+    if (peersForUpgrade < 2)
+        peersForUpgrade = 2;
+
+    // Check if majority consensus is met
+    if ((higherVerPeers >= peersForUpgrade) ? shouldUpgrade = true : shouldUpgrade = false)
+
+    SetfUpdateFound(shouldUpgrade);
+    
+    return shouldUpgrade;
+  }
+}
+
+void replaceAll(std::string& str, const std::string& from, const std::string& to)
+{
+    size_t start_pos = 0;
+    while((start_pos = str.find(from, start_pos)) != std::string::npos)
+    {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length();
+    }
 }
 
 class CNetProcessingCleanup

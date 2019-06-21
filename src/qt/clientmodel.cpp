@@ -108,6 +108,7 @@ void ClientModel::updateTimer()
 void ClientModel::updateNumConnections(int numConnections)
 {
     Q_EMIT numConnectionsChanged(numConnections);
+    Q_EMIT alertsChanged(getStatusBarWarnings());
 }
 
 void ClientModel::updateNetworkActive(bool networkActive)
