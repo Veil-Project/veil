@@ -289,6 +289,10 @@ void AddressesWidget::hideEvent(QHideEvent *event){
     }
 }
 
+void AddressesWidget::hideThisWidget(){
+    this->hide();
+}
+
 // We override the virtual resizeEvent of the QWidget to adjust tables column
 // sizes as the tables width is proportional to the dialogs width.
 void AddressesWidget::resizeEvent(QResizeEvent* event)

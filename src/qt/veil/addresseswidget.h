@@ -59,6 +59,7 @@ private Q_SLOTS:
     void handleAddressClicked(const QModelIndex &index);
     virtual void showEvent(QShowEvent *event) override;
     virtual void hideEvent(QHideEvent *event) override;
+    void hideThisWidget();
 
 private:
     Ui::AddressesWidget *ui;

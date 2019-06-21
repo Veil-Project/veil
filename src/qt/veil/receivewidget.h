@@ -35,6 +35,9 @@ public Q_SLOTS:
     void on_btnCopyAddress_clicked();
     void generateNewAddressClicked();
 
+private Q_SLOTS:
+    void hideThisWidget();
+
 private:
     Ui::ReceiveWidget *ui;
     ClientModel *clientModel;

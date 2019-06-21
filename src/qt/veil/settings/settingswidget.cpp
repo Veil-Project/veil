@@ -276,6 +276,10 @@ void SettingsWidget::hideEvent(QHideEvent *event){
     connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
 }
 
+void SettingsWidget::hideThisWidget(){
+    this->hide();
+}
+
 void SettingsWidget::setWalletModel(WalletModel *model){
     this->walletModel = model;
 

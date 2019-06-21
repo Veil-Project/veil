@@ -45,6 +45,10 @@ void Toast::hideEvent(QHideEvent *event){
     //connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
 }
 
+void Toast::hideThisWidget(){
+    this->hide();
+}
+
 Toast::~Toast()
 {
     delete ui;
