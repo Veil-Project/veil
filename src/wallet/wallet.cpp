@@ -7019,6 +7019,14 @@ void AutoSpendZeroCoin()
                 continue;
             }
 
+            TRY_LOCK(cs_main, fLockedMain);
+            if (!fLockedMain)
+                continue;
+
+            TRY_LOCK(pwallet->cs_wallet, fLockedWallet);
+            if (!fLockedWallet)
+                continue;
+
             bool fSuccess = pwallet->SpendZerocoin(found * libzerocoin::ZerocoinDenominationToInt(denom_to_spend) * COIN, 1, receipt, vMintsSelected, false, false, denom_to_spend, &destination);
 
             if (fSuccess) {
