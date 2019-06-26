@@ -256,7 +256,6 @@ void AddressesWidget::initAddressesView(){
     // Complete me..
 }
 
-
 void AddressesWidget::showEvent(QShowEvent *event){
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
