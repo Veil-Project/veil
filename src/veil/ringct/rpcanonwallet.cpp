@@ -106,6 +106,30 @@ static UniValue getnewaddress(const JSONRPCRequest &request)
     return stealthAddress.ToString(fBech32);
 }
 
+static UniValue getstealthchangeaddress(const JSONRPCRequest &request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    if (!EnsureWalletIsAvailable(wallet.get(), request.fHelp))
+        return NullUniValue;
+
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+                "getstealthchangeaddress\n"
+                "Returns the default stealth change address."
+                + HelpRequiringPassphrase(wallet.get()) +
+                "\nResult:\n"
+                "\"address\"              (string) The stealth change address\n"
+                "\nExamples:\n"
+                + HelpExampleCli("getstealthchangeaddress", "")
+                + HelpExampleRpc("getstealthchangeaddress", ""));
+
+    EnsureWalletIsUnlocked(wallet.get());
+    auto pAnonWallet = wallet->GetAnonWallet();
+    auto address = pAnonWallet->GetStealthChangeAddress();
+
+    return address.ToString(true);
+}
+
 static UniValue restoreaddresses(const JSONRPCRequest &request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1897,7 +1921,7 @@ static const CRPCCommand commands[] =
                 { "wallet",             "getnewaddress",             &getnewaddress,          {"label","num_prefix_bits","prefix_num","bech32","makeV2"} },
                 { "wallet",             "restoreaddresses",          &restoreaddresses,          {"generate_count"} },
                 { "wallet",             "rescanringctwallet",          &rescanringctwallet,          {} },
-
+                { "wallet",             "getstealthchangeaddress",          &getstealthchangeaddress,          {} },
                 { "wallet",             "sendbasecointostealth", &sendbasecointostealth,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },
 
                 { "wallet",             "sendstealthtobasecoin", &sendstealthtobasecoin,               {"address","amount","comment","comment_to","subtractfeefromamount","narration"} },

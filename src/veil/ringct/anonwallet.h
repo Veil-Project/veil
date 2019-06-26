@@ -112,6 +112,8 @@ class AnonWallet
     CKeyID idMaster;
     CKeyID idDefaultAccount;
     CKeyID idStealthAccount;
+    CKeyID idChangeAccount;
+    CKeyID idChangeAddress;
 
     typedef std::multimap<COutPoint, uint256> TxSpends;
     TxSpends mapTxSpends;
@@ -209,8 +211,6 @@ public:
 
     bool IsChange(const CTxOutBase *txout) const;
 
-    int GetChangeAddress(CPubKey &pk);
-
     void AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend);
     bool ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::string &sError);
     void MarkInputsAsPendingSpend(CTransactionRecord &rtx);
@@ -255,7 +255,9 @@ public:
     int UnloadTransaction(const uint256 &hash);
 
     bool MakeDefaultAccount(const CExtKey& extKeyMaster);
+    bool CreateStealthChangeAccount(AnonWalletDB* wdb);
     bool SetMasterKey(const CExtKey& keyMasterIn);
+    bool UnlockWallet(const CExtKey& keyMasterIn);
     bool LoadAccountCounters();
     bool LoadKeys();
     CKeyID GetSeedHash() const;
@@ -271,7 +273,8 @@ public:
     bool RegenerateKeyFromIndex(const CKeyID& idAccount, int nIndex, CExtKey& keyDerive) const;
     bool MakeSigningKeystore(CBasicKeyStore& keystore, const CScript& scriptPubKey);
 
-    bool NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefixBits, const char *pPrefix);
+    bool NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefixBits, const char *pPrefix, CKeyID* paccount = nullptr);
+    CStealthAddress GetStealthChangeAddress();
 
     /**
      * Insert additional inputs into the transaction by
