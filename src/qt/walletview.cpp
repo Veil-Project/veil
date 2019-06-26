@@ -280,7 +280,7 @@ bool WalletView::encryptWallet(bool status)
 void WalletView::backupWallet()
 {
     QString filename = GUIUtil::getSaveFileName(this,
-        tr("Backup Wallet"), QString(),
+        tr("Backup Wallet"), QDateTime::currentDateTime().toString("'wallet'-yyyy-MM-dd-hh-mm-ss"),
         tr("Wallet Data (*.dat)"), nullptr);
 
     if (filename.isEmpty())
