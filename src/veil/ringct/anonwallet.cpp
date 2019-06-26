@@ -1613,19 +1613,24 @@ bool CheckOutputValue(const CTempRecipient &r, const CTxOutBase *txbout, CAmount
 }
 
 void InspectOutputs(std::vector<CTempRecipient> &vecSend, bool fZerocoinInputs, CAmount &nValue,
-        size_t &nSubtractFeeFromAmount, bool &fOnlyStandardOutputs, bool& fSkipFee)
+        size_t &nSubtractFeeFromAmount, bool &fOnlyStandardOutputs, bool& fSkipFee, bool& fSendingOnlyBaseCoin)
 {
     nValue = 0;
     nSubtractFeeFromAmount = 0;
     fOnlyStandardOutputs = true;
     fSkipFee = true;
+    fSendingOnlyBaseCoin = true;
 
     for (auto &r : vecSend) {
         nValue += r.nAmount;
         fSkipFee = fSkipFee && (fZerocoinInputs && !r.fZerocoin);
         if (r.nType != OUTPUT_STANDARD && r.nType != OUTPUT_DATA) {
             fOnlyStandardOutputs = false;
+            fSendingOnlyBaseCoin = false;
         }
+
+        if (r.nType == OUTPUT_STANDARD && r.fZerocoin)
+            fSendingOnlyBaseCoin = false;
 
         if (r.fSubtractFeeFromAmount) {
             if (r.fSplitBlindOutput && r.nAmount < 0.1) {
@@ -1818,8 +1823,8 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
     nFeeRet = 0;
     CAmount nValueOutCT;
     size_t nSubtractFeeFromAmount;
-    bool fOnlyStandardOutputs, fSkipFee;
-    InspectOutputs(vecSend, fZerocoinInputs, nValueOutCT, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
+    bool fOnlyStandardOutputs, fSkipFee, fSendingOnlyBaseCoin;
+    InspectOutputs(vecSend, fZerocoinInputs, nValueOutCT, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee, fSendingOnlyBaseCoin);
 
     //Need count of zerocoin mint outputs in order to calculate fee correctly
     int nZerocoinMintOuts = 0;
@@ -1994,7 +1999,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
 
             int nLastBlindedOutput = -1;
 
-            if (!fOnlyStandardOutputs || nZerocoinMintOuts) {
+            if (!fOnlyStandardOutputs || nZerocoinMintOuts || fSendingOnlyBaseCoin) {
                 OUTPUT_PTR<CTxOutData> outFee = MAKE_OUTPUT<CTxOutData>();
                 outFee->vData.push_back(DO_FEE);
                 outFee->vData.resize(9); // More bytes than varint fee could use
@@ -2212,7 +2217,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
 
         coinControl->nChangePos = nChangePosInOut;
 
-        if (!fOnlyStandardOutputs || nZerocoinMintOuts) {
+        if (!fOnlyStandardOutputs || nZerocoinMintOuts || fSendingOnlyBaseCoin) {
             std::vector<uint8_t> &vData = ((CTxOutData*)txNew.vpout[0].get())->vData;
             vData.resize(1);
             if (0 != PutVarInt(vData, nFeeRet)) {
@@ -2348,8 +2353,8 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
     nFeeRet = 0;
     CAmount nValueOutBlind;
     size_t nSubtractFeeFromAmount;
-    bool fOnlyStandardOutputs, fSkipFee;
-    InspectOutputs(vecSend, false, nValueOutBlind, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
+    bool fOnlyStandardOutputs, fSkipFee, fSendingOnlyBaseCoin;
+    InspectOutputs(vecSend, false, nValueOutBlind, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee, fSendingOnlyBaseCoin);
 
     //Need count of zerocoin mint outputs in order to calculate fee correctly
     int nZerocoinMintOuts = 0;
@@ -3068,9 +3073,8 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
     nFeeRet = 0;
     CAmount nValueOutAnon;
     size_t nSubtractFeeFromAmount;
-    bool fOnlyStandardOutputs;
-    bool fSkipFee;
-    InspectOutputs(vecSend, fZerocoinInputs, nValueOutAnon, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee);
+    bool fOnlyStandardOutputs, fSkipFee, fSendingOnlyBaseCoin;
+    InspectOutputs(vecSend, fZerocoinInputs, nValueOutAnon, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee, fSendingOnlyBaseCoin);
 
     //Need count of zerocoin mint outputs in order to calculate fee correctly
     int nZerocoinMintOuts = 0;

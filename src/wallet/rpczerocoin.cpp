@@ -283,7 +283,7 @@ UniValue spendzerocoin(const JSONRPCRequest& request)
 
     if (request.fHelp || params.size() > 6 || params.size() < 5)
         throw std::runtime_error(
-                "spendzerocoin amount mintchange minimizechange securitylevel  \"address\"  d(denomination)\n"
+                "spendzerocoin amount mintchange minimizechange securitylevel  \"address\"  (denomination)\n"
                 "\nSpend zerocoin to a veil address.\n"
                 "\nArguments:\n"
                 "1. amount          (numeric, required) Amount to spend.\n"

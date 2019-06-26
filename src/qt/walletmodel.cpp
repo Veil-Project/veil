@@ -244,7 +244,6 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             /**Spend Zerocoins first**/
             spendType = WalletModelSpendType::ZCSPEND;
             //todo, this does not support multi recipient spend yet
-
             std::vector<CZerocoinMint> vMintsSelected;
             //Use low security level while zerocoin is in limp mode
             newTx = m_wallet->prepareZerocoinSpend(total, /*nSecurityLevel*/3, receipt, vMintsSelected,

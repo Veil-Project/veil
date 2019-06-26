@@ -5868,17 +5868,16 @@ bool CWallet::PrepareZerocoinSpend(CAmount nValue, int nSecurityLevel, CZerocoin
 {
     // Default: assume something goes wrong. Depending on the problem this gets more specific below
     int nStatus = ZSPEND_ERROR;
-
     if (IsLocked() || IsUnlockedForStakingOnly()) {
         receipt.SetStatus("Error: Wallet locked, unable to create transaction!", ZWALLET_LOCKED);
-        return false;
+        return error("%s : %s", __func__, receipt.GetStatusMessage());
     }
-
     // If not already given pre-selected mints, then select mints from the wallet
     CAmount nValueSelected = 0;
     if (vMintsSelected.empty()) {
-        if(!CollectMintsForSpend(nValue, vMintsSelected, receipt, nStatus, fMinimizeChange, denomFilter))
-            return false;
+        if(!CollectMintsForSpend(nValue, vMintsSelected, receipt, nStatus, fMinimizeChange, denomFilter)) {
+            return error("%s : %s", __func__, receipt.GetStatusMessage());
+        }
     }
 
     // todo: should we use a different reserve key for each transaction?
@@ -6252,11 +6251,6 @@ bool CWallet::CollectMintsForSpend(CAmount nValue, std::vector<CZerocoinMint>& v
         return false;
     }
 
-    if (nValue < 10*COIN) {
-        receipt.SetStatus("Value is below the smallest available denomination (= 1) of zerocoin", nStatus);
-        return false;
-    }
-
     std::set<CMintMeta> setMints;
     AvailableZerocoins(setMints);
     if (setMints.empty()) {
@@ -6416,17 +6410,24 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                     r.fExemptFeeSub = false;
                     vecSend.emplace_back(r);
                 } else {
-                    scriptZerocoinSpend = GetScriptForDestination(*address);
+                    CTempRecipient r;
+                    r.nType = OUTPUT_STANDARD;
+                    r.fZerocoin = false;
+                    r.SetAmount(nValue);
+                    r.fSubtractFeeFromAmount = false;
+                    r.address = *address;
+                    r.fExemptFeeSub = false;
+                    vecSend.emplace_back(r);
                 }
             }
 
             //add change output if we are spending too much (only applies to spending multiple at once)
             if (nChange) {
-
                 // Try and mint the change as zerocoin
                 if (fMintChange) {
                     //Any change below the smallest zerocoin denom is not remintable and is considered dust to be sent to ct
-                    auto nAmountSmallestDenom = libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN);
+                    auto nAmountSmallestDenom = libzerocoin::ZerocoinDenominationToAmount(
+                            libzerocoin::CoinDenomination::ZQ_TEN);
                     nChangeDust = nChange % nAmountSmallestDenom;
                     nChangeRemint = nChange - nChangeDust;
 
@@ -6458,7 +6459,8 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                             return false;
                         }
                     }
-                } else { // Mint the change as ct
+                } else {
+                    // Mint the change as ct by default
                     nChangeRemint = 0;
                     nChangeDust = nChange;
                 }
@@ -6476,13 +6478,7 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 }
             }
 
-            //add output to veil address to the transaction (the actual primary spend taking place)
-            if (!fStealthOutput) {
-                CTxOut txOutZerocoinSpend(nValue, scriptZerocoinSpend);
-                txNew.vpout.emplace_back(txOutZerocoinSpend.GetSharedPtr());
-            } else {
-                txNew.vpout.clear();
-            }
+            txNew.vpout.clear();
 
             CTransactionRef txRef = std::make_shared<CTransaction>(txNew);
 
