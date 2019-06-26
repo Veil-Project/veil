@@ -250,7 +250,6 @@ void AddressesWidget::handleAddressClicked(const QModelIndex &index){
     }
     menu->move(pos);
     menu->show();
-
 }
 
 void AddressesWidget::initAddressesView(){
@@ -268,7 +267,6 @@ void AddressesWidget::showEvent(QShowEvent *event){
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
     reloadTab(isOnMyAddresses);
-
 }
 
 void AddressesWidget::hideEvent(QHideEvent *event){
@@ -281,7 +279,6 @@ void AddressesWidget::hideEvent(QHideEvent *event){
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
     connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
-
 
     if(menu != nullptr){
         menu->hide();
@@ -317,7 +314,6 @@ void AddressesWidget::onButtonChanged() {
     }else{
         ui->btnAdd->setText("New Contact");
         showHideMineAddressBtn(false);
-
     }
     if(this->menu){
         this->menu->hide();
@@ -425,7 +421,6 @@ void AddressesWidget::showList(bool show){
         ui->listAddresses->setVisible(false);
         ui->listContacts->setVisible(false);
     }
-
 }
 
 AddressesWidget::~AddressesWidget() {
