@@ -233,7 +233,8 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             vMintsSelected.emplace_back(mint);
         }
 
-        newTx = m_wallet->prepareZerocoinSpend(total, /*nSecurityLevel*/100, receipt, vMintsSelected,
+        //Use low security level while zerocoin is in limp mode
+        newTx = m_wallet->prepareZerocoinSpend(total, /*nSecurityLevel*/3, receipt, vMintsSelected,
                 /*fMintChange*/true, /*fMinimizeChange*/false, vCommitData, libzerocoin::CoinDenomination::ZQ_ERROR,
                                                &vecSend[0].address);
         nBalance = m_wallet->getAvailableZerocoinBalance(coinControl);
@@ -245,7 +246,8 @@ WalletModel::SendCoinsReturn WalletModel::prepareTransaction(WalletModelTransact
             //todo, this does not support multi recipient spend yet
 
             std::vector<CZerocoinMint> vMintsSelected;
-            newTx = m_wallet->prepareZerocoinSpend(total, /*nSecurityLevel*/100, receipt, vMintsSelected,
+            //Use low security level while zerocoin is in limp mode
+            newTx = m_wallet->prepareZerocoinSpend(total, /*nSecurityLevel*/3, receipt, vMintsSelected,
                     fMintChange, /*fMinimizeChange*/false, vCommitData, libzerocoin::CoinDenomination::ZQ_ERROR,
                     &vecSend[0].address);
             nBalance = balances.zerocoin_balance;

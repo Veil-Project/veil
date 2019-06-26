@@ -52,6 +52,8 @@ public:
     int rowCount(const QModelIndex &parent = QModelIndex()) const;
 
     void setHideOrphans(bool hide);
+    bool orphansHidden() const { return fHideOrphans; }
+
 
 
 protected:

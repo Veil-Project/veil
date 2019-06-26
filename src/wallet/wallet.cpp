@@ -6381,7 +6381,6 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
     CAmount nChangeDust;
     wtxNew.BindWallet(this);
     {
-        LOCK2(cs_main, cs_wallet);
         {
             txNew.vin.clear();
             txNew.vpout.clear();
@@ -6465,6 +6464,7 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
                 }
 
                 if (nChangeRemint > 0) {
+                    LOCK(cs_wallet);
                     //mint change as zerocoins and RingCT
                     CAmount nFeeRet = 0;
                     std::string strFailReason = "";
@@ -6494,6 +6494,7 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
 
             CTransactionRecord rtx;
             if (!vecSend.empty()) {
+                LOCK(cs_wallet);
                 CAmount nFeeRet;
                 std::string sError;
                 CCoinControl coinControl;

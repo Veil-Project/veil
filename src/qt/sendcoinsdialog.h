@@ -12,6 +12,9 @@
 #include <QString>
 #include <QTimer>
 #include <qt/walletview.h>
+#include <wallet/wallet.h>
+#include <wallet/coincontrol.h>
+#include <qt/walletmodel.h>
 
 class ClientModel;
 class PlatformStyle;
@@ -26,6 +29,19 @@ namespace Ui {
 QT_BEGIN_NAMESPACE
 class QUrl;
 QT_END_NAMESPACE
+
+struct PrepareTxData
+{
+    WalletModelTransaction* tx;
+    CCoinControl ctrl;
+    CZerocoinSpendReceipt receipt;
+    WalletModelSpendType spendType;
+    std::vector<CommitData> vCommitData;
+    WalletModel::SendCoinsReturn prepareStatus;
+    int64_t nComputeTimeStart;
+
+    PrepareTxData(){};
+};
 
 /** Dialog for sending bitcoins */
 class SendCoinsDialog : public QDialog
@@ -50,6 +66,14 @@ public:
     void HideCoinControlLabels();
     void ShowCoinCointrolLabels();
 
+    enum TxPrepState
+    {
+        BEGIN,
+        GENERATING,
+        WAITING_USER,
+        DONE
+    };
+
 public Q_SLOTS:
     void clear();
     void reject();
@@ -57,9 +81,11 @@ public Q_SLOTS:
     SendCoinsEntry *addEntry();
     void updateTabsAndLabels();
     void setBalance(const interfaces::WalletBalances& balances);
+    void PrepareTransactionFinished();
 
 Q_SIGNALS:
     void coinsSent(const uint256& txid);
+    void TransactionPrepared();
 
 private:
     Ui::SendCoinsDialog *ui;
@@ -70,6 +96,9 @@ private:
     bool fFeeMinimized;
     bool fDandelion = false;
     const PlatformStyle *platformStyle;
+    std::unique_ptr<PrepareTxData> m_prepareData;
+    QTimer* m_timerStatus;
+    int m_statusAnimationState;
 
     // Process WalletModel::SendCoinsReturn and generate a pair consisting
     // of a message and message flags for use in Q_EMIT message().
@@ -79,6 +108,9 @@ private:
     void updateFeeMinimizedLabel();
     // Update the passed in CCoinControl with state from the GUI
     void updateCoinControlState(CCoinControl& ctrl);
+
+    void PrepareTransaction();
+    void SetTransactionLabelState(TxPrepState state);
 
 private Q_SLOTS:
     void on_sendButton_clicked();
@@ -104,6 +136,7 @@ private Q_SLOTS:
     void updateMinFeeLabel();
     void updateSmartFeeLabel();
     void toggleDandelion(bool);
+    void StatusTimerTimeout();
 
 Q_SIGNALS:
     // Fired when a message should be reported to the user
