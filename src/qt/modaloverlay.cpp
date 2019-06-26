@@ -216,5 +216,4 @@ void ModalOverlay::closeClicked()
 
 void ModalOverlay::showEvent(QShowEvent *event){
     resizeOp();
-
 }
