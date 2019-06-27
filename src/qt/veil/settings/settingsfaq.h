@@ -1,3 +1,7 @@
+// Copyright (c) 2019 The Veil developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #ifndef SETTINGSFAQ_H
 #define SETTINGSFAQ_H
 
@@ -14,6 +18,7 @@
 #include <qt/veil/settings/settingsfaq09.h>
 #include <qt/veil/settings/settingsfaq10.h>
 #include <qt/veil/settings/settingsfaq11.h>
+#include <qt/veil/settings/settingsfaq12.h>
 
 
 namespace Ui {
@@ -40,6 +45,8 @@ private Q_SLOTS:
     void onRadioButton09Clicked();
     void onRadioButton10Clicked();
     void onRadioButton11Clicked();
+    void onRadioButton12Clicked();
+
     void changeScreen(QWidget *widget);
 
 private:
@@ -55,6 +62,7 @@ private:
     SettingsFaq09 *faq09 = nullptr;
     SettingsFaq10 *faq10 = nullptr;
     SettingsFaq11 *faq11 = nullptr;
+    SettingsFaq12 *faq12 = nullptr;
 };
 
 #endif // SETTINGSFAQ_H
