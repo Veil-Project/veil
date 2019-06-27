@@ -595,6 +595,7 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
     std::vector<uint256> vCoinControlSerials;
     coinControl()->ListSelected(vCoinControlSerials);
 
+	bool fZerocoinMintSelected = false;
     for (auto serialHash: vCoinControlSerials) {
         CZerocoinMint mint;
 
@@ -609,7 +610,7 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
         }
 
         nQuantity++;
-
+		fZerocoinMintSelected = true;
         nAmount += mint.GetDenominationAsAmount();
     }
 
@@ -633,7 +634,12 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
                 nBytes -= 34;
 
         // Fee
-        nPayFee = model->wallet().getMinimumFee(nBytes, *coinControl(), nullptr /* returned_target */, nullptr /* reason */);
+		if (fZerocoinMintSelected) {
+			nPayFee = 0; // No fee to spend zerocoin
+		}
+		else {
+			nPayFee = model->wallet().getMinimumFee(nBytes, *coinControl(), nullptr /* returned_target */, nullptr /* reason */);
+		}
 
         if (nPayAmount > 0)
         {
