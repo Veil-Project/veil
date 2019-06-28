@@ -887,29 +887,12 @@ UniValue rescanzerocoinwallet(const JSONRPCRequest& request)
     UniValue params = request.params;
     if (request.fHelp || params.size() > 1)
         throw runtime_error(
-                "resetmintzerocoin ( fullscan )\n"
-                "\nScan the blockchain for all of the zerocoins that are held in the wallet.dat.\n"
-                "Update any meta-data that is incorrect. Archive any mints that are not able to be found.\n" +
-                HelpRequiringPassphrase(pwallet) + "\n"
-
-                                                   "\nArguments:\n"
-                                                   "1. fullscan          (boolean, optional) Rescan each block of the blockchain.\n"
-                                                   "                               WARNING - may take 30+ minutes!\n"
-
-                                                   "\nResult:\n"
-                                                   "{\n"
-                                                   "  \"updated\": [       (array) JSON array of updated mints.\n"
-                                                   "    \"xxx\"            (string) Hex encoded mint.\n"
-                                                   "    ,...\n"
-                                                   "  ],\n"
-                                                   "  \"archived\": [      (array) JSON array of archived mints.\n"
-                                                   "    \"xxx\"            (string) Hex encoded mint.\n"
-                                                   "    ,...\n"
-                                                   "  ]\n"
-                                                   "}\n"
-
-                                                   "\nExamples:\n" +
-                HelpExampleCli("resetmintzerocoin", "true") + HelpExampleRpc("resetmintzerocoin", "true"));
+                "rescanzerocoinwallet\n"
+                "Rescans for all local zerocoin mints & spends."
+                + HelpRequiringPassphrase(wallet.get()) +
+                "\nExamples:\n"
+                + HelpExampleCli("rescanzerocoinwallet", "")
+                + HelpExampleRpc("rescanzerocoinwallet", ""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
