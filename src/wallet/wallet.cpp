@@ -4039,7 +4039,7 @@ DBErrors CWallet::ZapWalletTx(std::vector<CWalletTx>& vWtx)
     return DBErrors::LOAD_OK;
 }
 
-bool CWallet::SetAddressBook(const CTxDestination& address, const std::string& strName, const std::string& strPurpose, bool bench32){
+bool CWallet::SetAddressBook(const CTxDestination& address, const std::string& strName, const std::string& strPurpose, bool bench32) {
     bool fUpdated = false;
     {
         LOCK(cs_wallet); // mapAddressBook
@@ -4049,9 +4049,8 @@ bool CWallet::SetAddressBook(const CTxDestination& address, const std::string& s
         if (!strPurpose.empty()) /* update purpose only if requested */
             mapAddressBook[address].purpose = strPurpose;
     }
-    NotifyAddressBookChanged(this, address, strName, ::IsMine(*this, address) != ISMINE_NO,
-                             strPurpose, (fUpdated ? CT_UPDATED : CT_NEW) );
-    if (!strPurpose.empty() && !WalletBatch(*database).WritePurpose(EncodeDestination(address,bench32), strPurpose))
+    NotifyAddressBookChanged(this, address, strName, ::IsMine(*this, address) != ISMINE_NO, strPurpose, (fUpdated ? CT_UPDATED : CT_NEW));
+    if (!strPurpose.empty() && !WalletBatch(*database).WritePurpose(EncodeDestination(address, bench32), strPurpose))
         return false;
     return WalletBatch(*database).WriteName(EncodeDestination(address,bench32), strName);
 }
@@ -4092,6 +4091,20 @@ bool CWallet::DelAddressBook(const CTxDestination& address)
 
     WalletBatch(*database).ErasePurpose(EncodeDestination(address));
     return WalletBatch(*database).EraseName(EncodeDestination(address));
+}
+
+bool CWallet::SetAutoSpendAddress(const CTxDestination& address) {
+    return WalletBatch(*database).WriteAutoSpend(EncodeDestination(address,true));
+}
+
+bool CWallet::GetAutoSpendAddress(std::string& address)
+{
+    return WalletBatch(*database).ReadAutoSpend(address);
+}
+
+bool CWallet::EraseAutoSpendAddress()
+{
+    return WalletBatch(*database).EraseAutoSpend();
 }
 
 const std::string& CWallet::GetLabelName(const CScript& scriptPubKey) const
@@ -6840,4 +6853,190 @@ void CWallet::PrecomputeSpends()
         LogPrint(BCLog::PRECOMPUTE, "%s: Finished precompute round...\n\n", __func__);
         MilliSleep(5000);
     }
+}
+
+boost::thread_group* pthreadGroupAutoSpend;
+
+
+void LinkAutoSpendThreadGroup(void* pthreadgroup)
+{
+    pthreadGroupAutoSpend = (boost::thread_group*)pthreadgroup;
+}
+
+bool StartAutoSpend()
+{
+    if (!pthreadGroupAutoSpend) {
+        error("%s: pthreadGroupAutoSpend is null! Cannot autospend.", __func__);
+        return false;
+    }
+
+    // Close any active auto spend threads before starting new threads
+    if (pthreadGroupAutoSpend->size() > 0) {
+        StopAutoSpend();
+    }
+
+    pthreadGroupAutoSpend->create_thread(boost::bind(&AutoSpendZeroCoin));
+    return true;
+}
+
+void StopAutoSpend()
+{
+    if (!pthreadGroupAutoSpend) {
+        error("%s: pthreadGroupAutoSpend is null! Cannot stop autospending.", __func__);
+        return;
+    }
+
+    if (pthreadGroupAutoSpend->size() > 0) {
+        pthreadGroupAutoSpend->interrupt_all();
+        pthreadGroupAutoSpend->join_all();
+    }
+
+    LogPrintf("AutoSpendZeroCoin stopped\n");
+}
+
+static libzerocoin::CoinDenomination denom_to_spend = libzerocoin::CoinDenomination::ZQ_TEN;
+static int max_number_to_spend = 1;
+static std::string auto_spend_address = "";
+
+void SetAutoSpendParameters(const int& nCount, const int& nDenom, const std::string& strAddress)
+{
+    if (nCount >= 1 && nCount <= 3)
+        max_number_to_spend = nCount;
+
+    libzerocoin::CoinDenomination denom = libzerocoin::IntToZerocoinDenomination(nDenom);
+
+    if (denom != libzerocoin::CoinDenomination::ZQ_ERROR)
+        denom_to_spend = denom;
+
+    auto_spend_address = strAddress;
+}
+
+void AutoSpendZeroCoin()
+{
+    LogPrintf("AutoSpendZeroCoin started: spending at most %d of the %d denomination per cycle\n", max_number_to_spend, libzerocoin::ZerocoinDenominationToInt(denom_to_spend));
+
+    static CTxDestination destination;
+
+    boost::this_thread::interruption_point();
+    try {
+        int64_t nMilliSeconds = 3000;
+        int count = 0;
+
+        while (true) {
+            // Sleep 5 minutes between spends, but actively check to see if the thread has been interrupted every 3 seconds
+            if (count < 100) {
+                count++;
+                boost::this_thread::interruption_point();
+                MilliSleep(nMilliSeconds);
+                boost::this_thread::interruption_point();
+                continue;
+            }
+            count = 0;
+
+            boost::this_thread::interruption_point();
+
+            if (ShutdownRequested())
+                break;
+
+            if (IsInitialBlockDownload() || !HeadersAndBlocksSynced()) {
+                LogPrintf("%s: waiting for sync cannot auto spend\n", __func__);
+                continue;
+            }
+
+            auto pwallet = GetMainWallet();
+
+            if (!pwallet) {
+                LogPrintf("%s: pwallet is null cannot auto spend\n", __func__);
+                continue;
+            }
+
+            if (pwallet->IsLocked() || pwallet->IsUnlockedForStakingOnly()) {
+                LogPrintf("%s: pwallet is locked cannot auto spend\n", __func__);
+                continue;
+            }
+
+            if (!IsValidDestination(destination)) {
+                // Check to see if a new address was passed in via the argument
+                std::string address = auto_spend_address;
+                if (address.empty()) {
+                    // See if the wallet already has an autospend address databased
+                    pwallet->GetAutoSpendAddress(address);
+                }
+
+                // Create a destination from the address given or databased
+                CBitcoinAddress addr(address);
+                destination = addr.Get();
+
+                // If the destination isn't valid at this point. Create a new stealth address and database it
+                if (!IsValidDestination(destination)) {
+                    CStealthAddress stealthAddress;
+
+                    // Check to make sure the anon wallet is available
+                    auto anonwallet = pwallet->GetAnonWallet();
+                    if (!anonwallet) {
+                        LogPrintf("%s: anonwallet is null cannot auto spend\n", __func__);
+                        continue;
+                    }
+
+                    // Generate new address
+                    if (!anonwallet->NewStealthKey(stealthAddress, 0, nullptr)) {
+                        LogPrintf("%s: Failed to create new stealth address to use for auto spend\n", __func__);
+                        continue;
+                    }
+
+                    destination = stealthAddress;
+                }
+
+                // Save the destination to database
+                if (!pwallet->SetAutoSpendAddress(destination))
+                    LogPrintf("%s : Failed to set auto spend address\n", __func__);
+            }
+
+            std::vector<CZerocoinMint> vMintsSelected;
+            CZerocoinSpendReceipt receipt;
+
+            // Get the list of mints
+            std::set<CMintMeta> mints = pwallet->ListMints(true, true, false);
+
+            int found = 0;
+            for (const auto& mint : mints) {
+                // If you have a mint of the selected denom to spend
+                if (mint.denom == denom_to_spend) {
+                    found++;
+                }
+
+                // If you have found the selected number of mints to spends
+                if (found == max_number_to_spend)
+                    break;
+            }
+
+            // If no mints found to spend, don't try and spend
+            if (found == 0) {
+                LogPrintf("%s : No more denominations of the selected type (%d) to auto spend\n", __func__, ZerocoinDenominationToInt(denom_to_spend));
+                continue;
+            }
+
+            TRY_LOCK(cs_main, fLockedMain);
+            if (!fLockedMain)
+                continue;
+
+            TRY_LOCK(pwallet->cs_wallet, fLockedWallet);
+            if (!fLockedWallet)
+                continue;
+
+            bool fSuccess = pwallet->SpendZerocoin(found * libzerocoin::ZerocoinDenominationToInt(denom_to_spend) * COIN, 1, receipt, vMintsSelected, false, false, denom_to_spend, &destination);
+
+            if (fSuccess) {
+                LogPrintf("Successfully auto spent %d %d denomination(s)\n", found, libzerocoin::ZerocoinDenominationToInt(denom_to_spend));
+            } else {
+                LogPrintf("Failed to auto spend zerocoin\n");
+            }
+        }
+    } catch (std::exception& e) {
+        LogPrintf("AutoSpendZeroCoin() exception\n");
+    } catch (boost::thread_interrupted) {
+        LogPrintf("AutoSpendZeroCoin() interrupted\n");
+    }
+
+    LogPrintf("AutoSpendZeroCoin stopping\n");
 }

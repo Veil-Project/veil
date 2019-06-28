@@ -1491,6 +1491,96 @@ UniValue searchdeterministiczerocoin(const JSONRPCRequest& request)
     return "done";
 }
 
+UniValue startautospend(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    UniValue params = request.params;
+    if (request.fHelp || params.size() > 3)
+        throw runtime_error(
+                "startautospend\n"
+                "\nStart auto spending zerocoin to a address this wallet controls\n" +
+                HelpRequiringPassphrase(pwallet) + "\n"
+
+                                                   "\nArguments\n"
+                                                   "1. \"address\"              (string, optional  (default = "") the stealth address the zerocoin will be spent to, if \"\" is passed in a new stealth address will be used and databased for autospend\n"
+                                                   "2. \"nNumberToSpend\"       (numeric, optional (default = 1) the number of zerocoin spends to make per transaction: options are (1, 2, 3)\n"
+                                                   "3. \"nDenomination\"        (numeric, optional (default = 10) which denomination to auto spend: options are (10, 100, 1000, 10000)\n"
+
+                                                   "\nExamples\n" +
+                HelpExampleCli("startautospend", "tqqpc3eycq5nlpt2frlhpt99gqwuwn0apdhqftl9ewer7fctj2wjjgxcpqd6j3pd29hdnanjhx5n9z80pn2t4tdwm906qcjgurgznw6hkefpdjqqqxjemja 2 10") + HelpExampleRpc("startautospend", "tqqpc3eycq5nlpt2frlhpt99gqwuwn0apdhqftl9ewer7fctj2wjjgxcpqd6j3pd29hdnanjhx5n9z80pn2t4tdwm906qcjgurgznw6hkefpdjqqqxjemja 2 10"));
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    std::string address = "";
+    if (params.size() > 0) {
+        address = params[0].get_str();
+
+        if (!address.empty()) {
+            CBitcoinAddress bitAddress(address);
+
+            if (!bitAddress.IsValidStealthAddress())
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid Veil Stealth Address");
+        }
+    }
+
+    int nNumberToSpend = 1;
+    if (params.size() > 1) {
+        nNumberToSpend = params[1].get_int();
+    }
+
+    int nDenomToSpend = 10;
+    if (params.size() > 2) {
+        nDenomToSpend = params[2].get_int();
+    }
+
+    SetAutoSpendParameters(nNumberToSpend, nDenomToSpend, address);
+    StartAutoSpend();
+    return _("Auto spend zerocoin started");
+}
+
+UniValue stopautospend(const JSONRPCRequest& request)
+{
+    UniValue params = request.params;
+    if(request.fHelp || params.size())
+        throw runtime_error(
+                "stopautospend\n"
+                "\nStop auto spending zerocoin\n");
+
+    StopAutoSpend();
+    return _("Auto spend zerocoin stopped");
+}
+
+UniValue getautospendaddress(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp))
+        return NullUniValue;
+
+    UniValue params = request.params;
+    if (request.fHelp || params.size())
+        throw runtime_error(
+                "getautospendaddress\n"
+                "\nShows the current autospend stealth address\n" +
+                HelpRequiringPassphrase(pwallet) + "\n"
+
+                                                   "\nExamples\n" +
+                HelpExampleCli("getautospendaddress", "") + HelpExampleRpc("getautospendaddress", ""));
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    std::string address;
+    if (pwallet->GetAutoSpendAddress(address))
+        return address;
+
+    return NullUniValue;
+}
+
+
 UniValue startprecomputing(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1672,6 +1762,9 @@ static const CRPCCommand commands[] =
     { "zerocoin",           "setprecomputeblockpercycle",       &setprecomputeblockpercycle,    {"nBlockPerCycle"} },
     { "zerocoin",           "getprecomputeblockpercycle",       &getprecomputeblockpercycle,    {} },
     { "zerocoin",           "clearspendcache",                  &clearspendcache,               {}},
+    { "zerocoin",           "startautospend",                   &startautospend,                {"nNumberToSpend", "nDenomination"} },
+    { "zerocoin",           "stopautospend",                    &stopautospend,                 {}},
+    { "zerocoin",           "getautospendaddress",              &getautospendaddress,           {}}
 };
 
 

@@ -1214,6 +1214,10 @@ public:
 
     bool DelAddressBook(const CTxDestination& address);
 
+    bool SetAutoSpendAddress(const CTxDestination& address);
+    bool GetAutoSpendAddress(std::string& address);
+    bool EraseAutoSpendAddress();
+
     const std::string& GetLabelName(const CScript& scriptPubKey) const;
 
     void GetScriptForMining(std::shared_ptr<CReserveScript> &script);
@@ -1434,6 +1438,12 @@ public:
         }
     }
 };
+
+void AutoSpendZeroCoin();
+void StopAutoSpend();
+bool StartAutoSpend();
+void LinkAutoSpendThreadGroup(void* pthreadgroup);
+void SetAutoSpendParameters(const int& nCount, const int& nDenom, const std::string& strAddress);
 
 // Calculate the size of the transaction assuming all signatures are max size
 // Use DummySignatureCreator, which inserts 71 byte signatures everywhere.
