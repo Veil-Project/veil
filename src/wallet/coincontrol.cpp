@@ -1,4 +1,5 @@
 // Copyright (c) 2019 The Bitcoin Core developers
+// Copyright (c) 2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -26,5 +27,6 @@ void CCoinControl::SetNull()
     m_extrafee = 0;
 
     setZerocoinSelected.clear();
+    fProofOfStake = false;
 }
 

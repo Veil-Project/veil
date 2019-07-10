@@ -1,4 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -45,6 +46,10 @@ public:
     bool m_avoid_partial_spends;
     //! Fee estimation mode to control arguments to estimateSmartFee
     FeeEstimateMode m_fee_mode;
+    //! Is this for a proof of stake transaction
+    bool fProofOfStake;
+    //! The value of the block reward for the proof of stake transaction
+    CAmount nValueBlockReward;
 
     int nCoinType;
     mutable bool fZerocoinSelected = false;

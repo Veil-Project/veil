@@ -1,0 +1,284 @@
+validation.cpp: * in-mempool descendants of such transactions would be removed).
+validation.cpp:    // no in-mempool children, which is generally not true when adding
+validation.cpp:        return state.Invalid(false, REJECT_DUPLICATE, "txn-already-in-mempool");
+validation.cpp:    // Check for conflicts with in-memory transactions
+validation.cpp:        return state.Invalid(error("%s: tx mixes zerocoin and basecoin inputs", __func__, REJECT_INVALID, "txn-mixed-zerocoin-inputs"));
+validation.cpp:                    return state.Invalid(false, REJECT_DUPLICATE, "anonin-badkeyimagesize");
+validation.cpp:                        return state.Invalid(false, REJECT_DUPLICATE, "bad-anonin-dup-keyimage");
+validation.cpp:                    return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-in-mempool");
+validation.cpp:        // Calculate in-mempool ancestors, up to a limit.
+validation.cpp:        return state.DoS(100, error("%s: AddKeyImagesToMempool failed.", __func__), REJECT_MALFORMED, "bad-anonin-keyimages");
+validation.cpp:            if (pwalletMain->IsMyMint(coin.getValue())) {
+validation.cpp:                pwalletMain->UpdateMint(coin.getValue(), pindex->nHeight, txid, denom);
+validation.cpp:                        pwalletMain->AddToWallet(wtx);
+validation.cpp:                    return state.DoS(100, false, REJECT_INVALID, "bad-zcspend-in-chain", false,
+validation.cpp:    if (pindexChain->nHeight <= pindexCheck->nHeight)
+validation.cpp:    return pindexChain->GetAncestor(pindexCheck->nHeight)->GetBlockHash() == pindexCheck->GetBlockHash();
+pow.cpp://        // then allow mining of a min-difficulty block.
+pow.cpp://            // Return the last non-special-min-difficulty-rules-block
+script/interpreter.cpp: *  required for the signature hash done in-place
+script/interpreter.cpp:                s.write((char*)&itBegin[0], it-itBegin-1);
+wallet/fees.cpp:        // By default estimates are economical iff we are signaling opt-in-RBF
+wallet/wallet.h:     * block in the chain we know this or any in-wallet dependency conflicts
+wallet/wallet.h:    /* Mark a transaction (and its in-wallet descendants) as conflicting with a particular block. */
+wallet/wallet.h:    /* Mark a transaction (and it in-wallet descendants) as abandoned so its inputs may be respent. */
+wallet/wallet.cpp:    zwalletMain->Lock();
+wallet/wallet.cpp:    pAnonWalletMain->Lock();
+wallet/wallet.cpp:    if (seedID != zwalletMain->GetMasterSeedID())
+wallet/wallet.cpp:        return error("%s: derived zerocoin key %s does not match expected key %s", __func__, seedID.GetHex(), zwalletMain->GetMasterSeedID().GetHex());
+wallet/wallet.cpp:    zwalletMain->SetMasterSeed(keyZerocoinMaster);
+wallet/wallet.cpp:    auto idSeedDB = pAnonWalletMain->GetMasterID();
+wallet/wallet.cpp:    pAnonWalletMain->UnlockWallet(keyAnonMaster);
+wallet/wallet.cpp:        return pAnonWalletMain->IsSpent(hash, n);
+wallet/wallet.cpp:            if (!pAnonWalletMain->AddToRecord(rtx, *mapWallet.at(hash).tx, nullptr, 0, false))
+wallet/wallet.cpp:            pAnonWalletMain->AddToWalletIfInvolvingMe(ptx, pIndex, posInBlock, fUpdate);
+wallet/wallet.cpp:            if (pAnonWalletMain->mapRecords.count(tx.GetHash())) {
+wallet/wallet.cpp:        // cs_main here anyway, it's easier to just call it cs_main-protected.
+wallet/wallet.cpp:        return pAnonWalletMain->HaveAddress(dest);
+wallet/wallet.cpp:            auto mine_anon = pAnonWalletMain->IsMine(txin);
+wallet/wallet.cpp:            return pAnonWalletMain->IsMine(txout);
+wallet/wallet.cpp:            //return pAnonWalletMain->GetCredit(txout, filter);
+wallet/wallet.cpp:    return pAnonWalletMain->GetCredit(outpoint, filter);
+wallet/wallet.cpp:            return pAnonWalletMain->IsChange(txout);
+wallet/wallet.cpp:            if (pAnonWalletMain->IsMine(pOut.get()))
+wallet/wallet.cpp:        auto nCreditAnon = pAnonWalletMain->GetCredit(tx, filter);
+wallet/wallet.cpp:    return zwalletMain->IsInMintPool(bnValue);
+wallet/wallet.cpp:        if (zwalletMain->IsInMintPool(bnValue)) {
+wallet/wallet.cpp:            if (zwalletMain->SetMintSeen(bnValue, nHeight, txid, denom))
+wallet/wallet.cpp:            if (pcoin->IsTrusted() && pcoin->GetDepthInMainChain() >= min_depth) {
+wallet/wallet.cpp:                nTotal += pcoin->GetAvailableCredit(true, filter, /*fBasecoinOnly*/true);
+wallet/wallet.cpp:    pAnonWalletMain->GetBalances(bal);
+wallet/wallet.cpp:    if (zwalletMain->HasEmptySeed())
+wallet/wallet.cpp:        if (!zwalletMain->RegenerateMint(dMint, mint))
+wallet/wallet.cpp:            if (!pcoin->IsTrusted() && pcoin->GetDepthInMainChain() == 0 && pcoin->InMempool())
+wallet/wallet.cpp:                nTotal += pcoin->GetAvailableCredit();
+wallet/wallet.cpp:            nTotal += pcoin->GetImmatureCredit();
+wallet/wallet.cpp:            if (!pcoin->IsTrusted() && pcoin->GetDepthInMainChain() == 0 && pcoin->InMempool())
+wallet/wallet.cpp:                nTotal += pcoin->GetAvailableCredit(true, ISMINE_WATCH_ONLY);
+wallet/wallet.cpp:            nTotal += pcoin->GetImmatureWatchOnlyCredit();
+wallet/wallet.cpp:        if (!CheckFinalTx(*pcoin->tx))
+wallet/wallet.cpp:        if (pcoin->IsCoinBase()) {
+wallet/wallet.cpp:            if (pcoin->GetBlocksToMaturity() > 0)
+wallet/wallet.cpp:            if (pcoin->tx->vpout[0]->GetValue() == 0)
+wallet/wallet.cpp:        int nDepth = pcoin->GetDepthInMainChain();
+wallet/wallet.cpp:        if (nDepth == 0 && !pcoin->InMempool())
+wallet/wallet.cpp:        bool safeTx = pcoin->IsTrusted();
+wallet/wallet.cpp:        if (nDepth == 0 && pcoin->mapValue.count("replaces_txid")) {
+wallet/wallet.cpp:        if (nDepth == 0 && pcoin->mapValue.count("replaced_by_txid")) {
+wallet/wallet.cpp:        for (unsigned int i = 0; i < pcoin->tx->vpout.size(); i++) {
+wallet/wallet.cpp:            if (pcoin->tx->IsCoinStake() && i == 0) {
+wallet/wallet.cpp:            auto pout = pcoin->tx->vpout[i];
+wallet/wallet.cpp:            if (!pcoin->tx->HasBlindedValues() || pout->IsZerocoinMint()) {
+wallet/wallet.cpp:                MapRecords_t::iterator mi = pAnonWalletMain->mapRecords.find(pcoin->tx->GetHash());
+wallet/wallet.cpp:                if (mi != pAnonWalletMain->mapRecords.end()) {
+wallet/wallet.cpp:            if (pcoin->tx->vpout.size() <= outpoint.n)
+wallet/wallet.cpp:            nValueFromPresetInputs += pcoin->tx->vpout[outpoint.n]->GetValue();
+wallet/wallet.cpp:            setPresetCoins.insert(CInputCoin(pcoin->tx, outpoint.n));
+wallet/wallet.cpp:    return (pAnonWalletMain->MintableRingCtCoins());
+wallet/wallet.cpp:    pAnonWalletMain->AvailableAnonCoins(vRctCoins);
+wallet/wallet.cpp:	int nDepth = pAnonWalletMain->GetDepthInMainChain(txrecord.blockHash, txrecord.nIndex);
+wallet/wallet.cpp:            if (!pcoin->IsTrusted())
+wallet/wallet.cpp:            if (pcoin->IsCoinBase() && pcoin->GetBlocksToMaturity() > 0)
+wallet/wallet.cpp:            int nDepth = pcoin->GetDepthInMainChain();
+wallet/wallet.cpp:            if (nDepth < (pcoin->IsFromMe(ISMINE_ALL) ? 0 : 1))
+wallet/wallet.cpp:            for (unsigned int i = 0; i < pcoin->tx->vpout.size(); i++)
+wallet/wallet.cpp:                if (!IsMine(pcoin->tx->vpout[i].get()))
+wallet/wallet.cpp:                if (!pcoin->tx->vpout[i]->GetScriptPubKey(scriptCheck))
+wallet/wallet.cpp:                CAmount n = IsSpent(walletEntry.first, i) ? 0 : pcoin->tx->vpout[i]->GetValue();
+wallet/wallet.cpp:        if (pcoin->tx->vin.size() > 0)
+wallet/wallet.cpp:            for (CTxIn txin : pcoin->tx->vin)
+wallet/wallet.cpp:               for (auto pout : pcoin->tx->vpout)
+wallet/wallet.cpp:        for (const auto& pout : pcoin->tx->vpout)
+wallet/wallet.cpp:            //pwalletmain->NotifyZerocoinChanged(pwalletmain, zerocoinSelected.GetValue().GetHex(), "Used", CT_UPDATED);
+wallet/wallet.cpp:        nBalance = pAnonWalletMain->GetAnonBalance();
+wallet/wallet.cpp:        nBalance = pAnonWalletMain->GetBlindBalance();
+wallet/wallet.cpp:    if (zwalletMain->HasEmptySeed())
+wallet/wallet.cpp:    zwalletMain->GenerateDeterministicZerocoin(denomination, coin, dMint);
+wallet/wallet.cpp:    zwalletMain->UpdateCount();
+wallet/wallet.cpp:        if (!pAnonWalletMain->AddAnonInputs(wtx, rtx, vecSend, true, Params().DefaultRingSize(), /**nInputsPerSig**/ 32, nFeeRet, &cControl, sError)) {
+wallet/wallet.cpp:        if (0 != pAnonWalletMain->AddBlindedInputs(wtx, rtx, vecSend, true, nFeeRet, &cControl, sError)) {
+wallet/wallet.cpp:        if (0 != pAnonWalletMain->AddStandardInputs(wtx, rtx, vecSend, true, nFeeRet, &cControl, sError, /*fZerocoinInputs*/false, /*InputValue*/0)) {
+wallet/wallet.cpp:                if (0 != pAnonWalletMain->AddStandardInputs(wtxNew, rtx, vecSend, false, nFeeRet, &coinControl, sError, true, nValueSelected)) {
+wallet/wallet.cpp:                pAnonWalletMain->AddOutputRecordMetaData(rtx, vecSend);
+wallet/wallet.cpp:            if (!txidOld.IsNull() && pAnonWalletMain->mapRecords.count(txidOld)) {
+wallet/wallet.cpp:                pAnonWalletMain->mapRecords.erase(txidOld);
+wallet/wallet.cpp:            pAnonWalletMain->SaveRecord(txHash, rtx);
+wallet/wallet.cpp:                         witnessData->coin->getValue().GetHex().substr(0, 6),
+wallet/rpcwallet.cpp:            "\nGet detailed information about in-wallet transaction <txid>\n"
+wallet/rpcwallet.cpp:            "\nMark in-wallet transaction <txid> as abandoned\n"
+wallet/rpcwallet.cpp:            "This will mark this transaction and all its in-wallet descendants as abandoned which will allow\n"
+wallet/rpcwallet.cpp:            "\nBumps the fee of an opt-in-RBF transaction T, replacing it with a new transaction B.\n"
+wallet/db.h:    /** Return object for accessing temporary in-memory database. */
+miner.cpp:        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) && pwalletMain->CreateCoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime, nComputeTimeStart)) {
+miner.cpp:            if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) || !pwalletMain->GetZerocoinKey(bnSerial, key)) {
+miner.cpp:// This is accomplished by walking the in-mempool descendants of selected
+txmempool.h: * as data about all in-mempool transactions that depend on the transaction
+txmempool.h:    CONFLICT,    //! Removed for conflict with in-block transaction
+txmempool.h: * Note: the term "descendant" refers to in-mempool transactions that depend on
+txmempool.h: * this one, while "ancestor" refers to in-mempool transactions that a given
+txmempool.h: * the set of in-mempool direct parents and direct children in mapLinks.  Within
+txmempool.h: * Usually when a new transaction is added to the mempool, it has no in-mempool
+txmempool.h: * - update a new entry's setMemPoolParents to include all in-mempool parents
+txmempool.h: * - update all in-mempool parents to not track the tx in setMemPoolChildren
+txmempool.h: * - update all in-mempool children to not include it as a parent
+txmempool.h: * in-mempool children is false.  In particular, the mempool is in an
+txmempool.h: * Because of this, there's not much benefit in trying to search for in-mempool
+txmempool.h: * state, to account for in-mempool, out-of-block descendants for all the
+txmempool.h: * in-block transactions by calling UpdateTransactionsFromBlock().  Note that
+txmempool.h: * Updating all in-mempool ancestors of a newly added transaction can be slow,
+txmempool.h: * if no bound exists on how many in-mempool ancestors there may be.
+txmempool.h:    // and any other callers may break wallet's in-mempool tracking (due to
+txmempool.h:     *  If a transaction is in this set, then all in-mempool descendants must
+txmempool.h:     *  that any in-mempool descendants have their ancestor state updated.
+txmempool.h:    /** Try to calculate all in-mempool ancestors of entry.
+txmempool.h:     *  fSearchForParents = whether to search a tx's vin for in-mempool parents, or
+txmempool.h:    /** Populate setDescendants with all in-mempool descendants of hash.
+txmempool.h:     *  Assumes that setDescendants includes all in-mempool descendants of anything
+txmempool.h:      * If updateDescendants is true, then also update in-mempool descendants'
+chain.h:/** An in-memory indexed chain of blocks. */
+veil/ringct/extkey.cpp:    if (chain->fLocked)
+veil/ringct/extkey.cpp:    if (!chain->kp.Derive(keyOut, ak.nKey))
+veil/ringct/extkey.cpp:    if (!chain->kp.Derive(pkOut, ak.nKey))
+veil/ringct/anon.cpp:            return state.DoS(100, false, REJECT_INVALID, "bad-plain-commitment");
+veil/ringct/anon.cpp:            return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-dstack-size");
+veil/ringct/anon.cpp:            return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-wstack-size");
+veil/ringct/anon.cpp:            return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-keyimages-size");
+veil/ringct/anon.cpp:            return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-sig-size");
+veil/ringct/anon.cpp:                    return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-extract-i");
+veil/ringct/anon.cpp:                    return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-dup-i");
+veil/ringct/anon.cpp:                    return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-unknown-i");
+veil/ringct/anon.cpp:                return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki-tx-double");
+veil/ringct/anon.cpp://                return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki-mempool");
+veil/ringct/anon.cpp:                return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-keyimage");
+veil/ringct/extkey.h:        vExtKeyIDs.push_back(sekChain->GetID());
+veil/ringct/anonwallet.h:    /* Mark a transaction (and it in-wallet descendants) as abandoned so its inputs may be respent. */
+veil/ringct/anonwallet.cpp://        if ((pcoin->IsCoinBase() || pcoin->IsCoinStake()) && pcoin->GetBlocksToMaturity() > 0)
+veil/ringct/anonwallet.cpp://        if (pcoin->GetBlocksToMaturity() > 0)
+veil/ringct/anonwallet.cpp:        if (r.nDepth < (pcoin->IsFromMe(ISMINE_ALL) ? eligibility_filter.conf_mine : eligibility_filter.conf_theirs))
+veil/zerocoin/ztracker.cpp://    data.coin = std::unique_ptr<libzerocoin::PublicCoin>(new libzerocoin::PublicCoin(Params().Zerocoin_Params(), pwitness->coin->getValue(), denom));
+veil/zerocoin/zwallet.cpp:    if (!pwalletmain || !pwalletmain->zTracker)
+veil/zerocoin/zwallet.cpp:            if (pwalletmain->zTracker->HasPubcoinHash(pMint.first)) {
+veil/zerocoin/zwallet.cpp:                    pwalletmain->AddToWallet(wtx);
+veil/zerocoin/zwallet.cpp:        pwalletmain->AddToWallet(wtx);
+veil/zerocoin/zwallet.cpp:    pwalletmain->zTracker->Add(dMint, true);
+veil/zerocoin/witness.cpp:            "Demon: %d\n", nMintsAdded, nHeightMintAdded, nHeightCheckpoint, nHeightAccStart, nHeightPrecomputed, coin->getValue().GetHex(), coin->getDenomination());
+veil/zerocoin/witness.cpp:    coin = std::unique_ptr<libzerocoin::PublicCoin>(new libzerocoin::PublicCoin(paramsCoin, other.coin->getValue(), other.denom));
+veil/zerocoin/witness.cpp:    coin = std::unique_ptr<libzerocoin::PublicCoin>(new libzerocoin::PublicCoin(paramsCoin, other.coin->getValue(), other.denom));
+veil/zerocoin/witness.cpp:    coinAmount = coinWitnessData->coin->getValue();
+veil/zerocoin/witness.cpp:    coinDenom = coinWitnessData->coin->getDenomination();
+blockencodings.h:    // as a proper transaction-in-block-index in PartiallyDownloadedBlock
+rpc/blockchain.cpp:           "    \"descendantcount\" : n,  (numeric) number of in-mempool descendant transactions (including this one)\n"
+rpc/blockchain.cpp:           "    \"descendantsize\" : n,   (numeric) virtual transaction size of in-mempool descendants (including this one)\n"
+rpc/blockchain.cpp:           "    \"descendantfees\" : n,   (numeric) modified fees (see above) of in-mempool descendants (including this one) (DEPRECATED)\n"
+rpc/blockchain.cpp:           "    \"ancestorcount\" : n,    (numeric) number of in-mempool ancestor transactions (including this one)\n"
+rpc/blockchain.cpp:           "    \"ancestorsize\" : n,     (numeric) virtual transaction size of in-mempool ancestors (including this one)\n"
+rpc/blockchain.cpp:           "    \"ancestorfees\" : n,     (numeric) modified fees (see above) of in-mempool ancestors (including this one) (DEPRECATED)\n"
+rpc/blockchain.cpp:           "        \"ancestor\" : n,     (numeric) modified fees (see above) of in-mempool ancestors (including this one) in " + CURRENCY_UNIT + "\n"
+rpc/blockchain.cpp:           "        \"descendant\" : n,   (numeric) modified fees (see above) of in-mempool descendants (including this one) in " + CURRENCY_UNIT + "\n"
+rpc/blockchain.cpp:            "\nIf txid is in the mempool, returns all in-mempool ancestors.\n"
+rpc/blockchain.cpp:            "  \"transactionid\"           (string) The transaction id of an in-mempool ancestor transaction\n"
+rpc/blockchain.cpp:            "\nIf txid is in the mempool, returns all in-mempool descendants.\n"
+rpc/blockchain.cpp:            "  \"transactionid\"           (string) The transaction id of an in-mempool descendant transaction\n"
+rpc/blockchain.cpp:                    auto prevoutput = tx_in->vpout[in.prevout.n];
+rpc/rawtransaction.cpp:    // Call into TxToUniv() in bitcoin-common to decode the transaction hex.
+rpc/rawtransaction.cpp:    // available to code in bitcoin-common, so we query them here and push the
+addrman.h: *  * Keep the address tables in-memory, and asynchronously dump the entire table to peers.dat.
+validation.h:/** Default for -limitancestorcount, max number of in-mempool ancestors */
+validation.h:/** Default for -limitancestorsize, maximum kilobytes of tx + all in-mempool ancestors */
+validation.h:/** Default for -limitdescendantcount, max number of in-mempool descendants */
+validation.h:/** Default for -limitdescendantsize, maximum kilobytes of in-mempool descendants */
+consensus/tx_verify.cpp:        return state.DoS(10, false, REJECT_INVALID, "bad-txns-vin-empty");
+consensus/tx_verify.cpp:                return state.DoS(100, false, REJECT_INVALID, "bad-txns-in-belowout", false,
+consensus/tx_verify.cpp:            return state.DoS(100, false, REJECT_INVALID, "bad-txns-in-outofrange");
+txmempool.cpp:// Update the given tx for any in-mempool descendants.
+txmempool.cpp:    // setAllDescendants now contains all in-mempool descendants of updateIt.
+txmempool.cpp:    // For each entry in vHashesToUpdate, store the set of in-mempool, but not
+txmempool.cpp:    // in-vHashesToUpdate transactions, so that we don't have to recalculate
+txmempool.cpp:    // we are sure that all in-mempool descendants have already been processed.
+txmempool.cpp:        // we cache the in-mempool children to avoid duplicate updates
+txmempool.cpp:        // false, the in-mempool children aren't linked to the in-block tx's
+txmempool.cpp:    // (When we update the entry for in-mempool parents, memory usage will be
+txmempool.cpp:// in-mempool descendants of it are already in setDescendants as well, so that we
+txmempool.cpp:            assert(childit != mapTx.end()); // mapNextTx points to in-mempool transactions
+crypto/x16r/sph_types.h: *   - Skein-224 (nominally specified as Skein-512-224): short name:
+crypto/x16r/sph_types.h: *   - Skein-256 (nominally specified as Skein-512-256): short name:
+crypto/x16r/sph_types.h: *   - Skein-384 (nominally specified as Skein-512-384): short name:
+crypto/x16r/sph_types.h: *   - Skein-512 (nominally specified as Skein-512-512): short name:
+crypto/x16r/sph_skein.h: * functions, called Skein-256, Skein-512 and Skein-1024, which can be
+crypto/x16r/sph_skein.h: * competition, Skein-512 is used for output sizes of 224, 256, 384 and
+crypto/x16r/sph_skein.h: * Skein-224, Skein-256, Skein-384 and Skein-512 what the Skein
+crypto/x16r/sph_skein.h: * specification defines as Skein-512-224, Skein-512-256, Skein-512-384
+crypto/x16r/sph_skein.h: * and Skein-512-512, respectively.
+crypto/x16r/sph_skein.h: * Output size (in bits) for Skein-224.
+crypto/x16r/sph_skein.h: * Output size (in bits) for Skein-256.
+crypto/x16r/sph_skein.h: * Output size (in bits) for Skein-384.
+crypto/x16r/sph_skein.h: * Output size (in bits) for Skein-512.
+crypto/x16r/sph_skein.h: * Type for a Skein-224 context (identical to the common "big" context).
+crypto/x16r/sph_skein.h: * Type for a Skein-256 context (identical to the common "big" context).
+crypto/x16r/sph_skein.h: * Type for a Skein-384 context (identical to the common "big" context).
+crypto/x16r/sph_skein.h: * Type for a Skein-512 context (identical to the common "big" context).
+crypto/x16r/sph_skein.h: * Initialize a Skein-224 context. This process performs no memory allocation.
+crypto/x16r/sph_skein.h: * @param cc   the Skein-224 context (pointer to a
+crypto/x16r/sph_skein.h: * @param cc     the Skein-224 context
+crypto/x16r/sph_skein.h: * Terminate the current Skein-224 computation and output the result into
+crypto/x16r/sph_skein.h: * @param cc    the Skein-224 context
+crypto/x16r/sph_skein.h: * @param cc    the Skein-224 context
+crypto/x16r/sph_skein.h: * Initialize a Skein-256 context. This process performs no memory allocation.
+crypto/x16r/sph_skein.h: * @param cc   the Skein-256 context (pointer to a
+crypto/x16r/sph_skein.h: * @param cc     the Skein-256 context
+crypto/x16r/sph_skein.h: * Terminate the current Skein-256 computation and output the result into
+crypto/x16r/sph_skein.h: * @param cc    the Skein-256 context
+crypto/x16r/sph_skein.h: * @param cc    the Skein-256 context
+crypto/x16r/sph_skein.h: * Initialize a Skein-384 context. This process performs no memory allocation.
+crypto/x16r/sph_skein.h: * @param cc   the Skein-384 context (pointer to a
+crypto/x16r/sph_skein.h: * @param cc     the Skein-384 context
+crypto/x16r/sph_skein.h: * Terminate the current Skein-384 computation and output the result into
+crypto/x16r/sph_skein.h: * @param cc    the Skein-384 context
+crypto/x16r/sph_skein.h: * @param cc    the Skein-384 context
+crypto/x16r/sph_skein.h: * Initialize a Skein-512 context. This process performs no memory allocation.
+crypto/x16r/sph_skein.h: * @param cc   the Skein-512 context (pointer to a
+crypto/x16r/sph_skein.h: * @param cc     the Skein-512 context
+crypto/x16r/sph_skein.h: * Terminate the current Skein-512 computation and output the result into
+crypto/x16r/sph_skein.h: * @param cc    the Skein-512 context
+crypto/x16r/sph_skein.h: * @param cc    the Skein-512 context
+init.cpp:    gArgs.AddArg("-limitancestorcount=<n>", strprintf("Do not accept transactions if number of in-mempool ancestors is <n> or more (default: %u)", DEFAULT_ANCESTOR_LIMIT), true, OptionsCategory::DEBUG_TEST);
+init.cpp:    gArgs.AddArg("-limitancestorsize=<n>", strprintf("Do not accept transactions whose size with all in-mempool ancestors exceeds <n> kilobytes (default: %u)", DEFAULT_ANCESTOR_SIZE_LIMIT), true, OptionsCategory::DEBUG_TEST);
+init.cpp:    gArgs.AddArg("-limitdescendantcount=<n>", strprintf("Do not accept transactions if any ancestor would have <n> or more in-mempool descendants (default: %u)", DEFAULT_DESCENDANT_LIMIT), true, OptionsCategory::DEBUG_TEST);
+init.cpp:    gArgs.AddArg("-limitdescendantsize=<n>", strprintf("Do not accept transactions if any ancestor would have more than <n> kilobytes of in-mempool descendants (default: %u).", DEFAULT_DESCENDANT_SIZE_LIMIT), true, OptionsCategory::DEBUG_TEST);
+init.cpp:        // Delete the local blockchain folders to force a resync from scratch to get a consitent blockchain-state
+init.cpp:    nCoinCacheUsage = nTotalCache; // the rest goes to in-memory cache
+init.cpp:    LogPrintf("* Using %.1fMiB for in-memory UTXO set (plus up to %.1fMiB of unused mempool space)\n", nCoinCacheUsage * (1.0 / 1024 / 1024), nMempoolSizeMax * (1.0 / 1024 / 1024));
+libzerocoin/Denominations.cpp:// use case: converting VEIL to Zerocoin-VEIL without user worrying about denomination math themselves
+validationinterface.cpp:    // but must ensure all callbacks happen in-order, so we end up creating
+netaddress.cpp:        if (!GetInAddr(&paddrin->sin_addr))
+netaddress.cpp:        paddrin->sin_family = AF_INET;
+netaddress.cpp:        paddrin->sin_port = htons(port);
+hash.h:/** A hasher class for Veils Zerocoin-Bulletproofs Protocol */
+policy/rbf.h:// Determine whether an in-mempool transaction is signaling opt-in to RBF
+policy/rbf.h:// as the sequence numbers of all in-mempool ancestors.
+net_processing.cpp:/** Update pindexLastCommonBlock and add not-in-flight missing successors to vBlocks, until it has
+net_processing.cpp:                // This is the first already-in-flight block.
+net_processing.cpp:                    MarkBlockAsReceived(pindex->GetBlockHash()); // Reset in-flight state in case of whitelist
+net_processing.cpp:                    // Duplicate txindexes, the block is now in-flight, so just request it
+net_processing.cpp:                MarkBlockAsReceived(resp.blockhash); // Reset in-flight state in case of whitelist
+net_processing.cpp:        // being saturated. We only count validated in-flight blocks so peers can't advertise non-existing block hashes
+test/zerocoin_implementation_tests.cpp:    //old params for the V1 generated coin, new params for the accumulator. Emulates main-net transition.
+qt/sendcoinsentry.cpp:                            "   margin-left:12px;"
+qt/sendcoinsentry.cpp:                            "margin-right:16px;"
+qt/sendcoinsentry.cpp:                            "   margin-left:12px;"
+qt/sendcoinsentry.cpp:                            "margin-right:16px;"
+qt/optionsdialog.cpp:    QString tooltipStyle = QString("QCheckBox {background:none;} QToolTip {color: #ffffff; background-color: #6f9bf5; font-size:11pt; border: none; border-radius:20px; padding:6px; margin:0px; min-height: 35px; qproperty-alignment: 'AlignVCenter | AlignCenter';}");
+qt/optionsmodel.cpp:    // Backup old settings to chain-specific datadir for troubleshooting
+qt/clientmodel.h:    //! Return number of connections, default is in- and outbound (total)
+qt/veil/tooltipbalance.cpp:    ui->textBasecoin->setText(BitcoinUnits::formatWithUnit(unit, basecoinBalance, false, BitcoinUnits::separatorAlways));
+qt/veil/tooltipbalance.cpp:        ui->textBasecoin->setText(BitcoinUnits::formatWithUnit(unit, thirdBalance, false, BitcoinUnits::separatorAlways));
+qt/veil/tutorialmnemonicrevealed.cpp:QString editLineCorrectCss = "QLineEdit{border-bottom:1px solid #707070;background-color:#fff;margin-right:6px;margin-left:6px;padding-left:1px;padding-right:1px;padding-top:7px;padding-bottom:7px;margin:8px;}";
+qt/veil/tutorialmnemonicrevealed.cpp:QString editLineInvalidCss = "QLineEdit{border-bottom:1px solid red;background-color:#fff;margin-right:6px;margin-left:6px;padding-left:1px;padding-right:1px;padding-top:7px;padding-bottom:7px;margin:8px;}";
+qt/veil/settings/settingsminting.cpp:    ui->useBasecoin->setProperty("cssClass" , "btn-check");
+qt/veil/settings/settingsminting.cpp:    ui->labelConvertableBasecoin->setText(BitcoinUnits::formatWithUnit(unit,balances.basecoin_balance, false, BitcoinUnits::separatorAlways));
+qt/veil/settings/settingsminting.cpp:    bool fUseBasecoin = ui->useBasecoin->isChecked();
+qt/bitcoingui.cpp:    // Prevent orphan statusbar messages (e.g. hover Quit in main menu, wait until chain-sync starts -> garbled text)
+qt/clientmodel.cpp:    // if we are in-sync, update the UI regardless of last update time
+qt/modaloverlay.h:/** Modal overlay to display information about the chain-sync state */
+leveldb/db/db_impl.h:  // Delete any unneeded files and stale in-memory entries.
+leveldb/db/db_impl.h:  // Compact the in-memory write buffer to disk.  Switches to a new

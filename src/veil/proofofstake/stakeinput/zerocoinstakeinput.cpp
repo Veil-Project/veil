@@ -4,13 +4,14 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <tinyformat.h>
+#include <consensus/consensus.h>
 #include "veil/zerocoin/accumulators.h"
 #include "veil/zerocoin/mintmeta.h"
 #include "chain.h"
 #include "chainparams.h"
 #include "wallet/deterministicmint.h"
 #include "validation.h"
-#include "stakeinput.h"
+#include "zerocoinstakeinput.h"
 #include "veil/proofofstake/kernel.h"
 #ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
@@ -26,6 +27,7 @@ ZerocoinStake::ZerocoinStake(const libzerocoin::CoinSpend& spend)
     this->hashSerial = Hash(nSerial.begin(), nSerial.end());
     this->pindexFrom = nullptr;
     fMint = false;
+    m_type = STAKE_ZEROCOIN;
 }
 
 int ZerocoinStake::GetChecksumHeightFromMint()
@@ -85,12 +87,6 @@ CAmount ZerocoinStake::GetValue()
     return denom * COIN;
 }
 
-int ZerocoinStake::HeightToModifierHeight(int nHeight)
-{
-    //Nearest multiple of KernelModulus that is over KernelModulus bocks deep in the chain
-    return (nHeight - Params().KernelModulus()) - (nHeight % Params().KernelModulus()) ;
-}
-
 // Use the PoW hash or the PoS hash
 uint256 GetHashFromIndex(const CBlockIndex* pindexSample)
 {
@@ -108,6 +104,7 @@ uint256 GetHashFromIndex(const CBlockIndex* pindexSample)
     uint256 hashProof = pindexSample->GetBlockPoSHash();
     return hashProof;
 }
+
 
 // As the sampling gets further back into the chain, use more bits of entropy. This prevents the ability to significantly
 // impact the modifier if you create one of the most recent blocks used. For example, the contribution from the first sample
@@ -144,14 +141,34 @@ int GetSampleBits(int nSampleCount)
     }
 }
 
+CDataStream ZerocoinStake::GetUniqueness()
+{
+    //The unique identifier for a Zerocoin VEIL is a hash of the serial
+    CDataStream ss(SER_GETHASH, 0);
+    ss << hashSerial;
+    return ss;
+}
+
+bool ZerocoinStake::CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake)
+{
+    // Create the output transaction(s)
+    vector<CTxOut> vout;
+    if (!CreateTxOuts(pwallet, vout, nBlockReward))
+        return error("%s : failed to get scriptPubKey\n", __func__);
+
+    CScript scriptEmpty;
+    scriptEmpty.clear();
+    txCoinStake.vpout.clear();
+    txCoinStake.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
+    for (auto& txOut : vout)
+        txCoinStake.vpout.emplace_back(txOut.GetSharedPtr());
+
 //Use the first accumulator checkpoint that occurs 60 minutes after the block being staked from
-bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)
+bool CStakeInput::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)
 {
     CBlockIndex* pindex = GetIndexFrom();
-
-    if (!pindex || !pindexChainPrev) {
+    if (!pindex || !pindexChainPrev)
         return false;
-    }
 
     uint256 hashModifier;
     if (pindexChainPrev->nHeight >= Params().HeightLightZerocoin()) {
@@ -163,7 +180,6 @@ bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pin
             nHeightPrevious = nHeightSample;
             auto pindexSample = pindexChainPrev->GetAncestor(nHeightSample);
 
-            if (!pindexSample) return false;
             //Get a sampling of entropy from this block. Rehash the sample, since PoW hashes may have lots of 0's
             uint256 hashSample = GetHashFromIndex(pindexSample);
             hashSample = Hash(hashSample.begin(), hashSample.end());
@@ -179,7 +195,7 @@ bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pin
         return true;
     }
 
-    int nNearest100Block = ZerocoinStake::HeightToModifierHeight(pindex->nHeight);
+    int nNearest100Block = HeightToModifierHeight(pindex->nHeight);
 
     //Rare case block index < 100, we don't use proof of stake for these blocks
     if (nNearest100Block < 1) {
@@ -193,14 +209,6 @@ bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pin
 
     nStakeModifier = UintToArith256(pindex->mapAccumulatorHashes[denom]).GetLow64();
     return true;
-}
-
-CDataStream ZerocoinStake::GetUniqueness()
-{
-    //The unique identifier for a Zerocoin VEIL is a hash of the serial
-    CDataStream ss(SER_GETHASH, 0);
-    ss << hashSerial;
-    return ss;
 }
 
 bool ZerocoinStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
@@ -271,11 +279,6 @@ bool ZerocoinStake::CreateTxOuts(CWallet* pwallet, vector<CTxOut>& vout, CAmount
 #endif
 }
 
-bool ZerocoinStake::GetTxFrom(CTransaction& tx)
-{
-    return false;
-}
-
 bool ZerocoinStake::MarkSpent(CWallet *pwallet, const uint256& txid)
 {
 #ifdef ENABLE_WALLET
@@ -295,3 +298,7 @@ bool ZerocoinStake::MarkSpent(CWallet *pwallet, const uint256& txid)
 #endif
 }
 
+uint256 ZerocoinStake::GetSerialStakeHash()
+{
+    return hashSerial;
+}

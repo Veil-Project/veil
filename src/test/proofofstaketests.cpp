@@ -1,4 +1,5 @@
 // Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019 Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -20,6 +21,11 @@
 
 
 BOOST_FIXTURE_TEST_SUITE(proofofstake_tests, BasicTestingSetup)
+
+BOOST_AUTO_TEST_CASE(ringctstake)
+{
+
+}
 
 BOOST_AUTO_TEST_CASE(proofofstake_block)
 {

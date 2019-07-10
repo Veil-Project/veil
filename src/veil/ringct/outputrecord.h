@@ -64,6 +64,7 @@ public:
     void AddStealthAddress(const CKeyID& idStealth);
     bool IsStealth() const { return !vPath.empty() && vPath[0] == ORA_STEALTH; }
     bool IsBasecoin() const;
+    bool GetKeyImage(CCmpPubKey& keyImage) const;
     bool GetStealthID(CKeyID& idStealth) const;
     bool IsReceive() const;
     bool IsSend() const;

@@ -1,3 +1,4 @@
+# Copyright (c) 2018-2019 Veil developers
 # Copyright (c) 2013-2019 The Bitcoin Core developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -195,7 +196,10 @@ BITCOIN_CORE_H = \
   veil/proofoffullnode/proofoffullnode.h \
   veil/proofofstake/kernel.h \
   veil/proofofstake/blockvalidation.h \
-  veil/proofofstake/stakeinput.h \
+  veil/proofofstake/stakeinput/stakeinput.h \
+  veil/proofofstake/stakeinput/ringctstakeinput.h \
+  veil/proofofstake/stakeinput/zerocoinstakeinput.h \
+  veil/proofofstake/stakeweight.h \
   veil/ringct/anon.h \
   veil/ringct/blind.h \
   veil/ringct/extkey.h \
@@ -299,7 +303,10 @@ libbitcoin_server_a_SOURCES = \
   veil/proofoffullnode/proofoffullnode.cpp \
   veil/proofofstake/blockvalidation.cpp \
   veil/proofofstake/kernel.cpp \
-  veil/proofofstake/stakeinput.cpp \
+  veil/proofofstake/stakeinput/stakeinput.cpp \
+  veil/proofofstake/stakeinput/ringctstakeinput.cpp \
+  veil/proofofstake/stakeinput/zerocoinstakeinput.cpp \
+  veil/proofofstake/stakeweight.cpp \
   veil/budget.cpp \
   versionbits.cpp \
   $(BITCOIN_CORE_H)

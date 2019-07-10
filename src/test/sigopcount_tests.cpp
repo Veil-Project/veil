@@ -1,4 +1,5 @@
 // Copyright (c) 2012-2019 The Bitcoin Core developers
+// Copyright (c) 2019 Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -94,6 +95,7 @@ static void BuildTxs(CMutableTransaction& spendingTx, CCoinsViewCache& coins, CM
     creationTx.vin[0].prevout.SetNull();
     creationTx.vin[0].scriptSig = CScript();
     creationTx.vpout.resize(1);
+    creationTx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     creationTx.vpout[0]->SetValue(1);
     creationTx.vpout[0]->SetScriptPubKey(scriptPubKey);
 
@@ -104,6 +106,7 @@ static void BuildTxs(CMutableTransaction& spendingTx, CCoinsViewCache& coins, CM
     spendingTx.vin[0].scriptSig = scriptSig;
     spendingTx.vin[0].scriptWitness = witness;
     spendingTx.vpout.resize(1);
+    spendingTx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     spendingTx.vpout[0]->SetValue(1);
     spendingTx.vpout[0]->SetScriptPubKey(CScript());
 
