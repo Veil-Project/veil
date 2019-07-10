@@ -34,6 +34,7 @@ Verify(const CScript& scriptSig, const CScript& scriptPubKey, bool fStrict, Scri
     // Create dummy to/from transactions:
     CMutableTransaction txFrom;
     txFrom.vpout.resize(1);
+    txFrom.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[0]->SetScriptPubKey((scriptPubKey));
 
     CMutableTransaction txTo;
@@ -42,6 +43,7 @@ Verify(const CScript& scriptSig, const CScript& scriptPubKey, bool fStrict, Scri
     txTo.vin[0].prevout.n = 0;
     txTo.vin[0].prevout.hash = txFrom.GetHash();
     txTo.vin[0].scriptSig = scriptSig;
+    txTo.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     txTo.vpout[0]->SetValue(1);
 
     std::vector<uint8_t> vchAmount(8);
@@ -88,8 +90,10 @@ BOOST_AUTO_TEST_CASE(sign)
     txFrom.vpout.resize(8);
     for (int i = 0; i < 4; i++)
     {
+        txFrom.vpout[i] = MAKE_OUTPUT<CTxOutStandard>();
         txFrom.vpout[i]->SetScriptPubKey(evalScripts[i]);
         txFrom.vpout[i]->SetValue(COIN);
+        txFrom.vpout[i+4] = MAKE_OUTPUT<CTxOutStandard>();
         txFrom.vpout[i+4]->SetScriptPubKey(standardScripts[i]);
         txFrom.vpout[i+4]->SetValue(COIN);
     }
@@ -102,6 +106,7 @@ BOOST_AUTO_TEST_CASE(sign)
         txTo[i].vpout.resize(1);
         txTo[i].vin[0].prevout.n = i;
         txTo[i].vin[0].prevout.hash = txFrom.GetHash();
+        txTo[i].vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         txTo[i].vpout[0]->SetValue(1);
         BOOST_CHECK_MESSAGE(IsMine(keystore, *txFrom.vpout[i]->GetPScriptPubKey()), strprintf("IsMine %d", i));
     }
@@ -188,6 +193,7 @@ BOOST_AUTO_TEST_CASE(set)
     txFrom.vpout.resize(4);
     for (int i = 0; i < 4; i++)
     {
+        txFrom.vpout[i] = MAKE_OUTPUT<CTxOutStandard>();
         txFrom.vpout[i]->SetScriptPubKey(outer[i]);
         txFrom.vpout[i]->SetValue(CENT);
     }
@@ -200,6 +206,7 @@ BOOST_AUTO_TEST_CASE(set)
         txTo[i].vpout.resize(1);
         txTo[i].vin[0].prevout.n = i;
         txTo[i].vin[0].prevout.hash = txFrom.GetHash();
+        txTo[i].vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         txTo[i].vpout[0]->SetValue(1*CENT);
         txTo[i].vpout[0]->SetScriptPubKey(inner[i]);
         CTxDestination dest;
@@ -288,10 +295,13 @@ BOOST_AUTO_TEST_CASE(AreInputsStandard)
     keystore.AddCScript(pay1);
     CScript pay1of3 = GetScriptForMultisig(1, keys);
 
+    txFrom.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[0]->SetScriptPubKey(GetScriptForDestination(CScriptID(pay1))); // P2SH (OP_CHECKSIG)
     txFrom.vpout[0]->SetValue(1000);
+    txFrom.vpout[1] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[1]->SetScriptPubKey(pay1); // ordinary OP_CHECKSIG
     txFrom.vpout[1]->SetValue(2000);
+    txFrom.vpout[2] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[2]->SetScriptPubKey(pay1of3); // ordinary OP_CHECKMULTISIG
     txFrom.vpout[2]->SetValue(3000);
 
@@ -303,6 +313,7 @@ BOOST_AUTO_TEST_CASE(AreInputsStandard)
     oneAndTwo << OP_2 << ToByteVector(key[3].GetPubKey()) << ToByteVector(key[4].GetPubKey()) << ToByteVector(key[5].GetPubKey());
     oneAndTwo << OP_3 << OP_CHECKMULTISIG;
     keystore.AddCScript(oneAndTwo);
+    txFrom.vpout[3] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[3]->SetScriptPubKey(GetScriptForDestination(CScriptID(oneAndTwo)));
     txFrom.vpout[3]->SetValue(4000);
 
@@ -312,16 +323,19 @@ BOOST_AUTO_TEST_CASE(AreInputsStandard)
         fifteenSigops << ToByteVector(key[i%3].GetPubKey());
     fifteenSigops << OP_15 << OP_CHECKMULTISIG;
     keystore.AddCScript(fifteenSigops);
+    txFrom.vpout[4] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[4]->SetScriptPubKey(GetScriptForDestination(CScriptID(fifteenSigops)));
     txFrom.vpout[4]->SetValue(5000);
 
     // vout[5/6] are non-standard because they exceed MAX_P2SH_SIGOPS
     CScript sixteenSigops; sixteenSigops << OP_16 << OP_CHECKMULTISIG;
     keystore.AddCScript(sixteenSigops);
+    txFrom.vpout[5] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[5]->SetScriptPubKey(GetScriptForDestination(CScriptID(sixteenSigops)));
     txFrom.vpout[5]->SetValue(5000);
     CScript twentySigops; twentySigops << OP_CHECKMULTISIG;
     keystore.AddCScript(twentySigops);
+    txFrom.vpout[6] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[6]->SetScriptPubKey(GetScriptForDestination(CScriptID(twentySigops)));
     txFrom.vpout[6]->SetValue(6000);
 
@@ -329,6 +343,7 @@ BOOST_AUTO_TEST_CASE(AreInputsStandard)
 
     CMutableTransaction txTo;
     txTo.vpout.resize(1);
+    txTo.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     txTo.vpout[0]->SetScriptPubKey(GetScriptForDestination(key[1].GetPubKey().GetID()));
 
     txTo.vin.resize(5);
@@ -352,6 +367,7 @@ BOOST_AUTO_TEST_CASE(AreInputsStandard)
 
     CMutableTransaction txToNonStd1;
     txToNonStd1.vpout.resize(1);
+    txToNonStd1.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     txToNonStd1.vpout[0]->SetScriptPubKey(GetScriptForDestination(key[1].GetPubKey().GetID()));
     txToNonStd1.vpout[0]->SetValue(1000);
     txToNonStd1.vin.resize(1);
@@ -364,6 +380,7 @@ BOOST_AUTO_TEST_CASE(AreInputsStandard)
 
     CMutableTransaction txToNonStd2;
     txToNonStd2.vpout.resize(1);
+    txToNonStd2.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     txToNonStd2.vpout[0]->SetScriptPubKey(GetScriptForDestination(key[1].GetPubKey().GetID()));
     txToNonStd2.vpout[0]->SetValue(1000);
     txToNonStd2.vin.resize(1);

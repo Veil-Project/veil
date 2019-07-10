@@ -21,6 +21,11 @@
 
 BOOST_FIXTURE_TEST_SUITE(proofofstake_tests, BasicTestingSetup)
 
+BOOST_AUTO_TEST_CASE(ringctstake)
+{
+
+}
+
 BOOST_AUTO_TEST_CASE(proofofstake_block)
 {
 

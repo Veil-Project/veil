@@ -50,6 +50,8 @@ public:
     bool fSafe;
     bool fMature;
     bool fNeedHardwareKey;
+
+    COutPoint GetOutpoint() const { return COutPoint(txhash, i); }
 };
 
 
@@ -114,6 +116,8 @@ class AnonWallet
     CKeyID idStealthAccount;
     CKeyID idChangeAccount;
     CKeyID idChangeAddress;
+    CKeyID idStakeAccount;
+    CKeyID idStakeAddress;
 
     typedef std::multimap<COutPoint, uint256> TxSpends;
     TxSpends mapTxSpends;
@@ -215,7 +219,7 @@ public:
     bool ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::string &sError);
     void MarkInputsAsPendingSpend(CTransactionRecord &rtx);
 
-    int AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sError);
+    int AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sError, bool fProofOfStake = false);
 
     bool SetChangeDest(const CCoinControl *coinControl, CTempRecipient &r, std::string &sError);
 
@@ -256,6 +260,7 @@ public:
 
     bool MakeDefaultAccount(const CExtKey& extKeyMaster);
     bool CreateStealthChangeAccount(AnonWalletDB* wdb);
+    bool CreateStealthStakeAccount(AnonWalletDB* wdb);
     bool SetMasterKey(const CExtKey& keyMasterIn);
     bool UnlockWallet(const CExtKey& keyMasterIn);
     bool LoadAccountCounters();
@@ -273,8 +278,10 @@ public:
     bool RegenerateKeyFromIndex(const CKeyID& idAccount, int nIndex, CExtKey& keyDerive) const;
     bool MakeSigningKeystore(CBasicKeyStore& keystore, const CScript& scriptPubKey);
 
-    bool NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefixBits, const char *pPrefix, CKeyID* paccount = nullptr);
+    bool NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefixBits, const char *pPrefix, const CKeyID* paccount = nullptr);
+    CStealthAddress CreateSpecialStealthAddress(const CKeyID& idAccount, CKeyID& idAddress);
     CStealthAddress GetStealthChangeAddress();
+    bool GetStakeAddress(CStealthAddress& address);
 
     /**
      * Insert additional inputs into the transaction by

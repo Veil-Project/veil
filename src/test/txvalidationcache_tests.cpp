@@ -53,6 +53,7 @@ BOOST_FIXTURE_TEST_CASE(tx_mempool_block_doublespend, TestChain100Setup)
         spends[i].vin[0].prevout.hash = m_coinbase_txns[0]->GetHash();
         spends[i].vin[0].prevout.n = 0;
         spends[i].vpout.resize(1);
+        spends[i].vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         spends[i].vpout[0]->SetValue(11*CENT);
         spends[i].vpout[0]->SetScriptPubKey(scriptPubKey);
 
@@ -175,12 +176,16 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
     spend_tx.vin[0].prevout.hash = m_coinbase_txns[0]->GetHash();
     spend_tx.vin[0].prevout.n = 0;
     spend_tx.vpout.resize(4);
+    spend_tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     spend_tx.vpout[0]->SetValue(11*CENT);
     spend_tx.vpout[0]->SetScriptPubKey(p2sh_scriptPubKey);
+    spend_tx.vpout[1] = MAKE_OUTPUT<CTxOutStandard>();
     spend_tx.vpout[1]->SetValue(11*CENT);
     spend_tx.vpout[1]->SetScriptPubKey(p2wpkh_scriptPubKey);
+    spend_tx.vpout[2] = MAKE_OUTPUT<CTxOutStandard>();
     spend_tx.vpout[2]->SetValue(11*CENT);
     spend_tx.vpout[2]->SetScriptPubKey(CScript() << OP_CHECKLOCKTIMEVERIFY << OP_DROP << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG);
+    spend_tx.vpout[3] = MAKE_OUTPUT<CTxOutStandard>();
     spend_tx.vpout[3]->SetValue(11*CENT);
     spend_tx.vpout[3]->SetScriptPubKey(CScript() << OP_CHECKSEQUENCEVERIFY << OP_DROP << ToByteVector(coinbaseKey.GetPubKey()) << OP_CHECKSIG);
 
@@ -241,6 +246,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         invalid_under_p2sh_tx.vin[0].prevout.hash = spend_tx.GetHash();
         invalid_under_p2sh_tx.vin[0].prevout.n = 0;
         invalid_under_p2sh_tx.vpout.resize(1);
+        invalid_under_p2sh_tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         invalid_under_p2sh_tx.vpout[0]->SetValue(11*CENT);
         invalid_under_p2sh_tx.vpout[0]->SetScriptPubKey(p2pk_scriptPubKey);
         std::vector<unsigned char> vchSig2(p2pk_scriptPubKey.begin(), p2pk_scriptPubKey.end());
@@ -259,6 +265,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         invalid_with_cltv_tx.vin[0].prevout.n = 2;
         invalid_with_cltv_tx.vin[0].nSequence = 0;
         invalid_with_cltv_tx.vpout.resize(1);
+        invalid_with_cltv_tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         invalid_with_cltv_tx.vpout[0]->SetValue(11*CENT);
         invalid_with_cltv_tx.vpout[0]->SetScriptPubKey(p2pk_scriptPubKey);
 
@@ -290,6 +297,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         invalid_with_csv_tx.vin[0].prevout.n = 3;
         invalid_with_csv_tx.vin[0].nSequence = 100;
         invalid_with_csv_tx.vpout.resize(1);
+        invalid_with_csv_tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         invalid_with_csv_tx.vpout[0]->SetValue(11*CENT);
         invalid_with_csv_tx.vpout[0]->SetScriptPubKey(p2pk_scriptPubKey);
 
@@ -323,6 +331,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         valid_with_witness_tx.vin[0].prevout.hash = spend_tx.GetHash();
         valid_with_witness_tx.vin[0].prevout.n = 1;
         valid_with_witness_tx.vpout.resize(1);
+        valid_with_witness_tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         valid_with_witness_tx.vpout[0]->SetValue(11*CENT);
         valid_with_witness_tx.vpout[0]->SetScriptPubKey(p2pk_scriptPubKey);
 
@@ -353,6 +362,7 @@ BOOST_FIXTURE_TEST_CASE(checkinputs_test, TestChain100Setup)
         tx.vin[1].prevout.hash = spend_tx.GetHash();
         tx.vin[1].prevout.n = 1;
         tx.vpout.resize(1);
+        tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         tx.vpout[0]->SetValue(22*CENT);
         tx.vpout[0]->SetScriptPubKey(p2pk_scriptPubKey);
 

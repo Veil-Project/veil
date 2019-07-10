@@ -308,10 +308,12 @@ SetupDummyInputs(CBasicKeyStore& keystoreRet, CCoinsViewCache& coinsRet)
 
     // Create some dummy input transactions
     dummyTransactions[0].vpout.resize(2);
+    dummyTransactions[0].vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     dummyTransactions[0].vpout[0]->SetValue(11*CENT);
     auto scriptPubKey = *dummyTransactions[0].vpout[0]->GetPScriptPubKey();
     scriptPubKey << ToByteVector(key[0].GetPubKey()) << OP_CHECKSIG;
     dummyTransactions[0].vpout[0]->SetScriptPubKey(scriptPubKey);
+    dummyTransactions[0].vpout[1] = MAKE_OUTPUT<CTxOutStandard>();
     dummyTransactions[0].vpout[1]->SetValue(50*CENT);
     scriptPubKey = *dummyTransactions[0].vpout[1]->GetPScriptPubKey();
     scriptPubKey << ToByteVector(key[1].GetPubKey()) << OP_CHECKSIG;
@@ -319,8 +321,10 @@ SetupDummyInputs(CBasicKeyStore& keystoreRet, CCoinsViewCache& coinsRet)
     AddCoins(coinsRet, dummyTransactions[0], 0);
 
     dummyTransactions[1].vpout.resize(2);
+    dummyTransactions[1].vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     dummyTransactions[1].vpout[0]->SetValue(21*CENT);
     dummyTransactions[1].vpout[0]->SetScriptPubKey(GetScriptForDestination(key[2].GetPubKey().GetID()));
+    dummyTransactions[1].vpout[1] = MAKE_OUTPUT<CTxOutStandard>();
     dummyTransactions[1].vpout[1]->SetValue(22*CENT);
     dummyTransactions[1].vpout[1]->SetScriptPubKey(GetScriptForDestination(key[3].GetPubKey().GetID()));
     AddCoins(coinsRet, dummyTransactions[1], 0);
@@ -346,7 +350,8 @@ BOOST_AUTO_TEST_CASE(test_Get)
     t1.vin[2].prevout.hash = dummyTransactions[1].GetHash();
     t1.vin[2].prevout.n = 1;
     t1.vin[2].scriptSig << std::vector<unsigned char>(65, 0) << std::vector<unsigned char>(33, 4);
-    t1.vpout.resize(2);
+    t1.vpout.resize(1);
+    t1.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     t1.vpout[0]->SetValue(90*CENT);
     auto scriptPubKey = *t1.vpout[0]->GetPScriptPubKey();
     scriptPubKey << OP_1;
@@ -364,6 +369,7 @@ static void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outsc
     outputm.vin[0].prevout.SetNull();
     outputm.vin[0].scriptSig = CScript();
     outputm.vpout.resize(1);
+    outputm.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     outputm.vpout[0]->SetValue(1);
     outputm.vpout[0]->SetScriptPubKey(outscript);
     CDataStream ssout(SER_NETWORK, PROTOCOL_VERSION);
@@ -372,7 +378,11 @@ static void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outsc
     assert(output->vin.size() == 1);
     assert(output->vin[0] == outputm.vin[0]);
     assert(output->vpout.size() == 1);
-    assert(output->vpout[0] == outputm.vpout[0]);
+    CTxOut txout1;
+    BOOST_CHECK(output->vpout[0]->GetTxOut(txout1));
+    CTxOut txout2;
+    BOOST_CHECK(outputm.vpout[0]->GetTxOut(txout2));
+    assert(txout1 == txout2);
 
     CMutableTransaction inputm;
     inputm.nVersion = 1;
@@ -380,6 +390,7 @@ static void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outsc
     inputm.vin[0].prevout.hash = output->GetHash();
     inputm.vin[0].prevout.n = 0;
     inputm.vpout.resize(1);
+    inputm.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     inputm.vpout[0]->SetValue(1);
     inputm.vpout[0]->SetScriptPubKey(CScript());
     bool ret = SignSignature(keystore, *output, inputm, 0, SIGHASH_ALL);
@@ -390,7 +401,11 @@ static void CreateCreditAndSpend(const CKeyStore& keystore, const CScript& outsc
     assert(input.vin.size() == 1);
     assert(input.vin[0] == inputm.vin[0]);
     assert(input.vpout.size() == 1);
-    assert(input.vpout[0] == inputm.vpout[0]);
+    CTxOut txout3;
+    BOOST_CHECK(input.vpout[0]->GetTxOut(txout3));
+    CTxOut txout4;
+    inputm.vpout[0]->GetTxOut(txout4);
+    BOOST_CHECK(txout3 == txout4);
     assert(input.vin[0].scriptWitness.stack == inputm.vin[0].scriptWitness.stack);
 }
 
@@ -403,7 +418,7 @@ static void CheckWithFlag(const CTransactionRef& output, const CMutableTransacti
     memcpy(&vchAmount[0], &nValue, 8);
     bool ret = VerifyScript(inputi.vin[0].scriptSig, *output->vpout[0]->GetPScriptPubKey(), &inputi.vin[0].scriptWitness, flags, TransactionSignatureChecker(&inputi, 0, vchAmount), &error);
 
-    assert(ret == success);
+    BOOST_CHECK_MESSAGE(ret == success, strprintf("Expected %b but returned %b", success, ret));
 }
 
 static CScript PushAll(const std::vector<valtype>& values)
@@ -461,6 +476,7 @@ BOOST_AUTO_TEST_CASE(test_big_witness_transaction) {
         mtx.vin[i].scriptSig = CScript();
 
         mtx.vpout.resize(mtx.vpout.size() + 1);
+        mtx.vpout[i] = MAKE_OUTPUT<CTxOutStandard>();
         mtx.vpout[i]->SetValue(1000);
         mtx.vpout[i]->SetScriptPubKey(CScript() << OP_1);
     }
@@ -715,6 +731,7 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
     t.vin[0].prevout.n = 1;
     t.vin[0].scriptSig << std::vector<unsigned char>(65, 0);
     t.vpout.resize(1);
+    t.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     t.vpout[0]->SetValue(90*CENT);
     CKey key;
     key.MakeNewKey(true);
@@ -774,12 +791,15 @@ BOOST_AUTO_TEST_CASE(test_IsStandard)
 
     // TX_NULL_DATA w/o PUSHDATA
     t.vpout.resize(1);
+    t.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN);
     BOOST_CHECK(IsStandardTx(t, reason));
 
     // Only one TX_NULL_DATA permitted in all cases
     t.vpout.resize(2);
+    t.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     t.vpout[0]->SetScriptPubKey(CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38"));
+    t.vpout[1] = MAKE_OUTPUT<CTxOutStandard>();
     t.vpout[1]->SetScriptPubKey(CScript() << OP_RETURN << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38"));
     BOOST_CHECK(!IsStandardTx(t, reason));
 
