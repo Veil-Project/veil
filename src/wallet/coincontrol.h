@@ -45,6 +45,8 @@ public:
     bool m_avoid_partial_spends;
     //! Fee estimation mode to control arguments to estimateSmartFee
     FeeEstimateMode m_fee_mode;
+    //! Is this for a proof of stake transaction
+    bool fProofOfStake;
 
     int nCoinType;
     mutable bool fZerocoinSelected = false;

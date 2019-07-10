@@ -10,13 +10,25 @@
 #include "chainparams.h"
 #include "wallet/deterministicmint.h"
 #include "validation.h"
-#include "stakeinput.h"
+#include "zerocoinstakeinput.h"
 #include "veil/proofofstake/kernel.h"
 #ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
 #endif
 
 typedef std::vector<unsigned char> valtype;
+
+std::string StakeInputTypeToString(StakeInputType t)
+{
+    if (t == STAKE_ZEROCOIN) {
+        return "ZerocoinStake";
+    } else if (t == STAKE_RINGCT) {
+        return "RingCtStake";
+    } else if (t == STAKE_RINGCTCANDIDATE) {
+        return "RingCtStakeCandidate";
+    }
+    return "error-type";
+}
 
 ZerocoinStake::ZerocoinStake(const libzerocoin::CoinSpend& spend)
 {
@@ -26,6 +38,7 @@ ZerocoinStake::ZerocoinStake(const libzerocoin::CoinSpend& spend)
     this->hashSerial = Hash(nSerial.begin(), nSerial.end());
     this->pindexFrom = nullptr;
     fMint = false;
+    m_type = STAKE_ZEROCOIN;
 }
 
 int ZerocoinStake::GetChecksumHeightFromMint()

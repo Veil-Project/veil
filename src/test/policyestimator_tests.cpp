@@ -43,6 +43,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
     tx.vin.resize(1);
     tx.vin[0].scriptSig = garbage;
     tx.vpout.resize(1);
+    tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     tx.vpout[0]->SetValue(0LL);
     CFeeRate baseRate(basefee, GetVirtualTransactionSize(tx));
 

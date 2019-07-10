@@ -15,6 +15,11 @@ void COutputRecord::AddStealthAddress(const CKeyID& idStealth)
     memcpy(&vPath[1], &idStealth, idStealth.size());
 }
 
+bool COutputRecord::GetKeyImage(CCmpPubKey& keyImage) const
+{
+
+}
+
 bool COutputRecord::GetStealthID(CKeyID& idStealth) const
 {
     if (!IsStealth())

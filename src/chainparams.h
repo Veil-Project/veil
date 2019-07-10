@@ -130,6 +130,9 @@ public:
     /** RingCT and Stealth **/
     int DefaultRingSize() const { return nDefaultRingSize; }
 
+    /** Proof of Stake **/
+    CAmount MinimumStakeQuantity() const { return nMinimumStakeQuantity; }
+
     /** Consensus params **/
     int LAST_POW_BLOCK() const { return nLastPOWBlock; }
     int HeightPoSStart() const { return nHeightPoSStart; }
@@ -198,6 +201,7 @@ protected:
     int nCoinbaseMaturity;
     int nProofOfFullNodeRounds;
     int nHeightSupplyCreationStop;
+    CAmount nMinimumStakeQuantity;
 
     //Time and height enforcements
     int nTimeEnforceWeightReduction;

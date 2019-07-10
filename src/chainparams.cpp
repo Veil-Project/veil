@@ -345,6 +345,9 @@ public:
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
 
+        /** Proof of Stake **/
+        nMinimumStakeQuantity = 1 * COIN; //Stake has to be a minimum of 1 coin
+
         nMaxHeaderRequestWithoutPoW = 50;
     }
 };
@@ -616,6 +619,7 @@ public:
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
+        nMinimumStakeQuantity = 1 * COIN;
 
         nMaxHeaderRequestWithoutPoW = 50;
     }

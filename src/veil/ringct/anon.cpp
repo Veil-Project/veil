@@ -334,6 +334,8 @@ std::vector<COutPoint> GetRingCtInputs(const CTxIn& txin)
 
     size_t ofs = 0, nB = 0;
     for (size_t k = 0; k < nInputs; ++k) {
+        const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
+        LogPrintf("Key image %d %s\n", k, ki.GetID().GetHex());
         for (size_t i = 0; i < nCols; ++i) {
             int64_t nIndex;
 

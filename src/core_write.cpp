@@ -145,7 +145,7 @@ void AddRangeproof(const std::vector<uint8_t> &vRangeproof, UniValue &entry)
     {
         int exponent, mantissa;
         CAmount min_value, max_value;
-        if (0 == GetRangeProofInfo(vRangeproof, exponent, mantissa, min_value, max_value))
+        if (GetRangeProofInfo(vRangeproof, exponent, mantissa, min_value, max_value))
         {
             entry.pushKV("rp_exponent", exponent);
             entry.pushKV("rp_mantissa", mantissa);
@@ -292,6 +292,19 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
                 }
                 in.pushKV("ringct_inputs", arrRing);
             }
+
+            const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+            uint32_t nInputs, nRingSize;
+            txin.GetAnonInfo(nInputs, nRingSize);
+
+            UniValue arrKeyImages(UniValue::VARR);
+            for (unsigned int k = 0; k < nSigInputs; k++) {
+                const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*nSigInputs]);
+                UniValue objKeyImage(UniValue::VOBJ);
+                objKeyImage.pushKV(std::to_string(k), HexStr(ki.begin(), ki.end()));
+                arrKeyImages.push_back(objKeyImage);
+            }
+            in.pushKV("key_images", arrKeyImages);
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
             if (txin.IsZerocoinSpend()) {

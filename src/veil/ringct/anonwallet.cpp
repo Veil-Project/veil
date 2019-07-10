@@ -23,6 +23,7 @@
 #include <policy/rbf.h>
 #include <wallet/coincontrol.h>
 #include <veil/invalid.h>
+#include <veil/proofofstake/stakeweight.h>
 #include <veil/ringct/blind.h>
 #include <veil/ringct/anon.h>
 #include <veil/zerocoin/denomination_functions.h>
@@ -1530,7 +1531,7 @@ int CreateOutput(OUTPUT_PTR<CTxOutBase> &txbout, CTempRecipient &r, std::string 
     return 0;
 }
 
-int AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sError)
+int AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sError, bool fProofOfStake)
 {
     secp256k1_pedersen_commitment *pCommitment = txout->GetPCommitment();
     std::vector<uint8_t> *pvRangeproof = txout->GetPRangeproof();
@@ -1565,7 +1566,12 @@ int AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sEr
     size_t nRangeProofLen = 5134;
     pvRangeproof->resize(nRangeProofLen);
 
+    //If this is a proof-of-stake transaction, then the minimum value must be set above 0
     uint64_t min_value = 0;
+    if (fProofOfStake) {
+        min_value = GetStakeWeightBracket(nValue);
+    }
+
     int ct_exponent = 2;
     int ct_bits = 32;
 
@@ -3440,6 +3446,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
         if (0 != PutVarInt(vData, nFeeRet))
             return error("%s: PutVarInt %d failed\n", __func__, nFeeRet);
 
+        AnonWalletDB wdb(*walletDatabase);
         if (!fZerocoinInputs && sign) {
             std::vector<CKey> vSplitCommitBlindingKeys(txNew.vin.size()); // input amount commitment when > 1 mlsag
             int rv;
@@ -3462,28 +3469,36 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     if (!pblocktree->ReadRCTOutput(nIndex, anonOutput))
                         return error("%s: Anon output not found in db, %d", __func__, nIndex);
 
-                    CKeyID idk = anonOutput.pubkey.GetID();
-                    CKey key;
-                    if (!GetKey(idk, key))
-                        return error("%s: No key for anonoutput, %s", __func__, HexStr(anonOutput.pubkey.begin(), anonOutput.pubkey.end()));
+                    CCmpPubKey keyimage;
+                    if (!wdb.GetKeyImageFromOutpoint(anonOutput.outpoint, keyimage)) {
+                        CKeyID idk = anonOutput.pubkey.GetID();
+                        CKey key;
+                        if (!GetKey(idk, key))
+                            return error("%s: No key for anonoutput, %s", __func__, HexStr(anonOutput.pubkey.begin(), anonOutput.pubkey.end()));
 
-                    // Keyimage is required for the tx hash
-                    if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], anonOutput.pubkey.begin(), key.begin())))
-                        return error("%s: secp256k1_get_keyimage failed %d", __func__, rv);
+                        // Keyimage is required for the tx hash
+                        if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, keyimage.ncbegin(), anonOutput.pubkey.begin(), key.begin())))
+                            return error("%s: secp256k1_get_keyimage failed %d", __func__, rv);
 
-                    // Double check key image is not used... todo, this should not be done here and is result of bad state
-                    uint256 txhashKI;
-                    auto ki = *((CCmpPubKey*)&vKeyImages[k*33]);
-                    if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
-                        AnonWalletDB wdb(*walletDatabase);
-                        COutPoint out;
-                        bool fErased = false;
-                        if (wdb.ReadAnonKeyImage(ki, out)) {
-                            MarkOutputSpent(out, true);
-                            fErased = true;
+                        //Save this to wallet database so it does not have to be computed again
+                        keyimage = *((CCmpPubKey*) &vKeyImages[k * 33]);
+                        wdb.WriteKeyImageFromOutpoint(anonOutput.outpoint, keyimage);
+
+                        // Double check key image is not used... todo, this should not be done here and is result of bad state
+                        uint256 txhashKI;
+                        if (pblocktree->ReadRCTKeyImage(keyimage, txhashKI)) {
+                            COutPoint out;
+                            bool fErased = false;
+                            if (wdb.ReadAnonKeyImage(keyimage, out)) {
+                                MarkOutputSpent(out, true);
+                                fErased = true;
+                            }
+                            return error("%s: bad wallet state trying to spend already spent anonin, outpoint=%s erased=%d", __func__, out.ToString(), fErased);
                         }
-                        return error("%s: bad wallet state trying to spend already spent anonin, outpoint=%s erased=%d", __func__, out.ToString(), fErased);
                     }
+
+                    //Load keyimage
+                    memcpy(&vKeyImages[k*33], keyimage.begin(), keyimage.size());
                 }
             }
 
@@ -3622,7 +3637,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
         rtx.nFlags |= ORF_ANON_IN;
         AddOutputRecordMetaData(rtx, vecSend);
 
-        for (auto txin : txNew.vin)
+        for (const CTxIn& txin : txNew.vin)
             rtx.vin.emplace_back(txin.prevout);
         MarkInputsAsPendingSpend(rtx);
 
@@ -3700,6 +3715,44 @@ bool AnonWallet::CreateStealthChangeAccount(AnonWalletDB* wdb)
     return true;
 }
 
+bool AnonWallet::CreateStealthStakeAccount(AnonWalletDB* wdb)
+{
+    /** Derive a stealth address that is specifically for staking **/
+    BIP32Path vPathStealthStake;
+    vPathStealthStake.emplace_back(4, true);
+    CExtKey keyStealthStake = DeriveKeyFromPath(*pkeyMaster, vPathStealthStake);
+    idStakeAccount = keyStealthStake.key.GetPubKey().GetID();
+    mapKeyPaths.emplace(idStakeAccount, std::make_pair(idMaster, vPathStealthStake));
+    mapAccountCounter.emplace(idStakeAccount, 1);
+    if (!wdb->WriteExtKey(idMaster, idStakeAccount, vPathStealthStake))
+        return false;
+    if (!wdb->WriteAccountCounter(idStakeAccount, (uint32_t)1))
+        return false;
+    if (!wdb->WriteNamedExtKeyId("stealthstakeaccount", idStakeAccount))
+        return false;
+
+    //Make the change address
+    CreateSpecialStealthAddress(idStakeAccount, idStakeAddress);
+
+    if (!wdb->WriteNamedExtKeyId("stealthstakeaddress", idStakeAddress))
+        return false;
+
+    return true;
+}
+
+CStealthAddress AnonWallet::CreateSpecialStealthAddress(const CKeyID& idAccount, CKeyID& idAddress)
+{
+    //Make sure idChangeAccount is loaded
+    if (!mapAccountCounter.count(idAddress))
+        mapAccountCounter.emplace(idAddress, 0);
+
+    CStealthAddress address;
+    NewStealthKey(address, 0 , nullptr, &idAccount);
+    idAddress = address.GetID();
+
+    return mapStealthAddresses.at(idAddress);
+}
+
 CStealthAddress AnonWallet::GetStealthChangeAddress()
 {
     if (!mapStealthAddresses.count(idChangeAddress)) {
@@ -3712,6 +3765,15 @@ CStealthAddress AnonWallet::GetStealthChangeAddress()
         idChangeAddress = address.GetID();
     }
     return mapStealthAddresses.at(idChangeAddress);
+}
+
+bool AnonWallet::GetStakeAddress(CStealthAddress& address)
+{
+    if (!mapStealthAddresses.count(idStakeAddress))
+        return false;
+
+    address = mapStealthAddresses.at(idStakeAddress);
+    return true;
 }
 
 bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
@@ -3752,11 +3814,12 @@ bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
     wdb.WriteAccountCounter(idStealthAccount, (uint32_t)1);
     wdb.WriteNamedExtKeyId("stealthaccount", idStealthAccount);
 
-    if (!wdb.TxnCommit())
-        return error("%s: TxnCommit failed.");
-
     /** Derive a stealth address that is specifically for change **/
     CreateStealthChangeAccount(&wdb);
+    CreateStealthStakeAccount(&wdb);
+
+    if (!wdb.TxnCommit())
+        return error("%s: TxnCommit failed.");
 
     LogPrintf("%s: Default account %s\n", __func__, idDefaultAccount.GetHex());
     LogPrintf("%s: Stealth account %s\n", __func__, idStealthAccount.GetHex());
@@ -4008,7 +4071,7 @@ bool AnonWallet::CreateAccountWithKey(const CExtKey& key)
 }
 
 bool AnonWallet::NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefixBits,
-        const char *pPrefix, CKeyID* paccount)
+        const char *pPrefix, const CKeyID* paccount)
 {
     // Scan secrets must be stored uncrypted - always derive hardened keys
     if (IsLocked())
@@ -5250,8 +5313,7 @@ int AnonWallet::OwnAnonOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxO
 
     if (0 != secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), pout->pk.begin(), key.begin())) {
         LogPrintf("Error: %s - secp256k1_get_keyimage failed.\n", __func__);
-    } else
-    if (!pwdb->WriteAnonKeyImage(ki, op)) {
+    } else if (!pwdb->WriteAnonKeyImage(ki, op) || !pwdb->WriteKeyImageFromOutpoint(op, ki)) {
         LogPrintf("Error: %s - WriteAnonKeyImage failed.\n", __func__);
     }
 

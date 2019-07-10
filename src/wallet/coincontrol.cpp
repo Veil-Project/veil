@@ -26,5 +26,6 @@ void CCoinControl::SetNull()
     m_extrafee = 0;
 
     setZerocoinSelected.clear();
+    fProofOfStake = false;
 }
 
