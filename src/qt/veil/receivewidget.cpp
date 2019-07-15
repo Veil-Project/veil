@@ -89,10 +89,9 @@ bool ReceiveWidget::generateNewAddress(){
     // Address
     interfaces::Wallet& wallet = walletModel->wallet();
 
-    bool isLocked = walletModel->getEncryptionStatus() == WalletModel::Locked;
     std::string strAddress;
     std::vector<interfaces::WalletAddress> addresses = wallet.getLabelAddress("stealth");
-    if(isLocked || !addresses.empty()) {
+    if(!addresses.empty()) {
         interfaces::WalletAddress address = addresses[0];
         if (address.dest.type() == typeid(CStealthAddress)){
             bool fBech32 = true;
