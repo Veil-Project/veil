@@ -958,7 +958,6 @@ padding:9px;
                  <property name="styleSheet">
                   <string notr="true">QValueComboBox{
 	font-size:13px;
-	qproperty-alignment: AlignCenter;
     selection-color: #000000;
 }
 
@@ -1012,7 +1011,6 @@ QToolTip {
                  <property name="styleSheet">
                   <string notr="true">QValueComboBox{
 	font-size:13px;
-	qproperty-alignment: AlignCenter;
     selection-color: #000000;
 }
 
