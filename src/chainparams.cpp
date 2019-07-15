@@ -546,6 +546,9 @@ public:
 
         bech32Prefixes[STEALTH_ADDRESS].assign("tps","tps"+3);
         bech32Prefixes[BASE_ADDRESS].assign("tv", "tv"+2);
+        nBIP44ID = 0x80000001;
+        nRingCTAccount = 20000;
+        nZerocoinAccount = 100000;
 
         bech32_hrp_stealth = "tps";
         bech32_hrp_base = "tv";
