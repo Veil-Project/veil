@@ -33,15 +33,7 @@ color:#707070;</string>
       <string notr="true">font-weight:200;</string>
      </property>
      <property name="text">
-      <string>“Zerocoin veil are used automatically when spending.
-
-To spend Basecoin veil, follow these instructions:
-
-    1. Navigate to the Send tab.
-    2. Click the Coin control button.
-    3. Select all Basecoin UTXO inputs and send a transaction.
-
-Alternatively, the console command 'sendtoaddress' will allow for the spending of Basecoin veil to a specified address.”					</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot;font-weight:600; text-decoration: underline;&quot;&gt;How do I spend Basecoin VEIL (dust/change)?&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;&lt;br/&gt;Zerocoin veil are used automatically when spending.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;span&gt;To spend Basecoin veil, follow these instructions:&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;1. Navigate to the Send tab.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;2. Click the Coin Control button.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;3. Select all Basecoin UTXO inputs and send a transaction.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;span&gt;All Basecoin transactions are anonymized with RingCT. Although RingCT transactions have an anonymity set size of 11 versus Zerocoin’s thousands, it prevents Basecoin from compromising the privacy of Zerocoin transactions.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>

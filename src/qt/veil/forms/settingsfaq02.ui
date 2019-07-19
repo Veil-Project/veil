@@ -369,7 +369,7 @@ color:#707070;</string>
       <string notr="true">font-weight:200;</string>
      </property>
      <property name="text">
-      <string>Veil can also be obtained by mining, staking, or through the Veil Bounty Program.”	</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;Veil can also be obtained by mining, staking, or through the &lt;/span&gt;&lt;a href=&quot;https://veil-project.com/bounties/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Veil Bounty Program&lt;/span&gt;&lt;/a&gt;&lt;span style=&quot; font-size:12pt;&quot;&gt;.”	&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>
