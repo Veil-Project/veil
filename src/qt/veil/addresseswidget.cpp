@@ -254,7 +254,6 @@ void AddressesWidget::handleAddressClicked(const QModelIndex &index){
     }
     menu->move(pos);
     menu->show();
-
 }
 
 void AddressesWidget::initAddressesView(){
@@ -318,7 +317,6 @@ void AddressesWidget::onButtonChanged() {
     }else{
         ui->btnAdd->setText("New Contact");
         showHideMineAddressBtn(false);
-
     }
     if(this->menu){
         this->menu->hide();
@@ -426,7 +424,6 @@ void AddressesWidget::showList(bool show){
         ui->listAddresses->setVisible(false);
         ui->listContacts->setVisible(false);
     }
-
 }
 
 AddressesWidget::~AddressesWidget() {
