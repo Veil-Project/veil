@@ -34,9 +34,9 @@ public Q_SLOTS:
     virtual void showEvent(QShowEvent *event) override;
 
 private Q_SLOTS:
-    void on_btnCopyAddress_clicked();
-    void on_btnEditAddress_clicked();
-    void on_btnDeleteAddress_clicked();
+    void onBtnCopyAddressClicked();
+    void onBtnEditAddressClicked();
+    void onBtnDeleteAddressClicked();
 
 private:
     Ui::AddressesMenu *ui;

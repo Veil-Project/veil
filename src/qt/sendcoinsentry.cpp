@@ -63,7 +63,7 @@ SendCoinsEntry::SendCoinsEntry(const PlatformStyle *_platformStyle, QWidget *par
     connect(ui->btnRemove, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_is, SIGNAL(clicked()), this, SLOT(deleteClicked()));
     connect(ui->deleteButton_s, SIGNAL(clicked()), this, SLOT(deleteClicked()));
-    connect(ui->btnAddressBook, SIGNAL(clicked()), this, SLOT(on_addressBookButton_clicked()));
+    connect(ui->btnAddressBook, SIGNAL(clicked()), this, SLOT(onAddressBookButtonClicked()));
     //connect(ui->useAvailableBalanceButton, SIGNAL(clicked()), this, SLOT(useAvailableBalanceClicked()));
 }
 
@@ -72,7 +72,7 @@ SendCoinsEntry::~SendCoinsEntry()
     delete ui;
 }
 
-void SendCoinsEntry::on_addressBookButton_clicked()
+void SendCoinsEntry::onAddressBookButtonClicked()
 {
     if(!model)
         return;

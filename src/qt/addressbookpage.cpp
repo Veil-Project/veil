@@ -129,10 +129,10 @@ AddressBookPage::AddressBookPage(const PlatformStyle *platformStyle, Mode _mode,
     contextMenu->addSeparator();
 
     // Connect signals for context menu actions
-    connect(copyAddressAction, SIGNAL(triggered()), this, SLOT(on_copyAddress_clicked()));
+    connect(copyAddressAction, SIGNAL(triggered()), this, SLOT(onCopyAddressClicked()));
     connect(copyLabelAction, SIGNAL(triggered()), this, SLOT(onCopyLabelAction()));
     connect(editAction, SIGNAL(triggered()), this, SLOT(onEditAction()));
-    connect(deleteAction, SIGNAL(triggered()), this, SLOT(on_deleteAddress_clicked()));
+    connect(deleteAction, SIGNAL(triggered()), this, SLOT(onDeleteAddressClicked()));
 
     connect(ui->tableView, SIGNAL(customContextMenuRequested(QPoint)), this, SLOT(contextualMenu(QPoint)));
 
@@ -172,7 +172,7 @@ void AddressBookPage::setModel(AddressTableModel *_model)
     selectionChanged();
 }
 
-void AddressBookPage::on_copyAddress_clicked()
+void AddressBookPage::onCopyAddressClicked()
 {
     GUIUtil::copyEntryData(ui->tableView, AddressTableModel::Address);
 }
@@ -220,7 +220,7 @@ void AddressBookPage::on_newAddress_clicked()
     }
 }
 
-void AddressBookPage::on_deleteAddress_clicked()
+void AddressBookPage::onDeleteAddressClicked()
 {
     QTableView *table = ui->tableView;
     if(!table->selectionModel())

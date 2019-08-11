@@ -46,7 +46,7 @@ AddressReceive::AddressReceive(QWidget *parent, WalletModel* _walletModel, bool 
     ui->labelTitle->setText(isMinerAddress ? "New Miner Address" : "New Receiving Address");
     generateNewAddress(isMinerAddress);
 
-    connect(ui->btnCopy, SIGNAL(clicked()),this, SLOT(on_btnCopyAddress_clicked()));
+    connect(ui->btnCopy, SIGNAL(clicked()),this, SLOT(onBtnCopyAddressClicked()));
     connect(ui->btnSave, SIGNAL(clicked()),this, SLOT(onBtnSaveClicked()));
 
 }
@@ -63,7 +63,7 @@ void AddressReceive::onBtnSaveClicked(){
     accept();
 }
 
-void AddressReceive::on_btnCopyAddress_clicked() {
+void AddressReceive::onBtnCopyAddressClicked() {
     if(!qAddress.isEmpty()) {
         GUIUtil::setClipboard(qAddress);
         openToastDialog("Address copied", this);

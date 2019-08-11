@@ -47,7 +47,7 @@ Balance::Balance(QWidget *parent, BitcoinGUI* gui) :
     connect(ui->btnBalance, SIGNAL(clicked()), this, SLOT(onBtnBalanceClicked()));
     connect(ui->btnUnconfirmed, SIGNAL(clicked()), this, SLOT(onBtnUnconfirmedClicked()));
     connect(ui->btnImmature, SIGNAL(clicked()), this, SLOT(onBtnImmatureClicked()));
-    connect(ui->copyAddress, SIGNAL(clicked()), this, SLOT(on_btnCopyAddress_clicked()));
+    connect(ui->copyAddress, SIGNAL(clicked()), this, SLOT(onBtnCopyAddressClicked()));
 
 }
 
@@ -69,7 +69,7 @@ void Balance::onBtnImmatureClicked() {
 }
 
 
-void Balance::on_btnCopyAddress_clicked() {
+void Balance::onBtnCopyAddressClicked() {
     GUIUtil::setClipboard(qAddress);
     openToastDialog("Address copied", mainWindow);
 }
