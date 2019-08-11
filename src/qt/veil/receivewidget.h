@@ -30,6 +30,7 @@ public:
 public Q_SLOTS:
     void on_btnCopyAddress_clicked();
     void generateNewAddressClicked();
+    void hideThisWidget();
 
 private:
     Ui::ReceiveWidget *ui;

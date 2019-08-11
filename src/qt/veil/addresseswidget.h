@@ -52,6 +52,7 @@ private Q_SLOTS:
     void onNewAddressClicked();
     void onNewMinerAddressClicked();
     void onButtonChanged();
+    void hideThisWidget();
     void handleAddressClicked(const QModelIndex &index);
     virtual void showEvent(QShowEvent *event) override;
     virtual void hideEvent(QHideEvent *event) override;

@@ -279,10 +279,10 @@ void AddressesWidget::hideEvent(QHideEvent *event){
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
     connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
+}
 
-    if(menu != nullptr){
-        menu->hide();
-    }
+void AddressesWidget::hideThisWidget(){
+   this->hide();
 }
 
 // We override the virtual resizeEvent of the QWidget to adjust tables column

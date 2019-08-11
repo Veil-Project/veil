@@ -203,6 +203,10 @@ void ReceiveWidget::hideEvent(QHideEvent *event){
     connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
 }
 
+void ReceiveWidget::hideThisWidget(){
+    this->hide();
+}
+
 ReceiveWidget::~ReceiveWidget()
 {
     delete ui;
