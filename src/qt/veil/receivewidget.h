@@ -44,7 +44,7 @@ private:
     CPubKey newKey;
     QString qAddress;
 
-    bool generateNewAddress();
+    bool generateNewAddress(bool isOnDemand = false);
 };
 
 #endif // RECEIVEWIDGET_H
