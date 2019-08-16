@@ -190,6 +190,10 @@ QProgressBar {
     qproperty-alignment: AlignBottom AlignRight;
 }
 
+#progressDialogBar {
+    qproperty-alignment: AlignCenter;
+}
+
 #progressBar {
     border: 1px solid black;
     text-align: top;
