@@ -113,8 +113,11 @@ UniValue lookupzerocoin(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "param 1 id_type is invalid");
     }
 
-    if (hashPubcoin != uint256())
-        mint = ztracker->GetMetaFromPubcoin(hashPubcoin);
+    if (hashPubcoin != uint256()) {
+        uint256 txid;
+        pzerocoinDB->ReadCoinMint(hashPubcoin, txid);
+        return txid.GetHex();
+    }
 
     // Search archived coins if not found yet
     if (mint.hashSerial == uint256()) {

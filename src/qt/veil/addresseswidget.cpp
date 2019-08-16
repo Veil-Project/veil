@@ -254,7 +254,6 @@ void AddressesWidget::handleAddressClicked(const QModelIndex &index){
     }
     menu->move(pos);
     menu->show();
-
 }
 
 void AddressesWidget::initAddressesView(){
@@ -283,10 +282,10 @@ void AddressesWidget::hideEvent(QHideEvent *event){
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
     connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
+}
 
-    if(menu != nullptr){
-        menu->hide();
-    }
+void AddressesWidget::hideThisWidget(){
+   this->hide();
 }
 
 // We override the virtual resizeEvent of the QWidget to adjust tables column
@@ -318,7 +317,6 @@ void AddressesWidget::onButtonChanged() {
     }else{
         ui->btnAdd->setText("New Contact");
         showHideMineAddressBtn(false);
-
     }
     if(this->menu){
         this->menu->hide();
@@ -426,7 +424,6 @@ void AddressesWidget::showList(bool show){
         ui->listAddresses->setVisible(false);
         ui->listContacts->setVisible(false);
     }
-
 }
 
 AddressesWidget::~AddressesWidget() {

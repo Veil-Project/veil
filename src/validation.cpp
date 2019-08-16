@@ -54,6 +54,7 @@
 #include <veil/zerocoin/zchain.h>
 #include <veil/proofofstake/kernel.h>
 #include <veil/ringct/blind.h>
+#include <veil/invalid.h>
 
 #ifdef ENABLE_WALLET
 #include <wallet/wallet.h>
@@ -734,6 +735,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
         ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
         bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
+        bool fCheckBlacklist = chainActive.Height() >= Params().HeightLightZerocoin();
 
         // do all inputs exist?
         std::set<CBigNum> setSerials;
@@ -741,6 +743,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             if (txin.IsAnonInput()) {
                 state.fHasAnonInput = true;
                 const std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
+
 
                 uint32_t nInputs, nRingSize;
                 txin.GetAnonInfo(nInputs, nRingSize);
@@ -757,6 +760,18 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                         return state.Invalid(false, REJECT_DUPLICATE, "bad-anonin-dup-keyimage");
                     }
                 }
+
+                // check blacklisted anon outpoints
+                std::vector<std::vector<COutPoint> > vInputsVec;
+                if (!GetRingCtInputs(txin, vInputsVec))
+                    return state.Invalid(false, REJECT_INVALID, "get-anonins-failed");
+                for (const std::vector<COutPoint>& inputsVec : vInputsVec) {
+                    for (const COutPoint& out : inputsVec) {
+                        if (blacklist::ContainsRingCtOutPoint(out))
+                            return state.Invalid(false, REJECT_INVALID, "blacklisted-anonin");
+                    }
+                }
+
                 continue;
             }
 
@@ -779,14 +794,32 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-in-mempool");
                 }
 
-                if (!ContextualCheckZerocoinSpend(tx, *spend, pindexBestHeader->GetBlockHash(), pindexBestHeader, fZCLimpMode,/*fSkipVerify*/true))
-                    return state.Invalid(false, REJECT_INVALID, "failed-zcspend-context-checks");
+                int checkMode = 0;
+                if (fZCLimpMode)
+                    checkMode |= CHECK_LIMP_MODE | CHECK_DENOM_HARD;
+                if (fCheckBlacklist)
+                    checkMode |= CHECK_BLACKLIST_HARD;
+                if (chainActive.Height() >= Params().HeightLightZerocoin()) {
+                    checkMode |= CHECK_LIGHTMODE;
+                } else {
+                    checkMode |= CHECK_ZKP; //Have partial reliance on certain zkp's until light zerocoin activates
+                }
 
-                libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
-                                                        spend->getSerialComm(), spend->getHashSig());
-                if (!setBatchVerified.count(tx.GetHash()))
-                    vProofs.emplace_back(proof);
-                setSerials.emplace(bnSerial);
+                int nFailReason = 0;
+                if (!ContextualCheckZerocoinSpend(tx, *spend, pindexBestHeader->GetBlockHash(), pindexBestHeader, checkMode, nFailReason)) {
+                    if (nFailReason & FAIL_BLACKLIST) {
+                        LogPrintf("%s: rejected tx %s from mempool for spending blacklisted inputs\n", __func__, tx.GetHash().GetHex());
+                    }
+                    return state.Invalid(false, REJECT_INVALID, "failed-zcspend-context-checks");
+                }
+
+                if (chainActive.Height() < Params().HeightLightZerocoin()) {
+                    libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
+                                                            spend->getSerialComm(), spend->getHashSig());
+                    if (!setBatchVerified.count(tx.GetHash()))
+                        vProofs.emplace_back(proof);
+                    setSerials.emplace(bnSerial);
+                }
                 continue;
             }
 
@@ -809,6 +842,11 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 LogPrint(BCLog::NET, "%s:%s Missing: %s txid %s\n", __func__, __LINE__, txin.prevout.ToString(), txin.prevout.hash.GetHex());
                 return false; // fMissingInputs and !state.IsInvalid() is used to detect this condition, don't set state.Invalid()
             }
+
+            //Reject any blacklisted inputs from entering the mempool
+            int nType;
+            if (blacklist::ContainsOutPoint(txin.prevout, nType))
+                return state.Invalid(false, REJECT_NONSTANDARD, "blacklisted-txn");
         }
 
         //Weed out pubcoin that are either 1)already in the mempool in a different txid 2)already in the chain in a different txid
@@ -826,6 +864,9 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 LogPrint(BCLog::NET, "%s: pubcoin already in blockchain. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
                 return false;
             }
+
+            if (blacklist::ContainsPubcoinHash(hashPubcoin))
+                return state.Invalid(false, REJECT_NONSTANDARD, "blacklisted-pubcoin");
         }
 
         for (const auto& pout : tx.vpout) {
@@ -1273,6 +1314,7 @@ bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight, const CBlockInde
 bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params, const CBlockIndex* pindex)
 {
     uint256 hashBlock;
+    hashBlock.SetNull();
     if (!GetTransaction(txId, txRef, params, hashBlock, true))
         return false;
 
@@ -1916,7 +1958,18 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                 }
 
                 pzerocoinDB->EraseCoinMint(coin.getValue());
+
+                uint256 hashPubcoin = GetPubCoinHash(coin.getValue());
+                if (blacklist::ContainsPubcoinHash(hashPubcoin)) {
+                    pzerocoinDB->EraseBlacklisterPubcoin(hashPubcoin);
+                }
                 continue;
+            }
+
+            COutPoint outpoint(tx.GetHash(), k);
+            int nType;
+            if (blacklist::ContainsOutPoint(outpoint, nType)) {
+                pzerocoinDB->EraseBlacklistedOutpoint(outpoint);
             }
 
             const CTxOutBase *out = tx.vpout[k].get();
@@ -1999,6 +2052,13 @@ DisconnectResult CChainState::DisconnectBlock(const CBlock& block, const CBlockI
                     }
 
                     pzerocoinDB->EraseCoinSpend(spend->getCoinSerialNumber());
+
+                    if (spend->getVersion() == libzerocoin::CoinSpend::V4_LIMP) {
+                        CBigNum bnPubcoin = spend->getPubcoinValue();
+                        uint256 hashPubcoin = GetPubCoinHash(bnPubcoin);
+                        pzerocoinDB->ErasePubcoinSpend(hashPubcoin);
+                    }
+
                     continue;
                 }
 
@@ -2350,19 +2410,23 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     // zerocoin spends
     std::set <CBigNum> setSerialsInBlock;
+    std::map<uint256, uint256> mapSpentPubcoinsInBlock; //pubcoin, txid
     std::map<libzerocoin::CoinSpend, uint256> mapSpends;
     std::map<libzerocoin::PublicCoin, uint256> mapMints;
     ThresholdState tstate = VersionBitsState(pindex->pprev, Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
     bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
+    bool fCheckBlacklistHard = pindex->nHeight >= Params().HeightEnforceBlacklist();
 
     CAmount nBlockValueIn = 0;
     CAmount nBlockValueOut = 0;
     int64_t nTimeZerocoinSpendCheck = 0;
     std::vector<libzerocoin::SerialNumberSoKProof> vProofs;
     std::vector<uint256> vTxidProofs;
+    std::vector<CTransactionRef> vBlacklistTxOutpoints;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
+        const CTransactionRef ptx = block.vtx[i];
         const uint256 txhash = tx.GetHash();
 
         nInputs += tx.vin.size();
@@ -2423,7 +2487,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 }
 
                 //Check for double spending of serial #'s
+                int nInputPos = -1;
                 for (const CTxIn& txIn : tx.vin) {
+                    nInputPos++;
                     if (!txIn.IsZerocoinSpend())
                         continue;
                     auto spend = TxInToZerocoinSpend(txIn);
@@ -2439,14 +2505,41 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
                     setSerialsInBlock.emplace(spend->getCoinSerialNumber());
                     mapSpends.emplace(*spend, tx.GetHash());
-                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, fZCLimpMode, /*fSkipVerify*/true))
-                        return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
-                                                    tx.GetHash().GetHex()), REJECT_INVALID);
-                    libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
-                                                            spend->getSerialComm(), spend->getHashSig());
-                    if (!setBatchVerified.count(txid)) {
-                        vTxidProofs.emplace_back(txid);
-                        vProofs.emplace_back(proof);
+                    int checkMode = 0;
+                    if (fZCLimpMode)
+                        checkMode |= CHECK_LIMP_MODE;
+                    if (pindex->nHeight >= Params().HeightCheckDenom())
+                        checkMode |= CHECK_DENOM_HARD;
+                    else
+                        checkMode |= CHECK_DENOM_SOFT;
+                    if (pindex->nHeight >= Params().HeightLightZerocoin()) {
+                        checkMode |= CHECK_LIGHTMODE;
+                    } else {
+                        checkMode |= CHECK_ZKP; //Rely on certain ZKP until light zerocoin activates
+                    }
+                    if (fCheckBlacklistHard)
+                        checkMode |= CHECK_BLACKLIST_HARD;
+
+                    int nFailReason = 0;
+                    if (!fSkipComputation && pindex->nHeight >= Params().HeightLightZerocoin() && !ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, checkMode, nFailReason)) {
+                        if ((nFailReason & FAIL_BLACKLIST) && !(checkMode & CHECK_BLACKLIST_HARD)) {
+                            //Soft check here, not yet enforced. Don't DoS the peer, and still consider the block valid,
+                            // but lower its consensus score and prefer a different block if an alternative comes in
+                            vBlacklistTxOutpoints.emplace_back(ptx);
+                        } else {
+                            return state.DoS(100, error("%s: failed to add tx %s with invalid zerocoinspend (input %d)", __func__,
+                                                        txid.GetHex(), nInputPos), REJECT_INVALID);
+                        }
+                    }
+
+                    //Check that no two pubcoins are spent in the same block
+                    if (pindex->nHeight >= Params().HeightLightZerocoin()) {
+                        //Record spent pubcoins
+                        uint256 hashPubcoin = GetPubCoinHash(spend->getPubcoinValue());
+                        if (mapSpentPubcoinsInBlock.count(hashPubcoin))
+                            return state.DoS(100, error("%s: failed to add block with tx %s with multiple spends of the same pubcoin in the same block",
+                                    __func__, txid.GetHex()));
+                        mapSpentPubcoinsInBlock.emplace(hashPubcoin, txid);
                     }
                 }
                 nTimeZerocoinSpendCheck += GetTimeMicros() - nTimeSpendCheck;
@@ -2469,6 +2562,21 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                     prevheights[j] = 0;
                 else
                     prevheights[j] = view.AccessCoin(tx.vin[j].prevout).nHeight;
+
+                if (!(tx.vin[j].IsAnonInput() || tx.vin[j].IsZerocoinSpend())) {
+                    const COutPoint out = tx.vin[j].prevout;
+                    int nType;
+                    if (blacklist::ContainsOutPoint(out, nType)) {
+                        if (fCheckBlacklistHard) {
+                            return state.DoS(100, error("%s: failed to add block %s with blacklisted txn",
+                                                        __func__, tx.GetHash().GetHex()), REJECT_INVALID,
+                                             "blacklisted-txn");
+                        } else {
+                            vBlacklistTxOutpoints.emplace_back(ptx);
+                        }
+                    }
+
+                }
             }
 
             if (!SequenceLocks(tx, nLockTimeFlags, &prevheights, *pindex)) {
@@ -2486,7 +2594,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                     if (!OutputToPublicCoin(pOut.get(), coin))
                         return state.DoS(100, error("%s: failed final check of zerocoinmint for tx %s", __func__, tx.GetHash().GetHex()), REJECT_INVALID);
 
-                    if (!ContextualCheckZerocoinMint(tx, coin, pindex))
+                    if (!fSkipComputation && !ContextualCheckZerocoinMint(tx, coin, pindex))
                         return state.DoS(100, error("%s: zerocoin mint failed contextual check in transaction %s", __func__, tx.GetHash().GetHex()), REJECT_INVALID);
 
                     if (mapMints.count(coin))
@@ -2542,6 +2650,24 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                     for (size_t k = 0; k < nAnonInputs; ++k) {
                         const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
                         view.keyImages.emplace_back(std::make_pair(ki, txhash));
+                    }
+
+
+                    std::vector<std::vector<COutPoint> > vInputsVec;
+                    if (!GetRingCtInputs(txin, vInputsVec)) {
+                        if (fCheckBlacklistHard)
+                            return error("%s: Bad anon inputs, %s.", __func__, txhash.ToString());
+                    }
+                    for (const std::vector<COutPoint>& inputsVec : vInputsVec) {
+                        for (const COutPoint& out : inputsVec) {
+                            if (blacklist::ContainsRingCtOutPoint(out)) {
+                                if (fCheckBlacklistHard)
+                                    return state.DoS(100, error("%s: failed to add block %s with blacklisted anon in",
+                                                            __func__, tx.GetHash().GetHex()), REJECT_INVALID,
+                                                 "blacklisted-anonin");
+                                vBlacklistTxOutpoints.emplace_back(ptx);
+                            }
+                        }
                     }
                 }
             }
@@ -2613,6 +2739,18 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // track money supply and mint amount info
     CAmount nMoneySupplyPrev = pindex->pprev ? pindex->pprev->nMoneySupply : 0;
     pindex->nMoneySupply = nMoneySupplyPrev + nBlockValueOut - nBlockValueIn;
+    if (pindex->nHeight == Params().HeightLightZerocoin()) {
+        //Reflect the coins that were introduced by the accumulator overspending that have not been properly reflected
+        //yet in the money supply number
+        CAmount nSupplyAdjustment = 0;
+        for (auto denom : libzerocoin::zerocoinDenomList) {
+            nSupplyAdjustment += (Params().Zerocoin_OverSpendAdjustment(denom) * libzerocoin::ZerocoinDenominationToAmount(denom));
+        }
+
+        nSupplyAdjustment -= Params().ValueBlacklisted();
+        LogPrintf("%s: adjusting supply by overspend total of %s\n", __func__, FormatMoney(nSupplyAdjustment));
+        pindex->nMoneySupply += nSupplyAdjustment;
+    }
     pindex->nMint = pindex->nMoneySupply - nMoneySupplyPrev + nFees;
 
     int64_t nTime3 = GetTimeMicros(); nTimeConnect += nTime3 - nTime2;
@@ -2726,6 +2864,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // Flush spend/mint info to disk
     if (!pzerocoinDB->WriteCoinSpendBatch(mapSpends)) return state.Error(("Failed to record coin serials to database"));
     if (!pzerocoinDB->WriteCoinMintBatch(mapMints)) return state.Error(("Failed to record new mints to database"));
+    if (pindex->nHeight >= Params().HeightLightZerocoin()) {
+        if (!pzerocoinDB->WritePubcoinSpendBatch(mapSpentPubcoinsInBlock, pindex->GetBlockHash()) )
+            return state.Error(("Failed to record new pubcoinspends to database"));
+    }
 
     //Record accumulator checksums - if they have been updated, which happens every ten blocks
     if (pindex->nHeight > 10 && pindex->nHeight % 10 == 0)
@@ -3960,7 +4102,6 @@ void UpdateUncommittedBlockStructures(CBlock& block, const CBlockIndex* pindexPr
 bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::map<libzerocoin::CoinSpend, uint256>& mapSpends,
     const std::map<libzerocoin::PublicCoin, uint256>& mapMints, bool fJustCheck)
 {
-    //TODO: VEIL-89
     // Initialize zerocoin supply to the supply from previous block
     if (pindex->pprev) {
         for (auto& denom : libzerocoin::zerocoinDenomList) {
@@ -4013,6 +4154,13 @@ bool AddZerocoinsToIndex(CBlockIndex* pindex, const CBlock& block, const std::ma
             if (pindex->mapZerocoinSupply.at(denom) < 0)
                 return error("Block contains zerocoins that spend more than are in the available supply to spend");
         }
+
+        if (pindex->nHeight == Params().HeightLightZerocoin()) {
+            //Add back in the amounts that were overspent from the accumulators from block 173359 to block 318180
+            for (auto denom : libzerocoin::zerocoinDenomList) {
+                pindex->mapZerocoinSupply.at(denom) += Params().Zerocoin_OverSpendAdjustment(denom);
+            }
+        }
     }
 
     return true;
@@ -4031,7 +4179,7 @@ bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::Publ
 }
 
 bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock,
-        CBlockIndex* pindex, bool fZCLimpMode, bool fSkipSignatureVerify)
+        CBlockIndex* pindex, int checkMode, int& nFailReason)
 {
     //Before v3 should not even serialize correctly, but double check here
     if (spend.getVersion() < libzerocoin::CoinSpend::V3_SMALL_SOK)
@@ -4040,19 +4188,130 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
     if (!spend.HasValidSignature())
         return error("%s: zerocoin spend does not have a valid signature", __func__);
 
+    // check blacklisted pubcoins
+    bool fCheckBlacklist = static_cast<bool>(checkMode & CHECK_BLACKLIST_HARD);
+
+    const uint256 hashPubcoin = GetPubCoinHash(spend.getPubcoinValue());
+    if (blacklist::ContainsPubcoinHash(hashPubcoin)) {
+        if (fCheckBlacklist)
+            return error("%s: blacklisted pubcoinhash %s", __func__, hashPubcoin.GetHex());
+        nFailReason |= FAIL_BLACKLIST;
+    }
+
     //Turn on enforcement of de-anonymization of zerocoins
-    if (fZCLimpMode) {
+    CBigNum bnPubcoin;
+    bool fLimpMode = static_cast<bool>(checkMode & CHECK_LIMP_MODE);
+    if (!fLimpMode && spend.getVersion() == libzerocoin::CoinSpend::V4_LIMP) {
+        return error("%s: zerocoinspend v4 while v4 is not active", __func__);
+    } else if (fLimpMode) {
         if (spend.getVersion() != libzerocoin::CoinSpend::V4_LIMP)
             return error("%s zerocoin spend is required to be V4", __func__);
 
         //Get pubcoin and check if it has been accumulated
-        int nHeightTx;
+        int nHeightMintTx;
         uint256 txid;
-        const CBigNum& bnPubcoin = spend.getPubcoinValue();
-        if ((!fVerifying && !fReindex) && !IsPubcoinInBlockchain(GetPubCoinHash(bnPubcoin), nHeightTx, txid, pindex->pprev))
-            return error("%s: pubcoinhash %s is not found in the blockchain", __func__, GetPubCoinHash(bnPubcoin).GetHex());
-    } else if (spend.getVersion() == libzerocoin::CoinSpend::V4_LIMP) {
-        return error("%s: zerocoinspend v4 while v4 is not active", __func__);
+        bnPubcoin = spend.getPubcoinValue();
+        uint256 hashPubcoin = GetPubCoinHash(bnPubcoin);
+        if ((!fVerifying && !fReindex)) {
+            if (!IsPubcoinInBlockchain(hashPubcoin, nHeightMintTx, txid, pindex->pprev))
+                return error("%s: pubcoinhash %s is not found in the blockchain", __func__,
+                             GetPubCoinHash(bnPubcoin).GetHex());
+
+            //! Zerocoin Light Mode checks
+            int nOutPointPos = -1;
+            if (checkMode & CHECK_LIGHTMODE) {
+                const auto& pubcoinsig = spend.getPubcoinSignature();
+                if (pubcoinsig.GetVersion() != libzerocoin::PubcoinSignature::PUBCOIN_VERSION)
+                    return error("%s: zerocoinspends are required to have pubcoinsig version 2", __func__);
+                //includes a quick lookup link to the mint outpoint
+                uint256 txidPubcoinSig;
+                if (!pubcoinsig.GetMintOutpoint(txidPubcoinSig, nOutPointPos) || nOutPointPos < 0 || txidPubcoinSig != txid)
+                    return error("%s: Invalid outpoint reference in pubcoinsig", __func__);
+
+                // Check that a pubcoin has not been spent already. This should already be covered by checking serials, which
+                // are subsequently check to make sure that they open to a specific pubcoin value, but with zerocoin
+                // additional checks are never a bad idea
+                uint256 txidCheck;
+                int nHeightSpendCheck;
+                if (IsPubcoinSpendInBlockchain(hashPubcoin, nHeightSpendCheck, txidCheck, pindex->pprev)) {
+                    return error("%s: invalid tx %s pubcoinhash %s was already spent in tx %s block %d", __func__, txid.GetHex(),
+                            hashPubcoin.GetHex(), txidCheck.GetHex(), nHeightSpendCheck);
+                }
+
+                //Check that the accumulator checksum included in the spending transaction is valid and after the mint tx
+                //This is important because proof of stake validation code uses the accumulator checksum to determine the height
+                int nHeightChecksum = GetChecksumHeight(spend.getAccumulatorChecksum(), spend.getDenomination());
+                if (nHeightMintTx >= nHeightChecksum)
+                    return error("%s: invalid tx %s uses accumulator checksum that is before it was minted. Height mint:%d heightchecksum:%d", __func__, txid.GetHex(), nHeightMintTx, nHeightChecksum);
+            }
+
+            //Check to see if the zcspend is the correct denomination
+            //Hard check will return false on failure. Soft check only indicates failure within the fail reason.
+            bool fCheckDenomHard = static_cast<bool>(checkMode & CHECK_DENOM_HARD);
+            bool fCheckDenomSoft = static_cast<bool>(checkMode & CHECK_DENOM_SOFT);
+            if (fCheckDenomHard || fCheckDenomSoft) {
+                nFailReason |= FAIL_DENOMCHECK; //if there is failure during this section, return 1
+                CTransactionRef txMint;
+                uint256 hashMintBlock;
+                hashMintBlock.SetNull();
+
+                bool fSuccess = true;
+                if (!GetTransaction(txid, txMint, Params().GetConsensus(), hashMintBlock, true) || hashMintBlock.IsNull()) {
+                    error("%s: failed to lookup transaction %s referenced in tx %s", __func__, txid.GetHex(), tx.GetHash().GetHex());
+                    if (fCheckDenomHard)
+                        return false;
+                } else {
+                    libzerocoin::PublicCoin pubcoin(Params().Zerocoin_Params());
+
+                    if (checkMode & CHECK_LIGHTMODE) {
+                        //Can lookup the outpoint directly instead of iterating through vpout
+                        if (txMint->vpout.size() <= static_cast<unsigned int>(nOutPointPos))
+                            return error("%s: outpoint %s:%d does not exist", __func__, txid.GetHex(), nOutPointPos);
+                        auto txout = txMint->vpout[nOutPointPos];
+                        if (!txout->IsZerocoinMint())
+                            return error("%s: outpoint %s:%d is not a zerocoinmint", __func__, txid.GetHex(), nOutPointPos);
+                        if (!OutputToPublicCoin(txout.get(), pubcoin))
+                            return error("%s: failed to get pubcoin deserialize for tx %s", __func__, txid.GetHex());
+                    } else {
+                        //Search through the outputs and find the matching pubcoin
+                        bool fFound = false;
+                        for (const auto& txout : txMint->vpout) {
+                            if (txout->IsZerocoinMint()) {
+                                if (!OutputToPublicCoin(txout.get(), pubcoin)) {
+                                    fSuccess = error("%s: failed to get pubcoin deserialize for tx %s", __func__, tx.GetHash().GetHex());
+                                } else if (pubcoin.getValue() == bnPubcoin) {
+                                    fFound = true;
+                                    break;
+                                }
+                            }
+
+                            //Only give full rejection when its a hard check performed after enforcement kicks in, a soft
+                            //check needs to continue checking the rest of the contextual checks
+                            if (!fSuccess) {
+                                if (fCheckDenomHard)
+                                    return error("pubcoin lookup failed");
+                                break;
+                            }
+                        }
+                        if (!fFound && fCheckDenomHard)
+                            return error("failed to find pubcoin");
+                    }
+
+                    if (fSuccess) {
+                        //Check that the pubcoin is the same denomination that is being redeemed
+                        if (pubcoin.getValue() != bnPubcoin)
+                            fSuccess = error("%s: transaction %s does not have a matching pubcoin value", __func__, txid.GetHex());
+                        if (pubcoin.getDenomination() != spend.getDenomination())
+                            fSuccess = error("%s: transaction %s does not spend the correct zerocoin amount", __func__, txid.GetHex());
+
+                        if (!fSuccess && fCheckDenomHard)
+                            return false;
+                        //Remove fail flag
+                        nFailReason = nFailReason & ~FAIL_DENOMCHECK;
+                    }
+                }
+            }
+        }
     }
 
     libzerocoin::SpendType expectedType = libzerocoin::SpendType::SPEND;
@@ -4080,14 +4339,12 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
 
     //Check the signature of the spend
     // Skip signature verification during initial block download
-    if (!fSkipSignatureVerify) {
-        libzerocoin::Accumulator accumulator(Params().Zerocoin_Params(), spend.getDenomination(), bnAccumulatorValue);
+    libzerocoin::Accumulator accumulator(Params().Zerocoin_Params(), spend.getDenomination(), bnAccumulatorValue);
 
-        //Check that the coin has been accumulated
-        std::string strError;
-        if (!spend.Verify(accumulator, strError, true, fZCLimpMode))
-            return error("CheckZerocoinSpend(): zerocoin spend did not verify");
-    }
+    //Check that the coin has been accumulated
+    std::string strError;
+    if (!spend.Verify(accumulator, strError, bnPubcoin, /*verifySoK*/(checkMode & CHECK_SOK), /*verifyPubcoin*/(checkMode & CHECK_LIMP_MODE), /*verifyZKP*/(checkMode & CHECK_ZKP)))
+        return error("CheckZerocoinSpend(): zerocoin spend did not verify: %s", strError);
 
     return true;
 }
@@ -4210,7 +4467,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                 int nHeightSpend = 0;
                 if (IsSerialInBlockchain(hashSerial, nHeightSpend, pindexPrev))
                     return state.DoS(100, false, REJECT_INVALID, "bad-zcspend-in-chain", false,
-                            strprintf("Zerocoin serial hash %s already spent in block %d", hashSerial.GetHex(), nHeightSpend));
+                            strprintf("Tx %s spends Zerocoin serial hash %s already spent in block %d", tx->GetHash().GetHex(), hashSerial.GetHex(), nHeightSpend));
             }
         }
     }
@@ -4424,12 +4681,16 @@ bool CChainState::ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput*
         if (!pindexFrom)
             return error("%s: failed to get index associated with zerocoin stake checksum", __func__);
 
-        if (pindex->nHeight - pindexFrom->nHeight < Params().Zerocoin_RequiredStakeDepth())
+        int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
+        if (pindex->nHeight >= Params().HeightLightZerocoin())
+            nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+
+        if (pindex->nHeight - pindexFrom->nHeight < nRequiredDepth)
             return error("%s: zerocoin stake does not have required confirmation depth", __func__);
 
         //The checksum needs to be the exact checksum from the modifier height
         libzerocoin::CoinDenomination denom = libzerocoin::AmountToZerocoinDenomination(stakeCheck->GetValue());
-        int nHeightStake = pindex->nHeight - Params().Zerocoin_RequiredStakeDepth();
+        int nHeightStake = pindex->nHeight - nRequiredDepth;
         CBlockIndex* pindexFrom2 = pindex->GetAncestor(nHeightStake);
         if (!pindexFrom2)
             return error("%s: block ancestor does not exist", __func__);
@@ -4496,6 +4757,9 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
             }
         }
         mapStakeSeen[hashProofOfStake] = hashBlock;
+        //Store the PoS hash in the block index
+        pindex->SetPoSHash(hashProofOfStake);
+        setDirtyBlockIndex.emplace(pindex);
     }
 
     // Try to process all requested blocks that we don't have, but only
@@ -4602,7 +4866,8 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
 bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW, bool fCheckMerkleRoot)
 {
     AssertLockHeld(cs_main);
-    assert(pindexPrev && pindexPrev == chainActive.Tip());
+    if (!pindexPrev || pindexPrev != chainActive.Tip())
+        return error("%s: new block added to chain before staked block was fully packaged.", __func__);
     CCoinsViewCache viewNew(pcoinsTip.get());
     uint256 block_hash(block.GetHash());
     CBlockIndex indexDummy(block);

@@ -67,12 +67,12 @@ ReceiveWidget::ReceiveWidget(QWidget *parent, WalletView* walletView) :
 
     ui->labelAddress->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 
-    connect(ui->btnCopy, SIGNAL(clicked()), this, SLOT(on_btnCopyAddress_clicked()));
+    connect(ui->btnCopy, SIGNAL(clicked()), this, SLOT(onBtnCopyAddressClicked()));
     connect(ui->btnCreate, SIGNAL(clicked()), this, SLOT(generateNewAddressClicked()));
 
 }
 
-void ReceiveWidget::on_btnCopyAddress_clicked() {
+void ReceiveWidget::onBtnCopyAddressClicked() {
     if(!qAddress.isEmpty()) {
         GUIUtil::setClipboard(qAddress);
         openToastDialog("Address copied", mainWindow->getGUI());
@@ -81,17 +81,17 @@ void ReceiveWidget::on_btnCopyAddress_clicked() {
 }
 
 void ReceiveWidget::generateNewAddressClicked(){
-    if(generateNewAddress()) openToastDialog("Address generated", mainWindow->getGUI());
+    if(generateNewAddress(true)) openToastDialog("Address generated", mainWindow->getGUI());
     else openToastDialog("Wallet Encrypted, please unlock it first", mainWindow->getGUI());
 }
 
-bool ReceiveWidget::generateNewAddress(){
+bool ReceiveWidget::generateNewAddress(bool isOnDemand){
     // Address
     interfaces::Wallet& wallet = walletModel->wallet();
 
     std::string strAddress;
     std::vector<interfaces::WalletAddress> addresses = wallet.getLabelAddress("stealth");
-    if(!addresses.empty()) {
+    if(!isOnDemand && !addresses.empty()) {
         interfaces::WalletAddress address = addresses[0];
         if (address.dest.type() == typeid(CStealthAddress)){
             bool fBech32 = true;
@@ -204,6 +204,10 @@ void ReceiveWidget::hideEvent(QHideEvent *event){
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
     connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
+}
+
+void ReceiveWidget::hideThisWidget(){
+    this->hide();
 }
 
 ReceiveWidget::~ReceiveWidget()

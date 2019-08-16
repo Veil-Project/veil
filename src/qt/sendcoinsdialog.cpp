@@ -30,6 +30,9 @@
 #include <QScrollBar>
 #include <QSettings>
 #include <QTextDocument>
+#include <QGraphicsOpacityEffect>
+#include <QPropertyAnimation>
+#include <QPixmap>
 #include <veil/dandelioninventory.h>
 
 #include <qt/veil/qtutils.h>
@@ -1026,6 +1029,29 @@ void SendCoinsDialog::toggleDandelion(bool fchecked)
                 tr("Dandelion protocol is in beta. Any communications of this transaction may be inconsistent."));
     }
     fDandelion = fchecked;
+}
+
+void SendCoinsDialog::showEvent(QShowEvent *event){
+    QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
+    this->setGraphicsEffect(eff);
+    QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
+    a->setDuration(100);
+    a->setStartValue(0.25);
+    a->setEndValue(1);
+    a->setEasingCurve(QEasingCurve::InBack);
+    a->start(QPropertyAnimation::DeleteWhenStopped);
+}
+
+ void SendCoinsDialog::hideEvent(QHideEvent *event){
+    QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
+    this->setGraphicsEffect(eff);
+    QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
+    a->setDuration(100);
+    a->setStartValue(1);
+    a->setEndValue(0);
+    a->setEasingCurve(QEasingCurve::OutBack);
+    a->start(QPropertyAnimation::DeleteWhenStopped);
+    connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
 }
 
 SendConfirmationDialog::SendConfirmationDialog(const QString &title, const QString &text, int _secDelay,

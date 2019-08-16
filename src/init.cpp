@@ -53,6 +53,7 @@
 #include <walletinitinterface.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <veil/invalid.h>
 #include <veil/ringct/anon.h>
 #include <veil/zerocoin/zchain.h>
 #include <veil/zerocoin/witness.h>
@@ -1557,6 +1558,8 @@ bool AppInitMain()
 
         uiInterface.InitMessage(_("Loading block index..."));
 
+        blacklist::InitializeBlacklist();
+
         LOCK(cs_main);
 
         do {
@@ -1919,7 +1922,7 @@ bool AppInitMain()
 
     //Start block staging thread
     threadGroupStaging.create_thread(&ThreadStagingBlockProcessing);
-    threadGroupStaging.create_thread(&ThreadStagingBatchVerify);
+    //threadGroupStaging.create_thread(&ThreadStagingBatchVerify);
 
     LinkPoWThreadGroup(&threadGroupPoWMining);
 

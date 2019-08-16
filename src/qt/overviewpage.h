@@ -62,6 +62,7 @@ private Q_SLOTS:
     void filterTxes(int selectedTxType);
     void onFaqClicked();
     virtual void showEvent(QShowEvent *event) override;
+    virtual void hideEvent(QHideEvent *event) override;
 
     void hideOrphans(bool fHide);
 };

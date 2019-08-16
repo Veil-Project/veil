@@ -248,15 +248,16 @@ public:
     //! (memory only) Maximum nTime in the chain up to and including this block.
     unsigned int nTimeMax;
 
-    //! (memory only) Maximum nTime in the chain up to and including this block.
-    uint32_t nMemFlags;
-
     //! Hash value for the accumulator. Can be used to access the zerocoindb for the accumulator value
     std::map<libzerocoin::CoinDenomination ,uint256> mapAccumulatorHashes;
 
     uint256 hashMerkleRoot;
     uint256 hashWitnessMerkleRoot;
     uint256 hashPoFN;
+
+    //! vector that holds a proof of stake proof hash if the block has one. If not, its empty and has less memory
+    //! overhead than an empty uint256
+    std::vector<unsigned char> vHashProof;
 
     void SetNull()
     {
@@ -276,11 +277,11 @@ public:
         nStatus = 0;
         nSequenceId = 0;
         nTimeMax = 0;
-        nMemFlags = 0;
         nNetworkRewardReserve = 0;
 
         //Proof of stake
         fProofOfStake = false;
+        vHashProof = {};
 
         //Proof of Full Node
         fProofOfFullNode = false;
@@ -370,6 +371,21 @@ public:
     uint256 GetBlockPoWHash() const
     {
         return GetBlockHeader().GetPoWHash();
+    }
+
+    uint256 GetBlockPoSHash() const
+    {
+        uint256 hash;
+        if (vHashProof.empty())
+            return hash;
+        memcpy(hash.begin(), vHashProof.data(), vHashProof.size());
+        return hash;
+    }
+
+    void SetPoSHash(const uint256& proofHash)
+    {
+        vHashProof.clear();
+        vHashProof.insert(vHashProof.begin(), proofHash.begin(), proofHash.end());
     }
 
     int64_t GetBlockTime() const
@@ -553,6 +569,14 @@ public:
 
         //Ring CT
         READWRITE(nAnonOutputs);
+
+        if (fProofOfStake) {
+            try {
+                READWRITE(vHashProof);
+            } catch (...) {
+                //Could fail since this was added without requiring a reindex
+            }
+        }
     }
 
     uint256 GetBlockHash() const

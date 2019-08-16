@@ -153,6 +153,27 @@ libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params() const
     return &ZCParamsDec;
 }
 
+// Adjustment made to relect the proper balance of the accumulators of the the overspend exploits
+int CChainParams::Zerocoin_OverSpendAdjustment(libzerocoin::CoinDenomination denom) const
+{
+    if (strNetworkID == "main") {
+        switch (denom) {
+            case libzerocoin::ZQ_TEN:
+                return -(1 + 2325 + 1015);
+            case libzerocoin::ZQ_ONE_HUNDRED:
+                return 1;
+            case libzerocoin::ZQ_ONE_THOUSAND:
+                return 2325;
+            case libzerocoin::ZQ_TEN_THOUSAND:
+                return 1015;
+            default:
+                return 0;
+        }
+    }
+
+    return 0;
+}
+
 /**
  * Main network
  */
@@ -272,14 +293,16 @@ public:
                 { 101000, uint256S("0x42145acdde948865d73a8b318fea09b9e9cb826f93007c7a21b4f103822da86d")},
                 { 175500, uint256S("0xf0db2fb676587ccd8e65f509b970b782d2095e1010939bab4a6d59debd633aa8")},
                 { 248600, uint256S("0x18903b67287bb5f0fa95c3ab75af2fcf9e483be3d64d3e112b9bc52acb71a2b6")},
+                { 320000, uint256S("0xb8007b911602d6f79afe8f0f3a65f04182a19441e90d9c5ce9ce0e53a80073b5")},
+                { 337000, uint256S("0x2933365852ca6fffa51a584efe419a1948d65cd186013e406d52377c3dde1890")},
             }
         };
 
         chainTxData = ChainTxData{
             // Data from rpc: getchaintxstats 4096 0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8
-            /* nTime    */ 1561744518,
-            /* nTxCount */ 716089,
-            /* dTxRate  */ 0.04104
+            /* nTime    */ 1567171584,
+            /* nTxCount */ 963868,
+            /* dTxRate  */ 0.0393
         };
 
         /* disable fallback fee on mainnet */
@@ -303,6 +326,7 @@ public:
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 200; //The required confirmations for a zerocoin to be stakable
+        nZerocoinRequiredStakeDepthV2 = 1000; //The required confirmations for a zerocoin to be stakable
         nHeightPoSStart = 1500;
         nKernelModulus = 100;
         nCoinbaseMaturity = 100;
@@ -311,6 +335,12 @@ public:
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548619029; //Stake weight must be reduced for higher denominations
         nHeightProtocolBumpEnforcement = 86350; // 50 blocks before superblock
+        nHeightCheckDenom = 321700;
+        nHeightLightZerocoin = 335975;
+        nValueBlacklist = (282125 + 60540) * COIN;
+        nHeightEnforceBlacklist = 336413;
+        nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
+        nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
@@ -354,12 +384,12 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 1493596800; // May 1st 2017
 
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = 1548269817;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1556226440;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].bit = 3;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = 1556321954;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = 1579805817;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
@@ -391,7 +421,8 @@ public:
         vSeeds.emplace_back("veilseedtestnet.presstab.pw");
         vSeeds.emplace_back("veil-testnet.seed.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
         vSeeds.emplace_back("veil-testnet.seed2.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
-        vSeeds.emplace_back("45.34.187.118", "45.34.187.118"); // blondfrogs single IP
+        vSeeds.emplace_back("veilseedtestnet.veil-stats.com"); // Codeofalltrades seeder
+        vSeeds.emplace_back("veil-testnet-seed.asoftwaresolution.com");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -418,8 +449,8 @@ public:
 
         checkpointData = {
             {
-                    {98429, uint256S("fecff045e98e30c6e077d160883d73500e4d96463d8333436403298fea5ecda3")},
-                    {103000, uint256S("e95fc76c6c9016e8ed2e4e4a2641dfc91dbf6bad4df659f664d8f7614bc010c0")},
+                    { 1, uint256S("0x918ebe520f7666375d7e4dbb0c269f675440b96b0413ab92bbf28b85126197cd")},
+                    { 95, uint256S("0x1c1d4a474a167a3d474ad7ebda5dfc5560445f885519cb98595aab6f818b1f6f")}
             }
         };
 
@@ -449,6 +480,7 @@ public:
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zerocoin to be stakable
+        nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
@@ -457,10 +489,16 @@ public:
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
 
+        nHeightLightZerocoin = 9428;
+        nHeightEnforceBlacklist = 0;
+
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
 
         nMaxHeaderRequestWithoutPoW = 50;
+        nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
+        nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
+
     }
 };
 
@@ -587,7 +625,13 @@ public:
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
 
+        nHeightLightZerocoin = 10;
+        nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
+        nHeightEnforceBlacklist = 0;
+
         nMaxHeaderRequestWithoutPoW = 50;
+        nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
+        nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
     }
 };
 

@@ -32,8 +32,9 @@ public:
     void refreshWalletStatus();
 
 public Q_SLOTS:
-    void on_btnCopyAddress_clicked();
+    void onBtnCopyAddressClicked();
     void generateNewAddressClicked();
+    void hideThisWidget();
 
 private:
     Ui::ReceiveWidget *ui;
@@ -44,7 +45,7 @@ private:
     CPubKey newKey;
     QString qAddress;
 
-    bool generateNewAddress();
+    bool generateNewAddress(bool isOnDemand = false);
 };
 
 #endif // RECEIVEWIDGET_H

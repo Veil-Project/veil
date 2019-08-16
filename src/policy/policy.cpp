@@ -13,6 +13,7 @@
 #include <tinyformat.h>
 #include <util.h>
 #include <utilstrencodings.h>
+#include <chainparams.h>
 
 
 CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
@@ -168,6 +169,7 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason)
 
     unsigned int nDataOut = 0;
     txnouttype whichType;
+    int nMintCount = 0;
     for (const auto &txout : tx.vpout) {
         const CTxOutBase *p = txout.get();
 
@@ -176,6 +178,13 @@ bool IsStandardTx(const CTransaction& tx, std::string& reason)
 
         if (!::IsStandard(*p->GetPScriptPubKey(), whichType)) {
             reason = "scriptpubkey";
+            return false;
+        }
+
+        if (txout->IsZerocoinMint())
+            nMintCount++;
+        if (nMintCount >= Params().Zerocoin_PreferredMintsPerTransaction()) {
+            reason = "zcmint_spam";
             return false;
         }
 
@@ -271,11 +280,11 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
                 return false;
             for (unsigned int j = 0; j < sizeWitnessStack; j++)
             {
-                if (tx.vin[i].scriptWitness.stack[j].size() > 4096) // TODO: max limits?
-                    return false;
-            };
+                if (tx.vin[i].scriptWitness.stack[j].size() > 4096)
+                    return error("%s: witness is larger than max size", __func__);
+            }
             continue;
-        };
+        }
 
         const CTxOut &prev = mapInputs.AccessCoin(tx.vin[i].prevout).out;
 

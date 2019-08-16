@@ -26,7 +26,7 @@ public:
     ~AddressReceive();
 private Q_SLOTS:
     void onEscapeClicked();
-    void on_btnCopyAddress_clicked();
+    void onBtnCopyAddressClicked();
     void onBtnSaveClicked();
 private:
     Ui::AddressReceive *ui;

@@ -121,6 +121,11 @@ public:
     int Zerocoin_RequiredAccumulation() const { return nRequiredAccumulation; }
     int Zerocoin_DefaultSpendSecurity() const { return nDefaultSecurityLevel; }
     int Zerocoin_RequiredStakeDepth() const { return nZerocoinRequiredStakeDepth; }
+    int Zerocoin_RequiredStakeDepthV2() const { return nZerocoinRequiredStakeDepthV2; }
+    int Zerocoin_OverSpendAdjustment(libzerocoin::CoinDenomination denom) const;
+    CAmount ValueBlacklisted() const { return nValueBlacklist; }
+    int Zerocoin_PreferredMintsPerBlock() const { return nPreferredMintsPerBlock; }
+    int Zerocoin_PreferredMintsPerTransaction() const { return nPreferredMintsPerTx; }
 
     /** RingCT and Stealth **/
     int DefaultRingSize() const { return nDefaultRingSize; }
@@ -136,6 +141,9 @@ public:
     int HeightProtocolBumpEnforcement() const { return nHeightProtocolBumpEnforcement; }
     int MaxHeaderRequestWithoutPoW() const { return nMaxHeaderRequestWithoutPoW; }
     int BIP9Period() const { return consensus.nMinerConfirmationWindow; }
+    int HeightCheckDenom() const { return nHeightCheckDenom; }
+    int HeightLightZerocoin() const { return nHeightLightZerocoin; }
+    int HeightEnforceBlacklist() const { return nHeightEnforceBlacklist; }
 
 protected:
     CChainParams() {}
@@ -173,6 +181,9 @@ protected:
     int nMintRequiredConfirmations;
     int nRequiredAccumulation;
     int nDefaultSecurityLevel;
+    CAmount nValueBlacklist;
+    int nPreferredMintsPerBlock;
+    int nPreferredMintsPerTx;
 
     //RingCT/Stealth
     int nDefaultRingSize;
@@ -180,6 +191,7 @@ protected:
     //Proof of Stake/Consensus
     int64_t nBudget_Fee_Confirmations;
     int nZerocoinRequiredStakeDepth;
+    int nZerocoinRequiredStakeDepthV2;
     int nHeightPoSStart;
     int nKernelModulus;
     int nLastPOWBlock;
@@ -190,6 +202,9 @@ protected:
     //Time and height enforcements
     int nTimeEnforceWeightReduction;
     int nHeightProtocolBumpEnforcement; // the height a new protobump is enforced
+    int nHeightCheckDenom;
+    int nHeightLightZerocoin;
+    int nHeightEnforceBlacklist;
 
     //Settings that are not chain critical, but should not be edited unless the person changing understands the consequence
     int nMaxHeaderRequestWithoutPoW;

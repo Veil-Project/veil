@@ -133,6 +133,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
 
     pblocktemplate.reset(new CBlockTemplate());
+    pblocktemplate->nFlags = TF_FAIL;
 
     if(!pblocktemplate.get()) {
         error("Failing to get the block template\n");
@@ -146,9 +147,24 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxFees.push_back(-1); // updated at end
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 
+	// Determine if a placeholder for the CoinStake tx is needed.
+	if (fProofOfStake) {		
+		pblock->vtx.emplace_back(); 
+		pblocktemplate->vTxFees.push_back(-1); // updated at end
+		pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
+	} 
+
     CMutableTransaction txCoinStake;
-    LOCK(cs_main);
-    CBlockIndex* pindexPrev = chainActive.Tip();
+    CBlockIndex* pindexPrev;
+    {
+        LOCK(cs_main);
+        //Do not pass in the chain tip, because it can change. Instead pass the blockindex directly from mapblockindex, which is const.
+        auto pindexTip = chainActive.Tip();
+        if (!pindexTip)
+            return nullptr;
+        auto hashBest = pindexTip->GetBlockHash();
+        pindexPrev = mapBlockIndex.at(hashBest);
+    }
     if (fProofOfStake && pindexPrev->nHeight + 1 >= Params().HeightPoSStart()) {
         //POS block - one coinbase is null then non null coinstake
         //POW block - one coinbase that is not null
@@ -171,6 +187,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     TRY_LOCK(mempool.cs, fLockMem);
     if (!fLockMem) {
         error("Failing to get the lock on the mempool\n");
+        pblocktemplate->nFlags |= TF_MEMPOOLFAIL;
         return nullptr;
     }
 
@@ -184,8 +201,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     if (!fProofOfStake) {
         pblock->nTime = GetAdjustedTime();
-        if (pblock->nTime < chainActive.Tip()->GetBlockTime() - MAX_PAST_BLOCK_TIME) {
-            pblock->nTime = chainActive.Tip()->GetBlockTime() - MAX_PAST_BLOCK_TIME + 1;
+        if (pblock->nTime < pindexPrev->GetBlockTime() - MAX_PAST_BLOCK_TIME) {
+            pblock->nTime = pindexPrev->GetBlockTime() - MAX_PAST_BLOCK_TIME + 1;
         }
     }
     const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
@@ -224,20 +241,55 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     std::set<uint256> setSerials;
     std::set<uint256> setPubcoins;
     std::set<uint256> setDuplicate;
+    std::map<libzerocoin::CoinDenomination, int> mapDenomsSpent;
+    std::map<libzerocoin::CoinDenomination, int> mapTxDenomsSpent;
+    for (auto denom : libzerocoin::zerocoinDenomList) {
+        mapTxDenomsSpent[denom] = 0;
+        mapDenomsSpent[denom] = 0;
+    }
+
     for (unsigned int i = 0; i < pblock->vtx.size(); i++) {
         if (pblock->vtx[i] == nullptr)
             continue;
 
+        //Don't overload the block with too many zerocoinmints that will slow down validation and propogation of the block
+        if (setPubcoins.size() >= Params().Zerocoin_PreferredMintsPerBlock())
+            continue;
+
+        bool fRemove = false;
         const CTransaction* ptx = pblock->vtx[i].get();
         std::set<uint256> setTxSerialHashes;
         std::set<uint256> setTxPubcoinHashes;
-        if (ptx->IsZerocoinSpend())
+        if (ptx->IsZerocoinSpend()) {
             TxToSerialHashSet(ptx, setTxSerialHashes);
+
+            //Double check that including this zerocoinspend transaction will not overrun the accumulator balance
+            for (auto& p : mapTxDenomsSpent)
+                p.second = 0;
+            for (const CTxIn& in : ptx->vin) {
+                if (in.IsZerocoinSpend()) {
+                    CAmount nAmountSpent = in.GetZerocoinSpent();
+                    auto denom = libzerocoin::AmountToZerocoinDenomination(nAmountSpent);
+                    int nDenomBalance = pindexPrev->mapZerocoinSupply[denom] - mapDenomsSpent[denom] - mapTxDenomsSpent[denom] - 1;
+                    if (nDenomBalance <= 1) {
+                        //Including this transaction will spend more than is available in the accumulator
+                        fRemove = true;
+                        setDuplicate.emplace(ptx->GetHash());
+                        LogPrintf("%s: skip tx spending denom %d\n", __func__, (int)denom);
+                        break;
+                    }
+
+                    mapTxDenomsSpent[denom]++;
+                }
+            }
+            if (fRemove)
+                continue;
+        }
         if (ptx->IsZerocoinMint())
             TxToPubcoinHashSet(ptx, setTxPubcoinHashes);
 
         //double check all zerocoin spends for duplicates or for already spent serials
-        bool fRemove = false;
+        fRemove = false;
         for (const uint256& hashSerial : setTxSerialHashes) {
             if (setSerials.count(hashSerial)) {
                 setDuplicate.emplace(ptx->GetHash());
@@ -287,11 +339,14 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                 nNetworkRewardReserve += pout->GetValue();
             }
         }
+
+        for (auto denompair : mapTxDenomsSpent)
+            mapDenomsSpent[denompair.first] += denompair.second;
     }
 
     //Remove duplicates
     std::vector<CTransactionRef> vtxReplace;
-    CCoinsViewCache viewCheck(pcoinsTip.get());
+	CCoinsViewCache viewCheck(pcoinsTip.get());
     for (unsigned int i = 0; i < pblock->vtx.size(); i++) {
         if (pblock->vtx[i] == nullptr) {
             vtxReplace.emplace_back(pblock->vtx[i]);
@@ -300,11 +355,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
         if (setDuplicate.count(pblock->vtx[i]->GetHash())) {
             mempool.removeRecursive(*pblock->vtx[i]);
-            continue;
-        }
-
-        //Don't have inputs, skip this
-        if (!pblock->vtx[i]->IsZerocoinSpend() && !pblock->vtx[i]->vin[0].IsAnonInput() && !viewCheck.HaveInputs(*pblock->vtx[i])) {
             continue;
         }
 
@@ -349,7 +399,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Budget Payment
     if (nBudgetPayment) {
-        std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
+        std::string strBudgetAddress = veil::Budget().GetBudgetAddress(chainActive.Height()+1); // KeyID for now
         CBitcoinAddress addressFounder(strBudgetAddress);
         assert(addressFounder.IsValid());
         CTxDestination dest = DecodeDestination(strBudgetAddress);
@@ -360,7 +410,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         outBudget->nValue = nBudgetPayment;
         coinbaseTx.vpout[fProofOfStake ? 0 : 1] = (std::move(outBudget));
 
-        std::string strLabAddress = veil::Budget().GetLabAddress(); // KeyID for now
+        std::string strLabAddress = veil::Budget().GetLabAddress(chainActive.Height()+1); // KeyID for now
         CTxDestination destLab = DecodeDestination(strLabAddress);
         auto labScript = GetScriptForDestination(destLab);
 
@@ -463,6 +513,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         LogPrint(BCLog::BLOCKCREATION, "%s: FOUND STAKE!!\n block: \n%s\n", __func__, pblock->ToString());
     }
 
+    if (pindexPrev && pindexPrev != chainActive.Tip()) {
+        error("%s: stail tip.", __func__);
+        pblocktemplate->nFlags |= TF_STAILTIP;
+        return std::move(pblocktemplate);
+    }
+
     CValidationState state;
     if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
         error("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state));
@@ -479,6 +535,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         mapComputeTimeTransactions[pblock->vtx[1]->GetHash()] = nComputeTimeFinish - nComputeTimeStart; //store the compute time of this transaction
     }
 
+    pblocktemplate->nFlags = TF_SUCCESS;
     return std::move(pblocktemplate);
 }
 
@@ -779,6 +836,11 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         boost::this_thread::interruption_point();
 #ifdef ENABLE_WALLET
         if (enablewallet && fProofOfStake) {
+            if (IsInitialBlockDownload()) {
+                MilliSleep(60000);
+                continue;
+            }
+
             //Need wallet if this is for proof of stake
             auto pwallet = GetMainWallet();
 
@@ -857,6 +919,9 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(scriptMining, false, fProofOfStake, fProofOfFullNode));
         if (!pblocktemplate || !pblocktemplate.get())
             continue;
+        if (!(pblocktemplate->nFlags & TF_SUCCESS)) {
+            continue;
+        }
 
         CBlock *pblock = &pblocktemplate->block;
         int32_t nNonceLocal;

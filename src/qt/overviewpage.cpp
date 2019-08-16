@@ -23,6 +23,9 @@
 #include <QPainter>
 #include <QSettings>
 #include <QDesktopWidget>
+#include <QGraphicsOpacityEffect>
+#include <QPropertyAnimation>
+#include <QPixmap>
 
 #include <QDebug>
 
@@ -546,4 +549,25 @@ void OverviewPage::showEvent(QShowEvent *event){
     bool fHide = settings.value("bHideOrphans", true).toBool();
     if (fHide != filter->orphansHidden())
         hideOrphans(fHide);
+
+    QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
+    this->setGraphicsEffect(eff);
+    QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
+    a->setDuration(100);
+    a->setStartValue(0.25);
+    a->setEndValue(1);
+    a->setEasingCurve(QEasingCurve::InBack);
+    a->start(QPropertyAnimation::DeleteWhenStopped);
+}
+
+void OverviewPage::hideEvent(QHideEvent *event){
+    QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
+    this->setGraphicsEffect(eff);
+    QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
+    a->setDuration(100);
+    a->setStartValue(1);
+    a->setEndValue(0);
+    a->setEasingCurve(QEasingCurve::OutBack);
+    a->start(QPropertyAnimation::DeleteWhenStopped);
+    connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
 }

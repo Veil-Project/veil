@@ -79,6 +79,8 @@ public:
 
 	const CBigNum calculateChallenge(const CBigNum& a, const CBigNum& b, const CBigNum &commitOne, const CBigNum &commitTwo) const;
 
+	uint256 GetS1Size() const;
+
 	/**Verifies the proof
 	 *
 	 * @return true if the proof is valid.
