@@ -311,6 +311,7 @@ public:
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548619029; //Stake weight must be reduced for higher denominations
         nHeightProtocolBumpEnforcement = 86350; // 50 blocks before superblock
+        nHeightCheckDenom = 321700;
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;

@@ -105,6 +105,7 @@ public:
 	 * @return the txout hash
 	 */
     uint256 getTxOutHash() const { return ptxHash; }
+    uint256 getS1Size() const { return commitmentPoK.GetS1Size(); }
     CBigNum getAccCommitment() const { return accCommitmentToCoinValue; }
     CBigNum getSerialComm() const { return serialCommitmentToCoinValue; }
     SerialNumberSoK_small getSmallSoK() const { return smallSoK; }

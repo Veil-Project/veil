@@ -302,6 +302,9 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
                 CDataStream serializedCoinSpend(dataTxIn, SER_NETWORK, PROTOCOL_VERSION);
                 libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), serializedCoinSpend);
                 in.pushKV("serial", spend.getCoinSerialNumber().GetHex());
+                if (spend.getVersion() >= 4) {
+                    in.pushKV("pubcoin", spend.getPubcoinValue().GetHex());
+                }
             }
             in.pushKV("vout", (int64_t)txin.prevout.n);
             UniValue o(UniValue::VOBJ);

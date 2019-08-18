@@ -140,6 +140,13 @@ bool CommitmentProofOfKnowledge::Verify(const CBigNum& A, const CBigNum& B) cons
 	return computedChallenge == this->challenge;
 }
 
+uint256 CommitmentProofOfKnowledge::GetS1Size() const
+{
+	uint256 n = uint256S("0");
+    auto n1 = UintToArith256(n) + S1.bitSize();
+    return ArithToUint256(n1);
+}
+
 const CBigNum CommitmentProofOfKnowledge::calculateChallenge(const CBigNum& a, const CBigNum& b, const CBigNum &commitOne, const CBigNum &commitTwo) const {
 	CHashWriter hasher(0,0);
 

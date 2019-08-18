@@ -1981,8 +1981,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         bool fNewEnforcement = false;
         if (chainActive.Tip()) {
-            ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
-            fNewEnforcement = tstate == ThresholdState::ACTIVE;
+            fNewEnforcement = chainActive.Height() >= Params().HeightCheckDenom();
         }
 
         int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT : MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
@@ -2134,8 +2133,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
     bool fNewEnforcement = false;
     if (chainActive.Tip()) {
-        ThresholdState tstate = VersionBitsState(chainActive.Tip(), Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
-        fNewEnforcement = tstate == ThresholdState::ACTIVE;
+        fNewEnforcement = chainActive.Height() >= Params().HeightCheckDenom();
     }
 
     int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT :MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);

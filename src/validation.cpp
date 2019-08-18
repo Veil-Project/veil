@@ -779,7 +779,12 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                     return state.Invalid(false, REJECT_DUPLICATE, "zcspend-already-in-mempool");
                 }
 
-                if (!ContextualCheckZerocoinSpend(tx, *spend, pindexBestHeader->GetBlockHash(), pindexBestHeader, fZCLimpMode,/*fSkipVerify*/true))
+                int checkMode = 0;
+                if (fZCLimpMode)
+                    checkMode |= CHECK_LIMP_MODE | CHECK_DENOM_HARD;
+
+                int nFailReason = 0;
+                if (!ContextualCheckZerocoinSpend(tx, *spend, pindexBestHeader->GetBlockHash(), pindexBestHeader, checkMode, nFailReason))
                     return state.Invalid(false, REJECT_INVALID, "failed-zcspend-context-checks");
 
                 libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
@@ -2439,9 +2444,26 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
                     setSerialsInBlock.emplace(spend->getCoinSerialNumber());
                     mapSpends.emplace(*spend, tx.GetHash());
-                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, fZCLimpMode, /*fSkipVerify*/true))
-                        return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
-                                                    tx.GetHash().GetHex()), REJECT_INVALID);
+                    int checkMode = 0;
+                    if (fZCLimpMode)
+                        checkMode |= CHECK_LIMP_MODE;
+                    if (pindex->nHeight >= Params().HeightCheckDenom())
+                        checkMode |= CHECK_DENOM_HARD;
+                    else
+                        checkMode |= CHECK_DENOM_SOFT;
+
+                    int nFailReason = 0;
+                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, checkMode, nFailReason)) {
+                        if (nFailReason == 1 && (checkMode & CHECK_DENOM_SOFT)) {
+                            //Soft check here, not yet enforced. Don't DoS the peer, and still consider the block valid,
+                            // but lower its consensus score and prefer a different block if an alternative comes in
+                            pindex->nChainWork = 1;
+                        } else {
+                            return state.DoS(100, error("%s: failed to add block %s with invalid zerocoinspend", __func__,
+                                                        tx.GetHash().GetHex()), REJECT_INVALID);
+                        }
+                    }
+
                     libzerocoin::SerialNumberSoKProof proof(spend->getSmallSoK(), spend->getCoinSerialNumber(),
                                                             spend->getSerialComm(), spend->getHashSig());
                     if (!setBatchVerified.count(txid)) {
@@ -4031,7 +4053,7 @@ bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::Publ
 }
 
 bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock,
-        CBlockIndex* pindex, bool fZCLimpMode, bool fSkipSignatureVerify)
+        CBlockIndex* pindex, int checkMode, int& nFailReason)
 {
     //Before v3 should not even serialize correctly, but double check here
     if (spend.getVersion() < libzerocoin::CoinSpend::V3_SMALL_SOK)
@@ -4041,7 +4063,10 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
         return error("%s: zerocoin spend does not have a valid signature", __func__);
 
     //Turn on enforcement of de-anonymization of zerocoins
-    if (fZCLimpMode) {
+    bool fLimpMode = static_cast<bool>(checkMode & CHECK_LIMP_MODE);
+    if (!fLimpMode && spend.getVersion() == libzerocoin::CoinSpend::V4_LIMP) {
+        return error("%s: zerocoinspend v4 while v4 is not active", __func__);
+    } else if (fLimpMode) {
         if (spend.getVersion() != libzerocoin::CoinSpend::V4_LIMP)
             return error("%s zerocoin spend is required to be V4", __func__);
 
@@ -4049,10 +4074,57 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
         int nHeightTx;
         uint256 txid;
         const CBigNum& bnPubcoin = spend.getPubcoinValue();
-        if ((!fVerifying && !fReindex) && !IsPubcoinInBlockchain(GetPubCoinHash(bnPubcoin), nHeightTx, txid, pindex->pprev))
-            return error("%s: pubcoinhash %s is not found in the blockchain", __func__, GetPubCoinHash(bnPubcoin).GetHex());
-    } else if (spend.getVersion() == libzerocoin::CoinSpend::V4_LIMP) {
-        return error("%s: zerocoinspend v4 while v4 is not active", __func__);
+        if ((!fVerifying && !fReindex)) {
+            if (!IsPubcoinInBlockchain(GetPubCoinHash(bnPubcoin), nHeightTx, txid, pindex->pprev))
+                return error("%s: pubcoinhash %s is not found in the blockchain", __func__,
+                             GetPubCoinHash(bnPubcoin).GetHex());
+
+            //Check to see if the zcspend is the correct denomination
+            //Hard check will return false on failure. Soft check only indicates failure within the fail reason.
+            bool fCheckDenomHard = static_cast<bool>(checkMode & CHECK_DENOM_HARD);
+            bool fCheckDenomSoft = static_cast<bool>(checkMode & CHECK_DENOM_SOFT);
+            if (fCheckDenomHard || fCheckDenomSoft) {
+                nFailReason = 1; //if there is failure during this section, return 1
+                CTransactionRef txMint;
+                uint256 hashMintBlock;
+
+                bool fSuccess = true;
+                if (!GetTransaction(txid, txMint, Params().GetConsensus(), hashMintBlock, true)) {
+                    fSuccess = error("%s: failed to lookup transaction %s referenced in tx %s", __func__, txid.GetHex(),
+                          tx.GetHash().GetHex());
+                    if (fCheckDenomHard)
+                        return false;
+                } else {
+                    //Search through the outputs and find the matching pubcoin
+                    for (const auto& txout : txMint->vpout) {
+                        if (txout->IsZerocoinMint()) {
+                            libzerocoin::PublicCoin pubcoin(Params().Zerocoin_Params());
+                            if (!OutputToPublicCoin(txout.get(), pubcoin)) {
+                                fSuccess = error("%s: failed to get pubcoin deserialize for tx %s", tx.GetHash().GetHex());
+                            } else {
+                                //Check that the pubcoin is the same denomination that is being redeemed
+                                if (pubcoin.getValue() == bnPubcoin && pubcoin.getDenomination() != spend.getDenomination()) {
+                                    fSuccess = error(
+                                            "%s: txid %s spending %d as if it were %d\n  pubcoin: %s\n  txidmint: %s",
+                                            __func__, tx.GetHash().GetHex(),
+                                            static_cast<int>(pubcoin.getDenomination()),
+                                            static_cast<int>(spend.getDenomination()), pubcoin.getValue().GetHex(),
+                                            txid.GetHex());
+                                }
+                            }
+
+                            //Only give full rejection when its a hard check performed after enforcement kicks in, a soft
+                            //check needs to continue checking the rest of the contextual checks
+                            if (!fSuccess && fCheckDenomHard)
+                                return false;
+                        }
+                    }
+
+                    if (fSuccess)
+                        nFailReason = 0;
+                }
+            }
+        }
     }
 
     libzerocoin::SpendType expectedType = libzerocoin::SpendType::SPEND;
@@ -4080,12 +4152,12 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
 
     //Check the signature of the spend
     // Skip signature verification during initial block download
-    if (!fSkipSignatureVerify) {
+    if (checkMode & CHECK_SIGNATURE) {
         libzerocoin::Accumulator accumulator(Params().Zerocoin_Params(), spend.getDenomination(), bnAccumulatorValue);
 
         //Check that the coin has been accumulated
         std::string strError;
-        if (!spend.Verify(accumulator, strError, true, fZCLimpMode))
+        if (!spend.Verify(accumulator, strError, true, (checkMode & CHECK_LIMP_MODE)))
             return error("CheckZerocoinSpend(): zerocoin spend did not verify");
     }
 
