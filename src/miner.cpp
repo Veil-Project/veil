@@ -224,20 +224,51 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     std::set<uint256> setSerials;
     std::set<uint256> setPubcoins;
     std::set<uint256> setDuplicate;
+    std::map<libzerocoin::CoinDenomination, int> mapDenomsSpent;
+    std::map<libzerocoin::CoinDenomination, int> mapTxDenomsSpent;
+    for (auto denom : libzerocoin::zerocoinDenomList) {
+        mapTxDenomsSpent[denom] = 0;
+        mapDenomsSpent[denom] = 0;
+    }
+
     for (unsigned int i = 0; i < pblock->vtx.size(); i++) {
         if (pblock->vtx[i] == nullptr)
             continue;
 
+        bool fRemove = false;
         const CTransaction* ptx = pblock->vtx[i].get();
         std::set<uint256> setTxSerialHashes;
         std::set<uint256> setTxPubcoinHashes;
-        if (ptx->IsZerocoinSpend())
+        if (ptx->IsZerocoinSpend()) {
             TxToSerialHashSet(ptx, setTxSerialHashes);
+
+            //Double check that including this zerocoinspend transaction will not overrun the accumulator balance
+            for (auto& p : mapTxDenomsSpent)
+                p.second = 0;
+            for (const CTxIn& in : ptx->vin) {
+                if (in.IsZerocoinSpend()) {
+                    CAmount nAmountSpent = in.GetZerocoinSpent();
+                    auto denom = libzerocoin::AmountToZerocoinDenomination(nAmountSpent);
+                    int nDenomBalance = pindexPrev->mapZerocoinSupply[denom] - mapDenomsSpent[denom] - mapTxDenomsSpent[denom] - 1;
+                    if (nDenomBalance <= 1) {
+                        //Including this transaction will spend more than is available in the accumulator
+                        fRemove = true;
+                        setDuplicate.emplace(ptx->GetHash());
+                        LogPrintf("%s: skip tx spending denom %d\n", __func__, (int)denom);
+                        break;
+                    }
+
+                    mapTxDenomsSpent[denom]++;
+                }
+            }
+            if (fRemove)
+                continue;
+        }
         if (ptx->IsZerocoinMint())
             TxToPubcoinHashSet(ptx, setTxPubcoinHashes);
 
         //double check all zerocoin spends for duplicates or for already spent serials
-        bool fRemove = false;
+        fRemove = false;
         for (const uint256& hashSerial : setTxSerialHashes) {
             if (setSerials.count(hashSerial)) {
                 setDuplicate.emplace(ptx->GetHash());
@@ -287,6 +318,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                 nNetworkRewardReserve += pout->GetValue();
             }
         }
+
+        for (auto denompair : mapTxDenomsSpent)
+            mapDenomsSpent[denompair.first] += denompair.second;
     }
 
     //Remove duplicates

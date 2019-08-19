@@ -525,7 +525,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
         CScript scriptDummy = CScript() << OP_TRUE;
         pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, fSupportsSegwit, false, false);
         if (!pblocktemplate)
-            throw JSONRPCError(RPC_OUT_OF_MEMORY, "Out of memory");
+            throw JSONRPCError(RPC_VERIFY_ERROR, "Created block is rejected or otherwise unable to successfully create a new block");
 
         // Need to update only after we know CreateNewBlock succeeded
         pindexPrev = pindexPrevNew;
