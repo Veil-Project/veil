@@ -528,6 +528,22 @@ UniValue mempoolToJSON(bool fVerbose)
     }
 }
 
+static UniValue clearmempool(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+                "clearmempool\n"
+                        "\nRemoves all transactions from the mempool\n"
+                        "\nExamples:\n"
+                + HelpExampleCli("clearmempool", "")
+                + HelpExampleRpc("clearmempool", "")
+        );
+
+    LOCK(mempool.cs);
+    mempool.clear();
+    return NullUniValue;
+}
+
 static UniValue getrawmempool(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() > 1)
@@ -2315,6 +2331,7 @@ UniValue findserial(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
+    { "blockchain",         "clearmempool",           &clearmempool,           {} },
     { "blockchain",         "findserial",             &findserial,             {"serial"} },
     { "blockchain",         "getblockchaininfo",      &getblockchaininfo,      {} },
     { "blockchain",         "getchaintxstats",        &getchaintxstats,        {"nblocks", "blockhash"} },
