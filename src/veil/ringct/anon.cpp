@@ -355,6 +355,51 @@ std::vector<COutPoint> GetRingCtInputs(const CTxIn& txin)
     return vInputs;
 }
 
+bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint> >& vInputs)
+{
+    vInputs.clear();
+    uint32_t nInputs, nRingSize;
+    txin.GetAnonInfo(nInputs, nRingSize);
+
+    size_t nCols = nRingSize;
+    size_t nRows = nInputs + 1;
+
+    if (txin.scriptData.stack.size() != 1)
+        return false;
+
+    if (txin.scriptWitness.stack.size() != 2)
+        return false;
+
+    const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+    const std::vector<uint8_t> vMI = txin.scriptWitness.stack[0];
+    const std::vector<uint8_t> vDL = txin.scriptWitness.stack[1];
+
+    if (vKeyImages.size() != nInputs * 33)
+        return false;
+    std::vector<uint8_t> vM(nCols * nRows * 33);
+    std::set<CKey> setKeyCandidates;
+
+    size_t ofs = 0, nB = 0;
+    for (size_t k = 0; k < nInputs; ++k) {
+        std::vector<COutPoint> vOutpoints;
+        for (size_t i = 0; i < nCols; ++i) {
+            int64_t nIndex;
+
+            if (0 != GetVarInt(vMI, ofs, (uint64_t&) nIndex, nB))
+                return false;
+            ofs += nB;
+
+            CAnonOutput ao;
+            if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
+                return false;
+            }
+            vOutpoints.emplace_back(ao.outpoint);
+        }
+        vInputs.emplace_back(vOutpoints);
+    }
+    return true;
+}
+
 //bool RewindToCheckpoint(int nCheckPointHeight, int &nBlocks, std::string &sError)
 //{
 //    LogPrintf("%s: At height %d\n", __func__, nCheckPointHeight);
