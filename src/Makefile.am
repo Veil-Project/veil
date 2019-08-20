@@ -188,6 +188,7 @@ BITCOIN_CORE_H = \
   util/system.h \
   util/memory.h \
   util/moneystr.h \
+  util/string.h \
   util/time.h \
   validation.h \
   validationinterface.h \
@@ -710,6 +711,7 @@ libbitcoin_util_a_SOURCES = \
   util/system.cpp \
   util/moneystr.cpp \
   util/strencodings.cpp \
+  util/string.cpp \
   util/time.cpp \
   $(BITCOIN_CORE_H)
 

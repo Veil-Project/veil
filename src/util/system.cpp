@@ -844,12 +844,7 @@ static std::vector<std::pair<std::string, std::string>> GetConfigOptions(std::is
 
 bool ArgsManager::ReadConfigStream(std::istream& stream, std::string& error, bool ignore_invalid_keys)
 {
-    std::string::size_type front = str.find_first_not_of(pattern);
-    if (front == std::string::npos) {
-        return std::string();
-    }
-    std::string::size_type end = str.find_last_not_of(pattern);
-    return str.substr(front, end - front + 1);
+    LOCK(cs_args);
 
     for (const std::pair<std::string, std::string>& option : GetConfigOptions(stream)) {
         std::string strKey = std::string("-") + option.first;
@@ -862,7 +857,7 @@ bool ArgsManager::ReadConfigStream(std::istream& stream, std::string& error, boo
         }
 
         // Check that the arg is known
-        if (!IsArgKnown(strKey, error) && !ignore_invalid_keys) {
+        if (!IsArgKnown(strKey) && !ignore_invalid_keys) {
             error = strprintf("Invalid configuration value %s", option.first.c_str());
             return false;
         }
