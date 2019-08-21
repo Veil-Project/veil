@@ -30,7 +30,7 @@ static CBlock BuildBlockTestCase() {
     tx.vin[0].scriptSig.resize(10);
     tx.vpout.resize(2);
     tx.vpout[0]->SetValue(42);
-    std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
+    std::string strBudgetAddress = veil::Budget().GetBudgetAddress(0); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
     tx.vpout[1]->SetScriptPubKey(budgetScript);
@@ -293,7 +293,7 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     coinbase.vin[0].scriptSig.resize(10);
     coinbase.vpout.resize(2);
     coinbase.vpout[0]->SetValue(42);
-    std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
+    std::string strBudgetAddress = veil::Budget().GetBudgetAddress(0); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
     coinbase.vpout[1]->SetScriptPubKey(budgetScript);

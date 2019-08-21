@@ -383,7 +383,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Budget Payment
     if (nBudgetPayment) {
-        std::string strBudgetAddress = veil::Budget().GetBudgetAddress(); // KeyID for now
+        std::string strBudgetAddress = veil::Budget().GetBudgetAddress(chainActive.Height()+1); // KeyID for now
         CBitcoinAddress addressFounder(strBudgetAddress);
         assert(addressFounder.IsValid());
         CTxDestination dest = DecodeDestination(strBudgetAddress);
@@ -394,7 +394,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         outBudget->nValue = nBudgetPayment;
         coinbaseTx.vpout[fProofOfStake ? 0 : 1] = (std::move(outBudget));
 
-        std::string strLabAddress = veil::Budget().GetLabAddress(); // KeyID for now
+        std::string strLabAddress = veil::Budget().GetLabAddress(chainActive.Height()+1); // KeyID for now
         CTxDestination destLab = DecodeDestination(strLabAddress);
         auto labScript = GetScriptForDestination(destLab);
 

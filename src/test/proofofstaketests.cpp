@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(proofofstake_block)
 
     //Get the checksum of the accumulator we use for the spend and also add it to our checksum map
     auto hashChecksum = GetChecksum(accumulator.getValue());
-    libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), privateCoin_stake, accumulator, hashChecksum, witness, uint256(), libzerocoin::SpendType::STAKE);
+    libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), privateCoin_stake, accumulator, hashChecksum, witness, uint256(), libzerocoin::SpendType::STAKE, false);
 
     // Deserialize the CoinSpend intro a fresh object
     CDataStream serializedCoinSpend(SER_NETWORK, PROTOCOL_VERSION);

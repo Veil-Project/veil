@@ -22,6 +22,7 @@
 #include <policy/policy.h>
 #include <policy/rbf.h>
 #include <wallet/coincontrol.h>
+#include <veil/invalid.h>
 #include <veil/ringct/blind.h>
 #include <veil/ringct/anon.h>
 #include <veil/zerocoin/denomination_functions.h>
@@ -2970,12 +2971,16 @@ int AnonWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size_
                 continue;
             }
 
-            if (nDecoy > nLastDepthCheckPassed) {
-                CAnonOutput ao;
-                if (!pblocktree->ReadRCTOutput(nDecoy, ao)) {
-                    return wserrorN(1, sError, __func__, _("Anon output not found in db, %d"), nDecoy);
-                }
+            CAnonOutput ao;
+            if (!pblocktree->ReadRCTOutput(nDecoy, ao)) {
+                return wserrorN(1, sError, __func__, _("Anon output not found in db, %d"), nDecoy);
+            }
 
+            //Don't mix in blacklisted decoys
+            if (blacklist::ContainsRingCtOutPoint(ao.outpoint))
+                continue;
+
+            if (nDecoy > nLastDepthCheckPassed) {
                 if (ao.nBlockHeight > nBestHeight - (consensusParams.nMinRCTOutputDepth + nExtraDepth)) {
                     if (nLastRCTOutIndex > nDecoy) {
                         nLastRCTOutIndex = nDecoy-1;

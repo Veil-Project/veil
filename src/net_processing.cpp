@@ -1981,7 +1981,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         bool fNewEnforcement = false;
         if (chainActive.Tip()) {
-            fNewEnforcement = chainActive.Height() >= Params().HeightCheckDenom();
+            fNewEnforcement = chainActive.Height() >= Params().HeightLightZerocoin();
         }
 
         int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT : MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
@@ -2133,7 +2133,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
     bool fNewEnforcement = false;
     if (chainActive.Tip()) {
-        fNewEnforcement = chainActive.Height() >= Params().HeightCheckDenom();
+        fNewEnforcement = chainActive.Height() >= Params().HeightLightZerocoin();
     }
 
     int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT :MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);

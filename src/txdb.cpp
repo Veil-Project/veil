@@ -18,6 +18,7 @@
 
 #include <boost/thread.hpp>
 #include <primitives/zerocoin.h>
+#include <veil/invalid.h>
 
 static const char DB_COIN = 'C';
 static const char DB_ADDRESSINDEX = 'a';
@@ -35,6 +36,9 @@ static const char DB_HEAD_BLOCKS = 'H';
 static const char DB_FLAG = 'F';
 static const char DB_REINDEX_FLAG = 'R';
 static const char DB_LAST_BLOCK = 'l';
+
+static const char DB_BLACKLISTOUT = 'X';
+static const char DB_BLACKLISTPUB = 'P';
 
 namespace {
 
@@ -299,6 +303,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 pindexNew->nMint = diskindex.nMint;
                 pindexNew->nMoneySupply = diskindex.nMoneySupply;
                 pindexNew->fProofOfStake = diskindex.fProofOfStake;
+                pindexNew->vHashProof = diskindex.vHashProof;
 
                 //PoFN
                 pindexNew->fProofOfFullNode = diskindex.fProofOfFullNode;
@@ -583,6 +588,32 @@ bool CZerocoinDB::EraseCoinSpend(const CBigNum& bnSerial)
     return Erase(std::make_pair('s', hash));
 }
 
+bool CZerocoinDB::WritePubcoinSpendBatch(std::map<uint256, uint256>& mapPubcoinSpends, const uint256& hashBlock)
+{
+    CDBBatch batch(*this);
+    for (const auto& pair : mapPubcoinSpends) {
+        const uint256& hashPubcoin = pair.first;
+        const uint256& txid = pair.second;
+        batch.Write(std::make_pair('l', hashPubcoin), std::make_pair(txid, hashBlock));
+    }
+    return WriteBatch(batch, true);
+}
+
+bool CZerocoinDB::ReadPubcoinSpend(const uint256& hashPubcoin, uint256& txHash, uint256& hashBlock)
+{
+    std::pair<uint256, uint256> pairTxHashblock;
+    if (!Read(std::make_pair('l', hashPubcoin), pairTxHashblock))
+        return false;
+    txHash = pairTxHashblock.first;
+    hashBlock = pairTxHashblock.second;
+    return true;
+}
+
+bool CZerocoinDB::ErasePubcoinSpend(const uint256& hashPubcoin)
+{
+    return Erase(std::make_pair('l', hashPubcoin));
+}
+
 bool CZerocoinDB::WipeCoins(std::string strType)
 {
     if (strType != "spends" && strType != "mints")
@@ -638,4 +669,89 @@ bool CZerocoinDB::EraseAccumulatorValue(const uint256& hashChecksum)
 {
     LogPrint(BCLog::ZEROCOINDB, "%s : checksum:%d\n", __func__, hashChecksum.GetHex());
     return Erase(std::make_pair('2', hashChecksum));
+}
+
+bool CZerocoinDB::LoadBlacklistOutPoints()
+{
+    std::unique_ptr<CDBIterator> pcursor(NewIterator());
+    pcursor->Seek(std::make_pair(DB_BLACKLISTOUT, COutPoint()));
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        std::pair<char, COutPoint> key;
+
+        if (pcursor->GetKey(key) && key.first == DB_BLACKLISTOUT) {
+            int nType;
+            if (pcursor->GetValue(nType)) {
+                switch(nType) {
+                    case OUTPUT_STANDARD : {
+                        blacklist::AddBasecoinOutPoint(key.second);
+                    }
+                    case OUTPUT_CT : {
+                        blacklist::AddStealthOutPoint(key.second);
+                    }
+                    case OUTPUT_RINGCT : {
+                        blacklist::AddRctOutPoint(key.second);
+                    }
+                    default: {
+                        //nothing
+                    }
+                }
+                pcursor->Next();
+            } else {
+                return error("failed to read blacklist outpoints");
+            }
+        } else {
+            break;
+        }
+    }
+    return true;
+}
+
+bool CZerocoinDB::LoadBlacklistPubcoins()
+{
+    std::unique_ptr<CDBIterator> pcursor(NewIterator());
+    pcursor->Seek(std::make_pair(DB_BLACKLISTPUB, uint256()));
+
+    while (pcursor->Valid()) {
+        boost::this_thread::interruption_point();
+        std::pair<char, uint256> key;
+
+        if (pcursor->GetKey(key) && key.first == DB_BLACKLISTPUB) {
+            int value;
+            if (pcursor->GetValue(value)) {
+                blacklist::AddPubcoinHash(key.second);
+            } else {
+                return error("failed to read blacklisted pubcoins");
+            }
+            pcursor->Next();
+        } else {
+            break;
+        }
+    }
+    return true;
+}
+
+bool CZerocoinDB::WriteBlacklistedOutpoint(const COutPoint& outpoint, int nType)
+{
+    CDBBatch batch(*this);
+    batch.Write(std::make_pair(DB_BLACKLISTOUT, outpoint), nType);
+    return WriteBatch(batch);
+}
+
+bool CZerocoinDB::EraseBlacklistedOutpoint(const COutPoint& outpoint)
+{
+    return Erase(std::make_pair(DB_BLACKLISTOUT, outpoint));
+}
+
+bool CZerocoinDB::WriteBlacklistedPubcoin(const uint256& hashPubcoin)
+{
+    CDBBatch batch(*this);
+    batch.Write(std::make_pair(DB_BLACKLISTPUB, hashPubcoin), int()); //have to add value? only need key
+    return WriteBatch(batch);
+}
+
+bool CZerocoinDB::EraseBlacklisterPubcoin(const uint256& hashPubcoin)
+{
+    return Erase(std::make_pair(DB_BLACKLISTPUB, hashPubcoin));
 }
