@@ -121,6 +121,9 @@ public:
     int Zerocoin_RequiredAccumulation() const { return nRequiredAccumulation; }
     int Zerocoin_DefaultSpendSecurity() const { return nDefaultSecurityLevel; }
     int Zerocoin_RequiredStakeDepth() const { return nZerocoinRequiredStakeDepth; }
+    int Zerocoin_RequiredStakeDepthV2() const { return nZerocoinRequiredStakeDepthV2; }
+    int Zerocoin_OverSpendAdjustment(libzerocoin::CoinDenomination denom) const;
+    CAmount ValueBlacklisted() const { return nValueBlacklist; }
 
     /** RingCT and Stealth **/
     int DefaultRingSize() const { return nDefaultRingSize; }
@@ -137,6 +140,7 @@ public:
     int MaxHeaderRequestWithoutPoW() const { return nMaxHeaderRequestWithoutPoW; }
     int BIP9Period() const { return consensus.nMinerConfirmationWindow; }
     int HeightCheckDenom() const { return nHeightCheckDenom; }
+    int HeightLightZerocoin() const { return nHeightLightZerocoin; }
 
 protected:
     CChainParams() {}
@@ -174,6 +178,7 @@ protected:
     int nMintRequiredConfirmations;
     int nRequiredAccumulation;
     int nDefaultSecurityLevel;
+    CAmount nValueBlacklist;
 
     //RingCT/Stealth
     int nDefaultRingSize;
@@ -181,6 +186,7 @@ protected:
     //Proof of Stake/Consensus
     int64_t nBudget_Fee_Confirmations;
     int nZerocoinRequiredStakeDepth;
+    int nZerocoinRequiredStakeDepthV2;
     int nHeightPoSStart;
     int nKernelModulus;
     int nLastPOWBlock;
@@ -192,6 +198,7 @@ protected:
     int nTimeEnforceWeightReduction;
     int nHeightProtocolBumpEnforcement; // the height a new protobump is enforced
     int nHeightCheckDenom;
+    int nHeightLightZerocoin;
 
     //Settings that are not chain critical, but should not be edited unless the person changing understands the consequence
     int nMaxHeaderRequestWithoutPoW;

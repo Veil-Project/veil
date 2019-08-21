@@ -384,8 +384,18 @@ enum ContextualCheckMode
     CHECK_LIMP_MODE = (1 << 0),
     CHECK_DENOM_HARD = (1 << 1), //Return false on denom check being invalid
     CHECK_DENOM_SOFT = (1 << 2), //Only warn about an invalid denom
-    CHECK_SIGNATURE = (1 << 3),
+    CHECK_SOK = (1 << 3),
+    CHECK_ZKP= (1 << 4),
+    CHECK_BLACKLIST_HARD = (1 << 5),
+    CHECK_LIGHTMODE = (1 << 6), //Check database of spent pubcoinhashes
 };
+
+enum FailReason
+{
+    FAIL_DENOMCHECK = (1 << 0),
+    FAIL_BLACKLIST = (1 << 1)
+};
+
 bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::CoinSpend& spend, const uint256& hashBlock, CBlockIndex* pindex, int checkMode, int& nFailReason);
 bool ContextualCheckZerocoinMint(const CTransaction& tx, const libzerocoin::PublicCoin& coin, CBlockIndex* pindex);
 

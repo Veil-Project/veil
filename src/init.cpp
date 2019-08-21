@@ -53,6 +53,7 @@
 #include <walletinitinterface.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <veil/invalid.h>
 #include <veil/ringct/anon.h>
 #include <veil/zerocoin/zchain.h>
 #include <veil/zerocoin/witness.h>
@@ -1557,6 +1558,8 @@ bool AppInitMain()
 
         uiInterface.InitMessage(_("Loading block index..."));
 
+        blacklist::InitializeBlacklist();
+
         LOCK(cs_main);
 
         do {
@@ -1614,6 +1617,11 @@ bool AppInitMain()
                 // in the past, but is now trying to run unpruned.
                 if (fHavePruned && !fPruneMode) {
                     strLoadError = _("You need to rebuild the database using -reindex to go back to unpruned mode.  This will redownload the entire blockchain");
+                    break;
+                }
+
+                if (!pzerocoinDB->LoadBlacklistOutPoints() || !pzerocoinDB->LoadBlacklistPubcoins()) {
+                    strLoadError = _("Blacklist loading failed. Use -reindex.");
                     break;
                 }
 

@@ -153,6 +153,27 @@ libzerocoin::ZerocoinParams* CChainParams::Zerocoin_Params() const
     return &ZCParamsDec;
 }
 
+// Adjustment made to relect the proper balance of the accumulators of the the overspend exploits
+int CChainParams::Zerocoin_OverSpendAdjustment(libzerocoin::CoinDenomination denom) const
+{
+    if (strNetworkID == "main") {
+        switch (denom) {
+            case libzerocoin::ZQ_TEN:
+                return -(1 + 2325 + 1015);
+            case libzerocoin::ZQ_ONE_HUNDRED:
+                return 1;
+            case libzerocoin::ZQ_ONE_THOUSAND:
+                return 2325;
+            case libzerocoin::ZQ_TEN_THOUSAND:
+                return 1015;
+            default:
+                return 0;
+        }
+    }
+
+    return 0;
+}
+
 /**
  * Main network
  */
@@ -304,6 +325,7 @@ public:
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 200; //The required confirmations for a zerocoin to be stakable
+        nZerocoinRequiredStakeDepthV2 = 1000; //The required confirmations for a zerocoin to be stakable
         nHeightPoSStart = 1500;
         nKernelModulus = 100;
         nCoinbaseMaturity = 100;
@@ -313,6 +335,8 @@ public:
         nTimeEnforceWeightReduction = 1548619029; //Stake weight must be reduced for higher denominations
         nHeightProtocolBumpEnforcement = 86350; // 50 blocks before superblock
         nHeightCheckDenom = 321700;
+        nHeightLightZerocoin = 334893;//345600;
+        nValueBlacklist = (282125 + 60540) * COIN;
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
