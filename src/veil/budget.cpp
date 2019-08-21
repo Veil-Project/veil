@@ -14,11 +14,11 @@ bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidati
     veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
 
     // Verify that the superblock rewards are being payed out to the correct addresses with the correct amounts
-    std::string strBudgetAddress = Budget().GetBudgetAddress(); // KeyID for now
+    std::string strBudgetAddress = Budget().GetBudgetAddress(nHeight); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
 
-    std::string strLabAddress = Budget().GetLabAddress(); // KeyID for now
+    std::string strLabAddress = Budget().GetLabAddress(nHeight); // KeyID for now
     CTxDestination destLab = DecodeDestination(strLabAddress);
     auto labScript = GetScriptForDestination(destLab);
 
@@ -97,6 +97,8 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
         nBlockReward = 40;
         if(IsSuperBlock(nBlockHeight)) {
             nFounderPayment = 8 * nBlocksPerPeriod;
+            if (nBlockHeight > 518401)
+                nFounderPayment = 0;
             nLabPayment = 8 * nBlocksPerPeriod;
             nBudgetPayment = 24 * nBlocksPerPeriod;
         } else {
@@ -107,7 +109,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
 
         nBlockReward = 30;
         if(IsSuperBlock(nBlockHeight)) {
-            nFounderPayment = 6 * nBlocksPerPeriod;
+            nFounderPayment = 0;
             nLabPayment = 6 * nBlocksPerPeriod;
             nBudgetPayment = 18 * nBlocksPerPeriod;
         } else {
@@ -118,7 +120,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
 
         nBlockReward = 20;
         if(IsSuperBlock(nBlockHeight)) {
-            nFounderPayment = 4 * nBlocksPerPeriod;
+            nFounderPayment = 0;
             nLabPayment = 4 * nBlocksPerPeriod;
             nBudgetPayment = 12 * nBlocksPerPeriod;
         } else {
@@ -129,7 +131,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
 
         nBlockReward = 10;
         if(IsSuperBlock(nBlockHeight)) {
-            nFounderPayment = 2 * nBlocksPerPeriod;
+            nFounderPayment = 0;
             nLabPayment = 2 * nBlocksPerPeriod;
             nBudgetPayment = 6 * nBlocksPerPeriod;
         } else {
@@ -159,9 +161,13 @@ BudgetParams::BudgetParams(std::string strNetwork)
 {
     // Addresses must decode to be different, otherwise CheckBudgetTransaction() will fail
     if (strNetwork == "main") {
-        budgetAddress = "3MvD3sxedwPzGSdLnehegDfBGfxpdMevk2";
+        nHeightAddressChange = 302401;
+        budgetAddress_legacy = "3MvD3sxedwPzGSdLnehegDfBGfxpdMevk2";
+        budgetAddress = "3LcNKTQSnxkdeuFkCNHet3XkEcUEyeENMF";
         founderAddress = "bv1qnauaweq25552zjthwqxq0puhz2flqrmhzh24h4";
-        labAddress = "341PYScHCbq5Y3G3orR14V1pSmhb8qamP5";
+        labAddress_legacy = "341PYScHCbq5Y3G3orR14V1pSmhb8qamP5";
+        labAddress = "38J8RGLetRUNEXycBMPg8oZqLt4bB9hCbt";
+
     } else if (strNetwork == "test") {
         budgetAddress = "mxd3ciTteXZAna4q2as6z69mL6F7EncYjr";
         founderAddress = "mhurm1WXr8QXxMZXzJRH61TSjcaDviKfqY";
@@ -171,6 +177,25 @@ BudgetParams::BudgetParams(std::string strNetwork)
         founderAddress = "2N7WZtWTdoFQjheviiGn4smykiwxNbHYdci";
         labAddress = "2N2iEAT5o7TY9yrz6Li4j91j5L59sLqdFSf";
     }
+}
+
+std::string BudgetParams::GetBudgetAddress(int nHeight) const
+{
+    if (nHeight < nHeightAddressChange)
+        return budgetAddress_legacy;
+    return  budgetAddress;
+}
+
+std::string BudgetParams::GetFounderAddress() const
+{
+    return founderAddress;
+}
+
+std::string BudgetParams::GetLabAddress(int nHeight) const
+{
+    if (nHeight < nHeightAddressChange)
+        return labAddress_legacy;
+    return  labAddress;
 }
 
 BudgetParams* BudgetParams::Get()

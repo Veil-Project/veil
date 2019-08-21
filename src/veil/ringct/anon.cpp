@@ -261,9 +261,7 @@ bool AllAnonOutputsUnknown(const CTransaction &tx, CValidationState &state)
 
 bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::set<CCmpPubKey> &setKi)
 {
-    LogPrintf("%s: Last valid %d, expect to erase %d, num ki %d\n", __func__, nLastValidRCTOutput, nExpectErase, setKi.size());
-    // This should hardly happen, if ever
-
+    // This happens when the client is shutdown before flushing indexes
     AssertLockHeld(cs_main);
 
     int64_t nRemRCTOutput = nLastValidRCTOutput;
@@ -278,7 +276,6 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
         pblocktree->EraseRCTOutputLink(ao.pubkey);
     }
 
-    LogPrintf("%s: Removed up to %d\n", __func__, nRemRCTOutput);
     if (nExpectErase > nRemRCTOutput) {
         nRemRCTOutput = nExpectErase;
         while (nRemRCTOutput > nLastValidRCTOutput) {
@@ -290,7 +287,6 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
             nRemRCTOutput--;
         }
 
-        LogPrintf("%s: Removed down to %d\n", __func__, nRemRCTOutput);
     }
 
     for (const auto &ki : setKi) {

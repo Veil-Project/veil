@@ -64,6 +64,9 @@ include_directories(src/zmq)
 find_package(Qt5 REQUIRED COMPONENTS Widgets Core Gui)
 
 add_executable(veil
+        src/veil/invalid_list.cpp
+        src/veil/invalid.cpp
+        src/veil/invalid.h
         src/libzerocoin/PubcoinSignature.h
         src/libzerocoin/PubcoinSignature.cpp
         src/veil/zerocoin/witness.h
@@ -1019,6 +1022,6 @@ add_executable(veil
         src/versionbits.h
         src/walletinitinterface.h
         src/warnings.cpp
-        src/warnings.h src/veil/zerocoin/spendreceipt.h src/veil/ringct/temprecipient.h src/veil/ringct/temprecipient.cpp src/veil/zerocoin/spendreceipt.cpp src/veil/ringct/outputrecord.cpp src/veil/ringct/outputrecord.h src/wallet/walletbalances.h src/veil/ringct/transactionrecord.h src/veil/zerocoin/mintmeta.h src/test/zerocoin_zkp_tests.cpp src/veil/zerocoin/lrucache.h src/veil/zerocoin/lrucache.cpp src/veil/zerocoin/precompute.h src/veil/zerocoin/precompute.cpp src/libzerocoin/PubcoinSignature.h src/libzerocoin/PubcoinSignature.cpp src/test/zerocoin_pubcoinsig_tests.cpp)
+        src/warnings.h src/veil/zerocoin/spendreceipt.h src/veil/ringct/temprecipient.h src/veil/ringct/temprecipient.cpp src/veil/zerocoin/spendreceipt.cpp src/veil/ringct/outputrecord.cpp src/veil/ringct/outputrecord.h src/wallet/walletbalances.h src/veil/ringct/transactionrecord.h src/veil/zerocoin/mintmeta.h src/test/zerocoin_zkp_tests.cpp src/veil/zerocoin/lrucache.h src/veil/zerocoin/lrucache.cpp src/veil/zerocoin/precompute.h src/veil/zerocoin/precompute.cpp src/libzerocoin/PubcoinSignature.h src/libzerocoin/PubcoinSignature.cpp src/test/zerocoin_pubcoinsig_tests.cpp src/veil/invalid_list.h src/veil/invalid_list.cpp)
 
 qt5_use_modules(veil Core Widgets Gui)

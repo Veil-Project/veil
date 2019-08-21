@@ -29,6 +29,7 @@
 #include <txmempool.h>
 #include <util.h>
 #include <utilstrencodings.h>
+#include <utilmoneystr.h>
 #include <hash.h>
 #include <validationinterface.h>
 #include <warnings.h>
@@ -45,6 +46,7 @@
 #include <memory>
 #include <mutex>
 #include <condition_variable>
+#include <veil/zerocoin/zchain.h>
 
 struct CUpdatedBlock
 {
@@ -129,6 +131,10 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.pushKV("weight", (int)::GetBlockWeight(block));
     result.pushKV("height", blockindex->nHeight);
     result.pushKV("proof_type", blockindex->IsProofOfStake() ? "Proof-of-Stake" : "Proof-of-Work");
+    if (blockindex->IsProofOfStake())
+        result.pushKV("proofofstakehash", blockindex->GetBlockPoSHash().GetHex());
+    else
+        result.pushKV("proofofworkhash", blockindex->GetBlockPoWHash().GetHex());
     result.pushKV("version", block.nVersion);
     result.pushKV("versionHex", strprintf("%08x", block.nVersion));
     result.pushKV("merkleroot", block.hashMerkleRoot.GetHex());
@@ -138,7 +144,8 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
         if(txDetails)
         {
             UniValue objTx(UniValue::VOBJ);
-            auto vInputs = GetTxRingCtInputs(tx);
+            std::vector<std::vector<COutPoint> > vInputs;
+            GetRingCtInputs(tx->vin[0], vInputs);
             TxToUniv(*tx, uint256(), vInputs, objTx, true, RPCSerializationFlags());
             txs.push_back(objTx);
         }
@@ -153,6 +160,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.pushKV("difficulty", GetDifficulty(blockindex));
     result.pushKV("chainwork", blockindex->nChainWork.GetHex());
     result.pushKV("nTx", (uint64_t)blockindex->nTx);
+    result.pushKV("anon_index", (uint64_t)blockindex->nAnonOutputs);
 
     if (blockindex->pprev)
         result.pushKV("previousblockhash", blockindex->pprev->GetBlockHash().GetHex());
@@ -166,13 +174,13 @@ static UniValue getblockcount(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 0)
         throw std::runtime_error(
-            "getblockcount\n"
-            "\nReturns the number of blocks in the longest blockchain.\n"
-            "\nResult:\n"
-            "n    (numeric) The current block count\n"
-            "\nExamples:\n"
-            + HelpExampleCli("getblockcount", "")
-            + HelpExampleRpc("getblockcount", "")
+                "getblockcount\n"
+                        "\nReturns the number of blocks in the longest blockchain.\n"
+                        "\nResult:\n"
+                        "n    (numeric) The current block count\n"
+                        "\nExamples:\n"
+                + HelpExampleCli("getblockcount", "")
+                + HelpExampleRpc("getblockcount", "")
         );
 
     LOCK(cs_main);
@@ -243,6 +251,7 @@ static UniValue getzerocoinsupply(const JSONRPCRequest& request)
         denomObj.push_back(Pair("denom", to_string(denom)));
         int64_t denomSupply = pblockindex->mapZerocoinSupply.at(denom) * (denom*COIN);
         denomObj.push_back(Pair("amount", denomSupply));
+        denomObj.push_back(Pair("amount_formatted", FormatMoney(denomSupply)));
         double denomSupplyPercent = double(100.0 * denomSupply / totalSupply);
         denomObj.push_back(Pair("percent", denomSupplyPercent));
         resArr.push_back(denomObj);
@@ -1350,6 +1359,7 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     obj.pushKV("chain",                 Params().NetworkIDString());
     obj.pushKV("blocks",                (int)chainActive.Height());
     obj.pushKV("moneysupply",           chainActive.Tip()->nMoneySupply);
+    obj.pushKV("moneysupply_formatted", FormatMoney(chainActive.Tip()->nMoneySupply));
     obj.pushKV("zerocoinsupply",        getzerocoinsupply(request));
     obj.pushKV("headers",               pindexBestHeader ? pindexBestHeader->nHeight : -1);
     obj.pushKV("bestblockhash",         chainActive.Tip()->GetBlockHash().GetHex());

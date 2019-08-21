@@ -78,7 +78,7 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
 
     //grab stake modifier
     uint64_t nStakeModifier = 0;
-    if (!stakeInput->GetModifier(nStakeModifier))
+    if (!stakeInput->GetModifier(nStakeModifier, chainActive.Tip()))
         return error("failed to get kernel stake modifier");
 
     bool fSuccess = false;
@@ -164,8 +164,10 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
     bnTargetPerCoinDay.SetCompact(nBits);
 
     uint64_t nStakeModifier = 0;
-    if (!stake->GetModifier(nStakeModifier))
-        return error("%s failed to get modifier for stake input\n", __func__);
+    if (!stake->GetModifier(nStakeModifier, pindexCheck->pprev)) {
+        if (pindexCheck->nHeight - Params().HeightLightZerocoin() > 400)
+            return error("%s failed to get modifier for stake input\n", __func__);
+    }
 
     unsigned int nBlockFromTime = blockprev.nTime;
     unsigned int nTxTime = nTimeBlock;

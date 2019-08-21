@@ -276,6 +276,15 @@ bool IsPubcoinInBlockchain(const uint256& hashPubcoin, int& nHeightTx, uint256& 
     return IsTransactionInChain(txid, nHeightTx, txRef, Params().GetConsensus(), pindexChain);
 }
 
+bool IsPubcoinSpendInBlockchain(const uint256& hashPubcoin, int& nHeightTx, uint256& txid, CBlockIndex* pindexChain)
+{
+    uint256 hashBlock;
+    if (!pzerocoinDB->ReadPubcoinSpend(hashPubcoin, txid, hashBlock))
+        return false;
+
+    return IsBlockHashInChain(hashBlock, nHeightTx, pindexChain);
+}
+
 bool IsSerialKnown(const CBigNum& bnSerial)
 {
     uint256 txHash;

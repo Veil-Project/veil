@@ -245,7 +245,7 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     auto hashChecksum = GetChecksum(accumulator.getValue());
     CoinSpend* pspend = nullptr;
     try {
-        pspend = new CoinSpend(Params().Zerocoin_Params(), coin, accumulator, hashChecksum, witness, uint256(), SpendType::SPEND);
+        pspend = new CoinSpend(Params().Zerocoin_Params(), coin, accumulator, hashChecksum, witness, uint256(), SpendType::SPEND, false);
     } catch (...) {
         BOOST_CHECK_MESSAGE(false, "Coinspend threw runtime error on creation");
     }
@@ -255,7 +255,8 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     if (pspend) {
         cout << pspend->ToString() << endl;
         std::string strError;
-        BOOST_CHECK_MESSAGE(pspend->Verify(accumulator, strError, true),
+        CBigNum bnPubcoin;
+        BOOST_CHECK_MESSAGE(pspend->Verify(accumulator, strError, bnPubcoin, true, false, true),
                             "Coinspend construction failed to create valid proof");
 
         CBigNum serial = pspend->getCoinSerialNumber();
@@ -263,7 +264,7 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
 
         CoinDenomination denom = pspend->getDenomination();
         BOOST_CHECK_MESSAGE(denom == pubCoin.getDenomination(), "Spend denomination must match original pubCoin");
-        BOOST_CHECK_MESSAGE(pspend->Verify(accumulator, strError, true), "CoinSpend object failed to validate");
+        BOOST_CHECK_MESSAGE(pspend->Verify(accumulator, strError, bnPubcoin, true, false, true), "CoinSpend object failed to validate");
 
         //serialize the spend
         try {
@@ -293,7 +294,8 @@ BOOST_AUTO_TEST_CASE(checkzerocoinspend_test)
     //old params for the V1 generated coin, new params for the accumulator. Emulates main-net transition.
     CoinSpend spend1(Params().Zerocoin_Params(), serializedCoinSpend);
     std::string strError;
-    BOOST_CHECK_MESSAGE(spend1.Verify(accumulator, strError, true), "Failed deserialized check of CoinSpend");
+    CBigNum bnPubcoin;
+    BOOST_CHECK_MESSAGE(spend1.Verify(accumulator, strError, bnPubcoin, true, false, true), "Failed deserialized check of CoinSpend");
 
     CScript script;
     CTxOut txOut(1 * COIN, script);
@@ -530,7 +532,7 @@ BOOST_AUTO_TEST_CASE(test_zerocoinspend_ringct_change)
     bool fSpendValid = true;
     CoinSpend* pspend;
     try {
-        pspend = new CoinSpend(Params().Zerocoin_Params(), coin, accumulator, nChecksum, witness, ptxHash, SpendType::SPEND);
+        pspend = new CoinSpend(Params().Zerocoin_Params(), coin, accumulator, nChecksum, witness, ptxHash, SpendType::SPEND, false);
     } catch (...) {
         fSpendValid = false;
     }
@@ -607,10 +609,11 @@ BOOST_AUTO_TEST_CASE(test_coinspendv4)
 
     uint256 ptxHash = uint256();
     uint256 checksum = uint256();
-    CoinSpend spend(Params().Zerocoin_Params(), coin, accumulator, checksum, witness, ptxHash, SpendType::SPEND, CoinSpend::V4_LIMP);
+    CoinSpend spend(Params().Zerocoin_Params(), coin, accumulator, checksum, witness, ptxHash, SpendType::SPEND, CoinSpend::V4_LIMP, false);
 
     std::string strError;
-    bool fValid = spend.Verify(accumulator, strError, true);
+    CBigNum bnPubcoin;
+    bool fValid = spend.Verify(accumulator, strError, bnPubcoin, true, false, true);
     strError = std::string("Valid v4 coinspend failed to verify: ") + strError;
     BOOST_CHECK_MESSAGE(fValid, strError);
 

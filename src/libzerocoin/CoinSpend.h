@@ -49,7 +49,8 @@ public:
     CoinSpend(const ZerocoinParams* params, Stream& strm) :
         accumulatorPoK(&params->accumulatorParams),
         smallSoK(params),
-        commitmentPoK(&params->serialNumberSoKCommitmentGroup, &params->accumulatorParams.accumulatorPoKCommitmentGroup)
+        commitmentPoK(&params->serialNumberSoKCommitmentGroup, &params->accumulatorParams.accumulatorPoKCommitmentGroup),
+        pubcoinSig(params)
     {
         strm >> *this;
     }
@@ -78,7 +79,7 @@ public:
 	 * @throw ZerocoinException if the process fails
 	 */
     CoinSpend(const ZerocoinParams* params, const PrivateCoin& coin, Accumulator& a, const uint256& checksum,
-              const AccumulatorWitness& witness, const uint256& ptxHash, const SpendType& spendType, const uint8_t version = (uint8_t) V3_SMALL_SOK);
+              const AccumulatorWitness& witness, const uint256& ptxHash, const SpendType& spendType, const uint8_t version = (uint8_t) V3_SMALL_SOK, bool fLightZerocoin = false, const uint256& txidMintFrom = uint256(), int nOutputPos = -1);
 
     bool operator<(const CoinSpend& rhs) const { return this->getCoinSerialNumber() < rhs.getCoinSerialNumber(); }
 
@@ -114,6 +115,7 @@ public:
     CPubKey getPubKey() const { return pubkey; }
     SpendType getSpendType() const { return spendType; }
     std::vector<unsigned char> getSignature() const { return vchSig; }
+    const PubcoinSignature& getPubcoinSignature() const { return pubcoinSig; }
     uint256 getHashSig() {
         if (hashSig.IsNull()){
             hashSig = signatureHash();
@@ -121,7 +123,7 @@ public:
         return hashSig;
     }
 
-    bool Verify(const Accumulator& a, std::string& strError, bool verifySoK = true, bool verifyPubcoin = false) const;
+    bool Verify(const Accumulator& a, std::string& strError, const CBigNum& bnPubcoin, bool verifySoK, bool verifyPubcoin, bool verifyZKP) const;
     bool HasValidSerial(ZerocoinParams* params) const;
     bool HasValidSignature() const;
     std::string ToString() const;

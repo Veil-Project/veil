@@ -25,21 +25,41 @@ private:
     uint8_t m_version;
     const ZerocoinParams* m_params;
     CBigNum m_bnPubcoin;
-    CBigNum m_bnC1Randomness;
+    CBigNum m_bnRandomness; //randomness for v1 is c1 randomness. For v2 it is coin randomness.
+
+    //Version 2
+    uint256 m_hashTxFrom;
+    unsigned int m_nOutpointPos;
 
 public:
-    static const uint8_t CURRENT_VERSION = 1;
+    static const uint8_t C1_VERSION = 1; //Still uses other ZKPs as dependencies to validity
+    static const uint8_t PUBCOIN_VERSION = 2; //Directly checks pubcoin value for validity
+    static const uint8_t CURRENT_VERSION = PUBCOIN_VERSION;
 
-    PubcoinSignature()
+    PubcoinSignature(const ZerocoinParams* params)
+    {
+        SetNull();
+        m_params = params;
+    }
+    void SetNull()
     {
         m_version = 0;
         m_bnPubcoin = CBigNum(0);
-        m_bnC1Randomness = CBigNum(0);
+        m_bnRandomness = CBigNum(0);
+        m_hashTxFrom = uint256();
+        m_nOutpointPos = 0;
     }
 
+
     PubcoinSignature(const ZerocoinParams* params, const CBigNum& bnPubcoin, const Commitment& C1);
-    bool Verify(const CBigNum& bnC2, std::string& strError) const;
+    PubcoinSignature(const ZerocoinParams* params, const CBigNum& bnPubcoin, const CBigNum& bnRandomness, const uint256& txidFrom, int vout);
+    bool VerifyV1(const CBigNum& bnC1, std::string& strError) const;
+    bool VerifyV2(const CBigNum& bnSerial, const CBigNum& bnPubcoin, std::string strError) const;
     CBigNum GetPubcoinValue() const { return m_bnPubcoin; }
+    CBigNum GetRandomness() const { return m_bnRandomness; }
+    bool GetMintOutpoint(uint256& txid, int& n) const;
+    uint8_t GetVersion() const { return m_version; }
+    void SetParams(const ZerocoinParams* params) { m_params = params; }
 
     ADD_SERIALIZE_METHODS;
     template <typename Stream, typename Operation>
@@ -47,7 +67,11 @@ public:
     {
         READWRITE(m_version);
         READWRITE(m_bnPubcoin);
-        READWRITE(m_bnC1Randomness);
+        READWRITE(m_bnRandomness);
+        if (m_version >= PUBCOIN_VERSION) {
+            READWRITE(m_hashTxFrom);
+            READWRITE(m_nOutpointPos);
+        }
     }
 };
 

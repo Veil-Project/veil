@@ -3204,13 +3204,17 @@ bool CWallet::MintableCoins()
     LOCK(cs_main);
     CAmount nZBalance = GetZerocoinBalance(false);
 
+    int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
+    if (chainActive.Height() >= Params().HeightLightZerocoin())
+        nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+
     // zero coin
     if (nZBalance > 0) {
         std::set<CMintMeta> setMints = zTracker->ListMints(true, true, true);
         for (auto mint : setMints) {
             if (mint.nVersion < CZerocoinMint::STAKABLE_VERSION)
                 continue;
-            if (mint.nHeight > chainActive.Height() - Params().Zerocoin_RequiredStakeDepth())
+            if (mint.nHeight > chainActive.Height() - nRequiredDepth)
                 continue;
             return true;
         }
@@ -3866,7 +3870,11 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listI
         nTimeLastUpdate = GetAdjustedTime();
     }
 
-    set<CMintMeta> setMints = zTracker->ListMints(true, true, fUpdate);
+    int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
+    if (chainActive.Height() >= Params().HeightLightZerocoin())
+        nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+
+    std::set<CMintMeta> setMints = zTracker->ListMints(true, true, fUpdate);
     for (auto meta : setMints) {
         if (meta.hashStake == uint256()) {
             CZerocoinMint mint;
@@ -3879,7 +3887,7 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listI
         }
         if (meta.nVersion < CZerocoinMint::STAKABLE_VERSION)
             continue;
-        if (meta.nHeight < chainActive.Height() - Params().Zerocoin_RequiredStakeDepth()) {
+        if (meta.nHeight < chainActive.Height() - nRequiredDepth) {
             std::unique_ptr<ZerocoinStake> input(new ZerocoinStake(meta.denom, meta.hashStake));
             listInputs.emplace_back(std::move(input));
         }
@@ -5600,9 +5608,12 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
     // 3. Compute Accumulator and Witness
     string strFailReason = "";
     AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
-    if (!GenerateAccumulatorWitness(&coinwitness, mapAccumulators, nSecurityLevel, strFailReason, pindexCheckpoint)) {
-        receipt.SetStatus(_("Try to spend with a higher security level to include more coins"), ZFAILED_ACCUMULATOR_INITIALIZATION);
-        return error("%s : %s", __func__, receipt.GetStatusMessage());
+    bool fLightZerocoin = chainActive.Height() + 1 >= Params().HeightLightZerocoin();
+    if (!fLightZerocoin) {
+        if (!GenerateAccumulatorWitness(&coinwitness, mapAccumulators, nSecurityLevel, strFailReason, pindexCheckpoint)) {
+            receipt.SetStatus(_("Try to spend with a higher security level to include more coins"), ZFAILED_ACCUMULATOR_INITIALIZATION);
+            return error("%s : %s", __func__, receipt.GetStatusMessage());
+        }
     }
 
     // Construct the CoinSpend object. This acts like a signature on the transaction.
@@ -5620,7 +5631,13 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
     privateCoin.setPrivKey(key.GetPrivKey());
 
     libzerocoin::Accumulator accumulator = mapAccumulators.GetAccumulator(coinwitness.denom);
-    auto nChecksum = GetChecksum(accumulator.getValue());
+    uint256 nChecksum = GetChecksum(accumulator.getValue());
+    if (fLightZerocoin) {
+        if (pindexCheckpoint)
+            nChecksum = pindexCheckpoint->mapAccumulatorHashes.at(coinwitness.denom);
+        else
+            nChecksum = chainActive[chainActive.Height() - 20]->mapAccumulatorHashes.at(coinwitness.denom);
+    }
     CBigNum bnValue;
     if (!GetAccumulatorValueFromChecksum(nChecksum, false, bnValue) || bnValue == 0)
         return error("%s: could not find checksum used for spend\n", __func__);
@@ -5641,10 +5658,39 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
 
         uint8_t nVersion = fZCLimpMode ? libzerocoin::CoinSpend::V4_LIMP : libzerocoin::CoinSpend::V3_SMALL_SOK;
 
-        libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), privateCoin, accumulator, nChecksum, *coinwitness.pWitness, hashTxOut, spendType, nVersion);
+        //Link to the outpoint that the mint came from if using light zerocoin mode
+        uint256 txidMintFrom = uint256();
+        int pos = -1;
+        if (fLightZerocoin) {
+            txidMintFrom = meta.txid;
+            CTransactionRef ptx;
+            uint256 hashblock;
+            if (!GetTransaction(meta.txid, ptx, Params().GetConsensus(), hashblock, true))
+                return error("failed to find mint transaction");
+            int i = -1;
+            for (auto txout : ptx->vpout) {
+                i++;
+                if (!txout->IsZerocoinMint())
+                    continue;
+                libzerocoin::PublicCoin pubcoin(Params().Zerocoin_Params());
+                if (OutputToPublicCoin(txout.get(), pubcoin)) {
+                     if (meta.hashPubcoin == GetPubCoinHash(pubcoin.getValue())) {
+                         pos = i;
+                         break;
+                     }
+
+                }
+            }
+            if (pos == -1)
+                return error("Could not find zerocoin mint outpoint");
+        }
+
+        libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), privateCoin, accumulator, nChecksum, *coinwitness.pWitness, hashTxOut, spendType, nVersion, fLightZerocoin, txidMintFrom, pos);
 
         std::string strError;
-        if (!spend.Verify(accumulator, strError, true, fZCLimpMode)) {
+        bool fVerifySoK = !fLightZerocoin;
+        bool fVerifyZKP = fVerifySoK;
+        if (!spend.Verify(accumulator, strError, privateCoin.getPublicCoin().getValue(), fVerifySoK, /*VerifyPubcoin*/true, fVerifyZKP)) {
             receipt.SetStatus(_("The new spend coin transaction did not verify"), ZINVALID_WITNESS);
             return false;
         }
@@ -6650,7 +6696,11 @@ void CWallet::PrecomputeSpends()
     bool fLoadedDB = false;
     int64_t nLastCacheCleanUpTime = GetTime();
     int64_t nLastCacheWriteDB = nLastCacheCleanUpTime;
-    int nRequiredStakeDepthBuffer = Params().Zerocoin_RequiredStakeDepth() + 10;
+
+    int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
+    if (chainActive.Height() >= Params().HeightLightZerocoin())
+        nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+    int nRequiredStakeDepthBuffer = nRequiredDepth + 10;
 
     while (true) {
         boost::this_thread::interruption_point();
