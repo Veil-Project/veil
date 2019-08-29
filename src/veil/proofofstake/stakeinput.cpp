@@ -98,8 +98,6 @@ uint256 GetHashFromIndex(const CBlockIndex* pindexSample)
         return pindexSample->GetBlockPoWHash();
 
     uint256 hashProof = pindexSample->GetBlockPoSHash();
-    //it is possible that the block index won't have every hash needed (during the first transition to the protocol)
-    hashProof.SetNull();
     return hashProof;
 }
 
@@ -157,8 +155,6 @@ bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pin
 
             //Get a sampling of entropy from this block. Rehash the sample, since PoW hashes may have lots of 0's
             uint256 hashSample = GetHashFromIndex(pindexSample);
-            if (hashSample.IsNull())
-                return error("%s: wallet does not have block indexes properly indexed.", __func__);
             hashSample = Hash(hashSample.begin(), hashSample.end());
 
             //Reduce the size of the sampling
