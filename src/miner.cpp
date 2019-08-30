@@ -147,8 +147,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 
     CMutableTransaction txCoinStake;
-    LOCK(cs_main);
-    CBlockIndex* pindexPrev = chainActive.Tip();
+    CBlockIndex* pindexPrev;
+    {
+        LOCK(cs_main);
+        pindexPrev = chainActive.Tip();
+    }
     if (fProofOfStake && pindexPrev->nHeight + 1 >= Params().HeightPoSStart()) {
         //POS block - one coinbase is null then non null coinstake
         //POW block - one coinbase that is not null
@@ -184,8 +187,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     if (!fProofOfStake) {
         pblock->nTime = GetAdjustedTime();
-        if (pblock->nTime < chainActive.Tip()->GetBlockTime() - MAX_PAST_BLOCK_TIME) {
-            pblock->nTime = chainActive.Tip()->GetBlockTime() - MAX_PAST_BLOCK_TIME + 1;
+        if (pblock->nTime < pindexPrev->GetBlockTime() - MAX_PAST_BLOCK_TIME) {
+            pblock->nTime = pindexPrev->GetBlockTime() - MAX_PAST_BLOCK_TIME + 1;
         }
     }
     const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
