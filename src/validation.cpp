@@ -4286,16 +4286,17 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
                 // are subsequently check to make sure that they open to a specific pubcoin value, but with zerocoin
                 // additional checks are never a bad idea
                 uint256 txidCheck;
-                if (IsPubcoinSpendInBlockchain(hashPubcoin, nHeightMintTx, txidCheck, pindex->pprev)) {
-                    return error("%s: invalid tx %s pubcoinhash %s was already spent in tx %s", __func__, txid.GetHex(),
-                            hashPubcoin.GetHex(), txidCheck.GetHex());
+                int nHeightSpendCheck;
+                if (IsPubcoinSpendInBlockchain(hashPubcoin, nHeightSpendCheck, txidCheck, pindex->pprev)) {
+                    return error("%s: invalid tx %s pubcoinhash %s was already spent in tx %s block %d", __func__, txid.GetHex(),
+                            hashPubcoin.GetHex(), txidCheck.GetHex(), nHeightSpendCheck);
                 }
 
                 //Check that the accumulator checksum included in the spending transaction is valid and after the mint tx
                 //This is important because proof of stake validation code uses the accumulator checksum to determine the height
                 int nHeightChecksum = GetChecksumHeight(spend.getAccumulatorChecksum(), spend.getDenomination());
                 if (nHeightMintTx >= nHeightChecksum)
-                    return error("%s: invalid tx %s uses accumulator checksum that is before it was minted", __func__, txid.GetHex());
+                    return error("%s: invalid tx %s uses accumulator checksum that is before it was minted. Height mint:%d heightchecksum:%d", __func__, txid.GetHex(), nHeightMintTx, nHeightChecksum);
             }
 
             //Check to see if the zcspend is the correct denomination
@@ -4324,7 +4325,7 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
                         if (!txout->IsZerocoinMint())
                             return error("%s: outpoint %s:%d is not a zerocoinmint", __func__, txid.GetHex(), nOutPointPos);
                         if (!OutputToPublicCoin(txout.get(), pubcoin))
-                            return error("%s: failed to get pubcoin deserialize for tx %s", __func__, tx.GetHash().GetHex());
+                            return error("%s: failed to get pubcoin deserialize for tx %s", __func__, txid.GetHex());
                     } else {
                         //Search through the outputs and find the matching pubcoin
                         bool fFound = false;
