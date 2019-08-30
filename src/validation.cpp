@@ -4295,7 +4295,7 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
                 //This is important because proof of stake validation code uses the accumulator checksum to determine the height
                 int nHeightChecksum = GetChecksumHeight(spend.getAccumulatorChecksum(), spend.getDenomination());
                 if (nHeightMintTx >= nHeightChecksum)
-                    return error("%s: invalid tx %s uses accumulator checksum that is before it was minted");
+                    return error("%s: invalid tx %s uses accumulator checksum that is before it was minted", __func__, txid.GetHex());
             }
 
             //Check to see if the zcspend is the correct denomination
@@ -4318,7 +4318,7 @@ bool ContextualCheckZerocoinSpend(const CTransaction& tx, const libzerocoin::Coi
 
                     if (checkMode & CHECK_LIGHTMODE) {
                         //Can lookup the outpoint directly instead of iterating through vpout
-                        if (txMint->vpout.size() <= nOutPointPos)
+                        if (txMint->vpout.size() <= static_cast<unsigned int>(nOutPointPos))
                             return error("%s: outpoint %s:%d does not exist", __func__, txid.GetHex(), nOutPointPos);
                         auto txout = txMint->vpout[nOutPointPos];
                         if (!txout->IsZerocoinMint())
@@ -4520,7 +4520,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                 int nHeightSpend = 0;
                 if (IsSerialInBlockchain(hashSerial, nHeightSpend, pindexPrev))
                     return state.DoS(100, false, REJECT_INVALID, "bad-zcspend-in-chain", false,
-                            strprintf("Zerocoin serial hash %s already spent in block %d", hashSerial.GetHex(), nHeightSpend));
+                            strprintf("Tx %s spends Zerocoin serial hash %s already spent in block %d", tx->GetHash().GetHex(), hashSerial.GetHex(), nHeightSpend));
             }
         }
     }
