@@ -1620,11 +1620,6 @@ bool AppInitMain()
                     break;
                 }
 
-                if (!pzerocoinDB->LoadBlacklistOutPoints() || !pzerocoinDB->LoadBlacklistPubcoins()) {
-                    strLoadError = _("Blacklist loading failed. Use -reindex.");
-                    break;
-                }
-
                 // At this point blocktree args are consistent with what's on disk.
                 // If we're not mid-reindex (based on disk + args), add a genesis block on disk
                 // (otherwise we use the one already on disk).

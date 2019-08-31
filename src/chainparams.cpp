@@ -337,6 +337,7 @@ public:
         nHeightCheckDenom = 321700;
         nHeightLightZerocoin = 335975;
         nValueBlacklist = (282125 + 60540) * COIN;
+        nHeightEnforceBlacklist =
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;

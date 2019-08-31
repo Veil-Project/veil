@@ -570,6 +570,11 @@ std::string GetInitialAddressBlacklist()
 std::string GetInitialPubcoinBlacklist()
 {
     std::string strPubcoins = "[\n"
+                              "  \"e3fd49c5dcfd7f0c8ec3eac4cf6cfdbd46bd4601530d56c363eb329c90fd2226\",\n"
+                              "  \"5b5e7799690b8cdf08196d79b2dac82461ec059f7d255b7935a10c917ecf5288\",\n"
+                              "  \"5bd16958fced0e814bd87626cef53357a6ce3166f33147079db7ee05661b5c8f\",\n"
+                              "  \"252727d6d265a65dc66aa9647942158eaef835a9f153b8ea547f3956e127eda0\",\n"
+                              "  \"60089dc5b02e97088a60025d32da517ead8bef71462852feb7611a67eb702ece\",\n"
                               "  \"975a8cf4ba65a7b2d7908fe339c4d350481f1b5b5333958b3d3e47efef3ada01\",\n"
                               "  \"0a3e93c97537c00b2390ccf422a44a5bf47cae32b70d086a0ae0173daa33ad03\",\n"
                               "  \"52860df89a363248c07af728c09a0cb2b8942d15dc3ab68bd88043ee30c1f003\",\n"

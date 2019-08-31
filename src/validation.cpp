@@ -189,7 +189,6 @@ public:
             CBlockIndex** ppindex, bool fProofOfStake, bool fProofOfFullNode, int nMaxHeightNoPoWScore) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput* stake);
-    void AddOutpointsToBlacklist(CBlockIndex* pindex, const CTransaction& tx);
 
     // Block (dis)connection on a given view:
     DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
@@ -2192,55 +2191,6 @@ static unsigned int GetBlockScriptFlags(const CBlockIndex* pindex, const Consens
     return flags;
 }
 
-void CChainState::AddOutpointsToBlacklist(CBlockIndex* pindex, const CTransaction& tx)
-{
-    if (IsInitialBlockDownload())
-        return;
-    uint256 txid = tx.GetHash();
-
-
-    //Soft check here, not yet enforced. Don't DoS the peer, and still consider the block valid,
-    // but lower its consensus score and prefer a different block if an alternative comes in
-    LogPrintf("%s: Tx %s using blacklisted inputs\n", __func__, txid.GetHex());
-    pindex->nChainWork = 1;
-    setDirtyBlockIndex.emplace(pindex);
-
-    //Add new outpoints to the blacklist
-    for (unsigned int i = 0; i < tx.vpout.size(); i++) {
-        const auto txout = tx.vpout[i];
-        COutPoint outpoint(txid, i);
-        bool fWriteOutPoint = true;
-        switch (txout->GetType()) {
-            case OUTPUT_RINGCT: {
-                blacklist::AddRctOutPoint(outpoint);
-            }
-            case OUTPUT_STANDARD: {
-                if (txout->IsZerocoinMint()) {
-                    libzerocoin::PublicCoin pubcoin(Params().Zerocoin_Params());
-                    if (OutputToPublicCoin(txout.get(), pubcoin)) {
-                        uint256 hashPubcoin = GetPubCoinHash(pubcoin.getValue());
-                        blacklist::AddPubcoinHash(hashPubcoin);
-                        pzerocoinDB->WriteBlacklistedPubcoin(hashPubcoin);
-                        fWriteOutPoint = false;
-                    }
-                } else {
-                    blacklist::AddBasecoinOutPoint(outpoint);
-                }
-            }
-            case OUTPUT_CT : {
-                blacklist::AddStealthOutPoint(outpoint);
-            }
-            case OUTPUT_DATA:
-            default: {
-                //do nothing here
-                fWriteOutPoint = false;
-            }
-        }
-        if (fWriteOutPoint)
-            pzerocoinDB->WriteBlacklistedOutpoint(outpoint, txout->GetType());
-    }
-}
-
 static int64_t nTimeCheck = 0;
 static int64_t nTimeForks = 0;
 static int64_t nTimeVerify = 0;
@@ -2465,7 +2415,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     std::map<libzerocoin::PublicCoin, uint256> mapMints;
     ThresholdState tstate = VersionBitsState(pindex->pprev, Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP, versionbitscache);
     bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
-    bool fCheckBlacklistHard = pindex->nHeight >= Params().HeightLightZerocoin();
+    bool fCheckBlacklistHard = pindex->nHeight >= Params().HeightEnforceBlacklist();
 
     CAmount nBlockValueIn = 0;
     CAmount nBlockValueOut = 0;
@@ -2571,7 +2521,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                         checkMode |= CHECK_BLACKLIST_HARD;
 
                     int nFailReason = 0;
-                    if (!ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, checkMode, nFailReason)) {
+                    if (!fSkipComputation && pindex->nHeight >= Params().HeightLightZerocoin() && !ContextualCheckZerocoinSpend(tx, *spend.get(), block.GetHash(), pindex, checkMode, nFailReason)) {
                         if ((nFailReason & FAIL_BLACKLIST) && !(checkMode & CHECK_BLACKLIST_HARD)) {
                             //Soft check here, not yet enforced. Don't DoS the peer, and still consider the block valid,
                             // but lower its consensus score and prefer a different block if an alternative comes in
@@ -2644,7 +2594,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                     if (!OutputToPublicCoin(pOut.get(), coin))
                         return state.DoS(100, error("%s: failed final check of zerocoinmint for tx %s", __func__, tx.GetHash().GetHex()), REJECT_INVALID);
 
-                    if (!ContextualCheckZerocoinMint(tx, coin, pindex))
+                    if (!fSkipComputation && !ContextualCheckZerocoinMint(tx, coin, pindex))
                         return state.DoS(100, error("%s: zerocoin mint failed contextual check in transaction %s", __func__, tx.GetHash().GetHex()), REJECT_INVALID);
 
                     if (mapMints.count(coin))
@@ -2917,10 +2867,6 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     if (pindex->nHeight >= Params().HeightLightZerocoin()) {
         if (!pzerocoinDB->WritePubcoinSpendBatch(mapSpentPubcoinsInBlock, pindex->GetBlockHash()) )
             return state.Error(("Failed to record new pubcoinspends to database"));
-    }
-
-    for (auto tx : vBlacklistTxOutpoints) {
-        AddOutpointsToBlacklist(pindex, *tx);
     }
 
     //Record accumulator checksums - if they have been updated, which happens every ten blocks
