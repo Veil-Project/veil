@@ -816,6 +816,11 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         boost::this_thread::interruption_point();
 #ifdef ENABLE_WALLET
         if (enablewallet && fProofOfStake) {
+            if (IsInitialBlockDownload()) {
+                MilliSleep(60000);
+                continue;
+            }
+
             //Need wallet if this is for proof of stake
             auto pwallet = GetMainWallet();
 
