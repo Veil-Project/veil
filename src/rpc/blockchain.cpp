@@ -1998,6 +1998,10 @@ static UniValue getblockstats(const JSONRPCRequest& request)
             }
 
             CAmount txfee = tx_total_in - tx_total_out;
+            if (tx_total_in < tx_total_out) {
+                // RingCT with hidden inputs, can't count it
+                continue;
+            }
             assert(MoneyRange(txfee));
             if (do_medianfee) {
                 fee_array.push_back(txfee);
