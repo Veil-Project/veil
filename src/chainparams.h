@@ -141,6 +141,7 @@ public:
     int BIP9Period() const { return consensus.nMinerConfirmationWindow; }
     int HeightCheckDenom() const { return nHeightCheckDenom; }
     int HeightLightZerocoin() const { return nHeightLightZerocoin; }
+    int HeightEnforceBlacklist() const { return nHeightEnforceBlacklist; }
 
 protected:
     CChainParams() {}
@@ -199,6 +200,7 @@ protected:
     int nHeightProtocolBumpEnforcement; // the height a new protobump is enforced
     int nHeightCheckDenom;
     int nHeightLightZerocoin;
+    int nHeightEnforceBlacklist;
 
     //Settings that are not chain critical, but should not be edited unless the person changing understands the consequence
     int nMaxHeaderRequestWithoutPoW;
