@@ -551,7 +551,7 @@ bool CWallet::UnlockAnonWallet()
     if (idDerived != idSeedDB)
         return error("%s: derived anon wallet key %s does not match expected key %s", __func__, idDerived.GetHex(), idSeedDB.GetHex());
 
-    pAnonWalletMain->SetMasterKey(keyAnonMaster);
+    pAnonWalletMain->UnlockWallet(keyAnonMaster);
     return true;
 }
 
@@ -5405,7 +5405,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
         if (!walletInstance->GetAnonWalletSeed(extMasterAnon))
             throw std::runtime_error(strprintf("%s: could not get anon wallet seed on wallet load", __func__));
         AnonWallet* anonwallet = walletInstance->GetAnonWallet();
-        assert(anonwallet->SetMasterKey(extMasterAnon));
+        assert(anonwallet->UnlockWallet(extMasterAnon));
     }
 
     return walletInstance;
