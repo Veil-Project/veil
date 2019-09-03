@@ -32,8 +32,9 @@ public:
     void refreshWalletStatus();
 
 public Q_SLOTS:
-    void on_btnCopyAddress_clicked();
+    void onBtnCopyAddressClicked();
     void generateNewAddressClicked();
+    void hideThisWidget();
 
 private:
     Ui::ReceiveWidget *ui;

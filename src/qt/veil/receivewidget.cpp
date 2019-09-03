@@ -67,12 +67,12 @@ ReceiveWidget::ReceiveWidget(QWidget *parent, WalletView* walletView) :
 
     ui->labelAddress->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
 
-    connect(ui->btnCopy, SIGNAL(clicked()), this, SLOT(on_btnCopyAddress_clicked()));
+    connect(ui->btnCopy, SIGNAL(clicked()), this, SLOT(onBtnCopyAddressClicked()));
     connect(ui->btnCreate, SIGNAL(clicked()), this, SLOT(generateNewAddressClicked()));
 
 }
 
-void ReceiveWidget::on_btnCopyAddress_clicked() {
+void ReceiveWidget::onBtnCopyAddressClicked() {
     if(!qAddress.isEmpty()) {
         GUIUtil::setClipboard(qAddress);
         openToastDialog("Address copied", mainWindow->getGUI());
@@ -204,6 +204,10 @@ void ReceiveWidget::hideEvent(QHideEvent *event){
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
     connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
+}
+
+void ReceiveWidget::hideThisWidget(){
+    this->hide();
 }
 
 ReceiveWidget::~ReceiveWidget()

@@ -40,6 +40,7 @@ private Q_SLOTS:
     void onAdvanceClicked();
     void onCheckStakingClicked(bool res);
     void onLabelStakingClicked();
+    void hideThisWidget();
 private:
     Ui::SettingsWidget *ui;
     WalletView *mainWindow;

@@ -41,7 +41,7 @@ public Q_SLOTS:
     void onBtnBalanceClicked();
     void onBtnUnconfirmedClicked();
     void onBtnImmatureClicked();
-    void on_btnCopyAddress_clicked();
+    void onBtnCopyAddressClicked();
 
 private:
     Ui::Balance *ui;
