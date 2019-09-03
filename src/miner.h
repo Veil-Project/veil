@@ -23,12 +23,21 @@ namespace Consensus { struct Params; };
 
 static const bool DEFAULT_PRINTPRIORITY = false;
 
+enum TemplateFlags
+{
+    TF_FAIL = 0,
+    TF_SUCCESS = (1 << 0),
+    TF_STAILTIP = (1 << 1),
+    TF_MEMPOOLFAIL = (1 << 2),
+};
+
 struct CBlockTemplate
 {
     CBlock block;
     std::vector<CAmount> vTxFees;
     std::vector<int64_t> vTxSigOpsCost;
     std::vector<unsigned char> vchCoinbaseCommitment;
+    uint8_t nFlags;
 };
 
 // Container for tracking updates to ancestor feerate as we include (parent)

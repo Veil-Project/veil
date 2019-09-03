@@ -124,6 +124,8 @@ public:
     int Zerocoin_RequiredStakeDepthV2() const { return nZerocoinRequiredStakeDepthV2; }
     int Zerocoin_OverSpendAdjustment(libzerocoin::CoinDenomination denom) const;
     CAmount ValueBlacklisted() const { return nValueBlacklist; }
+    int Zerocoin_PreferredMintsPerBlock() const { return nPreferredMintsPerBlock; }
+    int Zerocoin_PreferredMintsPerTransaction() const { return nPreferredMintsPerTx; }
 
     /** RingCT and Stealth **/
     int DefaultRingSize() const { return nDefaultRingSize; }
@@ -180,6 +182,8 @@ protected:
     int nRequiredAccumulation;
     int nDefaultSecurityLevel;
     CAmount nValueBlacklist;
+    int nPreferredMintsPerBlock;
+    int nPreferredMintsPerTx;
 
     //RingCT/Stealth
     int nDefaultRingSize;

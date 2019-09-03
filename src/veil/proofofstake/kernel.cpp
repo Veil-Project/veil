@@ -78,7 +78,7 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
 
     //grab stake modifier
     uint64_t nStakeModifier = 0;
-    if (!stakeInput->GetModifier(nStakeModifier, chainActive.Tip()))
+    if (!stakeInput->GetModifier(nStakeModifier, pindexBest))
         return error("failed to get kernel stake modifier");
 
     bool fSuccess = false;

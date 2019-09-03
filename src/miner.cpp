@@ -133,6 +133,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
 
     pblocktemplate.reset(new CBlockTemplate());
+    pblocktemplate->nFlags = TF_FAIL;
 
     if(!pblocktemplate.get()) {
         error("Failing to get the block template\n");
@@ -150,7 +151,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     CBlockIndex* pindexPrev;
     {
         LOCK(cs_main);
-        pindexPrev = chainActive.Tip();
+        //Do not pass in the chain tip, because it can change. Instead pass the blockindex directly from mapblockindex, which is const.
+        auto pindexTip = chainActive.Tip();
+        if (!pindexTip)
+            return nullptr;
+        auto hashBest = pindexTip->GetBlockHash();
+        pindexPrev = mapBlockIndex.at(hashBest);
     }
     if (fProofOfStake && pindexPrev->nHeight + 1 >= Params().HeightPoSStart()) {
         //POS block - one coinbase is null then non null coinstake
@@ -174,6 +180,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     TRY_LOCK(mempool.cs, fLockMem);
     if (!fLockMem) {
         error("Failing to get the lock on the mempool\n");
+        pblocktemplate->nFlags |= TF_MEMPOOLFAIL;
         return nullptr;
     }
 
@@ -236,6 +243,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     for (unsigned int i = 0; i < pblock->vtx.size(); i++) {
         if (pblock->vtx[i] == nullptr)
+            continue;
+
+        //Don't overload the block with too many zerocoinmints that will slow down validation and propogation of the block
+        if (setPubcoins.size() >= Params().Zerocoin_PreferredMintsPerBlock())
             continue;
 
         bool fRemove = false;
@@ -500,6 +511,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         LogPrint(BCLog::BLOCKCREATION, "%s: FOUND STAKE!!\n block: \n%s\n", __func__, pblock->ToString());
     }
 
+    if (pindexPrev && pindexPrev != chainActive.Tip()) {
+        error("%s: stail tip.", __func__);
+        pblocktemplate->nFlags |= TF_STAILTIP;
+        return std::move(pblocktemplate);
+    }
+
     CValidationState state;
     if (!TestBlockValidity(state, chainparams, *pblock, pindexPrev, false, false)) {
         error("%s: TestBlockValidity failed: %s", __func__, FormatStateMessage(state));
@@ -516,6 +533,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         mapComputeTimeTransactions[pblock->vtx[1]->GetHash()] = nComputeTimeFinish - nComputeTimeStart; //store the compute time of this transaction
     }
 
+    pblocktemplate->nFlags = TF_SUCCESS;
     return std::move(pblocktemplate);
 }
 
@@ -899,6 +917,9 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(scriptMining, false, fProofOfStake, fProofOfFullNode));
         if (!pblocktemplate || !pblocktemplate.get())
             continue;
+        if (!(pblocktemplate->nFlags & TF_SUCCESS)) {
+            continue;
+        }
 
         CBlock *pblock = &pblocktemplate->block;
         int32_t nNonceLocal;
