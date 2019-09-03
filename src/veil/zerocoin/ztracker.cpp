@@ -365,6 +365,7 @@ void CzTracker::RemovePending(const uint256& txid)
 
 bool CzTracker::UpdateStatusInternal(const std::set<uint256>& setMempool, const std::map<uint256, uint256>& mapMempoolSerials, CMintMeta& mint)
 {
+    LOCK(cs_update_status);
     //! Check whether this mint has been spent and is considered 'pending' or 'confirmed'
     // If there is not a record of the block height, then look it up and assign it
     uint256 txidMint;
