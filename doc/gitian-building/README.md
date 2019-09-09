@@ -1,9 +1,6 @@
 Gitian building
 ================
 
-*Setup instructions for a Gitian build of Veil using a VM or physical system.*
-*You Should use Ubuntu 18.04.1 server for the VM host until further notice*
-
 Gitian is the deterministic build process that is used to build the Veil
 executables. It provides a way to be reasonably sure that the
 executables are really built from the git source. It also makes sure that
@@ -15,22 +12,28 @@ These results are compared and only if they match, the build is accepted and pro
 for download.
 
 More independent Gitian builders are needed, which is why this guide exists.
-It is preferred you follow these steps yourself instead of using someone else's
-VM image to avoid 'contaminating' the build.
+
+# Gitian building using Docker (Current)
+Veil gitian builds utilize docker images and containers.
+More information about that process can be found here:
+https://github.com/Veil-Project/docker-based-gitian-builder
+
+
+# Gitian building using a VM (Legacy)
+*Maintained for legacy purposes. The docker process above should be used for all new builds.*
+- *Setup instructions for a Gitian build of Veil using a VM or physical system.*
+- *You Should use Ubuntu 18.04.1 server for the VM host until further notice.*
 
 Table of Contents
 ------------------
-
 - [Preparing the Gitian builder host](#preparing-the-gitian-builder-host)
-- [Getting and building the inputs](#getting-and-building-the-inputs)
-- [Building Veil](#building-bitcoin-core)
-- [Building an alternative repository](#building-an-alternative-repository)
-- [Signing externally](#signing-externally)
-- [Uploading signatures](#uploading-signatures)
+- [Initial Gitian Setup](#initial-gitian-setup)
+- [Building Veil Binaries](#building-veil-binaries)
+- [Signing Externally](#signing-externally)
+- [Uploading Signatures](#uploading-signatures)
 
 Preparing the Gitian builder host
 ---------------------------------
-
 The first step is to prepare the host environment that will be used to perform the Gitian builds.
 This guide explains how to set up the environment, and how to start the builds.
 
@@ -47,8 +50,8 @@ Please refer to the following documents to set up the operating systems and Giti
 
 |                                   | Debian                                                                             | Fedora                                                                             |
 |-----------------------------------|------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|
-| Setup virtual machine (optional)  | [Create Debian VirtualBox](./gitian-building/gitian-building-create-vm-debian.md) | [Create Fedora VirtualBox](./gitian-building/gitian-building-create-vm-fedora.md) |
-| Setup Gitian                      | [Setup Gitian on Debian](./gitian-building/gitian-building-setup-gitian-debian.md) | [Setup Gitian on Fedora](./gitian-building/gitian-building-setup-gitian-fedora.md) |
+| Setup virtual machine (optional)  | [Create Debian VirtualBox](./gitian-building-create-vm-debian.md) | [Create Fedora VirtualBox](./gitian-building-create-vm-fedora.md) |
+| Setup Gitian                      | [Setup Gitian on Debian](./gitian-building-setup-gitian-debian.md) | [Setup Gitian on Fedora](./gitian-building-setup-gitian-fedora.md) |
 
 Note that a version of `lxc-execute` higher or equal to 2.1.1 is required.
 You can check the version with `lxc-execute --version`.
@@ -56,11 +59,11 @@ On Debian you might have to compile a suitable version of lxc or you can use Ubu
 
 Non-Debian / Ubuntu, Manual and Offline Building
 ------------------------------------------------
-The instructions below use the automated script [gitian-build.py](https://github.com/Veil-Project/veil/blob/master/contrib/gitian-build.py) which only works in Debian/Ubuntu. For manual steps and instructions for fully offline signing, see [this guide](./gitian-building/gitian-building-manual.md).
+The instructions below use the automated script [gitian-build.py](https://github.com/Veil-Project/veil/blob/master/contrib/gitian-build.py) which only works in Debian/Ubuntu. For manual steps and instructions for fully offline signing, see [this guide](./gitian-building-manual.md).
 
 MacOS code signing
 ------------------
-In order to sign builds for MacOS, you need to download the free SDK and extract a file. The steps are described [here](./gitian-building/gitian-building-mac-os-sdk.md). Alternatively, you can skip the OSX build by adding `--os=lw` below. Or you can download a hosted version from here https://dl.dropboxusercontent.com/s/guon6ye5ciktqsk/MacOSX10.11.sdk.tar.gz
+In order to sign builds for MacOS, you need to download the free SDK and extract a file. The steps are described [here](./gitian-building-mac-os-sdk.md). Alternatively, you can skip the OSX build by adding `--os=lw` below. Or you can download a hosted version from here https://dl.dropboxusercontent.com/s/guon6ye5ciktqsk/MacOSX10.11.sdk.tar.gz
 
 Initial Gitian Setup
 --------------------
@@ -85,7 +88,7 @@ git clone git@github.com:Veil-Project/gitian.sigs.git
 git remote add satoshi git@github.com:satoshi/gitian.sigs.git
 ```
 
-Build binaries
+Building Veil Binaries
 -----------------------------
 Windows and OSX have code signed binaries, but those won't be available until a few developers have gitian signed the non-codesigned binaries.
 
@@ -95,6 +98,9 @@ To build the most recent tag:
 
 To speed up the build, use `-j 8 -m 6000` as the first arguments, where `8` is the number of CPU's you allocated to the VM plus one, and 6000 is a little bit less than then the MB's of RAM you allocated.
 
+
+Signing Externally
+-----------------------------
 If all went well, this produces a number of (uncommited) `.assert` files in the gitian.sigs repository.
 
 You need to copy these uncommited changes to your host machine, where you can sign them:
@@ -115,6 +121,8 @@ git commit -S -a -m "Add $NAME 0.0.9.9 non-code signed signatures"
 git push --set-upstream $NAME 0.0.9.9
 ```
 
+Uploading Signatures
+-----------------------------
 You can also mail the files to Presstab (presstab1337@gmail.com) and he will commit them.
 
 ```bash
