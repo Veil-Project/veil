@@ -81,17 +81,17 @@ void ReceiveWidget::onBtnCopyAddressClicked() {
 }
 
 void ReceiveWidget::generateNewAddressClicked(){
-    if(generateNewAddress()) openToastDialog("Address generated", mainWindow->getGUI());
+    if(generateNewAddress(true)) openToastDialog("Address generated", mainWindow->getGUI());
     else openToastDialog("Wallet Encrypted, please unlock it first", mainWindow->getGUI());
 }
 
-bool ReceiveWidget::generateNewAddress(){
+bool ReceiveWidget::generateNewAddress(bool isOnDemand){
     // Address
     interfaces::Wallet& wallet = walletModel->wallet();
 
     std::string strAddress;
     std::vector<interfaces::WalletAddress> addresses = wallet.getLabelAddress("stealth");
-    if(!addresses.empty()) {
+    if(!isOnDemand && !addresses.empty()) {
         interfaces::WalletAddress address = addresses[0];
         if (address.dest.type() == typeid(CStealthAddress)){
             bool fBech32 = true;
