@@ -1947,6 +1947,13 @@ static UniValue getblockstats(const JSONRPCRequest& request)
         if (tx->IsCoinBase()) {
             continue;
         }
+        if (tx->IsCoinStake()) {
+            continue;
+        }
+        if (tx->vin[0].IsAnonInput()) {
+            // Can't really do much with a ringCT transaction
+            continue;
+        }
 
         inputs += tx->vin.size(); // Don't count coinbase's fake input
         total_out += tx_total_out; // Don't count coinbase reward
@@ -1982,21 +1989,29 @@ static UniValue getblockstats(const JSONRPCRequest& request)
             }
             CAmount tx_total_in = 0;
             for (const CTxIn& in : tx->vin) {
-                CTransactionRef tx_in;
-                uint256 hashBlock;
-                if (!GetTransaction(in.prevout.hash, tx_in, Params().GetConsensus(), hashBlock, false)) {
-                    throw JSONRPCError(RPC_INTERNAL_ERROR, std::string("Unexpected internal error (tx index seems corrupt)"));
+                if (!in.IsZerocoinSpend()) {
+                    CTransactionRef tx_in;
+                    uint256 hashBlock;
+                    if (!GetTransaction(in.prevout.hash, tx_in, Params().GetConsensus(), hashBlock, false)) {
+                        throw JSONRPCError(RPC_INTERNAL_ERROR, std::string("Unexpected internal error (tx index seems corrupt)"));
+                    }
+
+                    auto prevoutput = tx_in->vpout[in.prevout.n];
+
+                    tx_total_in += prevoutput->GetValue();
+                    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+                    ss << *prevoutput.get();
+                    utxo_size_inc -= ss.size() + PER_UTXO_OVERHEAD;
+                } else {
+                    tx_total_in += in.GetZerocoinSpent();
                 }
-
-                auto prevoutput = tx_in->vpout[in.prevout.n];
-
-                tx_total_in += prevoutput->GetValue();
-                CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-                ss << *prevoutput.get();
-                utxo_size_inc -= ss.size() + PER_UTXO_OVERHEAD;
             }
 
             CAmount txfee = tx_total_in - tx_total_out;
+            if (tx_total_in < tx_total_out) {
+                // RingCT with hidden inputs, can't count it
+                continue;
+            }
             assert(MoneyRange(txfee));
             if (do_medianfee) {
                 fee_array.push_back(txfee);
