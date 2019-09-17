@@ -26,7 +26,7 @@
 //
 // WalletBatch
 //
-
+CCriticalSection cs_walletdb;
 bool WalletBatch::WriteName(const std::string& strAddress, const std::string& strName)
 {
     return WriteIC(std::make_pair(std::string("name"), strAddress), strName);
@@ -459,6 +459,7 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
     DBErrors result = DBErrors::LOAD_OK;
 
     LOCK(pwallet->cs_wallet);
+    LOCK(cs_walletdb);
     try {
         int nMinVersion = 0;
         if (m_batch.Read((std::string)"minversion", nMinVersion))
@@ -560,7 +561,7 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
 DBErrors WalletBatch::FindWalletTx(std::vector<uint256>& vTxHash, std::vector<CWalletTx>& vWtx)
 {
     DBErrors result = DBErrors::LOAD_OK;
-
+    LOCK(cs_walletdb);
     try {
         int nMinVersion = 0;
         if (m_batch.Read((std::string)"minversion", nMinVersion))
@@ -953,7 +954,7 @@ bool WalletBatch::WriteMintPoolPair(const CKeyID& hashMasterSeed, const uint256&
 std::map<CKeyID, std::vector<std::pair<uint256, uint32_t> > > WalletBatch::MapMintPool()
 {
     std::map<CKeyID, std::vector<std::pair<uint256, uint32_t> > > mapPool;
-
+    LOCK(cs_walletdb);
     try {
         int nMinVersion = 0;
         if (m_batch.Read((std::string)"minversion", nMinVersion))
@@ -1018,7 +1019,7 @@ std::map<CKeyID, std::vector<std::pair<uint256, uint32_t> > > WalletBatch::MapMi
 std::list<CDeterministicMint> WalletBatch::ListDeterministicMints()
 {
     std::list<CDeterministicMint> listMints;
-
+    LOCK(cs_walletdb);
     try {
         int nMinVersion = 0;
         if (m_batch.Read((std::string)"minversion", nMinVersion))
@@ -1072,7 +1073,7 @@ std::list<CDeterministicMint> WalletBatch::ListDeterministicMints()
 std::list<CZerocoinMint> WalletBatch::ListMintedCoins()
 {
     std::list<CZerocoinMint> listPubCoin;
-
+    LOCK(cs_walletdb);
     try {
         int nMinVersion = 0;
         if (m_batch.Read((std::string)"minversion", nMinVersion))
@@ -1126,7 +1127,7 @@ std::list<CZerocoinMint> WalletBatch::ListMintedCoins()
 std::list<CZerocoinSpend> WalletBatch::ListSpentCoins()
 {
     std::list<CZerocoinSpend> listCoinSpend;
-
+    LOCK(cs_walletdb);
     try {
         int nMinVersion = 0;
         if (m_batch.Read((std::string)"minversion", nMinVersion))
@@ -1191,7 +1192,7 @@ std::list<CBigNum> WalletBatch::ListSpentCoinsSerial()
 std::list<CZerocoinMint> WalletBatch::ListArchivedZerocoins()
 {
     std::list<CZerocoinMint> listMints;
-
+    LOCK(cs_walletdb);
     try {
         int nMinVersion = 0;
         if (m_batch.Read((std::string)"minversion", nMinVersion))
@@ -1244,7 +1245,7 @@ std::list<CZerocoinMint> WalletBatch::ListArchivedZerocoins()
 std::list<CDeterministicMint> WalletBatch::ListArchivedDeterministicMints()
 {
     std::list<CDeterministicMint> listMints;
-
+    LOCK(cs_walletdb);
     try {
         int nMinVersion = 0;
         if (m_batch.Read((std::string)"minversion", nMinVersion))

@@ -140,7 +140,7 @@ int GetSampleBits(int nSampleCount)
 bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)
 {
     CBlockIndex* pindex = GetIndexFrom();
-    if (!pindex)
+    if (!pindex || !pindexChainPrev)
         return false;
 
     uint256 hashModifier;

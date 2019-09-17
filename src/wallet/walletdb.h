@@ -160,6 +160,7 @@ protected:
     template <typename K, typename T>
     bool WriteIC(const K& key, const T& value, bool fOverwrite = true)
     {
+        LOCK(cs_walletdb);
         if (!m_batch.Write(key, value, fOverwrite)) {
             return false;
         }
@@ -170,6 +171,7 @@ protected:
     template <typename K>
     bool EraseIC(const K& key)
     {
+        LOCK(cs_walletdb);
         if (!m_batch.Erase(key)) {
             return false;
         }
@@ -289,6 +291,7 @@ public:
 protected:
     BerkeleyBatch m_batch;
     WalletDatabase& m_database;
+    CCriticalSection cs_walletdb;
 };
 
 //! Compacts BDB state so that wallet.dat is self-contained (if there are changes)

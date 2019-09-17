@@ -339,6 +339,8 @@ public:
         nHeightLightZerocoin = 335975;
         nValueBlacklist = (282125 + 60540) * COIN;
         nHeightEnforceBlacklist = 336413;
+        nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
+        nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
