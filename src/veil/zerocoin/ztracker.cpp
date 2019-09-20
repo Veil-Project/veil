@@ -360,12 +360,10 @@ void CzTracker::RemovePending(const uint256& txid)
     if (hashSerial > arith_uint256())
         if (mapPendingSpends.count(hashToRemove))
             mapPendingSpends.erase(hashToRemove);
-
 }
 
 bool CzTracker::UpdateStatusInternal(const std::set<uint256>& setMempool, const std::map<uint256, uint256>& mapMempoolSerials, CMintMeta& mint)
 {
-    LOCK(cs_update_status);
     //! Check whether this mint has been spent and is considered 'pending' or 'confirmed'
     // If there is not a record of the block height, then look it up and assign it
     uint256 txidMint;
@@ -383,17 +381,21 @@ bool CzTracker::UpdateStatusInternal(const std::set<uint256>& setMempool, const 
     // Double check the mempool for pending spend
     if (isPendingSpend) {
         if (isPendingSpendInternal) {
-            uint256 txidPendingSpend = mapPendingSpends.at(mint.hashSerial);
+            {
+                LOCK(cs_remove_pending);
+                uint256 txidPendingSpend = mapPendingSpends.at(mint.hashSerial);
 
-            // Remove internal pendingspend status if it is confirmed or is not found at all in the mempool
-            if ((!setMempool.count(txidPendingSpend) && !isPendingSpendMempool) || isConfirmedSpend) {
-                RemovePending(txidPendingSpend);
-                isPendingSpend = false;
-                LogPrintf("%s : Pending txid %s removed because not in mempool\n", __func__, txidPendingSpend.GetHex());
-            } else if (isPendingSpendMempool) {
-                // Mempool has this serial in it, but our internal status does not display it as pending spend
-                // This could happen as easily as restarting the application
-                mapPendingSpends.emplace(mint.hashSerial, mapMempoolSerials.at(mint.hashSerial));
+                // Remove internal pendingspend status if it is confirmed or is not found at all in the mempool
+                if ((!setMempool.count(txidPendingSpend) && !isPendingSpendMempool) || isConfirmedSpend) {
+                    RemovePending(txidPendingSpend);
+                    isPendingSpend = false;
+                    LogPrintf("%s : Pending txid %s removed because not in mempool\n", __func__,
+                              txidPendingSpend.GetHex());
+                } else if (isPendingSpendMempool) {
+                    // Mempool has this serial in it, but our internal status does not display it as pending spend
+                    // This could happen as easily as restarting the application
+                    mapPendingSpends.emplace(mint.hashSerial, mapMempoolSerials.at(mint.hashSerial));
+                }
             }
         }
     }

@@ -57,7 +57,7 @@ public:
     void Clear();
     mutable CCriticalSection cs_modify_lock;
     mutable CCriticalSection cs_readlock;
-    mutable CCriticalSection cs_update_status;
+    mutable CCriticalSection cs_remove_pending;
     bool HasSpendCache(const uint256& hashSerial) EXCLUSIVE_LOCKS_REQUIRED(cs_readlock);
     CoinWitnessData* CreateSpendCache(const uint256& hashSerial) EXCLUSIVE_LOCKS_REQUIRED(cs_modify_lock);
     CoinWitnessData* GetSpendCache(const uint256& hashSerial) EXCLUSIVE_LOCKS_REQUIRED(cs_readlock);
