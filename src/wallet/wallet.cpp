@@ -4783,7 +4783,7 @@ std::vector<std::string> CWallet::GetDestValues(const std::string& prefix) const
 // CWallet::AutoZeromint() gets called with each new incoming block
 void CWallet::AutoZeromint()
 {
-    if (gArgs.SoftSetBoolArg("-automintoff", false)) {
+    if (gArgs.GetBoolArg("-automintoff", false)) {
         return;
     }
 

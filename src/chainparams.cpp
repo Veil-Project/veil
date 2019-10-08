@@ -390,6 +390,7 @@ public:
         vSeeds.emplace_back("veilseedtestnet.presstab.pw");
         vSeeds.emplace_back("veil-testnet.seed.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
         vSeeds.emplace_back("veil-testnet.seed2.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
+        vSeeds.emplace_back("veilseedtestnet.veil-stats.com"); // Codeofalltrades seeder
         vSeeds.emplace_back("138.68.236.164", "138.68.236.164"); // blondfrogs single IP
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
@@ -417,8 +418,8 @@ public:
 
         checkpointData = {
             {
-                    {98429, uint256S("fecff045e98e30c6e077d160883d73500e4d96463d8333436403298fea5ecda3")},
-                    {103000, uint256S("e95fc76c6c9016e8ed2e4e4a2641dfc91dbf6bad4df659f664d8f7614bc010c0")},
+                    { 1, uint256S("0x918ebe520f7666375d7e4dbb0c269f675440b96b0413ab92bbf28b85126197cd")},
+                    { 95, uint256S("0x1c1d4a474a167a3d474ad7ebda5dfc5560445f885519cb98595aab6f818b1f6f")}
             }
         };
 
