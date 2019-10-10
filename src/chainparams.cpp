@@ -422,7 +422,7 @@ public:
         vSeeds.emplace_back("veil-testnet.seed.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
         vSeeds.emplace_back("veil-testnet.seed2.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
         vSeeds.emplace_back("veilseedtestnet.veil-stats.com"); // Codeofalltrades seeder
-        vSeeds.emplace_back("138.68.236.164", "138.68.236.164"); // blondfrogs single IP
+        vSeeds.emplace_back("veil-testnet-seed.asoftwaresolution.com");
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
