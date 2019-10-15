@@ -35,9 +35,9 @@ color:#707070;</string>
      <property name="text">
       <string>“The X16RT mining algorithm will be used for at least the first 12 months of mainnet going live (January 1st, 2019) to achieve wide coin supply distribution.
 
-Anyone with NVIDIA or AMD graphics cards will be able to solo mine or pool mine VEIL without concerns about ASIC’s and mining centralization during the mining phase.
+Anyone with NVIDIA or AMD graphics cards will be able to solo mine or pool mine VEIL without concerns about ASICs and mining centralization.
 
-For the latest mining instructions, please see the Official Veil Announcement thread on the BitcoinTalk forum.”					</string>
+For the latest mining instructions, please visit the mining channel on the Veil Discord server or see the official Veil announcement thread on the BitcoinTalk forum.”					</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>

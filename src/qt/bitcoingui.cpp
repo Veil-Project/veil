@@ -296,7 +296,7 @@ void BitcoinGUI::createActions()
     }
     //iconTxes.addFile(":/icons/ic-nav-transactions");//, QSize(iconsSize,iconsSize));
     overviewAction = new QAction(iconTxes,tr("&Overview"), this);
-    overviewAction->setStatusTip(tr("Wallet Overview"));
+    overviewAction->setStatusTip(tr("Wallet overview"));
     overviewAction->setToolTip(overviewAction->statusTip());
     overviewAction->setCheckable(true);
     overviewAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_1));
@@ -324,7 +324,7 @@ void BitcoinGUI::createActions()
     QIcon iconAddress(":/icons/ic-addresses-png2");
     //iconAddress.addFile(":/icons/ic-addresses-png2", QSize(iconsSize,iconsSize));
     addressesAction = new QAction(iconAddress,tr("&Addresses"), this);
-    addressesAction->setStatusTip(tr("Addresses Overview"));
+    addressesAction->setStatusTip(tr("Addresses overview"));
     addressesAction->setToolTip(addressesAction->statusTip());
     addressesAction->setCheckable(true);
     receiveCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));

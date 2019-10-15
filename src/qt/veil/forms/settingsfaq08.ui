@@ -33,14 +33,14 @@ color:#707070;</string>
       <string notr="true">font-weight:200;</string>
      </property>
      <property name="text">
-      <string>“Veil secures its network with an exclusively anonymous Zerocoin-based Proof-of-Stake system. Basecoin veil cannot stake. Only Zerocoin veil can stake.
+      <string>“Veil secures its network with a hybrid Proof-of-Stake/Proof-of-Stake consensus system. Basecoin veil cannot stake, however, and must be minted to Zerocoin denominations first.
 
 Follow these simple steps to begin staking veil:
 
 1. Send veil to the QR code or receiving address displayed in the overview tab to deposit veil to yourself.
-2. Click the Staking Toggle at the bottom left of the Overview screen and input your password to unlock your wallet for Staking/Autominting.
-3. Allow the wallet to automatically mint your Basecoin veil into Zerocoin veil.
-4. After newly minted Zerocoin veil denominations receive 200 confirmations, they will begin staking and can earn staking rewards.
+2. Click the Staking toggle at the bottom left of the Overview screen and input your password to unlock your wallet for staking/autominting.
+3. Allow the wallet to automatically mint your Basecoin veil into Zerocoin veil denominations.
+4. After newly minted Zerocoin veil denominations receive 1000 confirmations, they will begin staking and can earn staking rewards.
 5. Ensure the staking icon at the bottom left of the Overview screen is turned on. Exiting your wallet will stop staking.”					</string>
      </property>
      <property name="alignment">

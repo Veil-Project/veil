@@ -81,7 +81,7 @@ border:0;
 font-size:16px;</string>
             </property>
             <property name="text">
-             <string>Zerocoin Balance</string>
+             <string>Zerocoin balance</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -95,7 +95,7 @@ font-size:16px;</string>
 font-size:22px;</string>
             </property>
             <property name="text">
-             <string>0 Zerocoin Veil</string>
+             <string>0 Zerocoin veil</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -155,7 +155,7 @@ font-size:16px;</string>
 font-size:22px;</string>
             </property>
             <property name="text">
-             <string>50.738 Veil</string>
+             <string>50.738 veil</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -249,7 +249,7 @@ border:1px solid #0e45b4;
 }</string>
         </property>
         <property name="text">
-         <string>Mint Zerocoin Veil</string>
+         <string>Mint Zerocoin veil</string>
         </property>
        </widget>
       </item>
