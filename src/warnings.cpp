@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2019 The Veil Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,6 +11,7 @@
 
 CCriticalSection cs_warnings;
 std::string strMiscWarning GUARDED_BY(cs_warnings);
+bool fUpdateFound GUARDED_BY(cs_warnings) = false;
 bool fLargeWorkForkFound GUARDED_BY(cs_warnings) = false;
 bool fLargeWorkInvalidChainFound GUARDED_BY(cs_warnings) = false;
 
@@ -17,6 +19,12 @@ void SetMiscWarning(const std::string& strWarning)
 {
     LOCK(cs_warnings);
     strMiscWarning = strWarning;
+}
+
+void SetfUpdateFound(bool flag)
+{
+    LOCK(cs_warnings);
+    fUpdateFound = flag;
 }
 
 void SetfLargeWorkForkFound(bool flag)
@@ -55,6 +63,12 @@ std::string GetWarnings(const std::string& strFor)
     {
         strStatusBar = strMiscWarning;
         strGUI += (strGUI.empty() ? "" : uiAlertSeperator) + strMiscWarning;
+    }
+
+    if (fUpdateFound)
+    {
+        strStatusBar = "Over 50% of our peers are running a newer wallet version than yours. An update may be available.";
+        strGUI += (strGUI.empty() ? "" : uiAlertSeperator) + _("Over 50% of our peers are running a newer wallet version than yours. An update may be available.");
     }
 
     if (fLargeWorkForkFound)

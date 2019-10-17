@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2019 The Veil Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,8 +11,10 @@
 #include <blockencodings.h>
 #include <chainparams.h>
 #include <checkpoints.h>
+#include <clientversion.h>
 #include <consensus/validation.h>
 #include <hash.h>
+#include <warnings.h>
 #include <validation.h>
 #include <merkleblock.h>
 #include <netmessagemaker.h>
@@ -80,6 +83,39 @@ std::map<uint256, COrphanTx> mapOrphanTransactions GUARDED_BY(g_cs_orphans);
 std::map<int, CBlock> mapStagedBlocks;
 static constexpr int ASK_FOR_BLOCKS = 50; //How many blocks to ask for at once
 static CCriticalSection cs_staging;
+
+bool fUpdateCheck = true;
+
+bool fShouldUpgrade = false;
+
+// --------------------------------------------------
+// Upgrade Majority
+// This is the magic number for deciding when enough
+// peers have a higher version to be considered the
+// 'majority' of the network for updating the software.
+
+// Higher means more secure and less false-positives,
+// but lengthens time before the update is triggered.
+
+// Peers / nUpgradeMajority = Minimum peers for update.
+// An additional protection against false-positives
+// is the Updater will not fire unless there's atleast
+// two higher peers, minimum, even if the percentage
+// majority (With 4 or less peers) is high enough.
+
+int nUpgradeMajority = 2; // 50% of peers is 'majority'.
+// --------------------------------------------------
+
+// The quantity of version types. E.g: major.minor.patch.build.
+// Veil generally uses four of them, so this system will parse
+// 4 of them, but ignore the "build" version to prevent pre-release
+// false-positives.
+int nVersionTypes = 4;
+
+// Track all peer version differences
+int nHigherVerPeers = 0;
+int nCurrentVerPeers = 0;
+int nLowerVerPeers = 0;
 
 void EraseOrphansFor(NodeId peer);
 
@@ -2067,9 +2103,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         // Potentially mark this peer as a preferred download peer.
         {
-        LOCK(cs_main);
-        UpdatePreferredDownload(pfrom, State(pfrom->GetId()));
+            LOCK(cs_main);
+            UpdatePreferredDownload(pfrom, State(pfrom->GetId()));
         }
+
+        // Check the peer's version and compare it to us
+        CheckForUpdates(pfrom->addr.ToString(), pfrom->strSubVer);
 
         if (!pfrom->fInbound)
         {
@@ -4312,6 +4351,125 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
         }
     }
     return true;
+}
+
+int CheckForUpdates (std::string addr, std::string ver)
+{
+  if (fUpdateCheck == true)
+  {
+    // Splice raw version integer from the Sub Version of the peer and ourselves
+    std::vector<int> peerVer = ParseVersion(ver);
+
+    std::string localVer = FormatFullVersion();
+    std::vector<int> ourVer = ParseVersion(localVer.substr(0, localVer.find("-")));
+
+    // Compare our version integer to the connected node
+    bool fHigherMajor = false;
+    bool fHigherMinor = false;
+    bool fHigherPatch = false;
+    for (int i=0; i<nVersionTypes; i++) {
+        // Major
+        if (i == 0) {
+            if (ourVer[i] > peerVer[i])
+                fHigherMajor = true;
+        } else
+        // Minor
+        if (i == 1) {
+            if (ourVer[i] > peerVer[i])
+                fHigherMinor = true;
+        } else
+        // Patch
+        if (i == 2) {
+            if (ourVer[i] > peerVer[i])
+                fHigherPatch = true;
+        }
+        // Adding additional versioning is easy. e.g: "Build" integers, currently we are ignoring them
+        // because developer builds use Build integers like "99" which could potentially cause some
+        // false positives if this system tracks them.
+    }
+
+    // Now figure out exactly which one of us has a higher overall version than the other.
+    if (fHigherMajor)
+        nLowerVerPeers++;
+    else if (fHigherMinor)
+        nLowerVerPeers++;
+    else if (fHigherPatch)
+        nLowerVerPeers++;
+    else if (ourVer == peerVer)
+        nCurrentVerPeers++;
+    else
+        nHigherVerPeers++;
+
+    // Calculate peers needed for a 'majority' upgrade
+    int nPeersForUpgrade = (nHigherVerPeers + nCurrentVerPeers + nLowerVerPeers) / nUpgradeMajority;
+
+    // Ensure minimum is atleast 2 peers
+    if (nPeersForUpgrade < 2)
+        nPeersForUpgrade = 2;
+
+    // Check if majority consensus is met
+    ((nHigherVerPeers >= nPeersForUpgrade) ? fShouldUpgrade = true : fShouldUpgrade = false);
+
+    SetfUpdateFound(fShouldUpgrade);
+
+    return fShouldUpgrade;
+  }
+}
+
+std::vector<int> ParseVersion(const std::string subver)
+{
+    try {
+    /*
+        This parses a subversion string into an array of four
+        integers that represent the subversion's raw versioning.
+
+        e.g: "/Veil:1.0.3.99/" = [1, 0, 3, 99]
+
+        This can be read as: major.minor.patch.build by the caller.
+
+        Additional version integers will be ignored, and less than
+        required integers will result in a zero'ing of the returned
+        version as it does not follow the versioning standard.
+
+        The original variable will not be changed.
+    */
+
+    // Strip formatted strings
+    std::string subverStr = subver;
+    replaceAll(subverStr, "Veil:", "");
+    replaceAll(subverStr, "/", "");
+    replaceAll(subverStr, "v", "");
+
+    std::vector<int> version(nVersionTypes);
+    int i = 0;
+    size_t pos = 0;
+
+    // Parse each version integer into major/minor/patch/build
+    while (i < nVersionTypes) {
+        pos = subverStr.find(".");
+        version[i] = std::stoi(subverStr.substr(0, pos));
+        subverStr.erase(0, pos + 1);
+        i++;
+    }
+
+    return version;
+
+    } catch (const std::exception& e) {
+        // Ending up here means the node subver is different, e.g: A seeder, lightwallet or simply a tampered subver.
+        // Catch the parsing error and return a zero'd version.
+        std::vector<int> version(nVersionTypes, 0);
+        return version;
+    }
+}
+
+void replaceAll(std::string& str, const std::string& from, const std::string& to)
+{
+    size_t start_pos = 0;
+    while((start_pos = str.find(from, start_pos)) != std::string::npos)
+    {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length();
+    }
 }
 
 class CNetProcessingCleanup

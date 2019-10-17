@@ -1,4 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2019 The Veil Developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -108,6 +109,7 @@ void ClientModel::updateTimer()
 void ClientModel::updateNumConnections(int numConnections)
 {
     Q_EMIT numConnectionsChanged(numConnections);
+    Q_EMIT alertsChanged(getStatusBarWarnings());
 }
 
 void ClientModel::updateNetworkActive(bool networkActive)
