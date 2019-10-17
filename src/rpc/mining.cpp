@@ -30,6 +30,12 @@
 #include <stdint.h>
 #include <tinyformat.h>
 
+// ProgPow
+#include <crypto/ethash/lib/ethash/endianness.hpp>
+#include <crypto/ethash/include/ethash/progpow.hpp>
+#include "crypto/ethash/helpers.hpp"
+#include "crypto/ethash/progpow_test_vectors.hpp"
+
 unsigned int ParseConfirmTarget(const UniValue& value)
 {
     int target = value.get_int();
@@ -127,9 +133,45 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
             LOCK(cs_main);
             IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
         }
-        while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount && !CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
-            ++pblock->nNonce;
-            --nMaxTries;
+        if (!pblock->IsProgPow()) {
+            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount &&
+                   !CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                ++pblock->nNonce;
+                --nMaxTries;
+            }
+        } else {
+            LogPrintf("%s Mining ProgPow, %d\n", __func__, __LINE__);
+            const auto epoch_number = ethash::get_epoch_number(pblock->nHeight);
+            auto ctxp = ethash::create_epoch_context_full(epoch_number);
+            auto& ctx = *ctxp;
+            auto& ctxl = reinterpret_cast<const ethash::epoch_context&>(ctx);
+
+
+            // Create the eth_boundary from the nBits
+            arith_uint256 bnTarget;
+            bool fNegative;
+            bool fOverflow;
+
+            bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
+
+            // Get the eth boundary
+            auto boundary = to_hash256(ArithToUint256(bnTarget).GetHex());
+
+            // Build the header_hash
+            uint256 nHeaderHash = pblock->GetProgPowHeaderHash();
+            const auto header_hash = to_hash256(nHeaderHash.GetHex());
+
+            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount) {
+                // ProgPow hash
+                const auto result = progpow::hash(ctx, pblock->nHeight, header_hash, pblock->nNonce64);
+                auto success = progpow::verify(ctxl, pblock->nHeight, header_hash, result.mix_hash, pblock->nNonce64, boundary);
+                if (success) {
+                    pblock->mixHash = uint256S(to_hex(result.mix_hash));
+                    break;
+                }
+                ++pblock->nNonce64;
+                --nMaxTries;
+            }
         }
         if (nMaxTries == 0) {
             break;

@@ -199,12 +199,19 @@ public:
 
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
+
+        // ProgPow, RandomX, Sha256d
+        consensus.nProgPowTargetSpacing = 172;
+        consensus.nRandomXTargetSpacing = 600;
+        consensus.nSha256DTargetSpacing = 1200;
+
         consensus.nDgwPastBlocks = 30; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 84; // 70% of confirmation window
         consensus.nMinerConfirmationWindow = 120; // 2 hours at 1 block per minute
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
+
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 25;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
 
@@ -378,12 +385,18 @@ public:
         consensus.BIP66Height = 330776; // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
         consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
+
+        // ProgPow, RandomX, Sha256d
+        consensus.nProgPowTargetSpacing = 172;
+        consensus.nRandomXTargetSpacing = 600;
+        consensus.nSha256DTargetSpacing = 1200;
+
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 15; // 75% for testchains
         consensus.nMinerConfirmationWindow = 20; // 20 minutes
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 25;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
 
@@ -693,12 +706,18 @@ public:
         consensus.BIP66Height = 1251; // BIP66 activated on regtest (Used in rpc activation tests)
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
+
+        // ProgPow, RandomX, Sha256d
+        consensus.nProgPowTargetSpacing = 172;
+        consensus.nRandomXTargetSpacing = 600;
+        consensus.nSha256DTargetSpacing = 1200;
+
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = true;
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
         consensus.nMinerConfirmationWindow = 144; // Faster than normal for regtest (144 instead of 2016)
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 25;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_CSV].bit = 0;

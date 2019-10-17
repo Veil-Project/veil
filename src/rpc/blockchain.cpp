@@ -130,9 +130,11 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.pushKV("size", (int)::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION));
     result.pushKV("weight", (int)::GetBlockWeight(block));
     result.pushKV("height", blockindex->nHeight);
-    result.pushKV("proof_type", blockindex->IsProofOfStake() ? "Proof-of-Stake" : "Proof-of-Work");
+    result.pushKV("proof_type", blockindex->IsProofOfStake() ? "Proof-of-Stake" : blockindex->IsProgProofOfWork() ? "Proof-of-work (ProgPow)" : "Proof-of-Work");
     if (blockindex->IsProofOfStake())
         result.pushKV("proofofstakehash", blockindex->GetBlockPoSHash().GetHex());
+    else if (blockindex->IsProgProofOfWork())
+        result.pushKV("progproofofworkhash", blockindex->GetProgPowHash().GetHex());
     else
         result.pushKV("proofofworkhash", blockindex->GetBlockPoWHash().GetHex());
     result.pushKV("version", block.nVersion);
@@ -156,6 +158,8 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.pushKV("time", block.GetBlockTime());
     result.pushKV("mediantime", (int64_t)blockindex->GetMedianTimePast());
     result.pushKV("nonce", (uint64_t)block.nNonce);
+    result.pushKV("nonce64", (uint64_t)block.nNonce64);
+    result.pushKV("mixhash", block.mixHash.GetHex());
     result.pushKV("bits", strprintf("%08x", block.nBits));
     result.pushKV("difficulty", GetDifficulty(blockindex));
     result.pushKV("chainwork", blockindex->nChainWork.GetHex());

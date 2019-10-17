@@ -64,6 +64,13 @@ struct CVeilBlockData
 class CBlockHeader
 {
 public:
+
+    enum {
+        PROGPOW_BLOCK = ( 1 << 28),
+        RANDOMX_BLOCK = ( 1 << 27),
+        SHA256D_BLOCK = ( 1 << 26)
+    };
+
     // header
     int32_t nVersion;
     uint256 hashPrevBlock;
@@ -73,6 +80,12 @@ public:
     uint32_t nNonce;
     uint8_t fProofOfStake;
     uint8_t fProofOfFullNode;
+
+    //ProgPow
+    uint64_t nNonce64;
+    uint32_t nHeight;
+    uint256 mixHash;
+
 
     CBlockHeader()
     {
@@ -88,7 +101,13 @@ public:
         READWRITE(hashVeilData);
         READWRITE(nTime);
         READWRITE(nBits);
-        READWRITE(nNonce);
+        if (nVersion & PROGPOW_BLOCK) {
+            READWRITE(nHeight);
+            READWRITE(nNonce64);
+            READWRITE(mixHash);
+        } else {
+            READWRITE(nNonce);
+        }
         if (!(s.GetType() & SER_GETHASH)) {
             READWRITE(fProofOfStake);
             READWRITE(fProofOfFullNode);
@@ -105,6 +124,11 @@ public:
         nNonce = 0;
         fProofOfStake = 0;
         fProofOfFullNode = 0;
+
+        //ProgPow
+        nHeight = 0;
+        nNonce64 = 0;
+        mixHash.SetNull();
     }
 
     bool IsNull() const
@@ -114,6 +138,13 @@ public:
 
     uint256 GetHash() const;
     uint256 GetPoWHash() const;
+    uint256 GetProgPowHash() const;
+
+    uint256 GetProgPowHeaderHash() const;
+
+    bool IsProgPow() const {
+        return nVersion & PROGPOW_BLOCK;
+    }
 
     int64_t GetBlockTime() const
     {
@@ -199,7 +230,16 @@ public:
         block.nNonce         = nNonce;
         block.fProofOfStake = IsProofOfStake();
         block.fProofOfFullNode = fProofOfFullNode;
+
+        //ProgPow
+        block.nHeight        = nHeight;
+        block.nNonce64       = nNonce64;
+        block.mixHash        = mixHash;
         return block;
+    }
+
+    bool IsProgPow() const {
+        return IsProofOfWork() && (nVersion & PROGPOW_BLOCK);
     }
 
     // two types of block: proof-of-work or proof-of-stake
@@ -216,7 +256,6 @@ public:
     uint256 GetVeilDataHash() const;
 
     std::string DataHashElementsToString() const;
-
 
     std::string ToString() const;
 };
@@ -251,6 +290,33 @@ struct CBlockLocator
     bool IsNull() const
     {
         return vHave.empty();
+    }
+};
+
+
+/**
+ * Custom serializer for CBlockHeader that omits the nNonce and mixHash, for use
+ * as input to ProgPow.
+ */
+class CProgPowInput : private CBlockHeader
+{
+public:
+    CProgPowInput(const CBlockHeader &header)
+    {
+        CBlockHeader::SetNull();
+        *((CBlockHeader*)this) = header;
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(this->nVersion);
+        READWRITE(hashPrevBlock);
+        READWRITE(hashVeilData);
+        READWRITE(nTime);
+        READWRITE(nBits);
+        READWRITE(nHeight);
     }
 };
 

@@ -78,6 +78,10 @@ struct Params {
     uint256 defaultAssumeValid;
 
     int nMinRCTOutputDepth;
+
+    int64_t nProgPowTargetSpacing;
+    int64_t nRandomXTargetSpacing;
+    int64_t nSha256DTargetSpacing;
 };
 } // namespace Consensus
 

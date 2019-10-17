@@ -2140,6 +2140,10 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_TOP_BITS;
 
+    if (gArgs.GetBoolArg("-mineprogpow", false)) {
+        nVersion |= CBlockHeader::PROGPOW_BLOCK;
+    }
+
     for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
         ThresholdState state = VersionBitsState(pindexPrev, params, static_cast<Consensus::DeploymentPos>(i), versionbitscache);
         if (state == ThresholdState::LOCKED_IN || state == ThresholdState::STARTED) {
@@ -3979,8 +3983,10 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     if (fCheckPOW && fCheckProofOfFullNode)
         return state.DoS(50, false, REJECT_INVALID, "PoW and PoFN conflict", false, "Block attempted to use both PoW and PoFN");
     // Check proof of work matches claimed amount
-    if (fCheckPOW && !CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
+    if (fCheckPOW && !block.IsProgPow() && !CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
         return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
+    if (fCheckPOW && block.IsProgPow() && !CheckProgProofOfWork(block, block.nBits, consensusParams))
+        return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "prog proof of work failed");
 
     return true;
 }
@@ -4436,9 +4442,9 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                                                                                          "but has null previous"));
 
     // Check PoW/PoS
-    if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake()))
+    if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake(), block.IsProgPow()))
         return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, strprintf("incorrect proof of work: block bits=%d calc=%d",
-                block.nBits, GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake())));
+                block.nBits, GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake(), block.IsProgPow())));
 
     if (pindexPrev->nHeight >= Params().ConsecutivePoWHeight() && !CheckConsecutivePoW(block, pindexPrev)) {
         return state.DoS(100, false, REJECT_INVALID, "bad-pow", false, strprintf("too many consecutive pow blocks"));
