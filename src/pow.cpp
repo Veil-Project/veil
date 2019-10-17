@@ -11,8 +11,14 @@
 #include <uint256.h>
 #include "tinyformat.h"
 
+// ProgPow
+#include <crypto/ethash/lib/ethash/endianness.hpp>
+#include <crypto/ethash/include/ethash/progpow.hpp>
+#include "crypto/ethash/helpers.hpp"
+#include "crypto/ethash/progpow_test_vectors.hpp"
+
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock,
-                                    const Consensus::Params& params, bool fProofOfStake)
+                                    const Consensus::Params& params, bool fProofOfStake, bool fProgPow)
 {
     assert(pindexLast != nullptr);
 
@@ -37,16 +43,18 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 //    }
 
     // Retarget every block with DarkGravityWave
-    return DarkGravityWave(pindexLast, params, fProofOfStake);
+    return DarkGravityWave(pindexLast, params, fProofOfStake, fProgPow);
 }
 
-unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake) {
+unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake, bool fProgPow) {
     /* current difficulty formula, veil - DarkGravity v3, written by Evan Duffield - evan@dash.org */
     const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
 
     const CBlockIndex *pindex = pindexLast;
     const CBlockIndex* pindexLastMatchingProof = nullptr;
     arith_uint256 bnPastTargetAvg = 0;
+    if (fProgPow)
+        LogPrintf("%s, For ProgPow\n", __func__);
 
     unsigned int nCountBlocks = 0;
     while (nCountBlocks < params.nDgwPastBlocks) {
@@ -56,6 +64,9 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
 
         // Only consider PoW or PoS blocks but not both
         if (pindex->IsProofOfStake() != fProofOfStake) {
+            pindex = pindex->pprev;
+            continue;
+        } else if (pindex->IsProgProofOfWork() != fProgPow) {
             pindex = pindex->pprev;
             continue;
         } else if (!pindexLastMatchingProof) {
@@ -75,8 +86,15 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     if (pindexLastMatchingProof)
         pindexLastMatchingProof = pindexLast;
 
+    int64_t nPowSpacing;
+    if (fProgPow) {
+        nPowSpacing = params.nProgPowTargetSpacing;
+    } else {
+        nPowSpacing = params.nPowTargetSpacing;
+    }
+
     int64_t nActualTimespan = pindexLastMatchingProof->GetBlockTime() - pindex->GetBlockTime();
-    int64_t nTargetTimespan = params.nDgwPastBlocks * params.nPowTargetSpacing;
+    int64_t nTargetTimespan = params.nDgwPastBlocks * nPowSpacing;
 
     if (nActualTimespan < nTargetTimespan/3)
         nActualTimespan = nTargetTimespan/3;
@@ -110,4 +128,41 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&
 
     // Check proof of work matches claimed amount
     return UintToArith256(hash) < bnTarget;
+}
+
+bool CheckProgProofOfWork(const CBlockHeader& block, unsigned int nBits, const Consensus::Params& params)
+{
+    // Create epoch context
+    ethash::epoch_context_ptr context{nullptr, nullptr};
+
+    // Create the eth_boundary from the nBits
+    arith_uint256 bnTarget;
+    bool fNegative;
+    bool fOverflow;
+
+    bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
+
+    // Check range
+    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(params.powLimit)) {
+        //std::cout << fNegative << " " << (bnTarget == 0) << " " << fOverflow << " " << (bnTarget > UintToArith256(params.powLimit)) << "\n";
+        return false;
+    }
+
+    // Get the context from the block height
+    const auto epoch_number = ethash::get_epoch_number(block.nHeight);
+    if (!context || context->epoch_number != epoch_number)
+        context = ethash::create_epoch_context(epoch_number);
+
+    // Build the header_hash
+    uint256 nHeaderHash = block.GetProgPowHeaderHash();
+    const auto header_hash = to_hash256(nHeaderHash.GetHex());
+
+    // ProgPow hash
+    const auto result = progpow::hash(*context, block.nHeight, header_hash, block.nNonce64);
+
+    // Get the eth boundary
+    auto boundary = to_hash256(ArithToUint256(bnTarget).GetHex());
+
+    return progpow::verify(
+            *context, block.nHeight, header_hash, result.mix_hash, block.nNonce64, boundary);
 }

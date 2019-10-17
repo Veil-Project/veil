@@ -238,6 +238,11 @@ public:
     uint32_t nBits;
     uint32_t nNonce;
 
+    //! ProgPow Header items
+    // Height was already in the CBlockIndex
+    uint64_t nNonce64;
+    uint256 mixHash;
+
     //! (memory only) Sequential id assigned to distinguish order in which blocks are received.
     int32_t nSequenceId;
 
@@ -311,6 +316,10 @@ public:
         nTime          = 0;
         nBits          = 0;
         nNonce         = 0;
+
+        //ProgPow
+        nNonce64       = 0;
+        mixHash        = uint256();
     }
 
     CBlockIndex()
@@ -328,6 +337,11 @@ public:
         nBits          = block.nBits;
         nNonce         = block.nNonce;
         nMint          = 0;
+
+        //ProgPow
+        nNonce64       = block.nNonce64;
+        mixHash        = block.mixHash;
+        nHeight        = block.nHeight;
     }
 
     CDiskBlockPos GetBlockPos() const {
@@ -360,6 +374,11 @@ public:
         block.nNonce         = nNonce;
         block.fProofOfStake = IsProofOfStake();
         block.fProofOfFullNode = fProofOfFullNode;
+
+        //ProgPow
+        block.nNonce64       = nNonce64;
+        block.mixHash        = mixHash;
+        block.nHeight        = nHeight;
         return block;
     }
 
@@ -371,6 +390,11 @@ public:
     uint256 GetBlockPoWHash() const
     {
         return GetBlockHeader().GetPoWHash();
+    }
+
+    uint256 GetProgPowHash() const
+    {
+        return GetBlockHeader().GetProgPowHash();
     }
 
     uint256 GetBlockPoSHash() const
@@ -432,6 +456,11 @@ public:
     bool IsProofOfWork() const
     {
         return !fProofOfStake;
+    }
+
+    bool IsProgProofOfWork() const
+    {
+        return !fProofOfStake && (nVersion & CBlockHeader::PROGPOW_BLOCK);
     }
 
     bool IsProofOfStake() const
@@ -577,6 +606,12 @@ public:
                 //Could fail since this was added without requiring a reindex
             }
         }
+
+        // ProgPow
+        if (this->nVersion & CBlockHeader::PROGPOW_BLOCK) {
+            READWRITE(nNonce64);
+            READWRITE(mixHash);
+        }
     }
 
     uint256 GetBlockHash() const
@@ -588,6 +623,10 @@ public:
         block.nTime           = nTime;
         block.nBits           = nBits;
         block.nNonce          = nNonce;
+        // ProgPow
+        block.nNonce64        = nNonce64;
+        block.nHeight         = nHeight;
+        block.mixHash         = mixHash;
         return block.GetHash();
     }
 

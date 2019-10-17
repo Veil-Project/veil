@@ -40,6 +40,12 @@
 #include <boost/thread.hpp>
 #include "veil/zerocoin/accumulators.h"
 
+// ProgPow
+#include <crypto/ethash/lib/ethash/endianness.hpp>
+#include <crypto/ethash/include/ethash/progpow.hpp>
+#include "crypto/ethash/helpers.hpp"
+#include "crypto/ethash/progpow_test_vectors.hpp"
+
 std::map<uint256, int64_t>mapComputeTimeTransactions;
 
 // Unconfirmed transactions in the memory pool often depend on other
@@ -59,7 +65,7 @@ int64_t UpdateTime(CBlock* pblock, const Consensus::Params& consensusParams, con
 
     // Updating time can change work required on testnet:
     if (consensusParams.fPowAllowMinDifficultyBlocks)
-        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, consensusParams, pblock->IsProofOfStake());
+        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, consensusParams, pblock->IsProofOfStake(), pblock->IsProgPow());
 
     return nNewTime - nOldTime;
 }
@@ -162,7 +168,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         //POS block - one coinbase is null then non null coinstake
         //POW block - one coinbase that is not null
         pblock->nTime = GetAdjustedTime();
-        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus(), true);
+        pblock->nBits = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus(), true, false);
 
         uint32_t nTxNewTime = 0;
 #ifdef ENABLE_WALLET
@@ -452,11 +458,15 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (!fProofOfStake)
         UpdateTime(pblock, chainparams.GetConsensus(), pindexPrev);
 
-    pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus(), pblock->IsProofOfStake());
+    pblock->nBits          = GetNextWorkRequired(pindexPrev, pblock, chainparams.GetConsensus(), pblock->IsProofOfStake(), pblock->IsProgPow());
     pblock->nNonce         = 0;
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
     pblock->hashWitnessMerkleRoot = BlockWitnessMerkleRoot(*pblock);
     pblocktemplate->vTxSigOpsCost[0] = WITNESS_SCALE_FACTOR * GetLegacySigOpCount(*pblock->vtx[0]);
+
+    pblock->nNonce64       = 0;
+    pblock->nHeight        = pindexPrev->nHeight + 1;
+    pblock->mixHash        = uint256();
 
     //Calculate the accumulator checkpoint only if the previous cached checkpoint need to be updated
     AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
@@ -934,6 +944,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             }
 
             pblock->nNonce = 0;
+            pblock->nNonce64 = rand();
             {
                 LOCK(cs_main);
                 nExtraNonce = nNonceLocal;
@@ -941,10 +952,45 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             }
 
             int nTries = 0;
-            while (nTries < nInnerLoopCount && !CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
-                boost::this_thread::interruption_point();
-                ++nTries;
-                ++pblock->nNonce;
+            if (pblock->IsProgPow()) {
+                const auto epoch_number = ethash::get_epoch_number(pblock->nHeight);
+                auto ctxp = ethash::create_epoch_context_full(epoch_number);
+                auto& ctx = *ctxp;
+                auto& ctxl = reinterpret_cast<const ethash::epoch_context&>(ctx);
+
+                // Create the eth_boundary from the nBits
+                arith_uint256 bnTarget;
+                bool fNegative;
+                bool fOverflow;
+
+                bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
+
+                // Get the eth boundary
+                auto boundary = to_hash256(ArithToUint256(bnTarget).GetHex());
+
+                // Build the header_hash
+                uint256 nHeaderHash = pblock->GetProgPowHeaderHash();
+                const auto header_hash = to_hash256(nHeaderHash.GetHex());
+
+                while (nTries < nInnerLoopCount) {
+                    boost::this_thread::interruption_point();
+                    // ProgPow hash
+                    const auto result = progpow::hash(ctx, pblock->nHeight, header_hash, pblock->nNonce64);
+                    auto success = progpow::verify(ctxl, pblock->nHeight, header_hash, result.mix_hash, pblock->nNonce64, boundary);
+                    if (success) {
+                        pblock->mixHash = uint256S(to_hex(result.mix_hash));
+                        break;
+                    }
+                    ++nTries;
+                    ++pblock->nNonce64;
+                }
+            } else {
+                while (nTries < nInnerLoopCount &&
+                       !CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                    boost::this_thread::interruption_point();
+                    ++nTries;
+                    ++pblock->nNonce;
+                }
             }
 
             LOCK(cs_nonce);

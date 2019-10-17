@@ -65,6 +65,7 @@ void WalletInit::AddWalletOptions() const
 
     gArgs.AddArg("-gen=<n>", strprintf("Enable CPU mining to true on the given number of threads (default: %u)", 0), false, OptionsCategory::WALLET);
     gArgs.AddArg("-genoverride", strprintf("Allows you to override the IsInitialBlockDownload check in BitcoinMiner for PoW mining (default: %u)", false), false, OptionsCategory::HIDDEN);
+    gArgs.AddArg("-mineprogpow", strprintf("Mine blocks using the CPU on the ProgPow hashing algo mining to true on the given number of threads (default: %u)", false), false, OptionsCategory::WALLET);
 
     gArgs.AddArg("-precompute=<n>", strprintf("Enable the wallet to start solving zerocoin spend proofs inorder to make staking and spending zerocoin faster (default: %u)", false), false, OptionsCategory::WALLET);
     gArgs.AddArg("-precomputeblockpercycle=<n>", strprintf("Set the number of included blocks to precompute per cycle. (minimum: %d) (maximum: %d) (default: %d)", MIN_PRECOMPUTE_BPC, DEFAULT_PRECOMPUTE_BPC, MIN_PRECOMPUTE_BPC), false, OptionsCategory::WALLET);

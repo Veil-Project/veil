@@ -10,6 +10,8 @@
 #include <utilstrencodings.h>
 #include <crypto/common.h>
 #include <streams.h>
+#include <crypto/ethash/helpers.hpp>
+#include <crypto/ethash/include/ethash/progpow.hpp>
 
 uint256 CBlockHeader::GetHash() const
 {
@@ -23,6 +25,36 @@ uint256 CBlockHeader::GetPoWHash() const
     int32_t nTimeX16r = nTime&TIME_MASK;
     uint256 hashTime = Hash(BEGIN(nTimeX16r), END(nTimeX16r));
     return HashX16R(BEGIN(nVersion), END(nNonce), hashTime);
+}
+
+uint256 CBlockHeader::GetProgPowHash() const
+{
+    // Build the header_hash
+    uint256 nHeaderHash = GetProgPowHeaderHash();
+    const auto header_hash = to_hash256(nHeaderHash.GetHex());
+
+    ethash::epoch_context_ptr context{nullptr, nullptr};
+    // Get the context from the block height
+    const auto epoch_number = ethash::get_epoch_number(nHeight);
+    if (!context || context->epoch_number != epoch_number)
+        context = ethash::create_epoch_context(epoch_number);
+
+    // ProgPow hash
+    const auto result = progpow::hash(*context, nHeight, header_hash, nNonce64);
+
+    return uint256S(to_hex(result.final_hash));
+}
+
+/**
+ * @brief This takes a block header, removes the nNonce and the mixHash. Then performs a serialized hash of it SHA256D.
+ * This will be used as the input to the ProgPow hashing function
+ * @note Only to be called and used on ProgPow block headers
+ */
+uint256 CBlockHeader::GetProgPowHeaderHash() const
+{
+    CProgPowInput input{*this};
+
+    return SerializeHash(input);
 }
 
 uint256 CBlock::GetVeilDataHash() const
