@@ -57,6 +57,18 @@ uint256 CBlockHeader::GetProgPowHeaderHash() const
     return SerializeHash(input);
 }
 
+/**
+ * @brief This takes a block header, removes the nNonce and the mixHash. Then performs a serialized hash of it SHA256D.
+ * This will be used as the input to the ProgPow hashing function
+ * @note Only to be called and used on ProgPow block headers
+ */
+uint256 CBlockHeader::GetRandomXHeaderHash() const
+{
+    CRandomXInput input{*this};
+
+    return SerializeHash(input);
+}
+
 uint256 CBlock::GetVeilDataHash() const
 {
     CVeilBlockData veilBlockData(hashMerkleRoot, hashWitnessMerkleRoot, mapAccumulatorHashes, hashPoFN);

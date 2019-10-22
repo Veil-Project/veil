@@ -66,6 +66,8 @@
 #ifdef ENABLE_WALLET
 #include <veil/ringct/anonwallet.h>
 #include "wallet/wallet.h"
+#include "pow.h"
+
 #endif
 
 #include <boost/algorithm/string/classification.hpp>
@@ -314,6 +316,8 @@ void Shutdown()
         pprecomputeDB.reset();
         pprecompute.reset();
     }
+
+    DeallocateRandomXLightCache();
 #ifdef ENABLE_WALLET
     g_wallet_init_interface.Stop();
 #endif
