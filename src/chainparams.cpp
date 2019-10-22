@@ -480,6 +480,7 @@ public:
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zerocoin to be stakable
+        nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
@@ -488,10 +489,16 @@ public:
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
 
+        nHeightLightZerocoin = 9428;
+        nHeightEnforceBlacklist = 0;
+
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
 
         nMaxHeaderRequestWithoutPoW = 50;
+        nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
+        nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
+
     }
 };
 
@@ -618,7 +625,13 @@ public:
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
 
+        nHeightLightZerocoin = 10;
+        nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
+        nHeightEnforceBlacklist = 0;
+
         nMaxHeaderRequestWithoutPoW = 50;
+        nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
+        nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
     }
 };
 
