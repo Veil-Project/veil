@@ -1,0 +1,3 @@
+[submodule "external/randomx"]
+	path = external/randomx
+	url = https://github.com/tevador/RandomX

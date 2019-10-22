@@ -2144,6 +2144,10 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
         nVersion |= CBlockHeader::PROGPOW_BLOCK;
     }
 
+    if (gArgs.GetBoolArg("-minerandomx", false)) {
+        nVersion |= CBlockHeader::RANDOMX_BLOCK;
+    }
+
     for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
         ThresholdState state = VersionBitsState(pindexPrev, params, static_cast<Consensus::DeploymentPos>(i), versionbitscache);
         if (state == ThresholdState::LOCKED_IN || state == ThresholdState::STARTED) {
@@ -3982,11 +3986,20 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     //Prevent Proof of full node and proof of work existing together
     if (fCheckPOW && fCheckProofOfFullNode)
         return state.DoS(50, false, REJECT_INVALID, "PoW and PoFN conflict", false, "Block attempted to use both PoW and PoFN");
+
     // Check proof of work matches claimed amount
-    if (fCheckPOW && !block.IsProgPow() && !CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
-        return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
-    if (fCheckPOW && block.IsProgPow() && !CheckProgProofOfWork(block, block.nBits, consensusParams))
-        return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "prog proof of work failed");
+    if (fCheckPOW) {
+        if (block.IsProgPow()) {
+            if (!CheckProgProofOfWork(block, block.nBits, consensusParams))
+                return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "prog proof of work failed");
+        } else if (block.IsRandomX()) {
+            if (!CheckRandomXProofOfWork(block, block.nBits, consensusParams))
+                return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "randomx proof of work failed");
+        } else {
+            if (!CheckProofOfWork(block.GetPoWHash(), block.nBits, consensusParams))
+                return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "proof of work failed");
+        }
+    }
 
     return true;
 }

@@ -16,6 +16,78 @@
 #include <crypto/ethash/include/ethash/progpow.hpp>
 #include "crypto/ethash/helpers.hpp"
 #include "crypto/ethash/progpow_test_vectors.hpp"
+#include "validation.h"
+
+// RandomX
+#include "crypto/randomx/randomx.h"
+#include "chainparams.h"
+
+
+static randomx_flags flags;
+static uint256 key_block;
+static randomx_cache *myCache;
+static randomx_vm *myMachineMining;
+static randomx_vm *myMachineValidating;
+static bool fLightCacheInited = false;
+
+bool IsRandomXLightInit()
+{
+    return fLightCacheInited;
+}
+
+void InitRandomXLightCache(const int32_t& height) {
+    if (fLightCacheInited)
+        return;
+
+    key_block = GetKeyBlock(height);
+
+    flags = randomx_get_flags();
+    myCache = randomx_alloc_cache(flags);
+    randomx_init_cache(myCache, &key_block, sizeof uint256());
+    myMachineMining = randomx_create_vm(flags, myCache, NULL);
+    myMachineValidating = randomx_create_vm(flags, myCache, NULL);
+    fLightCacheInited = true;
+}
+
+void KeyBlockChanged(const uint256& new_block) {
+    key_block = new_block;
+
+    DeallocateRandomXLightCache();
+
+    myCache = randomx_alloc_cache(flags);
+    randomx_init_cache(myCache, &key_block, sizeof uint256());
+    myMachineMining = randomx_create_vm(flags, myCache, NULL);
+    myMachineValidating = randomx_create_vm(flags, myCache, NULL);
+    fLightCacheInited = true;
+}
+
+uint256 GetCurrentKeyBlock() {
+    return key_block;
+}
+
+randomx_vm* GetMyMachineMining() {
+    return myMachineMining;
+}
+
+randomx_vm* GetMyMachineValidating() {
+    return myMachineValidating;
+}
+
+void CheckIfKeyShouldChange(const uint256& check_block)
+{
+    if (check_block != key_block)
+        KeyBlockChanged(check_block);
+}
+
+void DeallocateRandomXLightCache() {
+    if (!fLightCacheInited)
+        return;
+
+    randomx_destroy_vm(myMachineMining);
+    randomx_destroy_vm(myMachineValidating);
+    randomx_release_cache(myCache);
+    fLightCacheInited = false;
+}
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock,
                                     const Consensus::Params& params, bool fProofOfStake, bool fProgPow)
@@ -165,4 +237,66 @@ bool CheckProgProofOfWork(const CBlockHeader& block, unsigned int nBits, const C
 
     return progpow::verify(
             *context, block.nHeight, header_hash, result.mix_hash, block.nNonce64, boundary);
+}
+
+#define KEY_CHANGE 2048
+#define SWITCH_KEY 64
+
+uint256 GetKeyBlock(const uint32_t& nHeight)
+{
+    static uint256 current_key_block;
+
+    auto remainer = nHeight % KEY_CHANGE;
+
+    auto first_check = nHeight - remainer;
+    auto second_check = nHeight - KEY_CHANGE - remainer;
+
+    if (nHeight > nHeight - remainer + SWITCH_KEY) {
+        if (chainActive.Height() > first_check)
+            current_key_block = chainActive[first_check]->GetBlockHash();
+    } else {
+        if (chainActive.Height() > second_check)
+            current_key_block = chainActive[second_check]->GetBlockHash();
+    }
+
+    if (current_key_block == uint256())
+        current_key_block = chainActive.Genesis()->GetBlockHash();
+
+    return current_key_block;
+}
+
+bool CheckRandomXProofOfWork(const CBlockHeader& block, unsigned int nBits, const Consensus::Params& params)
+{
+    InitRandomXLightCache(block.nHeight);
+
+    // This will check if the key block needs to change and will take down the cache and vm, and spin up the new ones
+    CheckIfKeyShouldChange(GetKeyBlock(block.nHeight));
+
+    // Create epoch context
+    ethash::epoch_context_ptr context{nullptr, nullptr};
+
+    // Create the eth_boundary from the nBits
+    arith_uint256 bnTarget;
+    bool fNegative;
+    bool fOverflow;
+
+    bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
+
+    // Check range
+    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(params.powLimit)) {
+        //std::cout << fNegative << " " << (bnTarget == 0) << " " << fOverflow << " " << (bnTarget > UintToArith256(params.powLimit)) << "\n";
+        return false;
+    }
+
+    uint256 hash_blob = block.GetRandomXHeaderHash();
+
+    char hash[RANDOMX_HASH_SIZE];
+
+    randomx_calculate_hash(GetMyMachineValidating(), &hash_blob, sizeof uint256(), hash);
+
+    auto uint256Hash = uint256S(hash);
+
+    // Check proof of work matches claimed amount
+    return UintToArith256(uint256Hash) < bnTarget;
+
 }

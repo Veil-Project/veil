@@ -105,6 +105,9 @@ public:
             READWRITE(nHeight);
             READWRITE(nNonce64);
             READWRITE(mixHash);
+        } else if (nVersion & RANDOMX_BLOCK) {
+            READWRITE(nHeight);
+            READWRITE(nNonce);
         } else {
             READWRITE(nNonce);
         }
@@ -141,9 +144,14 @@ public:
     uint256 GetProgPowHash() const;
 
     uint256 GetProgPowHeaderHash() const;
+    uint256 GetRandomXHeaderHash() const;
 
     bool IsProgPow() const {
         return nVersion & PROGPOW_BLOCK;
+    }
+
+    bool IsRandomX() const {
+        return nVersion & RANDOMX_BLOCK;
     }
 
     int64_t GetBlockTime() const
@@ -242,6 +250,10 @@ public:
         return IsProofOfWork() && (nVersion & PROGPOW_BLOCK);
     }
 
+    bool IsRandomX() const {
+        return IsProofOfWork() && (nVersion & RANDOMX_BLOCK);
+    }
+
     // two types of block: proof-of-work or proof-of-stake
     bool IsProofOfStake() const
     {
@@ -316,6 +328,29 @@ public:
         READWRITE(hashVeilData);
         READWRITE(nTime);
         READWRITE(nBits);
+        READWRITE(nHeight);
+    }
+};
+
+class CRandomXInput : private CBlockHeader
+{
+public:
+    CRandomXInput(const CBlockHeader &header)
+    {
+        CBlockHeader::SetNull();
+        *((CBlockHeader*)this) = header;
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(this->nVersion);
+        READWRITE(hashPrevBlock);
+        READWRITE(hashVeilData);
+        READWRITE(nTime);
+        READWRITE(nBits);
+        READWRITE(nNonce);
         READWRITE(nHeight);
     }
 };
