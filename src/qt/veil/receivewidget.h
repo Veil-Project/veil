@@ -34,7 +34,6 @@ public:
 public Q_SLOTS:
     void onBtnCopyAddressClicked();
     void generateNewAddressClicked();
-    void hideThisWidget();
 
 private:
     Ui::ReceiveWidget *ui;
