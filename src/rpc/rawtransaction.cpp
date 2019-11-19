@@ -40,14 +40,15 @@
 #include <univalue.h>
 
 
-static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, const std::vector<std::vector<COutPoint>>& vTxRingCtInputs)
+static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry)
 {
     // Call into TxToUniv() in bitcoin-common to decode the transaction hex.
     //
     // Blockchain contextual information (confirmations and blocktime) is not
     // available to code in bitcoin-common, so we query them here and push the
     // data into the returned UniValue.
-    TxToUniv(tx, uint256(), vTxRingCtInputs, entry, true, RPCSerializationFlags());
+    const std::vector<std::vector<COutPoint>>& vTxRingCtInputs = GetTxRingCtInputs(tx);
+    TxToUniv(tx, uint256(), entry, vTxRingCtInputs, true, RPCSerializationFlags());
 
     if (!hashBlock.IsNull()) {
         LOCK(cs_main);
@@ -201,10 +202,10 @@ static UniValue getrawtransaction(const JSONRPCRequest& request)
     }
 
     //Get ringct inputs
-    std::vector<std::vector<COutPoint> > vTxRingCtInputs = GetTxRingCtInputs(tx);
+    // std::vector<std::vector<COutPoint> > vTxRingCtInputs = *tx.GetTxRingCtInputs();
     UniValue result(UniValue::VOBJ);
     if (blockindex) result.pushKV("in_active_chain", in_active_chain);
-    TxToJSON(*tx, hash_block, result, vTxRingCtInputs);
+    TxToJSON(*tx, hash_block, result);
     return result;
 }
 
@@ -581,7 +582,9 @@ static UniValue decoderawtransaction(const JSONRPCRequest& request)
     }
 
     UniValue result(UniValue::VOBJ);
-    TxToUniv(CTransaction(std::move(mtx)), uint256(), {{}}, result, false);
+    CTransaction tx = std::move(mtx);
+    std::vector<std::vector<COutPoint>> vTxRingCtInputs = GetTxRingCtInputs(tx);
+    TxToUniv(tx, uint256(), result, vTxRingCtInputs, false);
 
     return result;
 }
@@ -1425,7 +1428,7 @@ UniValue decodepsbt(const JSONRPCRequest& request)
 
     // Add the decoded tx
     UniValue tx_univ(UniValue::VOBJ);
-    TxToUniv(CTransaction(*psbtx.tx), uint256(), {{}}, tx_univ, false);
+    TxToUniv(CTransaction(*psbtx.tx), uint256(), tx_univ, false);
     result.pushKV("tx", tx_univ);
 
     // Unknown data
@@ -1457,7 +1460,7 @@ UniValue decodepsbt(const JSONRPCRequest& request)
             in.pushKV("witness_utxo", out);
         } else if (input.non_witness_utxo) {
             UniValue non_wit(UniValue::VOBJ);
-            TxToUniv(*input.non_witness_utxo, uint256(), {{}}, non_wit, false);
+            TxToUniv(*input.non_witness_utxo, uint256(), non_wit, false);
             in.pushKV("non_witness_utxo", non_wit);
             total_in += input.non_witness_utxo->vpout[psbtx.tx->vin[i].prevout.n]->GetValue();
         } else {

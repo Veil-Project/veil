@@ -257,7 +257,7 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
     out.pushKV("addresses", a);
 }
 
-void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vector<std::vector<COutPoint>>& vTxRingCtInputs, UniValue& entry, bool include_hex, int serialize_flags)
+void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, bool include_hex, int serialize_flags)
 {
     entry.pushKV("txid", tx.GetHash().GetHex());
     entry.pushKV("hash", tx.GetWitnessHash().GetHex());
@@ -279,8 +279,82 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
             txin.GetAnonInfo(nSigInputs, nSigRingSize);
             in.pushKV("num_inputs", (int) nSigInputs);
             in.pushKV("ring_size", (int) nSigRingSize);
+            in.pushKV("ringct_inputs", "To see the RingCT inputs, you must run the core library!");
 
             //Add ring ct inputs
+        } else {
+            in.pushKV("txid", txin.prevout.hash.GetHex());
+            if (txin.IsZerocoinSpend()) {
+                in.pushKV("type", "zerocoinspend");
+                in.pushKV("denomination", FormatMoney(txin.GetZerocoinSpent()));
+                std::vector<char, zero_after_free_allocator<char> > dataTxIn;
+                dataTxIn.insert(dataTxIn.end(), txin.scriptSig.begin() + 4, txin.scriptSig.end());
+                CDataStream serializedCoinSpend(dataTxIn, SER_NETWORK, PROTOCOL_VERSION);
+                libzerocoin::CoinSpend spend(Params().Zerocoin_Params(), serializedCoinSpend);
+                in.pushKV("serial", spend.getCoinSerialNumber().GetHex());
+                if (spend.getVersion() >= 4) {
+                    in.pushKV("pubcoin", spend.getPubcoinValue().GetHex());
+                }
+            }
+            in.pushKV("vout", (int64_t)txin.prevout.n);
+            UniValue o(UniValue::VOBJ);
+            o.pushKV("asm", ScriptToAsmStr(txin.scriptSig, true));
+            o.pushKV("hex", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
+            in.pushKV("scriptSig", o);
+            if (!tx.vin[i].scriptWitness.IsNull()) {
+                UniValue txinwitness(UniValue::VARR);
+                for (const auto& item : tx.vin[i].scriptWitness.stack) {
+                    txinwitness.push_back(HexStr(item.begin(), item.end()));
+                }
+                in.pushKV("txinwitness", txinwitness);
+            }
+        }
+        in.pushKV("sequence", (int64_t)txin.nSequence);
+        vin.push_back(in);
+    }
+    entry.pushKV("vin", vin);
+
+    UniValue vout(UniValue::VARR);
+    auto txid = tx.GetHash();
+    for (unsigned int i = 0; i < tx.vpout.size(); i++) {
+        const auto& pout = tx.vpout[i];
+        UniValue out(UniValue::VOBJ);
+        OutputToJSON(txid, i, pout.get(), out, tx.IsCoinBase());
+        vout.push_back(out);
+    }
+
+    entry.pushKV("vout", vout);
+
+    if (!hashBlock.IsNull())
+        entry.pushKV("blockhash", hashBlock.GetHex());
+
+    if (include_hex) {
+        entry.pushKV("hex", EncodeHexTx(tx, serialize_flags)); // The hex-encoded transaction. Used the name "hex" to be consistent with the verbose output of "getrawtransaction".
+    }
+}
+
+void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, const std::vector<std::vector<COutPoint>>& vTxRingCtInputs, bool include_hex, int serialize_flags) {
+    entry.pushKV("txid", tx.GetHash().GetHex());
+    entry.pushKV("hash", tx.GetWitnessHash().GetHex());
+    entry.pushKV("version", tx.nVersion);
+    entry.pushKV("size", (int)::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION));
+    entry.pushKV("vsize", (GetTransactionWeight(tx) + WITNESS_SCALE_FACTOR - 1) / WITNESS_SCALE_FACTOR);
+    entry.pushKV("weight", GetTransactionWeight(tx));
+    entry.pushKV("locktime", (int64_t)tx.nLockTime);
+
+    UniValue vin(UniValue::VARR);
+    for (unsigned int i = 0; i < tx.vin.size(); i++) {
+        const CTxIn& txin = tx.vin[i];
+        UniValue in(UniValue::VOBJ);
+        if (tx.IsCoinBase())
+            in.pushKV("coinbase", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
+        if (txin.IsAnonInput()) {
+            in.pushKV("type", "anon");
+            uint32_t nSigInputs, nSigRingSize;
+            txin.GetAnonInfo(nSigInputs, nSigRingSize);
+            in.pushKV("num_inputs", (int) nSigInputs);
+            in.pushKV("ring_size", (int) nSigRingSize);
+
             if (vTxRingCtInputs.size() > i) {
                 std::vector<COutPoint> vRingCtInputs = vTxRingCtInputs[i];
                 UniValue arrRing(UniValue::VARR);

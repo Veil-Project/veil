@@ -146,7 +146,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
             UniValue objTx(UniValue::VOBJ);
             std::vector<std::vector<COutPoint> > vInputs;
             GetRingCtInputs(tx->vin[0], vInputs);
-            TxToUniv(*tx, uint256(), vInputs, objTx, true, RPCSerializationFlags());
+            TxToUniv(*tx, uint256(), objTx, vInputs, true, RPCSerializationFlags());
             txs.push_back(objTx);
         }
         else

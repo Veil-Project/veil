@@ -1902,7 +1902,7 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
 
     if (!request.params[2].isNull() && request.params[2].get_bool()) {
         UniValue txn(UniValue::VOBJ);
-        TxToUniv(CTransaction(std::move(mtx)), uint256(), {{}}, txn, false);
+        TxToUniv(CTransaction(std::move(mtx)), uint256(), txn, false);
         result.pushKV("txn", txn);
     }
 
