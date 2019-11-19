@@ -189,11 +189,12 @@
                                             <cursorShape>PointingHandCursor</cursorShape>
                                         </property>
                                         <property name="styleSheet">
-                                            <string notr="true">background-color:transparent;
-                                                color:rgb(106,148,255);
-                                                border:0;
-                                                background-repeat:no-repeat;
-                                                background-position:center;
+                                            <string notr="true">QPushButton {
+                                                    border:  none;
+                                                    background-color:#ffffff;
+                                                    color: #707070;
+                                                    font-size: 14px;
+                                                }
                                             </string>
                                         </property>
                                         <property name="text">
