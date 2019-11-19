@@ -31,7 +31,7 @@ bool RewindToCheckpoint(int nCheckPointHeight, int &nBlocks, std::string &sError
 
 std::vector<COutPoint> GetRingCtInputs(const CTxIn& txin);
 bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint> >& vInputs);
-std::vector<std::vector<COutPoint>> GetTxRingCtInputs(const CTransactionRef ptx);
+std::vector<std::vector<COutPoint>> GetTxRingCtInputs(const CTransaction& tx);
 
 
 #endif //VEIL_ANON_H
