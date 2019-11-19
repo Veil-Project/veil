@@ -281,7 +281,14 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
             in.pushKV("ring_size", (int) nSigRingSize);
             in.pushKV("ringct_inputs", "To see the RingCT inputs, you must run the core library!");
 
-            //Add ring ct inputs
+            const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+            UniValue arrKeyImages(UniValue::VARR);
+            for (unsigned int k = 0; k < nSigInputs; k++) {
+                UniValue objKeyImage(UniValue::VOBJ);
+                objKeyImage.pushKV(std::to_string(k), HexStr(&vKeyImages[k*33], &vKeyImages[(k*33)+33])); // TODO: add in constant
+                arrKeyImages.push_back(objKeyImage);
+            }
+            in.pushKV("key_images", arrKeyImages);
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
             if (txin.IsZerocoinSpend()) {
@@ -366,6 +373,15 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
                 }
                 in.pushKV("ringct_inputs", arrRing);
             }
+
+            const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+            UniValue arrKeyImages(UniValue::VARR);
+            for (unsigned int k = 0; k < nSigInputs; k++) {
+                UniValue objKeyImage(UniValue::VOBJ);
+                objKeyImage.pushKV(std::to_string(k), HexStr(&vKeyImages[k*33], &vKeyImages[(k*33)+33])); // TODO: add in constant
+                arrKeyImages.push_back(objKeyImage);
+            }
+            in.pushKV("key_images", arrKeyImages);
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
             if (txin.IsZerocoinSpend()) {
