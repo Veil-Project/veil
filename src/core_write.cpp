@@ -190,11 +190,11 @@ void OutputToJSON(uint256 &txid, int i,
         {
             CTxOutCT *s = (CTxOutCT*) baseOut;
             entry.pushKV("type", "blind");
-            entry.pushKV("valueCommitment", HexStr(&s->commitment.data[0], &s->commitment.data[0]+33));
+            entry.pushKV("ephemeral_pubkey", HexStr(s->vData.begin(), s->vData.end()));
             UniValue o(UniValue::VOBJ);
             ScriptPubKeyToUniv(s->scriptPubKey, o, true);
             entry.pushKV("scriptPubKey", o);
-            entry.pushKV("data_hex", HexStr(s->vData.begin(), s->vData.end()));
+            entry.pushKV("valueCommitment", HexStr(&s->commitment.data[0], &s->commitment.data[0]+33));
 
             AddRangeproof(s->vRangeproof, entry);
         }
@@ -203,9 +203,9 @@ void OutputToJSON(uint256 &txid, int i,
         {
             CTxOutRingCT *s = (CTxOutRingCT*) baseOut;
             entry.pushKV("type", "ringct");
+            entry.pushKV("ephemeral_pubkey", HexStr(s->vData.begin(), s->vData.end()));
             entry.pushKV("pubkey", HexStr(s->pk.begin(), s->pk.end()));
             entry.pushKV("valueCommitment", HexStr(&s->commitment.data[0], &s->commitment.data[0]+33));
-            entry.pushKV("data_hex", HexStr(s->vData.begin(), s->vData.end()));
 
             AddRangeproof(s->vRangeproof, entry);
         }
@@ -258,6 +258,8 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
     out.pushKV("addresses", a);
 }
 
+// TODO: Fix duplicate code. This was done as such to prevent veil-tx and some tests from failing to build.
+// One requires core lib, the other doesn't.
 void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, bool include_hex, int serialize_flags)
 {
     entry.pushKV("txid", tx.GetHash().GetHex());
@@ -283,11 +285,11 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
             in.pushKV("ringct_inputs", "To see the RingCT inputs, you must run the core library!");
 
             const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
-            UniValue objKeyImage(UniValue::VARR);
+            UniValue arrKeyImage(UniValue::VARR);
             for (unsigned int k = 0; k < nSigInputs; k++) {
-                objKeyImage.push_back(HexStr(&vKeyImages[k*33], &vKeyImages[(k*33)+33])); // TODO: add in constant
+                arrKeyImage.push_back(HexStr(&vKeyImages[k*33], &vKeyImages[(k*33)+33]));
             }
-            in.pushKV("key_images", objKeyImage);
+            in.pushKV("key_images", arrKeyImage);
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
             if (txin.IsZerocoinSpend()) {
@@ -374,11 +376,11 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
             }
 
             const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
-            UniValue objKeyImage(UniValue::VARR);
+            UniValue arrKeyImage(UniValue::VARR);
             for (unsigned int k = 0; k < nSigInputs; k++) {
-                objKeyImage.push_back(HexStr(&vKeyImages[k*33], &vKeyImages[(k*33)+33])); // TODO: add in constant
+                arrKeyImage.push_back(HexStr(&vKeyImages[k*33], &vKeyImages[(k*33)+33]));
             }
-            in.pushKV("key_images", objKeyImage);
+            in.pushKV("key_images", arrKeyImage);
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
             if (txin.IsZerocoinSpend()) {
