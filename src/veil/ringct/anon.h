@@ -30,9 +30,9 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
 
 bool RewindToCheckpoint(int nCheckPointHeight, int &nBlocks, std::string &sError);
 
-std::vector<COutPoint> GetRingCtInputs(const CTxIn& txin);
-bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint> >& vInputs);
-std::vector<std::vector<COutPoint>> GetTxRingCtInputs(const CTransaction& tx);
-
+std::vector<std::pair<int64_t, COutPoint>> GetRingCtInputs(const CTxIn& txin);
+std::vector<std::vector<std::pair<int64_t, COutPoint>>> GetTxRingCtInputs(const CTransaction& tx);
+bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<std::pair<int64_t, COutPoint>>>& vTxRingCTInputs);
+bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint>>& vTxRingCTInputs);
 
 #endif //VEIL_ANON_H

@@ -341,7 +341,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
     }
 }
 
-void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, const std::vector<std::vector<COutPoint>>& vTxRingCtInputs, bool include_hex, int serialize_flags) {
+void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry, const std::vector<std::vector<std::pair<int64_t, COutPoint>>>& vTxRingCTInputs, bool include_hex, int serialize_flags) {
     entry.pushKV("txid", tx.GetHash().GetHex());
     entry.pushKV("hash", tx.GetWitnessHash().GetHex());
     entry.pushKV("version", tx.nVersion);
@@ -350,6 +350,9 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
     entry.pushKV("weight", GetTransactionWeight(tx));
     entry.pushKV("locktime", (int64_t)tx.nLockTime);
 
+    // For tracking position in RingCT transactions. Its possible to have more than 1 RingCT inputs in a tx.
+    unsigned int j = 0;
+    unsigned int k = 0;
     UniValue vin(UniValue::VARR);
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
         const CTxIn& txin = tx.vin[i];
@@ -357,30 +360,39 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, UniValue& entry,
         if (tx.IsCoinBase())
             in.pushKV("coinbase", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
         if (txin.IsAnonInput()) {
-            in.pushKV("type", "anon");
+            in.pushKV("type", "ringct"); // FIXME: Should match the type from enum?
+
             uint32_t nSigInputs, nSigRingSize;
             txin.GetAnonInfo(nSigInputs, nSigRingSize);
             in.pushKV("num_inputs", (int) nSigInputs);
             in.pushKV("ring_size", (int) nSigRingSize);
 
-            if (vTxRingCtInputs.size() > i) {
-                std::vector<COutPoint> vRingCtInputs = vTxRingCtInputs[i];
+            const std::vector<uint8_t> vCommitments = txin.scriptWitness.stack[1];
+            in.pushKV("commitment_sig", HexStr(&vCommitments[j], &vCommitments[j + 32]));
+
+            if (vTxRingCTInputs.size() > i) {
                 UniValue arrRing(UniValue::VARR);
-                for (const COutPoint& outpoint : vRingCtInputs) {
+                const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+                for (k; k < nSigInputs; k++) {
                     UniValue obj(UniValue::VOBJ);
-                    obj.pushKV("txid", outpoint.hash.GetHex());
-                    obj.pushKV("vout.n", (uint64_t) outpoint.n);
+                    obj.pushKV("key_image", HexStr(&vKeyImages[k*33], &vKeyImages[(k*33)+33]));
+
+                    std::vector<std::pair<int64_t, COutPoint>> vRingCtInputs = vTxRingCTInputs[i];
+                    obj.pushKV("txid", vRingCtInputs[k].second.hash.GetHex());
+                    obj.pushKV("vout.n", (uint64_t) vRingCtInputs[k].second.n);
+                    obj.pushKV("index", vRingCtInputs[k].first);
+
+                    UniValue arrCommitment(UniValue::VARR);
+                    for (unsigned int m = 0; m < (nSigRingSize); m++) {
+                        j += 1;
+                        arrCommitment.push_back(HexStr(&vCommitments[j*32], &vCommitments[(j*32)+32]));
+                    }
+                    obj.pushKV("commitments", arrCommitment);
+
                     arrRing.push_back(obj);
                 }
                 in.pushKV("ringct_inputs", arrRing);
             }
-
-            const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
-            UniValue arrKeyImage(UniValue::VARR);
-            for (unsigned int k = 0; k < nSigInputs; k++) {
-                arrKeyImage.push_back(HexStr(&vKeyImages[k*33], &vKeyImages[(k*33)+33]));
-            }
-            in.pushKV("key_images", arrKeyImage);
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
             if (txin.IsZerocoinSpend()) {

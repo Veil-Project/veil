@@ -297,21 +297,24 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
     return true;
 }
 
-std::vector<std::vector<COutPoint>> GetTxRingCtInputs(const CTransaction& tx)
+// Gets the RingCT inputs from the transaction.
+std::vector<std::vector<std::pair<int64_t, COutPoint>>> GetTxRingCtInputs(const CTransaction& tx)
 {
-    std::vector<std::vector<COutPoint> > vTxRingCtInputs;
+    std::vector<std::vector<std::pair<int64_t, COutPoint>>> vTxRingCtInputs;
+    // In the tx vin vector, if the transaction is an anon input, it gets the RingCT vOutPoint vector.
     for (const CTxIn& txin : tx.vin) {
         if (txin.IsAnonInput()) {
-            std::vector<COutPoint> vInputs = GetRingCtInputs(txin);
-            vTxRingCtInputs.emplace_back(vInputs);
+            std::vector<std::pair<int64_t, COutPoint>> mapInputs = GetRingCtInputs(txin);
+            vTxRingCtInputs.push_back(mapInputs);
         }
     }
+    // Returns a vector of the vector of RingCT Outpoints.
     return vTxRingCtInputs;
 }
 
-std::vector<COutPoint> GetRingCtInputs(const CTxIn& txin)
+std::vector<std::pair<int64_t, COutPoint>> GetRingCtInputs(const CTxIn& txin)
 {
-    std::vector<COutPoint> vInputs;
+    std::vector<std::pair<int64_t, COutPoint>> vRingCTInputs;
     uint32_t nInputs, nRingSize;
     txin.GetAnonInfo(nInputs, nRingSize);
 
@@ -319,19 +322,16 @@ std::vector<COutPoint> GetRingCtInputs(const CTxIn& txin)
     size_t nRows = nInputs + 1;
 
     if (txin.scriptData.stack.size() != 1)
-        return vInputs;
+        return vRingCTInputs;
 
     if (txin.scriptWitness.stack.size() != 2)
-        return vInputs;
+        return vRingCTInputs;
 
     const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
     const std::vector<uint8_t> vMI = txin.scriptWitness.stack[0];
-    const std::vector<uint8_t> vDL = txin.scriptWitness.stack[1];
 
     if (vKeyImages.size() != nInputs * 33)
-        return vInputs;
-    std::vector<uint8_t> vM(nCols * nRows * 33);
-    std::set<CKey> setKeyCandidates;
+        return vRingCTInputs;
 
     size_t ofs = 0, nB = 0;
     for (size_t k = 0; k < nInputs; ++k) {
@@ -346,15 +346,15 @@ std::vector<COutPoint> GetRingCtInputs(const CTxIn& txin)
             if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
                 continue;
             }
-            vInputs.emplace_back(ao.outpoint);
+            vRingCTInputs.emplace_back(std::make_pair(nIndex, ao.outpoint));
         }
     }
-    return vInputs;
+    return vRingCTInputs;
 }
 
-bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint> >& vInputs)
+bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<std::pair<int64_t, COutPoint>>>& vTxRingCTInputs)
 {
-    vInputs.clear();
+    vTxRingCTInputs.clear();
     uint32_t nInputs, nRingSize;
     txin.GetAnonInfo(nInputs, nRingSize);
 
@@ -369,12 +369,51 @@ bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint> >& vI
 
     const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
     const std::vector<uint8_t> vMI = txin.scriptWitness.stack[0];
-    const std::vector<uint8_t> vDL = txin.scriptWitness.stack[1];
 
     if (vKeyImages.size() != nInputs * 33)
         return false;
-    std::vector<uint8_t> vM(nCols * nRows * 33);
-    std::set<CKey> setKeyCandidates;
+
+    size_t ofs = 0, nB = 0;
+    for (size_t k = 0; k < nInputs; ++k) {
+        std::vector<std::pair<int64_t, COutPoint>> vRingCTInputs;
+        for (size_t i = 0; i < nCols; ++i) {
+            int64_t nIndex;
+
+            if (0 != GetVarInt(vMI, ofs, (uint64_t&) nIndex, nB))
+                return false;
+            ofs += nB;
+
+            CAnonOutput ao;
+            if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
+                return false;
+            }
+            vRingCTInputs.emplace_back(std::make_pair(nIndex, ao.outpoint));
+        }
+        vTxRingCTInputs.emplace_back(vRingCTInputs);
+    }
+    return true;
+}
+
+bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint>>& vTxRingCTInputs)
+{
+    vTxRingCTInputs.clear();
+    uint32_t nInputs, nRingSize;
+    txin.GetAnonInfo(nInputs, nRingSize);
+
+    size_t nCols = nRingSize;
+    size_t nRows = nInputs + 1;
+
+    if (txin.scriptData.stack.size() != 1)
+        return false;
+
+    if (txin.scriptWitness.stack.size() != 2)
+        return false;
+
+    const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+    const std::vector<uint8_t> vMI = txin.scriptWitness.stack[0];
+
+    if (vKeyImages.size() != nInputs * 33)
+        return false;
 
     size_t ofs = 0, nB = 0;
     for (size_t k = 0; k < nInputs; ++k) {
@@ -392,7 +431,7 @@ bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint> >& vI
             }
             vOutpoints.emplace_back(ao.outpoint);
         }
-        vInputs.emplace_back(vOutpoints);
+        vTxRingCTInputs.emplace_back(vOutpoints);
     }
     return true;
 }

@@ -48,7 +48,7 @@ static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& 
     // Blockchain contextual information (confirmations and blocktime) is not
     // available to code in bitcoin-common, so we query them here and push the
     // data into the returned UniValue.
-    const std::vector<std::vector<COutPoint>>& vTxRingCtInputs = GetTxRingCtInputs(tx);
+    const std::vector<std::vector<std::pair<int64_t, COutPoint>>> &vTxRingCtInputs = GetTxRingCtInputs(tx);
     TxToUniv(tx, uint256(), entry, vTxRingCtInputs, true, RPCSerializationFlags());
 
     if (!hashBlock.IsNull()) {
@@ -583,7 +583,7 @@ static UniValue decoderawtransaction(const JSONRPCRequest& request)
 
     UniValue result(UniValue::VOBJ);
     CTransaction tx = std::move(mtx);
-    std::vector<std::vector<COutPoint>> vTxRingCtInputs = GetTxRingCtInputs(tx);
+    std::vector<std::vector<std::pair<int64_t, COutPoint>>>  vTxRingCtInputs = GetTxRingCtInputs(tx);
     TxToUniv(tx, uint256(), result, vTxRingCtInputs, false);
 
     return result;
