@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -540,7 +541,6 @@ public:
     // Get the marginal bytes if spending the specified output from this transaction
     int GetSpendSize(unsigned int out, bool use_max_sig = false) const
     {
-        assert(tx->vpout[out]->IsStandardOutput());
         CTxOut txout;
         txout.nValue = tx->vpout[out]->GetValue();
         txout.scriptPubKey = *tx->vpout[out]->GetPScriptPubKey();
