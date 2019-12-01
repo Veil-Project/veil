@@ -2818,10 +2818,20 @@ CAmount CWallet::GetMintableBalance(std::vector<COutput>& vMintableCoins) const
     return balance;
 }
 
+/*
+** uint8_t filterType => binary filter of coin type
+** 0x1 = basecoin;
+** 0x2 = zerocoin;
+** 0x4 = ct;
+** 0x8 = ringct;
+** default if parameter isn't included is "basecoin" for backwards compatability
+** to code that hasn't been adopted to expect all unspent outputs to be returned.
+*/
 void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const CCoinControl *coinControl,
                              const CAmount &nMinimumAmount, const CAmount &nMaximumAmount,
                              const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount,
-                             const int nMinDepth, const int nMaxDepth, bool fIncludeImmature) const
+                             const int nMinDepth, const int nMaxDepth, bool fIncludeImmature,
+                             const uint8_t filterType) const
 {
     AssertLockHeld(cs_main);
     AssertLockHeld(cs_wallet);
@@ -2901,8 +2911,33 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
                 continue;
             }
 
-            // Value calculated for search conditions
             auto pout = pcoin->tx->vpout[i];
+
+            // For backwards compatability, we need to be able to limit to basecoin, so allow
+            // the caller to filter by cointype as we transition.
+            const OutputTypes outType = (OutputTypes) pout->GetType();
+            switch (outType) {
+              case OUTPUT_STANDARD:
+                if (pout->IsZerocoinMint() && !(filterType & FILTER_ZEROCOIN))
+                    continue;          // caller isn't requesting zerocoin
+                else
+                    if (!(filterType & FILTER_BASECOIN))
+                        continue;      // caller isn't requesting basecoin
+                break;
+              case OUTPUT_RINGCT:
+                    if (!(filterType & FILTER_RINGCT))
+                        continue;      // caller isn't requesting RingCT outputs
+                break;
+              case OUTPUT_CT:
+                    if (!(filterType & FILTER_CT))
+                        continue;      // caller isn't requesting stealth outputs
+                break;
+              default:
+                // Disallow unknown types; shouldn't happen. May want to assert instead
+                continue;
+            }
+
+            // Value calculated for search conditions
             CAmount nValue = 0;
             if (!pcoin->tx->HasBlindedValues() || pout->IsZerocoinMint()) {
                 nValue = pout->GetValue();

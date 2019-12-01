@@ -77,6 +77,12 @@ static const bool DEFAULT_WALLET_RBF = false;
 static const bool DEFAULT_WALLETBROADCAST = true;
 static const bool DEFAULT_DISABLE_WALLET = false;
 
+//! mask bits for coin type
+static const uint8_t FILTER_BASECOIN = 0x01;
+static const uint8_t FILTER_ZEROCOIN = 0x02;
+static const uint8_t FILTER_CT       = 0x04;
+static const uint8_t FILTER_RINGCT   = 0x08;
+
 typedef std::vector<std::pair<uint32_t, bool> > BIP32Path;
 typedef std::map<libzerocoin::CoinDenomination, CAmount> ZerocoinSpread;
 typedef std::tuple<CWalletTx, std::vector<CDeterministicMint>, std::vector<CZerocoinMint>> CommitData;
@@ -945,7 +951,11 @@ public:
     /**
      * populate vCoins with vector of available COutputs.
      */
-    void AvailableCoins(std::vector<COutput>& vCoins, bool fOnlySafe=true, const CCoinControl *coinControl = nullptr, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t nMaximumCount = 0, const int nMinDepth = 0, const int nMaxDepth = 9999999, bool fIncludeImmature=false) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    void AvailableCoins(std::vector<COutput>& vCoins, bool fOnlySafe=true, const CCoinControl *coinControl = nullptr,
+                        const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY,
+                        const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t nMaximumCount = 0,
+                        const int nMinDepth = 0, const int nMaxDepth = 9999999, bool fIncludeImmature=false,
+                        const uint8_t filterType = FILTER_BASECOIN) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     /**
      * Return list of available coins and locked coins grouped by non-change output address.
