@@ -435,6 +435,7 @@ src/qt/transactionview.h
 src/qt/utilitydialog.cpp
 src/qt/utilitydialog.h
 src/qt/veil.cpp
+src/qt/veil/forms/settingsfaq12.ui
 src/qt/walletframe.cpp
 src/qt/walletframe.h
 src/qt/walletmodel.cpp
