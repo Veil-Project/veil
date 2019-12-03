@@ -1021,7 +1021,7 @@ add_executable(veil
         src/version.h
         src/versionbits.cpp
         src/versionbits.h
-        src/walletinitinterface.h
+        rc/walletinitinterface.h
         src/warnings.cpp
         src/warnings.h
         src/veil/zerocoin/spendreceipt.h

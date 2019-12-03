@@ -13,7 +13,7 @@
 // zPIVStake can take two forms
 // 1) the stake candidate, which is a zcmint that is attempted to be staked
 // 2) a staked zerocoin, which is a zcspend that has successfully staked
-class ZerocoinStake : public StakeInput
+class ZerocoinStake : public CStakeInput
 {
 private:
     uint256 nChecksum;
@@ -44,9 +44,8 @@ public:
     int GetChecksumHeightFromMint();
     int GetChecksumHeightFromSpend();
     uint256 GetChecksum();
-
-    static int HeightToModifierHeight(int nHeight);
     uint256 GetSerialStakeHash();
 };
 
 #endif //VEIL_ZEROCOINSTAKEINPUT_H
+

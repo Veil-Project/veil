@@ -3372,7 +3372,6 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                     //Add decoy inputs to the input witness data
                     if (!PickHidingOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, sError))
                         return false;
-                        return error("%s: failed to pick hiding outputs: %s", __func__, sError);
 
                     std::vector<uint8_t> vPubkeyMatrixIndices;
 
