@@ -67,6 +67,7 @@ void WalletInit::AddWalletOptions() const
     gArgs.AddArg("-genoverride", strprintf("Allows you to override the IsInitialBlockDownload check in BitcoinMiner for PoW mining (default: %u)", false), false, OptionsCategory::HIDDEN);
     gArgs.AddArg("-mineprogpow", strprintf("Mine blocks using the CPU on the ProgPow hashing algo  (default: %u)", false), false, OptionsCategory::WALLET);
     gArgs.AddArg("-minerandomx", strprintf("Mine blocks using the CPU on the RandomX hashing algo  (default: %u)", false), false, OptionsCategory::WALLET);
+    gArgs.AddArg("-minesha256", strprintf("Mine blocks using the CPU on the SHA256D hashing algo  (default: %u)", false), false, OptionsCategory::WALLET);
 
 
     gArgs.AddArg("-precompute=<n>", strprintf("Enable the wallet to start solving zerocoin spend proofs inorder to make staking and spending zerocoin faster (default: %u)", false), false, OptionsCategory::WALLET);

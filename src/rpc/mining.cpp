@@ -187,11 +187,11 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
             bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
 
             while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount) {
-                // ProgPow hash
+                // RandomX hash
                 uint256 hash_blob = pblock->GetRandomXHeaderHash();
                 randomx_calculate_hash(GetMyMachineMining(), &hash_blob, sizeof uint256(), hash);
 
-                auto uint256Hash = uint256S(hash);
+                auto uint256Hash = RandomXHashToUint256(hash);
 
                 // Check proof of work matches claimed amount
                 if (UintToArith256(uint256Hash) < bnTarget)
@@ -200,9 +200,16 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
                 ++pblock->nNonce;
                 --nMaxTries;
             }
+        } else if (pblock->IsSha256D()) {
+            LogPrintf("%s Mining Sha256D, %d, keyhash = %s\n", __func__, __LINE__, GetCurrentKeyBlock().GetHex());
+            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount &&
+                   !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                ++pblock->nNonce;
+                --nMaxTries;
+            }
         } else {
             while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount &&
-                   !CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                   !CheckProofOfWork(pblock->GetX16RTPoWHash(), pblock->nBits, Params().GetConsensus())) {
                 ++pblock->nNonce;
                 --nMaxTries;
             }

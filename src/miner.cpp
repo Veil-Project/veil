@@ -43,6 +43,7 @@
 // ProgPow
 #include <crypto/ethash/lib/ethash/endianness.hpp>
 #include <crypto/ethash/include/ethash/progpow.hpp>
+#include <crypto/randomx/randomx.h>
 #include "crypto/ethash/helpers.hpp"
 #include "crypto/ethash/progpow_test_vectors.hpp"
 
@@ -984,9 +985,35 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     ++nTries;
                     ++pblock->nNonce64;
                 }
+            } else if (pblock->IsRandomX()) {
+                arith_uint256 bnTarget;
+                bool fNegative;
+                bool fOverflow;
+
+                CheckIfKeyShouldChange(GetKeyBlock(pblock->nHeight));
+
+                bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
+
+                while (nTries < nInnerLoopCount) {
+                    boost::this_thread::interruption_point();
+                    char hash[RANDOMX_HASH_SIZE];
+                    // Build the header_hash
+                    uint256 nHeaderHash = pblock->GetRandomXHeaderHash();
+
+                    randomx_calculate_hash(GetMyMachineMining(), &nHeaderHash, sizeof uint256(), hash);
+
+                    uint256 nHash = RandomXHashToUint256(hash);
+                    // Check proof of work matches claimed amount
+                    if (UintToArith256(nHash) < bnTarget) {
+                        break;
+                    }
+
+                    ++nTries;
+                    ++pblock->nNonce;
+                }
             } else {
                 while (nTries < nInnerLoopCount &&
-                       !CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                !CheckProofOfWork(pblock->GetX16RTPoWHash(), pblock->nBits, Params().GetConsensus())) {
                     boost::this_thread::interruption_point();
                     ++nTries;
                     ++pblock->nNonce;
