@@ -305,6 +305,7 @@ libbitcoin_server_a_SOURCES = \
   veil/proofoffullnode/proofoffullnode.cpp \
   veil/proofofstake/blockvalidation.cpp \
   veil/proofofstake/kernel.cpp \
+  veil/proofofstake/stakeinput/stakeinput.cpp \
   veil/proofofstake/stakeinput/ringctstakeinput.cpp \
   veil/proofofstake/stakeinput/zerocoinstakeinput.cpp \
   veil/proofofstake/stakeweight.cpp \

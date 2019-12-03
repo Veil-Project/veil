@@ -2861,6 +2861,7 @@ int AnonWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::v
     return 0;
 }
 
+//! Add the non-decoy inputs to the transaction witness data
 int AnonWallet::PlaceRealOutputs(std::vector<std::vector<int64_t> > &vMI, size_t &nSecretColumn, size_t nRingSize, std::set<int64_t> &setHave,
     const std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &vCoins, std::vector<uint8_t> &vInputBlinds, std::string &sError)
 {
@@ -3126,6 +3127,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
     FeeCalculation feeCalc;
     CAmount nFeeNeeded;
     bool fAlreadyHaveInputs = fZerocoinInputs;
+    bool fProofOfStake = coinControl && coinControl->fProofOfStake;
     unsigned int nBytes;
     {
         LOCK2(cs_main, pwalletParent->cs_wallet);
@@ -3265,7 +3267,8 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                         GetStrongRandBytes(&recipient.vBlind[0], 32);
                     }
 
-                    if (0 != AddCTData(txbout.get(), recipient, sError))
+                    //Update rangeproof/commitments
+                    if (0 != AddCTData(txbout.get(), recipient, sError, fProofOfStake))
                         return error("%s: failed to add CTDATA: %s", __func__, sError);
                 }
             }
@@ -3273,6 +3276,7 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
             if (!fAlreadyHaveInputs) {
                 std::set<int64_t> setHave; // Anon prev-outputs can only be used once per transaction.
                 size_t nTotalInputs = 0;
+                //Add the non-decoy inputs to the tx input witness data
                 for (size_t l = 0; l < txNew.vin.size(); ++l) { // Must add real outputs to setHave before picking decoys
                     auto &txin = txNew.vin[l];
                     uint32_t nSigInputs, nSigRingSize;
@@ -3295,15 +3299,17 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     uint32_t nSigInputs, nSigRingSize;
                     txin.GetAnonInfo(nSigInputs, nSigRingSize);
 
+                    //Add decoy inputs to the input witness data
                     if (0 != PickHidingOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, sError))
                         return error("%s: failed to pick hiding outputs: %s", __func__, sError);
 
                     std::vector<uint8_t> vPubkeyMatrixIndices;
 
-                    for (size_t k = 0; k < nSigInputs; ++k)
+                    for (size_t k = 0; k < nSigInputs; ++k) {
                         for (size_t i = 0; i < nSigRingSize; ++i) {
                             PutVarInt(vPubkeyMatrixIndices, vMI[l][k][i]);
                         }
+                    }
 
                     std::vector<uint8_t> vKeyImages(33 * nSigInputs);
                     txin.scriptData.stack.emplace_back(vKeyImages);
@@ -3405,6 +3411,11 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
         vBlindPlain.resize(32);
         memset(&vBlindPlain[0], 0, 32);
 
+        //For proof of stake, we add an "invisible" plain value commitment that is the value of the block reward
+        if (fProofOfStake) {
+            nValueOutPlain = coinControl->nValueBlockReward;
+        }
+
         if (nValueOutPlain > 0) {
             if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainCommitment, &vBlindPlain[0],
                     (uint64_t) nValueOutPlain, secp256k1_generator_h)) {
@@ -3430,7 +3441,8 @@ int AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std
                     GetStrongRandBytes(&r.vBlind[0], 32);
                 }
 
-                if (0 != AddCTData(txNew.vpout[r.n].get(), r, sError))
+                // Update rangeproof/commitments
+                if (0 != AddCTData(txNew.vpout[r.n].get(), r, sError, fProofOfStake))
                     return error("%s: failed to add CTDATA for change output: %s", __func__, sError);
             }
 

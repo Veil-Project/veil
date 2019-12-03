@@ -33,20 +33,18 @@ public:
     explicit ZerocoinStake(const libzerocoin::CoinSpend& spend);
 
     CBlockIndex* GetIndexFrom() override;
-    bool GetTxFrom(CTransaction& tx) override;
     CAmount GetValue() override;
-    bool GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev) override;
     CDataStream GetUniqueness() override;
-    bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) override;
-    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) override;
+    bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake) override;
+
+    bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256());
+    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal);
     bool MarkSpent(CWallet* pwallet, const uint256& txid);
     bool IsZerocoins() override { return true; }
     int GetChecksumHeightFromMint();
     int GetChecksumHeightFromSpend();
     uint256 GetChecksum();
     uint256 GetSerialStakeHash();
-
-    static int HeightToModifierHeight(int nHeight);
 };
 
 #endif //VEIL_ZEROCOINSTAKEINPUT_H

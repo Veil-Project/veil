@@ -34,11 +34,9 @@ public:
 
     bool IsZerocoins() override { return false; }
     CBlockIndex* GetIndexFrom() override;
-    bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256());
-    bool GetTxFrom(CTransaction& tx) { return false; }
+    bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake) override;
     CAmount GetValue() override { return m_nAmount; }
     bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) override;
-    bool GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev) override;
     CDataStream GetUniqueness() override;
 };
 
@@ -63,7 +61,6 @@ public:
     bool GetTxFrom(CTransaction& tx) { return false; }
     CAmount GetValue() override;
     bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) override { return false; }
-    bool GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainFrom) override { return false; }
     CDataStream GetUniqueness() override;
 
     // PublicRingCt specific items

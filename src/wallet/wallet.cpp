@@ -3816,40 +3816,10 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             CAmount nNetworkReward = nNetworkRewardReserve > Params().MaxNetworkReward() ? Params().MaxNetworkReward() : nNetworkRewardReserve;
             nCredit += nNetworkReward;
 
-            // Create the output transaction(s)
-            vector<CTxOut> vout;
-            if (!stakeInput->CreateTxOuts(this, vout, nBlockReward)) {
-                LogPrintf("%s : failed to get scriptPubKey\n", __func__);
+            if (!stakeInput->CreateCoinStake(this, nBlockReward, txNew)) {
+                LogPrintf("%s: stake input failed to create coin stake transaction\n", __func__);
                 continue;
             }
-            txNew.vpout.clear();
-            txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
-            for (auto& txOut : vout)
-                txNew.vpout.emplace_back(txOut.GetSharedPtr());
-
-            // Limit size
-            unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR;
-
-            if (nBytes >= MAX_BLOCK_WEIGHT / 5)
-                return error("CreateCoinStake : exceeded coinstake size limit");
-
-            uint256 hashTxOut = txNew.GetOutputsHash();
-            CTxIn in;
-            {
-                if (!stakeInput->CreateTxIn(this, in, hashTxOut)) {
-                    LogPrintf("%s : failed to create TxIn\n", __func__);
-                    txNew.vin.clear();
-                    txNew.vpout.clear();
-                    nCredit = 0;
-                    continue;
-                }
-            }
-            txNew.vin.emplace_back(in);
-
-            //Mark mints as spent
-            auto* z = (ZerocoinStake*)stakeInput.get();
-            if (!z->MarkSpent(this, txNew.GetHash()))
-                return error("%s: failed to mark mint as used\n", __func__);
 
             fKernelFound = true;
             break;
