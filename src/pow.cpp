@@ -26,6 +26,7 @@
 static randomx_flags flags;
 static uint256 key_block;
 static randomx_cache *myCache;
+static randomx_cache *myCacheValidating;
 static randomx_vm *myMachineMining;
 static randomx_vm *myMachineValidating;
 static bool fLightCacheInited = false;
@@ -43,10 +44,48 @@ void InitRandomXLightCache(const int32_t& height) {
 
     flags = randomx_get_flags();
     myCache = randomx_alloc_cache(flags);
+    myCacheValidating = randomx_alloc_cache(flags);
     randomx_init_cache(myCache, &key_block, sizeof uint256());
+    randomx_init_cache(myCacheValidating, &key_block, sizeof uint256());
     myMachineMining = randomx_create_vm(flags, myCache, NULL);
-    myMachineValidating = randomx_create_vm(flags, myCache, NULL);
+    myMachineValidating = randomx_create_vm(flags, myCacheValidating, NULL);
     fLightCacheInited = true;
+}
+
+// We are going to be performing a block hash for RandomX. To see if we need to spin up a new
+// cache, we can first check to see if we can use the current validation cache
+uint256 GetRandomXBlockHash(const int32_t& height, const uint256& hash_blob ) {
+
+    char hash[RANDOMX_HASH_SIZE];
+
+    // Get the keyblock for the height
+    auto temp_keyblock = GetKeyBlock(height);
+
+    // The hash we are calculating is in the same realm at the current validation caches
+    // We don't need to spin up a new cache, as we can use the one already allocated
+    if (temp_keyblock == key_block) {
+        if (!IsRandomXLightInit()) {
+            InitRandomXLightCache(height);
+        }
+
+        randomx_calculate_hash(GetMyMachineValidating(), &hash_blob, sizeof uint256(), hash);
+        return RandomXHashToUint256(hash);
+    } else {
+        // Create a new temp cache, and machine
+        auto temp_cache = randomx_alloc_cache(flags);
+        randomx_init_cache(temp_cache, &temp_keyblock, sizeof uint256());
+        auto tempMachine = randomx_create_vm(flags, temp_cache, NULL);
+
+        // calculate the hash
+        randomx_calculate_hash(tempMachine, &hash_blob, sizeof uint256(), hash);
+
+        // Destroy the vm and cache
+        randomx_destroy_vm(tempMachine);
+        randomx_release_cache(temp_cache);
+
+        // Return the hash
+        return RandomXHashToUint256(hash);
+    }
 }
 
 void KeyBlockChanged(const uint256& new_block) {
@@ -55,9 +94,12 @@ void KeyBlockChanged(const uint256& new_block) {
     DeallocateRandomXLightCache();
 
     myCache = randomx_alloc_cache(flags);
+    myCacheValidating = randomx_alloc_cache(flags);
     randomx_init_cache(myCache, &key_block, sizeof uint256());
+    randomx_init_cache(myCacheValidating, &key_block, sizeof uint256());
     myMachineMining = randomx_create_vm(flags, myCache, NULL);
     myMachineValidating = randomx_create_vm(flags, myCache, NULL);
+    myMachineValidating = randomx_create_vm(flags, myCacheValidating, NULL);
     fLightCacheInited = true;
 }
 
@@ -294,9 +336,21 @@ bool CheckRandomXProofOfWork(const CBlockHeader& block, unsigned int nBits, cons
 
     randomx_calculate_hash(GetMyMachineValidating(), &hash_blob, sizeof uint256(), hash);
 
-    auto uint256Hash = uint256S(hash);
+    uint256 nHash = RandomXHashToUint256(hash);
 
     // Check proof of work matches claimed amount
-    return UintToArith256(uint256Hash) < bnTarget;
+    return UintToArith256(nHash) < bnTarget;
 
+}
+
+uint256 RandomXHashToUint256(const char* p_char)
+{
+    int i;
+    std::vector<unsigned char> vec;
+    for (i = 0; i < RANDOMX_HASH_SIZE; i++) {
+        vec.push_back(p_char[i]);
+    }
+
+    std::string hexStr = HexStr(vec.begin(), vec.end());
+    return uint256S(hexStr);
 }

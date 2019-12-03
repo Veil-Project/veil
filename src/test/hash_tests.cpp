@@ -152,7 +152,7 @@ BOOST_AUTO_TEST_CASE(x16r)
     CBlock block;
     block.nBits -= 1;
 
-    //BOOST_CHECK_EQUAL(block.GetPoWHash().GetHex(), "745b575ac1a4d16ea1a44234a8cb32baad024baa208f797d592356aef79dfe48");
+    //BOOST_CHECK_EQUAL(block.GetX16RTPoWHash().GetHex(), "745b575ac1a4d16ea1a44234a8cb32baad024baa208f797d592356aef79dfe48");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
