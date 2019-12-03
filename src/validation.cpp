@@ -4462,9 +4462,9 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
                                                                                          "but has null previous"));
 
     // Check PoW/PoS
-    if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake(), block.IsProgPow()))
+    if (block.nBits != GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake(), block.PowType()))
         return state.DoS(100, false, REJECT_INVALID, "bad-diffbits", false, strprintf("incorrect proof of work: block bits=%d calc=%d",
-                block.nBits, GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake(), block.IsProgPow())));
+                block.nBits, GetNextWorkRequired(pindexPrev, &block, consensusParams, block.IsProofOfStake(), block.PowType())));
 
     if (pindexPrev->nHeight >= Params().ConsecutivePoWHeight() && !CheckConsecutivePoW(block, pindexPrev)) {
         return state.DoS(100, false, REJECT_INVALID, "bad-pow", false, strprintf("too many consecutive pow blocks"));

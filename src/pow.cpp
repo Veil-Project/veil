@@ -132,7 +132,7 @@ void DeallocateRandomXLightCache() {
 }
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock,
-                                    const Consensus::Params& params, bool fProofOfStake, bool fProgPow)
+                                    const Consensus::Params& params, bool fProofOfStake, int nPoWType)
 {
     assert(pindexLast != nullptr);
 
@@ -157,18 +157,22 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 //    }
 
     // Retarget every block with DarkGravityWave
-    return DarkGravityWave(pindexLast, params, fProofOfStake, fProgPow);
+    return DarkGravityWave(pindexLast, params, fProofOfStake, nPoWType);
 }
 
-unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake, bool fProgPow) {
+unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake, int nPoWType) {
     /* current difficulty formula, veil - DarkGravity v3, written by Evan Duffield - evan@dash.org */
     const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
 
     const CBlockIndex *pindex = pindexLast;
     const CBlockIndex* pindexLastMatchingProof = nullptr;
     arith_uint256 bnPastTargetAvg = 0;
-    if (fProgPow)
+    if (nPoWType & CBlockHeader::PROGPOW_BLOCK)
         LogPrintf("%s, For ProgPow\n", __func__);
+    else if (nPoWType & CBlockHeader::RANDOMX_BLOCK)
+        LogPrintf("%s, For randomx\n", __func__);
+    else if (nPoWType & CBlockHeader::SHA256D_BLOCK)
+        LogPrintf("%s, For sha256d\n", __func__);
 
     unsigned int nCountBlocks = 0;
     while (nCountBlocks < params.nDgwPastBlocks) {
@@ -180,7 +184,13 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         if (pindex->IsProofOfStake() != fProofOfStake) {
             pindex = pindex->pprev;
             continue;
-        } else if (pindex->IsProgProofOfWork() != fProgPow) {
+        } else if (pindex->IsProgProofOfWork() && !(nPoWType & CBlockHeader::PROGPOW_BLOCK)) {
+            pindex = pindex->pprev;
+            continue;
+        } else if (pindex->IsRandomXProofOfWork() && !(nPoWType & CBlockHeader::RANDOMX_BLOCK)) {
+            pindex = pindex->pprev;
+            continue;
+        } else if (pindex->IsSha256DProofOfWork() && !(nPoWType & CBlockHeader::SHA256D_BLOCK)) {
             pindex = pindex->pprev;
             continue;
         } else if (!pindexLastMatchingProof) {
@@ -201,8 +211,12 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         pindexLastMatchingProof = pindexLast;
 
     int64_t nPowSpacing;
-    if (fProgPow) {
+    if (nPoWType & CBlockHeader::PROGPOW_BLOCK) {
         nPowSpacing = params.nProgPowTargetSpacing;
+    } else if (nPoWType & CBlockHeader::RANDOMX_BLOCK) {
+        nPowSpacing = params.nRandomXTargetSpacing;
+    } else if (nPoWType & CBlockHeader::SHA256D_BLOCK) {
+        nPowSpacing = params.nSha256DTargetSpacing;
     } else {
         nPowSpacing = params.nPowTargetSpacing;
     }
