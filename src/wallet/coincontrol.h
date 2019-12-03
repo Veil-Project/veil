@@ -47,6 +47,8 @@ public:
     FeeEstimateMode m_fee_mode;
     //! Is this for a proof of stake transaction
     bool fProofOfStake;
+    //! The value of the block reward for the proof of stake transaction
+    CAmount nValueBlockReward;
 
     int nCoinType;
     mutable bool fZerocoinSelected = false;

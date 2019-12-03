@@ -89,14 +89,14 @@ CBlockIndex* RingCtStakeCandidate::GetIndexFrom()
 /**
  * @brief Create a coinstake transaction from the stake candidate.
  *
- * @note Call CreateTxIn() after finding a valid stake kernel. A kernel can be found without needing to create the CTxIn.
+ * @note Call CreateCoinStake() after finding a valid stake kernel. A kernel can be found without needing to create the CTxIn.
  *
  * @param[in] pwallet: The CWallet that holds the AnonWallet that holds the RingCT output that is being staked.
  * @param[out] txIn: The resulting CTxIn that will be used in the coinstake transaction.
  * @return <b>true</b> upon success.
  *         <b>false</b> if the AnonWallet fails to find the StakeAddress or if AddAnonInputs() fails.
  */
-bool RingCtStakeCandidate::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
+bool RingCtStakeCandidate::CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake)
 {
     AnonWallet* panonWallet = pwallet->GetAnonWallet();
     CTransactionRef ptx = MakeTransactionRef();
@@ -107,6 +107,7 @@ bool RingCtStakeCandidate::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 has
     coinControl.Select(m_outpoint, m_nAmount);
     coinControl.nCoinType = OUTPUT_RINGCT;
     coinControl.fProofOfStake = true;
+    coinControl.nValueBlockReward = nBlockReward;
 
     //Tell the rct code who the recipient is
     std::vector<CTempRecipient> vecSend;
@@ -145,11 +146,6 @@ bool RingCtStakeCandidate::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 has
  *         <b>false</b> on fail.
  */
 bool RingCtStakeCandidate::CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal)
-{
-    //todo
-}
-
-bool RingCtStakeCandidate::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)
 {
     //todo
 }
