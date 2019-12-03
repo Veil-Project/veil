@@ -54,7 +54,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     uint256 thash;
     while (true)
     {
-        thash = genesis.GetPoWHash();
+        thash = genesis.GetX16RTPoWHash();
         if (UintToArith256(thash) <= hashTarget)
             break;
         if ((genesis.nNonce & 0xF) == 0) {

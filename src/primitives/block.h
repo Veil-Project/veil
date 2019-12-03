@@ -140,7 +140,8 @@ public:
     }
 
     uint256 GetHash() const;
-    uint256 GetPoWHash() const;
+    uint256 GetX16RTPoWHash() const;
+    uint256 GetSha256DPoWHash() const;
     uint256 GetProgPowHash() const;
 
     uint256 GetProgPowHeaderHash() const;
@@ -152,6 +153,10 @@ public:
 
     bool IsRandomX() const {
         return nVersion & RANDOMX_BLOCK;
+    }
+
+    bool IsSha256D() const {
+        return nVersion & SHA256D_BLOCK;
     }
 
     int64_t GetBlockTime() const
@@ -252,6 +257,10 @@ public:
 
     bool IsRandomX() const {
         return IsProofOfWork() && (nVersion & RANDOMX_BLOCK);
+    }
+
+    bool IsSha256D() const {
+        return IsProofOfWork() && (nVersion & SHA256D_BLOCK);
     }
 
     // two types of block: proof-of-work or proof-of-stake

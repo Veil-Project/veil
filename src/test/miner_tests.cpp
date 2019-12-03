@@ -249,7 +249,7 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
             pblock->nNonce = blockinfo[i].nonce;
             pblock->nBits = GetNextWorkRequired(chainActive.Tip(), pblock, chainparams.GetConsensus());
             if (pblock->IsProofOfWork()) {
-                while (!CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, chainparams.GetConsensus())) {
+                while (!CheckProofOfWork(pblock->GetX16RTPoWHash(), pblock->nBits, chainparams.GetConsensus())) {
                     pblock->nNonce++;
                 }
             }
