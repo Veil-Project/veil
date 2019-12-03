@@ -263,6 +263,17 @@ public:
         return IsProofOfWork() && (nVersion & SHA256D_BLOCK);
     }
 
+    int PowType() const {
+        if (IsProofOfWork() && (nVersion & SHA256D_BLOCK))
+            return SHA256D_BLOCK;
+        else if (IsProofOfWork() && (nVersion & RANDOMX_BLOCK))
+            return RANDOMX_BLOCK;
+        else if (IsProofOfWork() && (nVersion & PROGPOW_BLOCK))
+            return PROGPOW_BLOCK;
+        else return 0;
+
+    }
+
     // two types of block: proof-of-work or proof-of-stake
     bool IsProofOfStake() const
     {
