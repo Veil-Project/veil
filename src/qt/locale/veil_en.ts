@@ -3721,32 +3721,6 @@ address / Exchange or Service mode?</source>
     </message>
 </context>
 <context>
-    <name>SettingsFaq02</name>
-    <message>
-        <location filename="../veil/forms/settingsfaq02.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+38"/>
-        <source>“Veil can be purchased from the following exchanges and services (as of 22/10/2018):or an exchange, merchant, or other services, please see here.â€</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+38"/>
-        <location line="+81"/>
-        <location line="+83"/>
-        <location line="+99"/>
-        <source>TextLabel</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+66"/>
-        <source>Veil can also be obtained by mining, staking, or through the Veil Bounty Program.”	</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>SettingsFaq03</name>
     <message>
         <location filename="../veil/forms/settingsfaq03.ui" line="+14"/>
@@ -3908,21 +3882,6 @@ For the latest mining instructions, please visit the mining channel on the Veil 
     <name>SettingsFaq10</name>
     <message>
         <location filename="../veil/forms/settingsfaq10.ui" line="+14"/>
-        <source>Form</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+22"/>
-        <source>“Anyone can earn veil through the Veil Bounty Program. A wide variety of tasks can be performed to earn veil, ranging from traditional bounty tasks, high reward contests, bug bounty, dev bounty, and adopting Veil as a merchant or service.
-
-For the latest information, please see the Official Veil Bounty Program thread on the BitcoinTalk forum.”					</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>SettingsFaq11</name>
-    <message>
-        <location filename="../veil/forms/settingsfaq11.ui" line="+14"/>
         <source>Form</source>
         <translation type="unfinished"></translation>
     </message>

@@ -43,7 +43,6 @@ QT_FORMS_UI = \
   qt/veil/forms/settingschangepassword.ui \
   qt/veil/forms/settingsfaq.ui \
   qt/veil/forms/settingsfaq01.ui \
-  qt/veil/forms/settingsfaq02.ui \
   qt/veil/forms/settingsfaq03.ui \
   qt/veil/forms/settingsfaq04.ui \
   qt/veil/forms/settingsfaq05.ui \
@@ -52,7 +51,6 @@ QT_FORMS_UI = \
   qt/veil/forms/settingsfaq08.ui \
   qt/veil/forms/settingsfaq09.ui \
   qt/veil/forms/settingsfaq10.ui \
-  qt/veil/forms/settingsfaq11.ui \
   qt/veil/forms/settingsfaq12.ui \
   qt/veil/forms/settingsminting.ui \
   qt/veil/forms/settingsnetwork.ui \
@@ -140,7 +138,6 @@ QT_MOC_CPP = \
   qt/veil/settings/moc_settingschangepassword.cpp \
   qt/veil/settings/moc_settingsfaq.cpp \
   qt/veil/settings/moc_settingsfaq01.cpp \
-  qt/veil/settings/moc_settingsfaq02.cpp \
   qt/veil/settings/moc_settingsfaq03.cpp \
   qt/veil/settings/moc_settingsfaq04.cpp \
   qt/veil/settings/moc_settingsfaq05.cpp \
@@ -149,7 +146,6 @@ QT_MOC_CPP = \
   qt/veil/settings/moc_settingsfaq08.cpp \
   qt/veil/settings/moc_settingsfaq09.cpp \
   qt/veil/settings/moc_settingsfaq10.cpp \
-  qt/veil/settings/moc_settingsfaq11.cpp \
   qt/veil/settings/moc_settingsfaq12.cpp \
   qt/veil/settings/moc_settingsminting.cpp \
   qt/veil/settings/moc_settingsnetwork.cpp \
@@ -266,7 +262,6 @@ BITCOIN_QT_H = \
   qt/veil/settings/settingschangepassword.h \
   qt/veil/settings/settingsfaq.h \
   qt/veil/settings/settingsfaq01.h \
-  qt/veil/settings/settingsfaq02.h \
   qt/veil/settings/settingsfaq03.h \
   qt/veil/settings/settingsfaq04.h \
   qt/veil/settings/settingsfaq05.h \
@@ -275,7 +270,6 @@ BITCOIN_QT_H = \
   qt/veil/settings/settingsfaq08.h \
   qt/veil/settings/settingsfaq09.h \
   qt/veil/settings/settingsfaq10.h \
-  qt/veil/settings/settingsfaq11.h \
   qt/veil/settings/settingsfaq12.h \
   qt/veil/settings/settingsminting.h \
   qt/veil/settings/settingsnetwork.h \
@@ -662,7 +656,6 @@ BITCOIN_QT_WALLET_CPP = \
   qt/veil/settings/settingschangepassword.cpp \
   qt/veil/settings/settingsfaq.cpp \
   qt/veil/settings/settingsfaq01.cpp \
-  qt/veil/settings/settingsfaq02.cpp \
   qt/veil/settings/settingsfaq03.cpp \
   qt/veil/settings/settingsfaq04.cpp \
   qt/veil/settings/settingsfaq05.cpp \
@@ -671,7 +664,6 @@ BITCOIN_QT_WALLET_CPP = \
   qt/veil/settings/settingsfaq08.cpp \
   qt/veil/settings/settingsfaq09.cpp \
   qt/veil/settings/settingsfaq10.cpp \
-  qt/veil/settings/settingsfaq11.cpp \
   qt/veil/settings/settingsfaq12.cpp \
   qt/veil/settings/settingsminting.cpp \
   qt/veil/settings/settingsnetwork.cpp \

@@ -5,7 +5,6 @@
 #include <qt/veil/settings/settingsfaq.h>
 #include <qt/veil/forms/ui_settingsfaq.h>
 #include <qt/veil/settings/settingsfaq01.h>
-#include <qt/veil/settings/settingsfaq02.h>
 #include <qt/veil/settings/settingsfaq03.h>
 #include <qt/veil/settings/settingsfaq04.h>
 #include <qt/veil/settings/settingsfaq05.h>
@@ -14,7 +13,6 @@
 #include <qt/veil/settings/settingsfaq08.h>
 #include <qt/veil/settings/settingsfaq09.h>
 #include <qt/veil/settings/settingsfaq10.h>
-#include <qt/veil/settings/settingsfaq11.h>
 #include <qt/veil/settings/settingsfaq12.h>
 #include <qt/guiutil.h>
 
@@ -28,9 +26,7 @@ SettingsFaq::SettingsFaq(QWidget *parent, bool howToObtainVeil) :
 
     setStyleSheet(GUIUtil::loadStyleSheet());
 
-    //ui->editSearch->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->radioButton_01->setProperty("cssClass" , "radio-button-faq");
-    //ui->radioButton_02->setProperty("cssClass" , "radio-button-faq");
     ui->radioButton_03->setProperty("cssClass" , "radio-button-faq");
     ui->radioButton_04->setProperty("cssClass" , "radio-button-faq");
     ui->radioButton_05->setProperty("cssClass" , "radio-button-faq");
@@ -39,11 +35,9 @@ SettingsFaq::SettingsFaq(QWidget *parent, bool howToObtainVeil) :
     ui->radioButton_08->setProperty("cssClass" , "radio-button-faq");
     ui->radioButton_09->setProperty("cssClass" , "radio-button-faq");
     ui->radioButton_10->setProperty("cssClass" , "radio-button-faq");
-    //ui->radioButton_11->setProperty("cssClass" , "radio-button-faq");
     ui->radioButton_12->setProperty("cssClass" , "radio-button-faq");
 
     connect(ui->radioButton_01,SIGNAL(clicked()),this, SLOT(onRadioButton01Clicked()));
-    //connect(ui->radioButton_02,SIGNAL(clicked()),this, SLOT(onRadioButton02Clicked()));
     connect(ui->radioButton_03,SIGNAL(clicked()),this, SLOT(onRadioButton03Clicked()));
     connect(ui->radioButton_04,SIGNAL(clicked()),this, SLOT(onRadioButton04Clicked()));
     connect(ui->radioButton_05,SIGNAL(clicked()),this, SLOT(onRadioButton05Clicked()));
@@ -52,7 +46,6 @@ SettingsFaq::SettingsFaq(QWidget *parent, bool howToObtainVeil) :
     connect(ui->radioButton_08,SIGNAL(clicked()),this, SLOT(onRadioButton08Clicked()));
     connect(ui->radioButton_09,SIGNAL(clicked()),this, SLOT(onRadioButton09Clicked()));
     connect(ui->radioButton_10,SIGNAL(clicked()),this, SLOT(onRadioButton10Clicked()));
-    //connect(ui->radioButton_11,SIGNAL(clicked()),this, SLOT(onRadioButton11Clicked()));
     connect(ui->radioButton_12,SIGNAL(clicked()),this, SLOT(onRadioButton12Clicked()));
 
 
@@ -89,17 +82,6 @@ void SettingsFaq::onRadioButton01Clicked(){
 
     changeScreen(faq01);
 }
-
-void SettingsFaq::onRadioButton02Clicked(){
-    if(!faq02) {
-        faq02 = new SettingsFaq02(this);
-        ui->stackedWidget->addWidget(faq02);
-    }
-
-    changeScreen(faq02);
-}
-
-
 
 void SettingsFaq::onRadioButton03Clicked(){
     if(!faq03) {
@@ -172,15 +154,6 @@ void SettingsFaq::onRadioButton10Clicked(){
     }
 
     changeScreen(faq10);
-}
-
-void SettingsFaq::onRadioButton11Clicked(){
-    if(!faq11) {
-        faq11 = new SettingsFaq11(this);
-        ui->stackedWidget->addWidget(faq11);
-    }
-
-    changeScreen(faq11);
 }
 
 void SettingsFaq::onRadioButton12Clicked(){
