@@ -38,5 +38,8 @@ randomx_vm* GetMyMachineValidating();
 
 /** Check whether a block hash satisfies the prog-proof-of-work requirement specified by nBits */
 bool CheckRandomXProofOfWork(const CBlockHeader& block, unsigned int nBits, const Consensus::Params&);
+uint256 RandomXHashToUint256(const char* p_char);
+
+uint256 GetRandomXBlockHash(const int32_t& height, const uint256& hash_blob);
 
 #endif // BITCOIN_POW_H

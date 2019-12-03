@@ -16,6 +16,7 @@
 
 #include <vector>
 #include <map>
+#include "pow.h"
 
 /**
  * Maximum amount of time that a block timestamp is allowed to exceed the
@@ -389,12 +390,22 @@ public:
 
     uint256 GetBlockPoWHash() const
     {
-        return GetBlockHeader().GetPoWHash();
+        return GetBlockHeader().GetX16RTPoWHash();
     }
 
     uint256 GetProgPowHash() const
     {
         return GetBlockHeader().GetProgPowHash();
+    }
+
+    uint256 GetRandomXPoWHash() const
+    {
+        return GetRandomXBlockHash(GetBlockHeader().nHeight, GetBlockHeader().GetRandomXHeaderHash());
+    }
+
+    uint256 GetSha256DPowHash() const
+    {
+        return GetBlockHeader().GetSha256DPoWHash();
     }
 
     uint256 GetBlockPoSHash() const
@@ -461,6 +472,16 @@ public:
     bool IsProgProofOfWork() const
     {
         return !fProofOfStake && (nVersion & CBlockHeader::PROGPOW_BLOCK);
+    }
+
+    bool IsRandomXProofOfWork() const
+    {
+        return !fProofOfStake && (nVersion & CBlockHeader::RANDOMX_BLOCK);
+    }
+
+    bool IsSha256DProofOfWork() const
+    {
+        return !fProofOfStake && (nVersion & CBlockHeader::SHA256D_BLOCK);
     }
 
     bool IsProofOfStake() const

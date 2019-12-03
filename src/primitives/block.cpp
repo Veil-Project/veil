@@ -12,6 +12,8 @@
 #include <streams.h>
 #include <crypto/ethash/helpers.hpp>
 #include <crypto/ethash/include/ethash/progpow.hpp>
+#include <pow.h>
+#include <crypto/randomx/randomx.h>
 
 uint256 CBlockHeader::GetHash() const
 {
@@ -19,12 +21,17 @@ uint256 CBlockHeader::GetHash() const
 }
 
 #define TIME_MASK 0xffffff80
-uint256 CBlockHeader::GetPoWHash() const
+uint256 CBlockHeader::GetX16RTPoWHash() const
 {
     //Only change every 128 seconds
     int32_t nTimeX16r = nTime&TIME_MASK;
     uint256 hashTime = Hash(BEGIN(nTimeX16r), END(nTimeX16r));
     return HashX16R(BEGIN(nVersion), END(nNonce), hashTime);
+}
+
+uint256 CBlockHeader::GetSha256DPoWHash() const
+{
+    return Hash(BEGIN(nVersion), END(nNonce));
 }
 
 uint256 CBlockHeader::GetProgPowHash() const
