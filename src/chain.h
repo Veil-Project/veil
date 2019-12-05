@@ -471,17 +471,17 @@ public:
 
     bool IsProgProofOfWork() const
     {
-        return !fProofOfStake && (nVersion & CBlockHeader::PROGPOW_BLOCK);
+        return !fProofOfStake && (nVersion & CBlockHeader::PROGPOW_BLOCK) && nTime >= nPowTimeStampActive;
     }
 
     bool IsRandomXProofOfWork() const
     {
-        return !fProofOfStake && (nVersion & CBlockHeader::RANDOMX_BLOCK);
+        return !fProofOfStake && (nVersion & CBlockHeader::RANDOMX_BLOCK) && nTime >= nPowTimeStampActive;
     }
 
     bool IsSha256DProofOfWork() const
     {
-        return !fProofOfStake && (nVersion & CBlockHeader::SHA256D_BLOCK);
+        return !fProofOfStake && (nVersion & CBlockHeader::SHA256D_BLOCK) && nTime >= nPowTimeStampActive;
     }
 
     bool IsProofOfStake() const
@@ -629,7 +629,7 @@ public:
         }
 
         // ProgPow
-        if (this->nVersion & CBlockHeader::PROGPOW_BLOCK) {
+        if (this->nVersion & CBlockHeader::PROGPOW_BLOCK && nTime >= nPowTimeStampActive) {
             READWRITE(nNonce64);
             READWRITE(mixHash);
         }
