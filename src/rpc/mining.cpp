@@ -144,7 +144,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
         // This will check if the key block needs to change and will take down the cache and vm, and spin up the new ones
         CheckIfKeyShouldChange(GetKeyBlock(pblock->nHeight));
 
-        if (pblock->IsProgPow()) {
+        if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
             LogPrintf("%s Mining ProgPow, %d\n", __func__, __LINE__);
             const auto epoch_number = ethash::get_epoch_number(pblock->nHeight);
             auto ctxp = ethash::create_epoch_context(epoch_number);
@@ -176,7 +176,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
                 ++pblock->nNonce64;
                 --nMaxTries;
             }
-        } else if (pblock->IsRandomX()) {
+        } else if (pblock->IsRandomX() && pblock->nTime >= Params().PowUpdateTimestamp()) {
             LogPrintf("%s Mining RandomX, %d, keyhash = %s\n", __func__, __LINE__, GetCurrentKeyBlock().GetHex());
             char hash[RANDOMX_HASH_SIZE];
 
@@ -200,7 +200,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
                 ++pblock->nNonce;
                 --nMaxTries;
             }
-        } else if (pblock->IsSha256D()) {
+        } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
             LogPrintf("%s Mining Sha256D, %d, keyhash = %s\n", __func__, __LINE__, GetCurrentKeyBlock().GetHex());
             while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount &&
                    !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits, Params().GetConsensus())) {

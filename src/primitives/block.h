@@ -13,6 +13,8 @@
 #include <unordered_map>
 #include <libzerocoin/Denominations.h>
 
+extern uint32_t nPowTimeStampActive;
+
 
 struct CVeilBlockData
 {
@@ -66,9 +68,9 @@ class CBlockHeader
 public:
 
     enum {
-        PROGPOW_BLOCK = ( 1 << 28),
-        RANDOMX_BLOCK = ( 1 << 27),
-        SHA256D_BLOCK = ( 1 << 26)
+        PROGPOW_BLOCK = ( 1 << 29),
+        RANDOMX_BLOCK = ( 1 << 28),
+        SHA256D_BLOCK = ( 1 << 27)
     };
 
     // header
@@ -101,11 +103,11 @@ public:
         READWRITE(hashVeilData);
         READWRITE(nTime);
         READWRITE(nBits);
-        if (nVersion & PROGPOW_BLOCK) {
+        if (nVersion & PROGPOW_BLOCK && nTime >= nPowTimeStampActive) {
             READWRITE(nHeight);
             READWRITE(nNonce64);
             READWRITE(mixHash);
-        } else if (nVersion & RANDOMX_BLOCK) {
+        } else if (nVersion & RANDOMX_BLOCK && nTime >= nPowTimeStampActive) {
             READWRITE(nHeight);
             READWRITE(nNonce);
         } else {
@@ -148,15 +150,15 @@ public:
     uint256 GetRandomXHeaderHash() const;
 
     bool IsProgPow() const {
-        return nVersion & PROGPOW_BLOCK;
+        return nVersion & PROGPOW_BLOCK && nTime >= nPowTimeStampActive;
     }
 
     bool IsRandomX() const {
-        return nVersion & RANDOMX_BLOCK;
+        return nVersion & RANDOMX_BLOCK && nTime >= nPowTimeStampActive;
     }
 
     bool IsSha256D() const {
-        return nVersion & SHA256D_BLOCK;
+        return nVersion & SHA256D_BLOCK && nTime >= nPowTimeStampActive;
     }
 
     int64_t GetBlockTime() const
@@ -252,26 +254,25 @@ public:
     }
 
     bool IsProgPow() const {
-        return IsProofOfWork() && (nVersion & PROGPOW_BLOCK);
+        return IsProofOfWork() && (nVersion & PROGPOW_BLOCK) && nTime >= nPowTimeStampActive;
     }
 
     bool IsRandomX() const {
-        return IsProofOfWork() && (nVersion & RANDOMX_BLOCK);
+        return IsProofOfWork() && (nVersion & RANDOMX_BLOCK) && nTime >= nPowTimeStampActive;
     }
 
     bool IsSha256D() const {
-        return IsProofOfWork() && (nVersion & SHA256D_BLOCK);
+        return IsProofOfWork() && (nVersion & SHA256D_BLOCK) && nTime >= nPowTimeStampActive;
     }
 
     int PowType() const {
-        if (IsProofOfWork() && (nVersion & SHA256D_BLOCK))
+        if (IsSha256D())
             return SHA256D_BLOCK;
-        else if (IsProofOfWork() && (nVersion & RANDOMX_BLOCK))
+        else if (IsRandomX())
             return RANDOMX_BLOCK;
-        else if (IsProofOfWork() && (nVersion & PROGPOW_BLOCK))
+        else if (IsProgPow())
             return PROGPOW_BLOCK;
         else return 0;
-
     }
 
     // two types of block: proof-of-work or proof-of-stake
