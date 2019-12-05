@@ -193,18 +193,21 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     assert(pindexPrev != nullptr);
     nHeight = pindexPrev->nHeight + 1;
-    pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
-    // -regtest only: allow overriding block.nVersion with
-    // -blockversion=N to test forking scenarios
-    if (chainparams.MineBlocksOnDemand())
-        pblock->nVersion = gArgs.GetArg("-blockversion", pblock->nVersion);
 
+    // Get the time before Computing the block version
     if (!fProofOfStake) {
         pblock->nTime = GetAdjustedTime();
         if (pblock->nTime < pindexPrev->GetBlockTime() - MAX_PAST_BLOCK_TIME) {
             pblock->nTime = pindexPrev->GetBlockTime() - MAX_PAST_BLOCK_TIME + 1;
         }
     }
+
+    pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus(), pblock->nTime, !fProofOfStake);
+    // -regtest only: allow overriding block.nVersion with
+    // -blockversion=N to test forking scenarios
+    if (chainparams.MineBlocksOnDemand())
+        pblock->nVersion = gArgs.GetArg("-blockversion", pblock->nVersion);
+
     const int64_t nMedianTimePast = pindexPrev->GetMedianTimePast();
 
     nLockTimeCutoff = (STANDARD_LOCKTIME_VERIFY_FLAGS & LOCKTIME_MEDIAN_TIME_PAST)
@@ -953,7 +956,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             }
 
             int nTries = 0;
-            if (pblock->IsProgPow()) {
+            if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
                 const auto epoch_number = ethash::get_epoch_number(pblock->nHeight);
                 auto ctxp = ethash::create_epoch_context_full(epoch_number);
                 auto& ctx = *ctxp;
@@ -985,7 +988,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     ++nTries;
                     ++pblock->nNonce64;
                 }
-            } else if (pblock->IsRandomX()) {
+            } else if (pblock->IsRandomX() && pblock->nTime >= Params().PowUpdateTimestamp()) {
                 arith_uint256 bnTarget;
                 bool fNegative;
                 bool fOverflow;
@@ -1008,6 +1011,13 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                         break;
                     }
 
+                    ++nTries;
+                    ++pblock->nNonce;
+                }
+            } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+                while (nTries < nInnerLoopCount &&
+                       !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                    boost::this_thread::interruption_point();
                     ++nTries;
                     ++pblock->nNonce;
                 }

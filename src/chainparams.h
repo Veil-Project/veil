@@ -145,6 +145,8 @@ public:
     int HeightLightZerocoin() const { return nHeightLightZerocoin; }
     int HeightEnforceBlacklist() const { return nHeightEnforceBlacklist; }
 
+    uint32_t PowUpdateTimestamp() const { return nPowUpdateTimestamp; }
+
 protected:
     CChainParams() {}
 
@@ -208,6 +210,8 @@ protected:
 
     //Settings that are not chain critical, but should not be edited unless the person changing understands the consequence
     int nMaxHeaderRequestWithoutPoW;
+
+    uint32_t nPowUpdateTimestamp;
 };
 
 /**
