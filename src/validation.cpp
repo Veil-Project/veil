@@ -2135,21 +2135,24 @@ void ThreadScriptCheck() {
 // Protected by cs_main
 VersionBitsCache versionbitscache;
 
-int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params)
+int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params, const uint32_t& blockTime, const bool& fProofOfWork)
 {
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_TOP_BITS;
 
-    if (gArgs.GetBoolArg("-mineprogpow", false)) {
-        nVersion |= CBlockHeader::PROGPOW_BLOCK;
-    }
-
-    if (gArgs.GetBoolArg("-minerandomx", false)) {
-        nVersion |= CBlockHeader::RANDOMX_BLOCK;
-    }
-
-    if (gArgs.GetBoolArg("-minesha256", false)) {
-        nVersion |= CBlockHeader::SHA256D_BLOCK;
+    if (blockTime >= Params().PowUpdateTimestamp()) {
+        if (fProofOfWork) {
+            if (gArgs.GetBoolArg("-mineprogpow", false)) {
+                nVersion |= CBlockHeader::PROGPOW_BLOCK;
+            } else if (gArgs.GetBoolArg("-minerandomx", false)) {
+                nVersion |= CBlockHeader::RANDOMX_BLOCK;
+            } else if (gArgs.GetBoolArg("-minesha256", false)) {
+                nVersion |= CBlockHeader::SHA256D_BLOCK;
+            } else {
+                // Setting it to mine randomx bit by default so blocks will try to get mined atleast.
+                nVersion |= CBlockHeader::RANDOMX_BLOCK;
+            }
+        }
     }
 
     for (int i = 0; i < (int)Consensus::MAX_VERSION_BITS_DEPLOYMENTS; i++) {
@@ -2182,7 +2185,7 @@ public:
     {
         return ((pindex->nVersion & VERSIONBITS_TOP_MASK) == VERSIONBITS_TOP_BITS) &&
                ((pindex->nVersion >> bit) & 1) != 0 &&
-               ((ComputeBlockVersion(pindex->pprev, params) >> bit) & 1) == 0;
+               ((ComputeBlockVersion(pindex->pprev, params, pindex->nTime, !pindex->fProofOfStake) >> bit) & 1) == 0;
     }
 };
 
@@ -3148,7 +3151,9 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
         // Check the version of the last 100 blocks to see if we need to upgrade:
         for (int i = 0; i < 100 && pindex != nullptr; i++)
         {
-            int32_t nExpectedVersion = ComputeBlockVersion(pindex->pprev, chainParams.GetConsensus());
+            // TODO, we might have wallets telling users to update because of the new Pow Algo bits in the version.
+            // TODO If this happens, that is why
+            int32_t nExpectedVersion = ComputeBlockVersion(pindex->pprev, chainParams.GetConsensus(), pindex->nTime, !pindex->fProofOfStake);
             if (pindex->nVersion > VERSIONBITS_LAST_OLD_BLOCK_VERSION && (pindex->nVersion & ~nExpectedVersion) != 0)
                 ++nUpgraded;
             pindex = pindex->pprev;
@@ -3993,13 +3998,13 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
 
     // Check proof of work matches claimed amount
     if (fCheckPOW) {
-        if (block.IsProgPow()) {
+        if (block.IsProgPow() && block.nTime >= Params().PowUpdateTimestamp()) {
             if (!CheckProgProofOfWork(block, block.nBits, consensusParams))
                 return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "progpow proof of work failed");
-        } else if (block.IsRandomX()) {
+        } else if (block.IsRandomX() && block.nTime >= Params().PowUpdateTimestamp()) {
             if (!CheckRandomXProofOfWork(block, block.nBits, consensusParams))
                 return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "randomx proof of work failed");
-        } else if (block.IsSha256D()) {
+        } else if (block.IsSha256D() && block.nTime >= Params().PowUpdateTimestamp()) {
             if (!CheckProofOfWork(block.GetSha256DPoWHash(), block.nBits, consensusParams))
                 return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "sha256d proof of work failed");
         } else {
@@ -4418,6 +4423,12 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     if (block.nVersion < 4)
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
                                  strprintf("rejected nVersion=0x%08x block", block.nVersion));
+
+    if (!block.fProofOfStake && block.nTime >= Params().PowUpdateTimestamp()) {
+        if (!block.IsSha256D() && !block.IsRandomX() && !block.IsProgPow())
+            return state.DoS(33, error("%s - bad-pow-algo-use-updated-algos", __func__), REJECT_OBSOLETE,
+                                 "must use progpow, randomx, or sha256d to mine blocks now");
+    }
 
     return true;
 }

@@ -367,6 +367,13 @@ public:
         nDefaultRingSize = 11;
 
         nMaxHeaderRequestWithoutPoW = 50;
+
+
+        // TODO update timestamp with mainnet activation time
+        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
+        nPowUpdateTimestamp = 1608901200; // Fri Dec 25 2020 13:00:00
+        /// Used by block.h for serialization // TODO, update with mainnet activation time above
+        nPowTimeStampActive = 1608901200;
     }
 };
 
@@ -688,6 +695,12 @@ public:
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
 
+
+        // TODO update timestamp with testnet activation time
+        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
+        nPowUpdateTimestamp = 1608901200; // Fri Dec 25 2020 13:00:00
+        /// Used by block.h for serialization // TODO, update with testnet activation time above
+        nPowTimeStampActive = 1608901200;
     }
 };
 
@@ -827,6 +840,11 @@ public:
         nMaxHeaderRequestWithoutPoW = 50;
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
+
+        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
+        nPowUpdateTimestamp = 0; // On from that start
+        /// Used by block.h for serialization
+        nPowTimeStampActive = 0;
     }
 };
 

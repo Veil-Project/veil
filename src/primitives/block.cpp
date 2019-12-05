@@ -15,6 +15,8 @@
 #include <pow.h>
 #include <crypto/randomx/randomx.h>
 
+uint32_t nPowTimeStampActive = 0;
+
 uint256 CBlockHeader::GetHash() const
 {
     return SerializeHash(*this);
