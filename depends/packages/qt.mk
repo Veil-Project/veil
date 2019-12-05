@@ -74,6 +74,9 @@ $(package)_config_opts += -no-feature-printdialog
 $(package)_config_opts += -feature-concurrent
 $(package)_config_opts += -no-feature-xml
 
+$(package)_config_opts_darwin = -no-dbus
+$(package)_config_opts_darwin += -no-opengl
+
 ifneq ($(build_os),darwin)
 $(package)_config_opts_darwin = -xplatform macx-clang-linux
 $(package)_config_opts_darwin += -device-option MAC_SDK_PATH=$(OSX_SDK)
