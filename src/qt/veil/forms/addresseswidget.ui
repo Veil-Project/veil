@@ -107,7 +107,7 @@ QPushButton:unchecked {
 }</string>
              </property>
              <property name="text">
-              <string>My Addresses</string>
+              <string>My addresses</string>
              </property>
              <property name="iconSize">
               <size>
@@ -217,7 +217,7 @@ border:none;
 padding:4px 0px 4px 4px;</string>
           </property>
           <property name="text">
-           <string>New Mining Address</string>
+           <string>New mining address</string>
           </property>
          </widget>
         </item>
@@ -283,7 +283,7 @@ border:none;
 padding:4px 0px 4px 6px;</string>
           </property>
           <property name="text">
-           <string>Add Contact</string>
+           <string>Add contact</string>
           </property>
          </widget>
         </item>

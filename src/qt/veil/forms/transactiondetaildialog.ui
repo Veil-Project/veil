@@ -81,7 +81,7 @@
                                             </string>
                                         </property>
                                         <property name="text">
-                                            <string>Transaction Details</string>
+                                            <string>Transaction details</string>
                                         </property>
                                         <property name="alignment">
                                             <set>Qt::AlignCenter</set>
@@ -183,7 +183,7 @@
                                             </size>
                                         </property>
                                         <property name="toolTip">
-                                            <string>View in Explorer</string>
+                                            <string>View in explorer (opens in web browser)</string>
                                         </property>
                                         <property name="cursor">
                                             <cursorShape>PointingHandCursor</cursorShape>

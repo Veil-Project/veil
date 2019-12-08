@@ -432,7 +432,7 @@ margin:0px;</string>
 }</string>
                   </property>
                   <property name="text">
-                   <string>VEIL Privacy and Minting</string>
+                   <string>VEIL privacy and minting</string>
                   </property>
                   <property name="checked">
                    <bool>true</bool>
@@ -640,8 +640,8 @@ margin:0px;</string>
 }</string>
                   </property>
                   <property name="text">
-                   <string>What is the Single Non-Autominting 
-Address / Exchange or Service mode?</string>
+                   <string>What is the single non-autominting 
+address / exchange or service mode?</string>
                   </property>
                  </widget>
                 </item>

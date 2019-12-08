@@ -38,10 +38,10 @@ color:#707070;</string>
 To spend Basecoin veil, follow these instructions:
 
     1. Navigate to the Send tab.
-    2. Click the Coin Control button.
+    2. Click the Coin control button.
     3. Select all Basecoin UTXO inputs and send a transaction.
 
-All Basecoin transactions are anonymized with RingCT. Although RingCT transactions have an anonymity set size of 11 versus Zerocoin’s thousands, it prevents Basecoin from compromising the privacy of Zerocoin transactions.”					</string>
+Alternatively, the console command 'sendtoaddress' will allow for the spending of Basecoin veil to a specified address.”					</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>

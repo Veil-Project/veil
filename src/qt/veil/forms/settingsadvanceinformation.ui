@@ -122,7 +122,7 @@ font-size:18px;
 font-weight:200;</string>
             </property>
             <property name="text">
-             <string>User Agent:</string>
+             <string>User agent:</string>
             </property>
            </widget>
           </item>
@@ -513,7 +513,7 @@ font-size:18px;
 font-weight:bold;</string>
           </property>
           <property name="text">
-           <string>Memory Pool</string>
+           <string>Memory pool</string>
           </property>
          </widget>
         </item>

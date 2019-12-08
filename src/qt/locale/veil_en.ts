@@ -95,7 +95,7 @@
     </message>
     <message>
         <location line="+7"/>
-        <source>&amp;Copy Address</source>
+        <source>&amp;Copy address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -110,7 +110,7 @@
     </message>
     <message>
         <location line="+177"/>
-        <source>Export Address List</source>
+        <source>Export Address list</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -120,7 +120,7 @@
     </message>
     <message>
         <location line="+13"/>
-        <source>Exporting Failed</source>
+        <source>Exporting failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -138,7 +138,7 @@
     </message>
     <message>
         <location line="+51"/>
-        <source>New Contact</source>
+        <source>New contact</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -166,12 +166,12 @@
     </message>
     <message>
         <location line="+76"/>
-        <source>New Receiving Address</source>
+        <source>New receiving address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+83"/>
-        <source>Failed To Generate. Ensure Wallet Is Unlocked.</source>
+        <source>Failed to generate. Ensure wallet is unlocked.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -181,12 +181,12 @@
     </message>
     <message>
         <location filename="../veil/addressreceive.cpp" line="+130"/>
-        <source>Resulting URI too long, try to reduce the text for label / message.</source>
+        <source>Resulting URI too long. Try to reduce the text for label / message.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+5"/>
-        <source>Error encoding URI into QR Code.</source>
+        <source>Error encoding URI into QR code.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -245,7 +245,7 @@
     </message>
     <message>
         <location line="+96"/>
-        <source>My Addresses</source>
+        <source>My addresses</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -255,12 +255,12 @@
     </message>
     <message>
         <location line="+40"/>
-        <source>New Mining Address</source>
+        <source>New mining address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+66"/>
-        <source>Add Contact</source>
+        <source>Add contact</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -273,12 +273,12 @@
     <name>AskPassphraseDialog</name>
     <message>
         <location filename="../forms/askpassphrasedialog.ui" line="+26"/>
-        <source>Passphrase Dialog</source>
+        <source>Passphrase dialog</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+25"/>
-        <source>Encrypt Wallet</source>
+        <source>Encrypt wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -362,7 +362,7 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR Veil&lt;/b&gt;!</source>
+        <source>Warning: If you encrypt your wallet and lose your passphrase, you will &lt;b&gt;LOSE ALL OF YOUR VEIL&lt;/b&gt;!</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -443,7 +443,7 @@
     </message>
     <message>
         <location line="+124"/>
-        <source>Total Balance</source>
+        <source>Total balance</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -484,12 +484,12 @@
     </message>
     <message>
         <location filename="../veil/balance.cpp" line="+258"/>
-        <source>Resulting URI too long, try to reduce the text for label / message.</source>
+        <source>Resulting URI too long. Try to reduce the text for label / message.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+4"/>
-        <source>Error encoding URI into QR Code.</source>
+        <source>Error encoding URI into QR code.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -525,7 +525,7 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Wallet Overview</source>
+        <source>Wallet overview</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -555,7 +555,7 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Addresses Overview</source>
+        <source>Addresses overview</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -610,17 +610,17 @@
     </message>
     <message>
         <location line="+3"/>
-        <source>&amp;Show / Hide</source>
+        <source>&amp;Show / hide</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+1"/>
-        <source>Show or hide the main Window</source>
+        <source>Show or hide the main window</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+2"/>
-        <source>&amp;Encrypt Wallet...</source>
+        <source>&amp;Encrypt wallet...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -630,7 +630,7 @@
     </message>
     <message>
         <location line="+2"/>
-        <source>&amp;Backup Wallet...</source>
+        <source>&amp;Backup wallet...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -640,7 +640,7 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>&amp;Change Passphrase...</source>
+        <source>&amp;Change passphrase...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -655,7 +655,7 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Sign messages with your Bitcoin addresses to prove you own them</source>
+        <source>Sign messages with your Veil addresses to prove you own them</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -665,7 +665,7 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Verify messages to ensure they were signed with specified Bitcoin addresses</source>
+        <source>Verify messages to ensure they were signed with specified Veil addresses</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -715,7 +715,7 @@
     </message>
     <message>
         <location line="+2"/>
-        <source>Show the %1 help message to get a list with possible Bitcoin command-line options</source>
+        <source>Show the %1 help message to get a list with possible Veil command-line options</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -750,7 +750,7 @@
     </message>
     <message numerus="yes">
         <location line="+188"/>
-        <source>%n active connection(s) to Bitcoin network</source>
+        <source>%n active connection(s) to Veil network</source>
         <translation type="unfinished">
             <numerusform></numerusform>
             <numerusform></numerusform>
@@ -935,7 +935,7 @@
     <name>CoinControlDialog</name>
     <message>
         <location filename="../forms/coincontroldialog.ui" line="+14"/>
-        <source>Coin Selection</source>
+        <source>Coin selection</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -965,7 +965,7 @@
     </message>
     <message>
         <location line="+51"/>
-        <source>After Fee:</source>
+        <source>After fee:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -995,7 +995,7 @@
     </message>
     <message>
         <location line="+5"/>
-        <source>Coin Type</source>
+        <source>Coin type</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1058,7 +1058,7 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Copy Stake Hash</source>
+        <source>Copy stake Hash</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1161,7 +1161,7 @@
     </message>
     <message>
         <location line="+1"/>
-        <source>Serial Hash</source>
+        <source>Serial hash</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1190,7 +1190,7 @@ that you won’t lose or forget.</source>
     </message>
     <message>
         <location line="+58"/>
-        <source>Repeat Password</source>
+        <source>Repeat password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1208,7 +1208,7 @@ that you won’t lose or forget.</source>
     <name>EditAddressDialog</name>
     <message>
         <location filename="../forms/editaddressdialog.ui" line="+14"/>
-        <source>Edit Address</source>
+        <source>Edit address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1403,7 +1403,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+13"/>
-        <source>Wallet Seed Generation</source>
+        <source>Wallet seed generation</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1431,7 +1431,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+13"/>
-        <source>Wallet Seed Generation</source>
+        <source>Wallet seed generation</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1507,7 +1507,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location filename="../modaloverlay.cpp" line="-1"/>
-        <source>Unknown. Syncing Headers (%1)...</source>
+        <source>Unknown. Syncing headers (%1)...</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -1805,7 +1805,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+3"/>
-        <source>Open Configuration File</source>
+        <source>Open configuration file</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1815,7 +1815,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+3"/>
-        <source>&amp;Reset Options</source>
+        <source>&amp;Reset options</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1914,7 +1914,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location filename="../overviewpage.cpp" line="+225"/>
-        <source>Sort By</source>
+        <source>Sort by</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -1942,7 +1942,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="-398"/>
-        <source>Cannot start veil: click-to-pay handler</source>
+        <source>Cannot start Veil: click-to-pay handler</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2069,7 +2069,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+0"/>
-        <source>Node/Service</source>
+        <source>Node/service</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2089,7 +2089,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+0"/>
-        <source>User Agent</source>
+        <source>User agent</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2253,12 +2253,12 @@ and blockchain data.</source>
     <name>QRImageWidget</name>
     <message>
         <location filename="../receiverequestdialog.cpp" line="+32"/>
-        <source>&amp;Save Image...</source>
+        <source>&amp;Save image...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+3"/>
-        <source>&amp;Copy Image</source>
+        <source>&amp;Copy image</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2268,7 +2268,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+0"/>
-        <source>PNG Image (*)</source>
+        <source>PNG image (*)</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -2374,7 +2374,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+19"/>
-        <source>Memory Pool</source>
+        <source>Memory pool</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2395,7 +2395,7 @@ and blockchain data.</source>
     <message>
         <location line="+26"/>
         <location line="+1093"/>
-        <source>User Agent</source>
+        <source>User agent</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2440,7 +2440,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+101"/>
-        <source>&amp;Network Traffic</source>
+        <source>&amp;Network traffic</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2504,7 +2504,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+23"/>
-        <source>Starting Block</source>
+        <source>Starting block</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2514,32 +2514,32 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+23"/>
-        <source>Synced Blocks</source>
+        <source>Synced blocks</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+23"/>
-        <source>Ban Score</source>
+        <source>Ban score</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+23"/>
-        <source>Connection Time</source>
+        <source>Connection time</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+23"/>
-        <source>Last Send</source>
+        <source>Last send</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+23"/>
-        <source>Last Receive</source>
+        <source>Last receive</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+69"/>
-        <source>Ping Time</source>
+        <source>Ping time</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2549,17 +2549,17 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+3"/>
-        <source>Ping Wait</source>
+        <source>Ping wait</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+23"/>
-        <source>Min Ping</source>
+        <source>Min ping</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+23"/>
-        <source>Time Offset</source>
+        <source>Time offset</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2813,7 +2813,7 @@ and blockchain data.</source>
     <name>ReceiveRequestDialog</name>
     <message>
         <location filename="../forms/receiverequestdialog.ui" line="+29"/>
-        <source>QR Code</source>
+        <source>QR code</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2823,12 +2823,12 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+10"/>
-        <source>Copy &amp;Address</source>
+        <source>Copy &amp;address</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+10"/>
-        <source>&amp;Save Image...</source>
+        <source>&amp;Save image...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2873,7 +2873,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+11"/>
-        <source>Resulting URI too long, try to reduce the text for label / message.</source>
+        <source>Resulting URI too long. Try to reduce the text for label / message.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2891,7 +2891,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+52"/>
-        <source>Receive Veil</source>
+        <source>Receive veil</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2907,12 +2907,12 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+123"/>
-        <source>Failed to Generate (Unlock Wallet)</source>
+        <source>Failed to generate (Unlock Wallet)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../veil/receivewidget.cpp" line="+127"/>
-        <source>Resulting URI too long, try to reduce the text for label / message.</source>
+        <source>Resulting URI too long. Try to reduce the text for label / message.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2963,12 +2963,12 @@ QR code to send you veil</source>
     <name>SendCoinsDialog</name>
     <message>
         <location filename="../forms/sendcoinsdialog.ui" line="+14"/>
-        <source>Send Veil</source>
+        <source>Send veil</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+48"/>
-        <source>Send Veil </source>
+        <source>Send veil </source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3017,7 +3017,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+42"/>
-        <source>After Fee:</source>
+        <source>After fee:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3032,7 +3032,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+32"/>
-        <source>Clear All</source>
+        <source>Clear all</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3042,12 +3042,12 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+32"/>
-        <source>Add Recipient</source>
+        <source>Add recipient</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+43"/>
-        <source>Coin Control</source>
+        <source>Coin control</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3124,7 +3124,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+2"/>
-        <source>Please, review your transaction.</source>
+        <source>Please review your transaction.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3134,12 +3134,12 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+16"/>
-        <source>Not signalling Replace-By-Fee, BIP-125.</source>
+        <source>Not signalling replace-by-fee, BIP-125.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+14"/>
-        <source>Total Amount</source>
+        <source>Total amount</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3204,7 +3204,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+8"/>
-        <source>Send Coins</source>
+        <source>Send coins</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3219,7 +3219,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+78"/>
-        <source>Veil Client</source>
+        <source>Veil client</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3247,7 +3247,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+93"/>
-        <source>Address Label</source>
+        <source>Address label</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3268,7 +3268,7 @@ QR code to send you veil</source>
     <message>
         <location line="+15"/>
         <location line="+529"/>
-        <source>Pay To:</source>
+        <source>Pay to:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3309,7 +3309,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+50"/>
-        <source>Send Confirmation</source>
+        <source>Send confirmation</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3382,7 +3382,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+23"/>
-        <source>Network Traffic</source>
+        <source>Network traffic</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3423,7 +3423,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+31"/>
-        <source>User Agent:</source>
+        <source>User agent:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3515,7 +3515,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+30"/>
-        <source>Memory Pool</source>
+        <source>Memory pool</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3599,7 +3599,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+61"/>
-        <source>Backup Wallet</source>
+        <source>Backup wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3632,7 +3632,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+55"/>
-        <source>Change Password</source>
+        <source>Change password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3660,7 +3660,7 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+265"/>
-        <source>VEIL Privacy and Minting</source>
+        <source>VEIL privacy and minting</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3681,8 +3681,8 @@ QR code to send you veil</source>
     </message>
     <message>
         <location line="+52"/>
-        <source>What is the Single Non-Autominting 
-Address / Exchange or Service mode?</source>
+        <source>What is the single non-autominting 
+address / Exchange or Service mode?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3716,7 +3716,7 @@ Address / Exchange or Service mode?</source>
     </message>
     <message>
         <location line="+22"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;“VEIL is a full-time anonymity cryptocurrency based on two of the most highly-vetted privacy protocols.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;When the wallet is unlocked for staking/autominting, it will automatically mint Basecoin veil (essentially non-Zerocoin veil) above 10 into Zerocoin veil denominations of 10, 100, 1,000, and 10,000.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Minting newly received Veil has a negligible fee to deter spam and may take 30-80 minutes (Manual Minting is faster), but has the benefit of Zerocoin anonymization and letting you to earn staking rewards (only Zerocoin veil can stake).&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Zerocoin veil is automatically selected for spending and offers the highest levels of anonymity by being off-chain and obscuring your veil with thousands of other Zerocoin veil denominations.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Any Basecoin veil, such as Change/Dust leftover from minting and spending Zerocoin veil, can be spent with the Ring Confidential Transactions (RingCT) protocol. This prevents non-Zerocoin spends from ever compromising the privacy of your Zerocoin spends.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;To spend any Basecoin veil, select the Coin Control button in the Send tab, and either check the checkbox beside a UTXO or right-click/hold an UTXO and turn it into your single &apos;Non-Autominting Address&apos;.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;If the wallet is for an exchange, merchant, or other services, please see here.”&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;“VEIL is a full-time anonymity cryptocurrency based on highly-vetted privacy protocols.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;When the wallet is unlocked for staking/autominting, it will automatically mint Basecoin veil above 10 into denominations of 10, 100, 1,000, and 10,000 for staking.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Minting newly received veil has a negligible fee to deter spam and may take 30-80 minutes (manually minting is faster), allowing you to earn staking rewards (only veil denominations can stake).&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Veil's privacy is currently provided by RingCT, which obscures details of a spend by hiding it among other spends as decoys.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Any Basecoin veil, such as change/dust leftover from minting and spending veil denominations, will automatically convert to RingCT protected funds.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;To spend any Basecoin veil, select the Coin Control button in the Send tab, and either check the checkbox beside a UTXO or right-click/hold an UTXO and turn it into your single 'Non-Autominting Address'.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;If the wallet is for an exchange, merchant, or other services, please see here.”&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3782,18 +3782,16 @@ Trading fee: 0.25%.
     </message>
     <message>
         <location line="+27"/>
-        <source>Go to Settings&gt;Backup Wallet.</source>
+        <source>Go to Settings&gt;Backup wallet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+33"/>
-        <source>Select either Wallet File or Recovery Seed Phrase
+        <source>When backing up with wallet file, use a strong password. Multiple copies can be made and put on different storage devices for redundant data protection.
 
-When backing up with Wallet File, use a strong password. Multiple copies can be made and put on different storage devices for redundant data protection.
+When backing up with recovery seed phrase at setup, write the 24-word seed phrase in the correct order. Never share your seed phrase with others. Anyone with it will have access to your wallet.
 
-When backing up with Recovery Seed Phrase, write the 24-word seed phrase in the correct order. Never share your seed phrase with others. Anyone with it will have access to your wallet.
-
-For security reasons, it is strongly not recommended to make a digital backup of your recovery seed phrase in plain text or to copy and paste it.</source>
+For security reasons, it is strongly recommended not to make a digital backup of your recovery seed phrase in plain text or to copy and paste it.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3803,14 +3801,14 @@ For security reasons, it is strongly not recommended to make a digital backup of
     </message>
     <message>
         <location line="+27"/>
-        <source>Go to Settings&gt;Restore Wallet.</source>
+        <source>Go to Settings&gt;Restore wallet.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+33"/>
-        <source>When restoring with Wallet File, navigate to your wallet file and input the password used to encrypt it.
+        <source>When restoring with wallet file, navigate to your wallet file and input the password used to encrypt it.
 
-When restoring up with Recovery Seed Phrase, please enter words one at a time instead of copying and pasting them.</source>
+When restoring up with recovery seed phrase, please enter words one at a time instead of copying and pasting them.</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3823,7 +3821,7 @@ When restoring up with Recovery Seed Phrase, please enter words one at a time in
     </message>
     <message>
         <location line="+22"/>
-        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Newly received veil requires ~6 minutes to fully confirm and become mintable (and spendable if using the â€Single Non-Autominting Address or Exchange-or-Serviceâ€ mode).&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Newly minted Zerocoin veil takes ~20 minutes to become spendable. This delay is designed to protect users from â€timing attacksâ€, where their transactions are traceable by spending soon after minting.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Autominting happens automatically when your wallet is unlocked for Staking/Autominting and will slowly mint one of each of the available Zerocoin denominations every 6-7 blocks. It is possible to mint Zerocoin all in one block with Manual Minting, possibly with a higher fee. To access it, go to Settings&amp;gt;Zerocoin Minting and input how many Basecoin veil you want to mint into Zerocoin veil.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;If the wallet is for an exchange, merchant, or other services, please see here.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
+        <source>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Newly received veil requires ~6 minutes to fully confirm and become mintable (and spendable if using the â€single non-autominting address or exchange-or-serviceâ€ mode).&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Newly minted veil denominations take ~20 minutes to become spendable. This delay is designed to protect users from â€timing attacksâ€, where their transactions are traceable by spending soon after minting.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;Autominting happens automatically when your wallet is unlocked for staking/autominting and will slowly mint denominations every 6-7 blocks. It is possible to mint denominations all in one block by manually minting, possibly with a higher fee. To mint manually, go to Settings&amp;gt;Zerocoin minting and input how much veil you want to mint.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;If the wallet is for an exchange, merchant, or other service, please see here.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3841,10 +3839,10 @@ When restoring up with Recovery Seed Phrase, please enter words one at a time in
 To spend Basecoin veil, follow these instructions:
 
     1. Navigate to the Send tab.
-    2. Click the Coin Control button.
+    2. Click the Coin control button.
     3. Select all Basecoin UTXO inputs and send a transaction.
 
-All Basecoin transactions are anonymized with RingCT. Although RingCT transactions have an anonymity set size of 11 versus Zerocoin’s thousands, it prevents Basecoin from compromising the privacy of Zerocoin transactions.”					</source>
+Alternatively, the console command 'sendtoaddress' will allow for the spending of Basecoin veil to a specified address.”					</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3857,17 +3855,17 @@ All Basecoin transactions are anonymized with RingCT. Although RingCT transactio
     </message>
     <message>
         <location line="+22"/>
-        <source>Single Non-Autominting Address
+        <source>Single non-autominting address
 
-The Single Non-Autominting Address allows users to avoid automatic minting of Basecoin veil into Zerocoin veil by keeping Basecoin veil inside it. To designate an address as their Single Non-Autominting Address, right-click/hold a transaction and convert it. The default wallet mode only allows one such address.
+The single non-autominting address allows users to avoid the automatic minting of Basecoin veil into Zerocoin veil by keeping Basecoin veil inside it. To designate an address as their single non-autominting address, right-click/hold a transaction and convert it. The default wallet mode only allows one such address.
 
-Exchange or Service mode
+Exchange or service mode
 
-Exchanges, merchants, and other services may want to avoid the Zerocoin autominting and/or staking process. By enabling Exchange or Service mode, the wallet will no longer automint or stake, with the advantage of only requiring ~6 minutes for received veil to become spendable again. It is highly discouraged for normal users to activate this mode due to the inability to stake and the relatively less anonymous RingCT transaction method.
+Exchanges, merchants, and other services may want to avoid the Zerocoin autominting and/or staking process. By enabling Exchange or service mode, the wallet will no longer automint or stake, with the advantage of only requiring ~6 minutes for received veil to become spendable again. It is highly discouraged for normal users to activate this mode due to the inability to stake and loss of anonymity.
 
-“To change to Exchange or Service mode, follow these instructions:
+“To change to Exchange or service mode, follow these instructions:
 
-1. Go to Settings&gt;Open Configuration File
+1. Go to Settings&gt;Open configuration file
 2. Enter the following as a new line in the veil.config file: exchangesandservicesmode=1
 3. Save the file and restart the wallet”					</source>
         <translation type="unfinished"></translation>
@@ -3886,9 +3884,7 @@ Exchanges, merchants, and other services may want to avoid the Zerocoin automint
 
 You can share your QR code with others so they can send veil to you, and others can send their QR code to you so you can send veil to them.
 
-The Veil mobile app allows you to use your mobile device’s camera to scan QR codes, and send veil to the wallet that generated the QR code.
-
-There are also many QR code scanning mobile apps that can scan a Veil QR Code and show you the address as text. This text address can be manually copied to clipboard and pasted in the &apos;Enter receiving Veil address&apos; field of your walletâ€™s Send tab.”					</source>
+There are also many QR code scanning mobile apps that can scan a Veil QR code and show you the address as text. This text address can be manually copied to clipboard and pasted in the 'Enter receiving Veil address' field of your walletâ€™s Send tab.”					</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -3901,14 +3897,14 @@ There are also many QR code scanning mobile apps that can scan a Veil QR Code an
     </message>
     <message>
         <location line="+22"/>
-        <source>“Veil secures its network with an exclusively anonymous Zerocoin-based Proof-of-Stake system. Basecoin veil cannot stake. Only Zerocoin veil can stake.
+        <source>“Veil secures its network with a hybrid Proof-of-Stake/Proof-of-Stake consensus system. Basecoin veil cannot stake, however, and must be minted to Zerocoin denominations first.
 
 Follow these simple steps to begin staking veil:
 
 1. Send veil to the QR code or receiving address displayed in the overview tab to deposit veil to yourself.
 2. Click the Staking Toggle at the bottom left of the Overview screen and input your password to unlock your wallet for Staking/Autominting.
 3. Allow the wallet to automatically mint your Basecoin veil into Zerocoin veil.
-4. After newly minted Zerocoin veil denominations receive 200 confirmations, they will begin staking and can earn staking rewards.
+4. After newly minted Zerocoin veil denominations receive 1000 confirmations, they will begin staking and can earn staking rewards.
 5. Ensure the staking icon at the bottom left of the Overview screen is turned on. Exiting your wallet will stop staking.”					</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3924,9 +3920,9 @@ Follow these simple steps to begin staking veil:
         <location line="+22"/>
         <source>“The X16RT mining algorithm will be used for at least the first 12 months of mainnet going live (January 1st, 2019) to achieve wide coin supply distribution.
 
-Anyone with NVIDIA or AMD graphics cards will be able to solo mine or pool mine VEIL without concerns about ASIC’s and mining centralization during the mining phase.
+Anyone with NVIDIA or AMD graphics cards will be able to solo mine or pool mine VEIL without concerns about ASICs and mining centralization.
 
-For the latest mining instructions, please see the Official Veil Announcement thread on the BitcoinTalk forum.”					</source>
+For the latest mining instructions, please visit the mining channel on the Veil Discord server or see the official Veil announcement thread on the BitcoinTalk forum.”					</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4024,24 +4020,24 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+139"/>
-        <source>Zerocoin Balance</source>
+        <source>Zerocoin balance</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+26"/>
-        <source>0.00 Zerocoin Veil</source>
+        <source>0.00 Zerocoin veil</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+33"/>
-        <source>Mintable Basecoin</source>
+        <source>Mintable basecoin</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+27"/>
         <location line="+79"/>
         <location line="+42"/>
-        <source>0.00 Veil</source>
+        <source>0.00 veil</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4056,22 +4052,22 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+108"/>
-        <source>Mint Zerocoin Veil</source>
+        <source>Mint Zerocoin veil</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+39"/>
-        <source>Minting Zerocoin veil anonymizes your veils by removing transaction history, making transactions untraceable.</source>
+        <source>Minting Zerocoin veil no longer anonymizes your veil's transaction history. To protect your transactions, it is strongly recommended you mint from RingCT balance.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+53"/>
-        <source>Enter Amount</source>
+        <source>Enter amount</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+13"/>
-        <source>Use Basecoin</source>
+        <source>Use basecoin</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4254,17 +4250,17 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+109"/>
-        <source>Backup Wallet</source>
+        <source>Backup wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+50"/>
-        <source>Change Password</source>
+        <source>Change password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+49"/>
-        <source>Unlock Wallet for Staking</source>
+        <source>Unlock wallet for staking</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4284,7 +4280,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+50"/>
-        <source>Zerocoin Minting</source>
+        <source>Zerocoin minting</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4294,7 +4290,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+50"/>
-        <source>Advanced Options</source>
+        <source>Advanced options</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4320,7 +4316,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+13"/>
-        <source>&amp;Sign Message</source>
+        <source>&amp;Sign message</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4377,7 +4373,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+3"/>
-        <source>Sign &amp;Message</source>
+        <source>Sign &amp;message</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4388,12 +4384,12 @@ to have automatically minted by automint</source>
     <message>
         <location line="+3"/>
         <location line="+143"/>
-        <source>Clear &amp;All</source>
+        <source>Clear &amp;all</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="-84"/>
-        <source>&amp;Verify Message</source>
+        <source>&amp;Verify message</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4413,7 +4409,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+3"/>
-        <source>Verify &amp;Message</source>
+        <source>Verify &amp;message</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4557,7 +4553,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+12"/>
-        <source>0.00 Veil</source>
+        <source>0.00 veil</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -4821,7 +4817,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+64"/>
-        <source>Transaction Details</source>
+        <source>Transaction details</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5043,32 +5039,32 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+2"/>
-        <source>Converted Basecoin To CT</source>
+        <source>Converted Basecoin to CT</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+2"/>
-        <source>Converted Basecoin To RingCT</source>
+        <source>Converted Basecoin to RingCT</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+2"/>
-        <source>Converted CT To Basecoin</source>
+        <source>Converted CT to Basecoin</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+2"/>
-        <source>Converted CT To RingCT</source>
+        <source>Converted CT to RingCT</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+2"/>
-        <source>Converted RingCT To Basecoin</source>
+        <source>Converted RingCT to Basecoin</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+2"/>
-        <source>Converted RingCT To CT</source>
+        <source>Converted RingCT to CT</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5113,7 +5109,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+2"/>
-        <source>Zerocoin Stake</source>
+        <source>Zerocoin stake</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5297,7 +5293,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+193"/>
-        <source>Export Transaction History</source>
+        <source>Export transaction history</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5342,7 +5338,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+3"/>
-        <source>Exporting Failed</source>
+        <source>Exporting failed</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5352,7 +5348,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+4"/>
-        <source>Exporting Successful</source>
+        <source>Exporting successful</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5386,12 +5382,12 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+79"/>
-        <source>Create Wallet</source>
+        <source>Create wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+59"/>
-        <source>Restore Wallet</source>
+        <source>Restore wallet</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5587,7 +5583,7 @@ be used to restore your wallet.</source>
     </message>
     <message>
         <location line="+64"/>
-        <source>Unlock Wallet For Staking</source>
+        <source>Unlock wallet for staking</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5597,7 +5593,7 @@ be used to restore your wallet.</source>
     </message>
     <message>
         <location line="+82"/>
-        <source>Invalid Password</source>
+        <source>Invalid password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5620,7 +5616,7 @@ be used to restore your wallet.</source>
     </message>
     <message>
         <location line="+51"/>
-        <source>Edit Address Label</source>
+        <source>Edit address label</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5917,7 +5913,7 @@ be used to restore your wallet.</source>
     </message>
     <message>
         <location line="+2"/>
-        <source>This is a pre-release test build - use at your own risk - do not use for mining or merchant applications</source>
+        <source>This is a pre-release test build - use at your own risk! Do not use for mining or merchant applications.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

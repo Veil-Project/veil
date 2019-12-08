@@ -61,7 +61,7 @@
          <string notr="true"/>
         </property>
         <property name="text">
-         <string>Send Confirmation</string>
+         <string>Send confirmation</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
