@@ -9,11 +9,18 @@
 #include <consensus/params.h>
 
 #include <stdint.h>
+#include <memory>
 
 class CBlockHeader;
 class CBlockIndex;
 class uint256;
 class randomx_vm;
+class randomx_dataset;
+class randomx_cache;
+class CReserveScript;
+
+extern std::vector<randomx_vm*> vecRandomXVM;
+extern bool fKeyBlockedChanged;
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params&,
                                     bool fProofOfStake, int nPoWType);
@@ -29,11 +36,11 @@ bool CheckProgProofOfWork(const CBlockHeader& block, unsigned int nBits, const C
 bool IsRandomXLightInit();
 void InitRandomXLightCache(const int32_t& height);
 void KeyBlockChanged(const uint256& new_block);
-void CheckIfKeyShouldChange(const uint256& check_block);
+bool CheckIfMiningKeyShouldChange(const uint256& check_block);
+void CheckIfValidationKeyShouldChangeAndUpdate(const uint256& check_block);
 void DeallocateRandomXLightCache();
 uint256 GetCurrentKeyBlock();
 uint256 GetKeyBlock(const uint32_t& nHeight);
-randomx_vm* GetMyMachineMining();
 randomx_vm* GetMyMachineValidating();
 
 /** Check whether a block hash satisfies the prog-proof-of-work requirement specified by nBits */
@@ -41,5 +48,11 @@ bool CheckRandomXProofOfWork(const CBlockHeader& block, unsigned int nBits, cons
 uint256 RandomXHashToUint256(const char* p_char);
 
 uint256 GetRandomXBlockHash(const int32_t& height, const uint256& hash_blob);
+
+void DeallocateVMVector();
+void DeallocateDataSet();
+void DeallocateCache();
+void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_ptr<CReserveScript> pCoinbaseScript);
+void CreateRandomXInitDataSet(int nThreads, randomx_dataset* dataset, randomx_cache* cache);
 
 #endif // BITCOIN_POW_H

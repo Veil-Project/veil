@@ -142,7 +142,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
         }
 
         // This will check if the key block needs to change and will take down the cache and vm, and spin up the new ones
-        CheckIfKeyShouldChange(GetKeyBlock(pblock->nHeight));
+        CheckIfValidationKeyShouldChangeAndUpdate(GetKeyBlock(pblock->nHeight));
 
         if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
             LogPrintf("%s Mining ProgPow, %d\n", __func__, __LINE__);
@@ -189,7 +189,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
             while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount) {
                 // RandomX hash
                 uint256 hash_blob = pblock->GetRandomXHeaderHash();
-                randomx_calculate_hash(GetMyMachineMining(), &hash_blob, sizeof uint256(), hash);
+                randomx_calculate_hash(GetMyMachineValidating(), &hash_blob, sizeof uint256(), hash);
 
                 auto uint256Hash = RandomXHashToUint256(hash);
 
