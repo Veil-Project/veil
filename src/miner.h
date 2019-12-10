@@ -208,6 +208,8 @@ int64_t UpdateTime(CBlock* pblock, const Consensus::Params& consensusParams, con
 void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScript> coinbaseScript);
 void ThreadStakeMiner();
 void LinkPoWThreadGroup(void* pthreadgroup);
+void LinkRandomXThreadGroup(void* pthreadgroup);
+void ThreadRandomXBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, const int vm_index, const uint32_t startNonce);
 
 
 #endif // BITCOIN_MINER_H
