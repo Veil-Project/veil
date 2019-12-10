@@ -192,6 +192,7 @@ static boost::thread_group threadGroupPrecompute;
 static boost::thread_group threadGroupAutoSpend;
 #endif
 static boost::thread_group threadGroupPoWMining;
+static boost::thread_group threadGroupRandomX;
 static boost::thread_group threadGroupStaging;
 static CScheduler scheduler;
 
@@ -246,6 +247,11 @@ void Shutdown()
     // CScheduler/checkqueue threadGroup
     threadGroupPoWMining.interrupt_all();
     threadGroupPoWMining.join_all();
+    DeallocateVMVector();
+    DeallocateDataSet();
+
+    threadGroupRandomX.interrupt_all();
+    threadGroupRandomX.join_all();
 #ifdef ENABLE_WALLET
     if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
         threadGroupStaking.interrupt_all();
@@ -1931,6 +1937,7 @@ bool AppInitMain()
     //threadGroupStaging.create_thread(&ThreadStagingBatchVerify);
 
     LinkPoWThreadGroup(&threadGroupPoWMining);
+    LinkRandomXThreadGroup(&threadGroupRandomX);
 
 #ifdef ENABLE_WALLET
     if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
