@@ -1,5 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -256,9 +257,22 @@ public:
         assert(genesis.hashMerkleRoot == uint256S("0xa6d192b185dc382a8d7e7dbb5f7a212a54cb93b94e6b9e08869d9169c04993b0"));
         assert(genesis.hashVeilData == uint256S("0x8b7f273daa09d2d0fa6abeb27a2a87a4ee6c947ac04931f4f3b6b83f1cf7ad3f"));
 
-        vSeeds.emplace_back("veilseed.presstab.pw");
-        vSeeds.emplace_back("veil.seed.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
-        vSeeds.emplace_back("veil.seed2.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
+        vSeeds.emplace_back("node01.veil-project.com");
+        vSeeds.emplace_back("node02.veil-project.com");
+        vSeeds.emplace_back("node03.veil-project.com");
+        vSeeds.emplace_back("node04.veil-project.com");
+        vSeeds.emplace_back("node05.veil-project.com");
+        vSeeds.emplace_back("node06.veil-project.com");
+        vSeeds.emplace_back("node07.veil-project.com");
+        vSeeds.emplace_back("node08.veil-project.com");
+        vSeeds.emplace_back("node09.veil-project.com"); // Mimir seeder
+        vSeeds.emplace_back("node10.veil-project.com"); // Codeofalltrades seeder
+        vSeeds.emplace_back("node11.veil-project.com"); // CaveSpectre seeder
+        // single point DNS failure backups
+        vSeeds.emplace_back("seed.veil.rune.network");             // Mimir seeder
+        vSeeds.emplace_back("veilseed.codeofalltrades.com");       // Codeofalltrades seeder
+        vSeeds.emplace_back("veilseed.veil-stats.com");            // Codeofalltrades seeder
+        vSeeds.emplace_back("veil-seed.pontificatingnobody.com");  // CaveSpectre seeder
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,70);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -418,11 +432,19 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
 
-        vSeeds.emplace_back("veilseedtestnet.presstab.pw");
-        vSeeds.emplace_back("veil-testnet.seed.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
-        vSeeds.emplace_back("veil-testnet.seed2.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
-        vSeeds.emplace_back("veilseedtestnet.veil-stats.com"); // Codeofalltrades seeder
-        vSeeds.emplace_back("veil-testnet-seed.asoftwaresolution.com");
+        vSeeds.emplace_back("testnode01.veil-project.com");
+        vSeeds.emplace_back("testnode02.veil-project.com");
+        vSeeds.emplace_back("testnode03.veil-project.com");
+        vSeeds.emplace_back("testnode04.veil-project.com");
+        vSeeds.emplace_back("testnode05.veil-project.com");
+        vSeeds.emplace_back("testnode06.veil-project.com");
+        vSeeds.emplace_back("testnode07.veil-project.com"); // Mimir seeder
+        vSeeds.emplace_back("testnode08.veil-project.com"); // Codeofalltrades seeder
+        vSeeds.emplace_back("testnode09.veil-project.com"); // CaveSpectre seeder
+        // single point DNS failure backups
+        vSeeds.emplace_back("seedtest.veil.rune.network");              // Mimir seeder
+        vSeeds.emplace_back("veilseedtestnet.codeofalltrades.com");     // Codeofalltrades seeder
+        vSeeds.emplace_back("veil-seed-test.pontificatingnobody.com");  // CaveSpectre seeder
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
