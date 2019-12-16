@@ -36,7 +36,7 @@ background-color:white;</string>
     <number>0</number>
    </property>
    <item>
-    <widget class="QFrame" name="frame">
+    <widget class="QFrame" name="frame_1">
      <property name="styleSheet">
       <string notr="true">background-color:white;
 border:none;</string>
@@ -412,7 +412,7 @@ margin:0px;</string>
        </widget>
       </item>
       <item>
-       <widget class="QFrame" name="frame">
+       <widget class="QFrame" name="frame_2">
         <property name="styleSheet">
          <string notr="true">QToolTip {
     color: #ffffff;

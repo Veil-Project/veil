@@ -96,7 +96,7 @@
           </spacer>
          </item>
          <item>
-          <widget class="QFrame" name="frame">
+          <widget class="QFrame" name="frame_1">
            <property name="styleSheet">
             <string notr="true">#groupBox {
   border:0;
@@ -437,7 +437,7 @@ border:0;
              <number>0</number>
             </property>
             <item alignment="Qt::AlignHCenter">
-             <widget class="QFrame" name="frame">
+             <widget class="QFrame" name="frame_31">
               <property name="minimumSize">
                <size>
                 <width>300</width>
@@ -468,7 +468,7 @@ border:0;
                 </spacer>
                </item>
                <item>
-                <widget class="QFrame" name="frame">
+                <widget class="QFrame" name="frame_311">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
@@ -607,7 +607,7 @@ padding-bottom:3px;</string>
                 </widget>
                </item>
                <item alignment="Qt::AlignTop">
-                <widget class="QFrame" name="frame">
+                <widget class="QFrame" name="frame_312">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
@@ -728,7 +728,7 @@ padding-bottom:3px;</string>
                 </widget>
                </item>
                <item>
-                <widget class="QFrame" name="frame_4">
+                <widget class="QFrame" name="frame_313">
                  <layout class="QVBoxLayout" name="verticalLayout_8">
                   <property name="leftMargin">
                    <number>1</number>

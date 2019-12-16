@@ -112,7 +112,7 @@
           <number>9</number>
          </property>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_7" stretch="0,1">
+          <layout class="QHBoxLayout" name="horizontalLayout_1" stretch="0,1">
            <item>
             <widget class="QLabel" name="labelSend">
              <property name="maximumSize">
@@ -158,7 +158,7 @@
           </widget>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_7" stretch="0,1">
+          <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,1">
            <item>
             <widget class="QLabel" name="labelAmount">
              <property name="maximumSize">
@@ -201,7 +201,7 @@
           </widget>
          </item>
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_7" stretch="0,1">
+          <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,1">
            <item>
             <widget class="QLabel" name="labelFee">
              <property name="maximumSize">
@@ -244,7 +244,7 @@
        </spacer>
       </item>
       <item>
-       <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
          <spacer name="horizontalSpacer_2">
           <property name="orientation">

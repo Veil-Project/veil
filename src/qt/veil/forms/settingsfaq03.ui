@@ -22,7 +22,7 @@ color:#707070;</string>
     <number>60</number>
    </property>
    <item>
-    <widget class="QLabel" name="label_3">
+    <widget class="QLabel" name="label">
      <property name="styleSheet">
       <string notr="true">color:#105aef;</string>
      </property>
@@ -32,7 +32,7 @@ color:#707070;</string>
     </widget>
    </item>
    <item>
-    <spacer name="verticalSpacer_5">
+    <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
@@ -48,7 +48,7 @@ color:#707070;</string>
     </spacer>
    </item>
    <item>
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="label_1">
      <property name="styleSheet">
       <string notr="true">font-weight:bold;
 font-size:16px;</string>
@@ -59,7 +59,7 @@ font-size:16px;</string>
     </widget>
    </item>
    <item>
-    <spacer name="verticalSpacer_2">
+    <spacer name="verticalSpacer_1">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
@@ -102,7 +102,7 @@ For security reasons, it is strongly recommended not to make a digital backup of
     </widget>
    </item>
    <item>
-    <spacer name="verticalSpacer_3">
+    <spacer name="verticalSpacer_2">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
@@ -128,6 +128,33 @@ For security reasons, it is strongly recommended not to make a digital backup of
     </widget>
    </item>
    <item>
+    <spacer name="verticalSpacer_3">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Fixed</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>10</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QLabel" name="label_4">
+     <property name="styleSheet">
+      <string notr="true">font-weight:bold;
+font-size:16px;</string>
+     </property>
+     <property name="text">
+      <string>Go to Settings&gt;Restore wallet.</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="verticalSpacer_4">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -143,35 +170,8 @@ For security reasons, it is strongly recommended not to make a digital backup of
      </property>
     </spacer>
    </item>
-   <item>
-    <widget class="QLabel" name="label">
-     <property name="styleSheet">
-      <string notr="true">font-weight:bold;
-font-size:16px;</string>
-     </property>
-     <property name="text">
-      <string>Go to Settings&gt;Restore wallet.</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <spacer name="verticalSpacer_2">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Fixed</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>10</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
    <item alignment="Qt::AlignLeft|Qt::AlignTop">
-    <widget class="QLabel" name="label_2">
+    <widget class="QLabel" name="label_5">
      <property name="minimumSize">
       <size>
        <width>0</width>
@@ -196,7 +196,7 @@ When restoring up with recovery seed phrase, please enter words one at a time in
     </widget>
    </item>
    <item>
-    <spacer name="verticalSpacer">
+    <spacer name="verticalSpacer_5">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
