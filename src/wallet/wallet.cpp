@@ -4804,6 +4804,10 @@ std::vector<std::string> CWallet::GetDestValues(const std::string& prefix) const
 // CWallet::AutoZeromint() gets called with each new incoming block
 void CWallet::AutoZeromint()
 {
+    if (gArgs.GetBoolArg("-automintoff", false)) {
+        return;
+    }
+
     // After sync wait even more to reduce load when wallet was just started
     int64_t nWaitTime = GetAdjustedTime() - nAutoMintStartupTime;
     if (nWaitTime < AUTOMINT_DELAY){

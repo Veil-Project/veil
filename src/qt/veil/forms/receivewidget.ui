@@ -63,7 +63,7 @@ background-color:white;</string>
            <string notr="true">padding:10 0 10 0;</string>
           </property>
           <property name="text">
-           <string>Receive Veil</string>
+           <string>Receive veil</string>
           </property>
          </widget>
         </item>
@@ -261,7 +261,7 @@ QR code to send you veil</string>
                  <string notr="true">color:#707070;</string>
                 </property>
                 <property name="text">
-                 <string>Failed to Generate (Unlock Wallet)</string>
+                 <string>Failed to generate (ensure wallet is unlocked)</string>
                 </property>
                </widget>
               </item>

@@ -227,7 +227,7 @@ background-image: url(&quot;:/icons/ic-close-active&quot;) ;
         <item>
          <widget class="QPushButton" name="btnNetwork">
           <property name="text">
-           <string>Network Traffic</string>
+           <string>Network traffic</string>
           </property>
          </widget>
         </item>

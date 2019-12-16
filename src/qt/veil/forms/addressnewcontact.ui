@@ -62,7 +62,7 @@
          <string notr="true"/>
         </property>
         <property name="text">
-         <string>New Contact</string>
+         <string>New contact</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>

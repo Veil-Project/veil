@@ -72,7 +72,7 @@
          <string notr="true"/>
         </property>
         <property name="text">
-         <string>Backup Wallet</string>
+         <string>Backup wallet</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>

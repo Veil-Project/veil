@@ -151,6 +151,9 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
 
     }
 
+    if (nBlockHeight == 1 && Params().NetworkIDString() != CBaseChainParams::MAIN)
+        nBlockReward += 15000000;
+
     nBlockReward *= COIN;
     nFounderPayment *= COIN;
     nLabPayment *= COIN;

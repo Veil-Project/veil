@@ -22,6 +22,8 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
     ui(new Ui::TransactionDetailDialog)
 {
     ui->setupUi(this);
+    this->setStyleSheet(GUIUtil::loadStyleSheet());
+    
     // Titles
     ui->title->setProperty("cssClass" , "title");
     ui->labelAmount->setProperty("cssClass" , "label-detail");
