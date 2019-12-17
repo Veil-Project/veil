@@ -7,7 +7,7 @@
 #include <qt/walletmodel.h>
 #include <qt/guiutil.h>
 #include <qt/optionsmodel.h>
-#include <QIntValidator>
+#include <QRegExpValidator>
 
 #include <QSettings>
 #include <QStandardPaths>
@@ -29,7 +29,7 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
 
     ui->btnEsc->setProperty("cssClass" , "btn-text-primary-inactive");
 
-    ui->editAmount->setPlaceholderText("Enter amount here");
+    ui->editAmount->setPlaceholderText("Enter amount here (multiple of 10)");
     ui->editAmount->setAttribute(Qt::WA_MacShowFocusRect, 0);
     ui->editAmount->setProperty("cssClass" , "edit-primary");
 
@@ -71,10 +71,12 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
             break;
     }
 
-    //
     ui->errorMessage->setVisible(false);
 
-    ui->editAmount->setValidator(new QIntValidator(0, 100000000000, this) );
+    // one digit between 1 and 9 followed by 0 to 10 digits followed by a zero (as it must
+    // be a multiple of 10
+    QRegExp rx("[1-9]\\d{1,11}");
+    ui->editAmount->setValidator(new QRegExpValidator(rx, this) );
 
     connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(close()));
     connect(ui->btnSendMint,SIGNAL(clicked()),this, SLOT(btnMint()));
