@@ -47,6 +47,7 @@ class CPrecomputeDB;
 class Precompute;
 struct ChainTxData;
 
+extern int global_randomx_flags;
 
 struct PrecomputedTransactionData;
 struct LockPoints;

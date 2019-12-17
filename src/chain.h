@@ -1,3 +1,4 @@
+// Copyright (c) 2019 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -16,7 +17,6 @@
 
 #include <vector>
 #include <map>
-#include "pow.h"
 
 /**
  * Maximum amount of time that a block timestamp is allowed to exceed the
@@ -393,15 +393,9 @@ public:
         return GetBlockHeader().GetX16RTPoWHash();
     }
 
-    uint256 GetProgPowHash() const
-    {
-        return GetBlockHeader().GetProgPowHash();
-    }
+    uint256 GetProgPowHash() const;
 
-    uint256 GetRandomXPoWHash() const
-    {
-        return GetRandomXBlockHash(GetBlockHeader().nHeight, GetBlockHeader().GetRandomXHeaderHash());
-    }
+    uint256 GetRandomXPoWHash() const;
 
     uint256 GetSha256DPowHash() const
     {
@@ -722,5 +716,7 @@ public:
     /** Find the earliest block with timestamp equal or greater than the given. */
     CBlockIndex* FindEarliestAtLeast(int64_t nTime) const;
 };
+
+uint256 GetRandomXBlockHash(const int32_t& height, const uint256& hash_blob);
 
 #endif // BITCOIN_CHAIN_H

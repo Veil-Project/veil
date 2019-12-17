@@ -56,6 +56,8 @@
 #include <veil/ringct/blind.h>
 #include <veil/invalid.h>
 
+#include <crypto/randomx/randomx.h>
+
 #ifdef ENABLE_WALLET
 #include <wallet/wallet.h>
 #endif
@@ -284,6 +286,12 @@ std::atomic_bool g_is_mempool_loaded{false};
 CScript COINBASE_FLAGS;
 
 const std::string strMessageMagic = "Veil Signed Message:\n";
+
+
+// RandomX stuff
+
+// Used by both CPU miner and validator
+int global_randomx_flags;
 
 // Internal stuff
 namespace {
@@ -3151,9 +3159,14 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
         // Check the version of the last 100 blocks to see if we need to upgrade:
         for (int i = 0; i < 100 && pindex != nullptr; i++)
         {
-            // TODO, we might have wallets telling users to update because of the new Pow Algo bits in the version.
-            // TODO If this happens, that is why
             int32_t nExpectedVersion = ComputeBlockVersion(pindex->pprev, chainParams.GetConsensus(), pindex->nTime, !pindex->fProofOfStake);
+            if (pindex->IsProgProofOfWork())
+                nExpectedVersion |= CBlockHeader::PROGPOW_BLOCK;
+            else if (pindex->IsSha256DProofOfWork())
+                nExpectedVersion |= CBlockHeader::SHA256D_BLOCK;
+            else if (pindex->IsRandomXProofOfWork())
+                nExpectedVersion |= CBlockHeader::RANDOMX_BLOCK;
+
             if (pindex->nVersion > VERSIONBITS_LAST_OLD_BLOCK_VERSION && (pindex->nVersion & ~nExpectedVersion) != 0)
                 ++nUpgraded;
             pindex = pindex->pprev;
@@ -4427,7 +4440,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     if (!block.fProofOfStake && block.nTime >= Params().PowUpdateTimestamp()) {
         if (!block.IsSha256D() && !block.IsRandomX() && !block.IsProgPow())
             return state.DoS(33, error("%s - bad-pow-algo-use-updated-algos", __func__), REJECT_OBSOLETE,
-                                 "must use progpow, randomx, or sha256d to mine blocks now");
+                                 "unexpected hash, please ensure its progpow, randomx, or sha256d");
     }
 
     return true;

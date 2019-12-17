@@ -33,6 +33,7 @@
 
 #include <vector>
 
+class CBlockHeader;
 typedef uint256 ChainCode;
 
 /** A hasher class for Bitcoin's 256-bit hash (double SHA-256). */
@@ -530,6 +531,9 @@ inline uint256 HashX16R(const T1 pbegin, const T1 pend, const uint256 PrevBlockH
 
     return hash[15].trim256();
 }
+
+
+uint256 ProgPowHash(CBlockHeader& blockHeader);
 
 
 #endif // BITCOIN_HASH_H

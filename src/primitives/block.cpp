@@ -1,3 +1,4 @@
+// Copyright (c) 2019 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -8,12 +9,7 @@
 #include <hash.h>
 #include <tinyformat.h>
 #include <utilstrencodings.h>
-#include <crypto/common.h>
 #include <streams.h>
-#include <crypto/ethash/helpers.hpp>
-#include <crypto/ethash/include/ethash/progpow.hpp>
-#include <pow.h>
-#include <crypto/randomx/randomx.h>
 
 uint32_t nPowTimeStampActive = 0;
 
@@ -33,25 +29,7 @@ uint256 CBlockHeader::GetX16RTPoWHash() const
 
 uint256 CBlockHeader::GetSha256DPoWHash() const
 {
-    return Hash(BEGIN(nVersion), END(nNonce));
-}
-
-uint256 CBlockHeader::GetProgPowHash() const
-{
-    // Build the header_hash
-    uint256 nHeaderHash = GetProgPowHeaderHash();
-    const auto header_hash = to_hash256(nHeaderHash.GetHex());
-
-    ethash::epoch_context_ptr context{nullptr, nullptr};
-    // Get the context from the block height
-    const auto epoch_number = ethash::get_epoch_number(nHeight);
-    if (!context || context->epoch_number != epoch_number)
-        context = ethash::create_epoch_context(epoch_number);
-
-    // ProgPow hash
-    const auto result = progpow::hash(*context, nHeight, header_hash, nNonce64);
-
-    return uint256S(to_hex(result.final_hash));
+    return SerializeHash(*this);
 }
 
 /**
