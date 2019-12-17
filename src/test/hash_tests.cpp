@@ -77,6 +77,8 @@ uint64_t siphash_4_2_testvec[] = {
     0x6ca4ecb15c5f91e1, 0x9f626da15c9625f3, 0xe51b38608ef25f57, 0x958a324ceb064572
 };
 
+// TODO, siphash is failing. not sure if this has always been failing or if something
+// happen to make it fail. Need to look into this. 
 BOOST_AUTO_TEST_CASE(siphash)
 {
     CSipHasher hasher(0x0706050403020100ULL, 0x0F0E0D0C0B0A0908ULL);
@@ -152,7 +154,7 @@ BOOST_AUTO_TEST_CASE(x16r)
     CBlock block;
     block.nBits -= 1;
 
-    //BOOST_CHECK_EQUAL(block.GetX16RTPoWHash().GetHex(), "745b575ac1a4d16ea1a44234a8cb32baad024baa208f797d592356aef79dfe48");
+    BOOST_CHECK_EQUAL(block.GetX16RTPoWHash().GetHex(), "66e0bf0b1308d7703a101ac981aa082a3789f3977416aa394cf2f231391dcca8");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -1,3 +1,4 @@
+// Copyright (c) 2019 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -43,11 +44,9 @@ uint256 GetCurrentKeyBlock();
 uint256 GetKeyBlock(const uint32_t& nHeight);
 randomx_vm* GetMyMachineValidating();
 
-/** Check whether a block hash satisfies the prog-proof-of-work requirement specified by nBits */
+/** Check whether a block hash satisfies the randomx-proof-of-work requirement specified by nBits */
 bool CheckRandomXProofOfWork(const CBlockHeader& block, unsigned int nBits, const Consensus::Params&);
 uint256 RandomXHashToUint256(const char* p_char);
-
-uint256 GetRandomXBlockHash(const int32_t& height, const uint256& hash_blob);
 
 void DeallocateVMVector();
 void DeallocateDataSet();

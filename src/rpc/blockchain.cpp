@@ -130,7 +130,19 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.pushKV("size", (int)::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION));
     result.pushKV("weight", (int)::GetBlockWeight(block));
     result.pushKV("height", blockindex->nHeight);
-    result.pushKV("proof_type", blockindex->IsProofOfStake() ? "Proof-of-Stake" : blockindex->IsProgProofOfWork() ? "Proof-of-work (ProgPow)" : "Proof-of-Work");
+
+    std::string type = "Proof-of-Work (X16RT)";
+    if (blockindex->IsProgProofOfWork()) {
+        type = "Proof-of-work (ProgPow)";
+    } else if (blockindex->IsRandomXProofOfWork()){
+        type = "Proof-of-work (RandomX)";
+    } else if (blockindex->IsSha256DProofOfWork()){
+        type = "Proof-of-work (Sha256D)";
+    } else if (blockindex->IsProofOfStake()) {
+        type = "Proof-of-Stake";
+    }
+
+    result.pushKV("proof_type", type);
     if (blockindex->IsProofOfStake())
         result.pushKV("proofofstakehash", blockindex->GetBlockPoSHash().GetHex());
     else if (blockindex->IsProgProofOfWork() && blockindex->nTime >= Params().PowUpdateTimestamp())
