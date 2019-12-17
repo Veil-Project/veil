@@ -5,8 +5,11 @@
 
 #include <chain.h>
 #include <validation.h>
-#include "hash.h"
+#include <hash.h>
 #include <libzerocoin/Denominations.h>
+
+#include <crypto/randomx/randomx.h>
+#include <pow.h>
 
 /**
  * CChain implementation
@@ -253,3 +256,51 @@ void CBlockIndex::AddAccumulator(AccumulatorMap mapAccumulator)
         AddAccumulator(denom, bnAccumulator);
     }
 }
+
+uint256 CBlockIndex::GetRandomXPoWHash() const
+{
+    return GetRandomXBlockHash(GetBlockHeader().nHeight, GetBlockHeader().GetRandomXHeaderHash());
+}
+
+uint256 CBlockIndex::GetProgPowHash() const
+{
+    CBlockHeader header = GetBlockHeader();
+    return ProgPowHash(header);
+}
+
+// We are going to be performing a block hash for RandomX. To see if we need to spin up a new
+// cache, we can first check to see if we can use the current validation cache
+uint256 GetRandomXBlockHash(const int32_t& height, const uint256& hash_blob ) {
+
+    char hash[RANDOMX_HASH_SIZE];
+
+    // Get the keyblock for the height
+    auto temp_keyblock = GetKeyBlock(height);
+
+    // The hash we are calculating is in the same realm at the current validation caches
+    // We don't need to spin up a new cache, as we can use the one already allocated
+    if (temp_keyblock == GetCurrentKeyBlock()) {
+        if (!IsRandomXLightInit()) {
+            InitRandomXLightCache(height);
+        }
+
+        randomx_calculate_hash(GetMyMachineValidating(), &hash_blob, sizeof uint256(), hash);
+        return RandomXHashToUint256(hash);
+    } else {
+        // Create a new temp cache, and machine
+        auto temp_cache = randomx_alloc_cache((randomx_flags)global_randomx_flags);
+        randomx_init_cache(temp_cache, &temp_keyblock, sizeof uint256());
+        auto tempMachine = randomx_create_vm((randomx_flags)global_randomx_flags, temp_cache, NULL);
+
+        // calculate the hash
+        randomx_calculate_hash(tempMachine, &hash_blob, sizeof uint256(), hash);
+
+        // Destroy the vm and cache
+        randomx_destroy_vm(tempMachine);
+        randomx_release_cache(temp_cache);
+
+        // Return the hash
+        return RandomXHashToUint256(hash);
+    }
+}
+

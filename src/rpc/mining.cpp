@@ -1,3 +1,4 @@
+// Copyright (c) 2019 Veil developers
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -146,10 +147,10 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
 
         if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
             LogPrintf("%s Mining ProgPow, %d\n", __func__, __LINE__);
-            const auto epoch_number = ethash::get_epoch_number(pblock->nHeight);
-            auto ctxp = ethash::create_epoch_context(epoch_number);
-            auto& ctx = *ctxp;
-            auto& ctxl = reinterpret_cast<const ethash::epoch_context&>(ctx);
+            const int epoch_number = ethash::get_epoch_number(pblock->nHeight);
+            ethash::epoch_context_ptr ctxp = ethash::create_epoch_context(epoch_number);
+            ethash::epoch_context &ctx = *ctxp;
+            const ethash::epoch_context &ctxl = reinterpret_cast<const ethash::epoch_context&>(ctx);
 
             // Create the eth_boundary from the nBits
             arith_uint256 bnTarget;
@@ -159,16 +160,16 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
             bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
 
             // Get the eth boundary
-            auto boundary = to_hash256(ArithToUint256(bnTarget).GetHex());
+            ethash::hash256 boundary = to_hash256(ArithToUint256(bnTarget).GetHex());
 
             // Build the header_hash
             uint256 nHeaderHash = pblock->GetProgPowHeaderHash();
-            const auto header_hash = to_hash256(nHeaderHash.GetHex());
+            const ethash::hash256 header_hash = to_hash256(nHeaderHash.GetHex());
 
             while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount) {
                 // ProgPow hash
-                const auto result = progpow::hash(ctx, pblock->nHeight, header_hash, pblock->nNonce64);
-                auto success = progpow::verify(ctxl, pblock->nHeight, header_hash, result.mix_hash, pblock->nNonce64, boundary);
+                const ethash::result result = progpow::hash(ctx, pblock->nHeight, header_hash, pblock->nNonce64);
+                bool success = progpow::verify(ctxl, pblock->nHeight, header_hash, result.mix_hash, pblock->nNonce64, boundary);
                 if (success) {
                     pblock->mixHash = uint256S(to_hex(result.mix_hash));
                     break;
@@ -191,7 +192,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
                 uint256 hash_blob = pblock->GetRandomXHeaderHash();
                 randomx_calculate_hash(GetMyMachineValidating(), &hash_blob, sizeof uint256(), hash);
 
-                auto uint256Hash = RandomXHashToUint256(hash);
+                uint256 uint256Hash = RandomXHashToUint256(hash);
 
                 // Check proof of work matches claimed amount
                 if (UintToArith256(uint256Hash) < bnTarget)

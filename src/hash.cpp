@@ -5,7 +5,9 @@
 #include <hash.h>
 #include <crypto/common.h>
 #include <crypto/hmac_sha512.h>
-
+#include <crypto/ethash/helpers.hpp>
+#include <crypto/ethash/include/ethash/progpow.hpp>
+#include <primitives/block.h>
 
 inline uint32_t ROTL32(uint32_t x, int8_t r)
 {
@@ -254,4 +256,22 @@ uint64_t SipHashUint256Extra(uint64_t k0, uint64_t k1, const uint256& val, uint3
     SIPROUND;
     SIPROUND;
     return v0 ^ v1 ^ v2 ^ v3;
+}
+
+uint256 ProgPowHash(CBlockHeader& blockHeader)
+{
+    // Build the header_hash
+    uint256 nHeaderHash = blockHeader.GetProgPowHeaderHash();
+    const auto header_hash = to_hash256(nHeaderHash.GetHex());
+
+    ethash::epoch_context_ptr context{nullptr, nullptr};
+    // Get the context from the block height
+    const auto epoch_number = ethash::get_epoch_number(blockHeader.nHeight);
+    if (!context || context->epoch_number != epoch_number)
+        context = ethash::create_epoch_context(epoch_number);
+
+    // ProgPow hash
+    const auto result = progpow::hash(*context, blockHeader.nHeight, header_hash, blockHeader.nNonce64);
+
+    return uint256S(to_hex(result.final_hash));
 }

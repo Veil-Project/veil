@@ -1,3 +1,4 @@
+// Copyright (c) 2019 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -9,24 +10,21 @@
 #include <chain.h>
 #include <primitives/block.h>
 #include <uint256.h>
-#include "tinyformat.h"
+#include <tinyformat.h>
 #include <boost/thread.hpp>
 
 // ProgPow
 #include <crypto/ethash/lib/ethash/endianness.hpp>
 #include <crypto/ethash/include/ethash/progpow.hpp>
-#include "crypto/ethash/helpers.hpp"
-#include "crypto/ethash/progpow_test_vectors.hpp"
-#include "validation.h"
+#include <crypto/ethash/helpers.hpp>
 
 // RandomX
-#include "crypto/randomx/randomx.h"
-#include "chainparams.h"
-#include "miner.h"
+#include <crypto/randomx/randomx.h>
+#include <miner.h>
+#include <validation.h>
 
-// Used by both CPU miner and validator
-static randomx_flags flags;
 
+// TODO, build an class object that holds this data
 // Used by CPU miner for randomx
 static uint256 mining_key_block;
 static randomx_cache *myMiningCache;
@@ -52,56 +50,20 @@ void InitRandomXLightCache(const int32_t& height) {
 
     validation_key_block = GetKeyBlock(height);
 
-    flags = randomx_get_flags();
-    myCacheValidating = randomx_alloc_cache(flags);
+    global_randomx_flags = (int)randomx_get_flags();
+    myCacheValidating = randomx_alloc_cache((randomx_flags)global_randomx_flags);
     randomx_init_cache(myCacheValidating, &validation_key_block, sizeof uint256());
-    myMachineValidating = randomx_create_vm(flags, myCacheValidating, NULL);
+    myMachineValidating = randomx_create_vm((randomx_flags)global_randomx_flags, myCacheValidating, NULL);
     fLightCacheInited = true;
-}
-
-// We are going to be performing a block hash for RandomX. To see if we need to spin up a new
-// cache, we can first check to see if we can use the current validation cache
-uint256 GetRandomXBlockHash(const int32_t& height, const uint256& hash_blob ) {
-
-    char hash[RANDOMX_HASH_SIZE];
-
-    // Get the keyblock for the height
-    auto temp_keyblock = GetKeyBlock(height);
-
-    // The hash we are calculating is in the same realm at the current validation caches
-    // We don't need to spin up a new cache, as we can use the one already allocated
-    if (temp_keyblock == validation_key_block) {
-        if (!IsRandomXLightInit()) {
-            InitRandomXLightCache(height);
-        }
-
-        randomx_calculate_hash(GetMyMachineValidating(), &hash_blob, sizeof uint256(), hash);
-        return RandomXHashToUint256(hash);
-    } else {
-        // Create a new temp cache, and machine
-        auto temp_cache = randomx_alloc_cache(flags);
-        randomx_init_cache(temp_cache, &temp_keyblock, sizeof uint256());
-        auto tempMachine = randomx_create_vm(flags, temp_cache, NULL);
-
-        // calculate the hash
-        randomx_calculate_hash(tempMachine, &hash_blob, sizeof uint256(), hash);
-
-        // Destroy the vm and cache
-        randomx_destroy_vm(tempMachine);
-        randomx_release_cache(temp_cache);
-
-        // Return the hash
-        return RandomXHashToUint256(hash);
-    }
 }
 
 void KeyBlockChanged(const uint256& new_block) {
     validation_key_block = new_block;
 
     DeallocateRandomXLightCache();
-    myCacheValidating = randomx_alloc_cache(flags);
+    myCacheValidating = randomx_alloc_cache((randomx_flags)global_randomx_flags);
     randomx_init_cache(myCacheValidating, &validation_key_block, sizeof uint256());
-    myMachineValidating = randomx_create_vm(flags, myCacheValidating, NULL);
+    myMachineValidating = randomx_create_vm((randomx_flags)global_randomx_flags, myCacheValidating, NULL);
     fLightCacheInited = true;
 }
 
@@ -111,6 +73,10 @@ uint256 GetCurrentKeyBlock() {
 
 randomx_vm* GetMyMachineValidating() {
     return myMachineValidating;
+}
+
+randomx_flags GetRandomXFlags() {
+    return (randomx_flags)global_randomx_flags;
 }
 
 bool CheckIfMiningKeyShouldChange(const uint256& check_block)
@@ -271,7 +237,6 @@ bool CheckProgProofOfWork(const CBlockHeader& block, unsigned int nBits, const C
 
     // Check range
     if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(params.powLimit)) {
-        //std::cout << fNegative << " " << (bnTarget == 0) << " " << fOverflow << " " << (bnTarget > UintToArith256(params.powLimit)) << "\n";
         return false;
     }
 
@@ -378,10 +343,10 @@ void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_p
             boost::this_thread::interruption_point();
             auto full_flags = RANDOMX_FLAG_FULL_MEM;
 
-            myMiningCache = randomx_alloc_cache(flags);
+            myMiningCache = randomx_alloc_cache((randomx_flags)global_randomx_flags);
 
             /// Create the RandomX Dataset
-            myMiningDataset = randomx_alloc_dataset(flags);
+            myMiningDataset = randomx_alloc_dataset((randomx_flags)global_randomx_flags);
             mining_key_block = GetKeyBlock(chainActive.Height());
 
             randomx_init_cache(myMiningCache, &mining_key_block, sizeof(mining_key_block));
