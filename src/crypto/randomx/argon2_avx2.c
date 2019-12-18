@@ -43,12 +43,6 @@ void randomx_argon2_fill_segment_avx2(const argon2_instance_t* instance,
 
 randomx_argon2_impl* randomx_argon2_impl_avx2() {
 
-#if defined(ENABLE_AVX2)
-    printf("found avx2\n");
-#else
-    printf("not found avx2\n");
-#endif
-
 #if defined(__AVX2__)
 	return &randomx_argon2_fill_segment_avx2;
 #endif

@@ -2149,12 +2149,12 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
     int32_t nVersion = VERSIONBITS_TOP_BITS;
 
     if (blockTime >= Params().PowUpdateTimestamp()) {
+        std::string algo = gArgs.GetArg("-mine", "randomx");
+
         if (fProofOfWork) {
-            if (gArgs.GetBoolArg("-mineprogpow", false)) {
+            if (algo == "progpow") {
                 nVersion |= CBlockHeader::PROGPOW_BLOCK;
-            } else if (gArgs.GetBoolArg("-minerandomx", false)) {
-                nVersion |= CBlockHeader::RANDOMX_BLOCK;
-            } else if (gArgs.GetBoolArg("-minesha256", false)) {
+            } else if (algo == "sha256d") {
                 nVersion |= CBlockHeader::SHA256D_BLOCK;
             } else {
                 // Setting it to mine randomx bit by default so blocks will try to get mined atleast.
