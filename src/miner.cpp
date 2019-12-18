@@ -1246,7 +1246,9 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
 
     if (nThreads == 0 || !fGenerate)
         return;
-    if (gArgs.GetBoolArg("-minerandomx", false) && GetTime() >= Params().PowUpdateTimestamp()) {
+
+    std::string algo = gArgs.GetArg("-mine", "randomx");
+    if (algo == "randomx"  && GetTime() >= Params().PowUpdateTimestamp()) {
         pthreadGroupRandomX->create_thread(boost::bind(&StartRandomXMining, pthreadGroupPoW, nThreads, coinbaseScript));
     } else {
         for (int i = 0; i < nThreads; i++)
