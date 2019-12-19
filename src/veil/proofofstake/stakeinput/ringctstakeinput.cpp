@@ -154,6 +154,11 @@ bool RingCtStakeCandidate::CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& v
     //todo
 }
 
+bool RingCtStakeCandidate::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)
+{
+    //todo
+}
+
 /**
  * @brief Constructor
  * @param[in] txStake: The coinstake transaction.

@@ -34,13 +34,13 @@ protected:
 public:
     virtual ~StakeInput(){};
     virtual CBlockIndex* GetIndexFrom() = 0;
-    virtual bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake) = 0;
+    virtual bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) = 0;
+    virtual bool GetTxFrom(CTransaction& tx) = 0;
     virtual CAmount GetValue() = 0;
     virtual bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) = 0;
+    virtual bool GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev) = 0;
     virtual bool IsZerocoins() = 0;
     virtual CDataStream GetUniqueness() = 0;
-
-    bool GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev);
     StakeInputType GetType() const { return m_type; }
 };
 

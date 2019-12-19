@@ -19,6 +19,18 @@
 
 typedef std::vector<unsigned char> valtype;
 
+std::string StakeInputTypeToString(StakeInputType t)
+{
+    if (t == STAKE_ZEROCOIN) {
+        return "ZerocoinStake";
+    } else if (t == STAKE_RINGCT) {
+        return "RingCtStake";
+    } else if (t == STAKE_RINGCTCANDIDATE) {
+        return "RingCtStakeCandidate";
+    }
+    return "error-type";
+}
+
 ZerocoinStake::ZerocoinStake(const libzerocoin::CoinSpend& spend)
 {
     this->nChecksum = spend.getAccumulatorChecksum();
