@@ -5325,8 +5325,11 @@ int AnonWallet::OwnAnonOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxO
 
     if (0 != secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), pout->pk.begin(), key.begin())) {
         LogPrintf("Error: %s - secp256k1_get_keyimage failed.\n", __func__);
-    } else if (!pwdb->WriteAnonKeyImage(ki, op) || !pwdb->WriteKeyImageFromOutpoint(op, ki)) {
-        LogPrintf("Error: %s - WriteAnonKeyImage failed.\n", __func__);
+    } else if (!pwdb->WriteAnonKeyImage(ki, op)){
+         LogPrintf("Error: %s - WriteAnonKeyImage failed.\n", __func__);
+    }
+    else if(!pwdb->WriteKeyImageFromOutpoint(op, ki)) {
+        LogPrintf("Error: %s - WriteKeyImageFromOutpoint failed.\n", __func__);
     }
 
     rout.nFlags &= ~ORF_LOCKED;
