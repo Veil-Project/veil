@@ -1985,9 +1985,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         }
 
         int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT : MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
+
+        // Make sure new testnet proto veresion checks are in place
         if (Params().NetworkIDString() == "test") {
-            nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT_TESTNET : MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT_TESTNET);;
+            nMinPeerVersion = MIN_PEER_PROTO_VERSION_TESTNET;
         }
+
         if (nVersion < nMinPeerVersion)
         {
             // disconnect from peers older than this proto version
@@ -2137,8 +2140,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     }
 
     int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT :MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
+
+    // Check testnet proto version
     if (Params().NetworkIDString() == "test") {
-        nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT_TESTNET : MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT_TESTNET);;
+        nMinPeerVersion = MIN_PEER_PROTO_VERSION_TESTNET;
     }
 
     if (fNewEnforcement && pfrom->nVersion < nMinPeerVersion) {

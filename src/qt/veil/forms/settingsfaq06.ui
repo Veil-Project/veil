@@ -33,17 +33,17 @@ color:#707070;</string>
       <string notr="true">font-weight:200;</string>
      </property>
      <property name="text">
-      <string>Single Non-Autominting Address
+      <string>Single non-autominting address
 
-The Single Non-Autominting Address allows users to avoid automatic minting of Basecoin veil into Zerocoin veil by keeping Basecoin veil inside it. To designate an address as their Single Non-Autominting Address, right-click/hold a transaction and convert it. The default wallet mode only allows one such address.
+The single non-autominting address allows users to avoid the automatic minting of Basecoin veil into Zerocoin veil by keeping Basecoin veil inside it. To designate an address as their single non-autominting address, right-click/hold a transaction and convert it. The default wallet mode only allows one such address.
 
-Exchange or Service mode
+Exchange or service mode
 
-Exchanges, merchants, and other services may want to avoid the Zerocoin autominting and/or staking process. By enabling Exchange or Service mode, the wallet will no longer automint or stake, with the advantage of only requiring ~6 minutes for received veil to become spendable again. It is highly discouraged for normal users to activate this mode due to the inability to stake and the relatively less anonymous RingCT transaction method.
+Exchanges, merchants, and other services may want to avoid the Zerocoin autominting and/or staking process. By enabling Exchange or service mode, the wallet will no longer automint or stake, with the advantage of only requiring ~6 minutes for received veil to become spendable again. It is highly discouraged for normal users to activate this mode due to the inability to stake and loss of anonymity.
 
-“To change to Exchange or Service mode, follow these instructions:
+“To change to Exchange or service mode, follow these instructions:
 
-1. Go to Settings&gt;Open Configuration File
+1. Go to Settings&gt;Open configuration file
 2. Enter the following as a new line in the veil.config file: exchangesandservicesmode=1
 3. Save the file and restart the wallet”					</string>
      </property>

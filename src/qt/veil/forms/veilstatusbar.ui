@@ -221,7 +221,7 @@
         <item>
          <widget class="QPushButton" name="btnSync">
           <property name="text">
-           <string>100% Synced</string>
+           <string>100% synced</string>
           </property>
          </widget>
         </item>

@@ -54,7 +54,7 @@ color:#707070;</string>
 font-size:16px;</string>
      </property>
      <property name="text">
-      <string>Go to Settings&gt;Backup Wallet.</string>
+      <string>Go to Settings&gt;Backup wallet.</string>
      </property>
     </widget>
    </item>
@@ -87,13 +87,11 @@ font-size:16px;</string>
 font-size:16px;</string>
      </property>
      <property name="text">
-      <string>Select either Wallet File or Recovery Seed Phrase
+      <string>When backing up with wallet file, use a strong password. Multiple copies can be made and put on different storage devices for redundant data protection.
 
-When backing up with Wallet File, use a strong password. Multiple copies can be made and put on different storage devices for redundant data protection.
+When backing up with recovery seed phrase at setup, write the 24-word seed phrase in the correct order. Never share your seed phrase with others. Anyone with it will have access to your wallet.
 
-When backing up with Recovery Seed Phrase, write the 24-word seed phrase in the correct order. Never share your seed phrase with others. Anyone with it will have access to your wallet.
-
-For security reasons, it is strongly not recommended to make a digital backup of your recovery seed phrase in plain text or to copy and paste it.</string>
+For security reasons, it is strongly recommended not to make a digital backup of your recovery seed phrase in plain text or to copy and paste it.</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
@@ -152,7 +150,7 @@ For security reasons, it is strongly not recommended to make a digital backup of
 font-size:16px;</string>
      </property>
      <property name="text">
-      <string>Go to Settings&gt;Restore Wallet.</string>
+      <string>Go to Settings&gt;Restore wallet.</string>
      </property>
     </widget>
    </item>
@@ -185,9 +183,9 @@ font-size:16px;</string>
 font-size:16px;</string>
      </property>
      <property name="text">
-      <string>When restoring with Wallet File, navigate to your wallet file and input the password used to encrypt it.
+      <string>When restoring with wallet file, navigate to your wallet file and input the password used to encrypt it.
 
-When restoring up with Recovery Seed Phrase, please enter words one at a time instead of copying and pasting them.</string>
+When restoring up with recovery seed phrase, please enter words one at a time instead of copying and pasting them.</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>

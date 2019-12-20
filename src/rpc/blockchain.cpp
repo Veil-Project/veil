@@ -208,7 +208,7 @@ static UniValue getzerocoinsupply(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() > 1)
         throw std::runtime_error(
-            "getzerocoinsupply height\n"
+            "getzerocoinsupply (height)\n"
             "\nReturns the Veil supply (in satoshis) held in zerocoins at a specified block height, or at current chain Tip.\n"
             "\nArguments:\n"
             "1. height         (numeric, optional) The height index. Default is chainactive tip\n"

@@ -1051,7 +1051,6 @@ void SendCoinsDialog::showEvent(QShowEvent *event){
     a->setEndValue(0);
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
-    connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
 }
 
 SendConfirmationDialog::SendConfirmationDialog(const QString &title, const QString &text, int _secDelay,

@@ -203,11 +203,6 @@ void ReceiveWidget::hideEvent(QHideEvent *event){
     a->setEndValue(0);
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
-    connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
-}
-
-void ReceiveWidget::hideThisWidget(){
-    this->hide();
 }
 
 ReceiveWidget::~ReceiveWidget()

@@ -62,7 +62,7 @@
          <string notr="true"/>
         </property>
         <property name="text">
-         <string>Edit Address Label</string>
+         <string>Edit address label</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>

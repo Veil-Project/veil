@@ -432,7 +432,7 @@ margin:0px;</string>
 }</string>
                   </property>
                   <property name="text">
-                   <string>VEIL Privacy and Minting</string>
+                   <string>VEIL privacy and minting</string>
                   </property>
                   <property name="checked">
                    <bool>true</bool>
@@ -640,8 +640,8 @@ margin:0px;</string>
 }</string>
                   </property>
                   <property name="text">
-                   <string>What is the Single Non-Autominting 
-Address / Exchange or Service mode?</string>
+                   <string>What is the single non-autominting 
+address / exchange or service mode?</string>
                   </property>
                  </widget>
                 </item>
@@ -847,6 +847,59 @@ Address / Exchange or Service mode?</string>
                   </property>
                   <property name="text">
                    <string>What is the Veil Bounty Program?</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QRadioButton" name="radioButton_12">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>400</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::NoFocus</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">#radioButton_12 {
+    border-radius: 0px;
+    border:  none;
+    margin:0px;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10px 30px 10px 30px;
+    text-align:center !important;
+}
+
+#radioButton_12:checked {
+    border:  none;
+     background-color:rgba(16,90,239,0.2);
+    color: #707070;
+    margin:0px;
+}
+
+#radioButton_12:unchecked {
+    border:  none;
+    background-color:white;
+    color: #707070;
+}
+
+#radioButton_12::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}</string>
+                  </property>
+                  <property name="text">
+                   <string>How do I lock/unlock my wallet?</string>
                   </property>
                  </widget>
                 </item>

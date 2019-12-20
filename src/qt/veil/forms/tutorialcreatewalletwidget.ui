@@ -142,7 +142,7 @@ QPushButton:unchecked {
 </string>
         </property>
         <property name="text">
-         <string>Create Wallet</string>
+         <string>Create wallet</string>
         </property>
         <property name="checkable">
          <bool>true</bool>
@@ -201,7 +201,7 @@ QPushButton:unchecked {
 </string>
         </property>
         <property name="text">
-         <string>Restore Wallet</string>
+         <string>Restore wallet</string>
         </property>
         <property name="checkable">
          <bool>true</bool>

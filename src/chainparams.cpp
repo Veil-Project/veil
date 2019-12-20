@@ -257,9 +257,22 @@ public:
         assert(genesis.hashMerkleRoot == uint256S("0xa6d192b185dc382a8d7e7dbb5f7a212a54cb93b94e6b9e08869d9169c04993b0"));
         assert(genesis.hashVeilData == uint256S("0x8b7f273daa09d2d0fa6abeb27a2a87a4ee6c947ac04931f4f3b6b83f1cf7ad3f"));
 
-        vSeeds.emplace_back("veilseed.presstab.pw");
-        vSeeds.emplace_back("veil.seed.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
-        vSeeds.emplace_back("veil.seed2.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
+        vSeeds.emplace_back("node01.veil-project.com");
+        vSeeds.emplace_back("node02.veil-project.com");
+        vSeeds.emplace_back("node03.veil-project.com");
+        vSeeds.emplace_back("node04.veil-project.com");
+        vSeeds.emplace_back("node05.veil-project.com");
+        vSeeds.emplace_back("node06.veil-project.com");
+        vSeeds.emplace_back("node07.veil-project.com");
+        vSeeds.emplace_back("node08.veil-project.com");
+        vSeeds.emplace_back("node09.veil-project.com"); // Mimir seeder
+        vSeeds.emplace_back("node10.veil-project.com"); // Codeofalltrades seeder
+        vSeeds.emplace_back("node11.veil-project.com"); // CaveSpectre seeder
+        // single point DNS failure backups
+        vSeeds.emplace_back("seed.veil.rune.network");             // Mimir seeder
+        vSeeds.emplace_back("veilseed.codeofalltrades.com");       // Codeofalltrades seeder
+        vSeeds.emplace_back("veilseed.veil-stats.com");            // Codeofalltrades seeder
+        vSeeds.emplace_back("veil-seed.pontificatingnobody.com");  // CaveSpectre seeder
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,70);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -388,12 +401,12 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 1493596800; // May 1st 2017
 
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = 1548269817;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = 1556226440;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].bit = 3;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = 1556321954;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = 1579805817;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
@@ -422,10 +435,19 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
 
-        vSeeds.emplace_back("veilseedtestnet.presstab.pw");
-        vSeeds.emplace_back("veil-testnet.seed.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
-        vSeeds.emplace_back("veil-testnet.seed2.fuzzbawls.pw"); // Fuzzbawls seeder - supports x1, x5, x9
-        vSeeds.emplace_back("45.34.187.118", "45.34.187.118"); // blondfrogs single IP
+        vSeeds.emplace_back("testnode01.veil-project.com");
+        vSeeds.emplace_back("testnode02.veil-project.com");
+        vSeeds.emplace_back("testnode03.veil-project.com");
+        vSeeds.emplace_back("testnode04.veil-project.com");
+        vSeeds.emplace_back("testnode05.veil-project.com");
+        vSeeds.emplace_back("testnode06.veil-project.com");
+        vSeeds.emplace_back("testnode07.veil-project.com"); // Mimir seeder
+        vSeeds.emplace_back("testnode08.veil-project.com"); // Codeofalltrades seeder
+        vSeeds.emplace_back("testnode09.veil-project.com"); // CaveSpectre seeder
+        // single point DNS failure backups
+        vSeeds.emplace_back("seedtest.veil.rune.network");              // Mimir seeder
+        vSeeds.emplace_back("veilseedtestnet.codeofalltrades.com");     // Codeofalltrades seeder
+        vSeeds.emplace_back("veil-seed-test.pontificatingnobody.com");  // CaveSpectre seeder
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -452,8 +474,8 @@ public:
 
         checkpointData = {
             {
-                    {98429, uint256S("fecff045e98e30c6e077d160883d73500e4d96463d8333436403298fea5ecda3")},
-                    {103000, uint256S("e95fc76c6c9016e8ed2e4e4a2641dfc91dbf6bad4df659f664d8f7614bc010c0")},
+                    { 1, uint256S("0x918ebe520f7666375d7e4dbb0c269f675440b96b0413ab92bbf28b85126197cd")},
+                    { 95, uint256S("0x1c1d4a474a167a3d474ad7ebda5dfc5560445f885519cb98595aab6f818b1f6f")}
             }
         };
 
@@ -483,6 +505,7 @@ public:
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zerocoin to be stakable
+        nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
@@ -491,10 +514,16 @@ public:
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
 
+        nHeightLightZerocoin = 9428;
+        nHeightEnforceBlacklist = 0;
+
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
 
         nMaxHeaderRequestWithoutPoW = 50;
+        nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
+        nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
+
     }
 };
 
@@ -623,6 +652,8 @@ public:
         nMinimumStakeQuantity = 1 * COIN;
 
         nMaxHeaderRequestWithoutPoW = 50;
+        nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
+        nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
     }
 };
 

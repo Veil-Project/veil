@@ -228,7 +228,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
 
     // Sort
     ui->comboSort->setProperty("cssClass" , "btn-text-primary-inactive");
-    ui->comboSort->addItem(tr("Sort By"));
+    ui->comboSort->addItem(tr("Sort by"));
     ui->comboSort->addItem(tr("Date"));
     ui->comboSort->addItem(tr("Amount"));
     for (int i = 0 ; i < ui->comboSort->count() ; ++i) {
@@ -239,7 +239,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
     ui->comboFilter->setProperty("cssClass" , "btn-text-primary-inactive");
 
     // Filter Default Option
-    ui->comboFilter->addItem(tr("Filter Type"), TransactionFilterProxy::ALL_TYPES);
+    ui->comboFilter->addItem(tr("Filter type"), TransactionFilterProxy::ALL_TYPES);
 
 
     ui->comboFilter->addItem(tr("Sent"),
@@ -569,5 +569,4 @@ void OverviewPage::hideEvent(QHideEvent *event){
     a->setEndValue(0);
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
-    connect(a,SIGNAL(finished()),this,SLOT(hideThisWidget()));
 }
