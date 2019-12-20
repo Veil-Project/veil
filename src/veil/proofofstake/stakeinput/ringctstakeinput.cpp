@@ -87,7 +87,7 @@ CDataStream RingCtStakeCandidate::GetUniqueness()
 CBlockIndex* RingCtStakeCandidate::GetIndexFrom()
 {
     int nCurrentHeight = chainActive.Height();
-    return chainActive.Tip()->GetAncestor(nCurrentHeight + 1 - Params().Zerocoin_RequiredStakeDepth());
+    return chainActive.Tip()->GetAncestor(nCurrentHeight + 1 - Params().RequiredStakeDepth());
 }
 
 /**

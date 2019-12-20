@@ -138,7 +138,7 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
     } else {
         //RingCt Stake
         stake = std::unique_ptr<StakeInput>(new PublicRingCtStake(txRef));
-        pindexFrom = pindexCheck->GetAncestor(pindexCheck->nHeight - Params().Zerocoin_RequiredStakeDepthV2());
+        pindexFrom = pindexCheck->GetAncestor(pindexCheck->nHeight - Params().RequiredStakeDepth());
     }
 
     if (!pindexFrom)

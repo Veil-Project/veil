@@ -3319,8 +3319,11 @@ bool CWallet::MintableCoins()
     CAmount nZBalance = GetZerocoinBalance(false);
 
     int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
-    if (chainActive.Height() >= Params().HeightLightZerocoin())
+    if (chainActive.Height() >= Params().HeightLightZerocoin()) {
         nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+    } else if (chainActive.Height() >= Params().HeightRingCtPoSStart()) {
+        nRequiredDepth = Params().RequiredStakeDepth();
+    }
 
     // zero coin
     if (nZBalance > 0) {
@@ -3957,8 +3960,11 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<StakeInput> >& listInpu
     }
 
     int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
-    if (chainActive.Height() >= Params().HeightLightZerocoin())
+    if (chainActive.Height() >= Params().HeightLightZerocoin()) {
         nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+    } else if (chainActive.Height() >= Params().HeightRingCtPoSStart()) {
+        nRequiredDepth = Params().RequiredStakeDepth();
+    }
 
     std::set<CMintMeta> setMints = zTracker->ListMints(true, true, fUpdate);
     for (auto meta : setMints) {
