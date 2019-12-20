@@ -33,8 +33,8 @@ Q_DECLARE_METATYPE(interfaces::WalletBalances)
 
 Balance::Balance(QWidget *parent, BitcoinGUI* gui) :
     QWidget(parent),
-    mainWindow(gui),
-    ui(new Ui::Balance)
+    ui(new Ui::Balance),
+    mainWindow(gui)
 {
     ui->setupUi(this);
     m_balances.total_balance = -1;

@@ -135,7 +135,7 @@ public:
                         const CAmount& _fee, int _outputsSize, int _inputsSize, int _confirmations, int _computetime):
 
             hash(_hash), time(_time), size(_size), type(_type), address(_address), debit(_debit), credit(_credit),
-            idx(0), fee(_fee), outputsSize(_outputsSize), inputsSize(_inputsSize), confirmations(_confirmations), computetime(_computetime)
+            fee(_fee), outputsSize(_outputsSize), inputsSize(_inputsSize), confirmations(_confirmations), computetime(_computetime), idx(0)
     {
     }
 

@@ -216,8 +216,8 @@ public:
 
 OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *parent) :
     QWidget(parent),
-    mainWindow(parent),
     ui(new Ui::OverviewPage),
+    mainWindow(parent),
     clientModel(0),
     walletModel(0),
     txdelegate(new TxViewDelegate(platformStyle, this))

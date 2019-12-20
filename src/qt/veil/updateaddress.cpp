@@ -17,15 +17,14 @@
 
 #include <QString>
 
-UpdateAddress::UpdateAddress(const QModelIndex &_index, QString addressStr, std::string _addressPurpose, QWidget *parent,  WalletModel* _walletModel,
-                             AddressTableModel *_model) :
+UpdateAddress::UpdateAddress(const QModelIndex &_index, QString addressStr, std::string _addressPurpose, QWidget *parent, WalletModel* _walletModel, AddressTableModel *_model) :
     QDialog(parent),
+    ui(new Ui::UpdateAddress),
     walletModel(_walletModel),
     index(_index),
-    model(_model),
-    address(addressStr),
     addressPurpose(_addressPurpose),
-    ui(new Ui::UpdateAddress)
+    address(addressStr),
+    model(_model)
 {
     ui->setupUi(this);
     connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(onEscapeClicked()));

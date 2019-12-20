@@ -10,8 +10,8 @@
 
 SettingsRestoreFile::SettingsRestoreFile(SettingsRestore *_parent, QWidget* widget) :
     QWidget(widget),
-    parent(_parent),
-    ui(new Ui::SettingsRestoreFile)
+    ui(new Ui::SettingsRestoreFile),
+    parent(_parent)
 {
     ui->setupUi(this);
     ui->editPassword->setPlaceholderText("Enter password");
