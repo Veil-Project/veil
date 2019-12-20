@@ -133,6 +133,8 @@ public:
 
     /** Proof of Stake **/
     CAmount MinimumStakeQuantity() const { return nMinimumStakeQuantity; }
+    int HeightRingCtPoSStart() const { return nHeightRingCtPoSStart; }
+    int RequiredStakeDepth() const { return nRequiredStakeDepth; }
 
     /** Consensus params **/
     int LAST_POW_BLOCK() const { return nLastPOWBlock; }
@@ -203,8 +205,10 @@ protected:
     int nProofOfFullNodeRounds;
     int nHeightSupplyCreationStop;
     CAmount nMinimumStakeQuantity;
+    int nHeightRingCtPoSStart;
+    int nRequiredStakeDepth;
 
-    //Time and height enforcements
+    //Time and height enforcements    
     int nTimeEnforceWeightReduction;
     int nHeightProtocolBumpEnforcement; // the height a new protobump is enforced
     int nHeightCheckDenom;

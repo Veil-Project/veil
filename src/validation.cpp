@@ -4715,7 +4715,7 @@ bool CChainState::ContextualCheckRingCtStake(CBlockIndex* pindex, PublicRingCtSt
         int nHeightTx = 0;
         if (!IsTransactionInChain(input.hash, nHeightTx, ptxPrev, Params().GetConsensus(), pindex))
             return error("%s: could not find tx %s within the same chain", __func__, input.hash.GetHex());
-        if (nHeightTx == 0 || nHeightTx > pindex->nHeight - Params().Zerocoin_RequiredStakeDepthV2())
+        if (nHeightTx == 0 || nHeightTx > pindex->nHeight - Params().RequiredStakeDepth())
             return error("%s: included RingCt input is not below the required stake depth : %s", __func__, input.ToFullString());
         if (ptxPrev->vpout.size() <= input.n)
             return error("%s: RingCt Input %s does not exist", input.ToFullString());
@@ -4752,6 +4752,9 @@ bool CChainState::ContextualCheckZerocoinStake(CBlockIndex* pindex, ZerocoinStak
 
     if (pindex->nHeight - pindexFrom->nHeight < nRequiredDepth)
         return error("%s: zerocoin stake does not have required confirmation depth", __func__);
+
+    if (pindex->nHeight >= Params().HeightRingCtPoSStart())
+        return error("%s: zerocoin stake not valid. RingCT staking has been activated", __func__);
 
     // For zerocoin staking, the checksum needs to be the exact checksum from the modifier height
     libzerocoin::CoinDenomination denom = libzerocoin::AmountToZerocoinDenomination(stake->GetValue());
