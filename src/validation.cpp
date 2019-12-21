@@ -194,7 +194,7 @@ public:
             CBlockIndex** ppindex, bool fProofOfStake, bool fProofOfFullNode, int nMaxHeightNoPoWScore) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
-    bool ContextualCheckStake(CBlockIndex* pindex, StakeInput* stake);
+    bool ContextualCheckStake(CBlockIndex* pindex, CStakeInput* stake);
     bool ContextualCheckRingCtStake(CBlockIndex* pindex, PublicRingCtStake* stake);
     bool ContextualCheckZerocoinStake(CBlockIndex* pindex, ZerocoinStake* stake);
 
@@ -4817,7 +4817,7 @@ static CDiskBlockPos SaveBlockToDisk(const CBlock& block, int nHeight, const CCh
     return blockPos;
 }
 
-bool CChainState::ContextualCheckStake(CBlockIndex* pindex, StakeInput* stake)
+bool CChainState::ContextualCheckStake(CBlockIndex* pindex, CStakeInput* stake)
 {
     if (stake->GetType() == StakeInputType::STAKE_ZEROCOIN) {
         ZerocoinStake* stakeZerocoin;

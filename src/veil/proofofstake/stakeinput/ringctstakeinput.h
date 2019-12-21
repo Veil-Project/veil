@@ -10,7 +10,7 @@
  * This object of this class should never be communicated to peers. Instead it must use CreateTxIn() to put it into the proper
  * format to be used in a coinstake transaction.
  */
-class RingCtStakeCandidate : public StakeInput
+class RingCtStakeCandidate : public CStakeInput
 {
 private:
     //! The CTransactionRef that the RingCt output is from.
@@ -22,7 +22,7 @@ private:
     //! The COutPoint that locates the RingCt output within m_ptx::vpout
     COutPoint m_outpoint;
 
-    //! A hash of the key image of the RingCt output. This is used for the StakeInput's uniqueness.
+    //! A hash of the key image of the RingCt output. This is used for the CStakeInput's uniqueness.
     uint256 m_hashPubKey;
 
     //! The <i>actual</i> value of the RingCt output.
@@ -46,10 +46,10 @@ public:
  * reveals that would not have been revealed in a typical RingCt transaction is a narrowed range of values in the rangeproof.
  * An object of this class is safe to communicate to peers, but should only exist inside of a block and not as a loose transaction.
  */
-class PublicRingCtStake : public StakeInput
+class PublicRingCtStake : public CStakeInput
 {
 private:
-    //! The CTransactionRef that is the coinstake transaction containing this StakeInput
+    //! The CTransactionRef that is the coinstake transaction containing this CStakeInput
     CTransactionRef m_ptx;
 
 public:
@@ -62,6 +62,7 @@ public:
     CAmount GetValue() override;
     bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) override { return false; }
     CDataStream GetUniqueness() override;
+    bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake) override;
 
     // PublicRingCt specific items
     std::vector<COutPoint> GetTxInputs() const;

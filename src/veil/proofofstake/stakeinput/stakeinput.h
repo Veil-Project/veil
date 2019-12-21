@@ -24,7 +24,7 @@ enum StakeInputType
 
 std::string StakeInputTypeToString(StakeInputType t);
 
-class StakeInput
+class CStakeInput
 {
 protected:
     CBlockIndex* pindexFrom;
@@ -32,7 +32,7 @@ protected:
     StakeInputType m_type;
 
 public:
-    virtual ~StakeInput(){};
+    virtual ~CStakeInput(){};
     virtual CBlockIndex* GetIndexFrom() = 0;
     virtual bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake) = 0;
     virtual CAmount GetValue() = 0;

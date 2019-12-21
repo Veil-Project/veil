@@ -249,4 +249,20 @@ CDataStream PublicRingCtStake::GetUniqueness()
     return ss;
 }
 
+/**
+ * @brief Create a coinstake transaction from the stake candidate.
+ *
+ * @note Call CreateCoinStake() after finding a valid stake kernel. A kernel can be found without needing to create the CTxIn.
+ *
+ * @param[in] pwallet: The CWallet that holds the AnonWallet that holds the RingCT output that is being staked.
+ * @param[out] txIn: The resulting CTxIn that will be used in the coinstake transaction.
+ * @return <b>true</b> upon success.
+ *         <b>false</b> if the AnonWallet fails to find the StakeAddress or if AddAnonInputs() fails.
+ */
+bool PublicRingCtStake::CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake)
+{
+   // todo:
+
+    return true;
+}
 

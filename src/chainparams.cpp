@@ -379,7 +379,7 @@ public:
         nDefaultRingSize = 11;
 
         /** Proof of Stake **/
-        nMinimumStakeQuantity = 1 * COIN; //Stake has to be a minimum of 1 coin
+        nMinimumStakeQuantity = 10 * COIN; //Stake has to be a minimum of 10 coin
 
         nMaxHeaderRequestWithoutPoW = 50;
     }
@@ -868,7 +868,7 @@ public:
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
-        nMinimumStakeQuantity = 1 * COIN;
+        nMinimumStakeQuantity = 10 * COIN;  //Stake has to be a minimum of 10 coin
 
         nHeightLightZerocoin = 500;
         nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable

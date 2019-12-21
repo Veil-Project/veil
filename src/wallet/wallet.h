@@ -98,7 +98,7 @@ enum class FeeEstimateMode;
 class AnonWallet;
 class CTransactionRecord;
 class CoinWitnessCacheData;
-class StakeInput;
+class CStakeInput;
 
 /** (client) version numbers for particular wallet features */
 enum WalletFeature
@@ -1089,7 +1089,7 @@ public:
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
     bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
-    bool SelectStakeCoins(std::list<std::unique_ptr<StakeInput> >& listInputs, CAmount nTargetAmount);
+    bool SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount);
 
     // sub wallet seeds
     bool GetZerocoinSeed(CKey& keyZerocoinMaster);
