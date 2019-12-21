@@ -3757,7 +3757,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     CAmount nBalance = GetBalance();
 
     // Get the list of stakable inputs
-    std::list<std::unique_ptr<StakeInput> > listInputs;
+    std::list<std::unique_ptr<CStakeInput> > listInputs;
     if (!SelectStakeCoins(listInputs, nBalance))
         return false;
 
@@ -3771,7 +3771,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     CAmount nCredit = 0;
     CScript scriptPubKeyKernel;
     bool fKernelFound = false;
-    for (std::unique_ptr<StakeInput>& stakeInput : listInputs) {
+    for (std::unique_ptr<CStakeInput>& stakeInput : listInputs) {
         // Make sure the wallet is unlocked and shutdown hasn't been requested
         if (IsLocked() || ShutdownRequested())
             return false;
@@ -3832,7 +3832,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     }
     return fKernelFound;
 }
-bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<StakeInput> >& listInputs, CAmount nTargetAmount)
+bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount)
 {
     LOCK(cs_main);
 
@@ -3865,7 +3865,7 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<StakeInput> >& listInpu
         if (meta.nVersion < CZerocoinMint::STAKABLE_VERSION)
             continue;
         if (meta.nHeight < chainActive.Height() - nRequiredDepth) {
-            std::unique_ptr<StakeInput> input(new ZerocoinStake(meta.denom, meta.hashStake));
+            std::unique_ptr<CStakeInput> input(new ZerocoinStake(meta.denom, meta.hashStake));
             listInputs.emplace_back(std::move(input));
         }
     }
@@ -3897,7 +3897,7 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<StakeInput> >& listInpu
             continue;
 
         //Create stake input and add to list of stakable inputs
-        std::unique_ptr<StakeInput> input(new RingCtStakeCandidate(this, ptx, rctOut.GetOutpoint(), pout));
+        std::unique_ptr<CStakeInput> input(new RingCtStakeCandidate(this, ptx, rctOut.GetOutpoint(), pout));
         listInputs.emplace_back(std::move(input));
     }
 

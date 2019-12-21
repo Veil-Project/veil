@@ -360,7 +360,7 @@ public:
         nDefaultRingSize = 11;
 
         /** Proof of Stake **/
-        nMinimumStakeQuantity = 1 * COIN; //Stake has to be a minimum of 1 coin
+        nMinimumStakeQuantity = 10 * COIN; //Stake has to be a minimum of 10 coin
 
         nMaxHeaderRequestWithoutPoW = 50;
     }
@@ -649,7 +649,7 @@ public:
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
-        nMinimumStakeQuantity = 1 * COIN;
+        nMinimumStakeQuantity = 10 * COIN;  //Stake has to be a minimum of 10 coin
 
         nMaxHeaderRequestWithoutPoW = 50;
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block

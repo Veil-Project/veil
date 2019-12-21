@@ -65,7 +65,7 @@ int GetSampleBits(int nSampleCount)
 }
 
 //Use the first accumulator checkpoint that occurs 60 minutes after the block being staked from
-bool StakeInput::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)
+bool CStakeInput::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)
 {
     CBlockIndex* pindex = GetIndexFrom();
     if (!pindex || !pindexChainPrev)
