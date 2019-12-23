@@ -44,7 +44,7 @@
          <number>12</number>
         </property>
         <item>
-         <widget class="QLabel" name="label_2">
+         <widget class="QLabel" name="label_1">
           <property name="styleSheet">
            <string notr="true">color:#707070;
 font-size:18px;
@@ -56,12 +56,12 @@ font-weight:bold;</string>
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_1">
           <property name="spacing">
            <number>20</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="label_10">
             <property name="minimumSize">
              <size>
               <width>290</width>
@@ -85,7 +85,7 @@ font-weight:200;</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="label_11">
             <property name="styleSheet">
              <string notr="true">color:#707070;
 font-size:18px;</string>
@@ -103,7 +103,7 @@ font-size:18px;</string>
            <number>20</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="label_12">
             <property name="minimumSize">
              <size>
               <width>290</width>
@@ -127,7 +127,7 @@ font-weight:200;</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="label_13">
             <property name="styleSheet">
              <string notr="true">color:#707070;
 font-size:18px;</string>
@@ -140,12 +140,12 @@ font-size:18px;</string>
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_3">
           <property name="spacing">
            <number>20</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="label_14">
             <property name="minimumSize">
              <size>
               <width>290</width>
@@ -169,7 +169,7 @@ font-weight:200;</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="label_15">
             <property name="styleSheet">
              <string notr="true">color:#707070;
 font-size:18px;</string>
@@ -182,12 +182,12 @@ font-size:18px;</string>
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_4">
           <property name="spacing">
            <number>20</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="label_16">
             <property name="minimumSize">
              <size>
               <width>290</width>
@@ -211,7 +211,7 @@ font-weight:200;</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="label_17">
             <property name="styleSheet">
              <string notr="true">color:#707070;
 font-size:18px;</string>
@@ -224,12 +224,12 @@ font-size:18px;</string>
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
           <property name="spacing">
            <number>20</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="label_18">
             <property name="minimumSize">
              <size>
               <width>290</width>
@@ -253,7 +253,7 @@ font-weight:200;</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="label_19">
             <property name="styleSheet">
              <string notr="true">color:#707070;
 font-size:18px;</string>
@@ -294,12 +294,12 @@ font-weight:bold;</string>
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_6">
           <property name="spacing">
            <number>20</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="label_21">
             <property name="minimumSize">
              <size>
               <width>290</width>
@@ -323,7 +323,7 @@ font-weight:200;</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="label_22">
             <property name="styleSheet">
              <string notr="true">color:#707070;
 font-size:18px;</string>
@@ -336,12 +336,12 @@ font-size:18px;</string>
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_7">
           <property name="spacing">
            <number>20</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="label_23">
             <property name="minimumSize">
              <size>
               <width>290</width>
@@ -365,7 +365,7 @@ font-weight:200;</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="label_24">
             <property name="styleSheet">
              <string notr="true">color:#707070;
 font-size:18px;</string>
@@ -394,7 +394,7 @@ font-size:18px;</string>
          </spacer>
         </item>
         <item>
-         <widget class="QLabel" name="label_2">
+         <widget class="QLabel" name="label_3">
           <property name="styleSheet">
            <string notr="true">color:#707070;
 font-size:18px;
@@ -406,12 +406,12 @@ font-weight:bold;</string>
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_8">
           <property name="spacing">
            <number>20</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="label_31">
             <property name="minimumSize">
              <size>
               <width>290</width>
@@ -435,7 +435,7 @@ font-weight:200;</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="label_32">
             <property name="styleSheet">
              <string notr="true">color:#707070;
 font-size:18px;</string>
@@ -448,12 +448,12 @@ font-size:18px;</string>
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_9">
           <property name="spacing">
            <number>20</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="label_33">
             <property name="minimumSize">
              <size>
               <width>290</width>
@@ -477,7 +477,7 @@ font-weight:200;</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="label_34">
             <property name="styleSheet">
              <string notr="true">color:#707070;
 font-size:18px;</string>
@@ -506,7 +506,7 @@ font-size:18px;</string>
          </spacer>
         </item>
         <item>
-         <widget class="QLabel" name="label_2">
+         <widget class="QLabel" name="label_4">
           <property name="styleSheet">
            <string notr="true">color:#707070;
 font-size:18px;
@@ -518,12 +518,12 @@ font-weight:bold;</string>
          </widget>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_10">
           <property name="spacing">
            <number>20</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="label_41">
             <property name="minimumSize">
              <size>
               <width>290</width>
@@ -547,7 +547,7 @@ font-weight:200;</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="label_42">
             <property name="styleSheet">
              <string notr="true">color:#707070;
 font-size:18px;</string>
@@ -560,12 +560,12 @@ font-size:18px;</string>
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <layout class="QHBoxLayout" name="horizontalLayout_11">
           <property name="spacing">
            <number>20</number>
           </property>
           <item>
-           <widget class="QLabel" name="label_4">
+           <widget class="QLabel" name="label_43">
             <property name="minimumSize">
              <size>
               <width>290</width>
@@ -589,7 +589,7 @@ font-weight:200;</string>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="label_44">
             <property name="styleSheet">
              <string notr="true">color:#707070;
 font-size:18px;</string>

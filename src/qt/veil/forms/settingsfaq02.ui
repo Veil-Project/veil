@@ -22,7 +22,7 @@ color:#707070;</string>
     <number>60</number>
    </property>
    <item>
-    <spacer name="verticalSpacer_5">
+    <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
@@ -38,7 +38,7 @@ color:#707070;</string>
     </spacer>
    </item>
    <item alignment="Qt::AlignTop">
-    <widget class="QLabel" name="label_2">
+    <widget class="QLabel" name="label">
      <property name="minimumSize">
       <size>
        <width>0</width>
@@ -60,7 +60,7 @@ color:#707070;</string>
     </widget>
    </item>
    <item>
-    <spacer name="verticalSpacer_2">
+    <spacer name="verticalSpacer_1">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
@@ -76,7 +76,7 @@ color:#707070;</string>
     </spacer>
    </item>
    <item>
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="label_1">
      <property name="maximumSize">
       <size>
        <width>16777215</width>
@@ -92,7 +92,7 @@ color:#707070;</string>
     </widget>
    </item>
    <item>
-    <spacer name="verticalSpacer_3">
+    <spacer name="verticalSpacer_2">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
@@ -141,7 +141,7 @@ color:#707070;</string>
       </widget>
      </item>
      <item alignment="Qt::AlignTop">
-      <widget class="QLabel" name="label_3">
+      <widget class="QLabel" name="label_11">
        <property name="styleSheet">
         <string notr="true">padding-top:10px;</string>
        </property>
@@ -156,7 +156,7 @@ color:#707070;</string>
     </layout>
    </item>
    <item>
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="label_2">
      <property name="maximumSize">
       <size>
        <width>16777215</width>
@@ -188,7 +188,7 @@ color:#707070;</string>
     </spacer>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1">
+    <layout class="QHBoxLayout" name="horizontalLayout_1" stretch="0,1">
      <property name="spacing">
       <number>20</number>
      </property>
@@ -221,7 +221,7 @@ color:#707070;</string>
       </widget>
      </item>
      <item alignment="Qt::AlignTop">
-      <widget class="QLabel" name="label_3">
+      <widget class="QLabel" name="label_21">
        <property name="styleSheet">
         <string notr="true">padding-top:10px;</string>
        </property>
@@ -236,7 +236,7 @@ color:#707070;</string>
     </layout>
    </item>
    <item>
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="label_3">
      <property name="maximumSize">
       <size>
        <width>16777215</width>
@@ -252,7 +252,7 @@ color:#707070;</string>
     </widget>
    </item>
    <item>
-    <spacer name="verticalSpacer_3">
+    <spacer name="verticalSpacer_4">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
@@ -268,7 +268,7 @@ color:#707070;</string>
     </spacer>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1">
+    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,1">
      <property name="spacing">
       <number>20</number>
      </property>
@@ -301,7 +301,7 @@ color:#707070;</string>
       </widget>
      </item>
      <item alignment="Qt::AlignTop">
-      <widget class="QLabel" name="label_3">
+      <widget class="QLabel" name="label_31">
        <property name="styleSheet">
         <string notr="true">padding-top:10px;</string>
        </property>
@@ -316,7 +316,7 @@ color:#707070;</string>
     </layout>
    </item>
    <item>
-    <spacer name="verticalSpacer_4">
+    <spacer name="verticalSpacer_5">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
@@ -332,7 +332,7 @@ color:#707070;</string>
     </spacer>
    </item>
    <item>
-    <widget class="QLabel" name="label">
+    <widget class="QLabel" name="label_4">
      <property name="maximumSize">
       <size>
        <width>16777215</width>
@@ -364,7 +364,7 @@ color:#707070;</string>
     </spacer>
    </item>
    <item>
-    <widget class="QLabel" name="label_4">
+    <widget class="QLabel" name="label_5">
      <property name="styleSheet">
       <string notr="true">font-weight:200;</string>
      </property>
@@ -377,7 +377,7 @@ color:#707070;</string>
     </widget>
    </item>
    <item>
-    <spacer name="verticalSpacer">
+    <spacer name="verticalSpacer_7">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>

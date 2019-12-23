@@ -69,7 +69,7 @@
  background-color:white;
 }</string>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <layout class="QVBoxLayout" name="verticalLayout_1">
         <property name="spacing">
          <number>0</number>
         </property>
@@ -86,7 +86,7 @@
          <number>0</number>
         </property>
         <item>
-         <layout class="QVBoxLayout" name="verticalLayout_3">
+         <layout class="QVBoxLayout" name="verticalLayout_2">
           <property name="spacing">
            <number>0</number>
           </property>
@@ -200,7 +200,7 @@
               <property name="frameShadow">
                <enum>QFrame::Raised</enum>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout" stretch="2,0,0,0,1,0,3">
+              <layout class="QVBoxLayout" name="verticalLayout_3" stretch="2,0,0,0,1,0,3">
                <property name="sizeConstraint">
                 <enum>QLayout::SetDefaultConstraint</enum>
                </property>
