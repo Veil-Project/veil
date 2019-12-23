@@ -843,7 +843,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 if (pfMissingInputs) {
                     *pfMissingInputs = true;
                 }
-                LogPrint(BCLog::NET, "%s:%s Missing: %s txid %s\n", __func__, __LINE__, txin.prevout.ToString(), txin.prevout.hash.GetHex());
+                LogPrint(BCLog::NET, "%s:%s Missing: %s txid %s\n", __func__, __LINE__, txin.prevout.ToSubString(), txin.prevout.hash.GetHex());
                 return false; // fMissingInputs and !state.IsInvalid() is used to detect this condition, don't set state.Invalid()
             }
 
@@ -4716,14 +4716,14 @@ bool CChainState::ContextualCheckRingCtStake(CBlockIndex* pindex, PublicRingCtSt
         if (!IsTransactionInChain(input.hash, nHeightTx, ptxPrev, Params().GetConsensus(), pindex))
             return error("%s: could not find tx %s within the same chain", __func__, input.hash.GetHex());
         if (nHeightTx == 0 || nHeightTx > pindex->nHeight - Params().RequiredStakeDepth())
-            return error("%s: included RingCt input is not below the required stake depth : %s", __func__, input.ToFullString());
+            return error("%s: included RingCt input is not below the required stake depth : %s", __func__, input.ToString());
         if (ptxPrev->vpout.size() <= input.n)
-            return error("%s: RingCt Input %s does not exist", input.ToFullString());
+            return error("%s: RingCt Input %s does not exist", input.ToString());
 
         //Check that it is a rct output
         const CTxOutBaseRef txbout = ptxPrev->vpout[input.n];
         if (txbout->GetType() != OUTPUT_RINGCT)
-            return error ("%s: RingCt Input %s is not a ringct output type", __func__, input.ToFullString());
+            return error ("%s: RingCt Input %s is not a ringct output type", __func__, input.ToString());
     }
 
     //Check that the Rct Spend has a rangeproof with a minimum value that is over the dust limit

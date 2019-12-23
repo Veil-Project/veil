@@ -91,8 +91,8 @@ public:
         return n == ANON_MARKER;
     };
 
+    std::string ToSubString() const;
     std::string ToString() const;
-    std::string ToFullString() const;
 };
 
 /** An input of a transaction.  It contains the location of the previous
