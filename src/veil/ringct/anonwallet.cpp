@@ -3594,9 +3594,9 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                                 MarkOutputSpent(out, true);
                                 fErased = true;
                             }
-                        sError = strprintf("Bad wallet state trying to spend already spent input, outpoint=%s erased=%s.",
-                                            out.ToString(), fErased ? "true" : "false");
-                        return error("%s: %s", __func__, sError);
+                            sError = strprintf("Bad wallet state trying to spend already spent input, outpoint=%s erased=%s.",
+                                                out.ToString(), fErased ? "true" : "false");
+                            return error("%s: %s", __func__, sError);
                         }
                     }
 
@@ -4477,7 +4477,7 @@ bool AnonWallet::ProcessLockedBlindedOutputs()
 
         int rv = pcursor->del(0);
         if (rv != 0) {
-            LogPrintf("%s: Error: pcursor->del failed for %s, %d.\n", __func__, op.ToString(), rv);
+            LogPrintf("%s: Error: pcursor->del failed for %s, %d.\n", __func__, op.ToSubString(), rv);
         }
 
         MapRecords_t::iterator mir;
@@ -4485,13 +4485,13 @@ bool AnonWallet::ProcessLockedBlindedOutputs()
         mir = mapRecords.find(op.hash);
         if (mir == mapRecords.end()
             || !wdb.ReadStoredTx(op.hash, stx)) {
-            LogPrintf("%s: Error: mapRecord not found for %s.\n", __func__, op.ToString());
+            LogPrintf("%s: Error: mapRecord not found for %s.\n", __func__, op.ToSubString());
             continue;
         }
         CTransactionRecord &rtx = mir->second;
 
         if (stx.tx->vpout.size() < op.n) {
-            LogPrintf("%s: Error: Outpoint doesn't exist %s.\n", __func__, op.ToString());
+            LogPrintf("%s: Error: Outpoint doesn't exist %s.\n", __func__, op.ToSubString());
             continue;
         }
 
@@ -4525,7 +4525,7 @@ bool AnonWallet::ProcessLockedBlindedOutputs()
                 }
                 break;
             default:
-                LogPrintf("%s: Error: Output is unexpected type %d %s.\n", __func__, txout->nVersion, op.ToString());
+                LogPrintf("%s: Error: Output is unexpected type %d %s.\n", __func__, txout->nVersion, op.ToSubString());
                 continue;
         }
 
@@ -4961,7 +4961,7 @@ void AnonWallet::RescanWallet()
                         outrecord->MarkPendingSpend(false);
 
                         wdb.WriteTxRecord(input.hash, *txrecord_input);
-                        LogPrintf("%s: Marking %s as unspent\n", __func__, input.ToString());
+                        LogPrintf("%s: Marking %s as unspent\n", __func__, input.ToSubString());
                     }
                 }
                 setErase.emplace(txid);
@@ -4987,14 +4987,14 @@ void AnonWallet::RescanWallet()
                         OwnAnonOut(&wdb, txid, (CTxOutRingCT*)pout.get(), *(it), stx, fUpdated);
                     }
                     if (fUpdated)
-                        LogPrintf("%s: Updating scriptpubkey for %s\n", __func__, COutPoint(txid, it->n).ToString());
+                        LogPrintf("%s: Updating scriptpubkey for %s\n", __func__, COutPoint(txid, it->n).ToSubString());
                 }
 
                 // Check that the record's type is correct
                 if (it->nType != pout->GetType()) {
                     it->nType = pout->GetType();
                     fUpdated = true;
-                    LogPrintf("%s: Updated txout type for %s\n", __func__, COutPoint(txid, it->n).ToString());
+                    LogPrintf("%s: Updated txout type for %s\n", __func__, COutPoint(txid, it->n).ToSubString());
 
                     if (it->IsBasecoin()) {
                         // clear scriptpubkey info on basecoin. Don't need redundant storing.
@@ -5054,7 +5054,7 @@ void AnonWallet::RescanWallet()
                         auto nFee = txrecord->nFee;
                         if (nValueIn - nFee - nValueOut > 0)
                             LogPrintf("%s: Failed to get blinds for output %s %s %s valuein:%s valueout:%s fee=%s\n",
-                                      __func__, txid.GetHex(), COutPoint(txid, it->n).ToString(), it->ToString(),
+                                      __func__, txid.GetHex(), COutPoint(txid, it->n).ToSubString(), it->ToString(),
                                       FormatMoney(nValueIn), FormatMoney(nValueOut), FormatMoney(nFee));
                     }
 
@@ -5897,13 +5897,13 @@ bool AnonWallet::SelectBlindedCoins(const std::vector<COutputR> &vAvailableCoins
             const CTransactionRecord &rtx = it->second;
             const COutputRecord *oR = rtx.GetOutput(outpoint.n);
             if (!oR) {
-                return error("%s: Can't find output %s\n", __func__, outpoint.ToString());
+                return error("%s: Can't find output %s\n", __func__, outpoint.ToSubString());
             }
 
             nValueFromPresetInputs += oR->GetAmount();
             vPresetCoins.push_back(std::make_pair(it, outpoint.n));
         } else {
-            return error("%s: Can't find output %s\n", __func__, outpoint.ToString());
+            return error("%s: Can't find output %s\n", __func__, outpoint.ToSubString());
         }
     }
 

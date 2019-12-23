@@ -10,12 +10,12 @@
 #include <tinyformat.h>
 #include <utilstrencodings.h>
 
-std::string COutPoint::ToString() const
+std::string COutPoint::ToSubString() const
 {
     return strprintf("COutPoint(%s, %u)", hash.ToString().substr(0,10), n);
 }
 
-std::string COutPoint::ToFullString() const
+std::string COutPoint::ToString() const
 {
     return strprintf("%s:%d", hash.GetHex(), n);
 }
@@ -38,7 +38,7 @@ std::string CTxIn::ToString() const
 {
     std::string str;
     str += "CTxIn(";
-    str += prevout.ToString();
+    str += prevout.ToSubString();
     if (prevout.IsNull() && !IsZerocoinSpend())
         str += strprintf(", coinbase %s", HexStr(scriptSig));
     else
