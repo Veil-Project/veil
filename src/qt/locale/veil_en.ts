@@ -3741,28 +3741,6 @@ address / Exchange or Service mode?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location line="-204"/>
-        <source>Bittrex is a secure and reputable US-based cryptocurrency exchange established in 2014. It offers over 200 cryptocurrencies and fiat (USD) deposits and withdrawals. Trading fee: 0.25%.
-        </source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+81"/>
-        <source>Binance is a secure and reputable US-based cryptocurrency exchange established in 2014. It offers over 200 cryptocurrencies and fiat (USD) deposits and withdrawals.
-Trading fee: 0.25%.
-
-</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location line="+83"/>
-        <source>Coinbase is a secure and reputable US-based cryptocurrency exchange established in 2014. It offers over 200 cryptocurrencies and fiat (USD) deposits and withdrawals.
-Trading fee: 0.25%.
-
-</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location line="+66"/>
         <source>Veil can also be obtained by mining, staking, or through the Veil Bounty Program.”	</source>
         <translation type="unfinished"></translation>

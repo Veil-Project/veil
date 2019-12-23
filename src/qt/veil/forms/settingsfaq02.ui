@@ -146,8 +146,7 @@ color:#707070;</string>
         <string notr="true">padding-top:10px;</string>
        </property>
        <property name="text">
-        <string>Bittrex is a secure and reputable US-based cryptocurrency exchange established in 2014. It offers over 200 cryptocurrencies and fiat (USD) deposits and withdrawals. Trading fee: 0.25%.
-        </string>
+        <string/>
        </property>
        <property name="wordWrap">
         <bool>true</bool>
@@ -227,10 +226,7 @@ color:#707070;</string>
         <string notr="true">padding-top:10px;</string>
        </property>
        <property name="text">
-        <string>Binance is a secure and reputable US-based cryptocurrency exchange established in 2014. It offers over 200 cryptocurrencies and fiat (USD) deposits and withdrawals.
-Trading fee: 0.25%.
-
-</string>
+        <string/>
        </property>
        <property name="wordWrap">
         <bool>true</bool>
@@ -310,10 +306,7 @@ Trading fee: 0.25%.
         <string notr="true">padding-top:10px;</string>
        </property>
        <property name="text">
-        <string>Coinbase is a secure and reputable US-based cryptocurrency exchange established in 2014. It offers over 200 cryptocurrencies and fiat (USD) deposits and withdrawals.
-Trading fee: 0.25%.
-
-</string>
+        <string/>
        </property>
        <property name="wordWrap">
         <bool>true</bool>

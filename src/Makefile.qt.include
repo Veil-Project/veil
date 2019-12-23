@@ -308,7 +308,6 @@ RES_ICONS = \
   qt/res/icons/ic-update-address.png \
   qt/res/icons/ic-copy-small.png \
   qt/res/icons/ic-navigation-transactions.png \
-  qt/res/icons/img-logo-binance@2x.png \
   qt/res/icons/ic-nav-transactions@2x.png \
   qt/res/icons/ic-nav-exchange@2x.png \
   qt/res/icons/ic-nav-send.png \
@@ -339,7 +338,6 @@ RES_ICONS = \
   qt/res/icons/ic-navigation-send.png \
   qt/res/icons/ic-nav-exchange@3x.png \
   qt/res/icons/ic-nav-transactions@3x.png \
-  qt/res/icons/img-logo-binance@3x.png \
   qt/res/icons/ic-update-address@2x.png \
   qt/res/icons/ic-add-account-blue.png \
   qt/res/icons/ic-add-blue.png \
@@ -356,7 +354,6 @@ RES_ICONS = \
   qt/res/icons/ic-progress-1-10@3x.png \
   qt/res/icons/ic-nav-send@2x.png \
   qt/res/icons/ic-nav-transactions.png \
-  qt/res/icons/img-logo-bittrex@2x.png \
   qt/res/icons/banner-top@2x.png \
   qt/res/icons/ic-copy-blue.png \
   qt/res/icons/simbol@3x.png \
@@ -388,7 +385,6 @@ RES_ICONS = \
   qt/res/icons/ic_exchange.png \
   qt/res/icons/ic-information@3x.png \
   qt/res/icons/ic-close@3x.png \
-  qt/res/icons/img-logo-bittrex.png \
   qt/res/icons/img_balance_logo@3x.png \
   qt/res/icons/ic-nav-addresses@2x.png \
   qt/res/icons/ic-progress-7-10@3x.png \
@@ -405,7 +401,6 @@ RES_ICONS = \
   qt/res/icons/img_balance_logo.png \
   qt/res/icons/simbol@2x.png \
   qt/res/icons/banner-top@3x.png \
-  qt/res/icons/img-logo-bittrex@3x.png \
   qt/res/icons/ic-nav-send@3x.png \
   qt/res/icons/ic-progress-6-10.png \
   qt/res/icons/veil_splash@3x.png \
@@ -441,11 +436,9 @@ RES_ICONS = \
   qt/res/icons/img-start-logo@3x.png \
   qt/res/icons/ic-nav-overview.png \
   qt/res/icons/img-start-wallet.png \
-  qt/res/icons/img-logo-coinbase.png \
   qt/res/icons/ic-arrow-right@2x.png \
   qt/res/icons/ic-add-blue@2x.png \
   qt/res/icons/ic-progress-9-10@3x.png \
-  qt/res/icons/img-logo-binance.png \
   qt/res/icons/ic-progress-2-10@2x.png \
   qt/res/icons/ic-search-white@2x.png \
   qt/res/icons/ic-progress-1-10.png \
@@ -457,7 +450,6 @@ RES_ICONS = \
   qt/res/icons/banner-top.png \
   qt/res/icons/ic-nav-settings@3x.png \
   qt/res/icons/ic-switch-off@2x.png \
-  qt/res/icons/img-logo-coinbase@2x.png \
   qt/res/icons/img-start-backup.png \
   qt/res/icons/img-start-password.png \
   qt/res/icons/ic-progress-8-10@2x.png \
@@ -494,7 +486,6 @@ RES_ICONS = \
   qt/res/icons/ic-switch-on@3x.png \
   qt/res/icons/ic-progress-8-10@3x.png \
   qt/res/icons/ic-switch-off@3x.png \
-  qt/res/icons/img-logo-coinbase@3x.png \
   qt/res/icons/ic-navigation-settings.png \
   qt/res/icons/ic-nav-settings@2x.png \
   qt/res/icons/img-start-confirm@2x.png \

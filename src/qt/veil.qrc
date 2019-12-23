@@ -221,15 +221,6 @@
         <file alias="img_balance_logo2">res/icons/img_balance_logo@2x.png</file>
         <file alias="img_balance_logo3">res/icons/img_balance_logo@3x.png</file>
         <file>res/icons/img_splash.jpg</file>
-        <file>res/icons/img-logo-binance.png</file>
-        <file>res/icons/img-logo-binance@2x.png</file>
-        <file>res/icons/img-logo-binance@3x.png</file>
-        <file>res/icons/img-logo-bittrex.png</file>
-        <file>res/icons/img-logo-bittrex@2x.png</file>
-        <file>res/icons/img-logo-bittrex@3x.png</file>
-        <file>res/icons/img-logo-coinbase.png</file>
-        <file>res/icons/img-logo-coinbase@2x.png</file>
-        <file>res/icons/img-logo-coinbase@3x.png</file>
         <file alias="img-start-backup">res/icons/img-start-backup.png</file>
         <file alias="img-start-backup2">res/icons/img-start-backup@2x.png</file>
         <file alias="img-start-backup3">res/icons/img-start-backup@3x.png</file>
