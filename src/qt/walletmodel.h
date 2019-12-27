@@ -211,11 +211,6 @@ public:
     void setStakingEnabled(bool fEnableStaking);
     bool isStakingEnabled();
 
-    bool StartPrecomputing(std::string& strStatus);
-    void StopPrecomputing();
-    void setPrecomputingEnabled(bool fEnablePrecomputing);
-    bool isPrecomputingEnabled();
-
     void loadReceiveRequests(std::vector<std::string>& vReceiveRequests);
     bool saveReceiveRequest(const std::string &sAddress, const int64_t nId, const std::string &sRequest);
 

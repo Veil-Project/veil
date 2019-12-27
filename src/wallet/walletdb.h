@@ -43,7 +43,6 @@ class uint256;
 class CDeterministicMint;
 class CZerocoinMint;
 class CZerocoinSpend;
-class CoinWitnessCacheData;
 
 /** Backend-agnostic database type. */
 using WalletDatabase = BerkeleyDatabase;

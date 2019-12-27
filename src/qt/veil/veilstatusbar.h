@@ -32,7 +32,6 @@ public:
 #ifdef ENABLE_WALLET
     void setWalletModel(WalletModel *model);
     void updateStakingCheckbox();
-    void updatePrecomputeCheckbox();
 #endif
 
 private Q_SLOTS:
@@ -40,7 +39,6 @@ private Q_SLOTS:
 #ifdef ENABLE_WALLET
     void onBtnLockClicked();
     void onCheckStakingClicked(bool res);
-    void onCheckPrecomputeClicked(bool res);
     void updateLockCheckbox();
 #endif
 

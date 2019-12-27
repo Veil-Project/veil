@@ -105,7 +105,7 @@
          <number>3</number>
         </property>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0">
+         <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0">
           <property name="spacing">
            <number>2</number>
           </property>
@@ -159,44 +159,6 @@
               <width>16</width>
               <height>16</height>
              </size>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="checkPrecompute">
-            <property name="font">
-             <font>
-              <stylestrategy>PreferAntialias</stylestrategy>
-             </font>
-            </property>
-            <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">
- #checkPrecompute::indicator {
-     border: 0;
-     background: none;
-	 margin: 0;
-	 padding: 0;
-	 width:40px;
-    height:30px;
- }
-
- #checkPrecompute {
- background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
- background-repeat:no-repeat;
- background-position:left center;
- color:#bababa;
- }
-
- #checkPrecompute:checked {
- background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
- color:#105aef;
- }</string>
-            </property>
-            <property name="text">
-             <string>Precompute</string>
             </property>
            </widget>
           </item>

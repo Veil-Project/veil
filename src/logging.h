@@ -57,7 +57,6 @@ namespace BCLog {
         BLOCKCREATION = (1 << 22),
         CHAINSCORE = (1 << 23),
         STAGING     = (1 << 24),
-        PRECOMPUTE = (1 << 25),
         ALL         = ~(uint32_t)0,
     };
 
