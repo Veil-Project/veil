@@ -3951,7 +3951,7 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInp
 {
     LOCK(cs_main);
 
-    //Only update zerocoin set once per update interval
+    //Only update stakable outputs once per update interval
     bool fUpdate = false;
     static int64_t nTimeLastUpdate = 0;
     if (GetAdjustedTime() - nTimeLastUpdate > nStakeSetUpdateTime) {
@@ -3966,57 +3966,55 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInp
         nRequiredDepth = Params().RequiredStakeDepth();
     }
 
-    std::set<CMintMeta> setMints = zTracker->ListMints(true, true, fUpdate);
-    for (auto meta : setMints) {
-        if (meta.hashStake == uint256()) {
-            CZerocoinMint mint;
-            if (GetMint(meta.hashSerial, mint)) {
-                uint256 hashStake = mint.GetSerialNumber().getuint256();
-                hashStake = Hash(hashStake.begin(), hashStake.end());
-                meta.hashStake = hashStake;
-                zTracker->UpdateState(meta);
-            }
-        }
-        if (meta.nVersion < CZerocoinMint::STAKABLE_VERSION)
-            continue;
-        if (meta.nHeight < chainActive.Height() - nRequiredDepth) {
-            std::unique_ptr<CStakeInput> input(new ZerocoinStake(meta.denom, meta.hashStake));
+    if (chainActive.Height() >= Params().HeightRingCtPoSStart()) {
+        std::vector<COutputR> vRctCoins;
+        pAnonWalletMain->AvailableAnonCoins(vRctCoins);
+        for (const COutputR& rctOut : vRctCoins) {
+            const CTransactionRecord& txrecord = rctOut.rtx->second;
+
+            //Check transaction age
+            if (GetAdjustedTime() - txrecord.nBlockTime > nStakeMinAge)
+                continue;
+
+            //Check output
+            const COutputRecord* pout = txrecord.GetOutput(rctOut.i);
+            if (pout->GetAmount() < Params().MinimumStakeQuantity())
+                continue;
+
+            CTransactionRef ptx;
+            uint256 hashblock;
+            if (!GetTransaction(rctOut.txhash, ptx, Params().GetConsensus(), hashblock, true))
+                continue;
+
+            //Create stake input and add to list of stakable inputs
+            std::unique_ptr<CStakeInput> input(new RingCtStakeCandidate(this, ptx, rctOut.GetOutpoint(), pout));
             listInputs.emplace_back(std::move(input));
         }
+
+        LogPrint(BCLog::BLOCKCREATION, "%s: FOUND %d STAKABLE RingCT OUTPUTs\n", __func__, listInputs.size());
+
+    } else if (chainActive.Height() >= Params().HeightLightZerocoin()) {
+        std::set<CMintMeta> setMints = zTracker->ListMints(true, true, fUpdate);
+        for (auto meta : setMints) {
+            if (meta.hashStake == uint256()) {
+                CZerocoinMint mint;
+                if (GetMint(meta.hashSerial, mint)) {
+                    uint256 hashStake = mint.GetSerialNumber().getuint256();
+                    hashStake = Hash(hashStake.begin(), hashStake.end());
+                    meta.hashStake = hashStake;
+                    zTracker->UpdateState(meta);
+                }
+            }
+            if (meta.nVersion < CZerocoinMint::STAKABLE_VERSION)
+                continue;
+            if (meta.nHeight < chainActive.Height() - nRequiredDepth) {
+                std::unique_ptr<CStakeInput> input(new ZerocoinStake(meta.denom, meta.hashStake));
+                listInputs.emplace_back(std::move(input));
+            }
+        }
+
+        LogPrint(BCLog::BLOCKCREATION, "%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());        
     }
-
-    /*
-     * void AnonWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe, const CCoinControl *coinControl,
-        const CAmount& nMinimumAmount, const CAmount& nMaximumAmount, const CAmount& nMinimumSumAmount,
-        const uint64_t& nMaximumCount, const int& nMinDepth, const int& nMaxDepth, bool fIncludeImmature)
-     */
-
-    //todo time based activation here
-    std::vector<COutputR> vRctCoins;
-    pAnonWalletMain->AvailableAnonCoins(vRctCoins);
-    for (const COutputR& rctOut : vRctCoins) {
-        const CTransactionRecord& txrecord = rctOut.rtx->second;
-
-        //Check transaction age
-        if (GetAdjustedTime() - txrecord.nBlockTime > nStakeMinAge)
-            continue;
-
-        //Check output
-        const COutputRecord* pout = txrecord.GetOutput(rctOut.i);
-        if (pout->GetAmount() < Params().MinimumStakeQuantity())
-            continue;
-
-        CTransactionRef ptx;
-        uint256 hashblock;
-        if (!GetTransaction(rctOut.txhash, ptx, Params().GetConsensus(), hashblock, true))
-            continue;
-
-        //Create stake input and add to list of stakable inputs
-        std::unique_ptr<CStakeInput> input(new RingCtStakeCandidate(this, ptx, rctOut.GetOutpoint(), pout));
-        listInputs.emplace_back(std::move(input));
-    }
-
-    LogPrint(BCLog::BLOCKCREATION, "%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());
 
     return true;
 }

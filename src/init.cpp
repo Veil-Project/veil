@@ -13,7 +13,7 @@
 
 #include <addrman.h>
 #include <amount.h>
-#include <veil/ringct/blind.h>
+// #include <veil/ringct/blind.h>
 #include <veil/ringct/stealth.h>
 #include <chain.h>
 #include <chainparams.h>

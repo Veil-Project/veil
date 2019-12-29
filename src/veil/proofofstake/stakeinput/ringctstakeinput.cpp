@@ -151,7 +151,29 @@ bool RingCtStakeCandidate::CreateCoinStake(CWallet* pwallet, const CAmount& nBlo
  */
 bool RingCtStakeCandidate::CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal)
 {
-    //todo
+#ifdef ENABLE_WALLET
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+#endif
+        return error("%s: wallet disabled", __func__);
+#ifdef ENABLE_WALLET
+    }
+
+    //Create an output returning the RingCT VEIL that was staked
+    AnonWallet* panonWallet = pwallet->GetAnonWallet();
+    
+    CTxOut outStaked;
+    if (!panonWallet->AddToSpends(m_outpoint,m_ptx->GetHash()))
+        return error("%s: failed to create RingCT output", __func__);
+    vout.emplace_back(outStaked);
+
+    //Create the block reward output
+    CTxOut outReward;
+    if (!pwallet->CreateZOutPut(denomReward, out, dMintReward))
+        return error("%s: failed to create RingCT output", __func__);
+    vout.emplace_back(out);   
+
+    return true;
+#endif
 }
 
 /**
@@ -261,7 +283,36 @@ CDataStream PublicRingCtStake::GetUniqueness()
  */
 bool PublicRingCtStake::CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake)
 {
-   // todo:
+    AnonWallet* panonWallet = pwallet->GetAnonWallet();
+    CTransactionRef ptx = MakeTransactionRef();
+    CWalletTx wtx(pwallet, ptx);
+
+    //Add the input to coincontrol so that addanoninputs knows what to use
+    CCoinControl coinControl;
+    coinControl.Select(m_outpoint, m_nAmount);
+    coinControl.nCoinType = OUTPUT_RINGCT;
+    coinControl.fProofOfStake = true;
+    coinControl.nValueBlockReward = nBlockReward;
+
+    //Tell the rct code who the recipient is
+    std::vector<CTempRecipient> vecSend;
+    CTempRecipient tempRecipient;
+    tempRecipient.nType = OUTPUT_RINGCT;
+    tempRecipient.SetAmount(m_nAmount);
+    CStealthAddress address;
+    if (!panonWallet->GetStakeAddress(address))
+        return error("%s: failed to get the staking address");
+
+    tempRecipient.address = address;
+    tempRecipient.fSubtractFeeFromAmount = false;
+    tempRecipient.fExemptFeeSub = true;
+    vecSend.emplace_back(tempRecipient);
+
+    std::string strError;
+    CTransactionRecord rtx;
+    CAmount nFeeRet = 0;
+    if (panonWallet->AddAnonInputs(wtx, rtx, vecSend, /*fSign*/false, /*nRingSize*/Params().DefaultRingSize(), /*nInputsPerSig*/32, nFeeRet, &coinControl, strError) != 0)
+        return error("%s: AddAnonInputs failed with error %s", __func__, strError);
 
     return true;
 }
