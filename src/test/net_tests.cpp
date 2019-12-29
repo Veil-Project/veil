@@ -6,6 +6,7 @@
 #include <string>
 #include <boost/test/unit_test.hpp>
 #include <hash.h>
+#include <cstdint>
 #include <serialize.h>
 #include <streams.h>
 #include <net.h>
@@ -78,10 +79,10 @@ BOOST_FIXTURE_TEST_SUITE(net_tests, BasicTestingSetup)
 BOOST_AUTO_TEST_CASE(cnode_listen_port)
 {
     // test default
-    unsigned short port = GetListenPort();
+    uint16_t port = GetListenPort();
     BOOST_CHECK(port == Params().GetDefaultPort());
     // test set port
-    unsigned short altPort = 12345;
+    uint16_t altPort = 12345;
     gArgs.SoftSetArg("-port", std::to_string(altPort));
     port = GetListenPort();
     BOOST_CHECK(port == altPort);
