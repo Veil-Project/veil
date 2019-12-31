@@ -60,6 +60,8 @@ TransactionDetailDialog::TransactionDetailDialog(QWidget *parent, TransactionRec
             baseStr = "https://explorer.veil-project.com/tx/";
         } else if (chain == CBaseChainParams::TESTNET) {
             baseStr = "https://testnet.veil-project.com/tx/";
+        } else if (chain == CBaseChainParams::DEVNET) {
+            baseStr = "https://devnet.veil-project.com/tx/";
         }
 
         if (baseStr != "") {

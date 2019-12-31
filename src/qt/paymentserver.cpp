@@ -217,7 +217,13 @@ void PaymentServer::ipcParseCommandLine(interfaces::Node& node, int argc, char* 
                     tempChainParams = CreateChainParams(CBaseChainParams::TESTNET);
                     if (IsValidDestinationString(r.address.toStdString(), *tempChainParams)) {
                         node.selectParams(CBaseChainParams::TESTNET);
+                    } else {
+                        tempChainParams = CreateChainParams(CBaseChainParams::DEVNET);
+                        if (IsValidDestinationString(r.address.toStdString(), *tempChainParams)) {
+                            node.selectParams(CBaseChainParams::DEVNET);
+                        }
                     }
+                    
                 }
             }
         }
@@ -235,6 +241,10 @@ void PaymentServer::ipcParseCommandLine(interfaces::Node& node, int argc, char* 
                 else if (request.getDetails().network() == "test")
                 {
                     node.selectParams(CBaseChainParams::TESTNET);
+                } 
+                else if (request.getDetails().network() == "dev")
+                {
+                    node.selectParams(CBaseChainParams::DEVNET);
                 }
             }
         }

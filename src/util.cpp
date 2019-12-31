@@ -973,13 +973,16 @@ std::string ArgsManager::GetChainName() const
     // TODO: Change me..
     bool fRegTest = ArgsManagerHelper::GetNetBoolArg(*this, "-regtest");
     bool fTestNet = ArgsManagerHelper::GetNetBoolArg(*this, "-testnet");
+    bool fDevNet = ArgsManagerHelper::GetNetBoolArg(*this, "-devnet");
 
-    if (fTestNet && fRegTest)
-        throw std::runtime_error("Invalid combination of -regtest and -testnet.");
+    if ((fTestNet && fRegTest) || (fDevNet && fRegTest) ||  (fTestNet && fDevNet))
+        throw std::runtime_error("Invalid combination of -regtest, -testnet, and -devnet.");
     if (fRegTest)
         return CBaseChainParams::REGTEST;
     if (fTestNet)
         return CBaseChainParams::TESTNET;
+    if (fDevNet)
+        return CBaseChainParams::DEVNET;
     return CBaseChainParams::MAIN;
 }
 

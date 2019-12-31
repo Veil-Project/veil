@@ -4476,6 +4476,14 @@ to have automatically minted by automint</source>
     </message>
 </context>
 <context>
+    <name>SplashScreen</name>
+    <message>
+        <location filename="../networkstyle.cpp" line="+21 "/>
+        <source>[devnet]</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>SplashScreenVeil</name>
     <message>
         <location filename="../forms/splashscreenveil.ui" line="+14"/>
