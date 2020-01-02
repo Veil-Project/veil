@@ -308,9 +308,9 @@ QScrollBar:vertical {
             <property name="geometry">
              <rect>
               <x>0</x>
-              <y>0</y>
+              <y>-33</y>
               <width>400</width>
-              <height>501</height>
+              <height>534</height>
              </rect>
             </property>
             <property name="maximumSize">

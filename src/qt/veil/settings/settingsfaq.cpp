@@ -57,6 +57,8 @@ SettingsFaq::SettingsFaq(QWidget *parent, bool howToObtainVeil) :
 
 
 
+
+
     faq01 = new SettingsFaq01(this);
 
     ui->stackedWidget->addWidget(faq01);
@@ -131,8 +133,9 @@ void SettingsFaq::onRadioButton06Clicked(){
         faq06 = new SettingsFaq06(this);
         ui->stackedWidget->addWidget(faq06);
     }
-
+    
     changeScreen(faq06);
+    ui->radioButton_06->setChecked(true);
 }
 
 void SettingsFaq::onRadioButton07Clicked(){

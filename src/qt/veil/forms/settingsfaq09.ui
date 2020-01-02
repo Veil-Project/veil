@@ -33,16 +33,15 @@ color:#707070;</string>
       <string notr="true">font-weight:200;</string>
      </property>
      <property name="text">
-      <string>“The X16RT mining algorithm will be used for at least the first 12 months of mainnet going live (January 1st, 2019) to achieve wide coin supply distribution.
-
-Anyone with NVIDIA or AMD graphics cards will be able to solo mine or pool mine VEIL without concerns about ASICs and mining centralization.
-
-For the latest mining instructions, please visit the mining channel on the Veil Discord server or see the official Veil announcement thread on the BitcoinTalk forum.”					</string>
+      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot;font-weight:600; text-decoration: underline;&quot;&gt;How do I mine VEIL?&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;&lt;br/&gt;The X16RT mining algorithm will be used for at least the first 12 months of mainnet going live (January 1st, 2019) to achieve wide coin supply distribution.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;span&gt;Anyone with NVIDIA or AMD graphics cards will be able to solo mine or pool mine VEIL without concerns about ASIC’s and mining centralization during the mining phase.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;span&gt;For the latest mining instructions, please see the Official Veil Announcement thread on the &lt;/span&gt;&lt;a target=&quot;_blank&quot; href=&quot;https://bitcointalk.org/index.php?topic=5065331.0&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;BitcoinTalk forum&lt;/span&gt;&lt;/a&gt;&lt;span&gt;. &lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
      </property>
      <property name="wordWrap">
+      <bool>true</bool>
+     </property>
+     <property name="openExternalLinks">
       <bool>true</bool>
      </property>
     </widget>
