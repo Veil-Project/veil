@@ -42,7 +42,7 @@ bool Precompute::StartPrecomputing(std::string& strStatus)
         this->StopPrecomputing();
     }
 
-    pthreadGroupPrecompute->create_thread(boost::bind(&ThreadPrecomputeSpends));
+    pthreadGroupPrecompute->create_thread(std::bind(&ThreadPrecomputeSpends));
 
     strStatus = "precomputing started";
     return true;
