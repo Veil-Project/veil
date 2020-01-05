@@ -19,7 +19,6 @@
 #include <qt/rpcconsole.h>
 #include <qt/utilitydialog.h>
 #include <qt/veil/qtutils.h>
-#include <qt/splashscreen.h>
 
 #ifdef ENABLE_WALLET
 #include <qt/walletframe.h>
@@ -48,7 +47,6 @@
 #include <QComboBox>
 #include <QCheckBox>
 #include <QDateTime>
-#include <QDesktopWidget>
 #include <QDragEnterEvent>
 #include <QFrame>
 #include <QLabel>
@@ -58,6 +56,7 @@
 #include <QMimeData>
 #include <QProgressDialog>
 #include <QPushButton>
+#include <QScreen>
 #include <QSettings>
 #include <QShortcut>
 #include <QStackedWidget>
@@ -91,7 +90,7 @@ BitcoinGUI::BitcoinGUI(interfaces::Node& node, const PlatformStyle *_platformSty
     QSettings settings;
     if (!restoreGeometry(settings.value("MainWindowGeometry").toByteArray())) {
         // Restore failed (perhaps missing setting), center the window
-        move(QApplication::desktop()->availableGeometry().center() - frameGeometry().center());
+        move(QGuiApplication::primaryScreen()->geometry().center() - frameGeometry().center());
     }
 
     QString windowTitle = tr(PACKAGE_NAME) + " - ";
@@ -1524,7 +1523,7 @@ UnitDisplayStatusBarControl::UnitDisplayStatusBarControl(const PlatformStyle *pl
     const QFontMetrics fm(font());
     for (const BitcoinUnits::Unit unit : units)
     {
-        max_width = qMax(max_width, fm.width(BitcoinUnits::longName(unit)));
+        max_width = qMax(max_width, GUIUtil::TextWidth(fm, BitcoinUnits::longName(unit)));
     }
     setMinimumSize(max_width, 0);
     setAlignment(Qt::AlignRight | Qt::AlignVCenter);

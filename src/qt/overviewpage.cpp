@@ -93,10 +93,10 @@ public:
 
         // Get the width of the amount string
         QFontMetrics fm(painter->fontMetrics());
-        int amountTextLength = fm.width(amountText);
+        int amountTextLength = GUIUtil::TextWidth(fm, amountText);
 
         // Get the width of the fee string.
-        int feeTextLength = fm.width(feeStr);      
+        int feeTextLength = GUIUtil::TextWidth(fm, feeStr);      
         
         int iconWidth = (DECORATION_SIZE / 2)+8;  
 

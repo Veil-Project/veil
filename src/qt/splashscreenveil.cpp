@@ -10,9 +10,9 @@
 #include <wallet/wallet.h> // For DEFAULT_DISABLE_WALLET
 #endif
 
-#include <qt/splashscreen.h>
-
 #include <qt/networkstyle.h>
+
+#include <qt/guiutil.h>
 
 #include <clientversion.h>
 #include <interfaces/handler.h>
@@ -24,11 +24,10 @@
 
 #include <QApplication>
 #include <QCloseEvent>
-#include <QDesktopWidget>
 #include <QPainter>
 #include <QRadialGradient>
-#include "qt/guiutil.h"
-#include <QDebug>
+#include <QScreen>
+
 
 SplashScreenVeil::SplashScreenVeil(interfaces::Node& node, Qt::WindowFlags f, const NetworkStyle *networkStyle) :
     QWidget(0, f),ui(new Ui::SplashScreenVeil), curAlignment(0), m_node(node)
@@ -53,7 +52,7 @@ SplashScreenVeil::SplashScreenVeil(interfaces::Node& node, Qt::WindowFlags f, co
     setWindowTitle(titleText + " " + titleAddText);
 
     // Resize window and move to center of desktop, disallow resizing
-    QRect screenGeometry = QApplication::desktop()->screenGeometry();
+    QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
     int x = (screenGeometry.width() - width()) / 2;
     int y = (screenGeometry.height() - height()) / 2;
     move(x, y);

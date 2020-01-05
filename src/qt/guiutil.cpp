@@ -919,7 +919,7 @@ qreal calculateIdealFontSize(int width, const QString& text, QFont font, qreal m
     while(font_size >= minPointSize) {
         font.setPointSizeF(font_size);
         QFontMetrics fm(font);
-        if (fm.width(text) < width) {
+        if (TextWidth(fm, text) < width) {
             break;
         }
         font_size -= 0.5;
@@ -945,6 +945,15 @@ bool ItemDelegate::eventFilter(QObject *object, QEvent *event)
         }
     }
     return QItemDelegate::eventFilter(object, event);
+}
+
+int TextWidth(const QFontMetrics& fm, const QString& text)
+{
+#if (QT_VERSION >= QT_VERSION_CHECK(5, 11, 0))
+    return fm.horizontalAdvance(text);
+#else
+    return fm.width(text);
+#endif
 }
 
 } // namespace GUIUtil
