@@ -17,8 +17,8 @@ QString editLineInvalidCss = "QLineEdit{border-bottom:1px solid red;background-c
 
 TutorialMnemonicRevealed::TutorialMnemonicRevealed(QStringList _wordList, QWidget *parent) :
     QWidget(parent),
-    wordList(_wordList),
-    ui(new Ui::TutorialMnemonicRevealed)
+    ui(new Ui::TutorialMnemonicRevealed),
+    wordList(_wordList)
 {
     ui->setupUi(this);
 

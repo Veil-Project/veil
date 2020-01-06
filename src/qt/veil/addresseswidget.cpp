@@ -37,8 +37,12 @@ class AddressViewDelegate : public QAbstractItemDelegate
     Q_OBJECT
 public:
     explicit AddressViewDelegate(const PlatformStyle *_platformStyle, QObject *parent=nullptr, AddressTableModel *_model = nullptr):
-        QAbstractItemDelegate(parent), unit(BitcoinUnits::VEIL), model(_model),
-        platformStyle(_platformStyle) {}
+        QAbstractItemDelegate(parent),
+	unit(BitcoinUnits::VEIL),
+        platformStyle(_platformStyle),
+	model(_model)
+	{
+	}
 
     inline void paint(QPainter *painter, const QStyleOptionViewItem &option,
                       const QModelIndex &index ) const {

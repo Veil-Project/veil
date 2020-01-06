@@ -15,8 +15,8 @@
 
 VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
     QWidget(parent),
-    mainWindow(gui),
-    ui(new Ui::VeilStatusBar)
+    ui(new Ui::VeilStatusBar),
+    mainWindow(gui)
 {
     ui->setupUi(this);
 

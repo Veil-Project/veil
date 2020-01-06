@@ -31,8 +31,8 @@
 
 ReceiveWidget::ReceiveWidget(QWidget *parent, WalletView* walletView) :
     QWidget(parent),
-    mainWindow(walletView),
-    ui(new Ui::ReceiveWidget)
+    ui(new Ui::ReceiveWidget),
+    mainWindow(walletView)
 {
     ui->setupUi(this);
     ui->title->setProperty("cssClass" , "title");

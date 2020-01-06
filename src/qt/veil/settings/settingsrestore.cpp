@@ -5,8 +5,8 @@
 
 SettingsRestore::SettingsRestore(QStringList _wordList, QWidget *parent) :
     QDialog(parent),
-    wordList(_wordList),
-    ui(new Ui::SettingsRestore)
+    ui(new Ui::SettingsRestore),
+    wordList(_wordList)
 {
     ui->setupUi(this);
 

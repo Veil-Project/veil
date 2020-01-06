@@ -89,9 +89,9 @@ Q_SIGNALS:
 
 private:
     Ui::SendCoinsDialog *ui;
+    WalletView *mainWindow;
     ClientModel *clientModel;
     WalletModel *model;
-    WalletView *mainWindow;
     bool fNewRecipientAllowed;
     bool fFeeMinimized;
     bool fDandelion = false;

@@ -32,9 +32,9 @@
 
 AddressReceive::AddressReceive(QWidget *parent, WalletModel* _walletModel, bool isMinerAddress) :
     QDialog(parent),
+    ui(new Ui::AddressReceive),
     walletModel(_walletModel),
-    isMiner(isMinerAddress),
-    ui(new Ui::AddressReceive)
+    isMiner(isMinerAddress)
 {
     ui->setupUi(this);
 

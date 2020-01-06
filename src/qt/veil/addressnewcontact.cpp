@@ -19,8 +19,8 @@
 
 AddressNewContact::AddressNewContact(QWidget *parent, WalletModel* _walletModel) :
     QDialog(parent),
-    walletModel(_walletModel),
-    ui(new Ui::AddressNewContact)
+    ui(new Ui::AddressNewContact),
+    walletModel(_walletModel)
 {
     ui->setupUi(this);
     connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(onEscapeClicked()));

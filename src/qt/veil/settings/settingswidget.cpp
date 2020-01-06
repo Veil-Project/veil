@@ -24,8 +24,8 @@
 
 SettingsWidget::SettingsWidget(WalletView *parent) :
     QWidget(parent),
-    mainWindow(parent),
-    ui(new Ui::SettingsWidget)
+    ui(new Ui::SettingsWidget),
+    mainWindow(parent)
 {
 
     ui->setupUi(this);

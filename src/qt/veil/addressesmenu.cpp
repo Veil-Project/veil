@@ -15,11 +15,11 @@
 
 AddressesMenu::AddressesMenu(const QString _type, const QModelIndex &_index, QWidget *parent, WalletView *_mainWindow, AddressTableModel *_model) :
     QWidget(parent),
+    ui(new Ui::AddressesMenu),
     mainWindow(_mainWindow),
-    type(_type),
     index(_index),
-    model(_model),
-    ui(new Ui::AddressesMenu)
+    type(_type),
+    model(_model)
 {
     ui->setupUi(this);
 

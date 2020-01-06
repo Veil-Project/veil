@@ -13,8 +13,8 @@
 
 TooltipBalance::TooltipBalance(QWidget *parent, int _unit, int64_t nZerocoinBalance, int64_t nRingBalance, int64_t basecoinBalance) :
     QWidget(parent),
-    unit(_unit),
-    ui(new Ui::TooltipBalance)
+    ui(new Ui::TooltipBalance),
+    unit(_unit)
 {
     ui->setupUi(this);
     ui->textZero->setText(BitcoinUnits::formatWithUnit(unit, nZerocoinBalance, false, BitcoinUnits::separatorAlways));

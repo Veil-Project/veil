@@ -17,9 +17,9 @@
 
 SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, WalletModel *_walletModel) :
     QDialog(parent),
-    mainWindow(mainWindow),
+    ui(new Ui::SettingsMinting),
     walletModel(_walletModel),
-    ui(new Ui::SettingsMinting)
+    mainWindow(mainWindow)
 {
     ui->setupUi(this);
     ui->btnEsc->setProperty("cssClass" , "btn-text-primary-inactive");
