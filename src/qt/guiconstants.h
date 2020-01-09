@@ -51,5 +51,6 @@ static const int MAX_URI_LENGTH = 255;
 #define QAPP_ORG_DOMAIN "veil.org"
 #define QAPP_APP_NAME_DEFAULT "Veil-Qt"
 #define QAPP_APP_NAME_TESTNET "Veil-Qt-testnet"
+#define QAPP_APP_NAME_DEVNET "Veil-Qt-devnet"
 
 #endif // BITCOIN_QT_GUICONSTANTS_H

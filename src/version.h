@@ -21,6 +21,7 @@ static const int GETHEADERS_VERSION = 31800;
 static const int MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT = 70025;
 static const int MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT = 70027;
 static const int MIN_PEER_PROTO_VERSION_TESTNET = 70027;
+static const int MIN_PEER_PROTO_VERSION_DEVNET = 70027;
 
 //! nTime field added to CAddress, starting with this version;
 //! if possible, avoid requesting addresses nodes older than this

@@ -1990,6 +1990,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         if (Params().NetworkIDString() == "test") {
             nMinPeerVersion = MIN_PEER_PROTO_VERSION_TESTNET;
         }
+        if (Params().NetworkIDString() == "dev") {
+            nMinPeerVersion = MIN_PEER_PROTO_VERSION_DEVNET;
+        }
 
         if (nVersion < nMinPeerVersion)
         {
@@ -2144,6 +2147,9 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
     // Check testnet proto version
     if (Params().NetworkIDString() == "test") {
         nMinPeerVersion = MIN_PEER_PROTO_VERSION_TESTNET;
+    }
+    if (Params().NetworkIDString() == "dev") {
+        nMinPeerVersion = MIN_PEER_PROTO_VERSION_DEVNET;
     }
 
     if (fNewEnforcement && pfrom->nVersion < nMinPeerVersion) {

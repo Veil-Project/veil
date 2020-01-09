@@ -13,6 +13,7 @@
 
 const std::string CBaseChainParams::MAIN = "main";
 const std::string CBaseChainParams::TESTNET = "test";
+const std::string CBaseChainParams::DEVNET = "dev";
 const std::string CBaseChainParams::REGTEST = "regtest";
 
 void SetupChainParamsBaseOptions()
@@ -20,6 +21,7 @@ void SetupChainParamsBaseOptions()
     gArgs.AddArg("-regtest", "Enter regression test mode, which uses a special chain in which blocks can be solved instantly. "
                                    "This is intended for regression testing tools and app development.", true, OptionsCategory::CHAINPARAMS);
     gArgs.AddArg("-testnet", "Use the test chain", false, OptionsCategory::CHAINPARAMS);
+    gArgs.AddArg("-devnet", "Use the dev test chain", false, OptionsCategory::CHAINPARAMS);
 }
 
 static std::unique_ptr<CBaseChainParams> globalChainBaseParams;
@@ -36,6 +38,8 @@ std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const std::string& chain
         return MakeUnique<CBaseChainParams>("", 58812);
     else if (chain == CBaseChainParams::TESTNET)
         return MakeUnique<CBaseChainParams>("testnet4", 58813);
+    else if (chain == CBaseChainParams::DEVNET)
+        return MakeUnique<CBaseChainParams>("devnet", 58814);
     else if (chain == CBaseChainParams::REGTEST)
         return MakeUnique<CBaseChainParams>("regtest", 58823);
     else

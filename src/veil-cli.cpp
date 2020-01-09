@@ -33,6 +33,7 @@ static void SetupCliArgs()
 {
     const auto defaultBaseParams = CreateBaseChainParams(CBaseChainParams::MAIN);
     const auto testnetBaseParams = CreateBaseChainParams(CBaseChainParams::TESTNET);
+    const auto devnetBaseParams = CreateBaseChainParams(CBaseChainParams::DEVNET);
 
     gArgs.AddArg("-?", "This help message", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-version", "Print version and exit", false, OptionsCategory::OPTIONS);
@@ -45,7 +46,7 @@ static void SetupCliArgs()
     gArgs.AddArg("-rpcconnect=<ip>", strprintf("Send commands to node running on <ip> (default: %s)", DEFAULT_RPCCONNECT), false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-rpccookiefile=<loc>", _("Location of the auth cookie. Relative paths will be prefixed by a net-specific datadir location. (default: data dir)"), false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-rpcpassword=<pw>", "Password for JSON-RPC connections", false, OptionsCategory::OPTIONS);
-    gArgs.AddArg("-rpcport=<port>", strprintf("Connect to JSON-RPC on <port> (default: %u or testnet: %u)", defaultBaseParams->RPCPort(), testnetBaseParams->RPCPort()), false, OptionsCategory::OPTIONS);
+    gArgs.AddArg("-rpcport=<port>", strprintf("Connect to JSON-RPC on <port> (default: %u, testnet: %u, devnet: %u)", defaultBaseParams->RPCPort(), testnetBaseParams->RPCPort(), devnetBaseParams->RPCPort()), false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-rpcuser=<user>", "Username for JSON-RPC connections", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-rpcwait", "Wait for RPC server to start", false, OptionsCategory::OPTIONS);
     gArgs.AddArg("-rpcwallet=<walletname>", "Send RPC for non-default wallet on RPC server (needs to exactly match corresponding -wallet option passed to veild)", false, OptionsCategory::OPTIONS);
@@ -129,7 +130,7 @@ static int AppInitRPC(int argc, char* argv[])
         fprintf(stderr, "Error reading configuration file: %s\n", error.c_str());
         return EXIT_FAILURE;
     }
-    // Check for -testnet or -regtest parameter (BaseParams() calls are only valid after this clause)
+    // Check for -testnet, -regtest, or -devnet parameter (BaseParams() calls are only valid after this clause)
     try {
         SelectBaseParams(gArgs.GetChainName());
     } catch (const std::exception& e) {
@@ -269,6 +270,7 @@ public:
         result.pushKV("proxy", batch[ID_NETWORKINFO]["result"]["networks"][0]["proxy"]);
         result.pushKV("difficulty", batch[ID_BLOCKCHAININFO]["result"]["difficulty"]);
         result.pushKV("testnet", UniValue(batch[ID_BLOCKCHAININFO]["result"]["chain"].get_str() == "test"));
+        result.pushKV("devnet", UniValue(batch[ID_BLOCKCHAININFO]["result"]["chain"].get_str() == "dev"));
         if (!batch[ID_WALLETINFO].isNull()) {
             result.pushKV("walletversion", batch[ID_WALLETINFO]["result"]["walletversion"]);
             result.pushKV("balance", batch[ID_WALLETINFO]["result"]["balance"]);
