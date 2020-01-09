@@ -10,6 +10,7 @@
 #include "veil-config.h"
 #endif
 
+#include <climits>
 #include <stdexcept>
 #include <vector>
 #if defined(USE_NUM_GMP)
