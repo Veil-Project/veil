@@ -234,12 +234,14 @@ WalletTx MakeWalletTx(CHDWallet& wallet, MapRecords_t::const_iterator irtx)
 }
 */
 //! Construct wallet tx status struct.
-WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
+WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     WalletTxStatus result;
     auto mi = ::mapBlockIndex.find(wtx.hashBlock);
+
     CBlockIndex* block = mi != ::mapBlockIndex.end() ? mi->second : nullptr;
     result.block_height = (block ? block->nHeight : std::numeric_limits<int>::max());
+
     result.blocks_to_maturity = wtx.GetBlocksToMaturity();
     result.depth_in_main_chain = wtx.GetDepthInMainChain();
     result.time_received = wtx.nTimeReceived;
@@ -252,7 +254,7 @@ WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
     return result;
 }
 
-WalletTxStatus MakeWalletTxStatus(AnonWallet* pAnonWallet, const uint256 &hash, const CTransactionRecord &rtx)
+WalletTxStatus MakeWalletTxStatus(AnonWallet* pAnonWallet, const uint256 &hash, const CTransactionRecord &rtx) EXCLUSIVE_LOCKS_REQUIRED(cs_main)
 {
     WalletTxStatus result;
     auto mi = ::mapBlockIndex.find(rtx.blockHash);
@@ -260,7 +262,7 @@ WalletTxStatus MakeWalletTxStatus(AnonWallet* pAnonWallet, const uint256 &hash, 
     CBlockIndex* block = mi != ::mapBlockIndex.end() ? mi->second : nullptr;
     result.block_height = (block ? block->nHeight : std::numeric_limits<int>::max()),
 
-            result.blocks_to_maturity = 0;
+    result.blocks_to_maturity = 0;
     result.depth_in_main_chain = pAnonWallet->GetDepthInMainChain(rtx.blockHash, rtx.nIndex);
     result.time_received = rtx.nTimeReceived;
     result.lock_time = 0; // TODO
@@ -273,7 +275,10 @@ WalletTxStatus MakeWalletTxStatus(AnonWallet* pAnonWallet, const uint256 &hash, 
 }
 
 //! Construct wallet TxOut struct.
-WalletTxOut MakeWalletTxOut(CWallet& wallet, const CWalletTx& wtx, int n, int depth)
+WalletTxOut MakeWalletTxOut(CWallet& wallet,
+        const CWalletTx& wtx,
+        int n,
+        int depth) EXCLUSIVE_LOCKS_REQUIRED(cs_main, wallet.cs_wallet)
 {
     WalletTxOut result;
     result.pout = wtx.tx->vpout[n];
@@ -453,6 +458,7 @@ public:
     }
     std::vector<std::string> getDestValues(const std::string& prefix) override
     {
+        LOCK(m_wallet->cs_wallet);
         return m_wallet.GetDestValues(prefix);
     }
     void lockCoin(const COutPoint& output) override

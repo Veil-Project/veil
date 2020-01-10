@@ -1451,7 +1451,7 @@ void CWallet::BlockUntilSyncedToCurrentChain() {
         // We could also take cs_wallet here, and call m_last_block_processed
         // protected by cs_wallet instead of cs_main, but as long as we need
         // cs_main here anyway, it's easier to just call it cs_main-protected.
-        LOCK(cs_main);
+        LOCK2(cs_main, cs_wallet);
         const CBlockIndex* initialChainTip = chainActive.Tip();
 
         if (m_last_block_processed && m_last_block_processed->GetAncestor(initialChainTip->nHeight) == initialChainTip) {
@@ -2313,6 +2313,8 @@ CAmount CWalletTx::GetDebit(const isminefilter& filter) const
 
 CAmount CWalletTx::GetCredit(const isminefilter& filter, bool fResetCache) const
 {
+    LOCK(cs_main);
+
     // Must wait until coinbase is safely deep enough in the chain before valuing it
     if (IsCoinBase() && GetBlocksToMaturity() > 0)
         return 0;
@@ -2348,6 +2350,8 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter, bool fResetCache) const
 
 CAmount CWalletTx::GetImmatureCredit(bool fUseCache) const
 {
+    LOCK(cs_main);
+
     if (IsCoinBase() && GetBlocksToMaturity() > 0 && IsInMainChain())
     {
         if (fUseCache && fImmatureCreditCached)
@@ -2411,6 +2415,8 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache, const isminefilter& filter
 
 CAmount CWalletTx::GetImmatureWatchOnlyCredit(const bool fUseCache) const
 {
+    LOCK(cs_main);
+
     if (IsCoinBase() && GetBlocksToMaturity() > 0 && IsInMainChain())
     {
         if (fUseCache && fImmatureWatchCreditCached)
@@ -4381,7 +4387,7 @@ std::map<CTxDestination, CAmount> CWallet::GetAddressBalances()
     std::map<CTxDestination, CAmount> balances;
 
     {
-        LOCK(cs_wallet);
+        LOCK2(cs_main, cs_wallet);
         for (const auto& walletEntry : mapWallet)
         {
             const CWalletTx *pcoin = &walletEntry.second;
@@ -4789,7 +4795,6 @@ bool CWallet::GetDestData(const CTxDestination &dest, const std::string &key, st
 
 std::vector<std::string> CWallet::GetDestValues(const std::string& prefix) const
 {
-    LOCK(cs_wallet);
     std::vector<std::string> values;
     for (const auto& address : mapAddressBook) {
         for (const auto& data : address.second.destdata) {
@@ -5088,8 +5093,12 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
             return nullptr;
         }
     }
-
-    int prev_version = walletInstance->nWalletVersion;
+    
+    int prev_version;
+    { // XXX => GetVersion();
+        LOCK(walletInstance->cs_wallet);
+        prev_version = walletInstance->nWalletVersion;
+    }
     if (gArgs.GetBoolArg("-upgradewallet", fFirstRun))
     {
         int nMaxVersion = gArgs.GetArg("-upgradewallet", 0);
@@ -5275,7 +5284,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     // Try to top up keypool. No-op if the wallet is locked.
     walletInstance->TopUpKeyPool();
 
-    LOCK(cs_main);
+    LOCK2(cs_main, walletInstance->cs_wallet);
 
     CBlockIndex *pindexRescan = chainActive.Genesis();
     if (!gArgs.GetBoolArg("-rescan", false))
@@ -5385,7 +5394,6 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     walletInstance->SetBroadcastTransactions(gArgs.GetBoolArg("-walletbroadcast", DEFAULT_WALLETBROADCAST));
 
     {
-        LOCK(walletInstance->cs_wallet);
         walletInstance->WalletLogPrintf("setKeyPool.size() = %u\n",      walletInstance->GetKeyPoolSize());
         walletInstance->WalletLogPrintf("mapWallet.size() = %u\n",       walletInstance->mapWallet.size());
         walletInstance->WalletLogPrintf("mapAddressBook.size() = %u\n",  walletInstance->mapAddressBook.size());

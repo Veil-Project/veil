@@ -23,7 +23,7 @@ private:
     bool fInitialized;
     std::shared_ptr<WalletDatabase> walletDatabase;
     std::map<SerialHash, CMintMeta> mapSerialHashes;
-    std::map<SerialHash, uint256> mapPendingSpends; //serialhash, txid of spend
+    std::map<SerialHash, uint256> mapPendingSpends GUARDED_BY(cs_remove_pending); //serialhash, txid of spend
     std::map<PubCoinHash, SerialHash> mapHashPubCoin;
     std::map<SerialHash, std::unique_ptr<CoinWitnessData> > mapSpendCache; //serialhash, witness value, height
     bool UpdateStatusInternal(const std::set<uint256>& setMempoolTx, const std::map<uint256, uint256>& mapMempoolSerials, CMintMeta& mint);
@@ -48,9 +48,9 @@ public:
     std::vector<CMintMeta> GetMints(bool fConfirmedOnly) const;
     CAmount GetUnconfirmedBalance() const;
     std::set<CMintMeta> ListMints(bool fUnusedOnly, bool fMatureOnly, bool fUpdateStatus);
-    void RemovePending(const uint256& txid);
-    void SetPubcoinUsed(const PubCoinHash& hashPubcoin, const uint256& txid);
-    void SetPubcoinNotUsed(const PubCoinHash& hashPubcoin);
+    void RemovePending(const uint256& txid) EXCLUSIVE_LOCKS_REQUIRED(cs_remove_pending);
+    void SetPubcoinUsed(const PubCoinHash& hashPubcoin, const uint256& txid) EXCLUSIVE_LOCKS_REQUIRED(cs_remove_pending);
+    void SetPubcoinNotUsed(const PubCoinHash& hashPubcoin) EXCLUSIVE_LOCKS_REQUIRED(cs_remove_pending);
     bool UnArchive(const PubCoinHash& hashPubcoin, bool isDeterministic);
     bool UpdateZerocoinMint(const CZerocoinMint& mint);
     bool UpdateState(const CMintMeta& meta);

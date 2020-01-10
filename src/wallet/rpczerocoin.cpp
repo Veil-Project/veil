@@ -1365,6 +1365,7 @@ UniValue showspendcaching(const JSONRPCRequest& request)
     }
 
     auto ztracker = pwallet->GetZTrackerPointer();
+    LOCK(ztracker->cs_readlock);
 
     std::set<CMintMeta> setMints = ztracker->ListMints(true, true, false);
     UniValue arrRet(UniValue::VARR);
