@@ -19,10 +19,11 @@ typedef uint256 PubCoinHash;
 class CzTracker
 {
 private:
+
     bool fInitialized;
     std::shared_ptr<WalletDatabase> walletDatabase;
     std::map<SerialHash, CMintMeta> mapSerialHashes;
-    std::map<SerialHash, uint256> mapPendingSpends; //serialhash, txid of spend
+    std::map<SerialHash, uint256> mapPendingSpends GUARDED_BY(cs_remove_pending); //serialhash, txid of spend
     std::map<PubCoinHash, SerialHash> mapHashPubCoin;
     bool UpdateStatusInternal(const std::set<uint256>& setMempoolTx, const std::map<uint256, uint256>& mapMempoolSerials, CMintMeta& mint);
 public:

@@ -537,7 +537,11 @@ public:
     CAmount GetDebit(const isminefilter& filter) const;
     CAmount GetCredit(const isminefilter& filter, bool fResetCache = false) const;
     CAmount GetImmatureCredit(bool fUseCache=true) const;
-    CAmount GetAvailableCredit(bool fUseCache=true, const isminefilter& filter=ISMINE_SPENDABLE, bool fBasecoinOnly = false) const;
+    // TODO: Remove "NO_THREAD_SAFETY_ANALYSIS" and replace it with the correct
+    // annotation "EXCLUSIVE_LOCKS_REQUIRED(pwallet->cs_wallet)". The
+    // annotation "NO_THREAD_SAFETY_ANALYSIS" was temporarily added to avoid
+    // having to resolve the issue of member access into incomplete type CWallet.
+    CAmount GetAvailableCredit(bool fUseCache=true, const isminefilter& filter=ISMINE_SPENDABLE, bool fBasecoinOnly = false) const NO_THREAD_SAFETY_ANALYSIS;
     CAmount GetImmatureWatchOnlyCredit(const bool fUseCache=true) const;
     CAmount GetChange() const;
 
@@ -693,10 +697,10 @@ protected:
     WalletBatch *encrypted_batch = nullptr;
 
     //! the current wallet version: clients below this version are not able to load the wallet
-    int nWalletVersion = FEATURE_BASE;
+    int nWalletVersion GUARDED_BY(cs_wallet) = FEATURE_BASE;
 
     //! the maximum wallet format version: memory-only variable that specifies to what version this wallet may be upgraded
-    int nWalletMaxVersion = FEATURE_BASE;
+    int nWalletMaxVersion GUARDED_BY(cs_wallet) = FEATURE_BASE;
 
     int64_t nNextResend = 0;
     int64_t nLastResend = 0;
@@ -708,7 +712,7 @@ protected:
      * mutated transactions where the mutant gets mined).
      */
     typedef std::multimap<COutPoint, uint256> TxSpends;
-    TxSpends mapTxSpends;
+    TxSpends mapTxSpends GUARDED_BY(cs_wallet);
 
     //! Set of txid's which have additional meta data held by the anon wallet
     std::set<uint256> setAnonTx;
@@ -732,9 +736,9 @@ protected:
     void MarkConflicted(const uint256& hashBlock, const uint256& hashTx);
 
     /* Mark a transaction's inputs dirty, thus forcing the outputs to be recomputed */
-    void MarkInputsDirty(const CTransactionRef& tx);
+    void MarkInputsDirty(const CTransactionRef& tx) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
-    void SyncMetaData(std::pair<TxSpends::iterator, TxSpends::iterator>);
+    void SyncMetaData(std::pair<TxSpends::iterator, TxSpends::iterator>) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     /* Used by TransactionAddedToMemorypool/BlockConnected/Disconnected/ScanForWalletTransactions.
      * Should be called with pindexBlock and posInBlock if this is for a transaction that is included in a block. */
@@ -746,14 +750,14 @@ protected:
     /* HD derive new child key (on internal or external chain) */
     void DeriveNewChildKey(WalletBatch &batch, CKeyMetadata& metadata, CKey& secret, bool internal = false) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
-    std::set<int64_t> setInternalKeyPool;
-    std::set<int64_t> setExternalKeyPool;
-    std::set<int64_t> set_pre_split_keypool;
-    int64_t m_max_keypool_index = 0;
+    std::set<int64_t> setInternalKeyPool GUARDED_BY(cs_wallet);
+    std::set<int64_t> setExternalKeyPool GUARDED_BY(cs_wallet);
+    std::set<int64_t> set_pre_split_keypool GUARDED_BY(cs_wallet);
+    int64_t m_max_keypool_index GUARDED_BY(cs_wallet) = 0;
     std::map<CKeyID, int64_t> m_pool_key_to_index;
     std::atomic<uint64_t> m_wallet_flags{0};
 
-    int64_t nTimeFirstKey = 0;
+    int64_t nTimeFirstKey GUARDED_BY(cs_wallet) = 0;
 
     /**
      * Private version of AddWatchOnly method which does not accept a
@@ -786,7 +790,7 @@ protected:
      *
      * Protected by cs_main (see BlockUntilSyncedToCurrentChain)
      */
-    const CBlockIndex* m_last_block_processed = nullptr;
+    const CBlockIndex* m_last_block_processed GUARDED_BY(cs_wallet) = nullptr;
 
 public:
     /*
@@ -809,13 +813,12 @@ public:
      * if they are not ours
      */
     virtual bool SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAmount& nTargetValue, std::set<CInputCoin>& setCoinsRet, CAmount& nValueRet,
-                    const CCoinControl& coin_control, CoinSelectionParams& coin_selection_params, bool& bnb_used) const;
+                    const CCoinControl& coin_control, CoinSelectionParams& coin_selection_params, bool& bnb_used) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
-    bool EncryptWallet(const SecureString& strWalletPassphrase); //Previously named EncryptWallet but changed for sake of refractoring
+    bool EncryptWallet(const SecureString& strWalletPassphrase);
 
-
-    void AddToSpends(const COutPoint& outpoint, const uint256& wtxid);
-    void AddToSpends(const uint256& wtxid);
+    void AddToSpends(const COutPoint& outpoint, const uint256& wtxid) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    void AddToSpends(const uint256& wtxid) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     // RingCT
     void SetAnonWallet(AnonWallet* wallet) { this->pAnonWalletMain = wallet; }
@@ -896,14 +899,14 @@ public:
     const std::string& GetName() const { return m_name; }
 
     void LoadKeyPool(int64_t nIndex, const CKeyPool &keypool) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
-    void MarkPreSplitKeys();
+    void MarkPreSplitKeys() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     CExtKey DeriveBIP32Path(const BIP32Path& vPath);
 
     // Map from Key ID to key metadata.
-    std::map<CKeyID, CKeyMetadata> mapKeyMetadata;
+    std::map<CKeyID, CKeyMetadata> mapKeyMetadata GUARDED_BY(cs_wallet);
 
     // Map from Script ID to key metadata (for watch-only keys).
-    std::map<CScriptID, CKeyMetadata> m_script_metadata;
+    std::map<CScriptID, CKeyMetadata> m_script_metadata GUARDED_BY(cs_wallet);
 
     typedef std::map<unsigned int, CMasterKey> MasterKeyMap;
     MasterKeyMap mapMasterKeys;
@@ -920,21 +923,21 @@ public:
         encrypted_batch = nullptr;
     }
 
-    std::map<uint256, CWalletTx> mapWallet;
+    std::map<uint256, CWalletTx> mapWallet GUARDED_BY(cs_wallet);
 
     typedef std::multimap<int64_t, CWalletTx*> TxItems;
     TxItems wtxOrdered;
 
-    int64_t nOrderPosNext = 0;
+    int64_t nOrderPosNext GUARDED_BY(cs_wallet) = 0;
     uint64_t nAccountingEntryNumber = 0;
 
     //Stake settings
     uint64_t nStakeSplitThreshold = 2000;
     int nStakeSetUpdateTime = 300;
 
-    std::map<CTxDestination, CAddressBookData> mapAddressBook;
+    std::map<CTxDestination, CAddressBookData> mapAddressBook GUARDED_BY(cs_wallet);
 
-    std::set<COutPoint> setLockedCoins;
+    std::set<COutPoint> setLockedCoins GUARDED_BY(cs_wallet);
 
     virtual const CWalletTx* GetWalletTx(const uint256& hash) const;
 
@@ -958,7 +961,7 @@ public:
     /**
      * Find non-change parent output.
      */
-    const CTxOutBaseRef& FindNonChangeParentOutput(const CTransaction& tx, int output) const;
+    const CTxOutBaseRef& FindNonChangeParentOutput(const CTransaction& tx, int output) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     /**
      * Shuffle and select coins until nTargetValue is reached while avoiding
@@ -969,7 +972,7 @@ public:
     bool SelectCoinsMinConf(const CAmount& nTargetValue, const CoinEligibilityFilter& eligibility_filter, std::vector<OutputGroup> groups,
         std::set<CInputCoin>& setCoinsRet, CAmount& nValueRet, const CoinSelectionParams& coin_selection_params, bool& bnb_used) const;
 
-    bool IsSpent(const uint256& hash, unsigned int n) const;
+    bool IsSpent(const uint256& hash, unsigned int n) const EXCLUSIVE_LOCKS_REQUIRED(cs_main, cs_wallet);
     std::vector<OutputGroup> GroupOutputs(const std::vector<COutput>& outputs, bool single_coin) const;
 
     bool IsLockedCoin(uint256 hash, unsigned int n) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -1017,15 +1020,15 @@ public:
     bool LoadCScript(const CScript& redeemScript);
 
     //! Adds a destination data tuple to the store, and saves it to disk
-    bool AddDestData(const CTxDestination &dest, const std::string &key, const std::string &value);
+    bool AddDestData(const CTxDestination &dest, const std::string &key, const std::string &value) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     //! Erases a destination data tuple in the store and on disk
-    bool EraseDestData(const CTxDestination &dest, const std::string &key);
+    bool EraseDestData(const CTxDestination &dest, const std::string &key) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     //! Adds a destination data tuple to the store, without saving it to disk
-    void LoadDestData(const CTxDestination &dest, const std::string &key, const std::string &value);
+    void LoadDestData(const CTxDestination &dest, const std::string &key, const std::string &value) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     //! Look up a destination data tuple in the store, return true if found false otherwise
-    bool GetDestData(const CTxDestination &dest, const std::string &key, std::string *value) const;
+    bool GetDestData(const CTxDestination &dest, const std::string &key, std::string *value) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     //! Get all destination values matching a prefix.
-    std::vector<std::string> GetDestValues(const std::string& prefix) const;
+    std::vector<std::string> GetDestValues(const std::string& prefix) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     //! Adds a watch-only address to the store, and saves it to disk.
     bool AddWatchOnly(const CScript& dest, int64_t nCreateTime) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -1055,7 +1058,7 @@ public:
     void ClearCachedBalances() {};
     void MarkDirty();
     bool AddToWallet(const CWalletTx& wtxIn, bool fFlushOnClose=true);
-    void LoadToWallet(const CWalletTx& wtxIn);
+    void LoadToWallet(const CWalletTx& wtxIn) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void TransactionAddedToMempool(const CTransactionRef& tx) override;
     void BlockConnected(const std::shared_ptr<const CBlock>& pblock, const CBlockIndex *pindex, const std::vector<CTransactionRef>& vtxConflicted) override;
     void BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) override;
@@ -1219,7 +1222,7 @@ public:
     bool GetAutoSpendAddress(std::string& address);
     bool EraseAutoSpendAddress();
 
-    const std::string& GetLabelName(const CScript& scriptPubKey) const;
+    const std::string& GetLabelName(const CScript& scriptPubKey) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     void GetScriptForMining(std::shared_ptr<CReserveScript> &script);
 
@@ -1450,6 +1453,6 @@ void SetAutoSpendParameters(const int& nCount, const int& nDenom, const std::str
 // Use DummySignatureCreator, which inserts 71 byte signatures everywhere.
 // NOTE: this requires that all inputs must be in mapWallet (eg the tx should
 // be IsAllFromMe).
-int64_t CalculateMaximumSignedTxSize(const CTransaction &tx, const CWallet *wallet, bool use_max_sig = false);
-int64_t CalculateMaximumSignedTxSize(const CTransaction &tx, const CWallet *wallet, const std::vector<CTxOut>& txouts, bool use_max_sig = false);
+int64_t CalculateMaximumSignedTxSize(const CTransaction &tx, const CWallet *wallet, bool use_max_sig = false) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet);
+int64_t CalculateMaximumSignedTxSize(const CTransaction &tx, const CWallet *wallet, const std::vector<CTxOut>& txouts, bool use_max_sig = false) EXCLUSIVE_LOCKS_REQUIRED(wallet->cs_wallet);
 #endif // BITCOIN_WALLET_WALLET_H

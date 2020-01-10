@@ -328,6 +328,8 @@ void CzTracker::SetPubcoinUsed(const PubCoinHash& hashPubcoin, const uint256& tx
 {
     if (!HasPubcoinHash(hashPubcoin))
         return;
+
+    LOCK(cs_remove_pending);
     CMintMeta meta = GetMetaFromPubcoin(hashPubcoin);
     meta.isUsed = true;
     mapPendingSpends.insert(make_pair(meta.hashSerial, txid));
@@ -338,6 +340,8 @@ void CzTracker::SetPubcoinNotUsed(const PubCoinHash& hashPubcoin)
 {
     if (!HasPubcoinHash(hashPubcoin))
         return;
+
+    LOCK(cs_remove_pending);
     CMintMeta meta = GetMetaFromPubcoin(hashPubcoin);
     meta.isUsed = false;
 
@@ -349,6 +353,7 @@ void CzTracker::SetPubcoinNotUsed(const PubCoinHash& hashPubcoin)
 
 void CzTracker::RemovePending(const uint256& txid)
 {
+    LOCK(cs_remove_pending);
     arith_uint256 hashSerial;
     SerialHash hashToRemove;
     for (auto const& it : mapPendingSpends) {
@@ -366,6 +371,7 @@ void CzTracker::RemovePending(const uint256& txid)
 
 bool CzTracker::UpdateStatusInternal(const std::set<uint256>& setMempool, const std::map<uint256, uint256>& mapMempoolSerials, CMintMeta& mint)
 {
+    LOCK(cs_remove_pending);
     //! Check whether this mint has been spent and is considered 'pending' or 'confirmed'
     // If there is not a record of the block height, then look it up and assign it
     uint256 txidMint;
@@ -384,7 +390,6 @@ bool CzTracker::UpdateStatusInternal(const std::set<uint256>& setMempool, const 
     if (isPendingSpend) {
         if (isPendingSpendInternal) {
             {
-                LOCK(cs_remove_pending);
                 uint256 txidPendingSpend = mapPendingSpends.at(mint.hashSerial);
 
                 // Remove internal pendingspend status if it is confirmed or is not found at all in the mempool
