@@ -698,12 +698,9 @@ public:
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
 
-
-        // TODO update timestamp with testnet activation time
         /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
-        nPowUpdateTimestamp = 1608901200; // Fri Dec 25 2020 13:00:00
-        /// Used by block.h for serialization // TODO, update with testnet activation time above
-        nPowTimeStampActive = 1608901200;
+        nPowUpdateTimestamp = 1578938400; // Monday, January 13, 2020 6:00:00 PM        
+        nPowTimeStampActive = 1578938400; // Used by block.h for serialization 
     }
 };
 
