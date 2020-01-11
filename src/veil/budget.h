@@ -20,8 +20,8 @@ private:
     std::string budgetAddress_legacy;
     std::string budgetAddress;
     std::string founderAddress;
-    std::string labAddress_legacy;
-    std::string labAddress;
+    std::string foundationAddress_legacy;
+    std::string foundationAddress;
     int nHeightAddressChange;
 
 public:
@@ -31,12 +31,12 @@ public:
     static void GetBlockRewards(int nBlockHeight,
                                 CAmount& nBlockReward,
                                 CAmount& nFounderPayment,
-                                CAmount& nLabPayment,
+                                CAmount& nFoundationPayment,
                                 CAmount& nBudgetPayment);
 
     std::string GetBudgetAddress(int nHeight) const;
     std::string GetFounderAddress() const;
-    std::string GetLabAddress(int nHeight) const;
+    std::string GetFoundationAddress(int nHeight) const;
     static const int nBlocksPerPeriod = 43200;
 };
 

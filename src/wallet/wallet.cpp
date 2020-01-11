@@ -3806,8 +3806,8 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             nCredit += stakeInput->GetValue();
 
             // Calculate reward
-            CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
-            veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+            CAmount nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment;
+            veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
             nCredit += nBlockReward;
             CBlockIndex* pindexPrev = chainActive.Tip();
             assert(pindexPrev != nullptr);
