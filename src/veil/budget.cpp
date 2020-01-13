@@ -10,24 +10,24 @@ bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidati
     if (!BudgetParams::IsSuperBlock(nHeight))
         return true;
 
-    CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
-    veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+    CAmount nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment;
+    veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
     // Verify that the superblock rewards are being payed out to the correct addresses with the correct amounts
     std::string strBudgetAddress = Budget().GetBudgetAddress(nHeight); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
 
-    std::string strLabAddress = Budget().GetLabAddress(nHeight); // KeyID for now
-    CTxDestination destLab = DecodeDestination(strLabAddress);
-    auto labScript = GetScriptForDestination(destLab);
+    std::string strFoundationAddress = Budget().GetFoundationAddress(nHeight); // KeyID for now
+    CTxDestination destFoundation = DecodeDestination(strFoundationAddress);
+    auto foundationScript = GetScriptForDestination(destFoundation);
 
     std::string strFounderAddress = Budget().GetFounderAddress(); // KeyID for now
     CTxDestination destFounder = DecodeDestination(strFounderAddress);
     auto founderScript = GetScriptForDestination(destFounder);
 
     bool fBudgetPayment = false;
-    bool fLabPayment = false;
+    bool fFoundationPayment = false;
     bool fFounderPayment = !nFounderPayment;
 
     for (auto pOut : tx.vpout) {
@@ -39,9 +39,9 @@ bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidati
             if (txOut->nValue == nBudgetPayment) {
                 fBudgetPayment = true;
             }
-        } else if (txOut->scriptPubKey == labScript) {
-            if (txOut->nValue == nLabPayment) {
-                fLabPayment = true;
+        } else if (txOut->scriptPubKey == foundationScript) {
+            if (txOut->nValue == nFoundationPayment) {
+                fFoundationPayment = true;
             }
         } else if (txOut->scriptPubKey == founderScript) {
             if (txOut->nValue == nFounderPayment)
@@ -51,12 +51,12 @@ bool CheckBudgetTransaction(const int nHeight, const CTransaction& tx, CValidati
 
     if (!fBudgetPayment)
         LogPrintf("%s: Expected budget payment not found in coinbase transaction\n", __func__);
-    if (!fLabPayment)
-        LogPrintf("%s: Expected lab payment not found in coinbase transaction\n", __func__);
+    if (!fFoundationPayment)
+        LogPrintf("%s: Expected foundation payment not found in coinbase transaction\n", __func__);
     if (!fFounderPayment)
         LogPrintf("%s: Expected founder payment not found in coinbase transaction\n", __func__);
 
-    return fBudgetPayment && fLabPayment && fFounderPayment;
+    return fBudgetPayment && fFoundationPayment && fFounderPayment;
 }
 
 /**
@@ -73,23 +73,23 @@ bool BudgetParams::IsSuperBlock(int nBlockHeight)
 }
 
 void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
-        CAmount& nFounderPayment, CAmount& nLabPayment, CAmount& nBudgetPayment)
+        CAmount& nFounderPayment, CAmount& nFoundationPayment, CAmount& nBudgetPayment)
 {
 
     if (nBlockHeight <= 0 || nBlockHeight > Params().HeightSupplyCreationStop()) { // 43830 is the average size of a month in minutes when including leap years
         nBlockReward = 0;
         nFounderPayment = 0;
-        nLabPayment = 0;
+        nFoundationPayment = 0;
         nBudgetPayment = 0;
     } else if (nBlockHeight >= 1 && nBlockHeight <= 518399) {
 
         nBlockReward = 50;
         if(IsSuperBlock(nBlockHeight)) {
             nFounderPayment = 10 * nBlocksPerPeriod;
-            nLabPayment = 10 * nBlocksPerPeriod;
+            nFoundationPayment = 10 * nBlocksPerPeriod;
             nBudgetPayment = 30 * nBlocksPerPeriod;
         } else {
-            nFounderPayment = nLabPayment = nBudgetPayment = 0;
+            nFounderPayment = nFoundationPayment = nBudgetPayment = 0;
         }
 
     } else if (nBlockHeight >= 518400 && nBlockHeight <= 1036799) {
@@ -99,10 +99,10 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
             nFounderPayment = 8 * nBlocksPerPeriod;
             if (nBlockHeight > 518401)
                 nFounderPayment = 0;
-            nLabPayment = 8 * nBlocksPerPeriod;
+            nFoundationPayment = 8 * nBlocksPerPeriod;
             nBudgetPayment = 24 * nBlocksPerPeriod;
         } else {
-            nFounderPayment = nLabPayment = nBudgetPayment = 0;
+            nFounderPayment = nFoundationPayment = nBudgetPayment = 0;
         }
 
     } else if (nBlockHeight >= 1036800 && nBlockHeight <= 1555199) {
@@ -110,10 +110,10 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
         nBlockReward = 30;
         if(IsSuperBlock(nBlockHeight)) {
             nFounderPayment = 0;
-            nLabPayment = 6 * nBlocksPerPeriod;
+            nFoundationPayment = 6 * nBlocksPerPeriod;
             nBudgetPayment = 18 * nBlocksPerPeriod;
         } else {
-            nFounderPayment = nLabPayment = nBudgetPayment = 0;
+            nFounderPayment = nFoundationPayment = nBudgetPayment = 0;
         }
 
     } else if (nBlockHeight >= 1555200 && nBlockHeight <= 2073599) {
@@ -121,10 +121,10 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
         nBlockReward = 20;
         if(IsSuperBlock(nBlockHeight)) {
             nFounderPayment = 0;
-            nLabPayment = 4 * nBlocksPerPeriod;
+            nFoundationPayment = 4 * nBlocksPerPeriod;
             nBudgetPayment = 12 * nBlocksPerPeriod;
         } else {
-            nFounderPayment = nLabPayment = nBudgetPayment = 0;
+            nFounderPayment = nFoundationPayment = nBudgetPayment = 0;
         }
 
     } else if (nBlockHeight >= 2073600 && nBlockHeight <= 2591999) {
@@ -132,10 +132,10 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
         nBlockReward = 10;
         if(IsSuperBlock(nBlockHeight)) {
             nFounderPayment = 0;
-            nLabPayment = 2 * nBlocksPerPeriod;
+            nFoundationPayment = 2 * nBlocksPerPeriod;
             nBudgetPayment = 6 * nBlocksPerPeriod;
         } else {
-            nFounderPayment = nLabPayment = nBudgetPayment = 0;
+            nFounderPayment = nFoundationPayment = nBudgetPayment = 0;
         }
 
     } else {
@@ -143,10 +143,10 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
         nBlockReward = 10;
         if(IsSuperBlock(nBlockHeight)) {
             nFounderPayment = 0 * nBlocksPerPeriod;
-            nLabPayment = 2 * nBlocksPerPeriod;
+            nFoundationPayment = 2 * nBlocksPerPeriod;
             nBudgetPayment = 8 * nBlocksPerPeriod;
         } else {
-            nFounderPayment = nLabPayment = nBudgetPayment = 0;
+            nFounderPayment = nFoundationPayment = nBudgetPayment = 0;
         }
 
     }
@@ -156,7 +156,7 @@ void BudgetParams::GetBlockRewards(int nBlockHeight, CAmount& nBlockReward,
 
     nBlockReward *= COIN;
     nFounderPayment *= COIN;
-    nLabPayment *= COIN;
+    nFoundationPayment *= COIN;
     nBudgetPayment *= COIN;
 }
 
@@ -168,17 +168,17 @@ BudgetParams::BudgetParams(std::string strNetwork)
         budgetAddress_legacy = "3MvD3sxedwPzGSdLnehegDfBGfxpdMevk2";
         budgetAddress = "3LcNKTQSnxkdeuFkCNHet3XkEcUEyeENMF";
         founderAddress = "bv1qnauaweq25552zjthwqxq0puhz2flqrmhzh24h4";
-        labAddress_legacy = "341PYScHCbq5Y3G3orR14V1pSmhb8qamP5";
-        labAddress = "38J8RGLetRUNEXycBMPg8oZqLt4bB9hCbt";
+        foundationAddress_legacy = "341PYScHCbq5Y3G3orR14V1pSmhb8qamP5";
+        foundationAddress = "38J8RGLetRUNEXycBMPg8oZqLt4bB9hCbt";
 
     } else if (strNetwork == "test") {
         budgetAddress = "mxd3ciTteXZAna4q2as6z69mL6F7EncYjr";
         founderAddress = "mhurm1WXr8QXxMZXzJRH61TSjcaDviKfqY";
-        labAddress = "mw4P7NPXLVdCCZME8EGqTxbD2b4nF8sg1S";
+        foundationAddress = "mw4P7NPXLVdCCZME8EGqTxbD2b4nF8sg1S";
     } else if (strNetwork == "regtest") {
         budgetAddress = "2NCMc2apMAx5vY6wyYM8UyqCmfx2vpFmm1J";
         founderAddress = "2N7WZtWTdoFQjheviiGn4smykiwxNbHYdci";
-        labAddress = "2N2iEAT5o7TY9yrz6Li4j91j5L59sLqdFSf";
+        foundationAddress = "2N2iEAT5o7TY9yrz6Li4j91j5L59sLqdFSf";
     }
 }
 
@@ -194,11 +194,11 @@ std::string BudgetParams::GetFounderAddress() const
     return founderAddress;
 }
 
-std::string BudgetParams::GetLabAddress(int nHeight) const
+std::string BudgetParams::GetFoundationAddress(int nHeight) const
 {
     if (nHeight < nHeightAddressChange)
-        return labAddress_legacy;
-    return  labAddress;
+        return foundationAddress_legacy;
+    return  foundationAddress;
 }
 
 BudgetParams* BudgetParams::Get()

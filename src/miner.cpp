@@ -374,8 +374,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
 
-    CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment;
-    veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+    CAmount nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment;
+    veil::Budget().GetBlockRewards(nHeight, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
     if (nBudgetPayment > 0 && nFounderPayment > 0)
         coinbaseTx.vpout.resize(fProofOfStake ? 3 : 4);
@@ -408,14 +408,14 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         outBudget->nValue = nBudgetPayment;
         coinbaseTx.vpout[fProofOfStake ? 0 : 1] = (std::move(outBudget));
 
-        std::string strLabAddress = veil::Budget().GetLabAddress(chainActive.Height()+1); // KeyID for now
-        CTxDestination destLab = DecodeDestination(strLabAddress);
-        auto labScript = GetScriptForDestination(destLab);
+        std::string strFoundationAddress = veil::Budget().GetFoundationAddress(chainActive.Height()+1); // KeyID for now
+        CTxDestination destFoundation = DecodeDestination(strFoundationAddress);
+        auto foundationScript = GetScriptForDestination(destFoundation);
 
-        OUTPUT_PTR<CTxOutStandard> outLab = MAKE_OUTPUT<CTxOutStandard>();
-        outLab->scriptPubKey = labScript;
-        outLab->nValue = nLabPayment;
-        coinbaseTx.vpout[fProofOfStake ? 1 : 2] = (std::move(outLab));
+        OUTPUT_PTR<CTxOutStandard> outFoundation = MAKE_OUTPUT<CTxOutStandard>();
+        outFoundation->scriptPubKey = foundationScript;
+        outFoundation->nValue = nFoundationPayment;
+        coinbaseTx.vpout[fProofOfStake ? 1 : 2] = (std::move(outFoundation));
 
         std::string strFounderAddress = veil::Budget().GetFounderAddress(); // KeyID for now
         CTxDestination destFounder = DecodeDestination(strFounderAddress);

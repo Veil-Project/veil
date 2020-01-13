@@ -2765,8 +2765,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     pindex->nNetworkRewardReserve -= networkReward;
 
     // The block rewards are stratified based upon the height of the block.
-    CAmount nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment = 0;
-    veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nLabPayment, nBudgetPayment);
+    CAmount nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment = 0;
+    veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
     //Check proof of full node
     if (!fSkipComputation && (block.fProofOfFullNode || block.hashPoFN != uint256())) {
@@ -2780,7 +2780,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     }
 
     // Full nodes are rewarded with the transaction fees in the block
-    CAmount nCreationLimit = networkReward + nBlockReward + nFounderPayment + nBudgetPayment + nLabPayment;
+    CAmount nCreationLimit = networkReward + nBlockReward + nFounderPayment + nBudgetPayment + nFoundationPayment;
     if (block.fProofOfFullNode || pindex->nHeight >= Params().HeightSupplyCreationStop())
         nCreationLimit += nFees;
 
@@ -2820,9 +2820,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     }
 
     if (nCreated > nCreationLimit) {
-        LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Lab=%s\n", __func__, FormatMoney(nBlockReward),
+        LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Foundation=%s\n", __func__, FormatMoney(nBlockReward),
                 FormatMoney(networkReward), FormatMoney(nFounderPayment), FormatMoney(nBudgetPayment),
-                FormatMoney(nLabPayment));
+                FormatMoney(nFoundationPayment));
 
         return state.DoS(100, error("ConnectBlock(): coinbase pays too much (actual=%s vs limit=%s)\n %s",
                                     FormatMoney(nCreated), FormatMoney(nCreationLimit), block.vtx[0]->ToString()),
