@@ -510,7 +510,8 @@ public:
                     fFailed = true;
                 break;
             case OUTPUT_RINGCT:
-                if (0 != pwalletAnon->AddAnonInputs(wtx, rtx, recipients, !fCheckFeeOnly, nRingSize, nInputsPerSig, nFeeRet, &coin_control, fail_reason))
+                if (!pwalletAnon->AddAnonInputs(wtx, rtx, recipients, !fCheckFeeOnly, nRingSize,
+                                                nInputsPerSig, nFeeRet, &coin_control, fail_reason))
                     fFailed = true;
                 break;
             default:
