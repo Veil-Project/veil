@@ -1571,8 +1571,8 @@ bool AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sE
         return error("%s: %s", __func__, sError);
     }
 
-    uint64_t nValue = r.nAmount;
-    if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, pCommitment, (uint8_t*)&r.vBlind[0], nValue, secp256k1_generator_h)) {
+    uint64_t nAmount = r.nAmount;
+    if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, pCommitment, (uint8_t*)&r.vBlind[0], nAmount, secp256k1_generator_h)) {
         sError = strprintf("Pedersen commit failed.");
         return error("%s: %s", __func__, sError);
     }
@@ -1614,7 +1614,8 @@ bool AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sE
 
     // This must go after the overwrite else they may fail.
     if (0 != SelectRangeProofParameters(nAmount, ct_exponent, ct_bits)) {
-        return wserrorN(1, sError, __func__, "SelectRangeProofParameters failed.");
+        sError = strprintf("Failed to select range proof parameters.");
+        return error("%s: %s", __func__, sError);
     }
 
     size_t nRangeProofLen = 5134;
@@ -3570,12 +3571,14 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                         CKeyID idk = anonOutput.pubkey.GetID();
                         CKey key;
                         if (!GetKey(idk, key)) {
-                            sError = strprintf("No key for output: %s", HexStr(anonOutput.pubkey.begin(), anonOutput.pubkey.end()));
+                            sError = strprintf("No key for output: %s",
+					                           HexStr(anonOutput.pubkey.begin(), anonOutput.pubkey.end()));
                             return error("%s: %s", __func__, sError);
-                        }
+                    }
 
                         // Keyimage is required for the tx hash
-                        if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, keyimage.ncbegin(), anonOutput.pubkey.begin(), key.begin()))) {
+                        if (0 != (rv = secp256k1_get_keyimage(secp256k1_ctx_blind, keyimage.ncbegin(),
+							      anonOutput.pubkey.begin(), key.begin()))) {
                             sError = strprintf("Failed to get keyimage.");
                             return error("%s: %s", __func__, sError);
                         }
