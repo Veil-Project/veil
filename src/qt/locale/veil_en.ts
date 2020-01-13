@@ -4030,7 +4030,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+108"/>
-        <source>Mint Zerocoin veil</source>
+        <source>Mint Zerocoin Veil</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
