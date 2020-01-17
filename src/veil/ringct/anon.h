@@ -1,4 +1,5 @@
 // Copyright (c) 2017-2019 The Particl developers
+// Copyright (c) 2019 The Veil developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 #ifndef VEIL_ANON_H
@@ -29,9 +30,9 @@ bool RollBackRCTIndex(int64_t nLastValidRCTOutput, int64_t nExpectErase, std::se
 
 bool RewindToCheckpoint(int nCheckPointHeight, int &nBlocks, std::string &sError);
 
-std::vector<COutPoint> GetRingCtInputs(const CTxIn& txin);
-bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint> >& vInputs);
-std::vector<std::vector<COutPoint>> GetTxRingCtInputs(const CTransactionRef ptx);
-
+std::vector<std::pair<int64_t, COutPoint>> GetRingCtInputs(const CTxIn& txin);
+std::vector<std::vector<std::pair<int64_t, COutPoint>>> GetTxRingCtInputs(const CTransaction& tx);
+bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<std::pair<int64_t, COutPoint>>>& vTxRingCTInputs);
+bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint>>& vTxRingCTInputs);
 
 #endif //VEIL_ANON_H

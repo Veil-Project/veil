@@ -1,4 +1,5 @@
 // Copyright (c) 2017-2019 The Particl Core developers
+// Copyright (c) 2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -1902,7 +1903,7 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
 
     if (!request.params[2].isNull() && request.params[2].get_bool()) {
         UniValue txn(UniValue::VOBJ);
-        TxToUniv(CTransaction(std::move(mtx)), uint256(), {{}}, txn, false);
+        TxToUniv(CTransaction(std::move(mtx)), uint256(), txn, false);
         result.pushKV("txn", txn);
     }
 
