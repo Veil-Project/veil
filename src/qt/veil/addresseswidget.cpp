@@ -3,11 +3,10 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <qt/veil/addresseswidget.h>
-//#include "addressesmodel.h"
 #include <qt/veil/forms/ui_addresseswidget.h>
 
 #include <qt/veil/addressreceive.h>
-#include <qt/addresstablemodel.cpp>
+#include <qt/addresstablemodel.h>
 #include <qt/bitcoinunits.h>
 #include <qt/clientmodel.h>
 #include <qt/guiconstants.h>
@@ -15,6 +14,7 @@
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
 #include <qt/walletmodel.h>
+
 #include <QDebug>
 #include <QGraphicsOpacityEffect>
 #include <QStyledItemDelegate>
@@ -24,10 +24,11 @@
 #include <QPainter>
 #include <QAbstractItemDelegate>
 #include <QPropertyAnimation>
-#include <iostream>
 #include <QPoint>
 #include <QMenu>
 #include <QSortFilterProxyModel>
+
+#include <iostream>
 
 #define DECORATION_SIZE 54
 #define NUM_ITEMS 5
