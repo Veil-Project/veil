@@ -1,5 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -1148,7 +1149,7 @@ static UniValue sendrawtransaction(const JSONRPCRequest& request)
     CAmount nMaxRawTxFee = maxTxFee;
     if (!request.params[1].isNull() && request.params[1].get_bool())
         nMaxRawTxFee = 0;
-    bool fDandelion = request.params[2].isNull() ? true : request.params[2].get_bool();
+    bool fDandelion = request.params[2].isNull() ? false : request.params[2].get_bool();
 
     { // cs_main scope
     LOCK(cs_main);
