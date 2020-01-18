@@ -4606,12 +4606,12 @@ void CleanBlockIndexGarbage()
     std::set<uint256> setDelete;
     for (const auto& p : mapBlockIndex) {
         const CBlockIndex* pindex = p.second;
-        if (pindexBestHeader && (!IsAncestor(pindexBestHeader, pindex) && !chainActive.Contains(pindex)))
+        if (pindexBestHeader && !chainActive.Contains(pindex) && (!IsAncestor(pindexBestHeader, pindex)))
             setDelete.emplace(p.first);
     }
 
     if (setDelete.size() > 1000) {
-        LogPrintf("%s: Erasing %d irrelivant indexes\n", __func__, setDelete.size());
+        LogPrintf("%s: Erasing %d irrelevant indexes\n", __func__, setDelete.size());
         for (const uint256& hash : setDelete) {
             mapBlockIndex.erase(hash);
         }
