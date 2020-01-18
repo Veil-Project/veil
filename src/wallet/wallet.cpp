@@ -2818,9 +2818,20 @@ CAmount CWallet::GetMintableBalance(std::vector<COutput>& vMintableCoins) const
     return balance;
 }
 
-void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const CCoinControl *coinControl, const CAmount &nMinimumAmount,
-                             const CAmount &nMaximumAmount, const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount, const int nMinDepth,
-                             const int nMaxDepth, bool fIncludeImmature) const
+/*
+** uint8_t filterType => binary filter of coin type
+** 0x1 = basecoin;
+** 0x2 = zerocoin;
+** 0x4 = ct;
+** 0x8 = ringct;
+** default if parameter isn't included is "basecoin" for backwards compatability
+** to code that hasn't been adopted to expect all unspent outputs to be returned.
+*/
+void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const CCoinControl *coinControl,
+                             const CAmount &nMinimumAmount, const CAmount &nMaximumAmount,
+                             const CAmount &nMinimumSumAmount, const uint64_t nMaximumCount,
+                             const int nMinDepth, const int nMaxDepth, bool fIncludeImmature,
+                             const uint8_t filterType) const
 {
     AssertLockHeld(cs_main);
     AssertLockHeld(cs_wallet);
@@ -2890,22 +2901,67 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
             continue;
         }
 
-        if (nDepth < nMinDepth || nDepth > nMaxDepth)
+        if (nDepth < nMinDepth || nDepth > nMaxDepth) {
             continue;
+        }
 
         for (unsigned int i = 0; i < pcoin->tx->vpout.size(); i++) {
-            if (!pcoin->tx->vpout[i]->IsStandardOutput())
-                continue;
-            if (pcoin->tx->vpout[i]->IsZerocoinMint())
-                continue;
             // Null first output on coinstake
-            if (pcoin->tx->IsCoinStake() && i == 0)
+            if (pcoin->tx->IsCoinStake() && i == 0) {
                 continue;
-            auto nValue = pcoin->tx->vpout[i]->GetValue();
-            if (nValue < nMinimumAmount || nValue > nMaximumAmount)
+            }
+
+            auto pout = pcoin->tx->vpout[i];
+
+            // For backwards compatability, we need to be able to limit to basecoin, so allow
+            // the caller to filter by cointype as we transition.
+            const OutputTypes outType = (OutputTypes) pout->GetType();
+            switch (outType) {
+              case OUTPUT_STANDARD:
+                if (pout->IsZerocoinMint() && !(filterType & FILTER_ZEROCOIN))
+                    continue;          // caller isn't requesting zerocoin
+                else
+                    if (!(filterType & FILTER_BASECOIN))
+                        continue;      // caller isn't requesting basecoin
+                break;
+              case OUTPUT_RINGCT:
+                    if (!(filterType & FILTER_RINGCT))
+                        continue;      // caller isn't requesting RingCT outputs
+                break;
+              case OUTPUT_CT:
+                    if (!(filterType & FILTER_CT))
+                        continue;      // caller isn't requesting stealth outputs
+                break;
+              default:
+                // Disallow unknown types; shouldn't happen. May want to assert instead
+                continue;
+            }
+
+            // Value calculated for search conditions
+            CAmount nValue = 0;
+            if (!pcoin->tx->HasBlindedValues() || pout->IsZerocoinMint()) {
+                nValue = pout->GetValue();
+            } else {
+                MapRecords_t::iterator mi = pAnonWalletMain->mapRecords.find(pcoin->tx->GetHash());
+                if (mi != pAnonWalletMain->mapRecords.end()) {
+                    const COutputRecord *outputRecord = mi->second.GetOutput(i);
+                    if (outputRecord != nullptr) {
+                        // check if the ringct is already spent.  Should be rolled into
+                        // CWallet::IsSpent() as well as the zerocoin isUsed()
+                        if (outputRecord->IsSpent()) {
+                            continue;
+                        }
+                        nValue = outputRecord->GetAmount();
+                    }
+                }
+            }
+
+            // Some ringct have zero value, skip those or if the value isn't in the filter
+            if (!nValue || ((nValue < nMinimumAmount) || (nValue > nMaximumAmount)))
                 continue;
 
-            if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs && !coinControl->IsSelected(COutPoint(entry.first, i)))
+            if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs
+                && !coinControl->IsSelected(COutPoint(entry.first, i)))
                 continue;
 
             if (IsLockedCoin(entry.first, i))
@@ -2914,18 +2970,42 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
             if (IsSpent(wtxid, i))
                 continue;
 
-            isminetype mine = IsMine(pcoin->tx->vpout[i].get());
+            // should eventually roll this into IsSpent()
+            if (pout->IsZerocoinMint()) {
+              libzerocoin::PublicCoin pubcoin(Params().Zerocoin_Params());
+              if (OutputToPublicCoin(pout.get(), pubcoin)) {
+                  uint256 hashPubcoin = GetPubCoinHash(pubcoin.getValue());
+                  if (IsMyMint(pubcoin.getValue())) {
+                      CMintMeta meta;
+                      if (GetMintMeta(hashPubcoin, meta)) {
+                          if (meta.isUsed)
+                              continue;
+                      }
+                  }
+               }
+            }
+
+            isminetype mine = IsMine(pout.get());
 
             if (mine == ISMINE_NO) {
                 continue;
             }
 
-            bool solvable = IsSolvable(*this, *pcoin->tx->vpout[i]->GetPScriptPubKey());
-            bool spendable = ((mine & ISMINE_SPENDABLE) != ISMINE_NO) || (((mine & ISMINE_WATCH_ONLY) != ISMINE_NO) && (coinControl && coinControl->fAllowWatchOnly && solvable));
+            // default to solvable or spendable, if it isn't
+            // standard output it won't be a watch address
+            bool solvable = true;
+            bool spendable = true;
+            if (pout->IsStandardOutput()) {
+                solvable = IsSolvable(*this, *pout->GetPScriptPubKey());
+                spendable = ((mine & ISMINE_SPENDABLE) != ISMINE_NO)
+                             || (((mine & ISMINE_WATCH_ONLY) != ISMINE_NO)
+                                 && (coinControl && coinControl->fAllowWatchOnly && solvable));
+            }
 
-            vCoins.push_back(COutput(pcoin, i, nDepth, spendable, solvable, safeTx, (coinControl && coinControl->fAllowWatchOnly)));
+            vCoins.push_back(COutput(pcoin, i, nDepth, spendable, solvable, safeTx, false,
+                    (pout->IsStandardOutput() && coinControl && coinControl->fAllowWatchOnly)));
 
-            // Checks the sum amount of all UTXO's.
+            // Checks the sum amount of all UTXOs.
             if (nMinimumSumAmount != MAX_MONEY) {
                 nTotal += nValue;
 
@@ -2934,7 +3014,7 @@ void CWallet::AvailableCoins(std::vector<COutput> &vCoins, bool fOnlySafe, const
                 }
             }
 
-            // Checks the maximum number of UTXO's.
+            // Checks the maximum number of UTXOs.
             if (nMaximumCount > 0 && vCoins.size() >= nMaximumCount) {
                 return;
             }

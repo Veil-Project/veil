@@ -1,5 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -2357,13 +2358,14 @@ UniValue OutputRecordToUniValue(AnonWallet* panonwallet, const COutputRecord* re
         obj.pushKV("have_address", haveAddress);
 
         CKeyID keyID;
+        keyID.SetNull();
         if (dest.type() == typeid(CKeyID)) {
             keyID = boost::get<CKeyID>(dest);
         } else {
             obj.pushKV("is_keyid", false);
         }
 
-        if (haveAddress) {
+        if (haveAddress && !keyID.IsNull()) {
             CStealthAddress sx;
             if (panonwallet->GetStealthAddress(keyID, sx)) {
                 obj.pushKV("stealth_address", sx.ToString(true));
@@ -2582,9 +2584,9 @@ static UniValue gettransaction(const JSONRPCRequest& request)
                     auto mi = pwalletAnon->mapRecords.find(txin.prevout.hash);
                     obj_vin.pushKV("has_tx_rec", bool(mi != pwalletAnon->mapRecords.end()));
                     if (mi != pwalletAnon->mapRecords.end()) {
-                        const COutputRecord *oR = mi->second.GetOutput(txin.prevout.n);
-                        if (oR)
-                            obj_vin.pushKV("output_record", OutputRecordToUniValue(pwalletAnon, oR));
+                        const COutputRecord *outputRecord = mi->second.GetOutput(txin.prevout.n);
+                        if (outputRecord != nullptr)
+                            obj_vin.pushKV("output_record", OutputRecordToUniValue(pwalletAnon, outputRecord));
                     }
                 }
             }
@@ -2618,8 +2620,8 @@ static UniValue gettransaction(const JSONRPCRequest& request)
             CTxOutRingCT* outRingCT = (CTxOutRingCT*)pout.get();
 
             std::vector<uint8_t> vchEphemPK;
-            vchEphemPK.resize(33);
-            memcpy(&vchEphemPK[0], &outRingCT->vData[0], 33);
+            vchEphemPK.resize(EPHEMERAL_PUBKEY_LENGTH);
+            memcpy(&vchEphemPK[0], &outRingCT->vData[0], EPHEMERAL_PUBKEY_LENGTH);
             obj_out.pushKV("ephemeral_pubkey", HexStr(vchEphemPK));
         } else if (pout->GetType() == OUTPUT_DATA) {
             obj_out.pushKV("type", "data");
@@ -2635,9 +2637,9 @@ static UniValue gettransaction(const JSONRPCRequest& request)
         auto mi = pwalletAnon->mapRecords.find(hash);
         obj_out.pushKV("has_tx_rec", bool(mi != pwalletAnon->mapRecords.end()));
         if (mi != pwalletAnon->mapRecords.end()) {
-            const COutputRecord *oR = mi->second.GetOutput(i);
-            if (oR)
-                obj_out.pushKV("output_record", OutputRecordToUniValue(pwalletAnon, oR));
+            const COutputRecord *outputRecord = mi->second.GetOutput(i);
+            if (outputRecord != nullptr)
+                obj_out.pushKV("output_record", OutputRecordToUniValue(pwalletAnon, outputRecord));
         }
         arr_vout.push_back(obj_out);
     }
@@ -3611,7 +3613,8 @@ static UniValue listunspent(const JSONRPCRequest& request)
             "\nResult\n"
             "[                   (array of json object)\n"
             "  {\n"
-            "    \"txid\" : \"txid\",          (string) the transaction id \n"
+            "    \"type\" : \"type\",          (string) the transaction type\n"
+            "    \"txid\" : \"txid\",          (string) the transaction id\n"
             "    \"vout\" : n,               (numeric) the vout value\n"
             "    \"address\" : \"address\",    (string) the veil address\n"
             "    \"label\" : \"label\",        (string) The associated label, or \"\" for the default label\n"
@@ -3700,22 +3703,64 @@ static UniValue listunspent(const JSONRPCRequest& request)
     std::vector<COutput> vecOutputs;
     {
         LOCK2(cs_main, pwallet->cs_wallet);
-        pwallet->AvailableCoins(vecOutputs, !include_unsafe, nullptr, nMinimumAmount, nMaximumAmount, nMinimumSumAmount, nMaximumCount, nMinDepth, nMaxDepth);
+        pwallet->AvailableCoins(vecOutputs, !include_unsafe, nullptr, nMinimumAmount,
+                                nMaximumAmount, nMinimumSumAmount, nMaximumCount,
+                                nMinDepth, nMaxDepth, true,
+                                FILTER_BASECOIN|FILTER_ZEROCOIN|FILTER_CT|FILTER_RINGCT);
     }
 
     LOCK(pwallet->cs_wallet);
 
+    auto *pwalletAnon = pwallet->GetAnonWallet();
     for (const COutput& out : vecOutputs) {
         CTxDestination address;
         CScript scriptPubKey;
-        if (!out.tx->tx->vpout[out.i]->GetScriptPubKey(scriptPubKey))
-            continue;
+        auto pout = out.tx->tx->vpout[out.i];
+        auto mi = pwalletAnon->mapRecords.find(out.tx->tx->GetHash());
+        const COutputRecord *outputRecord = nullptr;
+        if (mi != pwalletAnon->mapRecords.end())
+            outputRecord = mi->second.GetOutput(out.i);
+
+        const OutputTypes outType = (OutputTypes) pout->GetType();
+        if (!pout->GetScriptPubKey(scriptPubKey)) {
+            bool foundKey = false;
+            // check for anon script
+            if (outType == OUTPUT_RINGCT) {
+                if (outputRecord != nullptr) {
+                    scriptPubKey = outputRecord->scriptPubKey;
+                    foundKey = true;
+                }
+            }
+            if (!foundKey)  {
+                continue;
+            }
+        }
         bool fValidAddress = ExtractDestination(scriptPubKey, address);
 
-        if (destinations.size() && (!fValidAddress || !destinations.count(address)))
+        if (destinations.size() && (!fValidAddress || !destinations.count(address))) {
             continue;
+        }
 
         UniValue entry(UniValue::VOBJ);
+
+        // push a type on so it's not so confusing
+        switch (outType) {
+          case OUTPUT_STANDARD:
+            if (pout->IsZerocoinMint())
+                entry.pushKV("type", "zerocoinmint");
+            else
+                entry.pushKV("type", "basecoin");
+            break;
+          case OUTPUT_RINGCT:
+            entry.pushKV("type", "ringct");
+            break;
+          case OUTPUT_CT:
+            entry.pushKV("type", "ct");
+            break;
+          default:
+            entry.pushKV("type", "unknown");
+        }
+
         entry.pushKV("txid", out.tx->GetHash().GetHex());
         entry.pushKV("vout", out.i);
 
@@ -3723,6 +3768,7 @@ static UniValue listunspent(const JSONRPCRequest& request)
             entry.pushKV("address", EncodeDestination(address));
 
             auto i = pwallet->mapAddressBook.find(address);
+
             if (i != pwallet->mapAddressBook.end()) {
                 entry.pushKV("label", i->second.name);
                 if (IsDeprecatedRPCEnabled("accounts")) {
@@ -3733,14 +3779,66 @@ static UniValue listunspent(const JSONRPCRequest& request)
             if (scriptPubKey.IsPayToScriptHash()) {
                 const CScriptID& hash = boost::get<CScriptID>(address);
                 CScript redeemScript;
-                if (pwallet->GetCScript(hash, redeemScript)) {
+                if (pwallet->GetCScript(hash, redeemScript))
                     entry.pushKV("redeemScript", HexStr(redeemScript.begin(), redeemScript.end()));
+            }
+
+            // if not basecoin, get the stealth address (and destination if ct)
+            if ((outputRecord != nullptr) && !outputRecord->IsBasecoin()) {
+                CKeyID keyID;
+                keyID.SetNull();
+                if (address.type() == typeid(CKeyID)) {
+                    keyID = boost::get<CKeyID>(address);
+                }
+
+                if (!keyID.IsNull()) {
+                    CStealthAddress sx;
+                    if (pwalletAnon->GetStealthAddress(keyID, sx)) {
+                        entry.pushKV("stealth_address", sx.ToString(true));
+                    } else {
+                        if (pwalletAnon->GetStealthLinked(keyID, sx)) {
+                            entry.pushKV("stealth_address", sx.ToString(true));
+                            entry.pushKV("stealth_destination", EncodeDestination(address, true));
+                        }
+                    }
                 }
             }
         }
 
         entry.pushKV("scriptPubKey", HexStr(scriptPubKey.begin(), scriptPubKey.end()));
-        entry.pushKV("amount", ValueFromAmount(out.tx->tx->vpout[out.i]->GetValue()));
+
+        // If RingCT, get the ephemeral pubkey
+        if (outType == OUTPUT_RINGCT) {
+            CTxOutRingCT * outRingCT = (CTxOutRingCT *)pout.get();
+            std::vector<uint8_t> vchEphemPK;
+            vchEphemPK.resize(EPHEMERAL_PUBKEY_LENGTH);
+            memcpy(&vchEphemPK[0], &outRingCT->vData[0], EPHEMERAL_PUBKEY_LENGTH);
+            entry.pushKV("ephemeral_pubkey", HexStr(vchEphemPK));
+        }
+
+        // If zerocoin, add hash fields
+        if (pout->IsZerocoinMint()) {
+            libzerocoin::PublicCoin pubcoin(Params().Zerocoin_Params());
+            if (OutputToPublicCoin(pout.get(), pubcoin)) {
+                uint256 hashPubcoin = GetPubCoinHash(pubcoin.getValue());
+                entry.pushKV("pubcoinhash", hashPubcoin.GetHex());
+                if (pwallet->IsMyMint(pubcoin.getValue())) {
+                    CMintMeta meta;
+                    if (pwallet->GetMintMeta(hashPubcoin, meta)) {
+                        entry.pushKV("serialhash", meta.hashSerial.GetHex());
+                    }
+                }
+            }
+        }
+
+        // For CT and RingCT, need to get the amount differently.
+        if ((outType == OUTPUT_RINGCT) || (outType == OUTPUT_CT)) {
+            if (outputRecord != nullptr)
+                entry.pushKV("amount", ValueFromAmount(outputRecord->GetAmount()));
+        } else {
+            entry.pushKV("amount", ValueFromAmount(out.tx->tx->vpout[out.i]->GetValue()));
+        }
+
         entry.pushKV("confirmations", out.nDepth);
         entry.pushKV("spendable", out.fSpendable);
         entry.pushKV("solvable", out.fSolvable);
