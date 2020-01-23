@@ -12,7 +12,7 @@ stages:
   - test
 env:
   global:
-    - MAKEJOBS=-j4
+    - MAKEJOBS=-j8
     - RUN_UNIT_TESTS=false
     - RUN_FUNCTIONAL_TESTS=false
     - DOCKER_NAME_TAG=ubuntu:18.04
