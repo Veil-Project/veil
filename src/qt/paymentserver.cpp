@@ -130,9 +130,9 @@ void PaymentServer::LoadRootCAs(X509_STORE* _store)
 
         certList = QSslCertificate::fromPath(certFile);
         // Use those certificates when fetching payment requests, too:
-        QSslSocket::setDefaultCaCertificates(certList);
+        QSslConfiguration::defaultConfiguration().setCaCertificates(certList);
     } else
-        certList = QSslSocket::systemCaCertificates();
+        certList = QSslConfiguration::systemCaCertificates();
 
     int nRootCerts = 0;
     const QDateTime currentTime = QDateTime::currentDateTime();
@@ -658,7 +658,11 @@ void PaymentServer::fetchPaymentACK(WalletModel* walletModel, const SendCoinsRec
         qWarning() << "PaymentServer::fetchPaymentACK: Error getting refund key, refund_to not set";
     }
 
+#if GOOGLE_PROTOBUF_VERSION < 3004000
     int length = payment.ByteSize();
+#else
+    int length = payment.ByteSizeLong();
+#endif
     netRequest.setHeader(QNetworkRequest::ContentLengthHeader, length);
     QByteArray serData(length, '\0');
     if (payment.SerializeToArray(serData.data(), length)) {
