@@ -158,6 +158,9 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         } else if (pindex->IsSha256DProofOfWork() && !(nPoWType & CBlockHeader::SHA256D_BLOCK)) {
             pindex = pindex->pprev;
             continue;
+        } else if (pindex->IsX16RTProofOfWork() && !fProofOfStake && nPoWType != 0) {
+            pindex = pindex->pprev;
+            continue;
         } else if (!pindexLastMatchingProof) {
             pindexLastMatchingProof = pindex;
         }
@@ -172,7 +175,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     arith_uint256 bnNew(bnPastTargetAvg);
 
     //Should only happen on the first PoS block
-    if (pindexLastMatchingProof)
+    if (pindexLastMatchingProof && !pindex->IsProgProofOfWork() && !pindex->IsRandomXProofOfWork() && !pindex->IsSha256DProofOfWork())
         pindexLastMatchingProof = pindexLast;
 
     int64_t nPowSpacing;

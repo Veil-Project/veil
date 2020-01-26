@@ -203,9 +203,9 @@ public:
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
 
         // ProgPow, RandomX, Sha256d
-        consensus.nProgPowTargetSpacing = 172;
-        consensus.nRandomXTargetSpacing = 600;
-        consensus.nSha256DTargetSpacing = 1200;
+        consensus.nProgPowTargetSpacing = 86;
+        consensus.nRandomXTargetSpacing = 300;
+        consensus.nSha256DTargetSpacing = 600;
 
         consensus.nDgwPastBlocks = 30; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = false;
@@ -544,6 +544,10 @@ public:
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
 
+        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
+        // TODO update when ready for testnet launch
+        nPowUpdateTimestamp = 8578938400; // Monday, January 13, 2020 6:00:00 PM
+        nPowTimeStampActive = 8578938400; // Used by block.h for serialization
     }
 };
 
@@ -706,8 +710,8 @@ public:
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
 
         /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
-        nPowUpdateTimestamp = 1578938400; // Monday, January 13, 2020 6:00:00 PM        
-        nPowTimeStampActive = 1578938400; // Used by block.h for serialization 
+        nPowUpdateTimestamp = 1580148000; // Monday, January 27, 2020 6:00:00 PM
+        nPowTimeStampActive = 1580148000; // Used by block.h for serialization
     }
 };
 
