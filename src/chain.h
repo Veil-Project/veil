@@ -478,6 +478,11 @@ public:
         return !fProofOfStake && (nVersion & CBlockHeader::SHA256D_BLOCK) && nTime >= nPowTimeStampActive;
     }
 
+    bool IsX16RTProofOfWork() const
+    {
+        return !fProofOfStake && nTime < nPowTimeStampActive;
+    }
+
     bool IsProofOfStake() const
     {
         return fProofOfStake;

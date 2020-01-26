@@ -1055,7 +1055,7 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
     LogPrintf("Veil RandomX Miner started\n");
 
     unsigned int nExtraNonce = 0;
-    static const int nInnerLoopCount = 0x010000;
+    static const int nInnerLoopCount = 1000;
 
     while (fGenerateBitcoins)
     {
@@ -1139,7 +1139,7 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
         LOCK(cs_nonce);
         nHashes += nTries;
         int32_t nTimeDuration = GetTime() - nTimeStart;
-        LogPrint(BCLog::BLOCKCREATION, "%s: PoW Hashspeed %d kh/s\n", __func__, arith_uint256(nHashes/1000/nTimeDuration).getdouble());
+        LogPrint(BCLog::BLOCKCREATION, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__, arith_uint256(nHashes/nTimeDuration).getdouble());
         if (nTries == nInnerLoopCount) {
             continue;
         }
