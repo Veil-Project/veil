@@ -93,8 +93,12 @@ void DeallocateRandomXLightCache() {
     if (!fLightCacheInited)
         return;
 
-    randomx_destroy_vm(myMachineValidating);
-    randomx_release_cache(myCacheValidating);
+    if (myMachineValidating)
+        randomx_destroy_vm(myMachineValidating);
+    if (myCacheValidating)
+        randomx_release_cache(myCacheValidating);
+    myCacheValidating = nullptr;
+    myMachineValidating = nullptr;
     fLightCacheInited = false;
 }
 
@@ -295,9 +299,6 @@ bool CheckRandomXProofOfWork(const CBlockHeader& block, unsigned int nBits, cons
     // This will check if the key block needs to change and will take down the cache and vm, and spin up the new ones
     CheckIfValidationKeyShouldChangeAndUpdate(GetKeyBlock(block.nHeight));
 
-    // Create epoch context
-    ethash::epoch_context_ptr context{nullptr, nullptr};
-
     // Create the eth_boundary from the nBits
     arith_uint256 bnTarget;
     bool fNegative;
@@ -441,6 +442,7 @@ void DeallocateDataSet()
         return;
 
     randomx_release_dataset(myMiningDataset);
+    myMiningDataset = nullptr;
 }
 
 void DeallocateCache()
@@ -449,4 +451,5 @@ void DeallocateCache()
         return;
 
     randomx_release_cache(myMiningCache);
+    myMiningCache = nullptr;
 }
