@@ -2009,5 +2009,7 @@ bool AppInitMain()
     }
 #endif // ENABLE_WALLET
 
+    InitRandomXLightCache(chainActive.Height());
+
     return true;
 }
