@@ -9,7 +9,7 @@
  * network protocol versioning
  */
 
-static const int PROTOCOL_VERSION = 70027;
+static const int PROTOCOL_VERSION = 70028;
 
 //! initial proto version, to be increased after version/verack negotiation
 static const int INIT_PROTO_VERSION = 209;
@@ -20,8 +20,8 @@ static const int GETHEADERS_VERSION = 31800;
 //! disconnect from peers older than this proto version
 static const int MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT = 70025;
 static const int MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT = 70027;
-static const int MIN_PEER_PROTO_VERSION_TESTNET = 70027;
-static const int MIN_PEER_PROTO_VERSION_DEVNET = 70027;
+static const int MIN_PEER_PROTO_VERSION_TESTNET = 70028;
+static const int MIN_PEER_PROTO_VERSION_DEVNET = 70028;
 
 //! nTime field added to CAddress, starting with this version;
 //! if possible, avoid requesting addresses nodes older than this
