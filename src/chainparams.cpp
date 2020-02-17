@@ -710,8 +710,8 @@ public:
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
 
         /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
-        nPowUpdateTimestamp = 1580148000; // Monday, January 27, 2020 6:00:00 PM
-        nPowTimeStampActive = 1580148000; // Used by block.h for serialization
+        nPowUpdateTimestamp = 1582135200; // Wednesday, February 19, 2020 Noon CST
+        nPowTimeStampActive = 1582135200; // Used by block.h for serialization
     }
 };
 
