@@ -53,7 +53,8 @@ void InitRandomXLightCache(const int32_t& height) {
     global_randomx_flags = (int)randomx_get_flags();
     myCacheValidating = randomx_alloc_cache((randomx_flags)global_randomx_flags);
     randomx_init_cache(myCacheValidating, &validation_key_block, sizeof uint256());
-    myMachineValidating = randomx_create_vm((randomx_flags)global_randomx_flags, myCacheValidating, NULL);
+    LogPrintf("%s : Spinning up a new vm  at new block height: %d\n", __func__, height);
+    myMachineValidating = randomx_create_vm_timed((randomx_flags)global_randomx_flags, myCacheValidating, NULL, true);
     fLightCacheInited = true;
 }
 
@@ -63,7 +64,8 @@ void KeyBlockChanged(const uint256& new_block) {
     DeallocateRandomXLightCache();
     myCacheValidating = randomx_alloc_cache((randomx_flags)global_randomx_flags);
     randomx_init_cache(myCacheValidating, &validation_key_block, sizeof uint256());
-    myMachineValidating = randomx_create_vm((randomx_flags)global_randomx_flags, myCacheValidating, NULL);
+    LogPrintf("%s : Spinning up a new vm  at new block: %s\n", __func__, new_block.GetHex());
+    myMachineValidating = randomx_create_vm_timed((randomx_flags)global_randomx_flags, myCacheValidating, NULL, true);
     fLightCacheInited = true;
 }
 
@@ -90,16 +92,24 @@ void CheckIfValidationKeyShouldChangeAndUpdate(const uint256& check_block)
 }
 
 void DeallocateRandomXLightCache() {
-    if (!fLightCacheInited)
-        return;
 
-    if (myMachineValidating)
+
+    if (myMachineValidating) {
         randomx_destroy_vm(myMachineValidating);
-    if (myCacheValidating)
+        myMachineValidating = nullptr;
+    }
+
+    if (!fLightCacheInited) {
+        LogPrintf("%s Return because light cache isn't inited\n");
+        return;
+    }
+
+    if (myCacheValidating) {
+        LogPrintf("%s releasing the validating cache\n",__func__);
         randomx_release_cache(myCacheValidating);
-    myCacheValidating = nullptr;
-    myMachineValidating = nullptr;
-    fLightCacheInited = false;
+        myCacheValidating = nullptr;
+        fLightCacheInited = false;
+    }
 }
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock,
