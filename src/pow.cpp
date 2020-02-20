@@ -359,7 +359,6 @@ uint256 RandomXHashToUint256(const char* p_char)
 
 void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_ptr<CReserveScript> pCoinbaseScript)
 {
-    LOCK(cs_randomx_mining);
     bool fInitialized = false;
     auto threadGroup = (boost::thread_group *) pPowThreadGroup;
     while (true) {
@@ -422,7 +421,6 @@ void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_p
 
 void CreateRandomXInitDataSet(int nThreads, randomx_dataset* dataset, randomx_cache* cache)
 {
-    LOCK(cs_randomx_mining);
     uint32_t datasetItemCount = randomx_dataset_item_count();
 
     if (nThreads > 1) {
@@ -450,7 +448,6 @@ void CreateRandomXInitDataSet(int nThreads, randomx_dataset* dataset, randomx_ca
 
 void DeallocateVMVector()
 {
-    LOCK(cs_randomx_mining);
     if (vecRandomXVM.size()) {
         for (unsigned i = 0; i < vecRandomXVM.size(); ++i)
             randomx_destroy_vm(vecRandomXVM[i]);
@@ -461,7 +458,6 @@ void DeallocateVMVector()
 
 void DeallocateDataSet()
 {
-    LOCK(cs_randomx_mining);
     if (myMiningDataset == nullptr)
         return;
 
