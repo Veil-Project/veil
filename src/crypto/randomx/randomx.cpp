@@ -190,13 +190,13 @@ extern "C" {
         assert(cache != nullptr || (flags & RANDOMX_FLAG_FULL_MEM));
         if (fWaitFor30 && cache != nullptr) {
             int count = 0;
-            while(cache != nullptr && count++ < 10 && !cache->isInitialized()) {
-                printf("%s : Cache not initialized sleeping for 6 second\n", __func__);
-                MilliSleep(6000);
+            while(cache != nullptr && count++ < 60 && !cache->isInitialized()) {
+                printf("%s : Cache not initialized\n", __func__);
+                MilliSleep(250);
             }
         }
 
-        if (cache->isInitialized()) {
+        if (cache && cache->isInitialized()) {
             printf("%s : Cache is initialized\n", __func__);
         }
         assert(cache == nullptr || cache->isInitialized());
