@@ -4088,8 +4088,10 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
             if (!CheckProgProofOfWork(block, block.nBits, consensusParams))
                 return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "progpow proof of work failed");
         } else if (block.IsRandomX() && block.nTime >= Params().PowUpdateTimestamp()) {
-            if (!CheckRandomXProofOfWork(block, block.nBits, consensusParams))
+            if (!CheckRandomXProofOfWork(block, block.nBits, consensusParams)) {
+                LogPrintf("%s : randomx proof of work failed %s\n", __func__, block.GetHash().GetHex());
                 return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "randomx proof of work failed");
+            }
         } else if (block.IsSha256D() && block.nTime >= Params().PowUpdateTimestamp()) {
             if (!CheckProofOfWork(block.GetSha256DPoWHash(), block.nBits, consensusParams))
                 return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "sha256d proof of work failed");
@@ -4110,8 +4112,12 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
 
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
-    if (!CheckBlockHeader(block, state, consensusParams, (fCheckPOW && block.IsProofOfWork()), block.fProofOfFullNode))
+    if (!CheckBlockHeader(block, state, consensusParams, (fCheckPOW && block.IsProofOfWork()), block.fProofOfFullNode)) {
+        if (block.IsRandomX()) {
+            LogPrintf("%s failed to get the correct value from CheckBlockHeader. block hash = %s\n", __func__, block.GetHash().GetHex());
+        }
         return false;
+    }
 
     // Check the block signature if it is a proof of stake block
     if (block.IsProofOfStake() && !veil::ValidateBlockSignature(block))
@@ -4664,8 +4670,15 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
         }
 
         bool fCheckPoW = !block.fProofOfStake;
-        if (!CheckBlockHeader(block, state, chainparams.GetConsensus(), fCheckPoW, fProofOfFullNode))
-            return error("%s: Consensus::CheckBlockHeader: %s, %s", __func__, hash.ToString(), FormatStateMessage(state));
+
+        if (!CheckBlockHeader(block, state, chainparams.GetConsensus(), fCheckPoW, fProofOfFullNode)) {
+            if (block.IsRandomX()) {
+                LogPrintf("%s failed to get the correct value from AcceptBlockHeader. block hash = %s\n", __func__, block.GetHash().GetHex());
+            } else {
+                return error("%s: Consensus::CheckBlockHeader: %s, %s", __func__, hash.ToString(),
+                             FormatStateMessage(state));
+            }
+        }
 
         // Get prev block index
         CBlockIndex* pindexPrev = nullptr;

@@ -36,6 +36,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "crypto/randomx/cpu.hpp"
 #include <cassert>
 #include <limits>
+#include "utiltime.h"
 
 extern "C" {
 
@@ -184,6 +185,152 @@ extern "C" {
 		dataset->dealloc(dataset);
 		delete dataset;
 	}
+
+    randomx_vm *randomx_create_vm_timed(randomx_flags flags, randomx_cache *cache, randomx_dataset *dataset, bool fWaitFor30) {
+        assert(cache != nullptr || (flags & RANDOMX_FLAG_FULL_MEM));
+        if (fWaitFor30 && cache != nullptr) {
+            int count = 0;
+            while(cache != nullptr && count++ < 10 && !cache->isInitialized()) {
+                printf("%s : Cache not initialized sleeping for 6 second\n", __func__);
+                MilliSleep(6000);
+            }
+        }
+
+        if (cache->isInitialized()) {
+            printf("%s : Cache is initialized\n", __func__);
+        }
+        assert(cache == nullptr || cache->isInitialized());
+        assert(dataset != nullptr || !(flags & RANDOMX_FLAG_FULL_MEM));
+
+        randomx_vm *vm = nullptr;
+
+        try {
+            switch ((int)(flags & (RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_JIT | RANDOMX_FLAG_HARD_AES | RANDOMX_FLAG_LARGE_PAGES))) {
+                case RANDOMX_FLAG_DEFAULT:
+                    vm = new randomx::InterpretedLightVmDefault();
+                    break;
+
+                case RANDOMX_FLAG_FULL_MEM:
+                    vm = new randomx::InterpretedVmDefault();
+                    break;
+
+                case RANDOMX_FLAG_JIT:
+                    if (flags & RANDOMX_FLAG_SECURE) {
+                        vm = new randomx::CompiledLightVmDefaultSecure();
+                    }
+                    else {
+                        vm = new randomx::CompiledLightVmDefault();
+                    }
+                    break;
+
+                case RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_JIT:
+                    if (flags & RANDOMX_FLAG_SECURE) {
+                        vm = new randomx::CompiledVmDefaultSecure();
+                    }
+                    else {
+                        vm = new randomx::CompiledVmDefault();
+                    }
+                    break;
+
+                case RANDOMX_FLAG_HARD_AES:
+                    vm = new randomx::InterpretedLightVmHardAes();
+                    break;
+
+                case RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_HARD_AES:
+                    vm = new randomx::InterpretedVmHardAes();
+                    break;
+
+                case RANDOMX_FLAG_JIT | RANDOMX_FLAG_HARD_AES:
+                    if (flags & RANDOMX_FLAG_SECURE) {
+                        vm = new randomx::CompiledLightVmHardAesSecure();
+                    }
+                    else {
+                        vm = new randomx::CompiledLightVmHardAes();
+                    }
+                    break;
+
+                case RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_JIT | RANDOMX_FLAG_HARD_AES:
+                    if (flags & RANDOMX_FLAG_SECURE) {
+                        vm = new randomx::CompiledVmHardAesSecure();
+                    }
+                    else {
+                        vm = new randomx::CompiledVmHardAes();
+                    }
+                    break;
+
+                case RANDOMX_FLAG_LARGE_PAGES:
+                    vm = new randomx::InterpretedLightVmLargePage();
+                    break;
+
+                case RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_LARGE_PAGES:
+                    vm = new randomx::InterpretedVmLargePage();
+                    break;
+
+                case RANDOMX_FLAG_JIT | RANDOMX_FLAG_LARGE_PAGES:
+                    if (flags & RANDOMX_FLAG_SECURE) {
+                        vm = new randomx::CompiledLightVmLargePageSecure();
+                    }
+                    else {
+                        vm = new randomx::CompiledLightVmLargePage();
+                    }
+                    break;
+
+                case RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_JIT | RANDOMX_FLAG_LARGE_PAGES:
+                    if (flags & RANDOMX_FLAG_SECURE) {
+                        vm = new randomx::CompiledVmLargePageSecure();
+                    }
+                    else {
+                        vm = new randomx::CompiledVmLargePage();
+                    }
+                    break;
+
+                case RANDOMX_FLAG_HARD_AES | RANDOMX_FLAG_LARGE_PAGES:
+                    vm = new randomx::InterpretedLightVmLargePageHardAes();
+                    break;
+
+                case RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_HARD_AES | RANDOMX_FLAG_LARGE_PAGES:
+                    vm = new randomx::InterpretedVmLargePageHardAes();
+                    break;
+
+                case RANDOMX_FLAG_JIT | RANDOMX_FLAG_HARD_AES | RANDOMX_FLAG_LARGE_PAGES:
+                    if (flags & RANDOMX_FLAG_SECURE) {
+                        vm = new randomx::CompiledLightVmLargePageHardAesSecure();
+                    }
+                    else {
+                        vm = new randomx::CompiledLightVmLargePageHardAes();
+                    }
+                    break;
+
+                case RANDOMX_FLAG_FULL_MEM | RANDOMX_FLAG_JIT | RANDOMX_FLAG_HARD_AES | RANDOMX_FLAG_LARGE_PAGES:
+                    if (flags & RANDOMX_FLAG_SECURE) {
+                        vm = new randomx::CompiledVmLargePageHardAesSecure();
+                    }
+                    else {
+                        vm = new randomx::CompiledVmLargePageHardAes();
+                    }
+                    break;
+
+                default:
+                    UNREACHABLE;
+            }
+
+            if(cache != nullptr) {
+                vm->setCache(cache);
+                vm->cacheKey = cache->cacheKey;
+            }
+
+            if(dataset != nullptr)
+                vm->setDataset(dataset);
+
+            vm->allocate();
+        }
+        catch (std::exception &ex) {
+            delete vm;
+            vm = nullptr;
+        }
+
+        return vm;
+    }
 
 	randomx_vm *randomx_create_vm(randomx_flags flags, randomx_cache *cache, randomx_dataset *dataset) {
 		assert(cache != nullptr || (flags & RANDOMX_FLAG_FULL_MEM));
