@@ -26,6 +26,7 @@
 
 // TODO, build an class object that holds this data
 // Used by CPU miner for randomx
+CCriticalSection cs_randomx_mining;
 static uint256 mining_key_block;
 static randomx_cache *myMiningCache;
 static randomx_dataset *myMiningDataset;
@@ -34,6 +35,7 @@ std::vector<std::thread> vecRandomXThreads;
 bool fKeyBlockedChanged = false;
 
 // Used by Validator
+CCriticalSection cs_randomx_validator;
 static uint256 validation_key_block;
 static randomx_cache *myCacheValidating;
 static randomx_vm *myMachineValidating;
@@ -41,10 +43,12 @@ static bool fLightCacheInited = false;
 
 bool IsRandomXLightInit()
 {
+    LOCK(cs_randomx_validator);
     return fLightCacheInited;
 }
 
 void InitRandomXLightCache(const int32_t& height) {
+    LOCK(cs_randomx_validator);
     if (fLightCacheInited)
         return;
 
@@ -59,6 +63,7 @@ void InitRandomXLightCache(const int32_t& height) {
 }
 
 void KeyBlockChanged(const uint256& new_block) {
+    LOCK(cs_randomx_validator);
     validation_key_block = new_block;
 
     DeallocateRandomXLightCache();
@@ -70,6 +75,7 @@ void KeyBlockChanged(const uint256& new_block) {
 }
 
 uint256 GetCurrentKeyBlock() {
+
     return validation_key_block;
 }
 
@@ -83,33 +89,36 @@ randomx_flags GetRandomXFlags() {
 
 bool CheckIfMiningKeyShouldChange(const uint256& check_block)
 {
+    LOCK(cs_randomx_validator);
     return check_block != mining_key_block;
 }
 void CheckIfValidationKeyShouldChangeAndUpdate(const uint256& check_block)
 {
+    LOCK(cs_randomx_validator);
     if (check_block != validation_key_block)
         KeyBlockChanged(check_block);
 }
 
 void DeallocateRandomXLightCache() {
-
-
-    if (myMachineValidating) {
-        randomx_destroy_vm(myMachineValidating);
-        myMachineValidating = nullptr;
-    }
-
+    LOCK(cs_randomx_validator);
     if (!fLightCacheInited) {
         LogPrintf("%s Return because light cache isn't inited\n");
         return;
+    }
+
+    if (myMachineValidating) {
+        LogPrintf("%s releasing the vm\n",__func__);
+        randomx_destroy_vm(myMachineValidating);
+        myMachineValidating = nullptr;
     }
 
     if (myCacheValidating) {
         LogPrintf("%s releasing the validating cache\n",__func__);
         randomx_release_cache(myCacheValidating);
         myCacheValidating = nullptr;
-        fLightCacheInited = false;
     }
+
+    fLightCacheInited = false;
 }
 
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock,
@@ -304,6 +313,7 @@ uint256 GetKeyBlock(const uint32_t& nHeight)
 
 bool CheckRandomXProofOfWork(const CBlockHeader& block, unsigned int nBits, const Consensus::Params& params)
 {
+    LOCK(cs_randomx_validator);
     InitRandomXLightCache(block.nHeight);
 
     // This will check if the key block needs to change and will take down the cache and vm, and spin up the new ones
@@ -349,6 +359,7 @@ uint256 RandomXHashToUint256(const char* p_char)
 
 void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_ptr<CReserveScript> pCoinbaseScript)
 {
+    LOCK(cs_randomx_mining);
     bool fInitialized = false;
     auto threadGroup = (boost::thread_group *) pPowThreadGroup;
     while (true) {
@@ -411,6 +422,7 @@ void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_p
 
 void CreateRandomXInitDataSet(int nThreads, randomx_dataset* dataset, randomx_cache* cache)
 {
+    LOCK(cs_randomx_mining);
     uint32_t datasetItemCount = randomx_dataset_item_count();
 
     if (nThreads > 1) {
@@ -438,6 +450,7 @@ void CreateRandomXInitDataSet(int nThreads, randomx_dataset* dataset, randomx_ca
 
 void DeallocateVMVector()
 {
+    LOCK(cs_randomx_mining);
     if (vecRandomXVM.size()) {
         for (unsigned i = 0; i < vecRandomXVM.size(); ++i)
             randomx_destroy_vm(vecRandomXVM[i]);
@@ -448,6 +461,7 @@ void DeallocateVMVector()
 
 void DeallocateDataSet()
 {
+    LOCK(cs_randomx_mining);
     if (myMiningDataset == nullptr)
         return;
 
@@ -457,6 +471,7 @@ void DeallocateDataSet()
 
 void DeallocateCache()
 {
+    LOCK(cs_randomx_validator);
     if (myMiningCache == nullptr)
         return;
 
