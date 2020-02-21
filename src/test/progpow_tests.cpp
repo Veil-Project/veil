@@ -39,13 +39,13 @@ BOOST_AUTO_TEST_CASE(progpow_l1_cache)
 
 BOOST_AUTO_TEST_CASE(progpow_hash_empty)
 {
-        auto& context = get_ethash_epoch_context_0();
+    auto& context = get_ethash_epoch_context_0();
 
-const auto result = progpow::hash(context, 0, {}, 0);
-const auto mix_hex = "faeb1be51075b03a4ff44b335067951ead07a3b078539ace76fd56fc410557a3";
-const auto final_hex = "63155f732f2bf556967f906155b510c917e48e99685ead76ea83f4eca03ab12b";
-BOOST_CHECK_EQUAL(to_hex(result.mix_hash), mix_hex);
-BOOST_CHECK_EQUAL(to_hex(result.final_hash), final_hex);
+    const auto result = progpow::hash(context, 0, {}, 0);
+    const auto mix_hex = "f4ac202715ded4136e72887c39e63a4738331c57fd9eb79f6ec421c281aa8743";
+    const auto final_hex = "b3bad9ca6f7c566cf0377d1f8cce29d6516a96562c122d924626281ec948ef02";
+    BOOST_CHECK_EQUAL(to_hex(result.mix_hash), mix_hex);
+    BOOST_CHECK_EQUAL(to_hex(result.final_hash), final_hex);
 }
 
 BOOST_AUTO_TEST_CASE(progpow_hash_30000)
@@ -58,8 +58,8 @@ BOOST_AUTO_TEST_CASE(progpow_hash_30000)
         auto context = ethash::create_epoch_context(ethash::get_epoch_number(block_number));
 
         const auto result = progpow::hash(*context, block_number, header, nonce);
-        const auto mix_hex = "11f19805c58ab46610ff9c719dcf0a5f18fa2f1605798eef770c47219274767d";
-        const auto final_hex = "5b7ccd472dbefdd95b895cac8ece67ff0deb5a6bd2ecc6e162383d00c3728ece";
+        const auto mix_hex = "6018c151b0f9895ebe44a4ca6ce2829e5ba6ae1a68a4ccd05a67ac01219655c1";
+        const auto final_hex = "34d8436444aa5c61761ce0bcce0f11401df2eace77f5c14ba7039b86b5800c08";
         BOOST_CHECK_EQUAL(to_hex(result.mix_hash), mix_hex);
         BOOST_CHECK_EQUAL(to_hex(result.final_hash), final_hex);
 }
@@ -77,6 +77,7 @@ BOOST_AUTO_TEST_CASE(progpow_hash_and_verify)
         const auto header_hash = to_hash256(t.header_hash_hex);
         const auto nonce = std::stoull(t.nonce_hex, nullptr, 16);
         const auto result = progpow::hash(*context, t.block_number, header_hash, nonce);
+
         BOOST_CHECK_EQUAL(to_hex(result.mix_hash), t.mix_hash_hex);
         BOOST_CHECK_EQUAL(to_hex(result.final_hash), t.final_hash_hex);
 
@@ -108,9 +109,7 @@ BOOST_AUTO_TEST_CASE(progpow_search)
     auto sr = progpow::search(ctx, 0, {}, boundary, 0, 100);
     auto srl = progpow::search_light(ctxl, 0, {}, boundary, 0, 100);
 
-    BOOST_CHECK(sr.mix_hash == ethash::hash256{});
-    BOOST_CHECK(sr.final_hash == ethash::hash256{});
-    BOOST_CHECK(sr.nonce == 0x0);
+    BOOST_CHECK(sr.nonce == 11);
     BOOST_CHECK(sr.mix_hash == srl.mix_hash);
     BOOST_CHECK(sr.final_hash == srl.final_hash);
     BOOST_CHECK(sr.nonce == srl.nonce);
@@ -120,12 +119,12 @@ BOOST_AUTO_TEST_CASE(progpow_search)
 
     BOOST_CHECK(sr.mix_hash != ethash::hash256{});
     BOOST_CHECK(sr.final_hash != ethash::hash256{});
-    BOOST_CHECK(sr.nonce == 185);
+    BOOST_CHECK(sr.nonce == 157);
     BOOST_CHECK(sr.mix_hash == srl.mix_hash);
     BOOST_CHECK(sr.final_hash == srl.final_hash);
     BOOST_CHECK(sr.nonce == srl.nonce);
 
-    auto r = progpow::hash(ctx, 0, {}, 185);
+    auto r = progpow::hash(ctx, 0, {}, 157);
     BOOST_CHECK(sr.final_hash == r.final_hash);
     BOOST_CHECK(sr.mix_hash == r.mix_hash);
 }
@@ -139,7 +138,7 @@ BOOST_AUTO_TEST_CASE(progpow_veil_header)
     header.hashPrevBlock = uint256S("aabbcceeffaabbcceeffaabbcceeffaabbcceeffaabbcceeffaabbcceeffaabb");
     header.hashVeilData = uint256S("0011223344556677889900112233445566778899001122334455667788990011");
     header.nTime = 1571415021;
-    header.nNonce64 = 5813;
+    header.nNonce64 = 4769;
     header.nBits = 0x1e008eb5;
     header.nHeight = 25000;
 
@@ -153,14 +152,15 @@ BOOST_AUTO_TEST_CASE(progpow_veil_header)
     const auto header_hash = to_hash256(nHeaderHash.GetHex());
     const auto result = progpow::hash(ctx, header.nHeight, header_hash, header.nNonce64);
 
-    BOOST_CHECK(result.mix_hash == to_hash256("748d92ee99ade05497339617b7be75959236646eeb28208c7f1e8bf948192093"));
-    BOOST_CHECK(result.final_hash == to_hash256("000cc32838296a62cf807faaf2b9ffd6fed87b6381b5cc3bfbeb914f8024afff"));
+    BOOST_CHECK(result.mix_hash == to_hash256("fbb0a363b4e87c5add31fe63e9ccc2376c02456b4f7883e34bc3ef23179f7e1f"));
+    BOOST_CHECK(result.final_hash == to_hash256("000d1b61e5f8584661c2a6c93a558ddb03f53840ac1b4fa413d83b148779bf88"));
 
     auto boundary = to_hash256("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-    auto sr = progpow::search(ctx, header.nHeight, header_hash, boundary, 5500, 400);
+    auto sr = progpow::search(ctx, header.nHeight, header_hash, boundary, 4000, 1000);
+
     BOOST_CHECK(sr.solution_found);
 
-    auto success = progpow::verify(ctxl, header.nHeight, header_hash, result.mix_hash, header.nNonce64, result.final_hash);
+    auto success = progpow::verify(ctxl, header.nHeight, header_hash, result.mix_hash, sr.nonce, result.final_hash);
     BOOST_CHECK(success);
 
     BOOST_CHECK(result.mix_hash == sr.mix_hash);
