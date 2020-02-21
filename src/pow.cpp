@@ -102,7 +102,7 @@ void CheckIfValidationKeyShouldChangeAndUpdate(const uint256& check_block)
 void DeallocateRandomXLightCache() {
     LOCK(cs_randomx_validator);
     if (!fLightCacheInited) {
-        LogPrintf("%s Return because light cache isn't inited\n");
+        LogPrintf("%s Return because light cache isn't inited\n", __func__);
         return;
     }
 
