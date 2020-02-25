@@ -9,7 +9,6 @@
 #include <hash.h>
 #include <tinyformat.h>
 #include <utilstrencodings.h>
-#include <streams.h>
 
 uint32_t nPowTimeStampActive = 0;
 

@@ -260,6 +260,7 @@ public:
     uint256 hashMerkleRoot;
     uint256 hashWitnessMerkleRoot;
     uint256 hashPoFN;
+    uint256 hashAccumulators;
 
     //! vector that holds a proof of stake proof hash if the block has one. If not, its empty and has less memory
     //! overhead than an empty uint256
@@ -298,6 +299,7 @@ public:
         mapAccumulatorHashes.clear();
         hashMerkleRoot = uint256();
         hashWitnessMerkleRoot = uint256();
+        hashAccumulators = uint256();
 
         for (auto& denom : libzerocoin::zerocoinDenomList) {
             mapAccumulatorHashes[denom] = uint256();
@@ -334,6 +336,9 @@ public:
 
         nVersion       = block.nVersion;
         hashVeilData   = block.hashVeilData;
+        hashMerkleRoot = block.hashMerkleRoot;
+        hashWitnessMerkleRoot = block.hashWitnessMerkleRoot;
+        hashAccumulators = block.hashAccumulators;
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
@@ -376,6 +381,9 @@ public:
         block.fProofOfStake = IsProofOfStake();
         block.fProofOfFullNode = fProofOfFullNode;
 
+        block.hashMerkleRoot = hashMerkleRoot;
+        block.hashWitnessMerkleRoot = hashWitnessMerkleRoot;
+        block.hashAccumulators = hashAccumulators;
         //ProgPow
         block.nNonce64       = nNonce64;
         block.mixHash        = mixHash;
@@ -600,7 +608,14 @@ public:
         // block header
         READWRITE(this->nVersion);
         READWRITE(hashPrev);
-        READWRITE(hashVeilData);
+        bool fCheckVeilDataHash = false;
+        if (nVersion >> 28 != 3) {
+            fCheckVeilDataHash = true;
+            // This is the version that the new PoW started at. This is when we stop using hashVeilData.
+            // We would normally use the nTime of the block. However, that is serialized after the hashVeilData
+            // So we don't have access to it
+            READWRITE(hashVeilData);
+        }
         READWRITE(hashMerkleRoot);
         // NOTE: Careful matching the version, qa tests use different versions
         READWRITE(hashWitnessMerkleRoot);
@@ -612,6 +627,12 @@ public:
         READWRITE(mapZerocoinSupply);
         READWRITE(vMintDenominationsInBlock);
         READWRITE(fProofOfFullNode);
+
+        if (fCheckVeilDataHash && nTime >= nPowTimeStampActive) {
+            // We want to fail to accept this block. setting it NUll should fail all checks done on it
+            SetNull();
+            return;
+        }
 
         //Proof of stake
         READWRITE(fProofOfStake);
@@ -628,9 +649,16 @@ public:
         }
 
         // ProgPow
-        if (this->nVersion & CBlockHeader::PROGPOW_BLOCK && nTime >= nPowTimeStampActive) {
+        if ((this->nVersion & CBlockHeader::PROGPOW_BLOCK || this->nVersion & CBlockHeader::SHA256D_BLOCK) && nTime >= nPowTimeStampActive) {
             READWRITE(nNonce64);
+        }
+
+        if (this->nVersion & CBlockHeader::PROGPOW_BLOCK && nTime >= nPowTimeStampActive) {
             READWRITE(mixHash);
+        }
+
+        if (nTime >= nPowTimeStampActive) {
+            READWRITE(hashAccumulators);
         }
     }
 
@@ -643,10 +671,16 @@ public:
         block.nTime           = nTime;
         block.nBits           = nBits;
         block.nNonce          = nNonce;
+
         // ProgPow
-        block.nNonce64        = nNonce64;
         block.nHeight         = nHeight;
         block.mixHash         = mixHash;
+
+        // New block header items to help remove hashVeilData
+        block.nNonce64        = nNonce64;
+        block.hashAccumulators = hashAccumulators;
+        block.hashMerkleRoot = hashMerkleRoot;
+        block.hashWitnessMerkleRoot = hashWitnessMerkleRoot;
         return block.GetHash();
     }
 
