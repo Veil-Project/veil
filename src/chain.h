@@ -609,7 +609,9 @@ public:
         READWRITE(this->nVersion);
         READWRITE(hashPrev);
         bool fCheckVeilDataHash = false;
-        if (nVersion >> 28 != 3) {
+        // When Veil started the block version in hex it looks is the following 0x20000000
+        // We only want to write the hashVeilData to disk when first 4 bits of the version == OLD_POW_MAIN_VERSION or lower, e.g -> 2
+        if (nVersion >> BITS_TO_BLOCK_VERSION <= OLD_POW_BLOCK_VERSION) {
             fCheckVeilDataHash = true;
             // This is the version that the new PoW started at. This is when we stop using hashVeilData.
             // We would normally use the nTime of the block. However, that is serialized after the hashVeilData
@@ -628,12 +630,6 @@ public:
         READWRITE(vMintDenominationsInBlock);
         READWRITE(fProofOfFullNode);
 
-        if (fCheckVeilDataHash && nTime >= nPowTimeStampActive) {
-            // We want to fail to accept this block. setting it NUll should fail all checks done on it
-            SetNull();
-            return;
-        }
-
         //Proof of stake
         READWRITE(fProofOfStake);
 
@@ -648,16 +644,29 @@ public:
             }
         }
 
-        // ProgPow
-        if ((this->nVersion & CBlockHeader::PROGPOW_BLOCK || this->nVersion & CBlockHeader::SHA256D_BLOCK) && nTime >= nPowTimeStampActive) {
-            READWRITE(nNonce64);
-        }
-
-        if (this->nVersion & CBlockHeader::PROGPOW_BLOCK && nTime >= nPowTimeStampActive) {
-            READWRITE(mixHash);
-        }
-
         if (nTime >= nPowTimeStampActive) {
+            if (fCheckVeilDataHash) {
+                // We want to fail to accept this block. setting it NUll should fail all checks done on it
+                SetNull();
+                return;
+            }
+
+            int nPowType = (nVersion &
+                            (CBlockHeader::PROGPOW_BLOCK | CBlockHeader::RANDOMX_BLOCK | CBlockHeader::SHA256D_BLOCK));
+            switch (nPowType) {
+                case CBlockHeader::PROGPOW_BLOCK:
+                    READWRITE(nNonce64);
+                    READWRITE(mixHash);
+                    break;
+                case CBlockHeader::RANDOMX_BLOCK:
+                    break;
+                case CBlockHeader::SHA256D_BLOCK:
+                    READWRITE(nNonce64);
+                    break;
+                default:
+                    break;
+            }
+
             READWRITE(hashAccumulators);
         }
     }

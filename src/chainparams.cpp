@@ -257,9 +257,9 @@ public:
 
         // TODO update timestamp with mainnet activation time
         /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
-        nPowUpdateTimestamp = 1608901200; // Fri Dec 25 2020 13:00:00
+        nPowUpdateTimestamp = 4294967295;
         /// Used by block.h for serialization // TODO, update with mainnet activation time above
-        nPowTimeStampActive = 1608901200;
+        nPowTimeStampActive = 4294967295;
 
         int nTimeStart = 1540413025;
         arith_uint256 nBits;
@@ -444,8 +444,8 @@ public:
 
         /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
         // TODO update when ready for testnet launch
-        nPowUpdateTimestamp = 8578938400; // Monday, January 13, 2020 6:00:00 PM
-        nPowTimeStampActive = 8578938400; // Used by block.h for serialization
+        nPowUpdateTimestamp = 4294967295; // Monday, January 13, 2020 6:00:00 PM
+        nPowTimeStampActive = 4294967295; // Used by block.h for serialization
 
         int nTimeStart = 1548379385;
         uint32_t nNonce = 4234676;

@@ -20,6 +20,7 @@ static const int32_t VERSIONBITS_TOP_MASK = 0xFF000000UL;
 /** Total bits available for versionbits */
 static const int32_t VERSIONBITS_NUM_BITS = 24;
 
+
 enum class ThresholdState {
     DEFINED,
     STARTED,
