@@ -13,9 +13,14 @@
 
 #include <unordered_map>
 #include <libzerocoin/Denominations.h>
+#include <iostream>
+
+
+static const int32_t BITS_TO_BLOCK_VERSION = 28;
+static const int OLD_POW_BLOCK_VERSION = 2;
+static const int NEW_POW_BLOCK_VERSION = 3;
 
 extern uint32_t nPowTimeStampActive;
-
 
 struct CVeilBlockData
 {
@@ -106,7 +111,9 @@ public:
         bool fCheckVeilDataHash = false;
         READWRITE(nVersion);
         READWRITE(hashPrevBlock);
-        if (nVersion >> 28 != 3) {
+        // When Veil started the block version in hex it looks is the following 0x20000000
+        // We only want to write the hashVeilData to disk when first 4 bits of the version == OLD_POW_MAIN_VERSION or lower, e.g -> 2
+        if (nVersion >> BITS_TO_BLOCK_VERSION <= OLD_POW_BLOCK_VERSION) {
             fCheckVeilDataHash = true;
             // This is the version that the new PoW started at. This is when we stop using hashVeilData.
             // We would normally use the nTime of the block. However, that is serialized after the hashVeilData
@@ -117,27 +124,36 @@ public:
         READWRITE(nTime);
         READWRITE(nBits);
 
-        if (fCheckVeilDataHash && nTime >= nPowTimeStampActive) {
-            // We want to fail to accept this block. setting it NUll should fail all checks done on it
-            SetNull();
-            return;
-        }
-
         if (nTime >= nPowTimeStampActive) {
+            if (fCheckVeilDataHash) {
+                // We want to fail to accept this block. setting it NUll should fail all checks done on it
+                SetNull();
+                return;
+            }
+
             READWRITE(hashMerkleRoot);
             READWRITE(hashWitnessMerkleRoot);
             READWRITE(hashAccumulators);
-        }
 
-        if (nVersion & PROGPOW_BLOCK && nTime >= nPowTimeStampActive) {
-            READWRITE(nHeight);
-            READWRITE(nNonce64);
-            READWRITE(mixHash);
-        } else if (nVersion & RANDOMX_BLOCK && nTime >= nPowTimeStampActive) {
-            READWRITE(nHeight);
-            READWRITE(nNonce);
-        } else if (nVersion & SHA256D_BLOCK && nTime >= nPowTimeStampActive) {
-            READWRITE(nNonce64);
+            int32_t nPowType = (nVersion & (PROGPOW_BLOCK | RANDOMX_BLOCK | SHA256D_BLOCK));
+            std::cout << nPowType;
+            switch(nPowType) {
+                case PROGPOW_BLOCK:
+                    READWRITE(nHeight);
+                    READWRITE(nNonce64);
+                    READWRITE(mixHash);
+                    break;
+                case RANDOMX_BLOCK:
+                    READWRITE(nHeight);
+                    READWRITE(nNonce);
+                    break;
+                case SHA256D_BLOCK:
+                    READWRITE(nNonce64);
+                    break;
+                default:
+                    SetNull();
+                    return;
+            }
         } else {
             READWRITE(nNonce);
         }

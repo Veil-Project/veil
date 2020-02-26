@@ -4020,6 +4020,10 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     if (fCheckPOW && fCheckProofOfFullNode)
         return state.DoS(50, false, REJECT_INVALID, "PoW and PoFN conflict", false, "Block attempted to use both PoW and PoFN");
 
+    // Check to make sure only one PoW bit is set
+    if ((block.IsProgPow() && block.IsSha256D()) || (block.IsProgPow() && block.IsRandomX()) || (block.IsRandomX() && block.IsSha256D()))
+        return state.DoS(100, false, REJECT_INVALID, "multi-algos", false, "multiple algo bits are set to active. Only one allowed");
+
     // Check proof of work matches claimed amount
     if (fCheckPOW) {
         if (block.IsProgPow() && block.nTime >= Params().PowUpdateTimestamp()) {
@@ -4453,9 +4457,14 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
 
     // Once we active that new 3 PoW algos. We are enforcing that all block first 4 bits are (0011) = 3
     if (block.nTime >= nPowTimeStampActive) {
-        if (block.nVersion >> 28 != 3) {
+        if (block.nVersion >> BITS_TO_BLOCK_VERSION != NEW_POW_BLOCK_VERSION) {
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
-                                 strprintf("rejected nVersion=0x%08x block, all blocks first 4 bits must show decimal (3) or binary (0011)", block.nVersion));
+                                 strprintf("rejected nVersion=0x%08x block, all blocks first 4 bits must show decimal (%d) or binary (0011)", block.nVersion, NEW_POW_BLOCK_VERSION));
+        }
+    } else {
+        if (block.nVersion >> BITS_TO_BLOCK_VERSION != OLD_POW_BLOCK_VERSION) {
+            return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
+                                 strprintf("rejected nVersion=0x%08x block, all blocks first 4 bits must show decimal (%d) or binary (0010)", block.nVersion, OLD_POW_BLOCK_VERSION));
         }
     }
 
