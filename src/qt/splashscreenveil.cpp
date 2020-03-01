@@ -1,3 +1,7 @@
+// Copyright (c) 2019-2020 The Veil developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #include <qt/splashscreenveil.h>
 #include <qt/forms/ui_splashscreenveil.h>
 #include <QPixmap>
@@ -24,7 +28,6 @@
 
 #include <QApplication>
 #include <QCloseEvent>
-#include <QPainter>
 #include <QRadialGradient>
 #include <QScreen>
 

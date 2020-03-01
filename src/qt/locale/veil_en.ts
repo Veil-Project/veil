@@ -2102,7 +2102,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location filename="../guiutil.cpp" line="+124"/>
-        <source>Enter a Veil address (e.g. %1)</source>
+        <source>Enter a Veil stealth address (e.g. %1)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

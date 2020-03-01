@@ -48,7 +48,7 @@
       <item alignment="Qt::AlignHCenter">
        <widget class="QLabel" name="labelTitle">
         <property name="text">
-         <string>Encrypt Wallet</string>
+         <string>Encrypt wallet</string>
         </property>
        </widget>
       </item>
