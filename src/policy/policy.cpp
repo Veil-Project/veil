@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -270,17 +271,18 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
     {
         // We don't care if witness for this input is empty, since it must not be bloated.
         // If the script is invalid without witness, it would be caught sooner or later during validation.
-        if (tx.vin[i].scriptWitness.IsNull())
+        if (tx.vin[i].scriptWitness.IsNull()) {
             continue;
+        }
 
         if (tx.vin[i].IsAnonInput())
         {
             size_t sizeWitnessStack = tx.vin[i].scriptWitness.stack.size();
-            if (sizeWitnessStack > 3)
+            if (sizeWitnessStack > MAX_STANDARD_RINGCT_STACK_ITEMS)
                 return false;
             for (unsigned int j = 0; j < sizeWitnessStack; j++)
             {
-                if (tx.vin[i].scriptWitness.stack[j].size() > 4096)
+                if (tx.vin[i].scriptWitness.stack[j].size() > MAX_STANDARD_RINGCT_STACK_ITEM_SIZE)
                     return error("%s: witness is larger than max size", __func__);
             }
             continue;
