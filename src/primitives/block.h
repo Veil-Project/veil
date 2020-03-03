@@ -411,6 +411,58 @@ public:
     }
 };
 
+/**
+ * Custom serializer for CBlockHeader that takes certain elements of the block header algo with the datahash
+ * that will be used as input into the sha256d hashing algo
+ */
+class CSha256dInput : private CBlockHeader
+{
+public:
+    uint256 headerDatahash;
+    CSha256dInput(const CBlockHeader &header, const uint256& dataHash)
+    {
+        CBlockHeader::SetNull();
+        *((CBlockHeader*)this) = header;
+
+        headerDatahash = dataHash;
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(this->nVersion);
+        READWRITE(headerDatahash);
+        READWRITE(hashMerkleRoot);
+        READWRITE(nTime);
+        READWRITE(nNonce64);
+    }
+};
+
+/**
+ * Custom serializer for CBlockHeader that takes certain elements of the block header and creates a single 32 bit hash output
+ * that will be used as input into the sha256d hashing algo
+ */
+class CSha256dDataInput : private CBlockHeader
+{
+public:
+    CSha256dDataInput(const CBlockHeader &header)
+    {
+        CBlockHeader::SetNull();
+        *((CBlockHeader*)this) = header;
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(hashPrevBlock);
+        READWRITE(hashWitnessMerkleRoot);
+        READWRITE(hashAccumulators);
+        READWRITE(nBits);
+    }
+};
+
 class CRandomXInput : private CBlockHeader
 {
 public:

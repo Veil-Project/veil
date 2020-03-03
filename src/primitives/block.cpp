@@ -32,7 +32,12 @@ uint256 CBlockHeader::GetX16RTPoWHash() const
 
 uint256 CBlockHeader::GetSha256DPoWHash() const
 {
-    return SerializeHash(*this);
+    CSha256dDataInput input(*this);
+
+    uint256 dataHash = SerializeHash(input);
+
+    CSha256dInput sha256Final(*this, dataHash);
+    return SerializeHash(sha256Final);
 }
 
 /**
