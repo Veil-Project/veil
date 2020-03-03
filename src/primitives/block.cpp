@@ -10,6 +10,9 @@
 #include <tinyformat.h>
 #include <utilstrencodings.h>
 #include <streams.h>
+#include <crypto/ethash/include/ethash/ethash.hpp>
+#include <crypto/ethash/helpers.hpp>
+#include <crypto/ethash/include/ethash/progpow.hpp>
 
 uint32_t nPowTimeStampActive = 0;
 

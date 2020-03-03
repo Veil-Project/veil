@@ -532,8 +532,8 @@ inline uint256 HashX16R(const T1 pbegin, const T1 pend, const uint256 PrevBlockH
     return hash[15].trim256();
 }
 
-
-uint256 ProgPowHash(CBlockHeader& blockHeader);
+uint256 ProgPowHash(const CBlockHeader& blockHeader);
+uint256 ProgPowHash(const CBlockHeader& blockHeader, uint256& mix_hash);
 
 
 #endif // BITCOIN_HASH_H

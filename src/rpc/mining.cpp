@@ -146,39 +146,13 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
         CheckIfValidationKeyShouldChangeAndUpdate(GetKeyBlock(pblock->nHeight));
 
         if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
-            LogPrintf("%s Mining ProgPow, %d\n", __func__, __LINE__);
-            const int epoch_number = ethash::get_epoch_number(pblock->nHeight);
-            ethash::epoch_context_ptr ctxp = ethash::create_epoch_context(epoch_number);
-            ethash::epoch_context &ctx = *ctxp;
-            const ethash::epoch_context &ctxl = reinterpret_cast<const ethash::epoch_context&>(ctx);
-
-            // Create the eth_boundary from the nBits
-            arith_uint256 bnTarget;
-            bool fNegative;
-            bool fOverflow;
-
-            bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
-
-            // Get the eth boundary
-            ethash::hash256 boundary = to_hash256(ArithToUint256(bnTarget).GetHex());
-
-            // Build the header_hash
-            uint256 nHeaderHash = pblock->GetProgPowHeaderHash();
-            const ethash::hash256 header_hash = to_hash256(nHeaderHash.GetHex());
-
-            while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount) {
-                // ProgPow hash
-                const ethash::result result = progpow::hash(ctx, pblock->nHeight, header_hash, pblock->nNonce64);
-                bool success = progpow::verify(ctxl, pblock->nHeight, header_hash, result.mix_hash, pblock->nNonce64, boundary);
-                if (success) {
-                    pblock->mixHash = uint256S(to_hex(result.mix_hash));
-                    break;
-                }
+            uint256 mix_hash;
+            while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount && !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits, Params().GetConsensus())) {
                 ++pblock->nNonce64;
                 --nMaxTries;
             }
+            pblock->mixHash = mix_hash;
         } else if (pblock->IsRandomX() && pblock->nTime >= Params().PowUpdateTimestamp()) {
-            LogPrintf("%s Mining RandomX, %d, keyhash = %s\n", __func__, __LINE__, GetCurrentKeyBlock().GetHex());
             char hash[RANDOMX_HASH_SIZE];
 
             arith_uint256 bnTarget;
@@ -202,7 +176,6 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
                 --nMaxTries;
             }
         } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
-            LogPrintf("%s Mining Sha256D, %d, keyhash = %s\n", __func__, __LINE__, GetCurrentKeyBlock().GetHex());
             while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount &&
                    !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits, Params().GetConsensus())) {
                 ++pblock->nNonce;
