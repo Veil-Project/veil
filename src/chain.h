@@ -401,7 +401,7 @@ public:
         return GetBlockHeader().GetX16RTPoWHash();
     }
 
-    uint256 GetProgPowHash() const;
+    uint256 GetProgPowHash(uint256& mix_hash) const;
 
     uint256 GetRandomXPoWHash() const;
 

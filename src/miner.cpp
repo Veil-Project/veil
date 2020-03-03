@@ -959,37 +959,12 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
 
             int nTries = 0;
             if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
-                const auto epoch_number = ethash::get_epoch_number(pblock->nHeight);
-                auto ctxp = ethash::create_epoch_context_full(epoch_number);
-                auto& ctx = *ctxp;
-                auto& ctxl = reinterpret_cast<const ethash::epoch_context&>(ctx);
-
-                // Create the eth_boundary from the nBits
-                arith_uint256 bnTarget;
-                bool fNegative;
-                bool fOverflow;
-
-                bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
-
-                // Get the eth boundary
-                auto boundary = to_hash256(ArithToUint256(bnTarget).GetHex());
-
-                // Build the header_hash
-                uint256 nHeaderHash = pblock->GetProgPowHeaderHash();
-                const auto header_hash = to_hash256(nHeaderHash.GetHex());
-
-                while (nTries < nInnerLoopCount) {
-                    boost::this_thread::interruption_point();
-                    // ProgPow hash
-                    const auto result = progpow::hash(ctx, pblock->nHeight, header_hash, pblock->nNonce64);
-                    auto success = progpow::verify(ctxl, pblock->nHeight, header_hash, result.mix_hash, pblock->nNonce64, boundary);
-                    if (success) {
-                        pblock->mixHash = uint256S(to_hex(result.mix_hash));
-                        break;
-                    }
+                uint256 mix_hash;
+                while (nTries < nInnerLoopCount && !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits, Params().GetConsensus())) {
                     ++nTries;
                     ++pblock->nNonce64;
                 }
+                pblock->mixHash = mix_hash;
             } else if (pblock->IsRandomX() && pblock->nTime >= Params().PowUpdateTimestamp()) {
                 arith_uint256 bnTarget;
                 bool fNegative;
