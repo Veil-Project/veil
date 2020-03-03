@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Veil developers
+// Copyright (c) 2019-2020 Veil developers
 // Copyright (c) 2016-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -19,7 +19,6 @@ static const int32_t VERSIONBITS_NEW_POW_VERSION = 0x30000000UL;
 static const int32_t VERSIONBITS_TOP_MASK = 0xFF000000UL;
 /** Total bits available for versionbits */
 static const int32_t VERSIONBITS_NUM_BITS = 24;
-
 
 enum class ThresholdState {
     DEFINED,
