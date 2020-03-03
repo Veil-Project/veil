@@ -424,6 +424,8 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             "  \"curtime\" : ttt,                  (numeric) current timestamp in seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"bits\" : \"xxxxxxxx\",              (string) compressed target of next block\n"
             "  \"height\" : n                      (numeric) The height of the next block\n"
+            "  \"pprpcheader\" : \"xxxx\"          (string) The header hash that can be used by the local GPU miner to mine a block (using -miningaddress) as the destination for the coinbase tx\n"
+            "  \"pprpcepoch\" : n                  (numeric) The epoch of the progpow pprpcheader given to user to be used by the local GPU miner\n"
             "}\n"
 
             "\nExamples:\n"
@@ -582,17 +584,23 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
         nStart = GetTime();
         fLastTemplateSupportsSegwit = fSupportsSegwit;
 
-        // Get mining address if it is set
-        std::string address = gArgs.GetArg("-miningaddress", "");
-        CTxDestination dest =  DecodeDestination(address);
 
+        // Get mining address if it is set
         CScript script;
-        if (IsValidDestination(dest)) {
-            script = GetScriptForDestination(dest);
+        std::string address = gArgs.GetArg("-miningaddress", "");
+        if (!address.empty()) {
+            CTxDestination dest = DecodeDestination(address);
+
+            if (IsValidDestination(dest)) {
+                script = GetScriptForDestination(dest);
+            } else {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "-miningaddress is not a valid address. Please use a valid address");
+            }
         } else {
-            script = CScript() << OP_TRUE;;
+            script = CScript() << OP_TRUE;
         }
 
+        // Create new block
         pblocktemplate = BlockAssembler(Params()).CreateNewBlock(script, fSupportsSegwit, false, false);
         if (!pblocktemplate)
             throw JSONRPCError(RPC_VERIFY_ERROR, "Created block is rejected or otherwise unable to successfully create a new block");
@@ -1113,12 +1121,12 @@ static const CRPCCommand commands[] =
     { "mining",             "prioritisetransaction",  &prioritisetransaction,  {"txid","dummy","fee_delta"} },
     { "mining",             "getblocktemplate",       &getblocktemplate,       {"template_request"} },
     { "mining",             "submitblock",            &submitblock,            {"hexdata","dummy"} },
-    { "mining",             "pprpcsb",                &pprpcsb,            {"header_hash","mix_hash", "nonce"} },
+    { "mining",             "pprpcsb",                &pprpcsb,                {"header_hash", "mix_hash", "nonce"} },
 
 
     { "generating",         "generatetoaddress",      &generatetoaddress,      {"nblocks","address","maxtries"} },
-
     { "hidden",             "estimatefee",            &estimatefee,            {} },
+
     { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },
 
     { "hidden",             "estimaterawfee",         &estimaterawfee,         {"conf_target", "threshold"} },
