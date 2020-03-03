@@ -664,10 +664,18 @@ public:
                     READWRITE(nNonce64);
                     break;
                 default:
+                    SetNull();
                     break;
             }
 
             READWRITE(hashAccumulators);
+        } else {
+            // Check for an early new block
+            if (!fCheckVeilDataHash) {
+                // We want to fail to accept this block. setting it NUll should fail all checks done on it
+                SetNull();
+                return;
+            }
         }
     }
 
