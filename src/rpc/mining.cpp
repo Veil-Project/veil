@@ -41,6 +41,8 @@
 #include <crypto/randomx/randomx.h>
 #include <crypto/hash-ops.h>
 
+std::map<std::string, CBlock> mapProgPowTemplates;
+
 unsigned int ParseConfirmTarget(const UniValue& value)
 {
     int target = value.get_int();
@@ -422,6 +424,8 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             "  \"curtime\" : ttt,                  (numeric) current timestamp in seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"bits\" : \"xxxxxxxx\",              (string) compressed target of next block\n"
             "  \"height\" : n                      (numeric) The height of the next block\n"
+            "  \"pprpcheader\" : \"xxxx\"          (string) The header hash that can be used by the local GPU miner to mine a block (using -miningaddress) as the destination for the coinbase tx\n"
+            "  \"pprpcepoch\" : n                  (numeric) The epoch of the progpow pprpcheader given to user to be used by the local GPU miner\n"
             "}\n"
 
             "\nExamples:\n"
@@ -572,6 +576,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     {
         // Clear pindexPrev so future calls make a new block, despite any failures from here on
         pindexPrev = nullptr;
+        mapProgPowTemplates.clear();
 
         // Store the pindexBest used before CreateNewBlock, to avoid races
         nTransactionsUpdatedLast = mempool.GetTransactionsUpdated();
@@ -579,8 +584,24 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
         nStart = GetTime();
         fLastTemplateSupportsSegwit = fSupportsSegwit;
 
-        CScript scriptDummy = CScript() << OP_TRUE;
-        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, fSupportsSegwit, false, false);
+
+        // Get mining address if it is set
+        CScript script;
+        std::string address = gArgs.GetArg("-miningaddress", "");
+        if (!address.empty()) {
+            CTxDestination dest = DecodeDestination(address);
+
+            if (IsValidDestination(dest)) {
+                script = GetScriptForDestination(dest);
+            } else {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "-miningaddress is not a valid address. Please use a valid address");
+            }
+        } else {
+            script = CScript() << OP_TRUE;
+        }
+
+        // Create new block
+        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(script, fSupportsSegwit, false, false);
         if (!pblocktemplate)
             throw JSONRPCError(RPC_VERIFY_ERROR, "Created block is rejected or otherwise unable to successfully create a new block");
 
@@ -741,6 +762,12 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     result.pushKV("accumulatorhashes", mapaccumulatorhashes);
     result.pushKV("proofoffullnodehash", pblock->hashPoFN.GetHex());
 
+    if (pblock->IsProgPow()) {
+        result.pushKV("pprpcheader", pblock->GetProgPowHeaderHash().GetHex());
+        result.pushKV("pprpcepoch", progpow::get_epoch_number(pblock->nHeight));
+        mapProgPowTemplates[pblock->GetProgPowHeaderHash().GetHex()] = *pblock;
+    }
+
     return result;
 }
 
@@ -761,6 +788,92 @@ protected:
         state = stateIn;
     }
 };
+
+static UniValue pprpcsb(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() != 3) {
+        throw std::runtime_error(
+                "pprpcsb \"header_hash\" \"mix_hash\" \"nonce\"\n"
+                "\nAttempts to submit new block to network mined by progpow gpu miner via rpc.\n"
+
+                "\nArguments\n"
+                "1. \"header_hash\"        (string, required) the prow_pow header hash that was given to the gpu miner from this rpc client\n"
+                "2. \"mix_hash\"           (string, required) the mix hash that was mined by the gpu miner via rpc\n"
+                "3. \"nonce\"              (string, required) the nonce of the block that hashed the valid block\n"
+                "\nResult:\n"
+                "\nExamples:\n"
+                + HelpExampleCli("pprpcsb", "\"header_hash\" \"mix_hash\" 100000")
+                + HelpExampleRpc("pprpcsb", "\"header_hash\" \"mix_hash\" 100000")
+        );
+    }
+
+    std::string header_hash = request.params[0].get_str();
+    std::string mix_hash = request.params[1].get_str();
+    std::string str_nonce = request.params[2].get_str();
+
+    uint64_t nonce = std::stoul(str_nonce, nullptr, 16);
+
+    if (!mapProgPowTemplates.count(header_hash))
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Block header hash not found in block data");
+
+    std::shared_ptr<CBlock> blockptr = std::make_shared<CBlock>();
+    *blockptr = mapProgPowTemplates.at(header_hash);
+
+    blockptr->nNonce64 = nonce;
+
+    if (blockptr->vtx.empty() || !blockptr->vtx[0]->IsCoinBase()) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block does not start with a coinbase");
+    }
+
+    if (!CheckProgProofOfWork(blockptr->GetBlockHeader(), blockptr->nBits, Params().GetConsensus()))
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block does not solve the boundary");
+
+
+    uint256 hash = blockptr->GetHash();
+    {
+        LOCK(cs_main);
+        const CBlockIndex* pindex = LookupBlockIndex(hash);
+        if (pindex) {
+            if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
+                return "duplicate";
+            }
+            if (pindex->nStatus & BLOCK_FAILED_MASK) {
+                return "duplicate-invalid";
+            }
+        }
+    }
+
+    {
+        LOCK(cs_main);
+        const CBlockIndex* pindex = LookupBlockIndex(blockptr->hashPrevBlock);
+        if (pindex) {
+            UpdateUncommittedBlockStructures(*blockptr, pindex, Params().GetConsensus());
+        }
+    }
+
+    bool new_block;
+    submitblock_StateCatcher sc(blockptr->GetHash());
+    RegisterValidationInterface(&sc);
+    bool accepted = ProcessNewBlock(Params(), blockptr, /* fForceProcessing */ true, /* fNewBlock */ &new_block);
+    UnregisterValidationInterface(&sc);
+    if (!new_block) {
+        if (!accepted) {
+            // TODO Maybe pass down fNewBlock to AcceptBlockHeader, so it is properly set to true in this case?
+            return "invalid";
+        }
+        return "duplicate";
+    }
+    if (!sc.found) {
+        return "inconclusive";
+    }
+    UniValue ret = BIP22ValidationResult(sc.state);
+
+    // BIP22ValidationResult set the return to null when the state is valid
+    if (ret.isNull()) {
+        return true;
+    } else {
+        return ret;
+    }
+}
 
 static UniValue submitblock(const JSONRPCRequest& request)
 {
@@ -1008,11 +1121,12 @@ static const CRPCCommand commands[] =
     { "mining",             "prioritisetransaction",  &prioritisetransaction,  {"txid","dummy","fee_delta"} },
     { "mining",             "getblocktemplate",       &getblocktemplate,       {"template_request"} },
     { "mining",             "submitblock",            &submitblock,            {"hexdata","dummy"} },
+    { "mining",             "pprpcsb",                &pprpcsb,                {"header_hash", "mix_hash", "nonce"} },
 
 
     { "generating",         "generatetoaddress",      &generatetoaddress,      {"nblocks","address","maxtries"} },
-
     { "hidden",             "estimatefee",            &estimatefee,            {} },
+
     { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },
 
     { "hidden",             "estimaterawfee",         &estimaterawfee,         {"conf_target", "threshold"} },
