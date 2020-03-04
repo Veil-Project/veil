@@ -151,8 +151,8 @@ uint32_t FillStealthPrefix(uint8_t nBits, uint32_t nBitfield);
 
 bool ExtractStealthPrefix(const char *pPrefix, uint32_t &nPrefix);
 
-int MakeStealthData(const std::string &sNarration, stealth_prefix prefix, const CKey &sShared, const CPubKey &pkEphem,
-                    std::vector<uint8_t> &vData, uint32_t &nStealthPrefix, std::string &sError);
+bool MakeStealthData(const std::string &sNarration, stealth_prefix prefix, const CKey &sShared, const CPubKey &pkEphem,
+                     std::vector<uint8_t> &vData, uint32_t &nStealthPrefix, std::string &sError);
 
 int PrepareStealthOutput(const CStealthAddress &sx, const std::string &sNarration,
                          CScript &scriptPubKey, std::vector<uint8_t> &vData, std::string &sError);
