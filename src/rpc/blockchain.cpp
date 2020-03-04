@@ -1,7 +1,7 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2018 The Bitcoin Core developers
 // Copyright (c) 2015-2018 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -186,9 +186,9 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.pushKV("anon_index", (uint64_t)blockindex->nAnonOutputs);
     result.pushKV("veil_data_hash", block.GetVeilDataHash().GetHex());
     CDataStream ss(PROTOCOL_VERSION, SER_NETWORK);
-    ss << block.nVersion << block.hashPrevBlock << block.hashVeilData << block.nTime << block.nBits << block.nHeight;
+    ss << block.nVersion << block.hashPrevBlock << block.hashMerkleRoot << block.hashWitnessMerkleRoot << block.hashWitnessMerkleRoot << block.nTime << block.nBits << block.nHeight;
 
-    if (block.IsProofOfWork()) {
+    if (block.IsProgPow()) {
         result.pushKV("prog_header_hash", block.GetProgPowHeaderHash().GetHex());
         result.pushKV("prog_header_hex", HexStr(ss.begin(), ss.end()));
         result.pushKV("epoch_number", ethash::get_epoch_number(block.nHeight));

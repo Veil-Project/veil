@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Copyright (c) 2015-2019 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -2146,9 +2146,10 @@ VersionBitsCache versionbitscache;
 int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params, const uint32_t& blockTime, const bool& fProofOfWork)
 {
     LOCK(cs_main);
-    int32_t nVersion = VERSIONBITS_TOP_BITS;
+    int32_t nVersion = VERSIONBITS_OLD_POW_VERSION;
 
     if (blockTime >= Params().PowUpdateTimestamp()) {
+        nVersion = VERSIONBITS_NEW_POW_VERSION;
         std::string algo = gArgs.GetArg("-mine", "randomx");
 
         if (fProofOfWork) {
@@ -2868,13 +2869,23 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     LogPrint(BCLog::BENCH, "    - Verify %u txins: %.2fms (%.3fms/txin) [%.2fs (%.2fms/blk)]\n", nInputs - 1, MILLI * (nTime4 - nTime2), nInputs <= 1 ? 0 : MILLI * (nTime4 - nTime2) / (nInputs-1), nTimeVerify * MICRO, nTimeVerify * MILLI / nBlocksTotal);
 
     //Check that the final calculated data matched the veildatahash
-    CBlock blockCalc;
-    blockCalc.hashMerkleRoot = BlockMerkleRoot(block);
-    blockCalc.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(block);
-    blockCalc.mapAccumulatorHashes = block.mapAccumulatorHashes; //This acc map already validated above in validateaccumulatorcheckpoint
-    blockCalc.hashPoFN = block.hashPoFN;
-    if(blockCalc.GetVeilDataHash() != block.GetVeilDataHash())
-        return state.DoS(100, error("%s: VeilDataHash comparison  failed: %s", __func__, blockCalc.DataHashElementsToString()), REJECT_INVALID, "block-validation-failed");
+    if (block.nTime < nPowTimeStampActive) {
+        CBlock blockCalc;
+        blockCalc.hashMerkleRoot = BlockMerkleRoot(block);
+        blockCalc.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(block);
+        blockCalc.mapAccumulatorHashes = block.mapAccumulatorHashes; //This acc map already validated above in validateaccumulatorcheckpoint
+        blockCalc.hashPoFN = block.hashPoFN;
+        if (blockCalc.GetVeilDataHash() != block.GetVeilDataHash())
+            return state.DoS(100, error("%s: VeilDataHash comparison  failed: %s", __func__,
+                                        blockCalc.DataHashElementsToString()), REJECT_INVALID,
+                             "block-validation-failed");
+    } else {
+        if (SerializeHash(block.mapAccumulatorHashes) != block.hashAccumulators) {
+            return state.DoS(100, error("%s: VeilDataHash comparison v2 failed: %s", __func__,
+                                        block.DataHashElementsToString()), REJECT_INVALID,
+                             "block-validation-failed");
+        }
+    }
 
     if (fJustCheck)
         return true;
@@ -4009,6 +4020,10 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     if (fCheckPOW && fCheckProofOfFullNode)
         return state.DoS(50, false, REJECT_INVALID, "PoW and PoFN conflict", false, "Block attempted to use both PoW and PoFN");
 
+    // Check to make sure only one PoW bit is set
+    if ((block.IsProgPow() && block.IsSha256D()) || (block.IsProgPow() && block.IsRandomX()) || (block.IsRandomX() && block.IsSha256D()))
+        return state.DoS(100, false, REJECT_INVALID, "multi-algos", false, "multiple algo bits are set to active. Only one allowed");
+
     // Check proof of work matches claimed amount
     if (fCheckPOW) {
         if (block.IsProgPow() && block.nTime >= Params().PowUpdateTimestamp()) {
@@ -4076,12 +4091,15 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     // checks that use witness data may be performed here.
 
     // Size limits
-    if (block.vtx.empty() || block.vtx.size() * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT || ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT)
+    if (block.vtx.empty() || block.vtx.size() * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT || ::GetSerializeSize(block, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT) {
         return state.DoS(100, false, REJECT_INVALID, "bad-blk-length", false, "size limits failed");
+    }
 
     // First transaction must be coinbase, the rest must not be
-    if (block.vtx.empty() || !block.vtx[0]->IsCoinBase())
+    if (block.vtx.empty() || !block.vtx[0]->IsCoinBase()) {
         return state.DoS(100, false, REJECT_INVALID, "bad-cb-missing", false, "first tx is not coinbase");
+    }
+
     for (unsigned int i = 1; i < block.vtx.size(); i++) {
         if (block.vtx[i]->IsCoinBase())
             return state.DoS(100, false, REJECT_INVALID, "bad-cb-multiple", false, "more than one coinbase");
@@ -4441,6 +4459,19 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
     // Check timestamp
     if (block.GetBlockTime() > nAdjustedTime + MAX_FUTURE_BLOCK_TIME)
         return state.Invalid(false, REJECT_INVALID, "time-too-new", "block timestamp too far in the future");
+
+    // Once we active that new 3 PoW algos. We are enforcing that all block first 4 bits are (0011) = 3
+    if (block.nTime >= nPowTimeStampActive) {
+        if (block.nVersion >> BITS_TO_BLOCK_VERSION != NEW_POW_BLOCK_VERSION) {
+            return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
+                                 strprintf("rejected nVersion=0x%08x block, all blocks first 4 bits must show decimal (%d) or binary (0011)", block.nVersion, NEW_POW_BLOCK_VERSION));
+        }
+    } else {
+        if (block.nVersion >> BITS_TO_BLOCK_VERSION != OLD_POW_BLOCK_VERSION) {
+            return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
+                                 strprintf("rejected nVersion=0x%08x block, all blocks first 4 bits must show decimal (%d) or binary (0010)", block.nVersion, OLD_POW_BLOCK_VERSION));
+        }
+    }
 
     // Reject outdated version blocks when 95% (75% on testnet) of the network has upgraded:
     // check for version 2, 3 and 4 upgrades

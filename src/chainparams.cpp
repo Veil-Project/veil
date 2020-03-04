@@ -255,6 +255,12 @@ public:
         nDefaultPort = 58810;
         nPruneAfterHeight = 100000;
 
+        // TODO update timestamp with mainnet activation time
+        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
+        nPowUpdateTimestamp = 4294967295;
+        /// Used by block.h for serialization // TODO, update with mainnet activation time above
+        nPowTimeStampActive = 4294967295;
+
         int nTimeStart = 1540413025;
         arith_uint256 nBits;
         nBits.SetCompact(0x1e0ffff0);
@@ -369,13 +375,6 @@ public:
         nDefaultRingSize = 11;
 
         nMaxHeaderRequestWithoutPoW = 50;
-
-
-        // TODO update timestamp with mainnet activation time
-        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
-        nPowUpdateTimestamp = 1608901200; // Fri Dec 25 2020 13:00:00
-        /// Used by block.h for serialization // TODO, update with mainnet activation time above
-        nPowTimeStampActive = 1608901200;
     }
 };
 
@@ -442,6 +441,11 @@ public:
         pchMessageStart[3] = 0xc4;
         nDefaultPort = 58811;
         nPruneAfterHeight = 1000;
+
+        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
+        // TODO update when ready for testnet launch
+        nPowUpdateTimestamp = 4294967295; // Monday, January 13, 2020 6:00:00 PM
+        nPowTimeStampActive = 4294967295; // Used by block.h for serialization
 
         int nTimeStart = 1548379385;
         uint32_t nNonce = 4234676;
@@ -543,11 +547,6 @@ public:
         nMaxHeaderRequestWithoutPoW = 50;
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
-
-        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
-        // TODO update when ready for testnet launch
-        nPowUpdateTimestamp = 8578938400; // Monday, January 13, 2020 6:00:00 PM
-        nPowTimeStampActive = 8578938400; // Used by block.h for serialization
     }
 };
 
@@ -611,6 +610,10 @@ public:
         pchMessageStart[3] = 0xc4;
         nDefaultPort = 58812;
         nPruneAfterHeight = 1000;
+
+        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
+        nPowUpdateTimestamp = 1582135200; // Wednesday, February 19, 2020 Noon CST
+        nPowTimeStampActive = 1582135200; // Used by block.h for serialization
 
         int nTimeStart = 1548379385;
         uint32_t nNonce = 4234676;
@@ -708,10 +711,6 @@ public:
         nMaxHeaderRequestWithoutPoW = 50;
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
-
-        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
-        nPowUpdateTimestamp = 1582135200; // Wednesday, February 19, 2020 Noon CST
-        nPowTimeStampActive = 1582135200; // Used by block.h for serialization
     }
 };
 
@@ -770,6 +769,12 @@ public:
         nConsecutivePoWHeight = 1000000;
         nLastPOWBlock = 2000000;
         nHeightSupplyCreationStop = 9816000;
+
+        // These need to be set before the genesis block is checked
+        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
+        nPowUpdateTimestamp = 1296688605; // On from that start
+        /// Used by block.h for serialization
+        nPowTimeStampActive = nPowUpdateTimestamp;
 
         genesis = CreateGenesisBlock(1296688602, 3962663, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
@@ -852,11 +857,6 @@ public:
         nMaxHeaderRequestWithoutPoW = 50;
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
-
-        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
-        nPowUpdateTimestamp = 0; // On from that start
-        /// Used by block.h for serialization
-        nPowTimeStampActive = 0;
     }
 };
 

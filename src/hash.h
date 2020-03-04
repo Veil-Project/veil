@@ -1,3 +1,4 @@
+// Copyright (c) 2020 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -40,6 +41,7 @@ typedef uint256 ChainCode;
 class CHash256 {
 private:
     CSHA256 sha;
+
 public:
     static const size_t OUTPUT_SIZE = CSHA256::OUTPUT_SIZE;
 
@@ -348,6 +350,7 @@ uint256 SerializeHash(const T& obj, int nType=SER_GETHASH, int nVersion=PROTOCOL
 {
     CHashWriter ss(nType, nVersion);
     ss << obj;
+
     return ss.GetHash();
 }
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Veil developers
+// Copyright (c) 2019-2020 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -9,10 +9,6 @@
 #include <hash.h>
 #include <tinyformat.h>
 #include <utilstrencodings.h>
-#include <streams.h>
-#include <crypto/ethash/include/ethash/ethash.hpp>
-#include <crypto/ethash/helpers.hpp>
-#include <crypto/ethash/include/ethash/progpow.hpp>
 
 uint32_t nPowTimeStampActive = 0;
 
@@ -32,7 +28,12 @@ uint256 CBlockHeader::GetX16RTPoWHash() const
 
 uint256 CBlockHeader::GetSha256DPoWHash() const
 {
-    return SerializeHash(*this);
+    CSha256dDataInput input(*this);
+
+    uint256 dataHash = SerializeHash(input);
+
+    CSha256dInput sha256Final(*this, dataHash);
+    return SerializeHash(sha256Final);
 }
 
 /**

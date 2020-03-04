@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Veil developers
+// Copyright (c) 2019-2020 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -13,9 +13,14 @@
 
 #include <unordered_map>
 #include <libzerocoin/Denominations.h>
+#include <iostream>
+
+
+static const int32_t BITS_TO_BLOCK_VERSION = 28;
+static const int OLD_POW_BLOCK_VERSION = 2;
+static const int NEW_POW_BLOCK_VERSION = 3;
 
 extern uint32_t nPowTimeStampActive;
-
 
 struct CVeilBlockData
 {
@@ -69,9 +74,9 @@ class CBlockHeader
 public:
 
     enum {
-        PROGPOW_BLOCK = ( 1 << 29),
-        RANDOMX_BLOCK = ( 1 << 28),
-        SHA256D_BLOCK = ( 1 << 27)
+        PROGPOW_BLOCK = ( 1 << 26),
+        RANDOMX_BLOCK = ( 1 << 25),
+        SHA256D_BLOCK = ( 1 << 24)
     };
 
     // header
@@ -84,11 +89,15 @@ public:
     uint8_t fProofOfStake;
     uint8_t fProofOfFullNode;
 
+    // Removal of the hashVeilData once PoW 3 algo goes live
+    uint256 hashMerkleRoot;
+    uint256 hashWitnessMerkleRoot;
+    uint256 hashAccumulators;
+
     //ProgPow
     uint64_t nNonce64;
     uint32_t nHeight;
     uint256 mixHash;
-
 
     CBlockHeader()
     {
@@ -99,24 +108,65 @@ public:
 
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream& s, Operation ser_action) {
+        bool fCheckVeilDataHash = false;
         READWRITE(nVersion);
         READWRITE(hashPrevBlock);
-        READWRITE(hashVeilData);
+        // When Veil started the block version in hex it looks is the following 0x20000000
+        // We only want to write the hashVeilData to disk when first 4 bits of the version == OLD_POW_MAIN_VERSION or lower, e.g -> 2
+        if (nVersion >> BITS_TO_BLOCK_VERSION <= OLD_POW_BLOCK_VERSION) {
+            fCheckVeilDataHash = true;
+            // This is the version that the new PoW started at. This is when we stop using hashVeilData.
+            // We would normally use the nTime of the block. However, that is serialized after the hashVeilData
+            // So we don't have access to it
+            READWRITE(hashVeilData);
+        }
+
         READWRITE(nTime);
         READWRITE(nBits);
-        if (nVersion & PROGPOW_BLOCK && nTime >= nPowTimeStampActive) {
-            READWRITE(nHeight);
-            READWRITE(nNonce64);
-            READWRITE(mixHash);
-        } else if (nVersion & RANDOMX_BLOCK && nTime >= nPowTimeStampActive) {
-            READWRITE(nHeight);
-            READWRITE(nNonce);
+
+        if (nTime >= nPowTimeStampActive) {
+            if (fCheckVeilDataHash) {
+                // We want to fail to accept this block. setting it NUll should fail all checks done on it
+                SetNull();
+                return;
+            }
+
+            READWRITE(hashMerkleRoot);
+            READWRITE(hashWitnessMerkleRoot);
+            READWRITE(hashAccumulators);
+
+            int32_t nPowType = (nVersion & (PROGPOW_BLOCK | RANDOMX_BLOCK | SHA256D_BLOCK));
+            std::cout << nPowType;
+            switch(nPowType) {
+                case PROGPOW_BLOCK:
+                    READWRITE(nHeight);
+                    READWRITE(nNonce64);
+                    READWRITE(mixHash);
+                    break;
+                case RANDOMX_BLOCK:
+                    READWRITE(nHeight);
+                    READWRITE(nNonce);
+                    break;
+                case SHA256D_BLOCK:
+                    READWRITE(nNonce64);
+                    break;
+                default:
+                    SetNull();
+                    return;
+            }
         } else {
             READWRITE(nNonce);
         }
+
         if (!(s.GetType() & SER_GETHASH)) {
             READWRITE(fProofOfStake);
-            READWRITE(fProofOfFullNode);
+            if (nTime < nPowTimeStampActive) {
+                READWRITE(fProofOfFullNode);
+            } else {
+                if (fProofOfStake) {
+                    READWRITE(fProofOfFullNode);
+                }
+            }
         }
     }
 
@@ -125,6 +175,9 @@ public:
         nVersion = 0;
         hashPrevBlock.SetNull();
         hashVeilData.SetNull();
+        hashMerkleRoot.SetNull();
+        hashWitnessMerkleRoot.SetNull();
+        hashAccumulators.SetNull();
         nTime = 0;
         nBits = 0;
         nNonce = 0;
@@ -178,8 +231,6 @@ public:
     // zerocoin
     std::map<libzerocoin::CoinDenomination , uint256> mapAccumulatorHashes;
 
-    uint256 hashWitnessMerkleRoot;
-    uint256 hashMerkleRoot;
     uint256 hashPoFN;
 
     // Proof of Stake: block signature - signed by one of the coin base txout[N]'s owner
@@ -207,8 +258,10 @@ public:
         READWRITEAS(CBlockHeader, *this);
         READWRITE(vtx);
         READWRITE(mapAccumulatorHashes);
-        READWRITE(hashMerkleRoot);
-        READWRITE(hashWitnessMerkleRoot);
+        if (nTime < nPowTimeStampActive) {
+            READWRITE(hashMerkleRoot);
+            READWRITE(hashWitnessMerkleRoot);
+        }
         if (IsProofOfStake()) {
             READWRITE(hashPoFN);
             READWRITE(vchBlockSig);
@@ -239,6 +292,9 @@ public:
         CBlockHeader block;
         block.nVersion       = nVersion;
         block.hashPrevBlock  = hashPrevBlock;
+        block.hashMerkleRoot = hashMerkleRoot;
+        block.hashWitnessMerkleRoot = hashWitnessMerkleRoot;
+        block.hashAccumulators = SerializeHash(mapAccumulatorHashes);
         block.hashVeilData   = SerializeHash(veilBlockData);
         block.nTime          = nTime;
         block.nBits          = nBits;
@@ -346,10 +402,64 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(this->nVersion);
         READWRITE(hashPrevBlock);
-        READWRITE(hashVeilData);
+        READWRITE(hashMerkleRoot);
+        READWRITE(hashWitnessMerkleRoot);
+        READWRITE(hashAccumulators);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nHeight);
+    }
+};
+
+/**
+ * Custom serializer for CBlockHeader that takes certain elements of the block header algo with the datahash
+ * that will be used as input into the sha256d hashing algo
+ */
+class CSha256dInput : private CBlockHeader
+{
+public:
+    uint256 headerDatahash;
+    CSha256dInput(const CBlockHeader &header, const uint256& dataHash)
+    {
+        CBlockHeader::SetNull();
+        *((CBlockHeader*)this) = header;
+
+        headerDatahash = dataHash;
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(this->nVersion);
+        READWRITE(headerDatahash);
+        READWRITE(hashMerkleRoot);
+        READWRITE(nTime);
+        READWRITE(nNonce64);
+    }
+};
+
+/**
+ * Custom serializer for CBlockHeader that takes certain elements of the block header and creates a single 32 bit hash output
+ * that will be used as input into the sha256d hashing algo
+ */
+class CSha256dDataInput : private CBlockHeader
+{
+public:
+    CSha256dDataInput(const CBlockHeader &header)
+    {
+        CBlockHeader::SetNull();
+        *((CBlockHeader*)this) = header;
+    }
+
+    ADD_SERIALIZE_METHODS;
+
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action) {
+        READWRITE(hashPrevBlock);
+        READWRITE(hashWitnessMerkleRoot);
+        READWRITE(hashAccumulators);
+        READWRITE(nBits);
     }
 };
 
@@ -368,7 +478,9 @@ public:
     inline void SerializationOp(Stream& s, Operation ser_action) {
         READWRITE(this->nVersion);
         READWRITE(hashPrevBlock);
-        READWRITE(hashVeilData);
+        READWRITE(hashMerkleRoot);
+        READWRITE(hashWitnessMerkleRoot);
+        READWRITE(hashAccumulators);
         READWRITE(nTime);
         READWRITE(nBits);
         READWRITE(nNonce);

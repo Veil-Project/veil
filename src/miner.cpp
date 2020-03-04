@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Veil developers
+// Copyright (c) 2019-2020 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -494,6 +494,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // Once the merkleRoot, witnessMerkleRoot and mapAccumulatorHashes have been calculated we can calculate the hashVeilData
     pblock->hashVeilData = pblock->GetVeilDataHash();
+    pblock->hashAccumulators = SerializeHash(pblock->mapAccumulatorHashes);
 
     //Sign block if this is a proof of stake block
     if (fProofOfStake) {
@@ -995,7 +996,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                        !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits, Params().GetConsensus())) {
                     boost::this_thread::interruption_point();
                     ++nTries;
-                    ++pblock->nNonce;
+                    ++pblock->nNonce64;
                 }
             } else {
                 while (nTries < nInnerLoopCount &&
