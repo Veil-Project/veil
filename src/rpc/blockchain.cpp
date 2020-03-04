@@ -146,9 +146,11 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     result.pushKV("proof_type", type);
     if (blockindex->IsProofOfStake())
         result.pushKV("proofofstakehash", blockindex->GetBlockPoSHash().GetHex());
-    else if (blockindex->IsProgProofOfWork() && blockindex->nTime >= Params().PowUpdateTimestamp())
-        result.pushKV("progproofofworkhash", blockindex->GetProgPowHash().GetHex());
-    else if (blockindex->IsRandomXProofOfWork() && blockindex->nTime >= Params().PowUpdateTimestamp())
+    else if (blockindex->IsProgProofOfWork() && blockindex->nTime >= Params().PowUpdateTimestamp()) {
+        uint256 mix_hash;
+        result.pushKV("progproofofworkhash", blockindex->GetProgPowHash(mix_hash).GetHex());
+        result.pushKV("progpowmixhash", mix_hash.GetHex());
+    } else if (blockindex->IsRandomXProofOfWork() && blockindex->nTime >= Params().PowUpdateTimestamp())
         result.pushKV("randomxproofofworkhash", blockindex->GetRandomXPoWHash().GetHex());
     else if (blockindex->IsSha256DProofOfWork() && blockindex->nTime >= Params().PowUpdateTimestamp())
         result.pushKV("sha256dproofofworkhash", blockindex->GetSha256DPowHash().GetHex());

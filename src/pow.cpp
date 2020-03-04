@@ -249,42 +249,6 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&
     return UintToArith256(hash) < bnTarget;
 }
 
-bool CheckProgProofOfWork(const CBlockHeader& block, unsigned int nBits, const Consensus::Params& params)
-{
-    // Create epoch context
-    ethash::epoch_context_ptr context{nullptr, nullptr};
-
-    // Create the eth_boundary from the nBits
-    arith_uint256 bnTarget;
-    bool fNegative;
-    bool fOverflow;
-
-    bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
-
-    // Check range
-    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(params.powLimit)) {
-        return false;
-    }
-
-    // Get the context from the block height
-    const auto epoch_number = ethash::get_epoch_number(block.nHeight);
-    if (!context || context->epoch_number != epoch_number)
-        context = ethash::create_epoch_context(epoch_number);
-
-    // Build the header_hash
-    uint256 nHeaderHash = block.GetProgPowHeaderHash();
-    const auto header_hash = to_hash256(nHeaderHash.GetHex());
-
-    // ProgPow hash
-    const auto result = progpow::hash(*context, block.nHeight, header_hash, block.nNonce64);
-
-    // Get the eth boundary
-    auto boundary = to_hash256(ArithToUint256(bnTarget).GetHex());
-
-    return progpow::verify(
-            *context, block.nHeight, header_hash, result.mix_hash, block.nNonce64, boundary);
-}
-
 #define KEY_CHANGE 2048
 #define SWITCH_KEY 64
 

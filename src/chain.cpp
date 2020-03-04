@@ -262,10 +262,10 @@ uint256 CBlockIndex::GetRandomXPoWHash() const
     return GetRandomXBlockHash(GetBlockHeader().nHeight, GetBlockHeader().GetRandomXHeaderHash());
 }
 
-uint256 CBlockIndex::GetProgPowHash() const
+uint256 CBlockIndex::GetProgPowHash(uint256& mix_hash) const
 {
     CBlockHeader header = GetBlockHeader();
-    return ProgPowHash(header);
+    return ProgPowHash(header, mix_hash);
 }
 
 // We are going to be performing a block hash for RandomX. To see if we need to spin up a new

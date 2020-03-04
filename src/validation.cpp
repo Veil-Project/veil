@@ -4027,8 +4027,13 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     // Check proof of work matches claimed amount
     if (fCheckPOW) {
         if (block.IsProgPow() && block.nTime >= Params().PowUpdateTimestamp()) {
-            if (!CheckProgProofOfWork(block, block.nBits, consensusParams))
+            uint256 mix_hash;
+            if (!CheckProofOfWork(ProgPowHash(block, mix_hash), block.nBits, consensusParams))
                 return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "progpow proof of work failed");
+
+            if (mix_hash != block.mixHash) {
+                return state.DoS(50, false, REJECT_INVALID, "invalid-mix-hash", false, "mix hashes don't match");
+            }
         } else if (block.IsRandomX() && block.nTime >= Params().PowUpdateTimestamp()) {
             if (!CheckRandomXProofOfWork(block, block.nBits, consensusParams)) {
                 LogPrintf("%s : randomx proof of work failed %s\n", __func__, block.GetHash().GetHex());

@@ -8,12 +8,16 @@
 #include <vector>
 #include <stdint.h>
 #include <amount.h>
+#include <map>
 
 class CBlock;
 class CBlockIndex;
 class UniValue;
+class uint256;
 
 static constexpr int NUM_GETBLOCKSTATS_PERCENTILES = 5;
+
+extern std::map<std::string, CBlock> mapProgPowTemplates;
 
 /**
  * Get the difficulty of the net wrt to the given block index, or the chain tip if
