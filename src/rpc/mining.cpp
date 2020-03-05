@@ -807,8 +807,10 @@ static UniValue pprpcsb(const JSONRPCRequest& request) {
     }
 
     std::string header_hash = request.params[0].get_str();
-    std::string mix_hash = request.params[1].get_str();
+    std::string str_mix_hash = request.params[1].get_str();
     std::string str_nonce = request.params[2].get_str();
+
+    uint256 mix_hash = uint256S(str_mix_hash);
 
     uint64_t nonce = std::stoul(str_nonce, nullptr, 16);
 
@@ -824,9 +826,13 @@ static UniValue pprpcsb(const JSONRPCRequest& request) {
         throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block does not start with a coinbase");
     }
 
-    if (!CheckProgProofOfWork(blockptr->GetBlockHeader(), blockptr->nBits, Params().GetConsensus()))
-        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block does not solve the boundary");
+    uint256 calculated_mix_hash;
+    if (!CheckProofOfWork(ProgPowHash(blockptr->GetBlockHeader(), calculated_mix_hash), blockptr->nBits, Params().GetConsensus()))
+        throw JSONRPCError(RPC_INVALID_REQUEST, "Block does not solve the boundary");
 
+    if (calculated_mix_hash != mix_hash) {
+        throw JSONRPCError(RPC_INVALID_REQUEST, "Blocks mix_hash doesn't match the calculated mix_hash");
+    }
 
     uint256 hash = blockptr->GetHash();
     {
