@@ -450,10 +450,6 @@ AC_ARG_WITH([daemon],
 use_pkgconfig=yes
 case $host in
   *mingw*)
-
-     #pkgconfig does more harm than good with MinGW
-     use_pkgconfig=no
-
      TARGET_OS=windows
      AC_CHECK_LIB([mingwthrd],      [main],, AC_MSG_ERROR(libmingwthrd missing))
      AC_CHECK_LIB([kernel32],      [main],, AC_MSG_ERROR(libkernel32 missing))
