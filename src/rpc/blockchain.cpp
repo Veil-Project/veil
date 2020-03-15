@@ -1318,7 +1318,11 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
             "  ],\n"
             "  \"headers\": xxxxxx,            (numeric) the current number of headers we have validated\n"
             "  \"bestblockhash\": \"...\",       (string) the hash of the currently best block\n"
-            "  \"difficulty\": xxxxxx,         (numeric) the current difficulty\n"
+            "  \"difficulty_pow\": xxxxxx,             (numeric) the current X16RT difficulty\n"
+            "  \"difficulty_randomx\": xxxxxx,         (numeric) the current RandomX PoW difficulty\n"
+            "  \"difficulty_progpow\": xxxxxx,         (numeric) the current ProgPow difficulty\n"
+            "  \"difficulty_sha256d\": xxxxxx,         (numeric) the current SHA256D difficulty\n"
+            "  \"difficulty_pos\": xxxxxx,         (numeric) the current PoS difficulty\n"
             "  \"mediantime\": xxxxxx,         (numeric) median time for the current best block\n"
             "  \"verificationprogress\": xxxx, (numeric) estimate of verification progress [0..1]\n"
             "  \"initialblockdownload\": xxxx, (bool) (debug information) estimate of whether this node is in Initial Block Download mode.\n"
@@ -1363,28 +1367,33 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
-    double nDiffPoW = 0;
+    double nDiffX16rt = 0;
+    double nDiffRandomX = 0;
+    double nDiffProgPow = 0;
+    double nDiffSha256D = 0;
     double nDiffPoS = 0;
-    auto pindex = chainActive.Tip();
-    if (pindex->IsProofOfWork()) {
-        nDiffPoW = GetDifficulty(pindex);
-        while (pindex->pprev) {
-            pindex = pindex->pprev;
-            if (pindex->IsProofOfStake()) {
-                nDiffPoS = GetDifficulty(pindex);
-                break;
-            }
+    int nBlockCount = 0;
+    
+    // Get the last diff for each algo type
+    CBlockIndex *pindex = chainActive.Tip();
+    while (pindex) {
+        nBlockCount++;
+        if (nDiffPoS == 0 && pindex->IsProofOfStake()) {
+            nDiffPoS = GetDifficulty(pindex);
+        } else if (nDiffProgPow == 0 && pindex->IsProgProofOfWork()) {
+            nDiffProgPow = GetDifficulty(pindex);
+        } else if (nDiffRandomX == 0 && pindex->IsRandomXProofOfWork()) {
+            nDiffRandomX = GetDifficulty(pindex);
+        } else if (nDiffSha256D == 0 && pindex->IsSha256DProofOfWork()) {
+            nDiffSha256D = GetDifficulty(pindex);
+        } else if (nDiffX16rt == 0 && pindex->IsX16RTProofOfWork()) {
+            nDiffX16rt = GetDifficulty(pindex);
         }
-    } else {
-        nDiffPoS = GetDifficulty(pindex);
-        while (pindex->pprev) {
-            pindex = pindex->pprev;
-            if (pindex->IsProofOfWork()) {
-                nDiffPoW = GetDifficulty(pindex);
-                break;
-            }
+        if(nBlockCount > DEFAULT_CHECK_DIFFICULTY_BLOCK_COUNT || (nDiffPoS > 0 && nDiffProgPow > 0 && nDiffRandomX > 0 && nDiffSha256D > 0)){
+            break;
         }
-    }
+        pindex=pindex->pprev;
+    } 
 
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("chain",                 Params().NetworkIDString());
@@ -1394,7 +1403,10 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     obj.pushKV("zerocoinsupply",        getzerocoinsupply(request));
     obj.pushKV("headers",               pindexBestHeader ? pindexBestHeader->nHeight : -1);
     obj.pushKV("bestblockhash",         chainActive.Tip()->GetBlockHash().GetHex());
-    obj.pushKV("difficulty_pow",        nDiffPoW);
+    obj.pushKV("difficulty_pow",        nDiffX16rt);
+    obj.pushKV("difficulty_randomx",    nDiffRandomX);
+    obj.pushKV("difficulty_progpow",    nDiffProgPow);
+    obj.pushKV("difficulty_sha256d",    nDiffSha256D);
     obj.pushKV("difficulty_pos",        nDiffPoS);
     obj.pushKV("mediantime",            (int64_t)chainActive.Tip()->GetMedianTimePast());
     obj.pushKV("verificationprogress",  GuessVerificationProgress(Params().TxData(), chainActive.Tip()));
