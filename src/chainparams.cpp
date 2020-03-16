@@ -561,7 +561,7 @@ public:
         consensus.BIP65Height = 581885; // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
         consensus.BIP66Height = 330776; // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
         consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitRandomX = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitRandomX = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
 
         // ProgPow, RandomX, Sha256d
@@ -612,8 +612,8 @@ public:
         nPruneAfterHeight = 1000;
 
         /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
-        nPowUpdateTimestamp = 1583604000; //  Saturday, March 7, 2020 6:00:00 GMT
-        nPowTimeStampActive = 1583604000; // Used by block.h for serialization
+        nPowUpdateTimestamp = 1584372883; // Mon Mar 16 2020 09:34:43
+        nPowTimeStampActive = 1584372883; // Used by block.h for serialization
 
         int nTimeStart = 1548379385;
         uint32_t nNonce = 4234676;
@@ -626,7 +626,7 @@ public:
 
         vFixedSeeds.clear();
         vSeeds.clear();
-         vSeeds.emplace_back("devnode01.veil-project.com");
+        vSeeds.emplace_back("devnode01.veil-project.com");
         vSeeds.emplace_back("devnode02.veil-project.com");
         vSeeds.emplace_back("devnode03.veil-project.com");
         vSeeds.emplace_back("devnode04.veil-project.com"); // Mimir seeder
