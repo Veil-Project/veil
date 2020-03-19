@@ -1,3 +1,7 @@
+// Copyright (c) 2019-2020 The Veil developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #include <qt/veil/settings/settingswidget.h>
 
 //#include "transactiondetaildialog.h"
@@ -290,11 +294,11 @@ void SettingsWidget::setWalletModel(WalletModel *model){
 
 void SettingsWidget::updateStakingCheckboxStatus(){
     if(walletModel->getEncryptionStatus() == WalletModel::Unencrypted){
-        ui->labelStacking->setText("Encrypt Wallet");
+        ui->labelStacking->setText("Encrypt wallet");
         ui->labelStacking->setProperty("cssClass" , "btn-text-settings");
         ui->checkBoxStaking->setVisible(false);
     }else{
-        ui->labelStacking->setText("Unlock Wallet for Staking");
+        ui->labelStacking->setText("Unlock wallet for staking");
         ui->checkBoxStaking->setVisible(true);
     }
 }

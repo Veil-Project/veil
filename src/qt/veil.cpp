@@ -1,4 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -145,12 +146,16 @@ static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTrans
 /* qDebug() message handler --> debug.log */
 void DebugMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &msg)
 {
-    Q_UNUSED(context);
+#ifndef QT_MESSAGELOGCONTEXT
+   Q_UNUSED(context);
     if (type == QtDebugMsg) {
         LogPrint(BCLog::QT, "GUI: %s\n", msg.toStdString());
     } else {
         LogPrintf("GUI: %s\n", msg.toStdString());
     }
+#else // QT_MESSAGELOGCONTEXT needs to be added to the DEFS line of the Makefile
+    LogPrintf("GUI: %s:%d %s\n", context.file, context.line, msg.toStdString());
+#endif
 }
 
 /** Class encapsulating Bitcoin Core startup and shutdown.

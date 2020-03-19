@@ -100,7 +100,7 @@ padding-right:10px;
            <enum>Qt::NoFocus</enum>
           </property>
           <property name="styleSheet">
-           <string notr="true">background-colot:transparent;
+           <string notr="true">background-color:transparent;
 border:none;</string>
           </property>
           <property name="text">

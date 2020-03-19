@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Send Veil</string>
+   <string>Send veil</string>
   </property>
   <property name="styleSheet">
    <string notr="true">border:none;
@@ -59,7 +59,7 @@ border:none;</string>
            <string notr="true">padding:10 0 10 0;</string>
           </property>
           <property name="text">
-           <string>Send Veil </string>
+           <string>Send veil</string>
           </property>
          </widget>
         </item>

@@ -1,3 +1,9 @@
+/*
+// Copyright (c) 2019-2020 The Veil developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+*/
+
 #centralWidget{
     border: none;
     padding: 0em 0em;
@@ -88,7 +94,7 @@ QToolBar > QToolButton:checked {
 background-image: url(":/icons/ic_nav_active") ;
 background-position: left center;
 background-repeat:no-repeat;
-background-size: 11px 18px;
+font-size: 11px 18px;
 }
 
 /* QToolBar > QToolButton:hover:!selected { */
