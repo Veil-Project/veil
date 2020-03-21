@@ -151,8 +151,8 @@ public:
                     READWRITE(nNonce64);
                     break;
                 default:
-                    SetNull();
-                    return;
+                    // Is POS
+                    READWRITE(nNonce);
             }
         } else {
             READWRITE(nNonce);
