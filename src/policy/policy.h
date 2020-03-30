@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,6 +8,7 @@
 #define BITCOIN_POLICY_POLICY_H
 
 #include <consensus/consensus.h>
+#include <validation.h>
 #include <policy/feerate.h>
 #include <script/interpreter.h>
 #include <script/standard.h>
@@ -39,8 +41,16 @@ static const unsigned int DEFAULT_INCREMENTAL_RELAY_FEE = 1000;
 static const unsigned int DEFAULT_BYTES_PER_SIGOP = 20;
 /** The maximum number of witness stack items in a standard P2WSH script */
 static const unsigned int MAX_STANDARD_P2WSH_STACK_ITEMS = 100;
+/** The maximum number of witness stack items in a RingCT script */
+static const unsigned int MAX_STANDARD_RINGCT_STACK_ITEMS = 3;
+static unsigned int maxStandardRingctStackItems() { return MAX_STANDARD_RINGCT_STACK_ITEMS; }
 /** The maximum size of each witness stack item in a standard P2WSH script */
 static const unsigned int MAX_STANDARD_P2WSH_STACK_ITEM_SIZE = 80;
+/** The maximum size of each witness stack item in a RingCT script */
+static const unsigned int MAX_STANDARD_RINGCT_STACK_ITEM_SIZE = 384 + (50 * 352); // 50 inputs
+static const unsigned int MAX_STANDARD_RINGCT_STACK_ITEM_SIZE_OLD = 4096;
+static unsigned int maxStandardRingctStackItemSize() {
+    return (isPowTimeStampActive() ? MAX_STANDARD_RINGCT_STACK_ITEM_SIZE : MAX_STANDARD_RINGCT_STACK_ITEM_SIZE_OLD); }
 /** The maximum size of a standard witnessScript */
 static const unsigned int MAX_STANDARD_P2WSH_SCRIPT_SIZE = 3600;
 /** Min feerate for defining dust. Historically this has been based on the

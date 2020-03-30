@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,7 +9,6 @@
 #include <policy/policy.h>
 
 #include <consensus/validation.h>
-#include <validation.h>
 #include <coins.h>
 #include <tinyformat.h>
 #include <util.h>
@@ -276,11 +276,11 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
         if (tx.vin[i].IsAnonInput())
         {
             size_t sizeWitnessStack = tx.vin[i].scriptWitness.stack.size();
-            if (sizeWitnessStack > 3)
+            if (sizeWitnessStack > maxStandardRingctStackItems())
                 return false;
             for (unsigned int j = 0; j < sizeWitnessStack; j++)
             {
-                if (tx.vin[i].scriptWitness.stack[j].size() > 4096)
+                if (tx.vin[i].scriptWitness.stack[j].size() > maxStandardRingctStackItemSize())
                     return error("%s: witness is larger than max size", __func__);
             }
             continue;

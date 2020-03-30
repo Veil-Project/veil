@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -533,6 +534,8 @@ extern std::unique_ptr<Precompute> pprecompute;
  * This is also true for mempool checks.
  */
 int GetSpendHeight(const CCoinsViewCache& inputs);
+
+static bool isPowTimeStampActive() { return (chainActive.Tip()->nTime >= nPowTimeStampActive); }
 
 extern VersionBitsCache versionbitscache;
 
