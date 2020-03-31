@@ -22,6 +22,7 @@
 #include <qt/platformstyle.h>
 #include <qt/utilitydialog.h>
 #include <qt/winshutdownmonitor.h>
+#include <qt/macdarkmode.h>
 
 #ifdef ENABLE_WALLET
 #include <qt/paymentserver.h>
@@ -314,6 +315,13 @@ BitcoinApplication::BitcoinApplication(interfaces::Node& node, int &argc, char *
 
 void BitcoinApplication::setupPlatformStyle()
 {
+#if defined(Q_OS_MAC)
+    // This is a work around for our not having as yet any "Dark Mode" compatible
+    // stylesheets.  Enforce the use of known-good Aqua style on systems that support
+    // the NSAppearance property.
+    disableDarkMode();
+#endif
+
     // UI per-platform customization
     // This must be done inside the BitcoinApplication constructor, or after it, because
     // PlatformStyle::instantiate requires a QApplication
