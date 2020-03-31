@@ -171,7 +171,8 @@ QT_MOC_CPP = \
 
 BITCOIN_MM = \
   qt/macdockiconhandler.mm \
-  qt/macnotificationhandler.mm
+  qt/macnotificationhandler.mm \
+  qt/macdarkmode.mm
 
 QT_MOC = \
   qt/veil.moc \
@@ -211,6 +212,7 @@ BITCOIN_QT_H = \
   qt/intro.h \
   qt/macdockiconhandler.h \
   qt/macnotificationhandler.h \
+  qt/macdarkmode.h \
   qt/modaloverlay.h \
   qt/networkstyle.h \
   qt/notificator.h \
