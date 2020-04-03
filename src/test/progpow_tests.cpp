@@ -59,8 +59,8 @@ BOOST_AUTO_TEST_CASE(progpow_hash_30000)
         auto context = ethash::create_epoch_context(ethash::get_epoch_number(block_number));
 
         const auto result = progpow::hash(*context, block_number, header, nonce);
-        const auto mix_hex = "89da5e55d9e963ac099e40396d05fd6fa05124ac22dfe028c1ba115d6b664e01";
-        const auto final_hex = "0f765cdc8d3facb1c44ea22e973f2a4be5d01ca48dda2898aa93b1359f3a8c99";
+        const auto mix_hex = "aa15c8b7b34bfc7da13e6d734f63dd0517da65072f4b833c52d586cc3089a990";
+        const auto final_hex = "d8f9786659a08e0ae792bb39725d3dc1e2cc0fb36c228a0ec3101bf17a7cb44b";
         BOOST_CHECK_EQUAL(to_hex(result.mix_hash), mix_hex);
         BOOST_CHECK_EQUAL(to_hex(result.final_hash), final_hex);
 }
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(progpow_veil_header)
     header.hashPrevBlock = uint256S("aabbcceeffaabbcceeffaabbcceeffaabbcceeffaabbcceeffaabbcceeffaabb");
     header.hashVeilData = uint256S("0011223344556677889900112233445566778899001122334455667788990011");
     header.nTime = 1571415021;
-    header.nNonce64 = 4585;
+    header.nNonce64 = 4745;
     header.nBits = 0x1e008eb5;
     header.nHeight = 25000;
 
@@ -157,11 +157,11 @@ BOOST_AUTO_TEST_CASE(progpow_veil_header)
     const auto header_hash = to_hash256(nHeaderHash.GetHex());
     const auto result = progpow::hash(ctx, header.nHeight, header_hash, header.nNonce64);
 
-    BOOST_CHECK(result.mix_hash == to_hash256("3417500c607785bd91b94878f0feef18ff780af29bd5e7144f6361ff362b3c1b"));
-    BOOST_CHECK(result.final_hash == to_hash256("000221ae424fab7b4a8487f29695d801529880f3b28300e76db451c709574f0c"));
+    BOOST_CHECK(result.mix_hash == to_hash256("5c4388c54a7c703f451578f4111a5e5afa06df8fd974db4e06ef8d27e029ac8e"));
+    BOOST_CHECK(result.final_hash == to_hash256("0006b1d02a83eabb24be6388ed8d6bc05030f2bdc50bc34c4220dc7acbd8ec44"));
 
     auto boundary = to_hash256("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-    auto sr = progpow::search(ctx, header.nHeight, header_hash, boundary, 4500, 100);
+    auto sr = progpow::search(ctx, header.nHeight, header_hash, boundary, 4700, 100);
 
     BOOST_CHECK(sr.solution_found);
 
