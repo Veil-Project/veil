@@ -655,12 +655,10 @@ public:
                             (CBlockHeader::PROGPOW_BLOCK | CBlockHeader::RANDOMX_BLOCK | CBlockHeader::SHA256D_BLOCK));
             switch (nPowType) {
                 case CBlockHeader::PROGPOW_BLOCK:
-                    READWRITE(nHeight);
                     READWRITE(nNonce64);
                     READWRITE(mixHash);
                     break;
                 case CBlockHeader::RANDOMX_BLOCK:
-                    READWRITE(nHeight);
                     break;
                 case CBlockHeader::SHA256D_BLOCK:
                     READWRITE(nNonce64);
