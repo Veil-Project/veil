@@ -281,5 +281,6 @@ uint256 ProgPowHash(const CBlockHeader& blockHeader, uint256& mix_hash)
     const auto result = progpow::hash(*context, blockHeader.nHeight, header_hash, blockHeader.nNonce64);
 
     mix_hash = uint256S(to_hex(result.mix_hash));
+
     return uint256S(to_hex(result.final_hash));
 }

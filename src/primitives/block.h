@@ -136,7 +136,6 @@ public:
             READWRITE(hashAccumulators);
 
             int32_t nPowType = (nVersion & (PROGPOW_BLOCK | RANDOMX_BLOCK | SHA256D_BLOCK));
-            std::cout << nPowType;
             switch(nPowType) {
                 case PROGPOW_BLOCK:
                     READWRITE(nHeight);

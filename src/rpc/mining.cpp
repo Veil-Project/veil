@@ -827,12 +827,15 @@ static UniValue pprpcsb(const JSONRPCRequest& request) {
     }
 
     uint256 calculated_mix_hash;
-    if (!CheckProofOfWork(ProgPowHash(blockptr->GetBlockHeader(), calculated_mix_hash), blockptr->nBits, Params().GetConsensus()))
+    if (!CheckProofOfWork(ProgPowHash(blockptr->GetBlockHeader(), calculated_mix_hash), blockptr->nBits, Params().GetConsensus())) {
         throw JSONRPCError(RPC_INVALID_REQUEST, "Block does not solve the boundary");
+    }
 
     if (calculated_mix_hash != mix_hash) {
         throw JSONRPCError(RPC_INVALID_REQUEST, "Blocks mix_hash doesn't match the calculated mix_hash");
     }
+
+    blockptr->mixHash = calculated_mix_hash;
 
     uint256 hash = blockptr->GetHash();
     {
