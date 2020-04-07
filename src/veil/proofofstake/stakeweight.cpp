@@ -1,38 +1,43 @@
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "stakeweight.h"
 
-CAmount GetStakeWeightBracket(const CAmount& nValue)
-{
-    if (nValue > 10000)
-        return 10000;
-    if (nValue > 1000)
-        return 1000;
-    if (nValue > 100)
-        return 100;
-    if (nValue > 10)
-        return 10;
+void RingCtWeightBits(const CAmount& nAmount, int& ct_bits) {
+    // TODO: Return the exponent of the bracket to limit the Rangeproof size.
+}
 
-    return 0;
+// Takes the value
+void RingCtStakeWeight(const CAmount& nAmount, CAmount& weight)
+{
+    // TODO: Return the RingCT stake weight.
 }
 
 //Sets nValueIn with the weighted amount given a certain zerocoin denomination
-void WeightStake(const CAmount& nValueIn, CAmount& nWeight)
+void ZerocoinStakeWeight(const CAmount& nAmount, CAmount& weight)
 {
-    nWeight = 0;
-    if (nValueIn == 10*COIN) {
+    weight = 0;
+    if (nAmount == 10*COIN) {
         //No reduction
-        nWeight = nValueIn;
-    } else if (nValueIn == 100*COIN) {
+        weight = nAmount;
+    } else if (nAmount == 100*COIN) {
         //10% reduction
-        nWeight = (nValueIn * 90) / 100;
-    } else if (nValueIn == 1000*COIN) {
+        weight = (nAmount * 90) / 100;
+    } else if (nAmount == 1000*COIN) {
         //20% reduction
-        nWeight = (nValueIn * 80) / 100;
-    } else if (nValueIn == 10000*COIN) {
+        weight = (nAmount * 80) / 100;
+    } else if (nAmount == 10000*COIN) {
         //30% reduction
-        nWeight = (nValueIn * 70) / 100;
+        weight = (nAmount * 70) / 100;
+    }
+}
+
+void StakeWeight(const CAmount& nAmount, const StakeInputType& sType, CAmount& weight)
+{
+    if (sType == STAKE_ZEROCOIN) {
+        ZerocoinStakeWeight(nAmount, weight);
+    } else {
+        RingCtStakeWeight(nAmount, weight);
     }
 }

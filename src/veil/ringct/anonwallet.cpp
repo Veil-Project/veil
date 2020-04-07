@@ -453,7 +453,7 @@ int AnonWallet::GetLastUsedAddressIndex(const CKeyID& idAccount) const
         if (!RegenerateKeyFromIndex(idAccount, n, keyStealthAccount))
             return -1;
 
-        //Regenerate the stealth address and then get full address from 
+        //Regenerate the stealth address and then get full address from
         CStealthAddress stealthAddress = GenerateStealthAddressFromIndex(keyStealthAccount, 1);
         if (!mapStealthAddresses.count(stealthAddress.GetID()))
             return -2;
@@ -1600,31 +1600,31 @@ bool AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sE
     size_t nRangeProofLen = 5134;
     pvRangeproof->resize(nRangeProofLen);
 
-    //If this is a proof-of-stake transaction, then the minimum value must be set above 0
-    uint64_t min_value = 0;
+    int ct_exponent = 0;
+    int ct_bits = 56;
+
+    // If this is proof os stake, we must update ct_bits to compact the size of
+    // the rangeproof and return our weight as it can not be 0.
     if (fProofOfStake) {
-        min_value = GetStakeWeightBracket(nValue);
+        RingCtStakeWeightBits(nAmount, weight, ct_bits);
     }
 
-    int ct_exponent = 2;
-    int ct_bits = 32;
-
-    if (0 != SelectRangeProofParameters(nValue, min_value, ct_exponent, ct_bits)) {
-        sError = strprintf("Failed to select range proof parameters.");
-        return error("%s: %s", __func__, sError);
-    }
-
-    if (r.fOverwriteRangeProofParams == true) {
-        min_value = r.min_value;
+    if (r.fOverwriteRangeProofParams == true && !fProofOfStake) {
+        weight = r.min_value;
         ct_exponent = r.ct_exponent;
         ct_bits = r.ct_bits;
+    }
+
+    // This must go after the overwrite else they may fail.
+    if (0 != SelectRangeProofParameters(nAmount, min_value, ct_exponent, ct_bits)) {
+        return wserrorN(1, sError, __func__, "SelectRangeProofParameters failed.");
     }
 
     if (1 != secp256k1_rangeproof_sign(secp256k1_ctx_blind,
                                        &(*pvRangeproof)[0], &nRangeProofLen,
                                        min_value, pCommitment,
                                        &r.vBlind[0], nonce.begin(),
-                                       ct_exponent, ct_bits, nValue,
+                                       ct_exponent, ct_bits, nAmount,
                                        (const unsigned char*) message, mlen,
                                        nullptr, 0, secp256k1_generator_h)) {
         sError = strprintf("Failed to sign range proof.");

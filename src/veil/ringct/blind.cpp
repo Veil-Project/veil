@@ -60,9 +60,6 @@ int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &expon
 
     size_t nBitsReq = 64 - nLeadingZeros - nTrailingZeros;
 
-    nBits = 32;
-
-    // TODO: output rangeproof parameters should depend on the parameters of the inputs
     // TODO: drop low value bits to fee
 
     if (nValueIn == 0)

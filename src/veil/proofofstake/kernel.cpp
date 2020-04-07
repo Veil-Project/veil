@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2013 The PPCoin developers
 // Copyright (c) 2015-2019 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2020 The Veil developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -70,10 +70,12 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
     int64_t nMaxTime = (int)GetAdjustedTime() + MAX_FUTURE_BLOCK_TIME - 40;
 
     CDataStream ssUniqueID = stakeInput->GetUniqueness();
-    CAmount nWeight = 0;
 
     //Adjust stake weights
-    WeightStake(stakeInput->GetValue(), nWeight);
+    CAmount weight = 0;
+    const StakeInputType sType = stakeInput->GetType();
+    const CAmount nAmount = stakeInput->GetValue();
+    StakeWeight(nAmount, sType, weight);
 
     int nBestHeight = pindexBest->nHeight;
     uint256 hashBestBlock = pindexBest->GetBlockHash();
@@ -96,7 +98,7 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
         i++;
 
         // if stake hash does not meet the target then continue to next iteration
-        if (!CheckStake(ssUniqueID, nWeight, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nTimeBlockFrom, nTryTime, hashProofOfStake))
+        if (!CheckStake(ssUniqueID, weight, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nTimeBlockFrom, nTryTime, hashProofOfStake))
             continue;
 
         if (setFoundStakes.count(hashProofOfStake))
@@ -163,8 +165,12 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
     CAmount nWeight = stake->GetValue();
 
     // Enforce VIP-1 after it was activated
-    if ((int)nTxTime > Params().EnforceWeightReductionTime())
-        WeightStake(stake->GetValue(), nWeight);
+    if ((int)nTxTime > Params().EnforceWeightReductionTime()) {
+        CAmount weight = 0;
+        const StakeInputType sType = stake->GetType();
+        const CAmount nAmount = stake->GetValue();
+        StakeWeight(nAmount, sType, weight);
+    }
 
     if (!CheckStake(stake->GetUniqueness(), nWeight, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime,
                     nTxTime, hashProofOfStake)) {
