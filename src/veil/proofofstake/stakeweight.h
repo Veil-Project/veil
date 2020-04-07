@@ -8,13 +8,23 @@
 #include "veil/proofofstake/stakeinput/stakeinput.h"
 #include <amount.h>
 
-void RingCtStakeWeight(const CAmount& nAmount, CAmount& weight);
+static const u_int32_t BRACKETBASE = 4;
+static const u_int32_t BRACKETSHIFT = 1;
+
+static const CAmount nBareMinStake = BRACKETBASE;
+static const CAmount nOneSat = 1;
+
+int RingCtWeightBits(const CAmount& nAmount, int& ct_bits);
+
+int RingCtWeightBracket(const CAmount& nAmount, u_int32_t& bracket);
+
+int RingCtStakeWeight(const CAmount& nAmount, CAmount& weight);
 
 //Sets nValueIn with the weighted amount given a certain zerocoin denomination
 void ZerocoinStakeWeight(const CAmount& nAmount, CAmount& weight);
 
 void RingCtStakeWeightBits(const CAmount& nAmount, CAmount& weight, int& ct_bits);
 
-void StakeWeight(const CAmount& nAmount, const StakeInputType& sType, CAmount& weight);
+int StakeWeight(const CAmount& nAmount, const StakeInputType& sType, CAmount& weight);
 
 #endif //VEIL_STAKEWEIGHT_H

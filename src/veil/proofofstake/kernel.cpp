@@ -75,7 +75,8 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
     CAmount weight = 0;
     const StakeInputType sType = stakeInput->GetType();
     const CAmount nAmount = stakeInput->GetValue();
-    StakeWeight(nAmount, sType, weight);
+    if (!StakeWeight(nAmount, sType, weight))
+        return error("below stake minimum");
 
     int nBestHeight = pindexBest->nHeight;
     uint256 hashBestBlock = pindexBest->GetBlockHash();
@@ -169,7 +170,8 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
         CAmount weight = 0;
         const StakeInputType sType = stake->GetType();
         const CAmount nAmount = stake->GetValue();
-        StakeWeight(nAmount, sType, weight);
+        if (!StakeWeight(nAmount, sType, weight))
+            return error("below stake minimum");
     }
 
     if (!CheckStake(stake->GetUniqueness(), nWeight, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime,
