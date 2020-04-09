@@ -1114,7 +1114,7 @@ static UniValue getspendablebalance(const JSONRPCRequest& request){
     if (request.fHelp || (request.params.size() > 0 )){
         throw std::runtime_error(
             std::string(
-                "getspendablebalance ()\n"
+                "getspendablebalance\n"
                 "\nreturns the sum of all spendable balances (base + ringct + ct + zero)\n"
                 "\nResult:\n"
                 "total_spendable    (numeric) The sum of \"basecoin_spendable\", \"ringct_spendable\", \"ct_spendable\" & \"zerocoin_spendable\"\n"
