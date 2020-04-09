@@ -1602,15 +1602,15 @@ bool AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sE
 
     int ct_exponent = 0;
     int ct_bits = 56;
-
+    CAmount  min_value = 0;
     // If this is proof os stake, we must update ct_bits to compact the size of
     // the rangeproof and return our weight as it can not be 0.
     if (fProofOfStake) {
-        RingCtStakeWeightBits(nAmount, weight, ct_bits);
+        RingCtStakeWeightBits(nAmount, min_value, ct_bits);
     }
 
     if (r.fOverwriteRangeProofParams == true && !fProofOfStake) {
-        weight = r.min_value;
+        min_value = r.min_value;
         ct_exponent = r.ct_exponent;
         ct_bits = r.ct_bits;
     }
@@ -3606,7 +3606,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             }
 
             for (size_t l = 0; l < txNew.vin.size(); ++l) {
-                auto &txin = txNew.vin[l];
+                CTxIn &txin = txNew.vin[l];
 
                 uint32_t nSigInputs, nSigRingSize;
                 txin.GetAnonInfo(nSigInputs, nSigRingSize);

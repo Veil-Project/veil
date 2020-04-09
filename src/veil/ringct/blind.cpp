@@ -1,5 +1,5 @@
 // Copyright (c) 2017-2019 The Particl developers
-// Copyright (c) 2020 The Veil developers
+// Copyright (c) 2019 The Veil developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,9 +12,10 @@
 #include <random.h>
 #include <util.h>
 
-static secp256k1_context* secp256k1_blind_context = NULL;
+secp256k1_context *secp256k1_ctx_blind = nullptr;
 
-static int CountLeadingZeros(uint64_t nValueIn) {
+static int CountLeadingZeros(uint64_t nValueIn)
+{
     int nZeros = 0;
 
     for (size_t i = 0; i < 64; ++i, nValueIn >>= 1)
@@ -27,7 +28,8 @@ static int CountLeadingZeros(uint64_t nValueIn) {
     return nZeros;
 };
 
-static int CountTrailingZeros(uint64_t nValueIn) {
+static int CountTrailingZeros(uint64_t nValueIn)
+{
     int nZeros = 0;
 
     uint64_t mask = ((uint64_t)1) << 63;
@@ -41,7 +43,8 @@ static int CountTrailingZeros(uint64_t nValueIn) {
     return nZeros;
 };
 
-static int64_t ipow(int64_t base, int exp) {
+static int64_t ipow(int64_t base, int exp)
+{
     int64_t result = 1;
     while (exp)
     {
@@ -54,7 +57,8 @@ static int64_t ipow(int64_t base, int exp) {
 };
 
 
-int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &exponent, int &nBits) {
+int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &exponent, int &nBits)
+{
     int nLeadingZeros = CountLeadingZeros(nValueIn);
     int nTrailingZeros = CountTrailingZeros(nValueIn);
 
@@ -110,3 +114,31 @@ bool GetRangeProofInfo(const std::vector<uint8_t> &vRangeproof, int &rexp, int &
     return ret == 1;
 };
 
+void ECC_Start_Blinding()
+{
+    assert(secp256k1_ctx_blind == nullptr);
+
+    secp256k1_context *ctx = secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY);
+    assert(ctx != nullptr);
+
+    {
+        // Pass in a random blinding seed to the secp256k1 context.
+        std::vector<unsigned char, secure_allocator<unsigned char>> vseed(32);
+        GetRandBytes(vseed.data(), 32);
+        bool ret = secp256k1_context_randomize(ctx, vseed.data());
+        assert(ret);
+    }
+
+    secp256k1_ctx_blind = ctx;
+};
+
+void ECC_Stop_Blinding()
+{
+    secp256k1_context *ctx = secp256k1_ctx_blind;
+    secp256k1_ctx_blind = nullptr;
+
+    if (ctx)
+    {
+        secp256k1_context_destroy(ctx);
+    };
+};
