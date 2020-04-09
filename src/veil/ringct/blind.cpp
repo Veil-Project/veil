@@ -57,7 +57,7 @@ static int64_t ipow(int64_t base, int exp)
 };
 
 
-int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &exponent, int &nBits)
+int SelectRangeProofParameters(uint64_t nValueIn, int &exponent, int &nBits)
 {
     int nLeadingZeros = CountLeadingZeros(nValueIn);
     int nTrailingZeros = CountTrailingZeros(nValueIn);

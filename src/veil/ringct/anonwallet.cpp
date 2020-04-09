@@ -1616,7 +1616,7 @@ bool AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sE
     }
 
     // This must go after the overwrite else they may fail.
-    if (0 != SelectRangeProofParameters(nAmount, min_value, ct_exponent, ct_bits)) {
+    if (0 != SelectRangeProofParameters(nAmount, ct_exponent, ct_bits)) {
         return wserrorN(1, sError, __func__, "SelectRangeProofParameters failed.");
     }
 
