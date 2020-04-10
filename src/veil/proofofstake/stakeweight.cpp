@@ -90,7 +90,7 @@ int RingCtWeightBracket(const CAmount& nAmount, u_int32_t& bracket)
 //         25    1125899906842625 ( 11258999.06842625)   4503599627370496 ( 45035996.27370496)
 //         26    4503599627370497 ( 45035996.27370497)  18014398509481984 (180143985.09481984)
 //         27   18014398509481985 (180143985.09481985)  72057594037927936 (720575940.37927936)
-int RingCtStakeWeight(const CAmount& nAmount, CAmount& weight)
+int RingCtStakeWeight(const CAmount& nAmount, CAmount& weight, int& ct_bits)
 {
     if (!CheckMinStake(nAmount)) {
         return -1;
@@ -99,6 +99,7 @@ int RingCtStakeWeight(const CAmount& nAmount, CAmount& weight)
     // calculate the bracket
     u_int32_t bracket = 0;
     RingCtWeightBracket(nAmount, bracket);
+    ct_bits = bracket << BRACKETSHIFT;
 
     // calculate the weight
     weight = static_cast<u_int64_t>(pow(BRACKETBASE, bracket)) + nOneSat;
@@ -134,7 +135,8 @@ int StakeWeight(const CAmount& nAmount, const StakeInputType& sType, CAmount& we
     if (sType == STAKE_ZEROCOIN) {
         ZerocoinStakeWeight(nAmount, weight);
     } else {
-        RingCtStakeWeight(nAmount, weight);
+        int unused;
+        RingCtStakeWeight(nAmount, weight, unused);
     }
 
     return 0;

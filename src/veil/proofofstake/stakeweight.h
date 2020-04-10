@@ -18,12 +18,10 @@ int RingCtWeightBits(const CAmount& nAmount, int& ct_bits);
 
 int RingCtWeightBracket(const CAmount& nAmount, u_int32_t& bracket);
 
-int RingCtStakeWeight(const CAmount& nAmount, CAmount& weight);
+int RingCtStakeWeight(const CAmount& nAmount, CAmount& weight, int& ct_bits);
 
 //Sets nValueIn with the weighted amount given a certain zerocoin denomination
 void ZerocoinStakeWeight(const CAmount& nAmount, CAmount& weight);
-
-void RingCtStakeWeightBits(const CAmount& nAmount, CAmount& weight, int& ct_bits);
 
 int StakeWeight(const CAmount& nAmount, const StakeInputType& sType, CAmount& weight);
 

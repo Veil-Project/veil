@@ -36,7 +36,8 @@ public:
     CBlockIndex* GetIndexFrom() override;
     bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake) override;
     CAmount GetValue() override { return m_nAmount; }
-    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) override;
+    // XXX - TODO: Why is CreateTxOuts commented out?
+    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) override { return false; }
     CDataStream GetUniqueness() override;
 };
 
