@@ -8,8 +8,8 @@
 #include "veil/proofofstake/stakeinput/stakeinput.h"
 #include <amount.h>
 
-static const u_int32_t BRACKETBASE = 4;
-static const u_int32_t BRACKETSHIFT = 1;
+static const u_int32_t BRACKETBASE = 16;
+static const u_int32_t BRACKETSHIFT = 2;
 
 static const CAmount nBareMinStake = BRACKETBASE;
 static const CAmount nOneSat = 1;

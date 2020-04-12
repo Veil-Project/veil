@@ -27,13 +27,12 @@ int log2_64 (uint64_t value)
     return tab64[((uint64_t)((value - (value >> 1))*0x07EDD5E59A4E28C2)) >> 58];
 }
 
-int CheckMinStake(const CAmount& nAmount)
+bool CheckMinStake(const CAmount& nAmount)
 {
     // Protocol needs to enforce bare minimum (mathematical min). User can define selective min
-    int ret = 0;
     if (nAmount <= nBareMinStake)
-        ret = -1;
-    return ret;
+        return false;
+    return true;
 }
 
 int RingCtWeightBits(const CAmount& nAmount, int& ct_bits)
