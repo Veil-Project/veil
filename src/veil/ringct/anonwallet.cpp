@@ -155,7 +155,7 @@ bool AnonWallet::Initialise(CExtKey* pExtMaster)
             }
             //Load the change address
             if (!idChangeAccount.IsNull() && !wdb.ReadNamedExtKeyId("stealthchangeaddress", idChangeAddress)) {
-                auto address = GetStealthChangeAddress();
+                CStealthAddress address = GetStealthChangeAddress();
                 idChangeAddress = address.GetID();
                 if (!wdb.WriteNamedExtKeyId("stealthchangeaddress", idChangeAddress))
                     return error("%s: Failed to write stealth change address to wallet db", __func__);
@@ -487,13 +487,13 @@ void AnonWallet::ForgetUnusedStealthAddresses(int nBuffer)
 
     while (n <= nLastGenerated && RegenerateKeyFromIndex(idStealthAccount, n, keyStealthAddress)) {
         // Erase stealth address
-        auto address = GenerateStealthAddressFromIndex(keyStealthAddress, 0);
+        CStealthAddress address = GenerateStealthAddressFromIndex(keyStealthAddress, 0);
         wdb.EraseStealthAddress(address);
         mapStealthAddresses.erase(address.GetID());
         mapKeyPaths.erase(address.GetID());
 
         // Erase account
-        auto idAccount = keyStealthAddress.key.GetPubKey().GetID();
+        CKeyID idAccount = keyStealthAddress.key.GetPubKey().GetID();
         wdb.EraseExtKey(idAccount);
         mapKeyPaths.erase(idAccount);
         n++;
@@ -3824,7 +3824,8 @@ bool AnonWallet::CreateStealthChangeAccount(AnonWalletDB* wdb)
         return false;
 
     //Make the change address
-    GetStealthChangeAddress();
+    CStealthAddress address = GetStealthChangeAddress();
+    idChangeAddress = address.GetID();
 
     if (!wdb->WriteNamedExtKeyId("stealthchangeaddress", idChangeAddress))
         return false;
@@ -3848,8 +3849,9 @@ bool AnonWallet::CreateStealthStakeAccount(AnonWalletDB* wdb)
     if (!wdb->WriteNamedExtKeyId("stealthstakeaccount", idStakeAccount))
         return false;
 
-    //Make the change address
-    CreateSpecialStealthAddress(idStakeAccount, idStakeAddress);
+    //Make the stake address
+    CStealthAddress address = CreateSpecialStealthAddress(idStakeAccount, idStakeAddress);
+    idStakeAddress = address.GetID();
 
     if (!wdb->WriteNamedExtKeyId("stealthstakeaddress", idStakeAddress))
         return false;
@@ -3859,12 +3861,12 @@ bool AnonWallet::CreateStealthStakeAccount(AnonWalletDB* wdb)
 
 CStealthAddress AnonWallet::CreateSpecialStealthAddress(const CKeyID& idAccount, CKeyID& idAddress)
 {
-    //Make sure idChangeAccount is loaded
+    //Make sure idAddress is loaded
     if (!mapAccountCounter.count(idAddress))
         mapAccountCounter.emplace(idAddress, 0);
 
     CStealthAddress address;
-    NewStealthKey(address, 0 , nullptr, &idAccount);
+    NewStealthKey(address, 0 , nullptr, &idAccount); // XXX - Handle if this returns failure
     idAddress = address.GetID();
 
     return mapStealthAddresses.at(idAddress);
@@ -3878,7 +3880,7 @@ CStealthAddress AnonWallet::GetStealthChangeAddress()
             mapAccountCounter.emplace(idChangeAddress, 0);
 
         CStealthAddress address;
-        NewStealthKey(address, 0 , nullptr, &idChangeAccount);
+        NewStealthKey(address, 0 , nullptr, &idChangeAccount); // XXX - Handle if this returns failure
         idChangeAddress = address.GetID();
     }
     return mapStealthAddresses.at(idChangeAddress);
@@ -3931,12 +3933,12 @@ bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
     wdb.WriteAccountCounter(idStealthAccount, (uint32_t)1);
     wdb.WriteNamedExtKeyId("stealthaccount", idStealthAccount);
 
-    /** Derive a stealth address that is specifically for change **/
-    CreateStealthChangeAccount(&wdb);
-    CreateStealthStakeAccount(&wdb);
-
     if (!wdb.TxnCommit())
         return error("%s: TxnCommit failed.");
+
+    /** Derive a stealth address that is specifically for change **/
+    CreateStealthChangeAccount(&wdb); // XXX - Check Return Value
+    CreateStealthStakeAccount(&wdb); // XXX - Check Return Value
 
     LogPrintf("%s: Default account %s\n", __func__, idDefaultAccount.GetHex());
     LogPrintf("%s: Stealth account %s\n", __func__, idStealthAccount.GetHex());
