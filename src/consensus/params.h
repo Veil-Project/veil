@@ -71,6 +71,9 @@ struct Params {
     /** Proof of work parameters */
     uint256 powLimit;
     uint256 powLimitRandomX;
+    uint256 powLimitProgPow;
+    uint256 powLimitSha256;
+
     bool fPowAllowMinDifficultyBlocks;
     bool fPowNoRetargeting;
     int64_t nDgwPastBlocks;
