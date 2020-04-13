@@ -156,7 +156,18 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 
 unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake, int nPoWType) {
     /* current difficulty formula, veil - DarkGravity v3, written by Evan Duffield - evan@dash.org */
-    const arith_uint256 bnPowLimit = nPoWType & CBlock::RANDOMX_BLOCK ? UintToArith256(params.powLimitRandomX) : UintToArith256(params.powLimit);
+    arith_uint256 bnPowLimit;
+
+    // Select the correct pow limit
+    if (nPoWType & CBlockHeader::PROGPOW_BLOCK) {
+        bnPowLimit = UintToArith256(params.powLimitProgPow);
+    } else if (nPoWType & CBlock::RANDOMX_BLOCK) {
+        bnPowLimit = UintToArith256(params.powLimitRandomX);
+    } else if (nPoWType & CBlock::SHA256D_BLOCK) {
+        bnPowLimit = UintToArith256(params.powLimitSha256);
+    } else {
+        bnPowLimit = UintToArith256(params.powLimit);
+    }
 
     const CBlockIndex *pindex = pindexLast;
     const CBlockIndex* pindexLastMatchingProof = nullptr;
