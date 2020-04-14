@@ -382,6 +382,10 @@ bool RPCConsole::RPCParseCommandLine(interfaces::Node* node, std::string &strRes
                 strResult = lastResult.get_str();
             else
                 strResult = lastResult.write(2);
+
+            if (lastResult.isNull())
+                strResult.append(" (is not necessarily indicative of a fatal error)");
+
         case STATE_ARGUMENT:
         case STATE_EATING_SPACES:
             return true;
