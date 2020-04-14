@@ -812,7 +812,10 @@ static UniValue pprpcsb(const JSONRPCRequest& request) {
 
     uint256 mix_hash = uint256S(str_mix_hash);
 
-    uint64_t nonce = std::stoul(str_nonce, nullptr, 16);
+
+    uint64_t nonce;
+    if (!ParseUInt64(str_nonce, &nonce, 16))
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid hex nonce");
 
     if (!mapProgPowTemplates.count(header_hash))
         throw JSONRPCError(RPC_INVALID_PARAMS, "Block header hash not found in block data");
