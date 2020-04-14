@@ -3901,7 +3901,7 @@ bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
     LOCK(pwalletParent->cs_wallet);
     AnonWalletDB wdb(*walletDatabase, "r+");
     if (!wdb.TxnBegin())
-        return error("%s: TxnBegin failed.");
+        return error("%s: TxnBegin failed.", __func__);
 
     if (!SetMasterKey(extKeyMaster))
         return error("%s: failed to set master key", __func__);
@@ -3934,7 +3934,7 @@ bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
     wdb.WriteNamedExtKeyId("stealthaccount", idStealthAccount);
 
     if (!wdb.TxnCommit())
-        return error("%s: TxnCommit failed.");
+        return error("%s: TxnCommit failed.", __func__);
 
     /** Derive a stealth address that is specifically for change **/
     CreateStealthChangeAccount(&wdb); // XXX - Check Return Value
@@ -6164,7 +6164,7 @@ bool AnonWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const CoinEligi
 
         const COutputRecord *oR = rtx->GetOutput(r.i);
         if (!oR) {
-            return werror("%s: GetOutput failed, %s, %d.\n", r.txhash.ToString(), r.i);
+            return werror("%s: GetOutput failed, %s, %d.\n", __func__, r.txhash.ToString(), r.i);
         }
 
         CAmount nV = oR->GetRawValue();
