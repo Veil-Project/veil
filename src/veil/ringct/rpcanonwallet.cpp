@@ -1,4 +1,5 @@
 // Copyright (c) 2017-2019 The Particl Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -170,7 +171,7 @@ static UniValue rescanringctwallet(const JSONRPCRequest &request)
 
     if (request.fHelp || !request.params.empty())
         throw std::runtime_error(
-                "rescanringctwallet()\n"
+                "rescanringctwallet\n"
                 "Rescans all transactions in the RingCT & CT Wallets."
                 + HelpRequiringPassphrase(wallet.get()) +
                 "\nExamples:\n"
