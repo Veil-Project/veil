@@ -19,6 +19,25 @@ class CBlockIndex;
 class CChainParams;
 class CScript;
 
+
+// Used for determining which PoW mining algorithm to use
+extern char * PROGPOW_STRING;
+extern char * SHA256D_STRING;
+extern char * RANDOMX_STRING;
+
+extern int nMiningAlgorithm;
+
+enum {
+    MINE_RANDOMX = 0,
+    MINE_PROGPOW = 1,
+    MINE_SHA256D = 2
+};
+
+int GetMiningAlgorithm();
+void SetMiningAlgorithm(const std::string& algo);
+
+// End Pow algorithm to use
+
 namespace Consensus { struct Params; };
 
 static const bool DEFAULT_PRINTPRIORITY = false;
@@ -210,6 +229,5 @@ void ThreadStakeMiner();
 void LinkPoWThreadGroup(void* pthreadgroup);
 void LinkRandomXThreadGroup(void* pthreadgroup);
 void ThreadRandomXBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, const int vm_index, const uint32_t startNonce);
-
 
 #endif // BITCOIN_MINER_H
