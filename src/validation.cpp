@@ -69,6 +69,7 @@
 #include <boost/thread.hpp>
 #include "veil/zerocoin/accumulators.h"
 #include "veil/zerocoin/precompute.h"
+#include "miner.h"
 
 #if defined(NDEBUG)
 # error "Veil cannot be compiled without assertions."
@@ -2150,12 +2151,12 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
 
     if (blockTime >= Params().PowUpdateTimestamp()) {
         nVersion = VERSIONBITS_NEW_POW_VERSION;
-        std::string algo = gArgs.GetArg("-mine", "randomx");
+        SetMiningAlgorithm(gArgs.GetArg("-mine", RANDOMX_STRING));
 
         if (fProofOfWork) {
-            if (algo == "progpow") {
+            if (GetMiningAlgorithm() == MINE_PROGPOW) {
                 nVersion |= CBlockHeader::PROGPOW_BLOCK;
-            } else if (algo == "sha256d") {
+            } else if (GetMiningAlgorithm() == MINE_SHA256D) {
                 nVersion |= CBlockHeader::SHA256D_BLOCK;
             } else {
                 // Setting it to mine randomx bit by default so blocks will try to get mined atleast.

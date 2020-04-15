@@ -48,6 +48,12 @@
 #include "crypto/ethash/helpers.hpp"
 #include "crypto/ethash/progpow_test_vectors.hpp"
 
+char * PROGPOW_STRING = "progpow";
+char * SHA256D_STRING = "sha256d";
+char * RANDOMX_STRING = "randomx";
+
+int nMiningAlgorithm = MINE_RANDOMX;
+
 std::map<uint256, int64_t>mapComputeTimeTransactions;
 
 // Unconfirmed transactions in the memory pool often depend on other
@@ -183,12 +189,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
 
     LOCK(cs_main);
-    TRY_LOCK(mempool.cs, fLockMem);
-    if (!fLockMem) {
-        error("Failing to get the lock on the mempool\n");
-        pblocktemplate->nFlags |= TF_MEMPOOLFAIL;
-        return nullptr;
-    }
 
     assert(pindexPrev != nullptr);
     nHeight = pindexPrev->nHeight + 1;
@@ -226,7 +226,15 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     int nPackagesSelected = 0;
     int nDescendantsUpdated = 0;
-    addPackageTxs(nPackagesSelected, nDescendantsUpdated);
+    {
+        TRY_LOCK(mempool.cs, fLockMem);
+        if (!fLockMem) {
+            error("Failing to get the lock on the mempool\n");
+            pblocktemplate->nFlags |= TF_MEMPOOLFAIL;
+            return nullptr;
+        }
+        addPackageTxs(nPackagesSelected, nDescendantsUpdated);
+    }
 
     int64_t nTime1 = GetTimeMicros();
 
@@ -1029,7 +1037,8 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
     LogPrintf("Veil RandomX Miner started\n");
 
     unsigned int nExtraNonce = 0;
-    static const int nInnerLoopCount = 1000;
+    static const int nInnerLoopCount = 100000;
+    bool fBlockFoundAlready = false;
 
     while (fGenerateBitcoins)
     {
@@ -1093,6 +1102,11 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
                     break;
                 }
 
+                if (pblock->nHeight <= chainActive.Height()) {
+                    fBlockFoundAlready = true;
+                    break;
+                }
+
                 char hash[RANDOMX_HASH_SIZE];
                 // Build the header_hash
                 uint256 nHeaderHash = pblock->GetRandomXHeaderHash();
@@ -1108,6 +1122,11 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
                 ++nTries;
                 ++pblock->nNonce;
             }
+        }
+
+        if (fBlockFoundAlready) {
+            fBlockFoundAlready = false;
+            continue;
         }
 
         LOCK(cs_nonce);
@@ -1200,9 +1219,16 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
     }
     fGenerateBitcoins = fGenerate;
 
+    SetMiningAlgorithm(gArgs.GetArg("-mine", RANDOMX_STRING));
+
     if (nThreads < 0) {
         // In regtest threads defaults to 1
         nThreads = 1;
+    }
+
+    // Set a minimum of 4 threads when mining randomx
+    if (GetMiningAlgorithm() == MINE_RANDOMX && nThreads < 4) {
+        nThreads = 4;
     }
 
     // Close any active mining threads before starting new threads
@@ -1221,11 +1247,24 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
     if (nThreads == 0 || !fGenerate)
         return;
 
-    std::string algo = gArgs.GetArg("-mine", "randomx");
-    if (algo == "randomx"  && GetTime() >= Params().PowUpdateTimestamp()) {
+    if (GetMiningAlgorithm() == MINE_RANDOMX && GetTime() >= Params().PowUpdateTimestamp()) {
         pthreadGroupRandomX->create_thread(boost::bind(&StartRandomXMining, pthreadGroupPoW, nThreads, coinbaseScript));
     } else {
         for (int i = 0; i < nThreads; i++)
             pthreadGroupPoW->create_thread(boost::bind(&ThreadBitcoinMiner, coinbaseScript));
+    }
+}
+
+int GetMiningAlgorithm() {
+    return nMiningAlgorithm;
+}
+
+void SetMiningAlgorithm(const std::string& algo) {
+    if (algo == PROGPOW_STRING) {
+        nMiningAlgorithm = MINE_PROGPOW;
+    } else if (algo == SHA256D_STRING) {
+        nMiningAlgorithm = MINE_SHA256D;
+    } else {
+        nMiningAlgorithm = MINE_RANDOMX;
     }
 }
