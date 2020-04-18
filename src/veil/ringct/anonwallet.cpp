@@ -1597,9 +1597,6 @@ bool AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sE
     const char *message = r.sNarration.c_str();
     size_t mlen = strlen(message);
 
-    size_t nRangeProofLen = 5134;
-    pvRangeproof->resize(nRangeProofLen);
-
     int ct_exponent = 0;
     int ct_bits = 56;
     CAmount  min_value = 0;
@@ -1620,6 +1617,9 @@ bool AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sE
         return wserrorN(1, sError, __func__, "SelectRangeProofParameters failed.");
     }
 
+    size_t nRangeProofLen = 5134;
+    pvRangeproof->resize(nRangeProofLen); // Initial rangeproof sizing
+
     if (1 != secp256k1_rangeproof_sign(secp256k1_ctx_blind,
                                        &(*pvRangeproof)[0], &nRangeProofLen,
                                        min_value, pCommitment,
@@ -1631,8 +1631,7 @@ bool AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sE
         return error("%s: %s", __func__, sError);
     }
 
-    pvRangeproof->resize(nRangeProofLen);
-
+    pvRangeproof->resize(nRangeProofLen); // Resize rangeproof after signing
     return true;
 }
 
