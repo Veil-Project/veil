@@ -1133,7 +1133,7 @@ bool AnonWallet::GetBalances(BalanceList &bal)
 
         bool fTrusted = IsTrusted(txhash, rtx.blockHash);
         int nDepth = GetDepthInMainChain(rtx.blockHash, 0);
-        bool fConfirmed = nDepth > 11;
+        bool fConfirmed = nDepth >= Params().GetConsensus().nMinRCTOutputDepth;
         bool fInMempool = false;
         if (!fTrusted) {
             CTransactionRef ptx = mempool.get(txhash);
@@ -1224,6 +1224,29 @@ CAmount AnonWallet::GetAvailableBlindBalance(const CCoinControl* coinControl) co
         }
     }
     return balance;
+}
+
+bool AnonWallet::MintableRingCtCoins()
+{
+    // Make sure nRequiredDepth is greater than confirmed height
+    int nRequiredDepth = Params().RequiredStakeDepth();
+    assert(nRequiredDepth >= Params().GetConsensus().nMinRCTOutputDepth);
+
+    for (const auto &ri : mapRecords) {
+        const uint256 &txhash = ri.first;
+        const CTransactionRecord &rtx = ri.second;
+        bool fTrusted = IsTrusted(txhash, rtx.blockHash);
+        int nDepth = GetDepthInMainChain(rtx.blockHash, 0);
+        bool fStakeable = nDepth >= nRequiredDepth;
+        if (!fStakeable || !fTrusted) continue;
+        for (const auto &r : rtx.vout) {
+            if (!(r.nFlags & ORF_OWN_ANY) || IsSpent(txhash, r.n)) { continue; }
+            if (r.nType == OUTPUT_RINGCT && (r.nFlags & ORF_OWNED) && !r.IsSpent()) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 bool AnonWallet::IsChange(const CTxOutBase *txout) const
@@ -5803,9 +5826,8 @@ void AnonWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnly
         const uint256 &txid = it->first;
         const CTransactionRecord &rtx = it->second;
 
-        // TODO: implement when moving coinbase and coinstake txns to mapRecords
-        //if (pcoin->GetBlocksToMaturity() > 0)
-        //    continue;
+//        if ((pcoin->IsCoinBase() || pcoin->IsCoinStake()) && pcoin->GetBlocksToMaturity() > 0)
+//            continue;
 
         int nDepth = GetDepthInMainChain(rtx.blockHash, rtx.nIndex);
         if (nDepth < 0)
@@ -5981,7 +6003,7 @@ void AnonWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySaf
         const CTransactionRecord &rtx = it->second;
 
         // TODO: implement when moving coinbase and coinstake txns to mapRecords
-        //if (pcoin->GetBlocksToMaturity() > 0)
+//        if (pcoin->GetBlocksToMaturity() > 0)
         //    continue;
 
         int nDepth = GetDepthInMainChain(rtx.blockHash, rtx.nIndex);
@@ -6023,11 +6045,12 @@ void AnonWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySaf
                 continue;
             }
 
-            if (!coinControl/* || !coinControl->fAllowLocked) && IsLockedCoin(txid, r.n)*/) {
-                continue;
-            }
+//            if (!coinControl/* || !coinControl->fAllowLocked) && IsLockedCoin(txid, r.n)*/) {
+//                continue;
+//            }
 
             bool fMature = true;
+	    // WTF is that line below?  Why invert then revert; confusing AF
             bool fSpendable = (coinControl && !coinControl->fAllowWatchOnly && !(r.nFlags & ORF_OWNED)) ? false : true;
             bool fSolvable = true;
             //bool fNeedHardwareKey = (r.nFlags & ORF_HARDWARE_DEVICE);

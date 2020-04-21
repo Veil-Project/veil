@@ -211,6 +211,7 @@ public:
 //    CAmount GetAvailableBalance(const CCoinControl* coinControl = nullptr) const;
     CAmount GetAvailableAnonBalance(const CCoinControl* coinControl = nullptr) const;
     CAmount GetAvailableBlindBalance(const CCoinControl* coinControl = nullptr) const;
+    bool MintableRingCtCoins();
 
 
     bool IsChange(const CTxOutBase *txout) const;

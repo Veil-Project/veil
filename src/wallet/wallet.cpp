@@ -2849,6 +2849,7 @@ CAmount CWallet::GetMintableBalance(std::vector<COutput>& vMintableCoins) const
             vMintableCoins.emplace_back(std::move(coin));
         }
     }
+    LogPrintf("(debug) %s: Mintable Balance: %s\n", __func__, FormatMoney(balance));
     return balance;
 }
 
@@ -3315,14 +3316,21 @@ CAmount CWallet::GetImmatureZerocoinBalance() const
 
 bool CWallet::MintableCoins()
 {
+    if (chainActive.Height() < Params().HeightRingCtPoSStart()) {
+        return (MintableZerocoins());
+    }
+
+    return (pAnonWalletMain->MintableRingCtCoins());
+}
+
+bool CWallet::MintableZerocoins()
+{
     LOCK(cs_main);
     CAmount nZBalance = GetZerocoinBalance(false);
 
     int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
     if (chainActive.Height() >= Params().HeightLightZerocoin()) {
         nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
-    } else if (chainActive.Height() >= Params().HeightRingCtPoSStart()) {
-        nRequiredDepth = Params().RequiredStakeDepth();
     }
 
     // zero coin
@@ -3912,7 +3920,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
                 LOCK(cs_main);
                 //Double check that this will pass time requirements
                 if (nTxNewTime <= nTimeMinBlock) {
-                    LogPrint(BCLog::BLOCKCREATION, "CreateCoinStake() : kernel found, but it is too far in the past \n");
+                    LogPrint(BCLog::BLOCKCREATION, "%s: kernel found, but it is too far in the past \n", __func__);
                     continue;
                 }
                 nHeight = chainActive.Height();
@@ -3921,7 +3929,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             nComputeTimeStart = GetTimeMillis();
 
             // Found a kernel
-            LogPrintf("CreateCoinStake : kernel found\n");
+            LogPrintf("%s: kernel found\n", __func__);
             nCredit += stakeInput->GetValue();
 
             // Calculate reward
@@ -3947,9 +3955,12 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     }
     return fKernelFound;
 }
+
 bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount)
 {
-    LOCK(cs_main);
+    if (chainActive.Height() < Params().HeightRingCtPoSStart()) {
+        return (SelectStakeZeroCoins(listInputs, nTargetAmount));
+    }
 
     //Only update stakable outputs once per update interval
     bool fUpdate = false;
@@ -3959,62 +3970,75 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInp
         nTimeLastUpdate = GetAdjustedTime();
     }
 
-    int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
-    if (chainActive.Height() >= Params().HeightLightZerocoin()) {
-        nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
-    } else if (chainActive.Height() >= Params().HeightRingCtPoSStart()) {
-        nRequiredDepth = Params().RequiredStakeDepth();
+    int nRequiredDepth = Params().RequiredStakeDepth();
+
+    std::vector<COutputR> vRctCoins;
+    pAnonWalletMain->AvailableAnonCoins(vRctCoins);
+    for (const COutputR& rctOut : vRctCoins) {
+        const CTransactionRecord& txrecord = rctOut.rtx->second;
+
+        //Check transaction age
+	int nDepth = pAnonWalletMain->GetDepthInMainChain(txrecord.blockHash, txrecord.nIndex);
+        if (nDepth < nRequiredDepth) {
+            continue;
+	}
+
+        //Check output
+        const COutputRecord* pout = txrecord.GetOutput(rctOut.i);
+        if (pout->GetAmount() < Params().MinimumStakeQuantity()) {
+            continue;
+	}
+
+        CTransactionRef ptx;
+        uint256 hashblock;
+        if (!GetTransaction(rctOut.txhash, ptx, Params().GetConsensus(), hashblock, true)) {
+            continue;
+	}
+
+        //Create stake input and add to list of stakable inputs
+        std::unique_ptr<CStakeInput> input(new RingCtStakeCandidate(this, ptx, rctOut.GetOutpoint(), pout));
+        listInputs.emplace_back(std::move(input));
     }
 
-    if (chainActive.Height() >= Params().HeightRingCtPoSStart()) {
-        std::vector<COutputR> vRctCoins;
-        pAnonWalletMain->AvailableAnonCoins(vRctCoins);
-        for (const COutputR& rctOut : vRctCoins) {
-            const CTransactionRecord& txrecord = rctOut.rtx->second;
+    LogPrint(BCLog::BLOCKCREATION, "%s: FOUND %d STAKABLE RingCT OUTPUTs\n", __func__, listInputs.size());
 
-            //Check transaction age
-            if (GetAdjustedTime() - txrecord.nBlockTime > nStakeMinAge)
-                continue;
+    return true;
+}
 
-            //Check output
-            const COutputRecord* pout = txrecord.GetOutput(rctOut.i);
-            if (pout->GetAmount() < Params().MinimumStakeQuantity())
-                continue;
+bool CWallet::SelectStakeZeroCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount)
+{
+    //Only update stakable outputs once per update interval
+    bool fUpdate = false;
+    static int64_t nTimeLastUpdate = 0;
+    if (GetAdjustedTime() - nTimeLastUpdate > nStakeSetUpdateTime) {
+        fUpdate = true;
+        nTimeLastUpdate = GetAdjustedTime();
+    }
 
-            CTransactionRef ptx;
-            uint256 hashblock;
-            if (!GetTransaction(rctOut.txhash, ptx, Params().GetConsensus(), hashblock, true))
-                continue;
+    int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
+    if (chainActive.Height() >= Params().HeightLightZerocoin())
+        nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
 
-            //Create stake input and add to list of stakable inputs
-            std::unique_ptr<CStakeInput> input(new RingCtStakeCandidate(this, ptx, rctOut.GetOutpoint(), pout));
+    std::set<CMintMeta> setMints = zTracker->ListMints(true, true, fUpdate);
+    for (auto meta : setMints) {
+        if (meta.hashStake == uint256()) {
+            CZerocoinMint mint;
+            if (GetMint(meta.hashSerial, mint)) {
+                uint256 hashStake = mint.GetSerialNumber().getuint256();
+                hashStake = Hash(hashStake.begin(), hashStake.end());
+                meta.hashStake = hashStake;
+                zTracker->UpdateState(meta);
+            }
+        }
+        if (meta.nVersion < CZerocoinMint::STAKABLE_VERSION)
+            continue;
+        if (meta.nHeight < chainActive.Height() - nRequiredDepth) {
+            std::unique_ptr<CStakeInput> input(new ZerocoinStake(meta.denom, meta.hashStake));
             listInputs.emplace_back(std::move(input));
         }
-
-        LogPrint(BCLog::BLOCKCREATION, "%s: FOUND %d STAKABLE RingCT OUTPUTs\n", __func__, listInputs.size());
-
-    } else if (chainActive.Height() >= Params().HeightLightZerocoin()) {
-        std::set<CMintMeta> setMints = zTracker->ListMints(true, true, fUpdate);
-        for (auto meta : setMints) {
-            if (meta.hashStake == uint256()) {
-                CZerocoinMint mint;
-                if (GetMint(meta.hashSerial, mint)) {
-                    uint256 hashStake = mint.GetSerialNumber().getuint256();
-                    hashStake = Hash(hashStake.begin(), hashStake.end());
-                    meta.hashStake = hashStake;
-                    zTracker->UpdateState(meta);
-                }
-            }
-            if (meta.nVersion < CZerocoinMint::STAKABLE_VERSION)
-                continue;
-            if (meta.nHeight < chainActive.Height() - nRequiredDepth) {
-                std::unique_ptr<CStakeInput> input(new ZerocoinStake(meta.denom, meta.hashStake));
-                listInputs.emplace_back(std::move(input));
-            }
-        }
-
-        LogPrint(BCLog::BLOCKCREATION, "%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());        
     }
+
+    LogPrint(BCLog::BLOCKCREATION, "%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());
 
     return true;
 }

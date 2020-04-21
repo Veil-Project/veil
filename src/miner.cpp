@@ -310,7 +310,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                 uint256 txid;
                 if (IsSerialInBlockchain(hashSerial, nHeight, txid)) {
                     setDuplicate.emplace(ptx->GetHash());
-                    LogPrint(BCLog::BLOCKCREATION, "%s: removing serial that is already in chain, tx=%s\n", __func__, ptx->GetHash().GetHex());
+                    LogPrint(BCLog::BLOCKCREATION, "%s: removing serial that is already in chain, tx=%s\n",
+                             __func__, ptx->GetHash().GetHex());
                     fRemove = true;
                     break;
                 }
@@ -332,7 +333,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                 int nHeightTx = 0;
                 if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, chainActive.Tip())) {
                     setDuplicate.emplace(ptx->GetHash());
-                    LogPrint(BCLog::BLOCKCREATION, "%s: removing already in chain pubcoin : tx %s\n", __func__, ptx->GetHash().GetHex());
+                    LogPrint(BCLog::BLOCKCREATION, "%s: removing already in chain pubcoin : tx %s\n",
+                             __func__, ptx->GetHash().GetHex());
                     fRemove = true;
                     break;
                 }
@@ -369,7 +371,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         }
 
         //Don't have inputs, skip this
-        if (!pblock->vtx[i]->IsZerocoinSpend() && !pblock->vtx[i]->vin[0].IsAnonInput() && !viewCheck.HaveInputs(*pblock->vtx[i])) {
+        if (!pblock->vtx[i]->IsZerocoinSpend() && !pblock->vtx[i]->vin[0].IsAnonInput() &&
+            !viewCheck.HaveInputs(*pblock->vtx[i])) {
             continue;
         }
 
@@ -461,7 +464,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     pblocktemplate->vTxFees[0] = -nFees;
 
-    LogPrint(BCLog::BLOCKCREATION, "CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops %d Proof-Of-Stake:%d \n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost, pblock->IsProofOfStake());
+    LogPrint(BCLog::BLOCKCREATION, "%s: block weight: %u txs: %u fees: %ld sigops %d Proof-Of-Stake:%d \n",
+             __func__, GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost, pblock->IsProofOfStake());
 
     // Fill in header
     pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
@@ -548,7 +552,9 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     int64_t nTime2 = GetTimeMicros();
     int64_t nComputeTimeFinish = GetTimeMillis();
 
-    LogPrint(BCLog::BENCH, "CreateNewBlock() packages: %.2fms (%d packages, %d updated descendants), validity: %.2fms (total %.2fms)\n", 0.001 * (nTime1 - nTimeStart), nPackagesSelected, nDescendantsUpdated, 0.001 * (nTime2 - nTime1), 0.001 * (nTime2 - nTimeStart));
+    LogPrint(BCLog::BENCH, "%s: packages: %.2fms (%d packages, %d updated descendants), validity: %.2fms (total %.2fms)\n",
+             0.001 * (nTime1 - nTimeStart), nPackagesSelected, nDescendantsUpdated, 0.001 * (nTime2 - nTime1),
+             0.001 * (nTime2 - nTimeStart));
 
     if (fProofOfStake) {
         mapComputeTimeTransactions.clear();
@@ -874,7 +880,13 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 hashBestBlock = chainActive.Tip()->GetBlockHash();
             }
 
+	    // XXX - TODO - Fix that Check preventing staking when over 3600 since last block
             if (!gArgs.GetBoolArg("-genoverride", false) && (GetAdjustedTime() - nTimeLastBlock > 60*60 || IsInitialBlockDownload() || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || nHeight < Params().HeightPoSStart())) {
+		LogPrintf("(debug): %s - Staking not started: start: %d < %d\n", __func__, nHeight, Params().HeightPoSStart());
+		LogPrintf("            - genoverride: %s\n", gArgs.GetBoolArg("-genoverride", false) ? "true" : "false");
+		LogPrintf("            - time: %d > %d\n", GetAdjustedTime() - nTimeLastBlock, 60*60);
+		LogPrintf("            - initialblock: %s\n", IsInitialBlockDownload() ? "true" : "false");
+		LogPrintf("            - connections: %s\n", g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) ? "true" : "false");
                 MilliSleep(5000);
                 continue;
             }
@@ -914,7 +926,8 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 auto it = mapStakeHashCounter.find(nHeight);
                 if (it != mapStakeHashCounter.end() && it->second != nStakeHashesLast) {
                     nStakeHashesLast = it->second;
-                    LogPrint(BCLog::BLOCKCREATION, "%s: Tried %d stake hashes for block %d last=%d\n", __func__, nStakeHashesLast, nHeight+1, mapHashedBlocks.at(hashBestBlock));
+                    LogPrint(BCLog::BLOCKCREATION, "%s: Tried %d stake hashes for block %d last=%d\n",
+                             __func__, nStakeHashesLast, nHeight+1, mapHashedBlocks.at(hashBestBlock));
                 }
                 // wait half of the nHashDrift with max wait of 3 minutes
                 int rand = GetRandInt(20); // add small randomness to prevent all nodes from being on too similar of timing
@@ -926,7 +939,8 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         }
 #endif
 
-        if (fGenerateBitcoins && !fProofOfStake) { // If the miner was turned on and we are in IsInitialBlockDownload(), sleep 60 seconds, before trying again
+        if (fGenerateBitcoins && !fProofOfStake) {
+            // If the miner was turned on and we are in IsInitialBlockDownload(), sleep 60 seconds, before trying again
             if (IsInitialBlockDownload() && !gArgs.GetBoolArg("-genoverride", false)) {
                 MilliSleep(60000);
                 continue;
@@ -936,7 +950,8 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         CScript scriptMining;
         if (coinbaseScript)
             scriptMining = coinbaseScript->reserveScript;
-        std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(scriptMining, false, fProofOfStake, fProofOfFullNode));
+        std::unique_ptr<CBlockTemplate> pblocktemplate(
+                        BlockAssembler(Params()).CreateNewBlock(scriptMining, false, fProofOfStake, fProofOfFullNode));
         if (!pblocktemplate || !pblocktemplate.get())
             continue;
         if (!(pblocktemplate->nFlags & TF_SUCCESS)) {
