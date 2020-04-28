@@ -763,9 +763,22 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     result.pushKV("proofoffullnodehash", pblock->hashPoFN.GetHex());
 
     if (pblock->IsProgPow()) {
-        result.pushKV("pprpcheader", pblock->GetProgPowHeaderHash().GetHex());
-        result.pushKV("pprpcepoch", progpow::get_epoch_number(pblock->nHeight));
-        mapProgPowTemplates[pblock->GetProgPowHeaderHash().GetHex()] = *pblock;
+        std::string address = gArgs.GetArg("-miningaddress", "");
+        if (IsValidDestinationString(address)) {
+            static std::string lastheader = "";
+            if (mapProgPowTemplates.count(lastheader)) {
+                if (pblock->nTime - 60 < mapProgPowTemplates.at(lastheader).nTime) {
+                    result.pushKV("pprpcheader", lastheader);
+                    result.pushKV("pprpcepoch", ethash::get_epoch_number(pblock->nHeight));
+                    return result;
+                }
+            }
+
+            result.pushKV("pprpcheader", pblock->GetProgPowHeaderHash().GetHex());
+            result.pushKV("pprpcepoch", progpow::get_epoch_number(pblock->nHeight));
+            mapProgPowTemplates[pblock->GetProgPowHeaderHash().GetHex()] = *pblock;
+            lastheader = pblock->GetProgPowHeaderHash().GetHex();
+        }
     }
 
     return result;
