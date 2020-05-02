@@ -1032,6 +1032,6 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
     if (nThreads == 0 || !fGenerate)
         return;
     for (int i = 0; i < nThreads; i++)
-        pthreadGroupPoW->create_thread(boost::bind(&ThreadBitcoinMiner, coinbaseScript));
+        pthreadGroupPoW->create_thread(std::bind(&ThreadBitcoinMiner, coinbaseScript));
 
 }

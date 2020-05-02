@@ -327,7 +327,7 @@ void CzWallet::ThreadedDeterministicSearch(int nCountStart, int nCountEnd, int n
         int nStart = nPrevThreadEnd + 1;;
         int nEnd = std::min(nStart + nRangePerThread, nCountEnd);
         nPrevThreadEnd = nEnd;
-        searchThreads->create_thread(boost::bind(&CzWallet::DeterministicSearch, this, nStart, nEnd, &ThreadedDeterministicSearch_nProgress[i]));
+        searchThreads->create_thread(std::bind(&CzWallet::DeterministicSearch, this, nStart, nEnd, &ThreadedDeterministicSearch_nProgress[i]));
     }
 
     searchThreads->join_all();

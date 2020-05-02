@@ -103,12 +103,14 @@ bool ThreadedBatchVerify(const std::vector<libzerocoin::SerialNumberSoKProof>* p
             nThreadSelected = 0;
     }
 
-    boost::thread_group* pthreadgroup = new boost::thread_group();
+    boost::thread_group threadGroup;
     for (unsigned int i = 0; i < vProofGroups.size(); i++) {
-        pthreadgroup->create_thread(boost::bind(&libzerocoin::SerialNumberSoKProof::BatchVerify, vProofGroups[i], &vReturn[i]));
+        threadGroup.create_thread([i, &vProofGroups, &vReturn] {
+            return libzerocoin::SerialNumberSoKProof::BatchVerify(vProofGroups[i], &vReturn[i]);
+        });
     }
 
-    pthreadgroup->join_all();
+    threadGroup.join_all();
 
     for (auto ret : vReturn) {
         if (ret != 1)

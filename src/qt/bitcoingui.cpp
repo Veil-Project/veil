@@ -1488,11 +1488,11 @@ static bool InitNewWallet(BitcoinGUI *gui, std::string& mnemonic, unsigned int& 
 void BitcoinGUI::subscribeToCoreSignals()
 {
     // Connect signals to client
-    m_handler_message_box = m_node.handleMessageBox(boost::bind(ThreadSafeMessageBox, this, _1, _2, _3));
-    m_handler_question = m_node.handleQuestion(boost::bind(ThreadSafeMessageBox, this, _1, _3, _4));
+    m_handler_message_box = m_node.handleMessageBox(std::bind(ThreadSafeMessageBox, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    m_handler_question = m_node.handleQuestion(std::bind(ThreadSafeMessageBox, this, std::placeholders::_1, std::placeholders::_3, std::placeholders::_4));
 #ifdef ENABLE_WALLET
     if(enableWallet)
-        m_handler_init_wallet = m_node.handleInitWallet(boost::bind(InitNewWallet, this, _1, _2));
+        m_handler_init_wallet = m_node.handleInitWallet(std::bind(InitNewWallet, this, std::placeholders::_1, std::placeholders::_2));
 #endif
 }
 

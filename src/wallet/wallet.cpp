@@ -7009,7 +7009,7 @@ bool StartAutoSpend()
         StopAutoSpend();
     }
 
-    pthreadGroupAutoSpend->create_thread(boost::bind(&AutoSpendZeroCoin));
+    pthreadGroupAutoSpend->create_thread(std::bind(&AutoSpendZeroCoin));
     return true;
 }
 
