@@ -516,6 +516,8 @@ crypto_libbitcoin_crypto_base_a_SOURCES = \
   crypto/randomx/blake2/blamka-round-ssse3.h \
   crypto/randomx/blake2/endian.h \
   crypto/randomx/asm/configuration.asm \
+  crypto/randomx/asm/program_prologue_linux.inc \
+  crypto/randomx/asm/program_xmm_constants.inc \
   crypto/c_threads.h \
   crypto/hash-ops.h \
   crypto/rx-slow-hash.c
