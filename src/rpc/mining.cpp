@@ -352,7 +352,9 @@ static std::string gbt_vb_name(const Consensus::DeploymentPos pos) {
     }
     return s;
 }
-
+bool isValidAlgoString(std::string algo){
+    return algo == RANDOMX_STRING || algo == PROGPOW_STRING || algo == SHA256D_STRING;
+}
 static UniValue getblocktemplate(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() > 1)
@@ -380,6 +382,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             "       ]\n"
             "     }\n"
             "\n"
+            "2. algo    (string, optional) The mining algorithm to use for this block template: 'progpow', 'sha256d', 'randomx'(default:randomx)\n"
 
             "\nResult:\n"
             "{\n"
@@ -496,7 +499,13 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             }
         }
     }
-
+    if (!request.params[1].isNull()) {
+        std::string strAlgo = request.params[1].get_str();
+        if(isValidAlgoString(strAlgo))
+            gArgs.ForceSetArg("-mine", strAlgo);
+        else
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid algorithm given");
+    }
     if (strMode != "template")
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid mode");
 
