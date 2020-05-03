@@ -518,6 +518,17 @@ crypto_libbitcoin_crypto_base_a_SOURCES = \
   crypto/randomx/asm/configuration.asm \
   crypto/randomx/asm/program_prologue_linux.inc \
   crypto/randomx/asm/program_xmm_constants.inc \
+  crypto/randomx/asm/program_loop_load.inc \
+  crypto/randomx/asm/program_read_dataset.inc \
+  crypto/randomx/asm/program_read_dataset_sshash_init.inc \
+  crypto/randomx/asm/program_read_dataset_sshash_fin.inc \
+  crypto/randomx/asm/program_loop_store.inc \
+  crypto/randomx/asm/program_epilogue_store.inc \
+  crypto/randomx/asm/program_epilogue_linux.inc \
+  crypto/randomx/asm/program_sshash_load.inc \
+  crypto/randomx/asm/program_sshash_prefetch.inc \
+  crypto/randomx/asm/program_sshash_constants.inc \
+  crypto/randomx/asm/randomx_reciprocal.inc \
   crypto/c_threads.h \
   crypto/hash-ops.h \
   crypto/rx-slow-hash.c
