@@ -43,7 +43,7 @@ std::string CTxIn::ToString() const
     return str;
 }
 
-void CTxOutBase::SetValue(int64_t value)
+void CTxOutBase::SetValue(const CAmount& value)
 {
     // convenience function intended for use with CTxOutStandard only
     if (nVersion != OUTPUT_STANDARD) return;

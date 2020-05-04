@@ -5,7 +5,7 @@
 #include <policy/policy.h>
 #include <txmempool.h>
 #include <util.h>
-
+#include <validation.h>
 #include <test/test_veil.h>
 
 #include <boost/test/unit_test.hpp>
@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(MempoolRemoveTest)
 
 
     CTxMemPool testPool;
-    LOCK(testPool.cs);
+    LOCK2(cs_main, testPool.cs);
 
     // Nothing in pool, remove should do nothing:
     unsigned int poolSize = testPool.size();

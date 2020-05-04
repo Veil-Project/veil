@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(bip173_testvectors_invalid)
         " 1nwldj5",
         "\x7f""1axkwrx",
         "\x80""1eym55h",
-        "an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1569pvx",
+        "an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1569pvxandsomecharstonotmatchveillimit",
         "pzry9x0s0muk",
         "1pzry9x0s0muk",
         "x1b4n0q5v",

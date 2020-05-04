@@ -348,7 +348,7 @@ public:
 
     virtual bool IsEmpty() const { return false;}
 
-    void SetValue(CAmount value);
+    void SetValue(const CAmount& value);
     void AddToValue(const CAmount& nValue);
     virtual bool SetScriptPubKey(const CScript& scriptPubKey) { return false; }
 
