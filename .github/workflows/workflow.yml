@@ -140,12 +140,12 @@ jobs:
         tar -C depends/SDKs -xf depends/sdk-sources/MacOSX10.11.sdk.tar.gz
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Build Dependencies
-      run: make -C depends HOST=x86_64-apple-darwin14 -j$(sysctl -n hw.activecpu)
+      run: make -C depends HOST=x86_64-apple-darwin14 -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Build Veil
       run: |
         ./configure --disable-jni --prefix=$(realpath depends/x86_64-apple-darwin14)
-        make -j$(sysctl -n hw.activecpu)
+        make -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Prepare Files for Artifact
       run: |
