@@ -14,6 +14,23 @@ AC_CONFIG_HEADERS([src/config/veil-config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([build-aux/m4])
 
+dnl Add config links for asm includes for RandomX
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_epilogue_linux.inc:src/crypto/randomx/asm/program_epilogue_linux.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_epilogue_store.inc:src/crypto/randomx/asm/program_epilogue_store.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_epilogue_win64.inc:src/crypto/randomx/asm/program_epilogue_win64.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_loop_load.inc:src/crypto/randomx/asm/program_loop_load.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_loop_store.inc:src/crypto/randomx/asm/program_loop_store.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_prologue_linux.inc:src/crypto/randomx/asm/program_prologue_linux.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_prologue_win64.inc:src/crypto/randomx/asm/program_prologue_win64.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_read_dataset.inc:src/crypto/randomx/asm/program_read_dataset.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_read_dataset_sshash_fin.inc:src/crypto/randomx/asm/program_read_dataset_sshash_fin.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_read_dataset_sshash_init.inc:src/crypto/randomx/asm/program_read_dataset_sshash_init.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_sshash_constants.inc:src/crypto/randomx/asm/program_sshash_constants.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_sshash_load.inc:src/crypto/randomx/asm/program_sshash_load.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_sshash_prefetch.inc:src/crypto/randomx/asm/program_sshash_prefetch.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_xmm_constants.inc:src/crypto/randomx/asm/program_xmm_constants.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/randomx_reciprocal.inc:src/crypto/randomx/asm/randomx_reciprocal.inc])
+
 BITCOIN_DAEMON_NAME=veild
 BITCOIN_GUI_NAME=veil-qt
 BITCOIN_CLI_NAME=veil-cli
