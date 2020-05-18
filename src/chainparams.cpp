@@ -563,9 +563,9 @@ public:
         consensus.BIP65Height = 581885; // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
         consensus.BIP66Height = 330776; // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
         consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitRandomX = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitProgPow = uint256S("000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitSha256 = uint256S("000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitRandomX = uint256S("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitSha256 = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
 
         // ProgPow, RandomX, Sha256d
@@ -612,7 +612,7 @@ public:
         pchMessageStart[1] = 0xd1;
         pchMessageStart[2] = 0xa7;
         pchMessageStart[3] = 0xc4;
-        nDefaultPort = 58815;
+        nDefaultPort = 58816;
         nPruneAfterHeight = 1000;
 
         /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
@@ -668,8 +668,8 @@ public:
 
         checkpointData = {
             {
-                    { 1, uint256S("0x46a540411202d9e304187c50377ec5b5baecf1adb040f1629c2daec50b493f8b")},
-                    { 17, uint256S("0xe054229317f002436b1bb67b5e72b442299bcd5bd6cc5740b4ea6c6e5efba583")}
+//                    { 1, uint256S("0x46a540411202d9e304187c50377ec5b5baecf1adb040f1629c2daec50b493f8b")},
+//                    { 17, uint256S("0xe054229317f002436b1bb67b5e72b442299bcd5bd6cc5740b4ea6c6e5efba583")}
             }
         };
 
@@ -708,7 +708,7 @@ public:
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
 
-        nHeightLightZerocoin = 9428;
+        nHeightLightZerocoin = 1000;
         nHeightEnforceBlacklist = 0;
 
         /** RingCT/Stealth **/
