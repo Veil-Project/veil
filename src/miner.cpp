@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
-// Copyright (c) 2019-2020 Veil developers
+// Copyright (c) 2018-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -508,31 +508,33 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     //Sign block if this is a proof of stake block
     if (fProofOfStake) {
-        if (!pblock->vtx[1]->IsZerocoinSpend()) {
-            error("%s: invalid block created. Stake is not zerocoinspend!", __func__);
-            return nullptr;
-        }
-        auto spend = TxInToZerocoinSpend(pblock->vtx[1]->vin[0]);
-        if (!spend) {
-            LogPrint(BCLog::BLOCKCREATION, "%s: failed to get spend for txin", __func__);
-            return nullptr;
-        }
+        if (chainActive.Height() < Params().HeightRingCtPoSStart()) {
+            if (!pblock->vtx[1]->IsZerocoinSpend()) {
+                error("%s: invalid block created. Stake is not zerocoinspend!", __func__);
+                return nullptr;
+            }
+            auto spend = TxInToZerocoinSpend(pblock->vtx[1]->vin[0]);
+            if (!spend) {
+                LogPrint(BCLog::BLOCKCREATION, "%s: failed to get spend for txin", __func__);
+                return nullptr;
+            }
 
-        auto bnSerial = spend->getCoinSerialNumber();
+            auto bnSerial = spend->getCoinSerialNumber();
 
-        CKey key;
+            CKey key;
 #ifdef ENABLE_WALLET
-        if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) || !pwalletMain->GetZerocoinKey(bnSerial, key)) {
+            if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) || !pwalletMain->GetZerocoinKey(bnSerial, key)) {
 #endif
-            LogPrint(BCLog::BLOCKCREATION, "%s: Failed to get zerocoin key from wallet!\n", __func__);
-            return nullptr;
+                LogPrint(BCLog::BLOCKCREATION, "%s: Failed to get zerocoin key from wallet!\n", __func__);
+                return nullptr;
 #ifdef ENABLE_WALLET
-        }
+            }
 #endif
 
-        if (!key.Sign(pblock->GetHash(), pblock->vchBlockSig)) {
-            LogPrint(BCLog::BLOCKCREATION, "%s: Failed to sign block hash\n", __func__);
-            return nullptr;
+            if (!key.Sign(pblock->GetHash(), pblock->vchBlockSig)) {
+                LogPrint(BCLog::BLOCKCREATION, "%s: Failed to sign block hash\n", __func__);
+                return nullptr;
+            }
         }
         LogPrint(BCLog::BLOCKCREATION, "%s: FOUND STAKE!!\n block: \n%s\n", __func__, pblock->ToString());
     }

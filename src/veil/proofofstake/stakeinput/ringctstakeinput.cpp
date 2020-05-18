@@ -120,7 +120,7 @@ bool RingCtStakeCandidate::CreateCoinStake(CWallet* pwallet, const CAmount& nBlo
     tempRecipient.SetAmount(m_nAmount);
     CStealthAddress address;
     if (!panonWallet->GetStakeAddress(address))
-        return error("%s: failed to get the staking address");
+        return error("%s: failed to get the staking address", __func__);
 
     tempRecipient.address = address;
     tempRecipient.fSubtractFeeFromAmount = false;
@@ -313,6 +313,6 @@ bool PublicRingCtStake::CreateCoinStake(CWallet* pwallet, const CAmount& nBlockR
     // if (panonWallet->AddAnonInputs(wtx, rtx, vecSend, /*fSign*/false, /*nRingSize*/Params().DefaultRingSize(), /*nInputsPerSig*/32, nFeeRet, &coinControl, strError) != 0)
     //     return error("%s: AddAnonInputs failed with error %s", __func__, strError);
 
-    // return true;
+    return true;
 }
 

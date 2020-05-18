@@ -146,6 +146,7 @@ bool AnonWallet::Initialise(CExtKey* pExtMaster)
                 return error("%s: failed to read default account id from db", __func__);
             if (!wdb.ReadNamedExtKeyId("stealthaccount", idStealthAccount))
                 return error("%s: failed to read stealth account id from db", __func__);
+
             //Load the change account
             idChangeAccount.SetNull();
             if (!wdb.ReadNamedExtKeyId("stealthchange", idChangeAccount)) {
@@ -159,6 +160,18 @@ bool AnonWallet::Initialise(CExtKey* pExtMaster)
                 idChangeAddress = address.GetID();
                 if (!wdb.WriteNamedExtKeyId("stealthchangeaddress", idChangeAddress))
                     return error("%s: Failed to write stealth change address to wallet db", __func__);
+            }
+
+            //Load the stealth stake account
+            idStakeAccount.SetNull();
+            if (!wdb.ReadNamedExtKeyId("stealthstakeaccount", idStakeAccount)) {
+                //If the stealth stake account is not created yet, then create it
+                if (!IsLocked() && !CreateStealthStakeAccount(&wdb))
+                    return error("%s: failed to create stealth stake account", __func__);
+            }
+            //Load the stake address
+            if (!wdb.ReadNamedExtKeyId("stealthstakeaddress", idStakeAddress)) {
+                return error("%s: Failed to read stealth stake address from db", __func__);
             }
 
             // Load all accounts, keys, stealth addresses from db
@@ -3891,7 +3904,8 @@ CStealthAddress AnonWallet::CreateSpecialStealthAddress(const CKeyID& idAccount,
         mapAccountCounter.emplace(idAddress, 0);
 
     CStealthAddress address;
-    NewStealthKey(address, 0 , nullptr, &idAccount); // XXX - Handle if this returns failure
+    if (!NewStealthKey(address, 0 , nullptr, &idAccount)) // XXX - Handle if this returns failure
+        LogPrintf("(debug) %s: Failed to get Stealth Key\n", __func__);
     idAddress = address.GetID();
 
     return mapStealthAddresses.at(idAddress);
@@ -3905,7 +3919,8 @@ CStealthAddress AnonWallet::GetStealthChangeAddress()
             mapAccountCounter.emplace(idChangeAddress, 0);
 
         CStealthAddress address;
-        NewStealthKey(address, 0 , nullptr, &idChangeAccount); // XXX - Handle if this returns failure
+        if (!NewStealthKey(address, 0 , nullptr, &idChangeAccount)) // XXX - Handle if this returns failure
+            LogPrintf("(debug) %s: Failed to get Stealth Key\n", __func__);
         idChangeAddress = address.GetID();
     }
     return mapStealthAddresses.at(idChangeAddress);
@@ -3913,6 +3928,7 @@ CStealthAddress AnonWallet::GetStealthChangeAddress()
 
 bool AnonWallet::GetStakeAddress(CStealthAddress& address)
 {
+
     if (!mapStealthAddresses.count(idStakeAddress))
         return false;
 
@@ -3962,8 +3978,10 @@ bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
         return error("%s: TxnCommit failed.", __func__);
 
     /** Derive a stealth address that is specifically for change **/
-    CreateStealthChangeAccount(&wdb); // XXX - Check Return Value
-    CreateStealthStakeAccount(&wdb); // XXX - Check Return Value
+    if (!CreateStealthChangeAccount(&wdb)) // XXX - Check Return Value
+        LogPrintf("%s: Failed to Create Stealth Change Account\n", __func__);
+    if (!CreateStealthStakeAccount(&wdb)) // XXX - Check Return Value
+        LogPrintf("%s: Failed to Create Stealth Stake Account\n", __func__);
 
     LogPrintf("%s: Default account %s\n", __func__, idDefaultAccount.GetHex());
     LogPrintf("%s: Stealth account %s\n", __func__, idStealthAccount.GetHex());
