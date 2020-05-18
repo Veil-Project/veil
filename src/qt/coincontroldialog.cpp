@@ -766,8 +766,7 @@ void CoinControlDialog::updateView(int nCoinType)
 
     if (nCoinType == OUTPUT_STANDARD && !CoinControlDialog::fSpendingZerocoin) {
         for (const auto &coins : model->wallet().listCoins()) {
-            CCoinControlWidgetItem *itemWalletAddress = new CCoinControlWidgetItem();
-            itemWalletAddress->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
+            CCoinControlWidgetItem *itemWalletAddress{nullptr};
             QString sWalletAddress = QString::fromStdString(EncodeDestination(coins.first));
             QString sWalletLabel = model->getAddressTableModel()->labelForAddress(sWalletAddress);
             if (sWalletLabel.isEmpty())
@@ -775,7 +774,7 @@ void CoinControlDialog::updateView(int nCoinType)
 
             if (treeMode) {
                 // wallet address
-                ui->treeWidget->addTopLevelItem(itemWalletAddress);
+                itemWalletAddress = new CCoinControlWidgetItem(ui->treeWidget);
 
                 itemWalletAddress->setFlags(flgTristate);
                 itemWalletAddress->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
