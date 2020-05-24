@@ -170,6 +170,8 @@ void Balance::onBtnBalanceClicked(int type){
 
 void Balance::setClientModel(ClientModel *model){
     this->clientModel = model;
+
+    connect(model, SIGNAL(numBlocksChanged(int,QDateTime,double,bool)), this, SLOT(setNumBlocks(int,QDateTime,double,bool)));
 }
 
 void Balance::setWalletModel(WalletModel *model){
@@ -233,13 +235,14 @@ void Balance::refreshWalletStatus() {
     interfaces::Wallet& wallet = walletModel->wallet();
     std::string strAddress;
     std::vector<interfaces::WalletAddress> addresses = wallet.getLabelAddress("stealth");
+
     if(!addresses.empty()) {
         interfaces::WalletAddress address = addresses[0];
         if (address.dest.type() == typeid(CStealthAddress)){
             bool fBech32 = true;
             strAddress = EncodeDestination(address.dest,true);
         }
-    }else {
+    } else {
         ui->copyAddress->setVisible(true);
         ui->labelReceive->setAlignment(Qt::AlignLeft);
         ui->labelReceive->setText("Receiving address");
@@ -320,4 +323,12 @@ void Balance::refreshWalletStatus() {
 #endif
 }
 
+void Balance::setNumBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, bool header)
+{
+    if (!clientModel)
+        return;
+
+    // Set the informative last block time label.
+    ui->labelLastBlockTime_Content->setText(blockDate.toString());
+}
 

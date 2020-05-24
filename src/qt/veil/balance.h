@@ -37,6 +37,7 @@ public:
 
 public Q_SLOTS:
     void setBalance(const interfaces::WalletBalances& balances);
+    void setNumBlocks(int count, const QDateTime& blockDate, double nVerificationProgress, bool header);
     void updateDisplayUnit();
     void onBtnBalanceClicked();
     void onBtnUnconfirmedClicked();
