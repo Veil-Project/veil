@@ -16,7 +16,6 @@ EXPECTED_CIRCULAR_DEPENDENCIES=(
     "policy/policy -> validation -> policy/policy"
     "qt/addresstablemodel -> qt/walletmodel -> qt/addresstablemodel"
     "qt/bantablemodel -> qt/clientmodel -> qt/bantablemodel"
-    "qt/bitcoingui -> qt/utilitydialog -> qt/bitcoingui"
     "qt/bitcoingui -> qt/walletframe -> qt/bitcoingui"
     "qt/bitcoingui -> qt/walletview -> qt/bitcoingui"
     "qt/clientmodel -> qt/peertablemodel -> qt/clientmodel"
