@@ -2849,7 +2849,6 @@ CAmount CWallet::GetMintableBalance(std::vector<COutput>& vMintableCoins) const
             vMintableCoins.emplace_back(std::move(coin));
         }
     }
-    LogPrintf("(debug) %s: Mintable Balance: %s\n", __func__, FormatMoney(balance));
     return balance;
 }
 

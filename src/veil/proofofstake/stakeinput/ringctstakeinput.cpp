@@ -130,7 +130,7 @@ bool RingCtStakeCandidate::CreateCoinStake(CWallet* pwallet, const CAmount& nBlo
     std::string strError;
     CTransactionRecord rtx;
     CAmount nFeeRet = 0;
-    if (panonWallet->AddAnonInputs(wtx, rtx, vecSend, /*fSign*/false, /*nRingSize*/Params().DefaultRingSize(), /*nInputsPerSig*/32, nFeeRet, &coinControl, strError) != 0)
+    if (!panonWallet->AddAnonInputs(wtx, rtx, vecSend, /*fSign*/false, /*nRingSize*/Params().DefaultRingSize(), /*nInputsPerSig*/32, nFeeRet, &coinControl, strError))
         return error("%s: AddAnonInputs failed with error %s", __func__, strError);
 
     return true;
