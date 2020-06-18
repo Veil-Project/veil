@@ -396,9 +396,9 @@ public:
         return *phashBlock;
     }
 
-    uint256 GetBlockPoWHash() const
+    uint256 GetX16RTPoWHash(bool fSetVeilDataHashNull = false) const
     {
-        return GetBlockHeader().GetX16RTPoWHash();
+        return GetBlockHeader().GetX16RTPoWHash(fSetVeilDataHashNull);
     }
 
     uint256 GetProgPowHash(uint256& mix_hash) const;
