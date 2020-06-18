@@ -18,11 +18,26 @@ uint256 CBlockHeader::GetHash() const
 }
 
 #define TIME_MASK 0xffffff80
-uint256 CBlockHeader::GetX16RTPoWHash() const
+uint256 CBlockHeader::GetX16RTPoWHash(bool fSetVeilDataHashNull) const
 {
     //Only change every 128 seconds
     int32_t nTimeX16r = nTime&TIME_MASK;
     uint256 hashTime = Hash(BEGIN(nTimeX16r), END(nTimeX16r));
+
+    // Because of the changes to the block header that removes veil data hash
+    // When a PoS block looks back 100 blocks to get the blocks hash
+    // If the block is a PoW block, sometimes the block data in the pointer is
+    // not in the correct order, so when the Hash starts at the BEGIN(nVersion), END(nNonce)
+    // the veildatahash is not found to be zero e.g 00000000xxxxxxx.
+    // This is a bug only when the wallet is being mined to by ProgPow locally.
+    // By allowing the code to pass a flag when computing the PoS block index PoW hash, we can
+    // bypass the bug in the code and set veildatahash to all zeros before computing the hash.
+    if (fSetVeilDataHashNull) {
+        CBlockHeader temp(*this);
+        temp.hashVeilData = uint256();
+        return HashX16R(BEGIN(temp.nVersion), END(temp.nNonce), hashTime);
+    }
+
     return HashX16R(BEGIN(nVersion), END(nNonce), hashTime);
 }
 

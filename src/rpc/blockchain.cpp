@@ -155,7 +155,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* blockindex, bool tx
     else if (blockindex->IsSha256DProofOfWork() && blockindex->nTime >= Params().PowUpdateTimestamp())
         result.pushKV("sha256dproofofworkhash", blockindex->GetSha256DPowHash().GetHex());
     else
-        result.pushKV("proofofworkhash", blockindex->GetBlockPoWHash().GetHex());
+        result.pushKV("proofofworkhash", blockindex->GetX16RTPoWHash().GetHex());
     result.pushKV("version", block.nVersion);
     result.pushKV("versionHex", strprintf("%08x", block.nVersion));
     result.pushKV("merkleroot", block.hashMerkleRoot.GetHex());

@@ -4833,8 +4833,9 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
         uint256 hashProofOfStake = uint256();
         std::unique_ptr<CStakeInput> stake;
 
-        if (!CheckProofOfStake(pindex, block.vtx[1], block.nBits, block.nTime, hashProofOfStake, stake))
+        if (!CheckProofOfStake(pindex, block.vtx[1], block.nBits, block.nTime, hashProofOfStake, stake)) {
             return state.DoS(100, error("%s: proof of stake check failed", __func__));
+        }
 
         if (!stake)
             return error("%s: null stake ptr", __func__);
