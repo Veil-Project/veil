@@ -146,16 +146,19 @@ static void initTranslations(QTranslator &qtTranslatorBase, QTranslator &qtTrans
 /* qDebug() message handler --> debug.log */
 void DebugMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &msg)
 {
-#ifndef QT_MESSAGELOGCONTEXT
-   Q_UNUSED(context);
+//#ifndef QT_MESSAGELOGCONTEXT
+// ^ Do not use this except in debugging environments as some OSs don't handle it properly
+ 
+    Q_UNUSED(context);
     if (type == QtDebugMsg) {
         LogPrint(BCLog::QT, "GUI: %s\n", msg.toStdString());
     } else {
         LogPrintf("GUI: %s\n", msg.toStdString());
     }
-#else // QT_MESSAGELOGCONTEXT needs to be added to the DEFS line of the Makefile
-    LogPrintf("GUI: %s:%d %s\n", context.file, context.line, msg.toStdString());
-#endif
+
+//#else // QT_MESSAGELOGCONTEXT needs to be added to the DEFS line of the Makefile
+//    LogPrintf("GUI: %s:%d %s\n", context.file, context.line, msg.toStdString());
+//#endif
 }
 
 /** Class encapsulating Bitcoin Core startup and shutdown.
