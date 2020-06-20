@@ -1,4 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -436,7 +437,8 @@ void CoinControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
             coinControl()->nCoinType = CoinControlDialog::nCurrentCoinTypeSelected;
             coinControl()->fZerocoinSelected = CoinControlDialog::fSpendingZerocoin;
 
-            CAmount nValue = AmountFromValue(item->text(COLUMN_AMOUNT).toStdString());
+            CAmount nValue;
+            BitcoinUnits::parse(BitcoinUnits::VEIL, item->text(COLUMN_AMOUNT), &nValue);
 
             if (CoinControlDialog::fSpendingZerocoin)
                 coinControl()->Select(serialHash, nValue);
