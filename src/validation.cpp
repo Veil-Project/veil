@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Copyright (c) 2015-2019 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -3539,6 +3539,80 @@ static void NotifyHeaderTip() LOCKS_EXCLUDED(cs_main) {
     }
 }
 
+bool IsAncestor(const CBlockIndex* pindexChain, const CBlockIndex* pindexCheck)
+{
+    if (!pindexChain || !pindexCheck)
+        return false;
+    if (pindexChain->nHeight <= pindexCheck->nHeight)
+        return false;
+
+    return pindexChain->GetAncestor(pindexCheck->nHeight)->GetBlockHash() == pindexCheck->GetBlockHash();
+}
+
+static const unsigned int PRUNE_DEPTH = 120;
+static const unsigned int PRUNE_COUNT = 12;
+
+/*
+** Periodically scan the block index map for stale tips and clean them up.  Note that both
+** chainActive.Contains and IsAncestor are expensive as the block index grows, so we want
+** to take special care to not spend a lot of extra time doing useless work.
+*/
+void PruneStaleBlockIndexes()
+{
+    static int64_t lastPrunedHeight = 0;
+
+    // This isn't going to change while we're processing, so just leave and try again later.
+    if (!pindexBestHeader) return;
+
+    // If mapBlockIndex isn't bloated, don't bother taking the time.
+    if (chainActive.Height() > (mapBlockIndex.size() - PRUNE_COUNT)) {
+        return;
+    }
+
+    LogPrintf("%s: Checking for stale indexes. Block index size=%d; Chain height=%d\n",
+              __func__, mapBlockIndex.size(), chainActive.Height());
+
+    uint32_t irrelevantIndexes = 0;
+    int64_t lowestPrunedHeight = lastPrunedHeight;
+    std::set<uint256> setDelete;
+
+    for (const auto& p : mapBlockIndex) {
+        const CBlockIndex* pindex = p.second;
+        // If we've already checked to this height, don't waste time
+
+        if (pindex->nHeight < lastPrunedHeight)
+            continue;
+
+        // If it's not in the active chain, and not in our best header ancestor list.
+        if (!chainActive.Contains(pindex) && (!IsAncestor(pindexBestHeader, pindex))) {
+            irrelevantIndexes++;
+
+            // if it's also old enough, add it to the prune list.
+            if (pindex->nHeight + PRUNE_DEPTH < chainActive.Height()) {
+                setDelete.emplace(p.first);
+
+                // save the lowest height that we're purging
+                if ((pindex->nHeight < lowestPrunedHeight) || (lowestPrunedHeight <= lastPrunedHeight)) {
+                    lowestPrunedHeight = pindex->nHeight;
+                }
+            }
+        }
+    }
+
+    if (irrelevantIndexes > 0) {
+         LogPrintf("%s: Erasing %d of %d irrelevant indexes.  LastPrunedHeight now %d.\n",
+                   __func__, setDelete.size(), irrelevantIndexes, lowestPrunedHeight);
+
+         // Purge the ones we flagged
+         for (const uint256& hash : setDelete) {
+             mapBlockIndex.erase(hash);
+         }
+
+         // Step back a little for safety
+         lastPrunedHeight = lowestPrunedHeight;
+    }
+}
+
 /**
  * Make the best chain active, in multiple steps. The result is either failure
  * or an activated best chain. pblock is either nullptr or a pointer to a block
@@ -3644,6 +3718,8 @@ bool CChainState::ActivateBestChain(CValidationState &state, const CChainParams&
     if (!FlushStateToDisk(chainparams, state, FlushStateMode::PERIODIC)) {
         return false;
     }
+
+    PruneStaleBlockIndexes();
 
     return true;
 }
@@ -4587,42 +4663,12 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
     return true;
 }
 
-bool IsAncestor(const CBlockIndex* pindexChain, const CBlockIndex* pindexCheck)
-{
-    if (!pindexChain || !pindexCheck)
-        return false;
-    if (pindexChain->nHeight <= pindexCheck->nHeight)
-        return false;
-
-    return pindexChain->GetAncestor(pindexCheck->nHeight)->GetBlockHash() == pindexCheck->GetBlockHash();
-}
-
-// If there are too many loose block indexes, then delete the extras.
-void CleanBlockIndexGarbage()
-{
-    std::set<uint256> setDelete;
-    for (const auto& p : mapBlockIndex) {
-        const CBlockIndex* pindex = p.second;
-        if (pindexBestHeader && !chainActive.Contains(pindex) && (!IsAncestor(pindexBestHeader, pindex)))
-            setDelete.emplace(p.first);
-    }
-
-    if (setDelete.size() > 1000) {
-        LogPrintf("%s: Erasing %d irrelevant indexes\n", __func__, setDelete.size());
-        for (const uint256& hash : setDelete) {
-            mapBlockIndex.erase(hash);
-        }
-    }
-}
-
 // Exposed wrapper for AcceptBlockHeader
 bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidationState& state, const CChainParams& chainparams, const CBlockIndex** ppindex, CBlockHeader *first_invalid)
 {
     if (first_invalid != nullptr) first_invalid->SetNull();
     {
         LOCK(cs_main);
-        if (!IsInitialBlockDownload())
-            CleanBlockIndexGarbage();
         int nHeightMaxNonPoW = chainActive.Height() + Params().MaxHeaderRequestWithoutPoW();
         nHeightMaxNonPoW = std::max(nHeightMaxNonPoW, Checkpoints::GetLastCheckpointHeight(chainparams.Checkpoints()));
 
