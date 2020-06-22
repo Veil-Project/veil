@@ -195,7 +195,7 @@ public:
     }
 
     uint256 GetHash() const;
-    uint256 GetX16RTPoWHash() const;
+    uint256 GetX16RTPoWHash(bool fSetVeilDataHashNull = false) const;
     uint256 GetSha256DPoWHash() const;
 
     uint256 GetProgPowHeaderHash() const;
