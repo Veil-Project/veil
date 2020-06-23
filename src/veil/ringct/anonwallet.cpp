@@ -6145,6 +6145,18 @@ bool AnonWallet::IsSpent(const uint256& hash, unsigned int n) const
     std::pair<TxSpends::const_iterator, TxSpends::const_iterator> range;
     range = mapTxSpends.equal_range(outpoint);
 
+    if (range.first == range.second) {
+        // the outpoint was not in the Tx Spends map.  check it directly
+        MapRecords_t::const_iterator mi = mapRecords.find(hash);
+        if (mi != mapRecords.end()) {
+            const COutputRecord *outputRecord = mi->second.GetOutput(n);
+            if (outputRecord != nullptr)
+                return outputRecord->IsSpent();
+        }
+        // If we got this far, assume it's spent
+        return true;
+    }
+
     for (TxSpends::const_iterator it = range.first; it != range.second; ++it) {
         const uint256 &wtxid = it->second;
 
