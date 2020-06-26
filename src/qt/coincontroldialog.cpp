@@ -913,10 +913,6 @@ void CoinControlDialog::updateView(int nCoinType)
                 if (out.nType != nCoinType)
                     continue;
 
-                //Also need to filter out zerocoinmints
-                if (txRef->vpout[i]->IsZerocoinMint())
-                    continue;
-
                 //Don't display zero confirmed outputs
                 if (nDepth < 1)
                     continue;
