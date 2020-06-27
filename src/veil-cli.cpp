@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -431,6 +432,7 @@ static int CommandLineRPC(int argc, char *argv[])
                 throw std::runtime_error("-stdinrpcpass specified but failed to read from standard input");
             }
             gArgs.ForceSetArg("-rpcpassword", rpcPass);
+            fputs("\n", stderr);
         }
         std::vector<std::string> args = std::vector<std::string>(&argv[1], &argv[argc]);
         if (gArgs.GetBoolArg("-stdinwalletpassphrase", false)) {
@@ -447,6 +449,7 @@ static int CommandLineRPC(int argc, char *argv[])
                 throw std::runtime_error("-stdinwalletpassphrase specified but failed to read from standard input");
             }
             args.insert(args.begin() + 1, walletPass);
+            fputs("\n", stderr);
         }
         if (gArgs.GetBoolArg("-stdin", false)) {
             // Read one arg per line from stdin and append
