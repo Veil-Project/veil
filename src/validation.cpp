@@ -2679,7 +2679,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 CTxOutRingCT *txout = (CTxOutRingCT*)tx.vpout[k].get();
 
                 int64_t nTestExists;
-                if (!fVerifyingDB && pblocktree->ReadRCTOutputLink(txout->pk, nTestExists)) {
+                if (!fSkipComputation && !fVerifyingDB && pblocktree->ReadRCTOutputLink(txout->pk, nTestExists)) {
                     control.Wait();
 
                     if (nTestExists > pindex->pprev->nAnonOutputs) {
@@ -2694,7 +2694,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                     return error("%s: Duplicate anon-output (db) %s, index %d.", __func__, HexStr(txout->pk.begin(), txout->pk.end()), nTestExists);
                 }
 
-                if (!fVerifyingDB && view.ReadRCTOutputLink(txout->pk, nTestExists)) {
+                if (!fSkipComputation && !fVerifyingDB && view.ReadRCTOutputLink(txout->pk, nTestExists)) {
                     control.Wait();
                     return error("%s: Duplicate anon-output (view) %s, index %d.", __func__, HexStr(txout->pk.begin(), txout->pk.end()), nTestExists);
                 }
