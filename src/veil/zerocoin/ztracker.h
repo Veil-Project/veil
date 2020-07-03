@@ -43,7 +43,7 @@ public:
     CMintMeta Get(const SerialHash& hashSerial);
     CMintMeta GetMetaFromPubcoin(const PubCoinHash& hashPubcoin);
     bool GetMetaFromStakeHash(const uint256& hashStake, CMintMeta& meta) const;
-    CAmount GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly) const;
+    CAmount GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly, const int min_depth=0) const;
     std::vector<SerialHash> GetSerialHashes();
     std::vector<CMintMeta> GetMints(bool fConfirmedOnly) const;
     CAmount GetUnconfirmedBalance() const;

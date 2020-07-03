@@ -969,15 +969,16 @@ CAmount AnonWallet::GetBalance(const isminefilter& filter, const int min_depth) 
     LOCK2(cs_main, pwalletParent->cs_wallet);
 
     for (const auto &ri : mapRecords) {
-        const auto &txhash = ri.first;
-        const auto &rtx = ri.second;
+        const uint256 &txhash = ri.first;
+        const CTransactionRecord &rtx = ri.second;
         if (!IsTrusted(txhash, rtx.blockHash, rtx.nIndex) || GetDepthInMainChain(rtx.blockHash, rtx.nIndex) < min_depth)
             continue;
 
-        for (const auto &r : rtx.vout) {
+        for (const COutputRecord &r : rtx.vout) {
             if (r.nType == OUTPUT_STANDARD && (((filter & ISMINE_SPENDABLE) && (r.nFlags & ORF_OWNED))
-                    || ((filter & ISMINE_WATCH_ONLY) && (r.nFlags & ORF_OWN_WATCH))) && !IsSpent(txhash, r.n))
+                    || ((filter & ISMINE_WATCH_ONLY) && (r.nFlags & ORF_OWN_WATCH))) && !IsSpent(txhash, r.n)) {
                 nBalance += r.GetAmount();
+	    }
         }
 
         if (!MoneyRange(nBalance))
@@ -1051,7 +1052,7 @@ CAmount AnonWallet::GetUnconfirmedBalance() const
     return nBalance;
 };
 
-CAmount AnonWallet::GetBlindBalance()
+CAmount AnonWallet::GetBlindBalance(const int min_depth)
 {
     CAmount nBalance = 0;
 
@@ -1061,8 +1062,12 @@ CAmount AnonWallet::GetBlindBalance()
     {
         const auto &txhash = ri.first;
         const auto &rtx = ri.second;
+        int nDepth = GetDepthInMainChain(rtx.blockHash, 0);
 
         if (!IsTrusted(txhash, rtx.blockHash))
+            continue;
+
+        if (min_depth > nDepth)
             continue;
 
         for (const auto &r : rtx.vout)
@@ -1078,7 +1083,7 @@ CAmount AnonWallet::GetBlindBalance()
     return nBalance;
 };
 
-CAmount AnonWallet::GetAnonBalance()
+CAmount AnonWallet::GetAnonBalance(const int min_depth)
 {
     CAmount nBalance = 0;
 
@@ -1087,9 +1092,14 @@ CAmount AnonWallet::GetAnonBalance()
     {
         const auto &txhash = ri.first;
         const auto &rtx = ri.second;
+        int nDepth = GetDepthInMainChain(rtx.blockHash, 0);
 
         if (!IsTrusted(txhash, rtx.blockHash))
             continue;
+
+        if (min_depth > nDepth)
+            continue;
+
         for (const auto &r : rtx.vout)
         {
             if (r.nType == OUTPUT_RINGCT
