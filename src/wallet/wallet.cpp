@@ -2539,7 +2539,7 @@ void CWallet::ResendWalletTransactions(int64_t nBestBlockTime, CConnman* connman
  */
 
 
-CAmount CWallet::GetBalance(const isminefilter& filter, const int min_depth) const
+CAmount CWallet::GetBasecoinBalance(const isminefilter& filter, const int min_depth) const
 {
     CAmount nTotal = 0;
     {
@@ -2553,6 +2553,16 @@ CAmount CWallet::GetBalance(const isminefilter& filter, const int min_depth) con
         }
     }
 
+    return nTotal;
+}
+
+CAmount CWallet::GetBalance(const isminefilter& filter, const int min_depth) const
+{
+    CAmount nTotal = 0;
+    nTotal += GetBasecoinBalance(filter, min_depth);
+    nTotal += GetZerocoinBalance(false, min_depth);
+    nTotal += pAnonWalletMain->GetAnonBalance(min_depth);
+    nTotal += pAnonWalletMain->GetBlindBalance(min_depth);
     return nTotal;
 }
 
@@ -2667,7 +2677,7 @@ string CWallet::GetUniqueWalletBackupName(bool fzAuto) const
     return strprintf("wallet%s.dat%s", fzAuto ? "-autozbackup" : "", FormatISO8601DateTime(GetTime()));
 }
 
-CAmount CWallet::GetUnconfirmedBalance() const
+CAmount CWallet::GetUnconfirmedBasecoinBalance() const
 {
     CAmount nTotal = 0;
     {
@@ -2682,7 +2692,20 @@ CAmount CWallet::GetUnconfirmedBalance() const
     return nTotal;
 }
 
-CAmount CWallet::GetImmatureBalance() const
+CAmount CWallet::GetUnconfirmedBalance() const
+{
+    CAmount nTotal = 0;
+    nTotal += GetUnconfirmedBasecoinBalance();
+    nTotal += GetUnconfirmedZerocoinBalance();
+    BalanceList bal;
+    pAnonWalletMain->GetBalances(bal);
+    nTotal += bal.nCTUnconf;
+    nTotal += bal.nRingCTUnconf;
+
+    return nTotal;
+}
+
+CAmount CWallet::GetImmatureBasecoinBalance() const
 {
     CAmount nTotal = 0;
     {
@@ -2693,6 +2716,19 @@ CAmount CWallet::GetImmatureBalance() const
             nTotal += pcoin->GetImmatureCredit();
         }
     }
+    return nTotal;
+}
+
+CAmount CWallet::GetImmatureBalance() const
+{
+    CAmount nTotal = 0;
+    nTotal += GetImmatureBasecoinBalance();
+    nTotal += GetImmatureZerocoinBalance();
+    BalanceList bal;
+    pAnonWalletMain->GetBalances(bal);
+    nTotal += bal.nCTImmature;
+    nTotal += bal.nRingCTImmature;
+
     return nTotal;
 }
 
@@ -3232,7 +3268,7 @@ bool CWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAm
 
 std::map<libzerocoin::CoinDenomination, int> mapMintMaturity;
 int nLastMaturityCheck = 0;
-CAmount CWallet::GetZerocoinBalance(bool fMatureOnly) const
+CAmount CWallet::GetZerocoinBalance(bool fMatureOnly, const int min_depth) const
 {
     if (fMatureOnly) {
         if (chainActive.Height() > nLastMaturityCheck)
@@ -3242,14 +3278,14 @@ CAmount CWallet::GetZerocoinBalance(bool fMatureOnly) const
         CAmount nBalance = 0;
         std::vector<CMintMeta> vMints = zTracker->GetMints(true);
         for (auto meta : vMints) {
-            if (!mapMintMaturity.count(meta.denom) || meta.nHeight >= mapMintMaturity.at(meta.denom) || meta.nHeight >= chainActive.Height() || meta.nHeight == 0)
+            if (!mapMintMaturity.count(meta.denom) || meta.nHeight >= mapMintMaturity.at(meta.denom) || meta.nHeight >= chainActive.Height() || meta.nHeight == 0 || (min_depth > (chainActive.Height() - meta.nHeight)))
                 continue;
             nBalance += libzerocoin::ZerocoinDenominationToAmount(meta.denom);
         }
         return nBalance;
     }
 
-    return zTracker->GetBalance(false, false);
+    return zTracker->GetBalance(false, false, min_depth);
 }
 
 CAmount CWallet::GetUnconfirmedZerocoinBalance() const
@@ -3826,12 +3862,9 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     scriptEmpty.clear();
     txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
 
-    // Choose coins to use
-    CAmount nBalance = GetBalance();
-
     // Get the list of stakable inputs
     std::list<std::unique_ptr<ZerocoinStake> > listInputs;
-    if (!SelectStakeCoins(listInputs, nBalance))
+    if (!SelectStakeCoins(listInputs))
         return false;
 
     if (listInputs.empty())
@@ -3935,7 +3968,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     }
     return fKernelFound;
 }
-bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs, CAmount nTargetAmount)
+bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs)
 {
     LOCK(cs_main);
 
@@ -5841,7 +5874,7 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
         nBalance = pAnonWalletMain->GetBlindBalance();
         strTypeName = "CT";
     } else if (inputtype == OUTPUT_STANDARD) {
-        nBalance = GetBalance();
+        nBalance = GetBasecoinBalance();
         strTypeName = "Basecoin";
     }
 
@@ -5864,7 +5897,7 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     std::vector<CTempRecipient> vecSend;
     if (!CreateZerocoinMintTransaction(nValue, txNew, vDMints, nFeeRequired, strError, vecSend, inputtype,
                                        coinControl)) {
-        if (nValue + nFeeRequired > GetBalance())
+        if (nValue + nFeeRequired > GetBasecoinBalance())
             return strprintf(_("Error: Failed to create transaction: %s"), strError);
         return strError;
     }

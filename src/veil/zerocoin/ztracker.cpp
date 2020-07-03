@@ -128,7 +128,7 @@ std::vector<SerialHash> CzTracker::GetSerialHashes()
     return vHashes;
 }
 
-CAmount CzTracker::GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly) const
+CAmount CzTracker::GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly, const int min_depth) const
 {
     CAmount nTotal = 0;
     //! zerocoin specific fields
@@ -148,6 +148,8 @@ CAmount CzTracker::GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly) const
             if (fConfirmedOnly && !fConfirmed)
                 continue;
             if (fUnconfirmedOnly && fConfirmed)
+                continue;
+	    if (min_depth > (chainActive.Height() - meta.nHeight))
                 continue;
 
             nTotal += libzerocoin::ZerocoinDenominationToAmount(meta.denom);

@@ -1066,10 +1066,13 @@ public:
     void ResendWalletTransactions(int64_t nBestBlockTime, CConnman* connman) override;
     // ResendWalletTransactionsBefore may only be called if fBroadcastTransactions!
     std::vector<uint256> ResendWalletTransactionsBefore(int64_t nTime, CConnman* connman);
+    CAmount GetBasecoinBalance(const isminefilter& filter=ISMINE_SPENDABLE, const int min_depth=0) const;
     CAmount GetBalance(const isminefilter& filter=ISMINE_SPENDABLE, const int min_depth=0) const;
     bool GetBalances(BalanceList& bal);
     std::pair<ZerocoinSpread, ZerocoinSpread> GetMyZerocoinDistribution() const;
+    CAmount GetUnconfirmedBasecoinBalance() const;
     CAmount GetUnconfirmedBalance() const;
+    CAmount GetImmatureBasecoinBalance() const;
     CAmount GetImmatureBalance() const;
     CAmount GetUnconfirmedWatchOnlyBalance() const;
     CAmount GetImmatureWatchOnlyBalance() const;
@@ -1081,11 +1084,11 @@ public:
      * Does not include locked coins or coins associated with the basecoin address.
      */
     CAmount GetMintableBalance(std::vector<COutput>& vMintableCoins) const;
-    CAmount GetZerocoinBalance(bool fMatureOnly) const;
+    CAmount GetZerocoinBalance(bool fMatureOnly, const int min_depth=0) const;
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
     bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
-    bool SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs, CAmount nTargetAmount);
+    bool SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs);
 
     // sub wallet seeds
     bool GetZerocoinSeed(CKey& keyZerocoinMaster);
