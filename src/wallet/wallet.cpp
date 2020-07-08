@@ -1,4 +1,4 @@
-// Copyright (c) 2009-2010 Satoshi Nakamoto
+
 // Copyright (c) 2009-2018 The Bitcoin Core developers
 // Copyright (c) 2018-2019 The Veil developers
 // Distributed under the MIT software license, see the accompanying
@@ -507,7 +507,7 @@ bool CWallet::LoadWatchOnly(const CScript &dest)
     return CCryptoKeyStore::AddWatchOnly(dest);
 }
 
-bool CWallet::RestoreBaseCoinAddresses(int nCount)
+bool CWallet::RestoreBaseCoinAddresses(uint32_t nCount)
 {
     WalletBatch wdb(GetDBHandle());
     for (unsigned int i = 0; i < nCount; i++) {
@@ -5738,7 +5738,6 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
 
         //Figure out if limp mod is enabled. If this is a PoS tx need to see if the next block will have it enabled too
         bool fZCLimpMode = false;
-        BIP9Stats statsStruct = VersionBitsTipStatistics(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP);
         ThresholdState thresholdState = VersionBitsTipState(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP);
         if (thresholdState == ThresholdState::LOCKED_IN && spendType == libzerocoin::STAKE) {
             int nHeightSince = VersionBitsTipStateSinceHeight(Params().GetConsensus(), Consensus::DEPLOYMENT_ZC_LIMP);
@@ -5997,7 +5996,6 @@ bool CWallet::PrepareZerocoinSpend(CAmount nValue, int nSecurityLevel, CZerocoin
         return error("%s : %s", __func__, receipt.GetStatusMessage());
     }
     // If not already given pre-selected mints, then select mints from the wallet
-    CAmount nValueSelected = 0;
     if (vMintsSelected.empty()) {
         if(!CollectMintsForSpend(nValue, vMintsSelected, receipt, nStatus, fMinimizeChange, denomFilter)) {
             return error("%s : %s", __func__, receipt.GetStatusMessage());
@@ -6005,9 +6003,9 @@ bool CWallet::PrepareZerocoinSpend(CAmount nValue, int nSecurityLevel, CZerocoin
     }
 
     // todo: should we use a different reserve key for each transaction?
-    const int nMaxSpends = Params().Zerocoin_MaxSpendsPerTransaction(); // Maximum possible spends for one z transaction
+    const uint32_t nMaxSpends = Params().Zerocoin_MaxSpendsPerTransaction(); // Maximum possible spends for one z transaction
     CAmount nRemainingValue = nValue;
-    for (auto start = 0; start < vMintsSelected.size(); start += nMaxSpends) {
+    for (auto start = 0; static_cast<uint32_t>(start) < vMintsSelected.size(); start += nMaxSpends) {
         std::vector<CZerocoinMint> vBatchMints;
         auto itStart = vMintsSelected.begin() + start;
         CAmount nBatchValue = 0;
@@ -6016,7 +6014,7 @@ bool CWallet::PrepareZerocoinSpend(CAmount nValue, int nSecurityLevel, CZerocoin
             nBatchValue = nRemainingValue;
         } else {
             vBatchMints = std::vector<CZerocoinMint>(itStart, itStart + nMaxSpends);
-            for (const auto& mint: vBatchMints)
+            for (const CZerocoinMint& mint: vBatchMints)
                 nBatchValue += mint.GetDenominationAsAmount();
         }
 
@@ -6321,13 +6319,6 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
     if (isZCSpendChange)
         return true;
 
-    // calculate fee
-    CAmount nFee = Params().Zerocoin_MintFee() * txNew.vpout.size();
-
-    // no ability to select more coins if this is a ZCSpend change mint
-    CAmount nTotalValue = (isZCSpendChange ? nValue : (nValue + nFee));
-
-    CAmount nValueIn = 0;
     std::set<CInputCoin> setCoins;
 
     /** Select RingCT or CT Inputs **/
@@ -6412,10 +6403,10 @@ bool CWallet::CollectMintsForSpend(CAmount nValue, std::vector<CZerocoinMint>& v
 
     int nCoinsReturned, nNeededSpends;
     CAmount nValueSelected;
-    auto vMintsToFetch = SelectMintsFromList(nValueToSelect, nValueSelected, Params().Zerocoin_MaxSpendsPerTransaction(),
-                                             fMinimizeChange, nCoinsReturned, listMints, DenomMap, nNeededSpends);
+    std::vector<CMintMeta> vMintsToFetch = SelectMintsFromList(nValueToSelect, nValueSelected, Params().Zerocoin_MaxSpendsPerTransaction(),
+                                                               fMinimizeChange, nCoinsReturned, listMints, DenomMap, nNeededSpends);
 
-    for (auto& meta : vMintsToFetch) {
+    for (CMintMeta& meta : vMintsToFetch) {
         CZerocoinMint mint;
         if (!GetMint(meta.hashSerial, mint)) {
             receipt.SetStatus(strprintf("%s: failed to fetch hashSerial %s", __func__, meta.hashSerial.GetHex()), nStatus);
@@ -6440,7 +6431,7 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
     }
 
     // Check that the included mints are at most Zerocoin_MaxSpendsPerTransaction
-    if ((static_cast<int>(vSelectedMints.size()) > Params().Zerocoin_MaxSpendsPerTransaction())) {
+    if (vSelectedMints.size() > Params().Zerocoin_MaxSpendsPerTransaction()) {
         receipt.SetStatus("Failed to find coin set amongst held coins with less than maxNumber of Spends", nStatus);
         return false;
     }
