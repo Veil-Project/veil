@@ -5036,7 +5036,7 @@ UniValue recoveraddresses(const JSONRPCRequest& request)
 
     EnsureWalletIsUnlocked(pwallet);
 
-    int nCount = 100;
+    uint32_t nCount = 100;
     if (request.params.size() > 0)
         nCount = request.params[0].get_int();
 

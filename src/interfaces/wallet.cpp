@@ -252,6 +252,7 @@ WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
     return result;
 }
 
+/*
 WalletTxStatus MakeWalletTxStatus(AnonWallet* pAnonWallet, const uint256 &hash, const CTransactionRecord &rtx)
 {
     WalletTxStatus result;
@@ -271,6 +272,7 @@ WalletTxStatus MakeWalletTxStatus(AnonWallet* pAnonWallet, const uint256 &hash, 
     result.is_in_main_chain = result.depth_in_main_chain > 0;
     return result;
 }
+*/
 
 //! Construct wallet TxOut struct.
 WalletTxOut MakeWalletTxOut(CWallet& wallet, const CWalletTx& wtx, int n, int depth)

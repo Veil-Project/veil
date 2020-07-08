@@ -3602,7 +3602,7 @@ void PruneStaleBlockIndexes()
     if (!pindexBestHeader) return;
 
     // If mapBlockIndex isn't bloated, don't bother taking the time.
-    if (chainActive.Height() > (mapBlockIndex.size() - PRUNE_COUNT)) {
+    if (chainActive.Height() > static_cast<int>(mapBlockIndex.size() - PRUNE_COUNT)) {
         return;
     }
 
@@ -3625,7 +3625,7 @@ void PruneStaleBlockIndexes()
             irrelevantIndexes++;
 
             // if it's also old enough, add it to the prune list.
-            if (pindex->nHeight + PRUNE_DEPTH < chainActive.Height()) {
+            if (chainActive.Height() > static_cast<int>(pindex->nHeight + PRUNE_DEPTH)) {
                 setDelete.emplace(p.first);
 
                 // save the lowest height that we're purging

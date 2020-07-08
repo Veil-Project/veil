@@ -403,7 +403,6 @@ bool SerialNumberSoK_small::Verify(const CBigNum& coinSerialNumber,
     auto proof = SerialNumberSoKProof(*this, coinSerialNumber, valueOfCommitmentToCoin, msghash);
     std::vector<const SerialNumberSoKProof*> vproof{&proof};
 
-    uint8_t nReturn;
     return SerialNumberSoKProof::BatchVerify(vproof);
 
 }
@@ -452,7 +451,6 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<const SerialNumberSoKProof*> 
         const CBN_vector& ComC = proofs[w]->signature.ComC;
         const CBigNum& ComD = proofs[w]->signature.ComD;
         const CBigNum& comRdash  = proofs[w]->signature.comRdash;
-        const CBigNum& rho = proofs[w]->signature.rho;
         const PolynomialCommitment* polyComm = &proofs[w]->signature.polyComm;
         const Bulletproofs* innerProduct = &proofs[w]->signature.innerProduct;
 
@@ -619,7 +617,6 @@ bool SerialNumberSoKProof::BatchVerify(std::vector<const SerialNumberSoKProof*> 
         const auto& comRdash  = proofs2[w].signature.comRdash;
         const auto& rho = proofs2[w].signature.rho;
         const auto* polyComm = &proofs2[w].signature.polyComm;
-        const auto* innerProduct = &proofs2[w].signature.innerProduct;
 
         // Restore y1 in ComC
         CBN_vector ComC_(ComC);
