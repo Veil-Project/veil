@@ -30,7 +30,6 @@ VeilStatusBar::VeilStatusBar(QWidget *parent, BitcoinGUI* gui) :
 #endif
         ui->btnLock->setVisible(false);
         ui->checkStaking->setVisible(false);
-        ui->checkPrecompute->setVisible(false);
 #ifdef ENABLE_WALLET
     }
 #endif
@@ -91,46 +90,6 @@ void VeilStatusBar::onCheckStakingClicked(bool res) {
 
 }
 
-bool fBlockNextPrecomputeCheckSignal = false;
-void VeilStatusBar::onCheckPrecomputeClicked(bool res) {
-    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
-        return;
-
-    // When our own dialog internally changes the checkstate, block signal from executing
-    if (fBlockNextPrecomputeCheckSignal) {
-        fBlockNextPrecomputeCheckSignal = false;
-        return;
-    }
-
-    WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
-
-    if (res){
-        if (gArgs.GetBoolArg("-exchangesandservicesmode", false) || lockState == WalletModel::Locked) {
-            QString dialogMsg = gArgs.GetBoolArg("-exchangesandservicesmode", false) ? "Precomputing is disabled in exchange mode" : "Must unlock wallet before precomputing can be enabled";
-            openToastDialog(dialogMsg, mainWindow);
-            fBlockNextPrecomputeCheckSignal = true;
-            ui->checkPrecompute->setChecked(false);
-            return;
-        } else {
-            std::string strStatus;
-            if(!this->walletModel->StartPrecomputing(strStatus)) {
-                openToastDialog("Failed to start precomputing", mainWindow);
-                this->walletModel->setPrecomputingEnabled(false);
-                return;
-            }
-            this->walletModel->setPrecomputingEnabled(true);
-            mainWindow->updateWalletStatus();
-            openToastDialog("Precomputing enabled", mainWindow);
-        }
-    } else {
-        this->walletModel->setPrecomputingEnabled(false);
-        this->walletModel->StopPrecomputing();
-        mainWindow->updateWalletStatus();
-        openToastDialog("Precomputing disabled", mainWindow);
-    }
-
-}
-
 bool fBlockNextBtnLockSignal = false;
 void VeilStatusBar::onBtnLockClicked()
 {
@@ -167,7 +126,6 @@ void VeilStatusBar::onBtnLockClicked()
     }
 
     updateStakingCheckbox();
-    updatePrecomputeCheckbox();
 }
 
 void VeilStatusBar::setWalletModel(WalletModel *model)
@@ -177,7 +135,6 @@ void VeilStatusBar::setWalletModel(WalletModel *model)
 
     this->walletModel = model;
     connect(ui->checkStaking, SIGNAL(toggled(bool)), this, SLOT(onCheckStakingClicked(bool)));
-    connect(ui->checkPrecompute, SIGNAL(toggled(bool)), this, SLOT(onCheckPrecomputeClicked(bool)));
     connect(walletModel, SIGNAL(encryptionStatusChanged()), this, SLOT(updateLockCheckbox()));
 
     WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
@@ -186,7 +143,6 @@ void VeilStatusBar::setWalletModel(WalletModel *model)
     ui->btnLock->setIcon(QIcon( (lockStatus) ? ":/icons/ic-locked-png" : ":/icons/ic-unlocked-png"));
 
     updateStakingCheckbox();
-    updatePrecomputeCheckbox();
     updateLockCheckbox();
 }
 
@@ -231,23 +187,10 @@ void VeilStatusBar::updateStakingCheckbox()
     }
 }
 
-void VeilStatusBar::updatePrecomputeCheckbox()
-{
-    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
-        return;
-
-    if(walletModel) {
-        WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
-        bool precomputeStatus = walletModel->isPrecomputingEnabled() && lockState != WalletModel::Locked;
-        if (ui->checkPrecompute->isChecked() != precomputeStatus) {
-            fBlockNextPrecomputeCheckSignal = true;
-            ui->checkPrecompute->setChecked(precomputeStatus);
-            return;
-        }
-    }
-}
 #endif
+
 VeilStatusBar::~VeilStatusBar()
 {
     delete ui;
 }
+

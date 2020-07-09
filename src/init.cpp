@@ -56,8 +56,6 @@
 #include <veil/invalid.h>
 #include <veil/ringct/anon.h>
 #include <veil/zerocoin/zchain.h>
-#include <veil/zerocoin/witness.h>
-#include <veil/zerocoin/precompute.h>
 
 #ifndef WIN32
 #include <signal.h>
@@ -267,11 +265,6 @@ void Shutdown()
     if (g_is_mempool_loaded && gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         DumpMempool();
     }
-#ifdef ENABLE_WALLET
-    if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
-        DumpPrecomputes();
-    }
-#endif
 
     if (fFeeEstimatesInitialized)
     {
@@ -310,8 +303,6 @@ void Shutdown()
         pcoinsdbview.reset();
         pblocktree.reset();
         pzerocoinDB.reset();
-        pprecomputeDB.reset();
-        pprecompute.reset();
     }
 #ifdef ENABLE_WALLET
     g_wallet_init_interface.Stop();
@@ -1579,17 +1570,6 @@ bool AppInitMain()
                 pzerocoinDB.reset();
                 pzerocoinDB.reset(new CZerocoinDB(0, false, fReindex));
 
-#ifdef ENABLE_WALLET
-                if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
-                    //zerocoinDB
-                    pprecomputeDB.reset();
-                    pprecomputeDB.reset(new CPrecomputeDB(0, false, false));
-
-                    pprecompute.reset();
-                    pprecompute.reset(new Precompute());
-                }
-#endif
-
                 if (fReset) {
                     pblocktree->WriteReindexing(true);
                     //If we're reindexing in prune mode, wipe away unusable block files and all undo data files
@@ -1936,7 +1916,6 @@ bool AppInitMain()
             threadGroupStaking.create_thread(&ThreadStakeMiner);
 
         // Link thread groups
-        LinkPrecomputeThreadGroup(&threadGroupPrecompute);
         LinkAutoSpendThreadGroup(&threadGroupAutoSpend);
 
         // Start wallet CPU mining if the -gen=<n> parameter is given
@@ -1962,17 +1941,6 @@ bool AppInitMain()
 
                 if (!fSkip)
                     GenerateBitcoins(true, nThreads, coinbase_script);
-            }
-        }
-
-        auto pt = GetMainWallet();
-        if (pprecompute && pt) {
-            pprecompute->SetBlocksPerCycle(gArgs.GetArg("-precomputeblockpercycle", DEFAULT_PRECOMPUTE_BPC));
-            if (gArgs.GetBoolArg("-precompute", false)) {
-                // Start precomputing zerocoin proofs
-                std::string strStatus;
-                if (!pt->StartPrecomputing(strStatus))
-                    error("Failed to start precomputing : %s", strStatus);
             }
         }
 

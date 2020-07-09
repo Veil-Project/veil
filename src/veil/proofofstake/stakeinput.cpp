@@ -284,7 +284,3 @@ bool ZerocoinStake::MarkSpent(CWallet *pwallet, const uint256& txid)
 #endif
 }
 
-uint256 ZerocoinStake::GetSerialStakeHash()
-{
-    return hashSerial;
-}

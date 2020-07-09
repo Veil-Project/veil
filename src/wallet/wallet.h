@@ -50,8 +50,6 @@ std::shared_ptr<CWallet> GetMainWallet();
 
 extern CCriticalSection cs_main;
 
-extern bool fGlobalUnlockSpendCache; // Bool used for letting the precomputing thread know that zerospends need to use the cs_spendcache
-
 //! Default for -keypool
 static const unsigned int DEFAULT_KEYPOOL_SIZE = 1000;
 //! -paytxfee default
@@ -100,7 +98,6 @@ struct FeeCalculation;
 enum class FeeEstimateMode;
 class AnonWallet;
 class CTransactionRecord;
-class CoinWitnessCacheData;
 
 /** (client) version numbers for particular wallet features */
 enum WalletFeature
@@ -692,8 +689,6 @@ protected:
     std::unique_ptr<CzTracker> zTracker;
     bool fUnlockForStakingOnly = false;
     bool fStakingEnabled = true;
-    bool fPrecomputingEnabled = false;
-
 
     WalletBatch *encrypted_batch = nullptr;
 
@@ -850,7 +845,6 @@ public:
     bool CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData, int computeTime = 0);
     CAmount GetAvailableZerocoinBalance(const CCoinControl* coinControl) const;
     bool AvailableZerocoins(std::set<CMintMeta>& setMints, const CCoinControl *coinControl = nullptr) const;
-    bool GetZerocoinPrecomputePercentage(const uint256 &nSerialHash, double &nPercent);
 //    std::string ResetMintZerocoin();
 //    std::string ResetSpentZerocoin();
     void ReconsiderZerocoins(std::list<CZerocoinMint>& listMintsRestored, std::list<CDeterministicMint>& listDMintsRestored);
@@ -869,7 +863,6 @@ public:
     void SetSerialSpent(const uint256& bnSerial, const uint256& txid);
     void ArchiveZerocoin(CMintMeta& meta);
     void AutoZeromint();
-    void PrecomputeSpends();
 
     CzTracker* GetZTrackerPointer() {
         return zTracker.get();
@@ -988,11 +981,6 @@ public:
     bool IsUnlockedForStakingOnly() const { return fUnlockForStakingOnly; }
     void SetStakingEnabled(bool fStakingEnabled) { this->fStakingEnabled = fStakingEnabled; }
     bool IsStakingEnabled() const { return fStakingEnabled; }
-
-    bool StartPrecomputing(std::string& strStatus);
-    void StopPrecomputing();
-    void SetPrecomputingEnabled(bool fPrecomputingEnabled) { this->fPrecomputingEnabled = fPrecomputingEnabled; }
-    bool IsPrecomputingEnabled() const { return fPrecomputingEnabled; }
 
     /*
      * Rescan abort properties
