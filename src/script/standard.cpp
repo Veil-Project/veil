@@ -46,8 +46,15 @@ const char* GetTxnOutputType(txnouttype t)
     case TX_NONSTANDARD: return "nonstandard";
     case TX_PUBKEY: return "pubkey";
     case TX_PUBKEYHASH: return "pubkeyhash";
+    case TX_PUBKEYHASH256: return "pubkeyhash256";
+    case TX_TIMELOCKED_PUBKEYHASH: return "timelocked_pubkeyhash";
+    case TX_TIMELOCKED_PUBKEYHASH256: return "timelocked_pubkeyhash256";
     case TX_SCRIPTHASH: return "scripthash";
+    case TX_SCRIPTHASH256: return "scripthash256";
+    case TX_TIMELOCKED_SCRIPTHASH: return "timelocked_scripthash";
+    case TX_TIMELOCKED_SCRIPTHASH256: return "timelocked_scripthash256";
     case TX_MULTISIG: return "multisig";
+    case TX_TIMELOCKED_MULTISIG: return "timelocked_multisig";
     case TX_NULL_DATA: return "nulldata";
     case TX_WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TX_WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";

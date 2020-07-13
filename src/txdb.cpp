@@ -630,7 +630,7 @@ bool CZerocoinDB::WipeCoins(std::string strType)
     while (pcursor->Valid()) {
         boost::this_thread::interruption_point();
         try {
-            char chType;
+            char chType = 0;
             pcursor->GetKey(chType);
 
             if (chType == type) {

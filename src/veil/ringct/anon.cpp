@@ -106,7 +106,7 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
         size_t ofs = 0, nB = 0;
         for (size_t k = 0; k < nInputs; ++k) {
             for (size_t i = 0; i < nCols; ++i) {
-                int64_t nIndex;
+                int64_t nIndex = 0;
 
                 if (0 != GetVarInt(vMI, ofs, (uint64_t &) nIndex, nB))
                     return state.DoS(100, false, REJECT_MALFORMED, "bad-anonin-extract-i");
@@ -335,7 +335,7 @@ std::vector<COutPoint> GetRingCtInputs(const CTxIn& txin)
     size_t ofs = 0, nB = 0;
     for (size_t k = 0; k < nInputs; ++k) {
         for (size_t i = 0; i < nCols; ++i) {
-            int64_t nIndex;
+            int64_t nIndex = 0;
 
             if (0 != GetVarInt(vMI, ofs, (uint64_t&) nIndex, nB))
                 continue;
@@ -379,7 +379,7 @@ bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint> >& vI
     for (size_t k = 0; k < nInputs; ++k) {
         std::vector<COutPoint> vOutpoints;
         for (size_t i = 0; i < nCols; ++i) {
-            int64_t nIndex;
+            int64_t nIndex = 0;
 
             if (0 != GetVarInt(vMI, ofs, (uint64_t&) nIndex, nB))
                 return false;
