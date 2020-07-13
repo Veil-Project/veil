@@ -175,7 +175,7 @@ jobs:
         tar -xzf veil-*.tar.gz --strip-components=1
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Install Required Packages
-      run: sudo apt install python3-zmq libcap-dev cmake aarch64-linux-gnu-g++
+      run: sudo apt install python3-zmq libcap-dev cmake g++-aarch64-linux-gnu
     - name: Build Dependencies
       run: make -C depends HOST=aarch64-linux-gnu -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
