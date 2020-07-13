@@ -14,11 +14,11 @@ jobs:
     - name: Install Required Packages
       run: |
         sudo apt-get update
-        sudo apt-get install -y libboost-all-dev libdb-dev libdb++-dev libevent-dev
+        sudo apt-get install -y libboost-all-dev libdb-dev libdb++-dev libevent-dev libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler
     - name: Create Distribution Tarball
       run: |
         ./autogen.sh
-        ./configure --with-incompatible-bdb
+        ./configure --with-incompatible-bdb --with-gui=qt5
         make dist
     - name: Download Dependencies
       run: make -C depends download
@@ -33,12 +33,12 @@ jobs:
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.ARTIFACT_DIR }}
-  build-linux:
-    name: Build for Linux
+  build-x86_64-linux:
+    name: Build for x86/64 Linux
     needs: create-source-distribution
     runs-on: ubuntu-18.04
     env:
-      ARTIFACT_DIR: linux-binaries
+      ARTIFACT_DIR: x86_64-linux-binaries
       TEST_LOG_ARTIFACT_DIR: test-logs
     steps:
     - name: Getting Source
@@ -57,9 +57,11 @@ jobs:
     - name: Build Dependencies
       run: make -C depends -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
-    - name: Build Veil
+    - name: Setup Configuration
       run: |
         ./configure --disable-jni --enable-tests --with-comparison-tool=no --prefix=$(realpath depends/x86_64-pc-linux-gnu)
+    - name: Build Veil
+      run: |
         make -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Prepare Files for Artifact
@@ -70,14 +72,14 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v1
       with:
-        name: linux-binaries
+        name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
-  build-windows:
-    name: Build for Windows
+  build-windows64:
+    name: Build for Windows 64
     needs: create-source-distribution
     runs-on: ubuntu-18.04
     env:
-      ARTIFACT_DIR: windows-binaries
+      ARTIFACT_DIR: win64-binaries
     steps:
     - name: Getting Source
       uses: actions/download-artifact@v1
@@ -99,9 +101,11 @@ jobs:
     - name: Build Dependencies
       run: make -C depends -j$(nproc) HOST=x86_64-w64-mingw32
       working-directory: ${{ env.SOURCE_ARTIFACT }}
-    - name: Build Veil
+    - name: Setup Configuration
       run: |
         ./configure --disable-jni --prefix=$(realpath depends/x86_64-w64-mingw32)
+    - name: Build Veil
+      run: |
         make -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Prepare Files for Artifact
@@ -112,14 +116,14 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v1
       with:
-        name: windows-binaries
+        name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
-  build-mac:
-    name: Build for macOS
+  build-mac64:
+    name: Build for MacOS 64
     needs: create-source-distribution
     runs-on: ubuntu-18.04
     env:
-      ARTIFACT_DIR: mac-binaries
+      ARTIFACT_DIR: osx64-binaries
     steps:
     - name: Getting Source
       uses: actions/download-artifact@v1
@@ -131,7 +135,7 @@ jobs:
         tar -xzf veil-*.tar.gz --strip-components=1
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Install Required Packages
-      run: sudo apt install python3-setuptools libcap-dev zlib1g-dev libbz2-dev build-essential make cmake curl
+      run: sudo apt install python3-setuptools libcap-dev cmake
     - name: Get macOS SDK
       run: |
         mkdir -p depends/sdk-sources
@@ -142,9 +146,11 @@ jobs:
     - name: Build Dependencies
       run: make -C depends HOST=x86_64-apple-darwin14 -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
-    - name: Build Veil
+    - name: Setup Configuration
       run: |
         ./configure --disable-jni --prefix=$(realpath depends/x86_64-apple-darwin14)
+    - name: Build Veil
+      run: |
         make -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Prepare Files for Artifact
@@ -155,5 +161,47 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v1
       with:
-        name: mac-binaries
+        name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
+  build-arm-linux:
+    name: Build for ARM 64 Linux
+    needs: create-source-distribution
+    runs-on: ubuntu-18.04
+    env:
+      ARTIFACT_DIR: aarch64_linux-binaries
+    steps:
+    - name: Getting Source
+      uses: actions/download-artifact@v1
+      with:
+        name: ${{ env.SOURCE_ARTIFACT }}
+    - name: Extract Archives
+      run: |
+        tar -xzf depends.tar.gz
+        tar -xzf veil-*.tar.gz --strip-components=1
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Install Required Packages
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-zmq g++-aarch64-linux-gnu
+    - name: Build Dependencies
+      run: make -C depends -j$(nproc) HOST=aarch64-linux-gnu
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Setup Configuration
+      run: |
+        ./configure --disable-jni --with-comparison-tool=no --with-gui=yes --prefix=$(realpath depends/aarch64-linux-gnu)
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Build Veil
+      run: |
+        make -j$(nproc)
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Prepare Files for Artifact
+      run: |
+        mkdir -p $ARTIFACT_DIR
+        strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
+        mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ env.ARTIFACT_DIR }}
+        path: ${{ env.ARTIFACT_DIR }}
+
