@@ -1,4 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,15 +17,17 @@ void CoinControlTreeWidget::keyPressEvent(QKeyEvent *event)
     if (event->key() == Qt::Key_Space) // press spacebar -> select checkbox
     {
         event->ignore();
+        int COLUMN_CHECKBOX = 0;
         if (this->currentItem()) {
-            int COLUMN_CHECKBOX = 0;
-            this->currentItem()->setCheckState(COLUMN_CHECKBOX, ((this->currentItem()->checkState(COLUMN_CHECKBOX) == Qt::Checked) ? Qt::Unchecked : Qt::Checked));
+            this->currentItem()->setCheckState(COLUMN_CHECKBOX,
+               ((this->currentItem()->checkState(COLUMN_CHECKBOX) == Qt::Checked) ? Qt::Unchecked : Qt::Checked));
         }
     }
     else if (event->key() == Qt::Key_Escape) // press esc -> close dialog
     {
         event->ignore();
-        CoinControlDialog *coinControlDialog = static_cast<CoinControlDialog*>(this->parentWidget());
+        CoinControlDialog *coinControlDialog;
+        coinControlDialog = static_cast<CoinControlDialog*>(this->parentWidget()->parentWidget());
         coinControlDialog->done(QDialog::Accepted);
     }
     else

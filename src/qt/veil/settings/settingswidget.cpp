@@ -1,3 +1,7 @@
+// Copyright (c) 2019-2020 The Veil developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #include <qt/veil/settings/settingswidget.h>
 
 //#include "transactiondetaildialog.h"
@@ -114,7 +118,7 @@ void SettingsWidget::onCheckStakingClicked(bool res) {
                 error = true;
             }
         }
-    } catch (std::exception e) {
+    } catch (std::exception& e) {
         qDebug() << e.what();
         error = true;
     }
@@ -136,7 +140,7 @@ void SettingsWidget::onLockWalletClicked(){
         mainWindow->getGUI()->showHide(true);
         UnlockPasswordDialog *dialog = new UnlockPasswordDialog(/*fUnlockForStakingOnly*/false, mainWindow->getWalletModel(), mainWindow->getGUI());
         openDialogWithOpaqueBackground(dialog, mainWindow->getGUI(), 4);
-    } catch (std::exception e) {
+    } catch (std::exception& e) {
         qDebug() << e.what();
     }
 }
@@ -146,7 +150,7 @@ void SettingsWidget::onFaqClicked(){
         mainWindow->getGUI()->showHide(true);
         SettingsFaq *dialog = new SettingsFaq(mainWindow->getGUI());
         openDialogWithOpaqueBackgroundFullScreen(dialog, mainWindow->getGUI());
-    } catch (std::exception e) {
+    } catch (std::exception& e) {
         qDebug() << e.what();
     }
 
@@ -155,7 +159,7 @@ void SettingsWidget::onFaqClicked(){
 void SettingsWidget::onAdvanceClicked(){
     try {
         mainWindow->getGUI()->showDebugWindow();
-    } catch (std::exception e) {
+    } catch (std::exception& e) {
         qDebug() << e.what();
     }
 
@@ -166,7 +170,7 @@ void SettingsWidget::onResetOptionClicked(){
 
         //SendControlDialog *dialog = new SendControlDialog(mainWindow);
         //openDialogFullScreen(mainWindow, dialog);
-    } catch (std::exception e) {
+    } catch (std::exception& e) {
         qDebug() << e.what();
     }
 
@@ -178,7 +182,7 @@ void SettingsWidget::onPreferenceClicked(){
         //mainWindow->getGUI()->showHide(true);
         //SettingsPreferences *dialog = new SettingsPreferences();
         //openDialogWithOpaqueBackground(dialog, mainWindow->getGUI());
-    } catch (std::exception e) {
+    } catch (std::exception& e) {
         qDebug() << e.what();
     }
 }
@@ -189,7 +193,7 @@ void SettingsWidget::onBackupClicked(){
         //mainWindow->getGUI()->showHide(true);
         //SettingsBackup *dialog = new SettingsBackup(mainWindow->getGUI());
         //openDialogWithOpaqueBackground(dialog, mainWindow->getGUI());
-    } catch (std::exception e) {
+    } catch (std::exception& e) {
         qDebug() << e.what();
     }
 }
@@ -205,7 +209,7 @@ void SettingsWidget::onRestoreClicked(){
         }
         SettingsRestore *dialog = new SettingsRestore(wordList, mainWindow->getGUI());
         openDialogWithOpaqueBackgroundFullScreen(dialog, mainWindow->getGUI());
-    } catch (std::exception e) {
+    } catch (std::exception& e) {
         qDebug() << e.what();
     }
 }
@@ -216,7 +220,7 @@ void SettingsWidget::onMintingClicked(){
         mainWindow->getGUI()->showHide(true);
         SettingsMinting *dialog = new SettingsMinting(mainWindow->getGUI(), mainWindow , this->walletModel);
         openDialogWithOpaqueBackgroundFullScreen(dialog, mainWindow->getGUI());
-    } catch (std::exception e) {
+    } catch (std::exception& e) {
         qDebug() << e.what();
     }
 }
@@ -226,7 +230,7 @@ void SettingsWidget::onNetworkClicked(){
         mainWindow->getGUI()->showHide(true);
         SettingsNetwork *dialog = new SettingsNetwork(mainWindow->getGUI());
         openDialogWithOpaqueBackground(dialog, mainWindow->getGUI());
-    } catch (std::exception e) {
+    } catch (std::exception& e) {
         qDebug() << e.what();
     }
 }
@@ -234,7 +238,7 @@ void SettingsWidget::onNetworkClicked(){
 void SettingsWidget::onChangePasswordClicked(){
     try {
         mainWindow->changePassphrase();
-    } catch (std::exception e) {
+    } catch (std::exception& e) {
         qDebug() << e.what();
     }
 }
@@ -290,11 +294,11 @@ void SettingsWidget::setWalletModel(WalletModel *model){
 
 void SettingsWidget::updateStakingCheckboxStatus(){
     if(walletModel->getEncryptionStatus() == WalletModel::Unencrypted){
-        ui->labelStacking->setText("Encrypt Wallet");
+        ui->labelStacking->setText("Encrypt wallet");
         ui->labelStacking->setProperty("cssClass" , "btn-text-settings");
         ui->checkBoxStaking->setVisible(false);
     }else{
-        ui->labelStacking->setText("Unlock Wallet for Staking");
+        ui->labelStacking->setText("Unlock wallet for staking");
         ui->checkBoxStaking->setVisible(true);
     }
 }

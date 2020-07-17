@@ -92,7 +92,6 @@ border:none;
 QPushButton:checked {
     background-image: url(&quot;:/icons/ic-title&quot;) ;
     background-repeat:no-repeat;
-    background-size:6px;
     background-position: center bottom;
     color: #105aef;
 }

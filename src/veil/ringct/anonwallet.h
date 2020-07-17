@@ -215,7 +215,7 @@ public:
     bool ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::string &sError);
     void MarkInputsAsPendingSpend(CTransactionRecord &rtx);
 
-    int AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sError);
+    bool AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sError);
 
     bool SetChangeDest(const CCoinControl *coinControl, CTempRecipient &r, std::string &sError);
 
@@ -232,19 +232,20 @@ public:
             CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError);
 
 
-    int PlaceRealOutputs(std::vector<std::vector<int64_t> > &vMI, size_t &nSecretColumn, size_t nRingSize, std::set<int64_t> &setHave,
+    bool PlaceRealOutputs(std::vector<std::vector<int64_t> > &vMI, size_t &nSecretColumn, size_t nRingSize, std::set<int64_t> &setHave,
         const std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &vCoins, std::vector<uint8_t> &vInputBlinds, std::string &sError);
-    int PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size_t nSecretColumn, size_t nRingSize, std::set<int64_t> &setHave,
-        std::string &sError);
+    bool PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size_t nSecretColumn, size_t nRingSize, std::set<int64_t> &setHave,
+         std::string &sError);
 
 
     bool IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint);
-    int AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
-        bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet, const CCoinControl *coinControl,
-        std::string &sError, bool fZerocoinInputs, CAmount nInputValue);
-    int AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx,
-        std::vector<CTempRecipient> &vecSend, bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet,
-        const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs = false, CAmount nInputValue = 0);
+    bool AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
+         bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet,
+         const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs, CAmount nInputValue);
+    bool AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
+         bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet,
+         const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs = false,
+         CAmount nInputValue = 0);
 
 
     void LoadToWallet(const uint256 &hash, const CTransactionRecord &rtx);

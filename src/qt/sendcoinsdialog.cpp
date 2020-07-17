@@ -1,4 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -478,13 +479,8 @@ void SendCoinsDialog::on_sendButton_clicked()
         }
     }
 
-    if(!valid){
-        openToastDialog(QString::fromStdString("Invalid data\n" + error), this);
-        return;
-    }
-
-    if(recipients.isEmpty()){
-        openToastDialog("No recipients", this);
+    if (!valid) {
+        openToastDialog(QString::fromStdString("Invalid data\n" + error), this->mainWindow->getGUI());
         return;
     }
 

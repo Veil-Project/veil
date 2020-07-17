@@ -6364,7 +6364,7 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
 
     if (inputtype == OUTPUT_RINGCT)  {
         // default parameters for ring sig
-        if (0 != pAnonWalletMain->AddAnonInputs(wtx, rtx, vecSend, true, Params().DefaultRingSize(), /**nInputsPerSig**/ 32, nFeeRet, &cControl, sError)) {
+        if (!pAnonWalletMain->AddAnonInputs(wtx, rtx, vecSend, true, Params().DefaultRingSize(), /**nInputsPerSig**/ 32, nFeeRet, &cControl, sError)) {
             strFailReason = strprintf("Failed to add ringctinputs: %s", sError);
             return false;
         }
@@ -7009,7 +7009,7 @@ bool StartAutoSpend()
         StopAutoSpend();
     }
 
-    pthreadGroupAutoSpend->create_thread(boost::bind(&AutoSpendZeroCoin));
+    pthreadGroupAutoSpend->create_thread(std::bind(&AutoSpendZeroCoin));
     return true;
 }
 

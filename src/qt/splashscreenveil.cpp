@@ -1,3 +1,7 @@
+// Copyright (c) 2019-2020 The Veil developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
 #include <qt/splashscreenveil.h>
 #include <qt/forms/ui_splashscreenveil.h>
 #include <QPixmap>
@@ -10,9 +14,9 @@
 #include <wallet/wallet.h> // For DEFAULT_DISABLE_WALLET
 #endif
 
-#include <qt/splashscreen.h>
-
 #include <qt/networkstyle.h>
+
+#include <qt/guiutil.h>
 
 #include <clientversion.h>
 #include <interfaces/handler.h>
@@ -24,11 +28,9 @@
 
 #include <QApplication>
 #include <QCloseEvent>
-#include <QDesktopWidget>
-#include <QPainter>
 #include <QRadialGradient>
-#include "qt/guiutil.h"
-#include <QDebug>
+#include <QScreen>
+
 
 SplashScreenVeil::SplashScreenVeil(interfaces::Node& node, Qt::WindowFlags f, const NetworkStyle *networkStyle) :
     QWidget(0, f),ui(new Ui::SplashScreenVeil), curAlignment(0), m_node(node)
@@ -53,7 +55,7 @@ SplashScreenVeil::SplashScreenVeil(interfaces::Node& node, Qt::WindowFlags f, co
     setWindowTitle(titleText + " " + titleAddText);
 
     // Resize window and move to center of desktop, disallow resizing
-    QRect screenGeometry = QApplication::desktop()->screenGeometry();
+    QRect screenGeometry = QGuiApplication::primaryScreen()->geometry();
     int x = (screenGeometry.width() - width()) / 2;
     int y = (screenGeometry.height() - height()) / 2;
     move(x, y);
@@ -112,7 +114,7 @@ void SplashScreenVeil::ConnectWallet(std::unique_ptr<interfaces::Wallet> wallet)
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
         return;
 
-    m_connected_wallet_handlers.emplace_back(wallet->handleShowProgress(boost::bind(ShowProgress, this, _1, _2, false)));
+    m_connected_wallet_handlers.emplace_back(wallet->handleShowProgress(std::bind(ShowProgress, this, std::placeholders::_1, std::placeholders::_2, false)));
     m_connected_wallets.emplace_back(std::move(wallet));
 }
 #endif
@@ -120,8 +122,8 @@ void SplashScreenVeil::ConnectWallet(std::unique_ptr<interfaces::Wallet> wallet)
 void SplashScreenVeil::subscribeToCoreSignals()
 {
     // Connect signals to client
-    m_handler_init_message = m_node.handleInitMessage(boost::bind(InitMessage, this, _1));
-    m_handler_show_progress = m_node.handleShowProgress(boost::bind(ShowProgress, this, _1, _2, _3));
+    m_handler_init_message = m_node.handleInitMessage(std::bind(InitMessage, this, std::placeholders::_1));
+    m_handler_show_progress = m_node.handleShowProgress(std::bind(ShowProgress, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 #ifdef ENABLE_WALLET
     if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
         m_handler_load_wallet = m_node.handleLoadWallet([this](std::unique_ptr<interfaces::Wallet> wallet) { ConnectWallet(std::move(wallet)); });

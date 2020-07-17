@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -29,7 +29,6 @@
 #include <qt/walletmodel.h>
 
 #include <QAbstractItemDelegate>
-#include <QPainter>
 
 #define DECORATION_SIZE 54
 #define NUM_ITEMS 5

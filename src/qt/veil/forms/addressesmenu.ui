@@ -20,7 +20,7 @@
    <string>Form</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">backgruond-color:transparent;
+   <string notr="true">background-color:transparent;
 border:none;
 color:#bababa;</string>
   </property>

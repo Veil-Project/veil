@@ -6,9 +6,9 @@ We appreciate your help in finding bugs and identifying vulnerabilities in Veil!
 
 For all security related issues, Veil has three main points of contact:
 
+* Cave Spectre, https://keybase.io/CaveSpectre
+* Mimir, https://keybase.io/mimirmim
 * James Burden, (4x13) https://keybase.io/4x13
-* Tom Bradshaw (presstab), https://keybase.io/presstab 
-* Florian Maier (marsmensch), https://keybase.io/marsmensch
 
 Please send all communications to those parties and expect a reply within 72h. 
 

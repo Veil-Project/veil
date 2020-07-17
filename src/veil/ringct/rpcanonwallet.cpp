@@ -1,4 +1,5 @@
 // Copyright (c) 2017-2019 The Particl Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -170,7 +171,7 @@ static UniValue rescanringctwallet(const JSONRPCRequest &request)
 
     if (request.fHelp || !request.params.empty())
         throw std::runtime_error(
-                "rescanringctwallet()\n"
+                "rescanringctwallet\n"
                 "Rescans all transactions in the RingCT & CT Wallets."
                 + HelpRequiringPassphrase(wallet.get()) +
                 "\nExamples:\n"
@@ -530,8 +531,9 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
                 throw JSONRPCError(RPC_WALLET_ERROR, strprintf("AddBlindedInputs failed: %s.", sError));
             break;
         case OUTPUT_RINGCT:
-            if (0 != pwalletAnon->AddAnonInputs(wtx, rtx, vecSend, !fCheckFeeOnly, nRingSize, nInputsPerSig, nFeeRet, &coincontrol, sError))
-                throw JSONRPCError(RPC_WALLET_ERROR, strprintf("AddAnonInputs failed: %s.", sError));
+            if (!pwalletAnon->AddAnonInputs(wtx, rtx, vecSend, !fCheckFeeOnly, nRingSize,
+                                            nInputsPerSig, nFeeRet, &coincontrol, sError))
+                throw JSONRPCError(RPC_WALLET_ERROR, sError);
             break;
         default:
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("Unknown input type: %d.", typeIn));
@@ -1143,7 +1145,7 @@ static UniValue createrawbasecointransaction(const JSONRPCRequest& request)
         amount.pushKV("value", ValueFromAmount(r.nAmount));
 
         if (r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT) {
-            if (0 != pAnonWallet->AddCTData(txbout.get(), r, sError)) {
+            if (!pAnonWallet->AddCTData(txbout.get(), r, sError)) {
                 throw JSONRPCError(RPC_WALLET_ERROR, strprintf("AddCTData failed: %s.", sError));
             }
             amount.pushKV("nonce", r.nonce.ToString());
@@ -1600,7 +1602,7 @@ static UniValue fundrawtransactionfrom(const JSONRPCRequest& request)
             }
         } else if (sInputType == "anon") {
             sError = "TODO";
-            //if (0 != pwallet->AddAnonInputs(wtx, rtx, vecSend, false, nFee, &coinControl, sError))
+            //if (!pwallet->AddAnonInputs(wtx, rtx, vecSend, false, nFee, &coinControl, sError))
             throw JSONRPCError(RPC_WALLET_ERROR, strprintf("AddAnonInputs failed: %s.", sError));
         } else if (sInputType == "blind") {
             if (0 != pAnonWallet->AddBlindedInputs(wtx, rtx, vecSend, false, nFee, &coinControl, sError)) {
