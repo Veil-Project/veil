@@ -157,18 +157,14 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake, int nPoWType) {
     /* current difficulty formula, veil - DarkGravity v3, written by Evan Duffield - evan@dash.org */
     arith_uint256 bnPowLimit;
-    int nLookBackPeriod = params.nDgwPastBlocks;
 
     // Select the correct pow limit
     if (nPoWType & CBlockHeader::PROGPOW_BLOCK) {
         bnPowLimit = UintToArith256(params.powLimitProgPow);
-        nLookBackPeriod = params.nDgwPastBlocks * 4;
     } else if (nPoWType & CBlock::RANDOMX_BLOCK) {
         bnPowLimit = UintToArith256(params.powLimitRandomX);
-        nLookBackPeriod = params.nDgwPastBlocks * 6;
     } else if (nPoWType & CBlock::SHA256D_BLOCK) {
         bnPowLimit = UintToArith256(params.powLimitSha256);
-        nLookBackPeriod = params.nDgwPastBlocks * 8;
     } else {
         bnPowLimit = UintToArith256(params.powLimit);
     }
@@ -178,7 +174,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     arith_uint256 bnPastTargetAvg = 0;
 
     unsigned int nCountBlocks = 0;
-    while (nCountBlocks < nLookBackPeriod) {
+    while (nCountBlocks < params.nDgwPastBlocks) {
         // Ran out of blocks, return pow limit
         if (!pindex)
             return bnPowLimit.GetCompact();
@@ -206,7 +202,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
         bnPastTargetAvg = (bnPastTargetAvg * nCountBlocks + bnTarget) / (nCountBlocks + 1);
 
-        if (++nCountBlocks != nLookBackPeriod)
+        if (++nCountBlocks != params.nDgwPastBlocks)
             pindex = pindex->pprev;
     }
 
@@ -217,19 +213,30 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         pindexLastMatchingProof = pindexLast;
     }
 
+    bool fNewPoW = false;
     int64_t nPowSpacing;
     if (nPoWType & CBlockHeader::PROGPOW_BLOCK) {
         nPowSpacing = params.nProgPowTargetSpacing;
+        fNewPoW = true;
     } else if (nPoWType & CBlockHeader::RANDOMX_BLOCK) {
         nPowSpacing = params.nRandomXTargetSpacing;
+        fNewPoW = true;
     } else if (nPoWType & CBlockHeader::SHA256D_BLOCK) {
         nPowSpacing = params.nSha256DTargetSpacing;
+        fNewPoW = true;
     } else {
         nPowSpacing = params.nPowTargetSpacing;
     }
 
     int64_t nActualTimespan = pindexLastMatchingProof->GetBlockTime() - pindex->GetBlockTime();
     int64_t nTargetTimespan = params.nDgwPastBlocks * nPowSpacing;
+
+    // If we are calculating the diff for RandomX, Sha256, or ProgPow
+    // We want to take into account the latest block tip time into the calculation
+    int64_t nTipToLastMatchingProof = pindexLast->GetBlockTime() - pindexLastMatchingProof->GetBlockTime();
+    if (fNewPoW && nTipToLastMatchingProof > nPowSpacing) {
+        nActualTimespan += nTipToLastMatchingProof - nPowSpacing;
+    }
 
     if (nActualTimespan < nTargetTimespan/3)
         nActualTimespan = nTargetTimespan/3;
