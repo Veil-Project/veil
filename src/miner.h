@@ -21,9 +21,9 @@ class CScript;
 
 
 // Used for determining which PoW mining algorithm to use
-extern char * PROGPOW_STRING;
-extern char * SHA256D_STRING;
-extern char * RANDOMX_STRING;
+extern const char * PROGPOW_STRING;
+extern const char * SHA256D_STRING;
+extern const char * RANDOMX_STRING;
 
 extern int nMiningAlgorithm;
 
