@@ -432,7 +432,7 @@ border:0;
            <property name="frameShadow">
             <enum>QFrame::Raised</enum>
            </property>
-           <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0,0,0,0,0,0,0,0,0,0">
+           <layout class="QVBoxLayout" name="verticalLayout_4" stretch="0,0,0,0,0,1,0,0,0,0,0,0,0">
             <property name="topMargin">
              <number>0</number>
             </property>
@@ -783,6 +783,19 @@ padding-bottom:3px;</string>
               </property>
              </widget>
             </item>
+            <item>
+             <spacer name="verticalSpacer_1">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
             <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
              <widget class="QPushButton" name="btnMint">
               <property name="minimumSize">
@@ -938,6 +951,19 @@ background-color:transparent;</string>
                <set>Qt::AlignCenter</set>
               </property>
              </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacer_3">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
             </item>
             <item>
              <layout class="QHBoxLayout" name="horizontalLayout_5">
