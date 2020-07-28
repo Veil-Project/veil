@@ -1,6 +1,6 @@
-// Copyright (c) 2019 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -243,9 +243,11 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     if (nActualTimespan > nTargetTimespan*3)
         nActualTimespan = nTargetTimespan*3;
 
-    // Retarget
-    bnNew *= nActualTimespan;
-    bnNew /= nTargetTimespan;
+    // Retarget:  actual is railed to 3x target, so the multiple here will never be greater
+    // than 3, therefore it will only be a boundary risk if bnPowLimit exceeds 1/3 of the
+    // uint256 max.
+    bnNew *= static_cast<float>(static_cast<float>(nActualTimespan) /
+                                static_cast<float>(nTargetTimespan));
 
     if (bnNew > bnPowLimit) {
         bnNew = bnPowLimit;
