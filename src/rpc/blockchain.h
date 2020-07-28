@@ -19,6 +19,8 @@ static constexpr int NUM_GETBLOCKSTATS_PERCENTILES = 5;
 
 static const unsigned int DEFAULT_CHECK_DIFFICULTY_BLOCK_COUNT = 1440; // ~1 day
 
+static const unsigned int ALGO_RATIO_LOOK_BACK_BLOCK_COUNT = 1440; // ~1 day
+
 extern std::map<std::string, CBlock> mapProgPowTemplates;
 
 /**
