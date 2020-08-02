@@ -218,6 +218,63 @@ static UniValue getblockcount(const JSONRPCRequest& request)
     return chainActive.Height();
 }
 
+static UniValue getchainalgostats(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+            "getchainalgostats \n"
+            "\nReturns the blocks found by each algo over that previous 1440 blocks.\n"
+            "\nResult:\n"
+                "{ \n"
+                "   \"pos\" :     (numeric) The number of PoS blocks found in the previous 1440 blocks \n"
+                "   \"progpow\":  (numeric) The number of ProgPow blocks found in the previous 1440 blocks \n"
+                "   \"randomx\":  (numeric) The number of RandomX blocks found in the previous 1440 blocks \n"
+                "   \"sha256d\":  (numeric) The number of SHA256D blocks found in the previous 1440 blocks \n"
+                "   \"x16rt\":    (numeric) The number of x16rt blocks found in the previous 1440 blocks \n"
+                "} \n"
+            "\nExamples:\n"
+            + HelpExampleCli("getchainalgostats", "")
+            + HelpExampleRpc("getchainalgostats", "")
+        );
+
+    int nX16rtCount  = 0;
+    int nRandomxCount  = 0;
+    int nProgPowCount  = 0;
+    int nSha256dCount  = 0;
+    int nPoSCount = 0;
+    int nBlockCount = 0;
+
+    LOCK(cs_main);
+    CBlockIndex *pindex = chainActive.Tip();
+    while (pindex) {
+        nBlockCount++;
+        if (pindex->IsProofOfStake()) {
+            nPoSCount++;
+        } else if (pindex->IsProgProofOfWork()) {
+            nProgPowCount++;
+        } else if (pindex->IsRandomXProofOfWork()) {
+            nRandomxCount++;
+        } else if (pindex->IsSha256DProofOfWork()) {
+            nSha256dCount++;
+        } else if (pindex->IsX16RTProofOfWork()) {
+            nX16rtCount++;
+        }
+        if(nBlockCount >= ALGO_RATIO_LOOK_BACK_BLOCK_COUNT){
+            break;
+        }
+        pindex=pindex->pprev;
+    }
+
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("pos", nPoSCount);
+    obj.pushKV("progpow", nProgPowCount);
+    obj.pushKV("randomx", nRandomxCount);
+    obj.pushKV("sha256d", nSha256dCount);
+    obj.pushKV("x16rt", nX16rtCount);
+
+    return obj;
+}
+
 static UniValue getbestblockhash(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 0)
@@ -2406,6 +2463,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getblockstats",          &getblockstats,          {"hash_or_height", "stats"} },
     { "blockchain",         "getbestblockhash",       &getbestblockhash,       {} },
     { "blockchain",         "getblockcount",          &getblockcount,          {} },
+    { "blockchain",         "getchainalgostats",      &getchainalgostats,      {} },
     { "blockchain",         "getblock",               &getblock,               {"blockhash","verbosity|verbose"} },
     { "blockchain",         "getblockhash",           &getblockhash,           {"height"} },
     { "blockchain",         "getblockheader",         &getblockheader,         {"blockhash","verbose"} },
