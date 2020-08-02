@@ -49,9 +49,9 @@
 #include "crypto/ethash/helpers.hpp"
 #include "crypto/ethash/progpow_test_vectors.hpp"
 
-char * PROGPOW_STRING = "progpow";
-char * SHA256D_STRING = "sha256d";
-char * RANDOMX_STRING = "randomx";
+const char * PROGPOW_STRING = "progpow";
+const char * SHA256D_STRING = "sha256d";
+const char * RANDOMX_STRING = "randomx";
 
 int nMiningAlgorithm = MINE_RANDOMX;
 
