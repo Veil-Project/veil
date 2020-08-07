@@ -41,6 +41,9 @@
 //#include "int-util.h"
 //#include "warnings.h"
 
+extern int swap32be();
+extern int swap64be();
+
 static inline void *padd(void *p, size_t i) {
   return (char *) p + i;
 }
