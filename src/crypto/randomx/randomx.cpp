@@ -1,5 +1,6 @@
 /*
 Copyright (c) 2018-2019, tevador <tevador@gmail.com>
+Copyright (c) 2019-2020, Veil Developers
 
 All rights reserved.
 
@@ -191,13 +192,13 @@ extern "C" {
         if (fWaitFor30 && cache != nullptr) {
             int count = 0;
             while(cache != nullptr && count++ < 60 && !cache->isInitialized()) {
-                printf("%s : Cache not initialized\n", __func__);
+                LogPrintf("%s : Cache not initialized\n", __func__);
                 MilliSleep(250);
             }
         }
 
         if (cache && cache->isInitialized()) {
-            printf("%s : Cache is initialized\n", __func__);
+            LogPrintf("%s : Cache is initialized\n", __func__);
         }
         assert(cache == nullptr || cache->isInitialized());
         assert(dataset != nullptr || !(flags & RANDOMX_FLAG_FULL_MEM));

@@ -3857,7 +3857,6 @@ bool CChainState::InvalidateBlock(CValidationState& state, const CChainParams& c
         it++;
     }
 
-    std::cout << "in invalid block\n";
     InvalidChainFound(pindex);
 
     // Only notify about a new block tip if the active chain was modified.
