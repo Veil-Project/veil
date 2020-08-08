@@ -135,21 +135,6 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     if (params.fPowNoRetargeting) // regtest only
         return nProofOfWorkLimit;
 
-//    if (params.fPowAllowMinDifficultyBlocks) {
-//        // Special difficulty rule for testnet:
-//        // If the new block's timestamp is more than 10 minutes
-//        // then allow mining of a min-difficulty block.
-//        if (pblock->GetBlockTime() > pindexLast->GetBlockTime() + params.nPowTargetSpacing * 5)
-//            return nProofOfWorkLimit;
-//        else {
-//            // Return the last non-special-min-difficulty-rules-block
-//            const CBlockIndex *pindex = pindexLast;
-//            while (pindex->pprev && (pindex->nBits == nProofOfWorkLimit || pindex->nProofOfStakeFlag != fProofOfStake))
-//                pindex = pindex->pprev;
-//            return pindex->nBits;
-//        }
-//    }
-
     // Retarget every block with DarkGravityWave
     return DarkGravityWave(pindexLast, params, fProofOfStake, nPoWType);
 }
@@ -459,3 +444,4 @@ void DeallocateCache()
     randomx_release_cache(myMiningCache);
     myMiningCache = nullptr;
 }
+

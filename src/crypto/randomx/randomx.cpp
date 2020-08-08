@@ -38,6 +38,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cassert>
 #include <limits>
 #include "utiltime.h"
+#include "logging.h"
 
 extern "C" {
 
