@@ -47,6 +47,9 @@
 #define THREADV __thread
 #endif
 
+extern void mdebug();
+extern void mwarning();
+
 typedef struct rx_state {
     CTHR_MUTEX_TYPE rs_mutex;
     char rs_hash[32];
