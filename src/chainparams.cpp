@@ -198,16 +198,19 @@ public:
         consensus.BIP65Height = 388381; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.BIP66Height = 363725; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
 
-        consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitRandomX = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitSha256 = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
 
         // ProgPow, RandomX, Sha256d
-        consensus.nProgPowTargetSpacing = 86;
-        consensus.nRandomXTargetSpacing = 300;
-        consensus.nSha256DTargetSpacing = 600;
+        consensus.nProgPowTargetSpacing = 172;
+        consensus.nRandomXTargetSpacing = 600;
+        consensus.nSha256DTargetSpacing = 1200;
 
-        consensus.nDgwPastBlocks = 30; // number of blocks to average in Dark Gravity Wave
+        consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 84; // 70% of confirmation window
@@ -392,9 +395,10 @@ public:
         consensus.BIP65Height = 581885; // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
         consensus.BIP66Height = 330776; // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
         consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitRandomX = uint256S("00ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitProgPow = uint256S("000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitSha256 = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitSha256 = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
 
         // ProgPow, RandomX, Sha256d
@@ -733,8 +737,11 @@ public:
         consensus.BIP34Hash = uint256();
         consensus.BIP65Height = 1351; // BIP65 activated on regtest (Used in rpc activation tests)
         consensus.BIP66Height = 1251; // BIP66 activated on regtest (Used in rpc activation tests)
-        consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitRandomX = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitSha256 = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
 
         // ProgPow, RandomX, Sha256d
