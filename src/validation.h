@@ -287,12 +287,12 @@ bool IsInitialBlockDownload();
 /** Check whether both headers and blocks are synced **/
 bool HeadersAndBlocksSynced();
 /** Retrieve a transaction (from memory pool, or from disk, if possible) */
-bool GetTransaction(const uint256& hash, CTransactionRef& tx, const Consensus::Params& params, uint256& hashBlock, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr);
+bool GetTransaction(const uint256& hash, CTransactionRef& tx, const Consensus::Params& params, uint256& hashBlock, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr, bool log = true);
 
 bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight, const CBlockIndex* pindex = nullptr);
 
 /** Determine if the provided txid corresponds to a transaction in the blockchain */
-bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params, const CBlockIndex* pindex = nullptr);
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params, const CBlockIndex* pindex = nullptr, bool log = true);
 bool IsTransactionInChain(const uint256& txId, int& nHeightTx, const Consensus::Params& params, const CBlockIndex* pindex = nullptr);
 
 /**

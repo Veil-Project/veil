@@ -1254,7 +1254,7 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransa
  * Return transaction in txOut, and if it was found inside a block, its hash is placed in hashBlock.
  * If blockIndex is provided, the transaction is fetched from the corresponding block.
  */
-bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus::Params& consensusParams, uint256& hashBlock, bool fAllowSlow, CBlockIndex* blockIndex)
+bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus::Params& consensusParams, uint256& hashBlock, bool fAllowSlow, CBlockIndex* blockIndex, bool log)
 {
     CBlockIndex* pindexSlow = blockIndex;
 
@@ -1268,7 +1268,7 @@ bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus
         }
 
         if (g_txindex) {
-            return g_txindex->FindTx(hash, hashBlock, txOut);
+            return g_txindex->FindTx(hash, hashBlock, txOut, log);
         }
 
         if (fAllowSlow) { // use coin database to locate block that contains transaction, and scan it
@@ -1320,11 +1320,12 @@ bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight, const CBlockInde
     return inChainActive;
 }
 
-bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params, const CBlockIndex* pindex)
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params,
+                          const CBlockIndex* pindex, bool log)
 {
     uint256 hashBlock;
     hashBlock.SetNull();
-    if (!GetTransaction(txId, txRef, params, hashBlock, true))
+    if (!GetTransaction(txId, txRef, params, hashBlock, true, nullptr, log))
         return false;
 
     return IsBlockHashInChain(hashBlock, nHeightTx, pindex);
@@ -4109,7 +4110,7 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
             }
         } else if (block.IsRandomX() && block.nTime >= Params().PowUpdateTimestamp()) {
             if (!CheckRandomXProofOfWork(block, block.nBits, consensusParams)) {
-                LogPrintf("%s : randomx proof of work failed %s\n", __func__, block.GetHash().GetHex());
+                LogPrintf("%s: randomx proof of work failed %s\n", __func__, block.GetHash().GetHex());
                 return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "randomx proof of work failed");
             }
         } else if (block.IsSha256D() && block.nTime >= Params().PowUpdateTimestamp()) {
@@ -4633,7 +4634,7 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
             TxToSerialHashSet(tx.get(), setSerialHashes);
             for (const uint256& hashSerial : setSerialHashes) {
                 int nHeightSpend = 0;
-                if (IsSerialInBlockchain(hashSerial, nHeightSpend, pindexPrev))
+                if (IsSerialInBlockchain(hashSerial, nHeightSpend, pindexPrev, false))
                     return state.DoS(100, false, REJECT_INVALID, "bad-zcspend-in-chain", false,
                             strprintf("Tx %s spends Zerocoin serial hash %s already spent in block %d", tx->GetHash().GetHex(), hashSerial.GetHex(), nHeightSpend));
             }
