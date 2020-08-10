@@ -261,19 +261,21 @@ bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&
 
 uint256 GetKeyBlock(const uint32_t& nHeight)
 {
-    static uint256 current_key_block;
+    static uint256 current_key_block = uint256();
 
-    auto remainer = nHeight % KEY_CHANGE;
+    uint32_t checkMultiplier = 0;
 
-    auto first_check = nHeight - remainer;
-    auto second_check = nHeight - KEY_CHANGE - remainer;
+    // We don't want to go negative
+    if (nHeight >= SWITCH_KEY)
+        checkMultiplier = (nHeight - SWITCH_KEY) / KEY_CHANGE;
 
-    if (nHeight > nHeight - remainer + SWITCH_KEY) {
-        if (chainActive.Height() > first_check)
-            current_key_block = chainActive[first_check]->GetBlockHash();
+    int checkHeight = checkMultiplier * KEY_CHANGE;
+
+    if (chainActive.Height() >= checkHeight) {
+	    current_key_block = chainActive[checkHeight]->GetBlockHash();
     } else {
-        if (chainActive.Height() > second_check)
-            current_key_block = chainActive[second_check]->GetBlockHash();
+	    LogPrintf("%s: Not synched for KeyBlock(%d) @ %d, Synched Height: %d\n", __func__,
+                  checkHeight, nHeight, chainActive.Height());
     }
 
     if (current_key_block == uint256())
