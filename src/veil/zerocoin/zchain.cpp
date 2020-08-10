@@ -298,7 +298,7 @@ bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx, const CBlockI
     return IsSerialInBlockchain(GetSerialHash(bnSerial), nHeightTx, pindex);
 }
 
-bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, const CBlockIndex* pindex)
+bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, const CBlockIndex* pindex, bool log)
 {
     uint256 txHash;
     // if not in zerocoinDB then its not in the blockchain
@@ -306,7 +306,7 @@ bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, const CBloc
         return false;
 
     CTransactionRef txRef;
-    return IsTransactionInChain(txHash, nHeightTx, txRef, Params().GetConsensus(), pindex);
+    return IsTransactionInChain(txHash, nHeightTx, txRef, Params().GetConsensus(), pindex, log);
 }
 
 bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& txidSpend)
