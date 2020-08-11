@@ -842,8 +842,6 @@ static arith_uint256 nHashes = 0;
 static int32_t nTimeStart = 0;
 
 void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false, bool fProofOfFullNode = false) {
-    LogPrintf("Veil Miner started\n");
-
     unsigned int nExtraNonce = 0;
     static const int nInnerLoopCount = 0x010000;
     static int nStakeHashesLast = 0;
@@ -854,6 +852,12 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
 
     while (fGenerateBitcoins || (fProofOfStake && enablewallet))
     {
+        if(fProofOfStake && enablewallet) {
+            LogPrintf("Veil PoS miner started\n");
+        } else {
+            LogPrintf("Veil PoW miner started\n");
+        }
+
         boost::this_thread::interruption_point();
 #ifdef ENABLE_WALLET
         if (enablewallet && fProofOfStake) {
