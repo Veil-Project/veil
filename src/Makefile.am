@@ -350,7 +350,7 @@ libbitcoin_wallet_a_SOURCES = \
   veil/zerocoin/mintpool.cpp \
   veil/zerocoin/precompute.cpp \
   veil/zerocoin/spendreceipt.cpp \
-	veil/zerocoin/witness.cpp \
+  veil/zerocoin/witness.cpp \
   veil/zerocoin/ztracker.cpp \
   veil/zerocoin/zwallet.cpp \
   veil/ringct/temprecipient.cpp \
@@ -360,6 +360,22 @@ libbitcoin_wallet_a_SOURCES = \
   veil/ringct/rpcanonwallet.cpp \
   $(BITCOIN_CORE_H)
 
+if TARGET_ARM
+  randomx_jit_base_SOURCES = \
+    crypto/randomx/jit_compiler_a64.cpp \
+    crypto/randomx/jit_compiler_a64.hpp \
+    crypto/randomx/jit_compiler_a64_static.hpp \
+    crypto/randomx/jit_compiler_a64_static.S
+else
+  randomx_jit_base_SOURCES = \
+    crypto/randomx/jit_compiler_x86.cpp \
+    crypto/randomx/jit_compiler_x86.hpp \
+    crypto/randomx/jit_compiler_x86_static.asm \
+    crypto/randomx/jit_compiler_x86_static.hpp \
+    crypto/randomx/jit_compiler_x86_static.S
+endif
+
+# libzerocoin library
 # crypto primitives library
 crypto_libbitcoin_crypto_base_a_CPPFLAGS = $(AM_CPPFLAGS)
 crypto_libbitcoin_crypto_base_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
@@ -481,11 +497,7 @@ crypto_libbitcoin_crypto_base_a_SOURCES = \
   crypto/randomx/intrin_portable.h \
   crypto/randomx/jit_compiler.hpp \
   crypto/randomx/jit_compiler_fallback.hpp \
-  crypto/randomx/jit_compiler_x86.cpp \
-  crypto/randomx/jit_compiler_x86.hpp \
-  crypto/randomx/jit_compiler_x86_static.asm \
-  crypto/randomx/jit_compiler_x86_static.hpp \
-  crypto/randomx/jit_compiler_x86_static.S \
+  $(randomx_jit_base_SOURCES) \
   crypto/randomx/program.hpp \
   crypto/randomx/randomx.cpp \
   crypto/randomx/randomx.h \
@@ -533,15 +545,6 @@ crypto_libbitcoin_crypto_base_a_SOURCES = \
   crypto/hash-ops.h \
   crypto/rx-slow-hash.c
 
-# these are the arm files that were removed from the make inorder to get the randomx libraries to compile
-#  crypto/randomx/jit_compiler_a64.cpp
-#  crypto/randomx/jit_compiler_a64.hpp
-#  crypto/randomx/jit_compiler_a64_static.hpp
-#  crypto/randomx/jit_compiler_a64_static.S
-
-
-
-# libzerocoin library
 libzerocoin_libbitcoin_zerocoin_a_CPPFLAGS = $(AM_CPPFLAGS) $(BOOST_CPPFLAGS)
 libzerocoin_libbitcoin_zerocoin_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libzerocoin_libbitcoin_zerocoin_a_SOURCES = \

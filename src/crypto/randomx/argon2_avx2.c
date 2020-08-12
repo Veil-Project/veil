@@ -41,6 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 void randomx_argon2_fill_segment_avx2(const argon2_instance_t* instance,
 	argon2_position_t position);
 
+#if defined(__AVX2__)
 randomx_argon2_impl* randomx_argon2_impl_avx2() {
 
 #if defined(__AVX2__)
@@ -48,6 +49,7 @@ randomx_argon2_impl* randomx_argon2_impl_avx2() {
 #endif
 	return NULL;
 }
+#endif
 
 #if defined(__AVX2__)
 #include <immintrin.h>
