@@ -135,7 +135,9 @@ jobs:
         tar -xzf veil-*.tar.gz --strip-components=1
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Install Required Packages
-      run: sudo apt install python3-setuptools libcap-dev zlib1g-dev cmake
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-setuptools libcap-dev zlib1g-dev cmake
     - name: Get macOS SDK
       run: |
         mkdir -p depends/sdk-sources
@@ -179,7 +181,9 @@ jobs:
         tar -xzf veil-*.tar.gz --strip-components=1
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Install Required Packages
-      run: sudo apt install python3-zmq libcap-dev cmake g++-aarch64-linux-gnu
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y python3-zmq libcap-dev cmake g++-aarch64-linux-gnu
     - name: Build Dependencies
       run: make -C depends HOST=aarch64-linux-gnu -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
