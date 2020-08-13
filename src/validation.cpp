@@ -4132,11 +4132,8 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         return true;
 
     // Check that the header is valid (particularly PoW).  This is mostly
-    // redundant with the call in AcceptBlockHeader.
+    // redundant with the call in AcceptBlockHeader except for checking the RandomX Proof of Work
     if (!CheckBlockHeader(block, state, consensusParams, (fCheckPOW && block.IsProofOfWork()), block.fProofOfFullNode)) {
-        if (block.IsRandomX()) {
-            LogPrintf("%s failed to get the correct value from CheckBlockHeader. block hash = %s\n", __func__, block.GetHash().GetHex());
-        }
         return false;
     }
 
@@ -4711,13 +4708,10 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
 
         bool fCheckPoW = !block.fProofOfStake;
 
-        if (!CheckBlockHeader(block, state, chainparams.GetConsensus(), fCheckPoW, fProofOfFullNode)) {
-            if (block.IsRandomX()) {
-                LogPrintf("%s failed to get the correct value from AcceptBlockHeader. block hash = %s\n", __func__, block.GetHash().GetHex());
-            } else {
-                return error("%s: Consensus::CheckBlockHeader: %s, %s", __func__, hash.ToString(),
-                             FormatStateMessage(state));
-            }
+        // Don't check RandomX as we might not have the KeyBlock yet
+        if (!block.IsRandomX() && !CheckBlockHeader(block, state, chainparams.GetConsensus(), fCheckPoW, fProofOfFullNode)) {
+            return error("%s: Consensus::CheckBlockHeader: %s, %s", __func__, hash.ToString(),
+                         FormatStateMessage(state));
         }
 
         // Get prev block index
