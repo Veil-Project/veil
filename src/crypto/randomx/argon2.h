@@ -253,9 +253,15 @@ extern "C" {
 void randomx_argon2_fill_segment_ref(const argon2_instance_t* instance,
 	argon2_position_t position);
 
-randomx_argon2_impl *randomx_argon2_impl_ssse3();
-randomx_argon2_impl *randomx_argon2_impl_avx2();
+  randomx_argon2_impl *randomx_argon2_impl_ssse3();
+
+#if defined (__AVX2__)
+  randomx_argon2_impl *randomx_argon2_impl_avx2();
+#else
+inline randomx_argon2_impl *randomx_argon2_impl_avx2() { return NULL; }
+#endif
 
 #if defined(__cplusplus)
 }
 #endif
+
