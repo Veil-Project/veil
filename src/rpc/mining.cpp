@@ -1,6 +1,6 @@
-// Copyright (c) 2019 Veil developers
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -587,15 +587,22 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
 
         // Get mining address if it is set
         CScript script;
-        std::string address = gArgs.GetArg("-miningaddress", "");
-        if (!address.empty()) {
-            CTxDestination dest = DecodeDestination(address);
+        std::string sAddress = gArgs.GetArg("-miningaddress", "");
+        if (!sAddress.empty()) {
+            CTxDestination dest = DecodeDestination(sAddress);
 
             if (IsValidDestination(dest)) {
                 script = GetScriptForDestination(dest);
             } else {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "-miningaddress is not a valid address. Please use a valid address");
             }
+
+            // Disallow Stealth Addresses for now
+            CBitcoinAddress address(sAddress);
+            if (address.IsValidStealthAddress()) {
+               throw JSONRPCError(RPC_INVALID_PARAMETER, "-miningaddress must be a basecoin address");
+            }
+
         } else {
             script = CScript() << OP_TRUE;
         }
