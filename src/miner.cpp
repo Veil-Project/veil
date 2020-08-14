@@ -535,7 +535,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
 
     if (pindexPrev && pindexPrev != chainActive.Tip()) {
-        error("%s: stail tip.", __func__);
+        error("%s: stale tip.", __func__);
         pblocktemplate->nFlags |= TF_STAILTIP;
         return std::move(pblocktemplate);
     }
