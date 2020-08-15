@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <amount.h>
 #include <map>
+#include <arith_uint256.h>
 
 class CBlock;
 class CBlockIndex;
@@ -31,6 +32,8 @@ extern std::map<std::string, CBlock> mapProgPowTemplates;
  * difficulty (4295032833 hashes).
  */
 double GetDifficulty(const CBlockIndex* blockindex);
+double GetDifficulty(const uint32_t nBits);
+double GetDifficulty(const arith_uint256 bn);
 
 /** Callback for when block tip changed. */
 void RPCNotifyBlockChange(bool ibd, const CBlockIndex *);
