@@ -20,6 +20,7 @@
 #include <key_io.h>
 #include <policy/feerate.h>
 #include <policy/policy.h>
+#include <pow.h>
 #include <primitives/transaction.h>
 #include <rpc/server.h>
 #include <script/descriptor.h>
@@ -61,16 +62,25 @@ static CUpdatedBlock latestblock;
 
 /* Calculate the difficulty for a given block index.
  */
-double GetDifficulty(const CBlockIndex* blockindex)
-{
+double GetDifficulty(const CBlockIndex* blockindex) {
     if (blockindex == nullptr)
     {
         return 1.0;
     }
 
-    int nShift = (blockindex->nBits >> 24) & 0xff;
+    return GetDifficulty(blockindex->nBits);
+}
+
+double GetDifficulty(const arith_uint256 bn)
+{
+    return GetDifficulty(bn.GetCompact());
+}
+
+double GetDifficulty(const uint32_t nBits)
+{
+    uint32_t nShift = (nBits >> 24) & 0xff;
     double dDiff =
-        (double)0x0000ffff / (double)(blockindex->nBits & 0x00ffffff);
+        (double)0x0000ffff / (double)(nBits & 0x00ffffff);
 
     while (nShift < 29)
     {
@@ -1424,34 +1434,18 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
 
     LOCK(cs_main);
 
-    double nDiffX16rt = 0;
-    double nDiffRandomX = 0;
-    double nDiffProgPow = 0;
-    double nDiffSha256D = 0;
-    double nDiffPoS = 0;
-    int nBlockCount = 0;
-    
-    // Get the last diff for each algo type
     CBlockIndex *pindex = chainActive.Tip();
-    while (pindex) {
-        nBlockCount++;
-        if (nDiffPoS == 0 && pindex->IsProofOfStake()) {
-            nDiffPoS = GetDifficulty(pindex);
-        } else if (nDiffProgPow == 0 && pindex->IsProgProofOfWork()) {
-            nDiffProgPow = GetDifficulty(pindex);
-        } else if (nDiffRandomX == 0 && pindex->IsRandomXProofOfWork()) {
-            nDiffRandomX = GetDifficulty(pindex);
-        } else if (nDiffSha256D == 0 && pindex->IsSha256DProofOfWork()) {
-            nDiffSha256D = GetDifficulty(pindex);
-        } else if (nDiffX16rt == 0 && pindex->IsX16RTProofOfWork()) {
-            nDiffX16rt = GetDifficulty(pindex);
-        }
-        if(nBlockCount > DEFAULT_CHECK_DIFFICULTY_BLOCK_COUNT || (nDiffPoS > 0 && nDiffProgPow > 0 && nDiffRandomX > 0 && nDiffSha256D > 0)){
-            break;
-        }
-        pindex=pindex->pprev;
-    } 
+    const Consensus::Params& ConsensusParams = Params().GetConsensus();
 
+    double nDiffPoS = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, true, 0));
+    double nDiffX16rt = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, false, 0));
+    double nDiffRandomX = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, false,
+                                        CBlock::RANDOMX_BLOCK));
+    double nDiffProgPow = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, false,
+                                        CBlock::PROGPOW_BLOCK));
+    double nDiffSha256D = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, false,
+                                        CBlock::SHA256D_BLOCK));
+    
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("chain",                 Params().NetworkIDString());
     obj.pushKV("blocks",                (int)chainActive.Height());
