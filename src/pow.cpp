@@ -6,7 +6,6 @@
 
 #include <pow.h>
 
-#include <arith_uint256.h>
 #include <chain.h>
 #include <primitives/block.h>
 #include <uint256.h>
@@ -22,6 +21,7 @@
 #include <crypto/randomx/randomx.h>
 #include <miner.h>
 #include <validation.h>
+#include <chainparams.h>
 
 
 // TODO, build an class object that holds this data
@@ -121,6 +121,21 @@ void DeallocateRandomXLightCache() {
     fLightCacheInited = false;
 }
 
+arith_uint256 GetPowLimit(int nPoWType)
+{
+    const Consensus::Params& params = Params().GetConsensus();
+    // Select the correct pow limit
+    if (nPoWType & CBlockHeader::PROGPOW_BLOCK) {
+        return UintToArith256(params.powLimitProgPow);
+    } else if (nPoWType & CBlock::RANDOMX_BLOCK) {
+        return UintToArith256(params.powLimitRandomX);
+    } else if (nPoWType & CBlock::SHA256D_BLOCK) {
+        return UintToArith256(params.powLimitSha256);
+    } else {
+        return UintToArith256(params.powLimit);
+    }
+}
+
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock,
                                     const Consensus::Params& params, bool fProofOfStake, int nPoWType)
 {
@@ -141,18 +156,7 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
 
 unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake, int nPoWType) {
     /* current difficulty formula, veil - DarkGravity v3, written by Evan Duffield - evan@dash.org */
-    arith_uint256 bnPowLimit;
-
-    // Select the correct pow limit
-    if (nPoWType & CBlockHeader::PROGPOW_BLOCK) {
-        bnPowLimit = UintToArith256(params.powLimitProgPow);
-    } else if (nPoWType & CBlock::RANDOMX_BLOCK) {
-        bnPowLimit = UintToArith256(params.powLimitRandomX);
-    } else if (nPoWType & CBlock::SHA256D_BLOCK) {
-        bnPowLimit = UintToArith256(params.powLimitSha256);
-    } else {
-        bnPowLimit = UintToArith256(params.powLimit);
-    }
+    arith_uint256 bnPowLimit = GetPowLimit(nPoWType);
 
     const CBlockIndex *pindex = pindexLast;
     const CBlockIndex* pindexLastMatchingProof = nullptr;
@@ -239,16 +243,17 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     return bnNew.GetCompact();
 }
 
-bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params)
+bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params& params, int algo)
 {
     bool fNegative;
     bool fOverflow;
     arith_uint256 bnTarget;
+    arith_uint256 bnPowLimit = GetPowLimit(algo);
 
     bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
 
     // Check range
-    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(params.powLimit)) {
+    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > bnPowLimit) {
         return false;
     }
 
@@ -348,13 +353,13 @@ void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_p
             randomx_init_cache(myMiningCache, &mining_key_block, sizeof(mining_key_block));
 
             auto nTime1 = GetTimeMillis();
-            LogPrintf(" %s: Starting dataset creation\n", __func__);
+            LogPrintf("%s: Starting dataset creation\n", __func__);
 
             CreateRandomXInitDataSet(nThreads, myMiningDataset, myMiningCache);
             boost::this_thread::interruption_point();
 
             auto nTime2 = GetTimeMillis();
-            LogPrintf(" %s: Finished dataset creation %.2fms\n", __func__, nTime2 - nTime1);
+            LogPrintf("%s: Finished dataset creation %.2fms\n", __func__, nTime2 - nTime1);
 
             boost::this_thread::interruption_point();
             /// Create the RandomX Virtual Machines

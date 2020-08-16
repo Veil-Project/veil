@@ -4096,7 +4096,7 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     if (fCheckPOW) {
         if (block.IsProgPow() && block.nTime >= Params().PowUpdateTimestamp()) {
             uint256 mix_hash;
-            if (!CheckProofOfWork(ProgPowHash(block, mix_hash), block.nBits, consensusParams))
+            if (!CheckProofOfWork(ProgPowHash(block, mix_hash), block.nBits, consensusParams, CBlockHeader::PROGPOW_BLOCK))
                 return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "progpow proof of work failed");
 
             if (mix_hash != block.mixHash) {
@@ -4108,7 +4108,7 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
                 return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "randomx proof of work failed");
             }
         } else if (block.IsSha256D() && block.nTime >= Params().PowUpdateTimestamp()) {
-            if (!CheckProofOfWork(block.GetSha256DPoWHash(), block.nBits, consensusParams))
+            if (!CheckProofOfWork(block.GetSha256DPoWHash(), block.nBits, consensusParams, CBlockHeader::SHA256D_BLOCK))
                 return state.DoS(50, false, REJECT_INVALID, "high-hash", false, "sha256d proof of work failed");
         } else {
             if (!CheckProofOfWork(block.GetX16RTPoWHash(), block.nBits, consensusParams))
