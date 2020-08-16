@@ -116,7 +116,7 @@ public:
     /** Zerocoin **/
     libzerocoin::ZerocoinParams* Zerocoin_Params() const;
     std::string Zerocoin_Modulus() const { return zerocoinModulus; }
-    int Zerocoin_MaxSpendsPerTransaction() const { return nMaxZerocoinSpendsPerTransaction; }
+    uint32_t Zerocoin_MaxSpendsPerTransaction() const { return nMaxZerocoinSpendsPerTransaction; }
     CAmount Zerocoin_MintFee() const { return nMinZerocoinMintFee; }
     int Zerocoin_MintRequiredConfirmations() const { return nMintRequiredConfirmations; }
     int Zerocoin_RequiredAccumulation() const { return nRequiredAccumulation; }
@@ -125,7 +125,7 @@ public:
     int Zerocoin_RequiredStakeDepthV2() const { return nZerocoinRequiredStakeDepthV2; }
     int Zerocoin_OverSpendAdjustment(libzerocoin::CoinDenomination denom) const;
     CAmount ValueBlacklisted() const { return nValueBlacklist; }
-    int Zerocoin_PreferredMintsPerBlock() const { return nPreferredMintsPerBlock; }
+    uint32_t Zerocoin_PreferredMintsPerBlock() const { return nPreferredMintsPerBlock; }
     int Zerocoin_PreferredMintsPerTransaction() const { return nPreferredMintsPerTx; }
 
     /** RingCT and Stealth **/
@@ -179,13 +179,13 @@ protected:
 
     // zerocoin
     std::string zerocoinModulus;
-    int nMaxZerocoinSpendsPerTransaction;
+    uint32_t nMaxZerocoinSpendsPerTransaction;
     CAmount nMinZerocoinMintFee;
     int nMintRequiredConfirmations;
     int nRequiredAccumulation;
     int nDefaultSecurityLevel;
     CAmount nValueBlacklist;
-    int nPreferredMintsPerBlock;
+    uint32_t nPreferredMintsPerBlock;
     int nPreferredMintsPerTx;
 
     //RingCT/Stealth

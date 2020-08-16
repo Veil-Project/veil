@@ -50,8 +50,6 @@ std::shared_ptr<CWallet> GetMainWallet();
 
 extern CCriticalSection cs_main;
 
-extern bool fGlobalUnlockSpendCache; // Bool used for letting the precomputing thread know that zerospends need to use the cs_spendcache
-
 //! Default for -keypool
 static const unsigned int DEFAULT_KEYPOOL_SIZE = 1000;
 //! -paytxfee default
@@ -100,7 +98,6 @@ struct FeeCalculation;
 enum class FeeEstimateMode;
 class AnonWallet;
 class CTransactionRecord;
-class CoinWitnessCacheData;
 
 /** (client) version numbers for particular wallet features */
 enum WalletFeature
@@ -692,8 +689,6 @@ protected:
     std::unique_ptr<CzTracker> zTracker;
     bool fUnlockForStakingOnly = false;
     bool fStakingEnabled = true;
-    bool fPrecomputingEnabled = false;
-
 
     WalletBatch *encrypted_batch = nullptr;
 
@@ -850,7 +845,6 @@ public:
     bool CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<CommitData>& vCommitData, int computeTime = 0);
     CAmount GetAvailableZerocoinBalance(const CCoinControl* coinControl) const;
     bool AvailableZerocoins(std::set<CMintMeta>& setMints, const CCoinControl *coinControl = nullptr) const;
-    bool GetZerocoinPrecomputePercentage(const uint256 &nSerialHash, double &nPercent);
 //    std::string ResetMintZerocoin();
 //    std::string ResetSpentZerocoin();
     void ReconsiderZerocoins(std::list<CZerocoinMint>& listMintsRestored, std::list<CDeterministicMint>& listDMintsRestored);
@@ -869,7 +863,6 @@ public:
     void SetSerialSpent(const uint256& bnSerial, const uint256& txid);
     void ArchiveZerocoin(CMintMeta& meta);
     void AutoZeromint();
-    void PrecomputeSpends();
 
     CzTracker* GetZTrackerPointer() {
         return zTracker.get();
@@ -989,11 +982,6 @@ public:
     void SetStakingEnabled(bool fStakingEnabled) { this->fStakingEnabled = fStakingEnabled; }
     bool IsStakingEnabled() const { return fStakingEnabled; }
 
-    bool StartPrecomputing(std::string& strStatus);
-    void StopPrecomputing();
-    void SetPrecomputingEnabled(bool fPrecomputingEnabled) { this->fPrecomputingEnabled = fPrecomputingEnabled; }
-    bool IsPrecomputingEnabled() const { return fPrecomputingEnabled; }
-
     /*
      * Rescan abort properties
      */
@@ -1016,7 +1004,7 @@ public:
     void LoadKeyMetadata(const CKeyID& keyID, const CKeyMetadata &metadata) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void LoadScriptMetadata(const CScriptID& script_id, const CKeyMetadata &metadata) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
-    bool RestoreBaseCoinAddresses(int nCount) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+    bool RestoreBaseCoinAddresses(uint32_t nCount) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
     bool LoadMinVersion(int nVersion) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) { AssertLockHeld(cs_wallet); nWalletVersion = nVersion; nWalletMaxVersion = std::max(nWalletMaxVersion, nVersion); return true; }
     void UpdateTimeFirstKey(int64_t nCreateTime) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
@@ -1078,10 +1066,13 @@ public:
     void ResendWalletTransactions(int64_t nBestBlockTime, CConnman* connman) override;
     // ResendWalletTransactionsBefore may only be called if fBroadcastTransactions!
     std::vector<uint256> ResendWalletTransactionsBefore(int64_t nTime, CConnman* connman);
+    CAmount GetBasecoinBalance(const isminefilter& filter=ISMINE_SPENDABLE, const int min_depth=0) const;
     CAmount GetBalance(const isminefilter& filter=ISMINE_SPENDABLE, const int min_depth=0) const;
     bool GetBalances(BalanceList& bal);
     std::pair<ZerocoinSpread, ZerocoinSpread> GetMyZerocoinDistribution() const;
+    CAmount GetUnconfirmedBasecoinBalance() const;
     CAmount GetUnconfirmedBalance() const;
+    CAmount GetImmatureBasecoinBalance() const;
     CAmount GetImmatureBalance() const;
     CAmount GetUnconfirmedWatchOnlyBalance() const;
     CAmount GetImmatureWatchOnlyBalance() const;
@@ -1093,11 +1084,11 @@ public:
      * Does not include locked coins or coins associated with the basecoin address.
      */
     CAmount GetMintableBalance(std::vector<COutput>& vMintableCoins) const;
-    CAmount GetZerocoinBalance(bool fMatureOnly) const;
+    CAmount GetZerocoinBalance(bool fMatureOnly, const int min_depth=0) const;
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
     bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
-    bool SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs, CAmount nTargetAmount);
+    bool SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs);
 
     // sub wallet seeds
     bool GetZerocoinSeed(CKey& keyZerocoinMaster);

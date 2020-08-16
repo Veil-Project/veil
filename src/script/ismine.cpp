@@ -97,8 +97,9 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         break;
     }
     case TX_PUBKEYHASH:
-    case TX_TIMELOCKED_PUBKEYHASH:
     case TX_PUBKEYHASH256:
+    case TX_TIMELOCKED_PUBKEYHASH:
+    case TX_TIMELOCKED_PUBKEYHASH256:
         if (vSolutions[0].size() == 20)
             keyID = CKeyID(uint160(vSolutions[0]));
         else if (vSolutions[0].size() == 32)
@@ -116,8 +117,9 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
         }
         break;
     case TX_SCRIPTHASH:
-    case TX_TIMELOCKED_SCRIPTHASH:
     case TX_SCRIPTHASH256:
+    case TX_TIMELOCKED_SCRIPTHASH:
+    case TX_TIMELOCKED_SCRIPTHASH256:
     {
         if (sigversion != IsMineSigVersion::TOP) {
             // P2SH inside P2WSH or P2SH is invalid.
@@ -157,6 +159,7 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
     }
 
     case TX_MULTISIG:
+    case TX_TIMELOCKED_MULTISIG:
     {
         // Never treat bare multisig outputs as ours (they can still be made watchonly-though)
         if (sigversion == IsMineSigVersion::TOP) {
@@ -183,6 +186,9 @@ IsMineResult IsMineInner(const CKeyStore& keystore, const CScript& scriptPubKey,
 
         break;
     }
+    case TX_ZEROCOINMINT:
+        // TODO
+	break;
     }
 
     if (ret == IsMineResult::NO && keystore.HaveWatchOnly(scriptPubKey)) {

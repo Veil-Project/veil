@@ -1,7 +1,6 @@
 Veil integration/staging tree
 =============================
 
-[![Build Status](https://travis-ci.com/Veil-Project/veil.svg?branch=master)](https://travis-ci.com/Veil-Project/veil?branch=master)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/veil-project/veil?color=%23001e58&cacheSeconds=3600)](https://github.com/Veil-Project/veil/releases)
 [![GitHub Release Date](https://img.shields.io/github/release-date/veil-project/veil?color=%23001e58&cacheSeconds=3600)](https://github.com/Veil-Project/veil/releases)
 

@@ -200,8 +200,8 @@ public:
     CAmount GetBalance(const isminefilter& filter=ISMINE_SPENDABLE, const int min_depth=0) const;
     CAmount GetSpendableBalance() const;        // Includes watch_only_cs balance
     CAmount GetUnconfirmedBalance() const;
-    CAmount GetBlindBalance();
-    CAmount GetAnonBalance();
+    CAmount GetBlindBalance(const int min_depth=0);
+    CAmount GetAnonBalance(const int min_depth=0);
 
     bool GetBalances(BalanceList &bal);
 //    CAmount GetAvailableBalance(const CCoinControl* coinControl = nullptr) const;

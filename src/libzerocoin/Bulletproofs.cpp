@@ -188,7 +188,7 @@ CBN_matrix Bulletproofs::splitIntoSets(const CBN_matrix ck_inner_g, const int s)
         return g_sets;
     }
 
-    else throw std::runtime_error("wrong s inside splitIntoSets: " + s);
+    else throw std::runtime_error("wrong s inside splitIntoSets: " + std::to_string(s));
 }
 
 // Function for reduction when mu > 1
@@ -297,7 +297,7 @@ CBN_matrix Bulletproofs::get_new_gs_hs(const CBN_matrix g_sets, const int sign,
             new_g = (g_sets[0][j].pow_mod(xn,p)).mul_mod(
                     g_sets[1][j].pow_mod(x,p),p);
         else
-            throw std::runtime_error("wrong sign inside get_new_gs_hs: " + sign);
+            throw std::runtime_error("wrong sign inside get_new_gs_hs: " + std::to_string(sign));
 
         new_gs[0].push_back(new_g);
     }
@@ -323,7 +323,7 @@ CBN_matrix Bulletproofs::get_new_as_bs(const CBN_matrix a_sets, const int sign,
         else if (sign < 0)
             aj = (a_sets[0][j].mul_mod(xn,q) + a_sets[1][j].mul_mod(x, q)) % q;
         else
-            throw std::runtime_error("wrong sign inside get_new_as_bs: " + sign);
+            throw std::runtime_error("wrong sign inside get_new_as_bs: " + std::to_string(sign));
 
         a2[0][j] = aj;
     }

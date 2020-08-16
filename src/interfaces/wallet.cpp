@@ -252,6 +252,7 @@ WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
     return result;
 }
 
+/*
 WalletTxStatus MakeWalletTxStatus(AnonWallet* pAnonWallet, const uint256 &hash, const CTransactionRecord &rtx)
 {
     WalletTxStatus result;
@@ -271,6 +272,7 @@ WalletTxStatus MakeWalletTxStatus(AnonWallet* pAnonWallet, const uint256 &hash, 
     result.is_in_main_chain = result.depth_in_main_chain > 0;
     return result;
 }
+*/
 
 //! Construct wallet TxOut struct.
 WalletTxOut MakeWalletTxOut(CWallet& wallet, const CWalletTx& wtx, int n, int depth)
@@ -306,10 +308,6 @@ public:
     }
     void setStakingEnabled(bool fEnableStaking) override { m_wallet.SetStakingEnabled(fEnableStaking); }
     bool isStakingEnabled() override { return m_wallet.IsStakingEnabled(); }
-    bool StartPrecomputing(std::string& strStatus) override { return m_wallet.StartPrecomputing(strStatus); }
-    void StopPrecomputing() override { m_wallet.StopPrecomputing(); }
-    void setPrecomputingEnabled(bool fEnabledPrecomputing) override { m_wallet.SetPrecomputingEnabled(fEnabledPrecomputing); }
-    bool isPrecomputingEnabled() override { return m_wallet.IsPrecomputingEnabled(); }
 
     void abortRescan() override { m_wallet.AbortRescan(); }
     bool backupWallet(const std::string& filename) override { return m_wallet.BackupWallet(filename); }

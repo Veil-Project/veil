@@ -68,7 +68,6 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/thread.hpp>
 #include "veil/zerocoin/accumulators.h"
-#include "veil/zerocoin/precompute.h"
 #include "miner.h"
 
 #if defined(NDEBUG)
@@ -270,9 +269,6 @@ bool fEnableReplacement = DEFAULT_ENABLE_REPLACEMENT;
 unsigned int nStakeMinAge = 60;
 static bool fVerifyingDB = false;
 
-// Used in the precomputing thread
-bool fClearSpendCache = false;
-
 uint256 hashAssumeValid;
 arith_uint256 nMinimumChainWork;
 
@@ -342,8 +338,6 @@ std::unique_ptr<CCoinsViewDB> pcoinsdbview;
 std::unique_ptr<CCoinsViewCache> pcoinsTip;
 std::unique_ptr<CBlockTreeDB> pblocktree;
 std::unique_ptr<CZerocoinDB> pzerocoinDB;
-std::unique_ptr<CPrecomputeDB> pprecomputeDB;
-std::unique_ptr<Precompute> pprecompute;
 
 enum class FlushStateMode {
     NONE,
@@ -3608,7 +3602,7 @@ void PruneStaleBlockIndexes()
     if (!pindexBestHeader) return;
 
     // If mapBlockIndex isn't bloated, don't bother taking the time.
-    if (chainActive.Height() > (mapBlockIndex.size() - PRUNE_COUNT)) {
+    if (chainActive.Height() > static_cast<int>(mapBlockIndex.size() - PRUNE_COUNT)) {
         return;
     }
 
@@ -3631,7 +3625,7 @@ void PruneStaleBlockIndexes()
             irrelevantIndexes++;
 
             // if it's also old enough, add it to the prune list.
-            if (pindex->nHeight + PRUNE_DEPTH < chainActive.Height()) {
+            if (chainActive.Height() > static_cast<int>(pindex->nHeight + PRUNE_DEPTH)) {
                 setDelete.emplace(p.first);
 
                 // save the lowest height that we're purging

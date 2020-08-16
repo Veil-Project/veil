@@ -912,10 +912,6 @@ void CoinControlDialog::updateView(int nCoinType)
                 if (out.nType != nCoinType)
                     continue;
 
-                //Also need to filter out zerocoinmints
-                if (txRef->vpout[i]->IsZerocoinMint())
-                    continue;
-
                 //Don't display zero confirmed outputs
                 if (nDepth < 1)
                     continue;
@@ -1041,7 +1037,6 @@ void CoinControlDialog::updateView(int nCoinType)
 
     // Zerocoin
     if (CoinControlDialog::fSpendingZerocoin) {
-        ui->treeWidget->model()->setHeaderData(COLUMN_LABEL, Qt::Horizontal, tr("Precomputed %"));
         ui->treeWidget->model()->setHeaderData(COLUMN_ADDRESS, Qt::Horizontal, tr("Serial Hash"));
         map<libzerocoin::CoinDenomination, CCoinControlWidgetItem *> mapTreeWidgetItems;
         map<libzerocoin::CoinDenomination, int> mapDenomAmount;
@@ -1118,12 +1113,6 @@ void CoinControlDialog::updateView(int nCoinType)
 
             // hash serial
             itemOutput->setText(COLUMN_ADDRESS, QString::fromStdString(mint.hashSerial.GetHex()));
-
-            double nPercent = 0;
-            if (model->wallet().getWalletPointer()->GetZerocoinPrecomputePercentage(mint.hashSerial, nPercent)) {
-                itemOutput->setText(COLUMN_LABEL, QString::number(nPercent, 'f', 2));
-            } else
-                itemOutput->setText(COLUMN_LABEL, "Not available");
 
             // set checkbox
             if (coinControl()->IsSelected(mint.hashSerial)) {

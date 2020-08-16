@@ -499,7 +499,8 @@ inline int GetVarInt(const std::vector<uint8_t> &v, size_t ofs, uint64_t &i, siz
     return 0; // 0 == success
 };
 
-#define VARINT(obj, ...) WrapVarInt<__VA_ARGS__>(REF(obj))
+#define VARINT_MODE(obj, mode) WrapVarInt<mode>(REF(obj))
+#define VARINT(obj) WrapVarInt<VarIntMode::DEFAULT>(REF(obj))
 #define COMPACTSIZE(obj) CCompactSize(REF(obj))
 #define LIMITED_STRING(obj,n) LimitedString< n >(REF(obj))
 

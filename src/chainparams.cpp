@@ -13,7 +13,6 @@
 
 #include <assert.h>
 
-#include <chainparamsseeds.h>
 #include "arith_uint256.h"
 #include "key.h"
 #include "key_io.h"
