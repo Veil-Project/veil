@@ -149,7 +149,9 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
 
         if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
             uint256 mix_hash;
-            while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount && !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits, Params().GetConsensus())) {
+            while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount &&
+                   !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits,
+                                     Params().GetConsensus(), CBlockHeader::PROGPOW_BLOCK)) {
                 ++pblock->nNonce64;
                 --nMaxTries;
             }
@@ -179,7 +181,8 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
             }
         } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
             while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount &&
-                   !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                   !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits,
+                                     Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK)) {
                 ++pblock->nNonce;
                 --nMaxTries;
             }
@@ -850,7 +853,8 @@ static UniValue pprpcsb(const JSONRPCRequest& request) {
     }
 
     uint256 calculated_mix_hash;
-    if (!CheckProofOfWork(ProgPowHash(blockptr->GetBlockHeader(), calculated_mix_hash), blockptr->nBits, Params().GetConsensus())) {
+    if (!CheckProofOfWork(ProgPowHash(blockptr->GetBlockHeader(), calculated_mix_hash), blockptr->nBits,
+        Params().GetConsensus(), CBlockHeader::PROGPOW_BLOCK)) {
         throw JSONRPCError(RPC_INVALID_REQUEST, "Block does not solve the boundary");
     }
 

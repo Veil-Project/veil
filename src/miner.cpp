@@ -967,7 +967,9 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             int nTries = 0;
             if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
                 uint256 mix_hash;
-                while (nTries < nInnerLoopCount && !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits, Params().GetConsensus())) {
+                while (nTries < nInnerLoopCount &&
+                        !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits,
+                                          Params().GetConsensus(), CBlockHeader::PROGPOW_BLOCK)) {
                     ++nTries;
                     ++pblock->nNonce64;
                 }
@@ -1000,14 +1002,15 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 }
             } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
                 while (nTries < nInnerLoopCount &&
-                       !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                       !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits,
+                                         Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK)) {
                     boost::this_thread::interruption_point();
                     ++nTries;
                     ++pblock->nNonce64;
                 }
             } else {
                 while (nTries < nInnerLoopCount &&
-                !CheckProofOfWork(pblock->GetX16RTPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                       !CheckProofOfWork(pblock->GetX16RTPoWHash(), pblock->nBits, Params().GetConsensus())) {
                     boost::this_thread::interruption_point();
                     ++nTries;
                     ++pblock->nNonce;

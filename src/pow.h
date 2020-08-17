@@ -11,6 +11,7 @@
 
 #include <stdint.h>
 #include <memory>
+#include <arith_uint256.h>
 
 class CBlockHeader;
 class CBlockIndex;
@@ -23,12 +24,13 @@ class CReserveScript;
 extern std::vector<randomx_vm*> vecRandomXVM;
 extern bool fKeyBlockedChanged;
 
+arith_uint256 GetPowLimit(int nPoWType);
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params&,
                                     bool fProofOfStake, int nPoWType);
 unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake, int nPoWType);
 
 /** Check whether a block hash satisfies the proof-of-work requirement specified by nBits */
-bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&);
+bool CheckProofOfWork(uint256 hash, unsigned int nBits, const Consensus::Params&, int algo = 0);
 
 bool IsRandomXLightInit();
 void InitRandomXLightCache(const int32_t& height);
