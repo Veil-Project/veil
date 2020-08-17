@@ -1017,6 +1017,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             LOCK(cs_nonce);
             nHashes += nTries;
             int32_t nTimeDuration = GetTime() - nTimeStart;
+            if (!nTimeDuration) nTimeDuration = 1;
             LogPrint(BCLog::BLOCKCREATION, "%s: PoW Hashspeed %d kh/s\n", __func__, arith_uint256(nHashes/1000/nTimeDuration).getdouble());
             if (nTries == nInnerLoopCount) {
                 continue;

@@ -348,13 +348,13 @@ void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_p
             randomx_init_cache(myMiningCache, &mining_key_block, sizeof(mining_key_block));
 
             auto nTime1 = GetTimeMillis();
-            LogPrintf(" %s: Starting dataset creation\n", __func__);
+            LogPrintf("%s: Starting dataset creation\n", __func__);
 
             CreateRandomXInitDataSet(nThreads, myMiningDataset, myMiningCache);
             boost::this_thread::interruption_point();
 
             auto nTime2 = GetTimeMillis();
-            LogPrintf(" %s: Finished dataset creation %.2fms\n", __func__, nTime2 - nTime1);
+            LogPrintf("%s: Finished dataset creation %.2fms\n", __func__, nTime2 - nTime1);
 
             boost::this_thread::interruption_point();
             /// Create the RandomX Virtual Machines
