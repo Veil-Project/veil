@@ -66,11 +66,7 @@ std::set<uint256> setFoundStakes;
 bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockFrom, unsigned int& nTimeTx, const CBlockIndex* pindexBest, uint256& hashProofOfStake, bool fWeightStake)
 {
     if (nTimeTx < nTimeBlockFrom)
-        return error("Stake() : nTime violation");
-
-    if (nTimeBlockFrom + nStakeMinAge > nTimeTx) // Min age requirement
-        return error("Stake() : min age violation - nTimeBlockFrom=%d nStakeMinAge=%d nTimeTx=%d",
-                     nTimeBlockFrom, nStakeMinAge, nTimeTx);
+        return error("%s: nTime violation", __func__);
 
     //grab difficulty
     arith_uint256 bnTargetPerCoinDay;
@@ -136,7 +132,7 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
 bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, const uint32_t& nBits, const unsigned int& nTimeBlock, uint256& hashProofOfStake, std::unique_ptr<CStakeInput>& stake)
 {
     if (!txRef->IsCoinStake())
-        return error("CheckProofOfStake() : called on non-coinstake %s", txRef->GetHash().ToString().c_str());
+        return error("%s: called on non-coinstake %s", __func__, txRef->GetHash().ToString().c_str());
 
     //Construct the stakeinput object
     if (txRef->vin.size() != 1 && txRef->vin[0].IsZerocoinSpend())
