@@ -238,59 +238,96 @@ static UniValue getblockcount(const JSONRPCRequest& request)
 
 static UniValue getchainalgostats(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() != 0)
+    if (request.fHelp || request.params.size() > 2)
         throw std::runtime_error(
-            "getchainalgostats \n"
-            "\nReturns the blocks found by each algo over that previous 1440 blocks.\n"
+            "getchainalgostats ( blocks ) ( height )\n"
+            "\nReturns the blocks found by each algo over the [blocks] blocks leading up to [height].\n"
+            "\nArguments:\n"
+                "1.  blocks       (numeric, optional) How many blocks to count.  Default: 1440 \n"
+                "2.  height       (numeric, optional) The tip to begin at.  Default: current height \n"
             "\nResult:\n"
                 "{ \n"
-                "   \"start\" :   (numeric) Epoch time from the blcok 1440 blocks ago \n"
-                "   \"finish\" :  (numeric) Epoch time of the latest block \n"
-                "   \"period\" :  (numeric) Time, in minutes, the previous 1440 blocks spanned\n"
-                "   \"pos\" :     (numeric) The number of PoS blocks found in the previous 1440 blocks \n"
-                "   \"progpow\":  (numeric) The number of ProgPow blocks found in the previous 1440 blocks \n"
-                "   \"randomx\":  (numeric) The number of RandomX blocks found in the previous 1440 blocks \n"
-                "   \"sha256d\":  (numeric) The number of SHA256D blocks found in the previous 1440 blocks \n"
-                "   \"x16rt\":    (numeric) The number of x16rt blocks found in the previous 1440 blocks \n"
+                "  \"start\" :      (numeric) Epoch time from the first block in the series \n"
+                "  \"finish\" :     (numeric) Epoch time of the last block in the series \n"
+                "  \"period\" :     (numeric) Time, in minutes, the block series spanned \n"
+                "  \"startblock\" : (numeric) Block height of the first block in the series \n"
+                "  \"endblock\" :   (numeric) Block height of the last block in the series \n"
+                "  \"pos\" :        (numeric) The number of PoS blocks found in the series \n"
+                "  \"progpow\":     (numeric) The number of ProgPow blocks found in the series \n"
+                "  \"randomx\":     (numeric) The number of RandomX blocks found in the series \n"
+                "  \"sha256d\":     (numeric) The number of SHA256D blocks found in the series \n"
+                "  \"x16rt\":       (numeric) The number of x16rt blocks found in the series \n"
                 "} \n"
             "\nExamples:\n"
+            "\nGet stats from the latest 1440 blocks\n"
             + HelpExampleCli("getchainalgostats", "")
-            + HelpExampleRpc("getchainalgostats", "")
+            + "\nGet stats for 1000 blocks up to block 3500\n"
+            + HelpExampleCli("getchainalgostats", "1000 3500")
+            + "\nAs a JSON RPC call\n"
+            + HelpExampleRpc("getchainalgostats", "count, height")
         );
+
+    int nBlockCount = ALGO_RATIO_LOOK_BACK_BLOCK_COUNT;
+    if (request.params.size() > 0) {
+        nBlockCount = request.params[0].get_int();
+        if (nBlockCount <= 0 || nBlockCount > chainActive.Height())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Block count out of range");
+    }
+
+    int nHeight = chainActive.Height();
+    if (request.params.size() > 1) {
+        nHeight = request.params[1].get_int();
+        if ((nHeight+1) < nBlockCount || nHeight > chainActive.Height())
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Block height out of range");
+    }
 
     int nX16rtCount  = 0;
     int nRandomxCount  = 0;
     int nProgPowCount  = 0;
     int nSha256dCount  = 0;
     int nPoSCount = 0;
-    int nBlockCount = 0;
 
-    LOCK(cs_main);
-    CBlockIndex *pindex = chainActive.Tip();
-    while (pindex) {
-        nBlockCount++;
-        if (pindex->IsProofOfStake()) {
-            nPoSCount++;
-        } else if (pindex->IsProgProofOfWork()) {
-            nProgPowCount++;
-        } else if (pindex->IsRandomXProofOfWork()) {
-            nRandomxCount++;
-        } else if (pindex->IsSha256DProofOfWork()) {
-            nSha256dCount++;
-        } else if (pindex->IsX16RTProofOfWork()) {
-            nX16rtCount++;
+    CBlockIndex *pend = chainActive[nHeight];
+    if (!pend)
+        throw JSONRPCError(RPC_MISC_ERROR, "Chain reorged during execution.  Try again");
+
+    CBlockIndex *pindex = pend;
+
+    try {
+        // Rather than holding a lock the whole time in case they grind a
+        // long chain. just catch the exception and tell them no bueno.
+        while (pindex) {
+            nBlockCount--;
+            if (pindex->IsProofOfStake()) {
+                nPoSCount++;
+            } else if (pindex->IsProgProofOfWork()) {
+                nProgPowCount++;
+            } else if (pindex->IsRandomXProofOfWork()) {
+                nRandomxCount++;
+            } else if (pindex->IsSha256DProofOfWork()) {
+                nSha256dCount++;
+            } else if (pindex->IsX16RTProofOfWork()) {
+                nX16rtCount++;
+            }
+            if(nBlockCount <= 0) {
+                break;
+            }
+            pindex=pindex->pprev;
         }
-        if(nBlockCount >= ALGO_RATIO_LOOK_BACK_BLOCK_COUNT){
-            break;
-        }
-        pindex=pindex->pprev;
+    } catch (std::exception &e) {
+        throw JSONRPCError(RPC_MISC_ERROR, "Chain reorged during execution.  Try again");
     }
+
+    if (!pindex)
+        throw JSONRPCError(RPC_MISC_ERROR, "Check parameters");
 
     UniValue obj(UniValue::VOBJ);
 
     obj.pushKV("start", (uint64_t)pindex->nTime);
-    obj.pushKV("finish", (uint64_t)chainActive.Tip()->nTime);
-    obj.pushKV("period", (uint64_t)(chainActive.Tip()->nTime - pindex->nTime)/60);
+    obj.pushKV("finish", (uint64_t)pend->nTime);
+    obj.pushKV("period", (uint64_t)(pend->nTime - pindex->nTime)/60);
+    obj.pushKV("startblock", (uint64_t)pindex->nHeight);
+    obj.pushKV("endblock", (uint64_t)pend->nHeight);
     obj.pushKV("pos", nPoSCount);
     obj.pushKV("progpow", nProgPowCount);
     obj.pushKV("randomx", nRandomxCount);
@@ -2457,7 +2494,7 @@ static const CRPCCommand commands[] =
     { "blockchain",         "getblockstats",          &getblockstats,          {"hash_or_height", "stats"} },
     { "blockchain",         "getbestblockhash",       &getbestblockhash,       {} },
     { "blockchain",         "getblockcount",          &getblockcount,          {} },
-    { "blockchain",         "getchainalgostats",      &getchainalgostats,      {} },
+    { "blockchain",         "getchainalgostats",      &getchainalgostats,      {"blocks", "height"} },
     { "blockchain",         "getblock",               &getblock,               {"blockhash","verbosity|verbose"} },
     { "blockchain",         "getblockhash",           &getblockhash,           {"height"} },
     { "blockchain",         "getblockheader",         &getblockheader,         {"blockhash","verbose"} },
