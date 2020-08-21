@@ -1,4 +1,3 @@
-// Copyright (c) 2019-2020 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Copyright (c) 2019-2020 Veil developers
@@ -970,36 +969,11 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 while (nTries < nInnerLoopCount &&
                         !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits,
                                           Params().GetConsensus(), CBlockHeader::PROGPOW_BLOCK)) {
+                    boost::this_thread::interruption_point();
                     ++nTries;
                     ++pblock->nNonce64;
                 }
                 pblock->mixHash = mix_hash;
-            } else if (pblock->IsRandomX() && pblock->nTime >= Params().PowUpdateTimestamp()) {
-                arith_uint256 bnTarget;
-                bool fNegative;
-                bool fOverflow;
-
-                CheckIfValidationKeyShouldChangeAndUpdate(GetKeyBlock(pblock->nHeight));
-
-                bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
-
-                while (nTries < nInnerLoopCount) {
-                    boost::this_thread::interruption_point();
-                    char hash[RANDOMX_HASH_SIZE];
-                    // Build the header_hash
-                    uint256 nHeaderHash = pblock->GetRandomXHeaderHash();
-
-                    randomx_calculate_hash(GetMyMachineValidating(), &nHeaderHash, sizeof uint256(), hash);
-
-                    uint256 nHash = RandomXHashToUint256(hash);
-                    // Check proof of work matches claimed amount
-                    if (UintToArith256(nHash) < bnTarget) {
-                        break;
-                    }
-
-                    ++nTries;
-                    ++pblock->nNonce;
-                }
             } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
                 while (nTries < nInnerLoopCount &&
                        !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits,
@@ -1008,20 +982,24 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     ++nTries;
                     ++pblock->nNonce64;
                 }
-            } else {
+            } else if (pblock->nTime < Params().PowUpdateTimestamp()) {
                 while (nTries < nInnerLoopCount &&
                        !CheckProofOfWork(pblock->GetX16RTPoWHash(), pblock->nBits, Params().GetConsensus())) {
                     boost::this_thread::interruption_point();
                     ++nTries;
                     ++pblock->nNonce;
                 }
+            } else {
+                LogPrintf("%s: Unknown hashing algorithm found!\n");
+                return;
             }
 
             LOCK(cs_nonce);
             nHashes += nTries;
             int32_t nTimeDuration = GetTime() - nTimeStart;
             if (!nTimeDuration) nTimeDuration = 1;
-            LogPrint(BCLog::BLOCKCREATION, "%s: PoW Hashspeed %d kh/s\n", __func__, arith_uint256(nHashes/1000/nTimeDuration).getdouble());
+            LogPrint(BCLog::BLOCKCREATION, "%s: PoW Hashspeed %d kh/s\n", __func__,
+                     arith_uint256(nHashes/1000/nTimeDuration).getdouble());
             if (nTries == nInnerLoopCount) {
                 continue;
             }
@@ -1137,14 +1115,16 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
         LOCK(cs_nonce);
         nHashes += nTries;
         int32_t nTimeDuration = GetTime() - nTimeStart;
-        LogPrint(BCLog::BLOCKCREATION, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__, arith_uint256(nHashes/nTimeDuration).getdouble());
+        if (!nTimeDuration) nTimeDuration = 1;
+        LogPrint(BCLog::BLOCKCREATION, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__,
+                 arith_uint256(nHashes/nTimeDuration).getdouble());
         if (nTries == nInnerLoopCount) {
             continue;
         }
 
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
-            LogPrint(BCLog::BLOCKCREATION, "%s : Failed to process new block\n", __func__);
+            LogPrint(BCLog::BLOCKCREATION, "%s: Failed to process new block\n", __func__);
             continue;
         }
 
@@ -1154,37 +1134,39 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
 
 void static ThreadBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript)
 {
+    LogPrintf("%s: starting\n", __func__);
     boost::this_thread::interruption_point();
     try {
         BitcoinMiner(coinbaseScript);
         boost::this_thread::interruption_point();
     } catch (std::exception& e) {
-        LogPrintf("ThreadBitcoinMiner() exception\n");
+        LogPrintf("%s: exception\n", __func__);
     } catch (boost::thread_interrupted) {
-        LogPrintf("ThreadBitcoinMiner() interrupted\n");
+       LogPrintf("%s: interrupted\n", __func__);
     }
 
-    LogPrintf("ThreadBitcoinMiner exiting\n");
+    LogPrintf("%s: exiting\n", __func__);
 }
 
 void ThreadRandomXBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, const int vm_index, const uint32_t startNonce)
 {
+    LogPrintf("%s: starting\n", __func__);
     boost::this_thread::interruption_point();
     try {
         BitcoinRandomXMiner(coinbaseScript, vm_index, startNonce);
         boost::this_thread::interruption_point();
     } catch (std::exception& e) {
-        LogPrintf("ThreadRandomXBitcoinMiner() exception\n");
+        LogPrintf("%s: exception\n", __func__);
     } catch (boost::thread_interrupted) {
-        LogPrintf("ThreadRandomXBitcoinMiner() interrupted\n");
+       LogPrintf("%s: interrupted\n", __func__);
     }
 
-    LogPrintf("ThreadRandomXBitcoinMiner exiting\n");
+    LogPrintf("%s: exiting\n", __func__);
 }
 
 void ThreadStakeMiner()
 {
-    LogPrintf("ThreadStakeMiner() start\n");
+    LogPrintf("%s: starting\n", __func__);
     while (true) {
         boost::this_thread::interruption_point();
         if (ShutdownRequested())
@@ -1195,13 +1177,13 @@ void ThreadStakeMiner()
             BitcoinMiner(coinbase_script, true, fProofOfFullNode);
             boost::this_thread::interruption_point();
         } catch (std::exception& e) {
-            LogPrintf("ThreadStakeMiner() exception\n");
+            LogPrintf("%s: exception\n", __func__);
         } catch (boost::thread_interrupted) {
-            LogPrintf("ThreadStakeMiner() interrupted\n");
+            LogPrintf("%s: interrupted\n", __func__);
         }
     }
 
-    LogPrintf("ThreadStakeMiner exiting\n");
+    LogPrintf("%s: exiting\n", __func__);
 }
 
 boost::thread_group* pthreadGroupPoW;
@@ -1243,17 +1225,20 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
 
         DeallocateVMVector();
         DeallocateDataSet();
+    }
 
+    if (pthreadGroupRandomX->size() > 0) {
         pthreadGroupRandomX->interrupt_all();
         pthreadGroupRandomX->join_all();
-
     }
 
     if (nThreads == 0 || !fGenerate)
         return;
 
+    // XXX - Todo - find a way to clean out the old threads or reuse the threads already created
     if (GetMiningAlgorithm() == MINE_RANDOMX && GetTime() >= Params().PowUpdateTimestamp()) {
-        pthreadGroupRandomX->create_thread(boost::bind(&StartRandomXMining, pthreadGroupPoW, nThreads, coinbaseScript));
+        pthreadGroupRandomX->create_thread(boost::bind(&StartRandomXMining, pthreadGroupPoW,
+                                           nThreads, coinbaseScript));
     } else {
         for (int i = 0; i < nThreads; i++)
             pthreadGroupPoW->create_thread(boost::bind(&ThreadBitcoinMiner, coinbaseScript));
