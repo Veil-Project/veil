@@ -244,6 +244,9 @@ static UniValue getchainalgostats(const JSONRPCRequest& request)
             "\nReturns the blocks found by each algo over that previous 1440 blocks.\n"
             "\nResult:\n"
                 "{ \n"
+                "   \"start\" :   (numeric) Epoch time from the blcok 1440 blocks ago \n"
+                "   \"finish\" :  (numeric) Epoch time of the latest block \n"
+                "   \"period\" :  (numeric) Time, in minutes, the previous 1440 blocks spanned\n"
                 "   \"pos\" :     (numeric) The number of PoS blocks found in the previous 1440 blocks \n"
                 "   \"progpow\":  (numeric) The number of ProgPow blocks found in the previous 1440 blocks \n"
                 "   \"randomx\":  (numeric) The number of RandomX blocks found in the previous 1440 blocks \n"
@@ -284,6 +287,10 @@ static UniValue getchainalgostats(const JSONRPCRequest& request)
     }
 
     UniValue obj(UniValue::VOBJ);
+
+    obj.pushKV("start", (uint64_t)pindex->nTime);
+    obj.pushKV("finish", (uint64_t)chainActive.Tip()->nTime);
+    obj.pushKV("period", (uint64_t)(chainActive.Tip()->nTime - pindex->nTime)/60);
     obj.pushKV("pos", nPoSCount);
     obj.pushKV("progpow", nProgPowCount);
     obj.pushKV("randomx", nRandomxCount);
