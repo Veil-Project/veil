@@ -268,6 +268,9 @@ static UniValue getchainalgostats(const JSONRPCRequest& request)
         );
 
     int nBlockCount = ALGO_RATIO_LOOK_BACK_BLOCK_COUNT;
+    if (nBlockCount > chainActive.Height()) {
+        nBlockCount = chainActive.Height();
+    }
     if (request.params.size() > 0) {
         nBlockCount = request.params[0].get_int();
         if (nBlockCount <= 0 || nBlockCount > chainActive.Height())
