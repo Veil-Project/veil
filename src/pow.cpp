@@ -57,7 +57,7 @@ void InitRandomXLightCache(const int32_t& height) {
     global_randomx_flags = (int)randomx_get_flags();
     myCacheValidating = randomx_alloc_cache((randomx_flags)global_randomx_flags);
     randomx_init_cache(myCacheValidating, &validation_key_block, sizeof uint256());
-    LogPrintf("%s : Spinning up a new vm  at new block height: %d\n", __func__, height);
+    LogPrintf("%s: Spinning up a new vm at new block height: %d\n", __func__, height);
     myMachineValidating = randomx_create_vm_timed((randomx_flags)global_randomx_flags, myCacheValidating, NULL, true);
     fLightCacheInited = true;
 }
@@ -69,7 +69,7 @@ void KeyBlockChanged(const uint256& new_block) {
     DeallocateRandomXLightCache();
     myCacheValidating = randomx_alloc_cache((randomx_flags)global_randomx_flags);
     randomx_init_cache(myCacheValidating, &validation_key_block, sizeof uint256());
-    LogPrintf("%s : Spinning up a new vm  at new block: %s\n", __func__, new_block.GetHex());
+    LogPrintf("%s: Spinning up a new vm at new block: %s\n", __func__, new_block.GetHex());
     myMachineValidating = randomx_create_vm_timed((randomx_flags)global_randomx_flags, myCacheValidating, NULL, true);
     fLightCacheInited = true;
 }
@@ -102,18 +102,18 @@ void CheckIfValidationKeyShouldChangeAndUpdate(const uint256& check_block)
 void DeallocateRandomXLightCache() {
     LOCK(cs_randomx_validator);
     if (!fLightCacheInited) {
-        LogPrintf("%s Return because light cache isn't inited\n", __func__);
+        LogPrintf("%s: Return because light cache isn't inited\n", __func__);
         return;
     }
 
     if (myMachineValidating) {
-        LogPrintf("%s releasing the vm\n",__func__);
+        LogPrintf("%s: Releasing the vm\n",__func__);
         randomx_destroy_vm(myMachineValidating);
         myMachineValidating = nullptr;
     }
 
     if (myCacheValidating) {
-        LogPrintf("%s releasing the validating cache\n",__func__);
+        LogPrintf("%s: Releasing the validating cache\n",__func__);
         randomx_release_cache(myCacheValidating);
         myCacheValidating = nullptr;
     }
@@ -366,7 +366,7 @@ void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_p
             for (int i = 0; i < nThreads; ++i) {
                 randomx_vm *vm = randomx_create_vm(full_flags, nullptr, myMiningDataset);
                 if (vm == nullptr) {
-                    LogPrintf("Cannot create VM\n");
+                    LogPrintf("%s: Cannot create VM\n", __func__);
                     return;
                 }
                 vecRandomXVM.push_back(vm);
