@@ -466,6 +466,15 @@ public:
         return pbegin[(pend - pbegin)/2];
     }
 
+    std::string GetType() const {
+        if (fProofOfStake) return "PoS";
+        if (IsX16RTProofOfWork()) return "PoW";
+        if (IsSha256DProofOfWork()) return "Sha256d";
+        if (IsRandomXProofOfWork()) return "RandomX";
+        if (IsProgProofOfWork()) return "ProgPow";
+        return "Unknown";
+    }
+
     bool IsProofOfWork() const
     {
         return !fProofOfStake;

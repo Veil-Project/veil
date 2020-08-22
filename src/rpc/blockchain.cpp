@@ -1474,14 +1474,22 @@ UniValue getblockchaininfo(const JSONRPCRequest& request)
     CBlockIndex *pindex = chainActive.Tip();
     const Consensus::Params& ConsensusParams = Params().GetConsensus();
 
+    double nDiffX16rt = -1;
+    double nDiffRandomX = -1;
+    double nDiffProgPow = -1;
+    double nDiffSha256D = -1;
+
     double nDiffPoS = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, true, 0));
-    double nDiffX16rt = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, false, 0));
-    double nDiffRandomX = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, false,
-                                        CBlock::RANDOMX_BLOCK));
-    double nDiffProgPow = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, false,
-                                        CBlock::PROGPOW_BLOCK));
-    double nDiffSha256D = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, false,
-                                        CBlock::SHA256D_BLOCK));
+    if (pindex->nTime >= Params().PowUpdateTimestamp()) {
+        nDiffRandomX = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, false,
+                                     CBlock::RANDOMX_BLOCK));
+        nDiffProgPow = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, false,
+                                     CBlock::PROGPOW_BLOCK));
+        nDiffSha256D = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, false,
+                                     CBlock::SHA256D_BLOCK));
+    } else {
+        nDiffX16rt = GetDifficulty(GetNextWorkRequired(pindex, nullptr, ConsensusParams, false, 0));
+    }
     
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("chain",                 Params().NetworkIDString());
