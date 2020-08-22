@@ -285,31 +285,24 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         nActualTimespan = nTargetTimespan/3;
     }
 
-    if (nActualTimespan > nTargetTimespan*2) {
-        // we don't get here if we're overdue.  Reduce based on how far off we are within overflow
-        // bounds.
-        int64_t nActualFactor = nActualTimespan / nTargetTimespan;
-        // Test it before we set it
-        arith_uint256 bnNewTest(bnNew);
-        nActualTimespan = nTargetTimespan*nActualFactor;
-        bnNewTest *= nActualTimespan;
-        bnNewTest /= nActualTimespan;
-        if (bnNew > bnNewTest) {
-            // the target new target is less, so we overflowed
-            LogPrint(BCLog::BLOCKCREATION, "%s: Multiplier %d for %s overflowed.  Setting Min Difficulty.\n",
-                     __func__, nActualFactor,GetType(nPoWType, fProofOfStake).c_str());
-            return bnPowLimit.GetCompact();
-        }
-    }
-
     LogPrint(BCLog::BLOCKCREATION, "%s: Adjusting %s: old target: %s\n",
              __func__, GetType(nPoWType, fProofOfStake).c_str(), bnNew.GetHex());
+
+    arith_uint256 bnOld(bnNew); // Save the old target
 
     // Retarget
     bnNew *= nActualTimespan;
     bnNew /= nTargetTimespan;
 
     if (bnNew > bnPowLimit) {
+        bnNew = bnPowLimit;
+    }
+
+    if ((nActualTimespan > nTargetTimespan) && (bnOld > bnNew)) {
+        // If we should be reducing the difficulty, and the target has gone down, we've overflowed.
+        LogPrint(BCLog::BLOCKCREATION, "%s: Multiplier %.4f for %s overflowed.  Setting Min Difficulty.\n",
+                 __func__, (double) ((double)nActualTimespan / (double)nTargetTimespan),
+                 GetType(nPoWType, fProofOfStake).c_str());
         bnNew = bnPowLimit;
     }
 
