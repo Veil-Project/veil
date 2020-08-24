@@ -14,8 +14,6 @@
 
 // ProgPow
 #include <crypto/ethash/lib/ethash/endianness.hpp>
-#include <crypto/ethash/include/ethash/progpow.hpp>
-#include <crypto/ethash/helpers.hpp>
 
 // RandomX
 #include <crypto/randomx/randomx.h>

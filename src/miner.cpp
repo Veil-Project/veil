@@ -1240,20 +1240,6 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
         pthreadGroupRandomX->create_thread(boost::bind(&StartRandomXMining, pthreadGroupPoW,
                                            nThreads, coinbaseScript));
     } else {
-        if (GetMiningAlgorithm() == MINE_PROGPOW && GetTime() >= Params().PowUpdateTimestamp()) {
-            // XXX - Todo - This is a serious hack to get things working.  Not sure exactly
-            // what the root problem is, but when you start up more than one thread initially
-            // with progPoW, there is a crash deep in the algo calculations.  It's likely an
-            // initialization issue.  However, if you start one thread, stop it, then you can
-            // start as many threads as you want.  So, for now, we'll do that programatically.
-            pthreadGroupPoW->create_thread(boost::bind(&ThreadBitcoinMiner, coinbaseScript));
-            sleep(1);
-            pthreadGroupPoW->interrupt_all();
-            pthreadGroupPoW->join_all();
-            DeallocateVMVector();
-            DeallocateDataSet();
-        }
-
         for (int i = 0; i < nThreads; i++)
             pthreadGroupPoW->create_thread(boost::bind(&ThreadBitcoinMiner, coinbaseScript));
     }
