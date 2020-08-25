@@ -26,6 +26,7 @@
 #include "crypto/x16r/sph_shabal.h"
 #include "crypto/x16r/sph_whirlpool.h"
 #include "crypto/x16r/sph_sha2.h"
+#include "sync.h"
 
 #include <prevector.h>
 #include <serialize.h>
@@ -33,9 +34,14 @@
 #include <version.h>
 
 #include <vector>
+#include <crypto/ethash/include/ethash/ethash.hpp>
 
 class CBlockHeader;
 typedef uint256 ChainCode;
+
+/** Variables used by progpow **/
+extern CCriticalSection cs_context_builder;
+extern ethash::epoch_context_ptr progpow_context;
 
 /** A hasher class for Bitcoin's 256-bit hash (double SHA-256). */
 class CHash256 {

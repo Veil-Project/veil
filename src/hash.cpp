@@ -9,6 +9,9 @@
 #include <crypto/ethash/include/ethash/progpow.hpp>
 #include <primitives/block.h>
 
+CCriticalSection cs_context_builder;
+ethash::epoch_context_ptr progpow_context{nullptr, nullptr};
+
 inline uint32_t ROTL32(uint32_t x, int8_t r)
 {
     return (x << r) | (x >> (32 - r));
@@ -266,19 +269,20 @@ uint256 ProgPowHash(const CBlockHeader& blockHeader)
 
 uint256 ProgPowHash(const CBlockHeader& blockHeader, uint256& mix_hash)
 {
-    static ethash::epoch_context_ptr context{nullptr, nullptr};
-
-    // Get the context from the block height
-    const auto epoch_number = ethash::get_epoch_number(blockHeader.nHeight);
-    if (!context || context->epoch_number != epoch_number)
-        context = ethash::create_epoch_context(epoch_number);
+    {
+        LOCK(cs_context_builder);
+        // Get the context from the block height
+        const auto epoch_number = ethash::get_epoch_number(blockHeader.nHeight);
+        if (!progpow_context || progpow_context->epoch_number != epoch_number)
+            progpow_context = ethash::create_epoch_context(epoch_number);
+    }
 
     // Build the header_hash
     uint256 nHeaderHash = blockHeader.GetProgPowHeaderHash();
     const auto header_hash = to_hash256(nHeaderHash.GetHex());
 
     // ProgPow hash
-    const auto result = progpow::hash(*context, blockHeader.nHeight, header_hash, blockHeader.nNonce64);
+    const auto result = progpow::hash(*progpow_context, blockHeader.nHeight, header_hash, blockHeader.nNonce64);
 
     mix_hash = uint256S(to_hex(result.mix_hash));
 
