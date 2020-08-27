@@ -876,6 +876,24 @@ const CChainParams &Params() {
     return *globalChainParams;
 }
 
+int64_t CChainParams::GetDwgPastBlocks(int nPowType, bool fProofOfStake) const {
+    if (fProofOfStake)
+        return consensus.nDgwPastBlocks * 2; // count twice as many blocks
+    return consensus.nDgwPastBlocks;
+}
+
+int64_t CChainParams::GetTargetSpacing(int nPoWType, bool fProofOfStake) const {
+    if (nPoWType & CBlockHeader::PROGPOW_BLOCK)
+        return consensus.nProgPowTargetSpacing;
+    if (nPoWType & CBlockHeader::RANDOMX_BLOCK)
+        return consensus.nRandomXTargetSpacing;
+    if (nPoWType & CBlockHeader::SHA256D_BLOCK)
+        return consensus.nSha256DTargetSpacing;
+    if (fProofOfStake)
+        return consensus.nPowTargetSpacing/2; // Special case - actual block spacing
+    return consensus.nPowTargetSpacing;
+}
+
 std::unique_ptr<CChainParams> CreateChainParams(const std::string& chain)
 {
     if (chain == CBaseChainParams::MAIN)

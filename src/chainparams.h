@@ -148,6 +148,16 @@ public:
 
     uint32_t PowUpdateTimestamp() const { return nPowUpdateTimestamp; }
 
+    /**
+     * Returns the number of blocks to use for Dark Gravity Wave calculations
+    */
+    int64_t GetDwgPastBlocks(int nPowType, bool fProofOfStake) const;
+
+    /**
+     * Returns the target spacing for the given algo
+     */
+    int64_t GetTargetSpacing(int nPoWType, bool fProofOfStake) const;
+
 protected:
     CChainParams() {}
 
