@@ -163,6 +163,7 @@ bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pin
             nHeightPrevious = nHeightSample;
             auto pindexSample = pindexChainPrev->GetAncestor(nHeightSample);
 
+            if (!pindexSample) return false;
             //Get a sampling of entropy from this block. Rehash the sample, since PoW hashes may have lots of 0's
             uint256 hashSample = GetHashFromIndex(pindexSample);
             hashSample = Hash(hashSample.begin(), hashSample.end());
