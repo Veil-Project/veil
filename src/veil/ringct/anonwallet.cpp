@@ -1,5 +1,5 @@
 // Copyright (c) 2017-2019 The Particl Core developers
-// Copyright (c) 2018-2019 Veil developers
+// Copyright (c) 2018-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -566,7 +566,14 @@ std::map<CTxDestination, CAmount> AnonWallet::GetAddressBalances()
                 CAmount n =  IsSpent(txhash, r.n) ? 0 : r.GetRawValue();
 
                 std::pair<std::map<CTxDestination, CAmount>::iterator, bool> ret;
-                ret = balances.insert(std::pair<CTxDestination, CAmount>(addr, n));
+                CKeyID keyID;
+                keyID.SetNull();
+                if (addr.type() != typeid(CKeyID)) continue;
+                keyID = boost::get<CKeyID>(addr);
+                if (keyID.IsNull()) continue;
+                CStealthAddress sx;
+                if (!GetStealthAddress(keyID, sx)) continue;
+                ret = balances.insert(std::pair<CTxDestination, CAmount>(CTxDestination(sx), n));
                 if (!ret.second) // update existing record
                     ret.first->second += n;
             };
