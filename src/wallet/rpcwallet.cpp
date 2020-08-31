@@ -1,6 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
-// Copyright (c) 2018-2019 The Veil developers
+// Copyright (c) 2018-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -46,6 +46,30 @@
 
 #include <functional>
 #include <boost/assign.hpp>
+
+std::string GetDestType(CTxDestination dest) {
+    if (dest.type() == typeid(CNoDestination))
+        return "CNoDestination";
+    if (dest.type() == typeid(CKeyID))
+        return "CKeyID";
+    if (dest.type() == typeid(CScriptID))
+        return "CScriptID";
+    if (dest.type() == typeid(WitnessV0ScriptHash))
+        return "WitnessV0ScriptHash";
+    if (dest.type() == typeid(WitnessV0KeyHash))
+        return "WitnessV0KeyHash";
+    if (dest.type() == typeid(WitnessUnknown))
+        return "WitnessUnknown";
+    if (dest.type() == typeid(CStealthAddress))
+        return "CStealthAddress";
+    if (dest.type() == typeid(CExtKeyPair))
+        return "CExtKeyPair";
+    if (dest.type() == typeid(CKeyID256))
+        return "CKeyID256";
+    if (dest.type() == typeid(CScriptID256))
+        return "CScriptID256";
+    return "unknown";
+}
 
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 
@@ -650,6 +674,97 @@ static UniValue sendtoaddress(const JSONRPCRequest& request)
     }
 
     return tx->GetHash().GetHex();
+}
+
+static UniValue listaddresses(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "listaddresses (type)\n"
+            "\nLists addresses in the wallet Address Book.\n"
+            "\nArguments:\n"
+            "1. \"type\"       (string, optional) receive - all receive addresses (default).\n"
+            "                                   balances - all receive addresses with balances.\n"
+            "\nResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"address\",  (string)  The veil address\n"
+            "    amount,     (numeric) The amount in " + CURRENCY_UNIT + "\n"
+            "    \"label\"     (string)  The label\n"
+            "  }\n"
+            "  ,...\n"
+            "]\n"
+            "\nExamples:\n"
+            + HelpExampleCli("listaddresses", "")
+            + HelpExampleRpc("listaddresses", "")
+        );
+
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    bool fBalanceOnly = false;
+    if (!request.params[0].isNull()) {
+        std::string type = request.params[0].get_str();
+        if ("balances" == type) {
+            fBalanceOnly = true;
+        } else if ("receive" != type) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, type + " is not a valid address type");
+        }
+    }
+    LOCK(pwallet->cs_wallet);
+
+    UniValue results(UniValue::VARR);
+    AnonWallet* pAnonWallet = wallet->GetAnonWallet();
+    std::map<CTxDestination, CAmount> AnonBalances = pAnonWallet->GetAddressBalances();
+    std::map<CTxDestination, CAmount> balances = pwallet->GetAddressBalances();
+
+    for (const auto& item: pwallet->mapAddressBook)
+    {
+        // Only get basecoin and stealth addresses
+        if (!((item.first.type() == typeid(WitnessV0KeyHash)) ||
+              (item.first.type() == typeid(CStealthAddress)))) continue;
+        // Only get mine
+        if (!pwallet->IsMine(item.first)) continue;
+        // If we're balance only, require a balance
+        if (fBalanceOnly && !balances[item.first]) continue;
+
+        UniValue entry(UniValue::VOBJ);
+
+        if (item.first.type() == typeid(CStealthAddress)) {
+            entry.pushKV("address", EncodeDestination(item.first, true));
+            entry.pushKV("amount", ValueFromAmount(AnonBalances[item.first]));
+        } else {
+            entry.pushKV("address", EncodeDestination(item.first));
+            entry.pushKV("amount", ValueFromAmount(balances[item.first]));
+        }
+
+        entry.pushKV("label", item.second.name);
+
+        results.push_back(entry);
+    }
+
+    // Get the stealth change address
+    CStealthAddress address = pAnonWallet->GetStealthChangeAddress();
+    if (AnonBalances[address]) {
+        UniValue entry(UniValue::VOBJ);
+
+        entry.pushKV("address", address.ToString(true));
+        entry.pushKV("amount", ValueFromAmount(AnonBalances[address]));
+        entry.pushKV("label", "<stealth change address>");
+
+        results.push_back(entry);
+    }
+
+    return results;
 }
 
 static UniValue listaddressgroupings(const JSONRPCRequest& request)
@@ -5407,6 +5522,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "importprunedfunds",                &importprunedfunds,             {"rawtransaction","txoutproof"} },
     { "wallet",             "importpubkey",                     &importpubkey,                  {"pubkey","label","rescan"} },
     { "wallet",             "keypoolrefill",                    &keypoolrefill,                 {"newsize"} },
+    { "wallet",             "listaddresses",                    &listaddresses,                 {"type"} },
     { "wallet",             "listaddressgroupings",             &listaddressgroupings,          {} },
     { "wallet",             "listlockunspent",                  &listlockunspent,               {} },
     { "wallet",             "listreceivedbyaddress",            &listreceivedbyaddress,         {"minconf","include_empty","include_watchonly","address_filter"} },
