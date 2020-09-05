@@ -2931,7 +2931,8 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. \"passphrase\"     (string, required) The wallet passphrase\n"
             "2. \"unlockforstakingonly\"     (bool, required) Unlock wallet only for staking transactions\n"
-            "3. timeout            (numeric, required) The time to keep the decryption key in seconds; capped at 100000000 (~3 years).\n"
+            "3. timeout            (numeric, required) The time to keep the decryption key in seconds;\n"
+            "                                          Capped at 100000000 (~3 years). 0 sets max.\n"
             "\nNote:\n"
             "Issuing the walletpassphrase command while the wallet is already unlocked will set a new unlock\n"
             "time that overrides the old one.\n"
@@ -2968,7 +2969,7 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
     }
     // Clamp timeout
     constexpr int64_t MAX_SLEEP_TIME = 100000000; // larger values trigger a macos/libevent bug?
-    if (nSleepTime > MAX_SLEEP_TIME) {
+    if (!nSleepTime || (nSleepTime > MAX_SLEEP_TIME)) {
         nSleepTime = MAX_SLEEP_TIME;
     }
 
