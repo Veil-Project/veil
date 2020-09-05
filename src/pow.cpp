@@ -161,8 +161,65 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     if (params.fPowNoRetargeting) // regtest only
         return nProofOfWorkLimit;
 
+    if (pindexLast->GetBlockTime() < Params().PowUpdateTimestamp()) {
+        // Use old algo
+        return DGW_old(pindexLast, params, fProofOfStake);
+    }
     // Retarget every block with DarkGravityWave
     return DarkGravityWave(pindexLast, params, fProofOfStake, nPoWType);
+}
+
+unsigned int DGW_old(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake) {
+    /* current difficulty formula, veil - DarkGravity v3, written by Evan Duffield - evan@dash.org */
+    const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
+
+    const CBlockIndex *pindex = pindexLast;
+    const CBlockIndex* pindexLastMatchingProof = nullptr;
+    arith_uint256 bnPastTargetAvg = 0;
+
+    unsigned int nCountBlocks = 0;
+    while (nCountBlocks < params.nDgwPastBlocks_old) {
+        // Ran out of blocks, return pow limit
+        if (!pindex)
+            return bnPowLimit.GetCompact();
+
+        // Only consider PoW or PoS blocks but not both
+        if (pindex->IsProofOfStake() != fProofOfStake) {
+            pindex = pindex->pprev;
+            continue;
+        } else if (!pindexLastMatchingProof) {
+            pindexLastMatchingProof = pindex;
+        }
+
+        arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
+        bnPastTargetAvg = (bnPastTargetAvg * nCountBlocks + bnTarget) / (nCountBlocks + 1);
+
+        if (++nCountBlocks != params.nDgwPastBlocks_old)
+            pindex = pindex->pprev;
+    }
+
+    arith_uint256 bnNew(bnPastTargetAvg);
+
+    //Should only happen on the first PoS block
+    if (pindexLastMatchingProof)
+        pindexLastMatchingProof = pindexLast;
+
+    int64_t nActualTimespan = pindexLastMatchingProof->GetBlockTime() - pindex->GetBlockTime();
+    int64_t nTargetTimespan = params.nDgwPastBlocks_old * params.nPowTargetSpacing;
+
+    if (nActualTimespan < nTargetTimespan/3)
+        nActualTimespan = nTargetTimespan/3;
+    if (nActualTimespan > nTargetTimespan*3)
+        nActualTimespan = nTargetTimespan*3;
+    // Retarget
+    bnNew *= nActualTimespan;
+    bnNew /= nTargetTimespan;
+
+    if (bnNew > bnPowLimit) {
+        bnNew = bnPowLimit;
+    }
+
+    return bnNew.GetCompact();
 }
 
 unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake, int nPoWType) {
@@ -175,7 +232,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     arith_uint256 bnPastTargetAvg = 0;
 
     unsigned int nCountBlocks = 0;
-    int64_t nPastBlocks = Params().GetDwgPastBlocks(nPoWType, fProofOfStake);
+    int64_t nPastBlocks = Params().GetDwgPastBlocks(pindexLast, nPoWType, fProofOfStake);
     bool fNewPoW = true;
     while (nCountBlocks < nPastBlocks) {
         // Ran out of blocks, return pow limit
@@ -234,7 +291,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         return bnPowLimit.GetCompact();
     }
 
-    int64_t nPowSpacing  = Params().GetTargetSpacing(nPoWType, fProofOfStake);
+    int64_t nPowSpacing  = Params().GetTargetSpacing(pindexLast, nPoWType, fProofOfStake);
 
     int64_t nActualTimespan;
     int64_t nTargetTimespan;

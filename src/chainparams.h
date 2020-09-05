@@ -12,6 +12,7 @@
 #include <primitives/block.h>
 #include <protocol.h>
 #include <libzerocoin/Params.h>
+#include <chain.h>
 
 #include <memory>
 #include <vector>
@@ -151,12 +152,12 @@ public:
     /**
      * Returns the number of blocks to use for Dark Gravity Wave calculations
     */
-    int64_t GetDwgPastBlocks(int nPowType, bool fProofOfStake) const;
+    int64_t GetDwgPastBlocks(const CBlockIndex* pindex, const int nPowType, const bool fProofOfStake) const;
 
     /**
      * Returns the target spacing for the given algo
      */
-    int64_t GetTargetSpacing(int nPoWType, bool fProofOfStake) const;
+    int64_t GetTargetSpacing(const CBlockIndex* pindex, const int nPoWType, const bool fProofOfStake) const;
 
 protected:
     CChainParams() {}

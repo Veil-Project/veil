@@ -27,6 +27,7 @@ extern bool fKeyBlockedChanged;
 arith_uint256 GetPowLimit(int nPoWType);
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params&,
                                     bool fProofOfStake, int nPoWType);
+unsigned int DGW_old(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake);
 unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake, int nPoWType);
 
 /** Check whether a block hash satisfies the proof-of-work requirement specified by nBits */
