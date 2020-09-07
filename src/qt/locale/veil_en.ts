@@ -3870,9 +3870,13 @@ Follow these simple steps to begin staking veil:
     </message>
     <message>
         <location line="+22"/>
-        <source>“The X16RT mining algorithm will be used for at least the first 12 months of mainnet going live (January 1st, 2019) to achieve wide coin supply distribution.
+        <source>“Veil's mining is split between 3 algorithms: ProgPoW, RandomX, and SHA-256d. Users can participate in mining with any combination of algorithms assuming sufficient resources are available.
 
-Anyone with NVIDIA or AMD graphics cards will be able to solo mine or pool mine VEIL without concerns about ASICs and mining centralization.
+ProgPoW mining with GPU requires additional third party software. Both Nvidia and AMD GPUs are supported. For up-to-date information on this and pools visit the Veil Discord server.
+
+RandomX mining with CPU is available within the Veil wallet software.
+
+SHA-256d mining, as popularized by Bitcoin, is also available. Unlike ProgPoW and RandomX, this algorithm is ASIC and FPGA mining friendly. For more information on this visit the Veil Discord server.
 
 For the latest mining instructions, please visit the mining channel on the Veil Discord server or see the official Veil announcement thread on the BitcoinTalk forum.”					</source>
         <translation type="unfinished"></translation>
