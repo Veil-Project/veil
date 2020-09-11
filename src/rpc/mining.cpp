@@ -180,10 +180,10 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
                 --nMaxTries;
             }
         } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
-            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount &&
+            while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount &&
                    !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits,
                                      Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK)) {
-                ++pblock->nNonce;
+                ++pblock->nNonce64;
                 --nMaxTries;
             }
         } else {
@@ -196,7 +196,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
         if (nMaxTries == 0) {
             break;
         }
-        if (pblock->nNonce == nInnerLoopCount) {
+        if ((pblock->nNonce == nInnerLoopCount) || (pblock->nNonce64 == nInnerLoopCount)) {
             continue;
         }
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
