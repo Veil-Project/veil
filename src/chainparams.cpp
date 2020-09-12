@@ -199,7 +199,7 @@ public:
         consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitSha256 = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitSha256 = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
 
@@ -263,8 +263,6 @@ public:
         nPowTimeStampActive = 4294967295;
 
         int nTimeStart = 1540413025;
-        arith_uint256 nBits;
-        nBits.SetCompact(0x1e0ffff0);
         uint32_t nNonce = 3492319;
         genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
@@ -395,7 +393,7 @@ public:
         consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitSha256 = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitSha256 = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
 
@@ -567,7 +565,7 @@ public:
         consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitSha256 = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitSha256 = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
 
         // ProgPow, RandomX, Sha256d
