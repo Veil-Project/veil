@@ -165,7 +165,7 @@ BudgetParams::BudgetParams(std::string strNetwork)
     // Addresses must decode to be different, otherwise CheckBudgetTransaction() will fail
     if (strNetwork == "main") {
         nHeightAddressChange_legacy = 302401;
-        nHeightAddressChange_302401 = 860000;
+        nHeightAddressChange_302401 = 910000;
         budgetAddress_legacy = "3MvD3sxedwPzGSdLnehegDfBGfxpdMevk2";
         budgetAddress_302401 = "3LcNKTQSnxkdeuFkCNHet3XkEcUEyeENMF";
         budgetAddress = "35uS99ZnfaYB293sJ8ptUEXkUTQXH8WnDe";
