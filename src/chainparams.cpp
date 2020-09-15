@@ -196,7 +196,7 @@ public:
         consensus.BIP65Height = 388381; // 000000000000000004c2b624ed5d7756c508d90fd0da2c7c679febfa6c4735f0
         consensus.BIP66Height = 363725; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
 
-        consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitSha256 = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
@@ -209,6 +209,7 @@ public:
         consensus.nSha256DTargetSpacing = 1200;
 
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
+        consensus.nDgwPastBlocks_old  = 30; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 84; // 70% of confirmation window
@@ -403,6 +404,7 @@ public:
         consensus.nSha256DTargetSpacing = 1200;
 
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
+        consensus.nDgwPastBlocks_old = 60; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 15; // 75% for testchains
@@ -574,6 +576,7 @@ public:
         consensus.nSha256DTargetSpacing = 1200;
 
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
+        consensus.nDgwPastBlocks_old = 60; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 15; // 75% for testchains
@@ -734,8 +737,8 @@ public:
         consensus.BIP65Height = 1351; // BIP65 activated on regtest (Used in rpc activation tests)
         consensus.BIP66Height = 1251; // BIP66 activated on regtest (Used in rpc activation tests)
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitRandomX = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.powLimitProgPow = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitSha256 = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
 
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
@@ -746,6 +749,7 @@ public:
         consensus.nSha256DTargetSpacing = 1200;
 
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
+        consensus.nDgwPastBlocks_old = 60; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
@@ -859,7 +863,7 @@ public:
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
 
-        nHeightLightZerocoin = 10;
+        nHeightLightZerocoin = 500;
         nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
         nHeightEnforceBlacklist = 0;
 
@@ -874,6 +878,30 @@ static std::unique_ptr<CChainParams> globalChainParams;
 const CChainParams &Params() {
     assert(globalChainParams);
     return *globalChainParams;
+}
+
+// Not called prior to Algo change fork
+int64_t CChainParams::GetDwgPastBlocks(const CBlockIndex* pindex, const int nPowType, const bool fProofOfStake) const
+{
+    assert(pindex->GetBlockTime() >= Params().PowUpdateTimestamp()); // Shouldn't be called if we're not active on the new PoW system
+    if (fProofOfStake)
+        return consensus.nDgwPastBlocks * 2; // count twice as many blocks
+    return consensus.nDgwPastBlocks;
+}
+
+// Not called prior to Algo change fork
+int64_t CChainParams::GetTargetSpacing(const CBlockIndex* pindex, const int nPoWType, const bool fProofOfStake) const
+{
+    assert(pindex->GetBlockTime() >= Params().PowUpdateTimestamp()); // Shouldn't be called if we're not active on the new PoW system
+    if (nPoWType & CBlockHeader::PROGPOW_BLOCK)
+        return consensus.nProgPowTargetSpacing;
+    if (nPoWType & CBlockHeader::RANDOMX_BLOCK)
+        return consensus.nRandomXTargetSpacing;
+    if (nPoWType & CBlockHeader::SHA256D_BLOCK)
+        return consensus.nSha256DTargetSpacing;
+    if (fProofOfStake)
+        return consensus.nPowTargetSpacing/2; // Special case - actual block spacing
+    return consensus.nPowTargetSpacing;
 }
 
 std::unique_ptr<CChainParams> CreateChainParams(const std::string& chain)

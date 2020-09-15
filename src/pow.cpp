@@ -161,8 +161,65 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     if (params.fPowNoRetargeting) // regtest only
         return nProofOfWorkLimit;
 
+    if (pindexLast->GetBlockTime() < Params().PowUpdateTimestamp()) {
+        // Use old algo
+        return DGW_old(pindexLast, params, fProofOfStake);
+    }
     // Retarget every block with DarkGravityWave
     return DarkGravityWave(pindexLast, params, fProofOfStake, nPoWType);
+}
+
+unsigned int DGW_old(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake) {
+    /* current difficulty formula, veil - DarkGravity v3, written by Evan Duffield - evan@dash.org */
+    const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
+
+    const CBlockIndex *pindex = pindexLast;
+    const CBlockIndex* pindexLastMatchingProof = nullptr;
+    arith_uint256 bnPastTargetAvg = 0;
+
+    unsigned int nCountBlocks = 0;
+    while (nCountBlocks < params.nDgwPastBlocks_old) {
+        // Ran out of blocks, return pow limit
+        if (!pindex)
+            return bnPowLimit.GetCompact();
+
+        // Only consider PoW or PoS blocks but not both
+        if (pindex->IsProofOfStake() != fProofOfStake) {
+            pindex = pindex->pprev;
+            continue;
+        } else if (!pindexLastMatchingProof) {
+            pindexLastMatchingProof = pindex;
+        }
+
+        arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
+        bnPastTargetAvg = (bnPastTargetAvg * nCountBlocks + bnTarget) / (nCountBlocks + 1);
+
+        if (++nCountBlocks != params.nDgwPastBlocks_old)
+            pindex = pindex->pprev;
+    }
+
+    arith_uint256 bnNew(bnPastTargetAvg);
+
+    //Should only happen on the first PoS block
+    if (pindexLastMatchingProof)
+        pindexLastMatchingProof = pindexLast;
+
+    int64_t nActualTimespan = pindexLastMatchingProof->GetBlockTime() - pindex->GetBlockTime();
+    int64_t nTargetTimespan = params.nDgwPastBlocks_old * params.nPowTargetSpacing;
+
+    if (nActualTimespan < nTargetTimespan/3)
+        nActualTimespan = nTargetTimespan/3;
+    if (nActualTimespan > nTargetTimespan*3)
+        nActualTimespan = nTargetTimespan*3;
+    // Retarget
+    bnNew *= nActualTimespan;
+    bnNew /= nTargetTimespan;
+
+    if (bnNew > bnPowLimit) {
+        bnNew = bnPowLimit;
+    }
+
+    return bnNew.GetCompact();
 }
 
 unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake, int nPoWType) {
@@ -170,18 +227,23 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     arith_uint256 bnPowLimit = GetPowLimit(nPoWType);
 
     const CBlockIndex *pindex = pindexLast;
+    const CBlockIndex *pStart = pindexLast;
     const CBlockIndex* pindexLastMatchingProof = nullptr;
     arith_uint256 bnPastTargetAvg = 0;
 
     unsigned int nCountBlocks = 0;
-    while (nCountBlocks < params.nDgwPastBlocks) {
+    int64_t nPastBlocks = Params().GetDwgPastBlocks(pindexLast, nPoWType, fProofOfStake);
+    bool fNewPoW = true;
+    while (nCountBlocks < nPastBlocks) {
         // Ran out of blocks, return pow limit
         if (!pindex)
             return bnPowLimit.GetCompact();
 
+        fNewPoW = false;
         // If we're looking for new algo blocks
         if (nPoWType & (CBlockHeader::PROGPOW_BLOCK | CBlockHeader::RANDOMX_BLOCK | CBlockHeader::SHA256D_BLOCK)) {
             // Check if we've walked to before the switchover
+            fNewPoW = true;
             if (pindex->GetBlockTime() < Params().PowUpdateTimestamp()) {
                 // We don't have enough of the blocks, get out and use what we have
                 break;
@@ -212,7 +274,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
         bnPastTargetAvg = (bnPastTargetAvg * nCountBlocks + bnTarget) / (nCountBlocks + 1);
 
-        if (++nCountBlocks < params.nDgwPastBlocks)
+        if (++nCountBlocks < nPastBlocks)
             pindex = pindex->pprev;
     }
 
@@ -229,23 +291,19 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         return bnPowLimit.GetCompact();
     }
 
-    bool fNewPoW = false;
-    int64_t nPowSpacing;
-    if (nPoWType & CBlockHeader::PROGPOW_BLOCK) {
-        nPowSpacing = params.nProgPowTargetSpacing;
-        fNewPoW = true;
-    } else if (nPoWType & CBlockHeader::RANDOMX_BLOCK) {
-        nPowSpacing = params.nRandomXTargetSpacing;
-        fNewPoW = true;
-    } else if (nPoWType & CBlockHeader::SHA256D_BLOCK) {
-        nPowSpacing = params.nSha256DTargetSpacing;
-        fNewPoW = true;
-    } else {
-        nPowSpacing = params.nPowTargetSpacing;
-    }
+    int64_t nPowSpacing  = Params().GetTargetSpacing(pindexLast, nPoWType, fProofOfStake);
 
-    int64_t nActualTimespan = pindexLastMatchingProof->GetBlockTime() - pindex->GetBlockTime();
-    int64_t nTargetTimespan = nCountBlocks * nPowSpacing;
+    int64_t nActualTimespan;
+    int64_t nTargetTimespan;
+    if (fProofOfStake) {
+        // Proof of Stake will judge the whole chain spacing, and adjust in case there isn't
+        // enough mining to maintain optimum spacing
+        nActualTimespan = pindexLastMatchingProof->GetBlockTime() - pindex->GetBlockTime();
+        nTargetTimespan =(pStart->nHeight - pindex->nHeight) * nPowSpacing;
+    } else {
+        nActualTimespan = pindexLastMatchingProof->GetBlockTime() - pindex->GetBlockTime();
+        nTargetTimespan = nCountBlocks * nPowSpacing;
+    }
 
     // If we are calculating the diff for RandomX, Sha256, or ProgPow
     // We want to take into account the latest block tip time into the calculation
@@ -276,12 +334,6 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         return bnNew.GetCompact();
     }
     // ***
-
-    if (nActualTimespan < nTargetTimespan/3) {
-        // since we're receiving blocks, don't jack the difficulty too much, it will adjust
-        // quickly enough;
-        nActualTimespan = nTargetTimespan/3;
-    }
 
     LogPrint(BCLog::BLOCKCREATION, "%s: Adjusting %s: old target: %s\n",
              __func__, GetType(nPoWType, fProofOfStake).c_str(), bnNew.GetHex());
