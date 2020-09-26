@@ -100,7 +100,7 @@ bool ParseUInt32(const std::string& str, uint32_t *out);
  * @returns true if the entire string could be parsed as valid integer,
  *   false if not the entire string could be parsed or when overflow or underflow occurred.
  */
-bool ParseUInt64(const std::string& str, uint64_t *out);
+bool ParseUInt64(const std::string& str, uint64_t *out, int base = 10);
 
 /**
  * Convert string to double with strict parse error feedback.

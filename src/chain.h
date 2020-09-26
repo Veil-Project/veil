@@ -1,3 +1,4 @@
+// Copyright (c) 2019 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -238,6 +239,11 @@ public:
     uint32_t nBits;
     uint32_t nNonce;
 
+    //! ProgPow Header items
+    // Height was already in the CBlockIndex
+    uint64_t nNonce64;
+    uint256 mixHash;
+
     //! (memory only) Sequential id assigned to distinguish order in which blocks are received.
     int32_t nSequenceId;
 
@@ -254,6 +260,7 @@ public:
     uint256 hashMerkleRoot;
     uint256 hashWitnessMerkleRoot;
     uint256 hashPoFN;
+    uint256 hashAccumulators;
 
     //! vector that holds a proof of stake proof hash if the block has one. If not, its empty and has less memory
     //! overhead than an empty uint256
@@ -292,6 +299,7 @@ public:
         mapAccumulatorHashes.clear();
         hashMerkleRoot = uint256();
         hashWitnessMerkleRoot = uint256();
+        hashAccumulators = uint256();
 
         for (auto& denom : libzerocoin::zerocoinDenomList) {
             mapAccumulatorHashes[denom] = uint256();
@@ -311,6 +319,10 @@ public:
         nTime          = 0;
         nBits          = 0;
         nNonce         = 0;
+
+        //ProgPow
+        nNonce64       = 0;
+        mixHash        = uint256();
     }
 
     CBlockIndex()
@@ -324,10 +336,18 @@ public:
 
         nVersion       = block.nVersion;
         hashVeilData   = block.hashVeilData;
+        hashMerkleRoot = block.hashMerkleRoot;
+        hashWitnessMerkleRoot = block.hashWitnessMerkleRoot;
+        hashAccumulators = block.hashAccumulators;
         nTime          = block.nTime;
         nBits          = block.nBits;
         nNonce         = block.nNonce;
         nMint          = 0;
+
+        //ProgPow
+        nNonce64       = block.nNonce64;
+        mixHash        = block.mixHash;
+        nHeight        = block.nHeight;
     }
 
     CDiskBlockPos GetBlockPos() const {
@@ -360,6 +380,14 @@ public:
         block.nNonce         = nNonce;
         block.fProofOfStake = IsProofOfStake();
         block.fProofOfFullNode = fProofOfFullNode;
+
+        block.hashMerkleRoot = hashMerkleRoot;
+        block.hashWitnessMerkleRoot = hashWitnessMerkleRoot;
+        block.hashAccumulators = SerializeHash(mapAccumulatorHashes);
+        //ProgPow
+        block.nNonce64       = nNonce64;
+        block.mixHash        = mixHash;
+        block.nHeight        = nHeight;
         return block;
     }
 
@@ -368,9 +396,18 @@ public:
         return *phashBlock;
     }
 
-    uint256 GetBlockPoWHash() const
+    uint256 GetX16RTPoWHash(bool fSetVeilDataHashNull = false) const
     {
-        return GetBlockHeader().GetPoWHash();
+        return GetBlockHeader().GetX16RTPoWHash(fSetVeilDataHashNull);
+    }
+
+    uint256 GetProgPowHash(uint256& mix_hash) const;
+
+    uint256 GetRandomXPoWHash() const;
+
+    uint256 GetSha256DPowHash() const
+    {
+        return GetBlockHeader().GetSha256DPoWHash();
     }
 
     uint256 GetBlockPoSHash() const
@@ -429,9 +466,38 @@ public:
         return pbegin[(pend - pbegin)/2];
     }
 
+    std::string GetType() const {
+        if (fProofOfStake) return "PoS";
+        if (IsX16RTProofOfWork()) return "PoW";
+        if (IsSha256DProofOfWork()) return "Sha256d";
+        if (IsRandomXProofOfWork()) return "RandomX";
+        if (IsProgProofOfWork()) return "ProgPow";
+        return "Unknown";
+    }
+
     bool IsProofOfWork() const
     {
         return !fProofOfStake;
+    }
+
+    bool IsProgProofOfWork() const
+    {
+        return !fProofOfStake && (nVersion & CBlockHeader::PROGPOW_BLOCK) && nTime >= nPowTimeStampActive;
+    }
+
+    bool IsRandomXProofOfWork() const
+    {
+        return !fProofOfStake && (nVersion & CBlockHeader::RANDOMX_BLOCK) && nTime >= nPowTimeStampActive;
+    }
+
+    bool IsSha256DProofOfWork() const
+    {
+        return !fProofOfStake && (nVersion & CBlockHeader::SHA256D_BLOCK) && nTime >= nPowTimeStampActive;
+    }
+
+    bool IsX16RTProofOfWork() const
+    {
+        return !fProofOfStake && nTime < nPowTimeStampActive;
     }
 
     bool IsProofOfStake() const
@@ -551,7 +617,16 @@ public:
         // block header
         READWRITE(this->nVersion);
         READWRITE(hashPrev);
-        READWRITE(hashVeilData);
+        bool fCheckVeilDataHash = false;
+        // When Veil started the block version in hex it looks is the following 0x20000000
+        // We only want to write the hashVeilData to disk when first 4 bits of the version == OLD_POW_MAIN_VERSION or lower, e.g -> 2
+        if (nVersion >> BITS_TO_BLOCK_VERSION <= OLD_POW_BLOCK_VERSION) {
+            fCheckVeilDataHash = true;
+            // This is the version that the new PoW started at. This is when we stop using hashVeilData.
+            // We would normally use the nTime of the block. However, that is serialized after the hashVeilData
+            // So we don't have access to it
+            READWRITE(hashVeilData);
+        }
         READWRITE(hashMerkleRoot);
         // NOTE: Careful matching the version, qa tests use different versions
         READWRITE(hashWitnessMerkleRoot);
@@ -577,6 +652,40 @@ public:
                 //Could fail since this was added without requiring a reindex
             }
         }
+
+        if (nTime >= nPowTimeStampActive) {
+            if (fCheckVeilDataHash) {
+                // We want to fail to accept this block. setting it NUll should fail all checks done on it
+                SetNull();
+                return;
+            }
+
+            int nPowType = (nVersion &
+                            (CBlockHeader::PROGPOW_BLOCK | CBlockHeader::RANDOMX_BLOCK | CBlockHeader::SHA256D_BLOCK));
+            switch (nPowType) {
+                case CBlockHeader::PROGPOW_BLOCK:
+                    READWRITE(nNonce64);
+                    READWRITE(mixHash);
+                    break;
+                case CBlockHeader::RANDOMX_BLOCK:
+                    break;
+                case CBlockHeader::SHA256D_BLOCK:
+                    READWRITE(nNonce64);
+                    break;
+                default:
+                    // Is POS
+                    break;
+            }
+
+            READWRITE(hashAccumulators);
+        } else {
+            // Check for an early new block
+            if (!fCheckVeilDataHash) {
+                // We want to fail to accept this block. setting it NUll should fail all checks done on it
+                SetNull();
+                return;
+            }
+        }
     }
 
     uint256 GetBlockHash() const
@@ -588,6 +697,16 @@ public:
         block.nTime           = nTime;
         block.nBits           = nBits;
         block.nNonce          = nNonce;
+
+        // ProgPow
+        block.nHeight         = nHeight;
+        block.mixHash         = mixHash;
+
+        // New block header items to help remove hashVeilData
+        block.nNonce64        = nNonce64;
+        block.hashAccumulators = hashAccumulators;
+        block.hashMerkleRoot = hashMerkleRoot;
+        block.hashWitnessMerkleRoot = hashWitnessMerkleRoot;
         return block.GetHash();
     }
 
@@ -662,5 +781,7 @@ public:
     /** Find the earliest block with timestamp equal or greater than the given. */
     CBlockIndex* FindEarliestAtLeast(int64_t nTime) const;
 };
+
+uint256 GetRandomXBlockHash(const int32_t& height, const uint256& hash_blob);
 
 #endif // BITCOIN_CHAIN_H

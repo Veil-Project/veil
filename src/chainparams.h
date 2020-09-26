@@ -1,3 +1,4 @@
+// Copyright (c) 2019 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -11,6 +12,7 @@
 #include <primitives/block.h>
 #include <protocol.h>
 #include <libzerocoin/Params.h>
+#include <chain.h>
 
 #include <memory>
 #include <vector>
@@ -145,6 +147,18 @@ public:
     int HeightLightZerocoin() const { return nHeightLightZerocoin; }
     int HeightEnforceBlacklist() const { return nHeightEnforceBlacklist; }
 
+    uint32_t PowUpdateTimestamp() const { return nPowUpdateTimestamp; }
+
+    /**
+     * Returns the number of blocks to use for Dark Gravity Wave calculations
+    */
+    int64_t GetDwgPastBlocks(const CBlockIndex* pindex, const int nPowType, const bool fProofOfStake) const;
+
+    /**
+     * Returns the target spacing for the given algo
+     */
+    int64_t GetTargetSpacing(const CBlockIndex* pindex, const int nPoWType, const bool fProofOfStake) const;
+
 protected:
     CChainParams() {}
 
@@ -208,6 +222,8 @@ protected:
 
     //Settings that are not chain critical, but should not be edited unless the person changing understands the consequence
     int nMaxHeaderRequestWithoutPoW;
+
+    uint32_t nPowUpdateTimestamp;
 };
 
 /**

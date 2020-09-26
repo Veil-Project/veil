@@ -1,8 +1,8 @@
 dnl require autoconf 2.60 (AS_ECHO/AS_ECHO_N)
 AC_PREREQ([2.60])
 define(_CLIENT_VERSION_MAJOR, 1)
-define(_CLIENT_VERSION_MINOR, 0)
-define(_CLIENT_VERSION_REVISION, 4)
+define(_CLIENT_VERSION_MINOR, 1)
+define(_CLIENT_VERSION_REVISION, 0)
 define(_CLIENT_VERSION_BUILD, 99)
 define(_CLIENT_VERSION_IS_RELEASE, false)
 define(_COPYRIGHT_YEAR, 2019)
@@ -13,6 +13,23 @@ AC_CONFIG_SRCDIR([src/validation.cpp])
 AC_CONFIG_HEADERS([src/config/veil-config.h])
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([build-aux/m4])
+
+dnl Add config links for asm includes for RandomX
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_epilogue_linux.inc:src/crypto/randomx/asm/program_epilogue_linux.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_epilogue_store.inc:src/crypto/randomx/asm/program_epilogue_store.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_epilogue_win64.inc:src/crypto/randomx/asm/program_epilogue_win64.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_loop_load.inc:src/crypto/randomx/asm/program_loop_load.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_loop_store.inc:src/crypto/randomx/asm/program_loop_store.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_prologue_linux.inc:src/crypto/randomx/asm/program_prologue_linux.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_prologue_win64.inc:src/crypto/randomx/asm/program_prologue_win64.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_read_dataset.inc:src/crypto/randomx/asm/program_read_dataset.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_read_dataset_sshash_fin.inc:src/crypto/randomx/asm/program_read_dataset_sshash_fin.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_read_dataset_sshash_init.inc:src/crypto/randomx/asm/program_read_dataset_sshash_init.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_sshash_constants.inc:src/crypto/randomx/asm/program_sshash_constants.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_sshash_load.inc:src/crypto/randomx/asm/program_sshash_load.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_sshash_prefetch.inc:src/crypto/randomx/asm/program_sshash_prefetch.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/program_xmm_constants.inc:src/crypto/randomx/asm/program_xmm_constants.inc])
+AC_CONFIG_LINKS([src/crypto/randomx/asm/randomx_reciprocal.inc:src/crypto/randomx/asm/randomx_reciprocal.inc])
 
 BITCOIN_DAEMON_NAME=veild
 BITCOIN_GUI_NAME=veil-qt
@@ -555,6 +572,10 @@ case $host in
    *linux*)
      TARGET_OS=linux
      LEVELDB_TARGET_FLAGS="-DOS_LINUX"
+     case $host in
+       aarch64*) ARM_CPU=yes ;;
+       *arm*) ARM_CPU=yes ;;
+     esac
      ;;
    *kfreebsd*)
      LEVELDB_TARGET_FLAGS="-DOS_KFREEBSD"
@@ -1372,6 +1393,7 @@ fi
 AM_CONDITIONAL([TARGET_DARWIN], [test x$TARGET_OS = xdarwin])
 AM_CONDITIONAL([BUILD_DARWIN], [test x$BUILD_OS = xdarwin])
 AM_CONDITIONAL([TARGET_WINDOWS], [test x$TARGET_OS = xwindows])
+AM_CONDITIONAL([TARGET_ARM], [test x$ARM_CPU = xyes])
 AM_CONDITIONAL([ENABLE_WALLET],[test x$enable_wallet = xyes])
 AM_CONDITIONAL([ENABLE_TESTS],[test x$BUILD_TEST = xyes])
 AM_CONDITIONAL([ENABLE_QT],[test x$bitcoin_enable_qt = xyes])
@@ -1456,6 +1478,8 @@ AC_CONFIG_LINKS([test/functional/test_runner.py:test/functional/test_runner.py])
 AC_CONFIG_LINKS([test/util/bitcoin-util-test.py:test/util/bitcoin-util-test.py])
 AC_CONFIG_LINKS([test/util/rpcauth-test.py:test/util/rpcauth-test.py])
 
+AM_PROG_AS
+
 dnl boost's m4 checks do something really nasty: they export these vars. As a
 dnl result, they leak into secp256k1's configure and crazy things happen.
 dnl Until this is fixed upstream and we've synced, we'll just un-export them.
@@ -1525,6 +1549,7 @@ echo "  sanitizers    = $use_sanitizers"
 echo "  debug enabled = $enable_debug"
 echo "  gprof enabled = $enable_gprof"
 echo "  werror        = $enable_werror"
+echo "  arm cpu       = $ARM_CPU"
 echo
 echo "  target os     = $TARGET_OS"
 echo "  build os      = $BUILD_OS"

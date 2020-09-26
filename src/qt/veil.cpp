@@ -36,6 +36,7 @@
 #include <ui_interface.h>
 #include <uint256.h>
 #include <util.h>
+#include <key_io.h>
 #include <warnings.h>
 
 #include <walletinitinterface.h>
@@ -718,6 +719,29 @@ int main(int argc, char *argv[])
         PaymentServer::ipcParseCommandLine(*node, argc, argv);
     }
 #endif
+
+    // Check for miningaddress (has to be after we setup the parameters
+    std::string sAddress = gArgs.GetArg("-miningaddress", "");
+    if (!sAddress.empty()) {
+        // Sanity check the mining address
+        CTxDestination dest = DecodeDestination(sAddress);
+
+        if (!IsValidDestination(dest)) {
+            error = "miningaddress requires a valid basecoin address";
+            QMessageBox::critical(0, QObject::tr(PACKAGE_NAME),
+                QObject::tr("Error parsing command line arguments: %1.").arg(QString::fromStdString(error)));
+            return EXIT_FAILURE;
+        }
+
+        // Disallow Stealth Addresses for now
+        CBitcoinAddress address(sAddress);
+        if (address.IsValidStealthAddress()) {
+            error = "miningaddress must be a basecoin address";
+            QMessageBox::critical(0, QObject::tr(PACKAGE_NAME),
+                QObject::tr("Error parsing command line arguments: %1.").arg(QString::fromStdString(error)));
+            return EXIT_FAILURE;
+        }
+    }
 
     QScopedPointer<const NetworkStyle> networkStyle(NetworkStyle::instantiate(QString::fromStdString(Params().NetworkIDString())));
     assert(!networkStyle.isNull());

@@ -1,5 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -29,6 +30,18 @@
 #include <memory>
 #include <stdint.h>
 #include <tinyformat.h>
+
+// ProgPow
+#include <crypto/ethash/lib/ethash/endianness.hpp>
+#include <crypto/ethash/include/ethash/progpow.hpp>
+#include "crypto/ethash/helpers.hpp"
+#include "crypto/ethash/progpow_test_vectors.hpp"
+
+// RandomX
+#include <crypto/randomx/randomx.h>
+#include <crypto/hash-ops.h>
+
+std::map<std::string, CBlock> mapProgPowTemplates;
 
 unsigned int ParseConfirmTarget(const UniValue& value)
 {
@@ -117,6 +130,9 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
     }
     unsigned int nExtraNonce = 0;
     UniValue blockHashes(UniValue::VARR);
+
+    InitRandomXLightCache(nHeight);
+
     while (nHeight < nHeightEnd && !ShutdownRequested())
     {
         std::unique_ptr<CBlockTemplate> pblocktemplate(BlockAssembler(Params()).CreateNewBlock(coinbaseScript->reserveScript));
@@ -127,14 +143,60 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
             LOCK(cs_main);
             IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
         }
-        while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount && !CheckProofOfWork(pblock->GetPoWHash(), pblock->nBits, Params().GetConsensus())) {
-            ++pblock->nNonce;
-            --nMaxTries;
+
+        // This will check if the key block needs to change and will take down the cache and vm, and spin up the new ones
+        CheckIfValidationKeyShouldChangeAndUpdate(GetKeyBlock(pblock->nHeight));
+
+        if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+            uint256 mix_hash;
+            while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount &&
+                   !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits,
+                                     Params().GetConsensus(), CBlockHeader::PROGPOW_BLOCK)) {
+                ++pblock->nNonce64;
+                --nMaxTries;
+            }
+            pblock->mixHash = mix_hash;
+        } else if (pblock->IsRandomX() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+            char hash[RANDOMX_HASH_SIZE];
+
+            arith_uint256 bnTarget;
+            bool fNegative;
+            bool fOverflow;
+
+            bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
+
+            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount) {
+                // RandomX hash
+                uint256 hash_blob = pblock->GetRandomXHeaderHash();
+                randomx_calculate_hash(GetMyMachineValidating(), &hash_blob, sizeof uint256(), hash);
+
+                uint256 uint256Hash = RandomXHashToUint256(hash);
+
+                // Check proof of work matches claimed amount
+                if (UintToArith256(uint256Hash) < bnTarget)
+                    break;
+
+                ++pblock->nNonce;
+                --nMaxTries;
+            }
+        } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+            while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount &&
+                   !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits,
+                                     Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK)) {
+                ++pblock->nNonce64;
+                --nMaxTries;
+            }
+        } else {
+            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount &&
+                   !CheckProofOfWork(pblock->GetX16RTPoWHash(), pblock->nBits, Params().GetConsensus())) {
+                ++pblock->nNonce;
+                --nMaxTries;
+            }
         }
         if (nMaxTries == 0) {
             break;
         }
-        if (pblock->nNonce == nInnerLoopCount) {
+        if ((pblock->nNonce == nInnerLoopCount) || (pblock->nNonce64 == nInnerLoopCount)) {
             continue;
         }
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
@@ -365,6 +427,8 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             "  \"curtime\" : ttt,                  (numeric) current timestamp in seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"bits\" : \"xxxxxxxx\",              (string) compressed target of next block\n"
             "  \"height\" : n                      (numeric) The height of the next block\n"
+            "  \"pprpcheader\" : \"xxxx\"          (string) The header hash that can be used by the local GPU miner to mine a block (using -miningaddress) as the destination for the coinbase tx\n"
+            "  \"pprpcepoch\" : n                  (numeric) The epoch of the progpow pprpcheader given to user to be used by the local GPU miner\n"
             "}\n"
 
             "\nExamples:\n"
@@ -515,6 +579,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     {
         // Clear pindexPrev so future calls make a new block, despite any failures from here on
         pindexPrev = nullptr;
+        mapProgPowTemplates.clear();
 
         // Store the pindexBest used before CreateNewBlock, to avoid races
         nTransactionsUpdatedLast = mempool.GetTransactionsUpdated();
@@ -522,8 +587,31 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
         nStart = GetTime();
         fLastTemplateSupportsSegwit = fSupportsSegwit;
 
-        CScript scriptDummy = CScript() << OP_TRUE;
-        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(scriptDummy, fSupportsSegwit, false, false);
+
+        // Get mining address if it is set
+        CScript script;
+        std::string sAddress = gArgs.GetArg("-miningaddress", "");
+        if (!sAddress.empty()) {
+            CTxDestination dest = DecodeDestination(sAddress);
+
+            if (IsValidDestination(dest)) {
+                script = GetScriptForDestination(dest);
+            } else {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "-miningaddress is not a valid address. Please use a valid address");
+            }
+
+            // Disallow Stealth Addresses for now
+            CBitcoinAddress address(sAddress);
+            if (address.IsValidStealthAddress()) {
+               throw JSONRPCError(RPC_INVALID_PARAMETER, "-miningaddress must be a basecoin address");
+            }
+
+        } else {
+            script = CScript() << OP_TRUE;
+        }
+
+        // Create new block
+        pblocktemplate = BlockAssembler(Params()).CreateNewBlock(script, fSupportsSegwit, false, false);
         if (!pblocktemplate)
             throw JSONRPCError(RPC_VERIFY_ERROR, "Created block is rejected or otherwise unable to successfully create a new block");
 
@@ -685,6 +773,25 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     result.pushKV("proofoffullnodehash", pblock->hashPoFN.GetHex());
     result.pushKV("mining_disabled", (!CheckConsecutivePoW(*pblock , pindexPrev))? true : false );
 
+    if (pblock->IsProgPow()) {
+        std::string address = gArgs.GetArg("-miningaddress", "");
+        if (IsValidDestinationString(address)) {
+            static std::string lastheader = "";
+            if (mapProgPowTemplates.count(lastheader)) {
+                if (pblock->nTime - 60 < mapProgPowTemplates.at(lastheader).nTime) {
+                    result.pushKV("pprpcheader", lastheader);
+                    result.pushKV("pprpcepoch", ethash::get_epoch_number(pblock->nHeight));
+                    return result;
+                }
+            }
+
+            result.pushKV("pprpcheader", pblock->GetProgPowHeaderHash().GetHex());
+            result.pushKV("pprpcepoch", progpow::get_epoch_number(pblock->nHeight));
+            mapProgPowTemplates[pblock->GetProgPowHeaderHash().GetHex()] = *pblock;
+            lastheader = pblock->GetProgPowHeaderHash().GetHex();
+        }
+    }
+
     return result;
 }
 
@@ -705,6 +812,105 @@ protected:
         state = stateIn;
     }
 };
+
+static UniValue pprpcsb(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() != 3) {
+        throw std::runtime_error(
+                "pprpcsb \"header_hash\" \"mix_hash\" \"nonce\"\n"
+                "\nAttempts to submit new block to network mined by progpow gpu miner via rpc.\n"
+
+                "\nArguments\n"
+                "1. \"header_hash\"        (string, required) the prow_pow header hash that was given to the gpu miner from this rpc client\n"
+                "2. \"mix_hash\"           (string, required) the mix hash that was mined by the gpu miner via rpc\n"
+                "3. \"nonce\"              (string, required) the nonce of the block that hashed the valid block\n"
+                "\nResult:\n"
+                "\nExamples:\n"
+                + HelpExampleCli("pprpcsb", "\"header_hash\" \"mix_hash\" 100000")
+                + HelpExampleRpc("pprpcsb", "\"header_hash\" \"mix_hash\" 100000")
+        );
+    }
+
+    std::string header_hash = request.params[0].get_str();
+    std::string str_mix_hash = request.params[1].get_str();
+    std::string str_nonce = request.params[2].get_str();
+
+    uint256 mix_hash = uint256S(str_mix_hash);
+
+
+    uint64_t nonce;
+    if (!ParseUInt64(str_nonce, &nonce, 16))
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid hex nonce");
+
+    if (!mapProgPowTemplates.count(header_hash))
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Block header hash not found in block data");
+
+    std::shared_ptr<CBlock> blockptr = std::make_shared<CBlock>();
+    *blockptr = mapProgPowTemplates.at(header_hash);
+
+    blockptr->nNonce64 = nonce;
+
+    if (blockptr->vtx.empty() || !blockptr->vtx[0]->IsCoinBase()) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block does not start with a coinbase");
+    }
+
+    uint256 calculated_mix_hash;
+    if (!CheckProofOfWork(ProgPowHash(blockptr->GetBlockHeader(), calculated_mix_hash), blockptr->nBits,
+        Params().GetConsensus(), CBlockHeader::PROGPOW_BLOCK)) {
+        throw JSONRPCError(RPC_INVALID_REQUEST, "Block does not solve the boundary");
+    }
+
+    if (calculated_mix_hash != mix_hash) {
+        throw JSONRPCError(RPC_INVALID_REQUEST, "Blocks mix_hash doesn't match the calculated mix_hash");
+    }
+
+    blockptr->mixHash = calculated_mix_hash;
+
+    uint256 hash = blockptr->GetHash();
+    {
+        LOCK(cs_main);
+        const CBlockIndex* pindex = LookupBlockIndex(hash);
+        if (pindex) {
+            if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
+                return "duplicate";
+            }
+            if (pindex->nStatus & BLOCK_FAILED_MASK) {
+                return "duplicate-invalid";
+            }
+        }
+    }
+
+    {
+        LOCK(cs_main);
+        const CBlockIndex* pindex = LookupBlockIndex(blockptr->hashPrevBlock);
+        if (pindex) {
+            UpdateUncommittedBlockStructures(*blockptr, pindex, Params().GetConsensus());
+        }
+    }
+
+    bool new_block;
+    submitblock_StateCatcher sc(blockptr->GetHash());
+    RegisterValidationInterface(&sc);
+    bool accepted = ProcessNewBlock(Params(), blockptr, /* fForceProcessing */ true, /* fNewBlock */ &new_block);
+    UnregisterValidationInterface(&sc);
+    if (!new_block) {
+        if (!accepted) {
+            // TODO Maybe pass down fNewBlock to AcceptBlockHeader, so it is properly set to true in this case?
+            return "invalid";
+        }
+        return "duplicate";
+    }
+    if (!sc.found) {
+        return "inconclusive";
+    }
+    UniValue ret = BIP22ValidationResult(sc.state);
+
+    // BIP22ValidationResult set the return to null when the state is valid
+    if (ret.isNull()) {
+        return true;
+    } else {
+        return ret;
+    }
+}
 
 static UniValue submitblock(const JSONRPCRequest& request)
 {
@@ -952,11 +1158,12 @@ static const CRPCCommand commands[] =
     { "mining",             "prioritisetransaction",  &prioritisetransaction,  {"txid","dummy","fee_delta"} },
     { "mining",             "getblocktemplate",       &getblocktemplate,       {"template_request"} },
     { "mining",             "submitblock",            &submitblock,            {"hexdata","dummy"} },
+    { "mining",             "pprpcsb",                &pprpcsb,                {"header_hash", "mix_hash", "nonce"} },
 
 
     { "generating",         "generatetoaddress",      &generatetoaddress,      {"nblocks","address","maxtries"} },
-
     { "hidden",             "estimatefee",            &estimatefee,            {} },
+
     { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },
 
     { "hidden",             "estimaterawfee",         &estimaterawfee,         {"conf_target", "threshold"} },

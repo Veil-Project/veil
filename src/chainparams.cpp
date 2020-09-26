@@ -1,6 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
-// Copyright (c) 2018-2019 The Veil developers
+// Copyright (c) 2018-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -53,7 +53,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     uint256 thash;
     while (true)
     {
-        thash = genesis.GetPoWHash();
+        thash = genesis.GetX16RTPoWHash();
         if (UintToArith256(thash) <= hashTarget)
             break;
         if ((genesis.nNonce & 0xF) == 0) {
@@ -197,13 +197,25 @@ public:
         consensus.BIP66Height = 363725; // 00000000000000000379eaa19dce8c9b722d46ae6a57c2f1a988119488b50931
 
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitSha256 = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
-        consensus.nDgwPastBlocks = 30; // number of blocks to average in Dark Gravity Wave
+
+        // ProgPow, RandomX, Sha256d
+        consensus.nProgPowTargetSpacing = 172;
+        consensus.nRandomXTargetSpacing = 600;
+        consensus.nSha256DTargetSpacing = 1200;
+
+        consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
+        consensus.nDgwPastBlocks_old  = 30; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = false;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 84; // 70% of confirmation window
         consensus.nMinerConfirmationWindow = 120; // 2 hours at 1 block per minute
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
+
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 27;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
 
@@ -245,9 +257,13 @@ public:
         nDefaultPort = 58810;
         nPruneAfterHeight = 100000;
 
+        // TODO update timestamp with mainnet activation time
+        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
+        nPowUpdateTimestamp = 4294967295;
+        /// Used by block.h for serialization // TODO, update with mainnet activation time above
+        nPowTimeStampActive = 4294967295;
+
         int nTimeStart = 1540413025;
-        arith_uint256 nBits;
-        nBits.SetCompact(0x1e0ffff0);
         uint32_t nNonce = 3492319;
         genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
@@ -376,13 +392,24 @@ public:
         consensus.BIP65Height = 581885; // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
         consensus.BIP66Height = 330776; // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
         consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitSha256 = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
+
+        // ProgPow, RandomX, Sha256d
+        consensus.nProgPowTargetSpacing = 172;
+        consensus.nRandomXTargetSpacing = 600;
+        consensus.nSha256DTargetSpacing = 1200;
+
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
+        consensus.nDgwPastBlocks_old = 60; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 15; // 75% for testchains
         consensus.nMinerConfirmationWindow = 20; // 20 minutes
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 27;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
 
@@ -418,6 +445,11 @@ public:
         pchMessageStart[3] = 0xc4;
         nDefaultPort = 58811;
         nPruneAfterHeight = 1000;
+
+        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
+        // TODO update when ready for testnet launch
+        nPowUpdateTimestamp = 4294967295; // Monday, January 13, 2020 6:00:00 PM
+        nPowTimeStampActive = 4294967295; // Used by block.h for serialization
 
         int nTimeStart = 1548379385;
         uint32_t nNonce = 4234676;
@@ -519,7 +551,6 @@ public:
         nMaxHeaderRequestWithoutPoW = 50;
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
-
     }
 };
 
@@ -534,25 +565,35 @@ public:
         consensus.BIP65Height = 581885; // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
         consensus.BIP66Height = 330776; // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
         consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitSha256 = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
+
+        // ProgPow, RandomX, Sha256d
+        consensus.nProgPowTargetSpacing = 172;
+        consensus.nRandomXTargetSpacing = 600;
+        consensus.nSha256DTargetSpacing = 1200;
+
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
+        consensus.nDgwPastBlocks_old = 60; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = true;
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 15; // 75% for testchains
         consensus.nMinerConfirmationWindow = 20; // 20 minutes
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 27;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
 
         // Deployment of BIP68, BIP112, and BIP113.
         consensus.vDeployments[Consensus::DEPLOYMENT_CSV].bit = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nStartTime = 1456790400; // March 1st, 2016
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nTimeout = 1493596800; // May 1st, 2017
+        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         // Deployment of SegWit (BIP141, BIP143, and BIP147)
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].bit = 1;
-        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = 1462060800; // May 1st 2016
-        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 1493596800; // May 1st 2017
+        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].bit = 2;
         consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
@@ -566,7 +607,7 @@ public:
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0xe95fc76c6c9016e8ed2e4e4a2641dfc91dbf6bad4df659f664d8f7614bc010c0"); //103000
+        consensus.defaultAssumeValid = uint256S("0xe054229317f002436b1bb67b5e72b442299bcd5bd6cc5740b4ea6c6e5efba583");
 
         consensus.nMinRCTOutputDepth = 12;
 
@@ -574,8 +615,12 @@ public:
         pchMessageStart[1] = 0xd1;
         pchMessageStart[2] = 0xa7;
         pchMessageStart[3] = 0xc4;
-        nDefaultPort = 58812;
+        nDefaultPort = 58816;
         nPruneAfterHeight = 1000;
+
+        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
+        nPowUpdateTimestamp = 1584372883; // Mon Mar 16 2020 09:34:43
+        nPowTimeStampActive = 1584372883; // Used by block.h for serialization
 
         int nTimeStart = 1548379385;
         uint32_t nNonce = 4234676;
@@ -588,6 +633,7 @@ public:
 
         vFixedSeeds.clear();
         vSeeds.clear();
+        vSeeds.emplace_back("veil-devnet-seed.asoftwaresolution.com");  // Blondfrogs seeder
         vSeeds.emplace_back("devnode01.veil-project.com");
         vSeeds.emplace_back("devnode02.veil-project.com");
         vSeeds.emplace_back("devnode03.veil-project.com");
@@ -598,6 +644,7 @@ public:
         vSeeds.emplace_back("seeddev.veil.rune.network");              // Mimir seeder
         vSeeds.emplace_back("veil-devnet-seed.codeofalltrades.com");     // Codeofalltrades seeder
         vSeeds.emplace_back("veil-seed-dev.pontificatingnobody.com");  // CaveSpectre seeder
+
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -619,13 +666,13 @@ public:
         fRequireStandard = false;
         fMineBlocksOnDemand = false;
 
-        nMaxPoWBlocks = 5;
+        nMaxPoWBlocks = 20;
         nConsecutivePoWHeight = 15000;
 
         checkpointData = {
             {
-                    { 1, uint256S("0x918ebe520f7666375d7e4dbb0c269f675440b96b0413ab92bbf28b85126197cd")},
-                    { 95, uint256S("0x1c1d4a474a167a3d474ad7ebda5dfc5560445f885519cb98595aab6f818b1f6f")}
+//                    { 1, uint256S("0x46a540411202d9e304187c50377ec5b5baecf1adb040f1629c2daec50b493f8b")},
+//                    { 17, uint256S("0xe054229317f002436b1bb67b5e72b442299bcd5bd6cc5740b4ea6c6e5efba583")}
             }
         };
 
@@ -664,7 +711,7 @@ public:
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
 
-        nHeightLightZerocoin = 9428;
+        nHeightLightZerocoin = 1000;
         nHeightEnforceBlacklist = 0;
 
         /** RingCT/Stealth **/
@@ -673,7 +720,6 @@ public:
         nMaxHeaderRequestWithoutPoW = 50;
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
-
     }
 };
 
@@ -691,13 +737,24 @@ public:
         consensus.BIP65Height = 1351; // BIP65 activated on regtest (Used in rpc activation tests)
         consensus.BIP66Height = 1251; // BIP66 activated on regtest (Used in rpc activation tests)
         consensus.powLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        consensus.powLimitSha256 = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
+
+        // ProgPow, RandomX, Sha256d
+        consensus.nProgPowTargetSpacing = 172;
+        consensus.nRandomXTargetSpacing = 600;
+        consensus.nSha256DTargetSpacing = 1200;
+
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
+        consensus.nDgwPastBlocks_old = 60; // number of blocks to average in Dark Gravity Wave
         consensus.fPowAllowMinDifficultyBlocks = true;
-        consensus.fPowNoRetargeting = true;
+        consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 108; // 75% for testchains
         consensus.nMinerConfirmationWindow = 144; // Faster than normal for regtest (144 instead of 2016)
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
+        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 27;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_CSV].bit = 0;
@@ -726,7 +783,13 @@ public:
         nLastPOWBlock = 2000000;
         nHeightSupplyCreationStop = 9816000;
 
-        genesis = CreateGenesisBlock(1296688602, 3962663, 0x207fffff, 1, 50 * COIN);
+        // These need to be set before the genesis block is checked
+        /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
+        nPowUpdateTimestamp = 1597617382; // On from that start
+        /// Used by block.h for serialization
+        nPowTimeStampActive = nPowUpdateTimestamp;
+
+        genesis = CreateGenesisBlock(1597617372, 3962663, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
 //        assert(consensus.hashGenesisBlock == uint256S("0x0b229468d80839ed5162523e375f8da1d84adae0889745500625ea8a098b3f1d"));
 //        assert(genesis.hashMerkleRoot == uint256S("0x5891ed0f483b598260f3cb95b2d13c4bf20bbc2ad44160e0c84a5fb1477402e3"));
@@ -800,7 +863,7 @@ public:
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
 
-        nHeightLightZerocoin = 10;
+        nHeightLightZerocoin = 500;
         nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
         nHeightEnforceBlacklist = 0;
 
@@ -815,6 +878,30 @@ static std::unique_ptr<CChainParams> globalChainParams;
 const CChainParams &Params() {
     assert(globalChainParams);
     return *globalChainParams;
+}
+
+// Not called prior to Algo change fork
+int64_t CChainParams::GetDwgPastBlocks(const CBlockIndex* pindex, const int nPowType, const bool fProofOfStake) const
+{
+    assert(pindex->GetBlockTime() >= Params().PowUpdateTimestamp()); // Shouldn't be called if we're not active on the new PoW system
+    if (fProofOfStake)
+        return consensus.nDgwPastBlocks * 2; // count twice as many blocks
+    return consensus.nDgwPastBlocks;
+}
+
+// Not called prior to Algo change fork
+int64_t CChainParams::GetTargetSpacing(const CBlockIndex* pindex, const int nPoWType, const bool fProofOfStake) const
+{
+    assert(pindex->GetBlockTime() >= Params().PowUpdateTimestamp()); // Shouldn't be called if we're not active on the new PoW system
+    if (nPoWType & CBlockHeader::PROGPOW_BLOCK)
+        return consensus.nProgPowTargetSpacing;
+    if (nPoWType & CBlockHeader::RANDOMX_BLOCK)
+        return consensus.nRandomXTargetSpacing;
+    if (nPoWType & CBlockHeader::SHA256D_BLOCK)
+        return consensus.nSha256DTargetSpacing;
+    if (fProofOfStake)
+        return consensus.nPowTargetSpacing/2; // Special case - actual block spacing
+    return consensus.nPowTargetSpacing;
 }
 
 std::unique_ptr<CChainParams> CreateChainParams(const std::string& chain)

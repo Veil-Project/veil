@@ -1,3 +1,4 @@
+// Copyright (c) 2020 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -25,6 +26,7 @@
 #include "crypto/x16r/sph_shabal.h"
 #include "crypto/x16r/sph_whirlpool.h"
 #include "crypto/x16r/sph_sha2.h"
+#include "sync.h"
 
 #include <prevector.h>
 #include <serialize.h>
@@ -32,13 +34,20 @@
 #include <version.h>
 
 #include <vector>
+#include <crypto/ethash/include/ethash/ethash.hpp>
 
+class CBlockHeader;
 typedef uint256 ChainCode;
+
+/** Variables used by progpow **/
+extern CCriticalSection cs_context_builder;
+extern ethash::epoch_context_ptr progpow_context;
 
 /** A hasher class for Bitcoin's 256-bit hash (double SHA-256). */
 class CHash256 {
 private:
     CSHA256 sha;
+
 public:
     static const size_t OUTPUT_SIZE = CSHA256::OUTPUT_SIZE;
 
@@ -347,6 +356,7 @@ uint256 SerializeHash(const T& obj, int nType=SER_GETHASH, int nVersion=PROTOCOL
 {
     CHashWriter ss(nType, nVersion);
     ss << obj;
+
     return ss.GetHash();
 }
 
@@ -530,6 +540,9 @@ inline uint256 HashX16R(const T1 pbegin, const T1 pend, const uint256 PrevBlockH
 
     return hash[15].trim256();
 }
+
+uint256 ProgPowHash(const CBlockHeader& blockHeader);
+uint256 ProgPowHash(const CBlockHeader& blockHeader, uint256& mix_hash);
 
 
 #endif // BITCOIN_HASH_H

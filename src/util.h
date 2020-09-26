@@ -82,6 +82,15 @@ bool error(const char* fmt, const Args&... args)
 }
 
 template<typename... Args>
+bool berror(bool log, const char* fmt, const Args&... args)
+{
+    if (log) {
+        LogPrintf("ERROR: %s\n", tfm::format(fmt, args...));
+    }
+    return false;
+}
+
+template<typename... Args>
 int errorN(int n, const char *fmt, const Args&... args)
 {
     LogPrintf("ERROR: %s\n", tfm::format(fmt, args...));

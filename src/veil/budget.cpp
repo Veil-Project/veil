@@ -68,7 +68,7 @@ bool BudgetParams::IsSuperBlock(int nBlockHeight)
 {
     return (
             (Params().NetworkIDString() == "main" && nBlockHeight % nBlocksPerPeriod == 0) ||
-            (Params().NetworkIDString() == "test" && (nBlockHeight % nBlocksPerPeriod == 20000 || nBlockHeight == 1))
+            ((Params().NetworkIDString() == "test" || Params().NetworkIDString() == "dev") && (nBlockHeight % nBlocksPerPeriod == 20000 || nBlockHeight == 1))
             );
 }
 
@@ -170,8 +170,11 @@ BudgetParams::BudgetParams(std::string strNetwork)
         founderAddress = "bv1qnauaweq25552zjthwqxq0puhz2flqrmhzh24h4";
         foundationAddress_legacy = "341PYScHCbq5Y3G3orR14V1pSmhb8qamP5";
         foundationAddress = "38J8RGLetRUNEXycBMPg8oZqLt4bB9hCbt";
-
     } else if (strNetwork == "test") {
+        budgetAddress = "mxd3ciTteXZAna4q2as6z69mL6F7EncYjr";
+        founderAddress = "mhurm1WXr8QXxMZXzJRH61TSjcaDviKfqY";
+        foundationAddress = "mw4P7NPXLVdCCZME8EGqTxbD2b4nF8sg1S";
+    } else if (strNetwork == "dev") {
         budgetAddress = "mxd3ciTteXZAna4q2as6z69mL6F7EncYjr";
         founderAddress = "mhurm1WXr8QXxMZXzJRH61TSjcaDviKfqY";
         foundationAddress = "mw4P7NPXLVdCCZME8EGqTxbD2b4nF8sg1S";

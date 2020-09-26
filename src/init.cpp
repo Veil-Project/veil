@@ -64,6 +64,8 @@
 #ifdef ENABLE_WALLET
 #include <veil/ringct/anonwallet.h>
 #include "wallet/wallet.h"
+#include "pow.h"
+
 #endif
 
 #include <boost/algorithm/string/classification.hpp>
@@ -187,6 +189,7 @@ static boost::thread_group threadGroupPrecompute;
 static boost::thread_group threadGroupAutoSpend;
 #endif
 static boost::thread_group threadGroupPoWMining;
+static boost::thread_group threadGroupRandomX;
 static boost::thread_group threadGroupStaging;
 static CScheduler scheduler;
 
@@ -241,6 +244,11 @@ void Shutdown()
     // CScheduler/checkqueue threadGroup
     threadGroupPoWMining.interrupt_all();
     threadGroupPoWMining.join_all();
+    DeallocateVMVector();
+    DeallocateDataSet();
+
+    threadGroupRandomX.interrupt_all();
+    threadGroupRandomX.join_all();
 #ifdef ENABLE_WALLET
     if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
         threadGroupStaking.interrupt_all();
@@ -304,6 +312,8 @@ void Shutdown()
         pblocktree.reset();
         pzerocoinDB.reset();
     }
+
+    DeallocateRandomXLightCache();
 #ifdef ENABLE_WALLET
     g_wallet_init_interface.Stop();
 #endif
@@ -1906,6 +1916,7 @@ bool AppInitMain()
     //threadGroupStaging.create_thread(&ThreadStagingBatchVerify);
 
     LinkPoWThreadGroup(&threadGroupPoWMining);
+    LinkRandomXThreadGroup(&threadGroupRandomX);
 
 #ifdef ENABLE_WALLET
     if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
@@ -1964,6 +1975,8 @@ bool AppInitMain()
         }
     }
 #endif // ENABLE_WALLET
+
+    InitRandomXLightCache(chainActive.Height());
 
     return true;
 }

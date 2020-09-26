@@ -3895,6 +3895,11 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
         if (nTxNewTime < nTimeMinBlock)
             nTxNewTime = nTimeMinBlock + 1;
 
+        if (pindexFrom->GetBlockTime() + nStakeMinAge > nTxNewTime) {
+            // Skip this one as it doesn't meet the minimum age
+            continue;
+        }
+
         //iterates each utxo inside of CheckStakeKernelHash()
         bool fWeightStake = true;
         if (Stake(stakeInput.get(), nBits, pindexFrom->GetBlockTime(), nTxNewTime, pindexBest, hashProofOfStake, fWeightStake)) {

@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -45,6 +46,7 @@ class CTxMemPool;
 class CValidationState;
 struct ChainTxData;
 
+extern int global_randomx_flags;
 
 struct PrecomputedTransactionData;
 struct LockPoints;
@@ -281,12 +283,12 @@ bool IsInitialBlockDownload();
 /** Check whether both headers and blocks are synced **/
 bool HeadersAndBlocksSynced();
 /** Retrieve a transaction (from memory pool, or from disk, if possible) */
-bool GetTransaction(const uint256& hash, CTransactionRef& tx, const Consensus::Params& params, uint256& hashBlock, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr);
+bool GetTransaction(const uint256& hash, CTransactionRef& tx, const Consensus::Params& params, uint256& hashBlock, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr, bool log = true);
 
 bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight, const CBlockIndex* pindex = nullptr);
 
 /** Determine if the provided txid corresponds to a transaction in the blockchain */
-bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params, const CBlockIndex* pindex = nullptr);
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params, const CBlockIndex* pindex = nullptr, bool log = true);
 bool IsTransactionInChain(const uint256& txId, int& nHeightTx, const Consensus::Params& params, const CBlockIndex* pindex = nullptr);
 
 /**
@@ -525,12 +527,14 @@ extern std::unique_ptr<CZerocoinDB> pzerocoinDB;
  */
 int GetSpendHeight(const CCoinsViewCache& inputs);
 
+static bool isPowTimeStampActive() { return (chainActive.Tip()->nTime >= nPowTimeStampActive); }
+
 extern VersionBitsCache versionbitscache;
 
 /**
  * Determine what nVersion a new block should use.
  */
-int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params);
+int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params, const uint32_t& blockTime, const bool& fProofOfWork);
 
 /** Reject codes greater or equal to this can be returned by AcceptToMemPool
  * for transactions, to signal internal conditions. They cannot and should not

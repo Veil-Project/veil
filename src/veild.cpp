@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,6 +17,7 @@
 #include <noui.h>
 #include <shutdown.h>
 #include <util.h>
+#include <key_io.h>
 #include <httpserver.h>
 #include <httprpc.h>
 #include <utilstrencodings.h>
@@ -133,6 +135,24 @@ static bool AppInit(int argc, char* argv[])
         {
             // InitError will have been called with detailed error, which ends up on console
             return false;
+        }
+        std::string sAddress = gArgs.GetArg("-miningaddress", "");
+        if (!sAddress.empty())
+        {
+            // Sanity check the mining address
+            CTxDestination dest = DecodeDestination(sAddress);
+
+            if (!IsValidDestination(dest)) {
+                fprintf(stderr, "Error: miningaddress requires a valid basecoin address\n");
+                return false;
+            }
+
+            // Disallow Stealth Addresses for now
+            CBitcoinAddress address(sAddress);
+            if (address.IsValidStealthAddress()) {
+                fprintf(stderr, "Error: miningaddress must be a basecoin address\n");
+                return false;
+            }
         }
         if (gArgs.GetBoolArg("-daemon", false))
         {
