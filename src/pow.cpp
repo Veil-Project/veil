@@ -315,7 +315,9 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     int64_t nOverdueTime = nTipToLastMatchingProof - nPowSpacing;
     if (!nTipToLastMatchingProof) {
         // Tip is our algo, so look one more back to see where we're at
-        nOverdueTime = pindexLastMatchingProof->GetBlockTime() - pindexOneBack->GetBlockTime() - nPowSpacing;
+        if (pindexOneBack) {
+            nOverdueTime = pindexLastMatchingProof->GetBlockTime() - pindexOneBack->GetBlockTime() - nPowSpacing;
+        }
     }
 
     if (fProofOfStake) {
@@ -330,9 +332,8 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         int64_t nBlocksPoW = nBlocksMeasured - nCountBlocks;
         int64_t nBlocksIntended = nBlocksMeasured >> 1; // 50%
         int64_t nPosSpacing = nPowSpacing + (nPowSpacing * nBlocksPoW / nBlocksIntended);
-        if (nTipToLastMatchingProof) {
-            nOverdueTime = nTipToLastMatchingProof - nPosSpacing;
-        } else {
+        nOverdueTime = nTipToLastMatchingProof - nPosSpacing;
+        if (!nTipToLastMatchingProof && pindexOneBack) {
             // Tip is our algo, so look one more back to see where we're at
             nOverdueTime = pindexLastMatchingProof->GetBlockTime() - pindexOneBack->GetBlockTime() - nPosSpacing;
         }
