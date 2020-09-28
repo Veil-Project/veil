@@ -229,6 +229,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     const CBlockIndex *pindex = pindexLast;
     const CBlockIndex *pStart = pindexLast;
     const CBlockIndex* pindexLastMatchingProof = nullptr;
+    const CBlockIndex* pindexOneBack = nullptr;
     arith_uint256 bnPastTargetAvg = 0;
 
     unsigned int nCountBlocks = 0;
@@ -269,6 +270,9 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         } else if (!pindexLastMatchingProof) {
             // save the tip block for the proof
             pindexLastMatchingProof = pindex;
+        } else if (!pindexOneBack) {
+            // save the second one back in case the tip is the mined one
+            pindexOneBack = pindex;
         }
 
         arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
@@ -298,7 +302,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     if (fProofOfStake) {
         // Proof of Stake will judge the whole chain spacing, and adjust in case there isn't
         // enough mining to maintain optimum spacing
-        nActualTimespan = pindexLastMatchingProof->GetBlockTime() - pindex->GetBlockTime();
+        nActualTimespan = pStart->GetBlockTime() - pindex->GetBlockTime();
         nTargetTimespan =(pStart->nHeight - pindex->nHeight) * nPowSpacing;
     } else {
         nActualTimespan = pindexLastMatchingProof->GetBlockTime() - pindex->GetBlockTime();
@@ -309,13 +313,45 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     // We want to take into account the latest block tip time into the calculation
     int64_t nTipToLastMatchingProof = pindexLast->GetBlockTime() - pindexLastMatchingProof->GetBlockTime();
     int64_t nOverdueTime = nTipToLastMatchingProof - nPowSpacing;
-    if (fNewPoW && nOverdueTime > 0) {
-        // We're overdue and may need to adjust more.
-        nActualTimespan += nOverdueTime;
+    if (!nTipToLastMatchingProof) {
+        // Tip is our algo, so look one more back to see where we're at
+        nOverdueTime = pindexLastMatchingProof->GetBlockTime() - pindexOneBack->GetBlockTime() - nPowSpacing;
     }
 
-    LogPrint(BCLog::BLOCKCREATION, "%s: nActualTimespan=%d, nTargetTimespan=%d (%s)\n", __func__,
-             nActualTimespan, nTargetTimespan, GetType(nPoWType, fProofOfStake).c_str());
+    if (fProofOfStake) {
+        // The concept of Overdue is variable; as it's anywhere from 60 to 120s, based on how many blocks
+        // over the timespan.
+        // pStart->nHeight - pindex->nHeight = number of blocks in measured sequence.
+        // number of blocks in sequence - nCountBlocks = number of non-PoS blocks in measured sequence
+        // number of blocks in sequence >> 1 = number of Non-PoS blocks there is supposed to be
+        // spacing = 60 + 60 * (actual / supposed)
+        // e.g. 60 + 60 * 30/30 = 120.   60 + 60 * 15/30 = 90.  60 + 60 * 0/30 = 60.
+        int64_t nBlocksMeasured = (pStart->nHeight - pindex->nHeight) + 1;
+        int64_t nBlocksPoW = nBlocksMeasured - nCountBlocks;
+        int64_t nBlocksIntended = nBlocksMeasured >> 1; // 50%
+        int64_t nPosSpacing = nPowSpacing + (nPowSpacing * nBlocksPoW / nBlocksIntended);
+        if (nTipToLastMatchingProof) {
+            nOverdueTime = nTipToLastMatchingProof - nPosSpacing;
+        } else {
+            // Tip is our algo, so look one more back to see where we're at
+            nOverdueTime = pindexLastMatchingProof->GetBlockTime() - pindexOneBack->GetBlockTime() - nPosSpacing;
+        }
+
+        LogPrint(BCLog::BLOCKCREATION,
+                 "%s: Blocks Measured=%d, PoS Blocks=%d, ActualPoWBlocks=%d, ExpectedPoWBlocks=%d, nPosSpacing=%d Overdue=%d (%s)\n",
+                 __func__, nBlocksMeasured, nCountBlocks, nBlocksPoW, nBlocksIntended,
+                 nPosSpacing, nOverdueTime, GetType(nPoWType, fProofOfStake).c_str());
+    } else {
+        // In the case of fProofOfStake, the actual timespan already runs to the tip, so
+        // we're not going to add in the time from last of the proof to tip.
+        if (fNewPoW && nOverdueTime > 0) {
+            // We're overdue and may need to adjust more.
+            nActualTimespan += nOverdueTime;
+        }
+    }
+
+    LogPrint(BCLog::BLOCKCREATION, "%s: nActualTimespan=%d, nTargetTimespan=%d Overdue=%d (%s)\n", __func__,
+             nActualTimespan, nTargetTimespan, nOverdueTime, GetType(nPoWType, fProofOfStake).c_str());
     // ***
     // Make sure we don't overadjust
 
