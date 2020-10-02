@@ -484,7 +484,10 @@ case $host in
      fi
      case $host in
        i?86-*) WINDOWS_BITS=32 ;;
-       x86_64-*) WINDOWS_BITS=64 ;;
+       x86_64-*)
+          WINDOWS_BITS=64
+          X86_64=yes
+       ;;
        *) AC_MSG_ERROR("Could not determine win32/win64 for installer") ;;
      esac
      AC_SUBST(WINDOWS_BITS)
@@ -500,6 +503,9 @@ case $host in
      ;;
   *darwin*)
      TARGET_OS=darwin
+     case $host in
+       x86_64-*) X86_64=yes ;;
+     esac
      LEVELDB_TARGET_FLAGS="-DOS_MACOSX"
      if  test x$cross_compiling != xyes; then
        BUILD_OS=darwin
@@ -573,8 +579,8 @@ case $host in
      TARGET_OS=linux
      LEVELDB_TARGET_FLAGS="-DOS_LINUX"
      case $host in
-       aarch64*) ARM_CPU=yes ;;
-       *arm*) ARM_CPU=yes ;;
+       aarch64-*) ARM_64=yes ;;
+       x86_64-*) X86_64=yes ;;
      esac
      ;;
    *kfreebsd*)
@@ -1393,7 +1399,8 @@ fi
 AM_CONDITIONAL([TARGET_DARWIN], [test x$TARGET_OS = xdarwin])
 AM_CONDITIONAL([BUILD_DARWIN], [test x$BUILD_OS = xdarwin])
 AM_CONDITIONAL([TARGET_WINDOWS], [test x$TARGET_OS = xwindows])
-AM_CONDITIONAL([TARGET_ARM], [test x$ARM_CPU = xyes])
+AM_CONDITIONAL([TARGET_ARM64], [test x$ARM_64 = xyes])
+AM_CONDITIONAL([TARGET_X86_64], [test x$X86_64 = xyes])
 AM_CONDITIONAL([ENABLE_WALLET],[test x$enable_wallet = xyes])
 AM_CONDITIONAL([ENABLE_TESTS],[test x$BUILD_TEST = xyes])
 AM_CONDITIONAL([ENABLE_QT],[test x$bitcoin_enable_qt = xyes])
@@ -1549,7 +1556,8 @@ echo "  sanitizers    = $use_sanitizers"
 echo "  debug enabled = $enable_debug"
 echo "  gprof enabled = $enable_gprof"
 echo "  werror        = $enable_werror"
-echo "  arm cpu       = $ARM_CPU"
+echo "  arm x64       = $ARM_64"
+echo "  x86_64        = $X86_64"
 echo
 echo "  target os     = $TARGET_OS"
 echo "  build os      = $BUILD_OS"
