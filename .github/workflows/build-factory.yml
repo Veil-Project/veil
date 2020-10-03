@@ -284,7 +284,7 @@ jobs:
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
-  build-i686-linux32: # 29 downloads
+  build-i686-linux32:
     name: Build for x86 Linux 32bit
     needs: create-source-distribution
     runs-on: ubuntu-18.04
@@ -310,19 +310,19 @@ jobs:
     - name: Build Dependencies
       run: make -C depends -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
-    - name: Build Veil
-      run: |
-        ./configure --disable-jni --prefix=$(realpath depends/i686-pc-linux-gnu) --with-boost-libdir=/usr/lib/x86_64-linux-gnu
-        make -j$(nproc)
-      working-directory: ${{ env.SOURCE_ARTIFACT }}
-    - name: Prepare Files for Artifact
-      run: |
-        mkdir -p $ARTIFACT_DIR
-        strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
-        mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v1
-      with:
-        name: ${{ env.ARTIFACT_DIR }}
-        path: ${{ env.ARTIFACT_DIR }}
+#    - name: Build Veil
+#      run: |
+#        ./configure --disable-jni --prefix=$(realpath depends/i686-pc-linux-gnu) --with-boost-libdir=/usr/lib/x86_64-linux-gnu
+#        make -j$(nproc)
+#      working-directory: ${{ env.SOURCE_ARTIFACT }}
+#    - name: Prepare Files for Artifact
+#      run: |
+#        mkdir -p $ARTIFACT_DIR
+#        strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
+#        mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
+#    - name: Upload Artifact
+#      uses: actions/upload-artifact@v1
+#      with:
+#        name: ${{ env.ARTIFACT_DIR }}
+#        path: ${{ env.ARTIFACT_DIR }}
 
