@@ -312,7 +312,7 @@ jobs:
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Build Veil
       run: |
-        ./configure --disable-jni --prefix=$(realpath depends/i686-pc-linux-gnu)
+        ./configure --disable-jni --prefix=$(realpath depends/i686-pc-linux-gnu) --with-boost-libdir=/usr/lib/x86_64-linux-gnu
         make -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Prepare Files for Artifact
