@@ -354,13 +354,14 @@ libbitcoin_wallet_a_SOURCES = \
   veil/ringct/rpcanonwallet.cpp \
   $(BITCOIN_CORE_H)
 
-if TARGET_ARM
+if TARGET_ARM64
   randomx_jit_base_SOURCES = \
     crypto/randomx/jit_compiler_a64.cpp \
     crypto/randomx/jit_compiler_a64.hpp \
     crypto/randomx/jit_compiler_a64_static.hpp \
     crypto/randomx/jit_compiler_a64_static.S
-else
+endif
+if TARGET_X86_64
   randomx_jit_base_SOURCES = \
     crypto/randomx/jit_compiler_x86.cpp \
     crypto/randomx/jit_compiler_x86.hpp \
