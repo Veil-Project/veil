@@ -1981,18 +1981,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         bool fNewEnforcement = false;
         if (chainActive.Tip()) {
-            fNewEnforcement = chainActive.Height() >= Params().HeightLightZerocoin();
+            fNewEnforcement = chainActive.Tip()->GetBlockTime() >= Params().PowUpdateTimestamp();
         }
 
         int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT : MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
-
-        // Make sure new testnet proto veresion checks are in place
-        if (Params().NetworkIDString() == "test") {
-            nMinPeerVersion = MIN_PEER_PROTO_VERSION_TESTNET;
-        }
-        if (Params().NetworkIDString() == "dev") {
-            nMinPeerVersion = MIN_PEER_PROTO_VERSION_DEVNET;
-        }
 
         if (nVersion < nMinPeerVersion)
         {
@@ -2139,18 +2131,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
     bool fNewEnforcement = false;
     if (chainActive.Tip()) {
-        fNewEnforcement = chainActive.Height() >= Params().HeightLightZerocoin();
+        fNewEnforcement = chainActive.Tip()->GetBlockTime() >= Params().PowUpdateTimestamp();
     }
 
     int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT :MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
-
-    // Check testnet proto version
-    if (Params().NetworkIDString() == "test") {
-        nMinPeerVersion = MIN_PEER_PROTO_VERSION_TESTNET;
-    }
-    if (Params().NetworkIDString() == "dev") {
-        nMinPeerVersion = MIN_PEER_PROTO_VERSION_DEVNET;
-    }
 
     if (fNewEnforcement && pfrom->nVersion < nMinPeerVersion) {
         // disconnect from peers older than this proto version
