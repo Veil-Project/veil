@@ -74,7 +74,7 @@ static constexpr auto calculate_epoch_seed = ethash_calculate_epoch_seed;
 /// Calculates the epoch number out of the block number.
 inline constexpr int get_epoch_number(int block_number) noexcept
 {
-    return block_number / epoch_length;
+    return block_number ? block_number / epoch_length : 0;
 }
 
 /**
