@@ -451,8 +451,8 @@ public:
         nPruneAfterHeight = 1000;
 
         /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
-        nPowUpdateTimestamp = 1602633599; // Tuesday, 13 October 2020, 11:59:59 PM GMT
-        nPowTimeStampActive = 1602633599; // Used by block.h for serialization
+        nPowUpdateTimestamp = 1602806399; // Tuesday, 15 October 2020, 11:59:59 PM GMT
+        nPowTimeStampActive = 1602806399; // Used by block.h for serialization
 
         int nTimeStart = 1548379385;
         uint32_t nNonce = 4234676;
