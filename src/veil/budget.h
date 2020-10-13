@@ -18,11 +18,13 @@ class BudgetParams
 private:
     explicit BudgetParams(std::string strNetwork);
     std::string budgetAddress_legacy;
+    std::string budgetAddress_302401;
     std::string budgetAddress;
     std::string founderAddress;
     std::string foundationAddress_legacy;
     std::string foundationAddress;
-    int nHeightAddressChange;
+    int nHeightAddressChange_legacy;
+    int nHeightAddressChange_302401;
 
 public:
     static bool IsSuperBlock(int nBlockHeight);
