@@ -25,7 +25,7 @@ namespace
 /// @param nonce        The 64-bit nonce.
 /// @param mix_hash     Additional 256-bits of data.
 /// @return             The 256-bit output of the hash function.
-inline void keccak_progpow_256(uint32_t* st) noexcept
+void keccak_progpow_256(uint32_t* st) noexcept
 {
     ethash_keccakf800(st);
 }
