@@ -257,11 +257,10 @@ public:
         nDefaultPort = 58810;
         nPruneAfterHeight = 100000;
 
-        // TODO update timestamp with mainnet activation time
         /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
-        nPowUpdateTimestamp = 4294967295;
-        /// Used by block.h for serialization // TODO, update with mainnet activation time above
-        nPowTimeStampActive = 4294967295;
+        nPowUpdateTimestamp = 1604163600; // Saturday, 31 October 2020, 5:00:00 PM GMT
+        /// Used by block.h for serialization
+        nPowTimeStampActive = 1604163600;
 
         int nTimeStart = 1540413025;
         uint32_t nNonce = 3492319;
@@ -452,9 +451,8 @@ public:
         nPruneAfterHeight = 1000;
 
         /** Timestamp when to switch to ProgPow, RandomX, Sha256D. UTC based **/
-        // TODO update when ready for testnet launch
-        nPowUpdateTimestamp = 4294967295; // Monday, January 13, 2020 6:00:00 PM
-        nPowTimeStampActive = 4294967295; // Used by block.h for serialization
+        nPowUpdateTimestamp = 1602806399; // Tuesday, 15 October 2020, 11:59:59 PM GMT
+        nPowTimeStampActive = 1602806399; // Used by block.h for serialization
 
         int nTimeStart = 1548379385;
         uint32_t nNonce = 4234676;
