@@ -22,8 +22,18 @@ int HeightToModifierHeight(int nHeight)
 // Use the PoW hash or the PoS hash
 uint256 GetHashFromIndex(const CBlockIndex* pindexSample)
 {
-    if (pindexSample->IsProofOfWork())
-        return pindexSample->GetBlockPoWHash();
+    if (pindexSample->IsProofOfWork()) {
+        // By using the pindex time and checking it against the PoWUpdateTimestamp we can tell
+        // the code to either set the veildatahash to all zeros if True is passed, or to do
+        // nothing if False is passed.   When mining to the local wallet aggressively we have
+        // found that occassionaly the memory of the pindex block data shows that the veildatahash
+        // is not zero (0000xxxx). This made the wallet not accept valid PoS blocks from the chain
+        // tip and allowed the wallet to fork off. This fix allows us to pass in the boolean that
+        // is used to tell the code to set the veildatahash to zero manually for us. This can be
+        // done only after the PoWUpdateTimestamp as veildatahash isn't used in the block hash
+        // calculation after that timestamp.
+        return pindexSample->GetX16RTPoWHash(pindexSample->nTime >= Params().PowUpdateTimestamp());
+    }
 
     uint256 hashProof = pindexSample->GetBlockPoSHash();
     return hashProof;

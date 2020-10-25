@@ -674,7 +674,7 @@ public:
         fRequireStandard = false;
         fMineBlocksOnDemand = false;
 
-        nMaxPoWBlocks = 20;
+        nMaxPoWBlocks = 5;
         nConsecutivePoWHeight = 15000;
 
         checkpointData = {
@@ -720,159 +720,6 @@ public:
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
 
-        nHeightLightZerocoin = 1000;
-        nHeightEnforceBlacklist = 0;
-
-        /** RingCT/Stealth **/
-        nDefaultRingSize = 11;
-
-        nMaxHeaderRequestWithoutPoW = 50;
-        nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
-        nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
-    }
-};
-
-class CDevNetParams : public CChainParams {
-public:
-    CDevNetParams() {
-        strNetworkID = "dev";
-        consensus.nSubsidyHalvingInterval = 210000;
-        consensus.BIP16Exception = uint256S("0x00000000dd30457c001f4095d208cc1296b0eed002427aa599874af7a432b105");
-        consensus.BIP34Height = 21111;
-        consensus.BIP34Hash = uint256S("0x0000000023b3a96d3484e5abb3755c413e7d41500f8e2a5c3f0dd01299cd8ef8");
-        consensus.BIP65Height = 581885; // 00000000007f6655f22f98e72ed80d8b06dc761d5da09df0fa1dc4be4f861eb6
-        consensus.BIP66Height = 330776; // 000000002104c8c45e99a8853285a3b592602a3ccde2b832481da85e9e4ba182
-        consensus.powLimit = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
-        consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
-        consensus.fPowAllowMinDifficultyBlocks = true;
-        consensus.fPowNoRetargeting = false;
-        consensus.nRuleChangeActivationThreshold = 15; // 75% for testchains
-        consensus.nMinerConfirmationWindow = 20; // 20 minutes
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 1199145601; // January 1, 2008
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = 1230767999; // December 31, 2008
-
-        // Deployment of BIP68, BIP112, and BIP113.
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].bit = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nStartTime = 1456790400; // March 1st, 2016
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nTimeout = 1493596800; // May 1st, 2017
-
-        // Deployment of SegWit (BIP141, BIP143, and BIP147)
-        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].bit = 1;
-        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = 1462060800; // May 1st 2016
-        consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = 1493596800; // May 1st 2017
-
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
-        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-
-        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].bit = 3;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
-        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-
-        // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
-
-        // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0xe95fc76c6c9016e8ed2e4e4a2641dfc91dbf6bad4df659f664d8f7614bc010c0"); //103000
-
-        consensus.nMinRCTOutputDepth = 12;
-
-        pchMessageStart[0] = 0xa8;
-        pchMessageStart[1] = 0xd1;
-        pchMessageStart[2] = 0xa7;
-        pchMessageStart[3] = 0xc4;
-        nDefaultPort = 58812;
-        nPruneAfterHeight = 1000;
-
-        int nTimeStart = 1548379385;
-        uint32_t nNonce = 4234676;
-        genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
-        consensus.hashGenesisBlock = genesis.GetHash();
-        assert(consensus.hashGenesisBlock == uint256S("0xec7d8a93639c6bbf10954c71a2db69617bd90db72b353321927081836939df7a"));
-        assert(genesis.hashMerkleRoot == uint256S("0xa6d192b185dc382a8d7e7dbb5f7a212a54cb93b94e6b9e08869d9169c04993b0"));
-        assert(genesis.hashWitnessMerkleRoot == uint256S("0xa6d192b185dc382a8d7e7dbb5f7a212a54cb93b94e6b9e08869d9169c04993b0"));
-        assert(genesis.hashVeilData == uint256S("0x8b7f273daa09d2d0fa6abeb27a2a87a4ee6c947ac04931f4f3b6b83f1cf7ad3f"));
-
-        vFixedSeeds.clear();
-        vSeeds.clear();
-        vSeeds.emplace_back("devnode01.veil-project.com");
-        vSeeds.emplace_back("devnode02.veil-project.com");
-        vSeeds.emplace_back("devnode03.veil-project.com");
-        vSeeds.emplace_back("devnode04.veil-project.com"); // Mimir seeder
-        vSeeds.emplace_back("devnode05.veil-project.com"); // Codeofalltrades seeder
-        vSeeds.emplace_back("devnode06.veil-project.com"); // CaveSpectre seeder
-        // single point DNS failure backups
-        vSeeds.emplace_back("seeddev.veil.rune.network");              // Mimir seeder
-        vSeeds.emplace_back("veil-devnet-seed.codeofalltrades.com");     // Codeofalltrades seeder
-        vSeeds.emplace_back("veil-seed-dev.pontificatingnobody.com");  // CaveSpectre seeder
-
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
-        base58Prefixes[STEALTH_ADDRESS]    = {0x84}; // v
-        base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
-        base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
-
-        bech32Prefixes[STEALTH_ADDRESS].assign("tps","tps"+3);
-        bech32Prefixes[BASE_ADDRESS].assign("tv", "tv"+2);
-        nBIP44ID = 0x80000001;
-        nRingCTAccount = 20000;
-        nZerocoinAccount = 100000;
-
-        bech32_hrp_stealth = "tps";
-        bech32_hrp_base = "tv";
-
-        fDefaultConsistencyChecks = false;
-        fRequireStandard = false;
-        fMineBlocksOnDemand = false;
-
-        nMaxPoWBlocks = 5;
-        nConsecutivePoWHeight = 15000;
-
-        checkpointData = {
-            {
-                    { 1, uint256S("0x918ebe520f7666375d7e4dbb0c269f675440b96b0413ab92bbf28b85126197cd")},
-                    { 95, uint256S("0x1c1d4a474a167a3d474ad7ebda5dfc5560445f885519cb98595aab6f818b1f6f")}
-            }
-        };
-
-        chainTxData = ChainTxData{
-            // Data from rpc: getchaintxstats 4096 0000000000000037a8cd3e06cd5edbfe9dd1dbcc5dacab279376ef7cfc2b4c75
-            /* nTime    */ 1546202591,
-            /* nTxCount */ 15397,
-            /* dTxRate  */ 0.0034
-        };
-
-        /* enable fallback fee on testnet */
-        m_fallback_fee_enabled = true;
-
-        strNetworkRewardAddress = "tv1qhzkv6xdc7zpfx9ldsrqpk84hkcf36kclsyyeeh";
-        nMaxNetworkReward = 10 * COIN;
-
-        /** Zerocoin */
-        zerocoinModulus = "25195908475657893494027183240048398571429282126204032027777137836043662020707595556264018525880784"
-                          "4069182906412495150821892985591491761845028084891200728449926873928072877767359714183472702618963750149718246911"
-                          "6507761337985909570009733045974880842840179742910064245869181719511874612151517265463228221686998754918242243363"
-                          "7259085141865462043576798423387184774447920739934236584823824281198163815010674810451660377306056201619676256133"
-                          "8441436038339044149526344321901146575444541784240209246165157233507787077498171257724679629263863563732899121548"
-                          "31438167899885040445364023527381951378636564391212010397122822120720357";
-        nMaxZerocoinSpendsPerTransaction = 20; // Assume about 6.5kb each
-        nMinZerocoinMintFee = 1 * CENT; //high fee required for zerocoin mints
-        nMintRequiredConfirmations = 10; //the maximum amount of confirmations until accumulated in 19
-        nRequiredAccumulation = 1;
-        nDefaultSecurityLevel = 100; //full security level for accumulators
-        nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zerocoin to be stakable
-        nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
-        nHeightPoSStart = 100;
-        nKernelModulus = 10;
-        nCoinbaseMaturity = 10;
-        nProofOfFullNodeRounds = 4;
-        nLastPOWBlock = 2000000;
-        nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
-        nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
-
         nHeightLightZerocoin = 9428;
         nHeightEnforceBlacklist = 0;
 
@@ -882,7 +729,6 @@ public:
         nMaxHeaderRequestWithoutPoW = 50;
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
-
     }
 };
 
@@ -903,7 +749,6 @@ public:
         consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitSha256 = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
 
         // ProgPow, RandomX, Sha256d
@@ -921,7 +766,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_CSV].bit = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nStartTime = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;;
         consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].bit = 1;
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
@@ -931,7 +776,7 @@ public:
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
+        consensus.defaultAssumeValid = uint256S("0xe054229317f002436b1bb67b5e72b442299bcd5bd6cc5740b4ea6c6e5efba583");
 
         consensus.nMinRCTOutputDepth = 12;
 
@@ -939,7 +784,7 @@ public:
         pchMessageStart[1] = 0xbf;
         pchMessageStart[2] = 0xb5;
         pchMessageStart[3] = 0xda;
-        nDefaultPort = 58821;
+        nDefaultPort = 58826;
 
         nPruneAfterHeight = 1000;
         nConsecutivePoWHeight = 1000000;

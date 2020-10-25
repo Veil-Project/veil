@@ -56,7 +56,6 @@
 #include <veil/ringct/blind.h>
 #include <veil/zerocoin/accumulators.h>
 #include <veil/zerocoin/accumulatormap.h>
-#include <veil/zerocoin/precompute.h>
 #include <veil/zerocoin/zchain.h>
 
 #include <crypto/randomx/randomx.h>

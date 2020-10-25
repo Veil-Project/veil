@@ -3875,7 +3875,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
 
     // Get the list of stakable inputs
     std::list<std::unique_ptr<CStakeInput> > listInputs;
-    if (!SelectStakeCoins(listInputs, nBalance))
+    if (!SelectStakeCoins(listInputs))
         return false;
 
     if (listInputs.empty())
@@ -3955,10 +3955,10 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     return fKernelFound;
 }
 
-bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount)
+bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs)
 {
     if (chainActive.Height() < Params().HeightRingCtPoSStart()) {
-        return (SelectStakeZeroCoins(listInputs, nTargetAmount));
+        return (SelectStakeZeroCoins(listInputs));
     }
 
     //Only update stakable outputs once per update interval
@@ -4004,7 +4004,7 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInp
     return true;
 }
 
-bool CWallet::SelectStakeZeroCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs, CAmount nTargetAmount)
+bool CWallet::SelectStakeZeroCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs)
 {
     //Only update stakable outputs once per update interval
     bool fUpdate = false;
