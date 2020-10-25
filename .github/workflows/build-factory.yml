@@ -303,26 +303,26 @@ jobs:
     - name: Install Required Packages
       run: |
         sudo apt-get update
-        sudo apt-get install -y python3-zmq libboost-dev
+        sudo apt-get install -y python3-zmq libboost-all-dev libevent-dev libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler libqrencode-dev
         sudo add-apt-repository ppa:bitcoin/bitcoin
         sudo apt-get update
         sudo apt-get install -y libdb4.8-dev libdb4.8++-dev
     - name: Build Dependencies
       run: make -C depends -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
-#    - name: Build Veil
-#      run: |
-#        ./configure --disable-jni --prefix=$(realpath depends/i686-pc-linux-gnu) --with-boost-libdir=/usr/lib/x86_64-linux-gnu
-#        make -j$(nproc)
-#      working-directory: ${{ env.SOURCE_ARTIFACT }}
-#    - name: Prepare Files for Artifact
-#      run: |
-#        mkdir -p $ARTIFACT_DIR
-#        strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
-#        mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
-#    - name: Upload Artifact
-#      uses: actions/upload-artifact@v1
-#      with:
-#        name: ${{ env.ARTIFACT_DIR }}
-#        path: ${{ env.ARTIFACT_DIR }}
+    - name: Build Veil
+      run: |
+        ./configure --disable-jni --prefix=$(realpath depends/i686-pc-linux-gnu)
+        make -j$(nproc)
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Prepare Files for Artifact
+      run: |
+        mkdir -p $ARTIFACT_DIR
+        strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
+        mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ env.ARTIFACT_DIR }}
+        path: ${{ env.ARTIFACT_DIR }}
 
