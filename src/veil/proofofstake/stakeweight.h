@@ -8,15 +8,15 @@
 #include "veil/proofofstake/stakeinput/stakeinput.h"
 #include <amount.h>
 
-static const u_int32_t BRACKETBASE = 16;
-static const u_int32_t BRACKETSHIFT = 2;
+static const uint32_t BRACKETBASE = 16;
+static const uint32_t BRACKETSHIFT = 2;
 
 static const CAmount nBareMinStake = BRACKETBASE;
 static const CAmount nOneSat = 1;
 
 int RingCtWeightBits(const CAmount& nAmount, int& ct_bits);
 
-int RingCtWeightBracket(const CAmount& nAmount, u_int32_t& bracket);
+int RingCtWeightBracket(const CAmount& nAmount, uint32_t& bracket);
 
 bool RingCtStakeWeight(const CAmount& nAmount, CAmount& weight, int& ct_bits);
 

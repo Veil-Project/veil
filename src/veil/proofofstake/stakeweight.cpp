@@ -41,7 +41,7 @@ int RingCtWeightBits(const CAmount& nAmount, int& ct_bits)
         return -1;
     }
 
-    u_int32_t bracket = 0;
+    uint32_t bracket = 0;
     bracket = RingCtWeightBracket(nAmount, bracket);
     ct_bits = bracket << BRACKETSHIFT;
 
@@ -49,13 +49,13 @@ int RingCtWeightBits(const CAmount& nAmount, int& ct_bits)
 }
 
 
-int RingCtWeightBracket(const CAmount& nAmount, u_int32_t& bracket)
+int RingCtWeightBracket(const CAmount& nAmount, uint32_t& bracket)
 {
     if (!CheckMinStake(nAmount)) {
         return -1;
     }
 
-    bracket = (static_cast<u_int32_t>(floor(log2_64(nAmount-nOneSat)))) >> BRACKETSHIFT;
+    bracket = (static_cast<uint32_t>(floor(log2_64(nAmount-nOneSat)))) >> BRACKETSHIFT;
 
     return 0;
 }
@@ -96,12 +96,12 @@ bool RingCtStakeWeight(const CAmount& nAmount, CAmount& weight, int& ct_bits)
     }
 
     // calculate the bracket
-    u_int32_t bracket = 0;
+    uint32_t bracket = 0;
     RingCtWeightBracket(nAmount, bracket);
     ct_bits = bracket << BRACKETSHIFT;
 
     // calculate the weight
-    weight = static_cast<u_int64_t>(pow(BRACKETBASE, bracket)) + nOneSat;
+    weight = static_cast<uint64_t>(pow(BRACKETBASE, bracket)) + nOneSat;
 
     return true;
 }
