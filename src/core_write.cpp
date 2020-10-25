@@ -1,4 +1,5 @@
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2019 Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -145,7 +146,7 @@ void AddRangeproof(const std::vector<uint8_t> &vRangeproof, UniValue &entry)
     {
         int exponent, mantissa;
         CAmount min_value, max_value;
-        if (0 == GetRangeProofInfo(vRangeproof, exponent, mantissa, min_value, max_value))
+        if (GetRangeProofInfo(vRangeproof, exponent, mantissa, min_value, max_value))
         {
             entry.pushKV("rp_exponent", exponent);
             entry.pushKV("rp_mantissa", mantissa);
@@ -292,6 +293,19 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
                 }
                 in.pushKV("ringct_inputs", arrRing);
             }
+
+            const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+            uint32_t nInputs, nRingSize;
+            txin.GetAnonInfo(nInputs, nRingSize);
+
+            UniValue arrKeyImages(UniValue::VARR);
+            for (unsigned int k = 0; k < nSigInputs; k++) {
+                const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*nSigInputs]);
+                UniValue objKeyImage(UniValue::VOBJ);
+                objKeyImage.pushKV(std::to_string(k), HexStr(ki.begin(), ki.end()));
+                arrKeyImages.push_back(objKeyImage);
+            }
+            in.pushKV("key_images", arrKeyImages);
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
             if (txin.IsZerocoinSpend()) {
@@ -311,13 +325,13 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
             o.pushKV("asm", ScriptToAsmStr(txin.scriptSig, true));
             o.pushKV("hex", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
             in.pushKV("scriptSig", o);
-            if (!tx.vin[i].scriptWitness.IsNull()) {
-                UniValue txinwitness(UniValue::VARR);
-                for (const auto& item : tx.vin[i].scriptWitness.stack) {
-                    txinwitness.push_back(HexStr(item.begin(), item.end()));
-                }
-                in.pushKV("txinwitness", txinwitness);
+        }
+        if (!tx.vin[i].scriptWitness.IsNull()) {
+            UniValue txinwitness(UniValue::VARR);
+            for (const auto& item : tx.vin[i].scriptWitness.stack) {
+                txinwitness.push_back(HexStr(item.begin(), item.end()));
             }
+            in.pushKV("txinwitness", txinwitness);
         }
         in.pushKV("sequence", (int64_t)txin.nSequence);
         vin.push_back(in);

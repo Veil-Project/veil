@@ -1,4 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2019 Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -43,6 +44,7 @@ BOOST_AUTO_TEST_CASE(BlockPolicyEstimates)
     tx.vin.resize(1);
     tx.vin[0].scriptSig = garbage;
     tx.vpout.resize(1);
+    tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     tx.vpout[0]->SetValue(0LL);
     CFeeRate baseRate(basefee, GetVirtualTransactionSize(tx));
 

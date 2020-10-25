@@ -7,7 +7,7 @@
 #define BITCOIN_KERNEL_H
 
 #include "validation.h"
-#include "stakeinput.h"
+class CStakeInput;
 
 bool CheckStake(const CDataStream& ssUniqueID, CAmount nValueIn, const uint64_t nStakeModifier, const uint256& bnTarget, unsigned int nTimeBlockFrom, unsigned int& nTimeTx, uint256& hashProofOfStake);
 bool stakeTargetHit(arith_uint256 hashProofOfStake, int64_t nValueIn, arith_uint256 bnTargetPerCoinDay);

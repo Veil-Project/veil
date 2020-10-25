@@ -1,4 +1,5 @@
 // Copyright (c) 2019 The Bitcoin Core developers
+// Copyright (c) 2019 Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -97,6 +98,7 @@ void Check(const std::string& prv, const std::string& pub, int flags, const std:
                     CMutableTransaction spend;
                     spend.vin.resize(1);
                     spend.vpout.resize(1);
+                    spend.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
                     BOOST_CHECK_MESSAGE(SignSignature(Merge(keys_priv, script_provider), spks[n], spend, 0, 1, SIGHASH_ALL), prv);
                 }
             }

@@ -395,6 +395,11 @@ public:
     bool WriteStoredTx(const uint256 &hash, const CStoredTransaction &stx);
     bool EraseStoredTx(const uint256 &hash);
 
+    //Database a keyimage to an associated outpoint
+    bool WriteKeyImageFromOutpoint(const COutPoint& outpoint, const CCmpPubKey& keyimage);
+    bool GetKeyImageFromOutpoint(const COutPoint& outpoint, CCmpPubKey& keyimage);
+
+    //Database an outpoint to an associated keyimage
     bool ReadAnonKeyImage(const CCmpPubKey &ki, COutPoint &op, uint32_t nFlags=DB_READ_UNCOMMITTED);
     bool WriteAnonKeyImage(const CCmpPubKey &ki, const COutPoint &op);
     bool EraseAnonKeyImage(const CCmpPubKey &ki);

@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019 Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -9,9 +10,14 @@
 #include <tinyformat.h>
 #include <utilstrencodings.h>
 
-std::string COutPoint::ToString() const
+std::string COutPoint::ToSubString() const
 {
     return strprintf("COutPoint(%s, %u)", hash.ToString().substr(0,10), n);
+}
+
+std::string COutPoint::ToString() const
+{
+    return strprintf("%s:%d", hash.GetHex(), n);
 }
 
 CTxIn::CTxIn(COutPoint prevoutIn, CScript scriptSigIn, uint32_t nSequenceIn)
@@ -32,7 +38,7 @@ std::string CTxIn::ToString() const
 {
     std::string str;
     str += "CTxIn(";
-    str += prevout.ToString();
+    str += prevout.ToSubString();
     if (prevout.IsNull() && !IsZerocoinSpend())
         str += strprintf(", coinbase %s", HexStr(scriptSig));
     else

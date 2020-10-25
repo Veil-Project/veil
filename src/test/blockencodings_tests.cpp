@@ -1,4 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2019 Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -29,10 +30,12 @@ static CBlock BuildBlockTestCase() {
     tx.vin.resize(1);
     tx.vin[0].scriptSig.resize(10);
     tx.vpout.resize(2);
+    tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     tx.vpout[0]->SetValue(42);
     std::string strBudgetAddress = veil::Budget().GetBudgetAddress(0); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
+    tx.vpout[1] = MAKE_OUTPUT<CTxOutStandard>();
     tx.vpout[1]->SetScriptPubKey(budgetScript);
     tx.vpout[1]->SetValue(50*COIN);
 
@@ -292,10 +295,12 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     coinbase.vin.resize(1);
     coinbase.vin[0].scriptSig.resize(10);
     coinbase.vpout.resize(2);
+    coinbase.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     coinbase.vpout[0]->SetValue(42);
     std::string strBudgetAddress = veil::Budget().GetBudgetAddress(0); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
     auto budgetScript = GetScriptForDestination(dest);
+    coinbase.vpout[1] = MAKE_OUTPUT<CTxOutStandard>();
     coinbase.vpout[1]->SetScriptPubKey(budgetScript);
     coinbase.vpout[1]->SetValue(50*COIN);
 

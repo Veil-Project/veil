@@ -39,7 +39,8 @@
 #include <veil/zerocoin/zchain.h>
 #include <veil/zerocoin/zwallet.h>
 #include <libzerocoin/Params.h>
-#include <veil/proofofstake/stakeinput.h>
+#include <veil/proofofstake/stakeinput/zerocoinstakeinput.h>
+#include <veil/proofofstake/stakeinput/ringctstakeinput.h>
 #include <veil/proofofstake/kernel.h>
 
 #include <algorithm>
@@ -3314,12 +3315,22 @@ CAmount CWallet::GetImmatureZerocoinBalance() const
 
 bool CWallet::MintableCoins()
 {
+    if (chainActive.Height() < Params().HeightRingCtPoSStart()) {
+        return (MintableZerocoins());
+    }
+
+    return (pAnonWalletMain->MintableRingCtCoins());
+}
+
+bool CWallet::MintableZerocoins()
+{
     LOCK(cs_main);
     CAmount nZBalance = GetZerocoinBalance(false);
 
     int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
-    if (chainActive.Height() >= Params().HeightLightZerocoin())
+    if (chainActive.Height() >= Params().HeightLightZerocoin()) {
         nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+    }
 
     // zero coin
     if (nZBalance > 0) {
@@ -3863,7 +3874,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
 
     // Get the list of stakable inputs
-    std::list<std::unique_ptr<ZerocoinStake> > listInputs;
+    std::list<std::unique_ptr<CStakeInput> > listInputs;
     if (!SelectStakeCoins(listInputs))
         return false;
 
@@ -3877,7 +3888,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     CAmount nCredit = 0;
     CScript scriptPubKeyKernel;
     bool fKernelFound = false;
-    for (std::unique_ptr<ZerocoinStake>& stakeInput : listInputs) {
+    for (std::unique_ptr<CStakeInput>& stakeInput : listInputs) {
         // Make sure the wallet is unlocked and shutdown hasn't been requested
         if (IsLocked() || ShutdownRequested())
             return false;
@@ -3908,7 +3919,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
                 LOCK(cs_main);
                 //Double check that this will pass time requirements
                 if (nTxNewTime <= nTimeMinBlock) {
-                    LogPrint(BCLog::BLOCKCREATION, "CreateCoinStake() : kernel found, but it is too far in the past \n");
+                    LogPrint(BCLog::BLOCKCREATION, "%s: kernel found, but it is too far in the past \n", __func__);
                     continue;
                 }
                 nHeight = chainActive.Height();
@@ -3917,7 +3928,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             nComputeTimeStart = GetTimeMillis();
 
             // Found a kernel
-            LogPrintf("CreateCoinStake : kernel found\n");
+            LogPrintf("%s: kernel found\n", __func__);
             nCredit += stakeInput->GetValue();
 
             // Calculate reward
@@ -3930,40 +3941,10 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             CAmount nNetworkReward = nNetworkRewardReserve > Params().MaxNetworkReward() ? Params().MaxNetworkReward() : nNetworkRewardReserve;
             nCredit += nNetworkReward;
 
-            // Create the output transaction(s)
-            vector<CTxOut> vout;
-            if (!stakeInput->CreateTxOuts(this, vout, nBlockReward)) {
-                LogPrintf("%s : failed to get scriptPubKey\n", __func__);
+            if (!stakeInput->CreateCoinStake(this, nBlockReward, txNew)) {
+                LogPrintf("%s: stake input failed to create coin stake transaction\n", __func__);
                 continue;
             }
-            txNew.vpout.clear();
-            txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
-            for (auto& txOut : vout)
-                txNew.vpout.emplace_back(txOut.GetSharedPtr());
-
-            // Limit size
-            unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR;
-
-            if (nBytes >= MAX_BLOCK_WEIGHT / 5)
-                return error("CreateCoinStake : exceeded coinstake size limit");
-
-            uint256 hashTxOut = txNew.GetOutputsHash();
-            CTxIn in;
-            {
-                if (!stakeInput->CreateTxIn(this, in, hashTxOut)) {
-                    LogPrintf("%s : failed to create TxIn\n", __func__);
-                    txNew.vin.clear();
-                    txNew.vpout.clear();
-                    nCredit = 0;
-                    continue;
-                }
-            }
-            txNew.vin.emplace_back(in);
-
-            //Mark mints as spent
-            auto* z = (ZerocoinStake*)stakeInput.get();
-            if (!z->MarkSpent(this, txNew.GetHash()))
-                return error("%s: failed to mark mint as used\n", __func__);
 
             fKernelFound = true;
             break;
@@ -3973,11 +3954,59 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     }
     return fKernelFound;
 }
-bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs)
-{
-    LOCK(cs_main);
 
-    //Only update zerocoin set once per update interval
+bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs)
+{
+    if (chainActive.Height() < Params().HeightRingCtPoSStart()) {
+        return (SelectStakeZeroCoins(listInputs));
+    }
+
+    //Only update stakable outputs once per update interval
+    bool fUpdate = false;
+    static int64_t nTimeLastUpdate = 0;
+    if (GetAdjustedTime() - nTimeLastUpdate > nStakeSetUpdateTime) {
+        fUpdate = true;
+        nTimeLastUpdate = GetAdjustedTime();
+    }
+
+    int nRequiredDepth = Params().RequiredStakeDepth();
+
+    std::vector<COutputR> vRctCoins;
+    pAnonWalletMain->AvailableAnonCoins(vRctCoins);
+    for (const COutputR& rctOut : vRctCoins) {
+        const CTransactionRecord& txrecord = rctOut.rtx->second;
+
+        //Check transaction age
+	int nDepth = pAnonWalletMain->GetDepthInMainChain(txrecord.blockHash, txrecord.nIndex);
+        if (nDepth < nRequiredDepth) {
+            continue;
+	}
+
+        //Check output
+        const COutputRecord* pout = txrecord.GetOutput(rctOut.i);
+        if (pout->GetAmount() < Params().MinimumStakeQuantity()) {
+            continue;
+	}
+
+        CTransactionRef ptx;
+        uint256 hashblock;
+        if (!GetTransaction(rctOut.txhash, ptx, Params().GetConsensus(), hashblock, true)) {
+            continue;
+	}
+
+        //Create stake input and add to list of stakable inputs
+        std::unique_ptr<CStakeInput> input(new RingCtStakeCandidate(this, ptx, rctOut.GetOutpoint(), pout));
+        listInputs.emplace_back(std::move(input));
+    }
+
+    LogPrint(BCLog::BLOCKCREATION, "%s: FOUND %d STAKABLE RingCT OUTPUTs\n", __func__, listInputs.size());
+
+    return true;
+}
+
+bool CWallet::SelectStakeZeroCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs)
+{
+    //Only update stakable outputs once per update interval
     bool fUpdate = false;
     static int64_t nTimeLastUpdate = 0;
     if (GetAdjustedTime() - nTimeLastUpdate > nStakeSetUpdateTime) {
@@ -4003,7 +4032,7 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listI
         if (meta.nVersion < CZerocoinMint::STAKABLE_VERSION)
             continue;
         if (meta.nHeight < chainActive.Height() - nRequiredDepth) {
-            std::unique_ptr<ZerocoinStake> input(new ZerocoinStake(meta.denom, meta.hashStake));
+            std::unique_ptr<CStakeInput> input(new ZerocoinStake(meta.denom, meta.hashStake));
             listInputs.emplace_back(std::move(input));
         }
     }

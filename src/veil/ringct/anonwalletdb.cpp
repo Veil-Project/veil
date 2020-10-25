@@ -208,6 +208,16 @@ bool AnonWalletDB::EraseStoredTx(const uint256 &hash)
 }
 
 
+bool AnonWalletDB::WriteKeyImageFromOutpoint(const COutPoint& outpoint, const CCmpPubKey& keyimage)
+{
+    return WriteIC(std::make_pair(std::string("out_ki"), outpoint), keyimage, true);
+}
+
+bool AnonWalletDB::GetKeyImageFromOutpoint(const COutPoint& outpoint, CCmpPubKey& keyimage)
+{
+    return m_batch.Read(std::make_pair(std::string("out_ki"), outpoint), keyimage);
+}
+
 bool AnonWalletDB::ReadAnonKeyImage(const CCmpPubKey &ki, COutPoint &op, uint32_t nFlags)
 {
     return m_batch.Read(std::make_pair(std::string("aki"), ki), op);

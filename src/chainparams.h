@@ -1,6 +1,7 @@
 // Copyright (c) 2019 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2019 Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -132,6 +133,11 @@ public:
     /** RingCT and Stealth **/
     int DefaultRingSize() const { return nDefaultRingSize; }
 
+    /** Proof of Stake **/
+    CAmount MinimumStakeQuantity() const { return nMinimumStakeQuantity; }
+    int HeightRingCtPoSStart() const { return nHeightRingCtPoSStart; }
+    int RequiredStakeDepth() const { return nRequiredStakeDepth; }
+
     /** Consensus params **/
     int LAST_POW_BLOCK() const { return nLastPOWBlock; }
     int HeightPoSStart() const { return nHeightPoSStart; }
@@ -212,8 +218,11 @@ protected:
     int nCoinbaseMaturity;
     int nProofOfFullNodeRounds;
     int nHeightSupplyCreationStop;
+    CAmount nMinimumStakeQuantity;
+    int nHeightRingCtPoSStart;
+    int nRequiredStakeDepth;
 
-    //Time and height enforcements
+    //Time and height enforcements    
     int nTimeEnforceWeightReduction;
     int nHeightProtocolBumpEnforcement; // the height a new protobump is enforced
     int nHeightCheckDenom;

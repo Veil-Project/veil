@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
-// Copyright (c) 2018-2019 The Veil developers
+// Copyright (c) 2018-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -28,7 +28,6 @@
 #include <veil/zerocoin/ztracker.h>
 #include <veil/ringct/stealth.h>
 #include <veil/ringct/extkey.h>
-#include <veil/proofofstake/stakeinput.h>
 
 #include <algorithm>
 #include <atomic>
@@ -98,6 +97,8 @@ struct FeeCalculation;
 enum class FeeEstimateMode;
 class AnonWallet;
 class CTransactionRecord;
+class CoinWitnessCacheData;
+class CStakeInput;
 
 /** (client) version numbers for particular wallet features */
 enum WalletFeature
@@ -816,6 +817,7 @@ public:
 
     void AddToSpends(const COutPoint& outpoint, const uint256& wtxid);
     void AddToSpends(const uint256& wtxid);
+    bool MintableCoins();
 
     // RingCT
     void SetAnonWallet(AnonWallet* wallet) { this->pAnonWalletMain = wallet; }
@@ -823,7 +825,7 @@ public:
     const AnonWallet* GetAnonWallet_const() const { return pAnonWalletMain; }
 
     // Zerocoin
-    bool MintableCoins();
+    bool MintableZerocoins();
     bool CollectMintsForSpend(CAmount nValue, std::vector<CZerocoinMint>& vMints, CZerocoinSpendReceipt& receipt, int nStatus, bool fMinimizeChange, libzerocoin::CoinDenomination denomFilter);
     bool CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransaction& txNew, std::vector<CDeterministicMint>& vDMints,
             int64_t& nFeeRet, std::string& strFailReason, std::vector<CTempRecipient>& vecSend, OutputTypes inputtype, const CCoinControl* coinControl = NULL,
@@ -1088,7 +1090,8 @@ public:
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
     bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
-    bool SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs);
+    bool SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs);
+    bool SelectStakeZeroCoins(std::list<std::unique_ptr<CStakeInput> >& listInputs);
 
     // sub wallet seeds
     bool GetZerocoinSeed(CKey& keyZerocoinMaster);

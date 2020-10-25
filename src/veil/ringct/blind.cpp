@@ -1,4 +1,5 @@
 // Copyright (c) 2017-2019 The Particl developers
+// Copyright (c) 2019 The Veil developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
@@ -56,16 +57,13 @@ static int64_t ipow(int64_t base, int exp)
 };
 
 
-int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &exponent, int &nBits)
+int SelectRangeProofParameters(uint64_t nValueIn, int &exponent, int &nBits)
 {
     int nLeadingZeros = CountLeadingZeros(nValueIn);
     int nTrailingZeros = CountTrailingZeros(nValueIn);
 
     size_t nBitsReq = 64 - nLeadingZeros - nTrailingZeros;
 
-    nBits = 32;
-
-    // TODO: output rangeproof parameters should depend on the parameters of the inputs
     // TODO: drop low value bits to fee
 
     if (nValueIn == 0)
@@ -108,11 +106,12 @@ int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &expon
     return 0;
 };
 
-int GetRangeProofInfo(const std::vector<uint8_t> &vRangeproof, int &rexp, int &rmantissa, CAmount &min_value, CAmount &max_value)
+bool GetRangeProofInfo(const std::vector<uint8_t> &vRangeproof, int &rexp, int &rmantissa, CAmount &min_value, CAmount &max_value)
 {
-    return (!(secp256k1_rangeproof_info(secp256k1_ctx_blind,
+    int ret = secp256k1_rangeproof_info(secp256k1_ctx_blind,
                                         &rexp, &rmantissa, (uint64_t*) &min_value, (uint64_t*) &max_value,
-                                        &vRangeproof[0], vRangeproof.size()) == 1));
+                                        &vRangeproof[0], vRangeproof.size());
+    return ret == 1;
 };
 
 void ECC_Start_Blinding()

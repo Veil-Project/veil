@@ -1,4 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2019 Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -59,8 +60,11 @@ BOOST_AUTO_TEST_CASE(multisig_verify)
 
     CMutableTransaction txFrom;  // Funding transaction
     txFrom.vpout.resize(3);
+    txFrom.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[0]->SetScriptPubKey(a_and_b);
+    txFrom.vpout[1] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[1]->SetScriptPubKey(a_or_b);
+    txFrom.vpout[2] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[2]->SetScriptPubKey(escrow);
 
     CMutableTransaction txTo[3]; // Spending transaction
@@ -70,6 +74,7 @@ BOOST_AUTO_TEST_CASE(multisig_verify)
         txTo[i].vpout.resize(1);
         txTo[i].vin[0].prevout.n = i;
         txTo[i].vin[0].prevout.hash = txFrom.GetHash();
+        txTo[i].vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         txTo[i].vpout[0]->SetValue(1);
     }
 
@@ -196,8 +201,11 @@ BOOST_AUTO_TEST_CASE(multisig_Sign)
 
     CMutableTransaction txFrom;  // Funding transaction
     txFrom.vpout.resize(3);
+    txFrom.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[0]->SetScriptPubKey(a_and_b);
+    txFrom.vpout[1] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[1]->SetScriptPubKey(a_or_b);
+    txFrom.vpout[2] = MAKE_OUTPUT<CTxOutStandard>();
     txFrom.vpout[2]->SetScriptPubKey(escrow);
 
     CMutableTransaction txTo[3]; // Spending transaction
@@ -207,6 +215,7 @@ BOOST_AUTO_TEST_CASE(multisig_Sign)
         txTo[i].vpout.resize(1);
         txTo[i].vin[0].prevout.n = i;
         txTo[i].vin[0].prevout.hash = txFrom.GetHash();
+        txTo[i].vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         txTo[i].vpout[0]->SetValue(1);
     }
 

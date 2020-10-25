@@ -360,6 +360,7 @@ public:
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 200; //The required confirmations for a zerocoin to be stakable
         nZerocoinRequiredStakeDepthV2 = 1000; //The required confirmations for a zerocoin to be stakable
+        nRequiredStakeDepth= 1000; //The required confirmations for a RingCT TXO to be stakable
         nHeightPoSStart = 1500;
         nKernelModulus = 100;
         nCoinbaseMaturity = 100;
@@ -377,6 +378,9 @@ public:
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
+
+        /** Proof of Stake **/
+        nMinimumStakeQuantity = 10 * COIN; //Stake has to be a minimum of 10 coin
 
         nMaxHeaderRequestWithoutPoW = 50;
     }
@@ -537,6 +541,7 @@ public:
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zerocoin to be stakable
         nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
+        nRequiredStakeDepth= 12; //The required confirmations for a RingCT TXO to be stakable
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
@@ -669,7 +674,7 @@ public:
         fRequireStandard = false;
         fMineBlocksOnDemand = false;
 
-        nMaxPoWBlocks = 20;
+        nMaxPoWBlocks = 5;
         nConsecutivePoWHeight = 15000;
 
         checkpointData = {
@@ -706,6 +711,7 @@ public:
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zerocoin to be stakable
         nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
+        nRequiredStakeDepth= 12; //The required confirmations for a RingCT TXO to be stakable
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
@@ -714,7 +720,7 @@ public:
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
 
-        nHeightLightZerocoin = 1000;
+        nHeightLightZerocoin = 9428;
         nHeightEnforceBlacklist = 0;
 
         /** RingCT/Stealth **/
@@ -743,7 +749,6 @@ public:
         consensus.powLimitRandomX = uint256S("0000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitProgPow = uint256S("0000000fffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
         consensus.powLimitSha256 = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-
         consensus.nPowTargetSpacing = 120; // alternate PoW/PoS every one minute
 
         // ProgPow, RandomX, Sha256d
@@ -761,7 +766,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = 0;
         consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_CSV].bit = 0;
-        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nStartTime = 0;
+        consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;;
         consensus.vDeployments[Consensus::DEPLOYMENT_CSV].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].bit = 1;
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
@@ -771,7 +776,7 @@ public:
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
+        consensus.defaultAssumeValid = uint256S("0xe054229317f002436b1bb67b5e72b442299bcd5bd6cc5740b4ea6c6e5efba583");
 
         consensus.nMinRCTOutputDepth = 12;
 
@@ -779,7 +784,7 @@ public:
         pchMessageStart[1] = 0xbf;
         pchMessageStart[2] = 0xb5;
         pchMessageStart[3] = 0xda;
-        nDefaultPort = 58821;
+        nDefaultPort = 58826;
 
         nPruneAfterHeight = 1000;
         nConsecutivePoWHeight = 1000000;
@@ -855,6 +860,7 @@ public:
         nRequiredAccumulation = 1;
         nDefaultSecurityLevel = 100; //full security level for accumulators
         nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zerocoin to be stakable
+        nRequiredStakeDepth= 12; //The required confirmations for a RingCT TXO to be stakable
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
@@ -865,6 +871,7 @@ public:
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
+        nMinimumStakeQuantity = 10 * COIN;  //Stake has to be a minimum of 10 coin
 
         nHeightLightZerocoin = 500;
         nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable

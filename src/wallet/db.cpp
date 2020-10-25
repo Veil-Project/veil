@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -104,7 +105,7 @@ void BerkeleyEnvironment::Close()
     if (ret != 0)
         LogPrintf("BerkeleyEnvironment::Close: Error %d closing database environment: %s\n", ret, DbEnv::strerror(ret));
     if (!fMockDb)
-        DbEnv((u_int32_t)0).remove(strPath.c_str(), 0);
+        DbEnv((uint32_t)0).remove(strPath.c_str(), 0);
 }
 
 void BerkeleyEnvironment::Reset()
@@ -378,7 +379,7 @@ bool BerkeleyEnvironment::Salvage(const std::string& strFile, bool fAggressive, 
     LOCK(cs_db);
     assert(mapFileUseCount.count(strFile) == 0);
 
-    u_int32_t flags = DB_SALVAGE;
+    uint32_t flags = DB_SALVAGE;
     if (fAggressive)
         flags |= DB_AGGRESSIVE;
 
