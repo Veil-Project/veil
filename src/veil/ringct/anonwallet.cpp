@@ -164,14 +164,21 @@ bool AnonWallet::Initialise(CExtKey* pExtMaster)
 
             //Load the stealth stake account
             idStakeAccount.SetNull();
+            idStakeAddress.SetNull();
             if (!wdb.ReadNamedExtKeyId("stealthstakeaccount", idStakeAccount)) {
                 //If the stealth stake account is not created yet, then create it
-                if (!IsLocked() && !CreateStealthStakeAccount(&wdb))
-                    return error("%s: failed to create stealth stake account", __func__);
+                if (!IsLocked()) {
+                    if (!CreateStealthStakeAccount(&wdb))
+                        return error("%s: failed to create stealth stake account", __func__);
+                    if (idStakeAccount.IsNull()) {
+                        // Unknown failure
+                        return error("%s: Unable to get stealth stake account", __func__);
+                    }
+                }
             }
-            //Load the stake address
-            if (!wdb.ReadNamedExtKeyId("stealthstakeaddress", idStakeAddress)) {
-                return error("%s: Failed to read stealth stake address from db", __func__);
+            if (idStakeAddress.IsNull()) {
+                if (!IsLocked() && (!wdb.ReadNamedExtKeyId("stealthstakeaddress", idStakeAddress)))
+                    return error("%s: Failed to read stealth stake address from db", __func__);
             }
 
             // Load all accounts, keys, stealth addresses from db
@@ -3990,6 +3997,7 @@ bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
     LogPrintf("%s: Default account %s\n", __func__, idDefaultAccount.GetHex());
     LogPrintf("%s: Stealth account %s\n", __func__, idStealthAccount.GetHex());
     LogPrintf("%s: Stealth Change account %s\n", __func__, idChangeAccount.GetHex());
+    LogPrintf("%s: Stealth Stake account %s\n", __func__, idStakeAccount.GetHex());
     LogPrintf("%s: Master account %s\n", __func__, idMaster.GetHex());
 
     return true;
@@ -4006,6 +4014,21 @@ bool AnonWallet::UnlockWallet(const CExtKey& keyMasterIn)
         //If the change account is not created yet, then create it
         if (!CreateStealthChangeAccount(&wdb))
             return error("%s: failed to create stealth change account ", __func__);
+    }
+    if (idStakeAccount.IsNull()) {
+        if (!wdb.ReadNamedExtKeyId("stealthstakeaccount", idStakeAccount)) {
+            if (!CreateStealthStakeAccount(&wdb))
+                return error("%s: failed to create stealth stake account", __func__);
+            if (idStakeAccount.IsNull()) {
+                // Unknown failure
+                return error("%s: Unable to get stealth stake account", __func__);
+            }
+        }
+    }
+    if (idStakeAddress.IsNull()) {
+        // If it's not set, we didn't just create it
+        if (!wdb.ReadNamedExtKeyId("stealthstakeaddress", idStakeAddress))
+            return error("%s: Failed to read stealth stake address from db", __func__);
     }
 
     return true;
@@ -5959,7 +5982,6 @@ bool AnonWallet::SelectBlindedCoins(const std::vector<COutputR> &vAvailableCoins
     if (coinControl && coinControl->HasSelected() && !coinControl->fAllowOtherInputs) {
         nValueRet = nValueFromPresetInputs;
         setCoinsRet.insert(setCoinsRet.end(), vPresetCoins.begin(), vPresetCoins.end());
-        LogPrintf("(debug) %s: nValueRet: %d nTargetValue: %d\n", __func__, FormatMoney(nValueRet), FormatMoney(nTargetValue));
         return (nValueRet >= nTargetValue);
     }
 

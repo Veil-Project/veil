@@ -763,6 +763,17 @@ static UniValue listaddresses(const JSONRPCRequest& request)
 
         results.push_back(entry);
     }
+    // Get the stealth stake address
+    pAnonWallet->GetStakeAddress(address);
+    if (AnonBalances[address]) {
+        UniValue entry(UniValue::VOBJ);
+
+        entry.pushKV("address", address.ToString(true));
+        entry.pushKV("amount", ValueFromAmount(AnonBalances[address]));
+        entry.pushKV("label", "<stealth stake address>");
+
+        results.push_back(entry);
+    }
 
     return results;
 }
