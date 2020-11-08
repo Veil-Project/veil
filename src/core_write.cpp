@@ -170,6 +170,7 @@ void OutputToJSON(uint256 &txid, int i,
             CTxOutStandard *s = (CTxOutStandard*) baseOut;
             entry.pushKV("value", ValueFromAmount(s->nValue));
             entry.pushKV("valueSat", s->nValue);
+            entry.pushKV("vout.n", i);
             UniValue o(UniValue::VOBJ);
             ScriptPubKeyToUniv(s->scriptPubKey, o, true);
             entry.pushKV("scriptPubKey", o);
@@ -180,6 +181,7 @@ void OutputToJSON(uint256 &txid, int i,
             CTxOutData *s = (CTxOutData*) baseOut;
             entry.pushKV("type", "data");
             entry.pushKV("data_hex", HexStr(s->vData.begin(), s->vData.end()));
+            entry.pushKV("vout.n", i);
             CAmount nValue;
             if (s->GetCTFee(nValue))
                 entry.pushKV("ct_fee", ValueFromAmount(nValue));
@@ -190,6 +192,7 @@ void OutputToJSON(uint256 &txid, int i,
             CTxOutCT *s = (CTxOutCT*) baseOut;
             entry.pushKV("type", "blind");
             entry.pushKV("valueCommitment", HexStr(&s->commitment.data[0], &s->commitment.data[0]+33));
+            entry.pushKV("vout.n", i);
             UniValue o(UniValue::VOBJ);
             ScriptPubKeyToUniv(s->scriptPubKey, o, true);
             entry.pushKV("scriptPubKey", o);
@@ -202,6 +205,7 @@ void OutputToJSON(uint256 &txid, int i,
         {
             CTxOutRingCT *s = (CTxOutRingCT*) baseOut;
             entry.pushKV("type", "ringct");
+            entry.pushKV("vout.n", i);
             entry.pushKV("pubkey", HexStr(s->pk.begin(), s->pk.end()));
             entry.pushKV("valueCommitment", HexStr(&s->commitment.data[0], &s->commitment.data[0]+33));
             entry.pushKV("data_hex", HexStr(s->vData.begin(), s->vData.end()));
