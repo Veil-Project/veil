@@ -42,6 +42,10 @@ namespace Consensus { struct Params; };
 
 static const bool DEFAULT_PRINTPRIORITY = false;
 
+// This is used for both the nonce separation and the loop count, so
+// make it a constant used by both to maintain their synchronization
+static const uint32_t RANDOMX_INNER_LOOP_COUNT = 100000;
+
 enum TemplateFlags
 {
     TF_FAIL = 0,

@@ -1020,7 +1020,7 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
     LogPrintf("Veil RandomX Miner started\n");
 
     unsigned int nExtraNonce = 0;
-    static const int nInnerLoopCount = 100000;
+    static const int nInnerLoopCount = RANDOMX_INNER_LOOP_COUNT;
     bool fBlockFoundAlready = false;
 
     while (fGenerateBitcoins)
@@ -1107,18 +1107,22 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
             }
         }
 
-        if (fBlockFoundAlready) {
-            fBlockFoundAlready = false;
+        int32_t nTimeDuration = GetTime() - nTimeStart;
+        double nHashSpeed = 0;
+        if (!nTimeDuration) nTimeDuration = 1;
+        {
+            LOCK(cs_nonce);
+            nHashes += nTries;
+            nHashSpeed = arith_uint256(nHashes/nTimeDuration).getdouble();
+        }
+        LogPrint(BCLog::BLOCKCREATION, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__, nHashSpeed);
+
+        if (nTries == nInnerLoopCount) {
             continue;
         }
 
-        LOCK(cs_nonce);
-        nHashes += nTries;
-        int32_t nTimeDuration = GetTime() - nTimeStart;
-        if (!nTimeDuration) nTimeDuration = 1;
-        LogPrint(BCLog::BLOCKCREATION, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__,
-                 arith_uint256(nHashes/nTimeDuration).getdouble());
-        if (nTries == nInnerLoopCount) {
+        if (fBlockFoundAlready) {
+            fBlockFoundAlready = false;
             continue;
         }
 
