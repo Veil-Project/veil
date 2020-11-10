@@ -2152,7 +2152,7 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
             }
             if (GetTime() >= nNow + 60) {
                 nNow = GetTime();
-                WalletLogPrintf("Still rescanning. At block %d. Progress=%f\n", pindex->nHeight, progress_current);
+                WalletLogPrintf("Still rescanning. At block %d. Progress=%.4f%%\n", pindex->nHeight, progress_current*100);
             }
 
             CBlock block;
@@ -2200,9 +2200,9 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
             }
         }
         if (pindex && fAbortRescan) {
-            WalletLogPrintf("Rescan aborted at block %d. Progress=%f\n", pindex->nHeight, progress_current);
+            WalletLogPrintf("Rescan aborted at block %d. Progress=%.4f%%\n", pindex->nHeight, progress_current*100);
         } else if (pindex && ShutdownRequested()) {
-            WalletLogPrintf("Rescan interrupted by shutdown request at block %d. Progress=%f\n", pindex->nHeight, progress_current);
+            WalletLogPrintf("Rescan interrupted by shutdown request at block %d. Progress=%.4f%%\n", pindex->nHeight, progress_current*100);
         }
         uiInterface.ShowProgress(strprintf("%s " + _("Rescanning..."), GetDisplayName()), 100, 0); // hide progress dialog in GUI
     }
@@ -5452,6 +5452,10 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
         assert(pAnonWallet->Initialise(&extMasterAnon));
         LogPrintf("%s: loaded new Anon wallet", __func__);
     } else {
+        CExtKey extMasterAnon;
+        if (walletInstance->GetAnonWalletSeed(extMasterAnon)) {
+            assert(pAnonWallet->UnlockWallet(extMasterAnon));
+        } // else don't throw an error if it fails since they might be encrypted
         assert(pAnonWallet->Initialise());
     }
 
