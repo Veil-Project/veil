@@ -48,10 +48,20 @@ uint256 CBlockHeader::GetX16RTPoWHash(bool fSetVeilDataHashNull) const
 uint256 CBlockHeader::GetSha256DPoWHash() const
 {
     CSha256dDataInput input(*this);
-
     uint256 dataHash = SerializeHash(input);
-
     CSha256dInput sha256Final(*this, dataHash);
+    return SerializeHash(sha256Final);
+}
+
+uint256 CBlockHeader::GetSha256dMidstate() const
+{
+    CSha256dDataInput input(*this);
+    return SerializeHash(input);
+}
+
+uint256 CBlockHeader::GetSha256D(uint256& midState) const
+{
+    CSha256dInput sha256Final(*this, midState);
     return SerializeHash(sha256Final);
 }
 
