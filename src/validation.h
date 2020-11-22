@@ -106,9 +106,9 @@ static const int MAX_BLOCKTXN_DEPTH = 10;
  *  want to make this a per-peer adaptive value at some point. */
 static const unsigned int BLOCK_DOWNLOAD_WINDOW = 1024;
 /** Time to wait (in seconds) between writing blocks/block index to disk. */
-static const unsigned int DATABASE_WRITE_INTERVAL = 60 * 60;
+static const unsigned int DATABASE_WRITE_INTERVAL = 60 * 6;
 /** Time to wait (in seconds) between flushing chainstate to disk. */
-static const unsigned int DATABASE_FLUSH_INTERVAL = 24 * 60 * 60;
+static const unsigned int DATABASE_FLUSH_INTERVAL = 24 * 60 * 6;
 /** Maximum length of reject messages. */
 static const unsigned int MAX_REJECT_MESSAGE_LENGTH = 111;
 /** Block download timeout base, expressed in millionths of the block interval (i.e. 10 min) */
