@@ -541,6 +541,7 @@ void BitcoinGUI::setClientModel(ClientModel *_clientModel)
         {
             walletFrame->setClientModel(_clientModel);
             balance->setClientModel(_clientModel);
+            veilStatusBar->setClientModel(_clientModel);
         }
 #endif // ENABLE_WALLET
         unitDisplayControl->setOptionsModel(_clientModel->getOptionsModel());
@@ -925,6 +926,7 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
     }
 
     veilStatusBar->updateSyncIndicator(count);
+    veilStatusBar->setNumBlocks(blockDate);
 
     QString tooltip;
 
