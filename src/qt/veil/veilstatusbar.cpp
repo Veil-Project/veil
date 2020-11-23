@@ -6,6 +6,7 @@
 #include <qt/veil/forms/ui_veilstatusbar.h>
 
 #include <qt/bitcoingui.h>
+#include <qt/clientmodel.h>
 #include <qt/walletmodel.h>
 #include <qt/veil/qtutils.h>
 #include <iostream>
@@ -127,6 +128,19 @@ void VeilStatusBar::onBtnLockClicked()
 
     updateStakingCheckbox();
 }
+
+void VeilStatusBar::setClientModel(ClientModel *model){
+    this->clientModel = model;
+}
+
+void VeilStatusBar::setNumBlocks(const QDateTime& blockDate)
+{
+    if (!clientModel)
+        return;
+    
+    // Set the informative last block time label.
+    ui->labelLastBlockTime_Content->setText(blockDate.toString());
+}    
 
 void VeilStatusBar::setWalletModel(WalletModel *model)
 {
