@@ -4453,8 +4453,10 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
         throw std::runtime_error(
                 "generatecontinuous (true|false) (threads)\n"
                 "\nMine blocks continuously while the request is running.\n"
+                "\n(note for Randomx, any value under 4 will use 4 threads)\n"
                 "\nExamples:\n"
-                + HelpExampleCli("generatecontinuous", "1")
+                + HelpExampleCli("generatecontinuous", "true 4")
+                + HelpExampleRpc("generateoontinuous", "true, 4")
         );
     }
 
