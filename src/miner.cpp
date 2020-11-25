@@ -975,8 +975,9 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 }
                 pblock->mixHash = mix_hash;
             } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+                uint256 midStateHash = pblock->GetSha256dMidstate();
                 while (nTries < nInnerLoopCount &&
-                       !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits,
+                       !CheckProofOfWork(pblock->GetSha256D(midStateHash), pblock->nBits,
                                          Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK)) {
                     boost::this_thread::interruption_point();
                     ++nTries;
