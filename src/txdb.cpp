@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -240,6 +241,14 @@ bool CBlockTreeDB::WriteBatchSync(const std::vector<std::pair<int, const CBlockF
     }
     batch.Write(DB_LAST_BLOCK, nLastFile);
     for (std::vector<const CBlockIndex*>::const_iterator it=blockinfo.begin(); it != blockinfo.end(); it++) {
+        CDiskBlockIndex diskindex = CDiskBlockIndex(*it);
+        CBlockHeader bHeader = (*it)->GetBlockHeader();
+        uint256 hashBlock = diskindex.GetBlockHash();
+        if (arith_uint256(hashBlock.GetHex()) != arith_uint256((*it)->GetBlockHeader().GetHash().GetHex())) {
+            LogPrintf("%s: *** Warning - Block %d: Hash: %s doesn't match Header Hash: %s\n", __func__,
+                      diskindex.nHeight, hashBlock.GetHex(), bHeader.GetHash().GetHex());
+            continue; // Don't write it
+        }
         batch.Write(std::make_pair(DB_BLOCK_INDEX, (*it)->GetBlockHash()), CDiskBlockIndex(*it));
     }
     return WriteBatch(batch, true);
@@ -276,6 +285,8 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 // ignore any duplicates and mark them to be erased
                 uint256 hashBlock = diskindex.GetBlockHash();
                 if (hashBlock != key.second) {
+                    LogPrintf("%s: Skipping Block %d: %s - Block Hash does not match Index Key\n",
+                               __func__, diskindex.nStatus, hashBlock.GetHex());
                     pcursor->Next();
                     continue;
                 }
