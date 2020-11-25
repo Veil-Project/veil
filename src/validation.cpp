@@ -2146,7 +2146,6 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
 
     if (blockTime >= Params().PowUpdateTimestamp()) {
         nVersion = VERSIONBITS_NEW_POW_VERSION;
-        SetMiningAlgorithm(gArgs.GetArg("-mine", RANDOMX_STRING));
 
         if (fProofOfWork) {
             if (GetMiningAlgorithm() == MINE_PROGPOW) {
