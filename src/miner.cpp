@@ -54,6 +54,11 @@ const char * RANDOMX_STRING = "randomx";
 
 int nMiningAlgorithm = MINE_RANDOMX;
 
+bool fGenerateActive = false;
+
+bool GenerateActive() { return fGenerateActive; };
+void setGenerate(bool fGenerate) { fGenerateActive = fGenerate; };
+
 std::map<uint256, int64_t>mapComputeTimeTransactions;
 
 // Unconfirmed transactions in the memory pool often depend on other
@@ -831,7 +836,6 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
     pblock->hashWitnessMerkleRoot = BlockWitnessMerkleRoot(*pblock, &malleated);
 }
 
-bool fGenerateBitcoins = false;
 bool fMintableCoins = false;
 int nMintableLastCheck = 0;
 
@@ -851,7 +855,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
     enablewallet = !gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET);
 #endif
 
-    while (fGenerateBitcoins || (fProofOfStake && enablewallet))
+    while (GenerateActive() || (fProofOfStake && enablewallet))
     {
         boost::this_thread::interruption_point();
 #ifdef ENABLE_WALLET
@@ -926,7 +930,9 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         }
 #endif
 
-        if (fGenerateBitcoins && !fProofOfStake) { // If the miner was turned on and we are in IsInitialBlockDownload(), sleep 60 seconds, before trying again
+        if (GenerateActive() && !fProofOfStake) {
+            // If the miner was turned on and we are in IsInitialBlockDownload(),
+            // sleep 60 seconds, before trying again
             if (IsInitialBlockDownload() && !gArgs.GetBoolArg("-genoverride", false)) {
                 MilliSleep(60000);
                 continue;
@@ -1024,11 +1030,11 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
     static const int nInnerLoopCount = RANDOMX_INNER_LOOP_COUNT;
     bool fBlockFoundAlready = false;
 
-    while (fGenerateBitcoins)
+    while (GenerateActive())
     {
         boost::this_thread::interruption_point();
 
-        if (fGenerateBitcoins) { // If the miner was turned on and we are in IsInitialBlockDownload(), sleep 60 seconds, before trying again
+        if (GenerateActive()) { // If the miner was turned on and we are in IsInitialBlockDownload(), sleep 60 seconds, before trying again
             if (IsInitialBlockDownload() && !gArgs.GetBoolArg("-genoverride", false)) {
                 MilliSleep(60000);
                 continue;
@@ -1209,7 +1215,7 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
         error("%s: pthreadGroupPoW is null! Cannot mine.", __func__);
         return;
     }
-    fGenerateBitcoins = fGenerate;
+    setGenerate(fGenerate);
 
     if (nThreads < 0) {
         // In regtest threads defaults to 1

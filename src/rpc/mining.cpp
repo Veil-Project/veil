@@ -173,7 +173,7 @@ static UniValue getnetworkhashps(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. nblocks     (numeric, optional, default=120) The number of blocks, or -1 for blocks since last difficulty change.\n"
             "2. height      (numeric, optional, default=-1) To estimate at the time of the given height.\n"
-            "3. algo        (numeric, optional, default="+GetMiningType(GetMiningAlgorithm(), false, false)+") Algo to calculate [randomx, sha256d, progpow, xr16t, PoS].\n"
+            "3. algo        (string, optional, default="+GetMiningType(GetMiningAlgorithm(), false, false)+") Algo to calculate [randomx, sha256d, progpow, xr16t, PoS].\n"
             "\nResult:\n"
             "x             (numeric) Hashes per second estimated\n"
             "\nExamples:\n"
@@ -346,6 +346,7 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
             "  \"blocks\": nnn,             (numeric) The current block\n"
             "  \"currentblockweight\": nnn, (numeric) The last block weight\n"
             "  \"currentblocktx\": nnn,     (numeric) The last block transaction\n"
+            "  \"algorithm\": \"xxxx\",        (string) Algorithm set to mine (progpow, randomx, sha256d)\n"
             "  \"difficulty\": xxx.xxxxx    (numeric) The current difficulty\n"
             "  \"networkhashps\": nnn,      (numeric) The network hashes per second\n"
             "  \"pooledtx\": n              (numeric) The size of the mempool\n"
@@ -384,6 +385,39 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
     return obj;
 }
 
+static UniValue setminingalgo(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+            "setminingalgo algorithm\n"
+            "\nChanges your mining algorithm to [algorithm].  Note that mining must be turned off when command is used.\n"
+            "\nArguments:\n"
+            "1. algorithm   (string, required) Algorithm to mine [progpow, randomx, sha256d].\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"success\": true|false, (boolean) Status of the switch\n"
+            "  \"message\": \"text\",     (text) Informational message about the switch\n"
+            "}\n"
+            "\nExamples:\n"
+            + HelpExampleCli("setminingalgo", "sha256d")
+            + HelpExampleRpc("setminingalgo", "sha256d")
+       );
+
+    if (GenerateActive())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "mining must be stopped to change algorithm");
+
+    std::string sOldAlgo = GetMiningType(GetMiningAlgorithm(), false, false);
+    std::string sNewAlgo = request.params[0].get_str();
+    // Check if it's a mining algorithm
+    if (!SetMiningAlgorithm(sNewAlgo)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s is not a supported mining type", sNewAlgo));
+    }
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("success", true);
+    result.pushKV("message", strprintf("Mining algorithm changed from %s to %s", sOldAlgo, sNewAlgo));
+    return result;
+
+}
 
 // NOTE: Unlike wallet RPC (which use VEIL values), mining RPCs follow GBT (BIP 22) in using satoshi amounts
 static UniValue prioritisetransaction(const JSONRPCRequest& request)
@@ -1246,20 +1280,19 @@ static UniValue estimaterawfee(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
-    { "mining",             "getnetworkhashps",       &getnetworkhashps,       {"nblocks","height","algo"} },
-    { "mining",             "getmininginfo",          &getmininginfo,          {} },
-    { "mining",             "prioritisetransaction",  &prioritisetransaction,  {"txid","dummy","fee_delta"} },
     { "mining",             "getblocktemplate",       &getblocktemplate,       {"template_request"} },
-    { "mining",             "submitblock",            &submitblock,            {"hexdata","dummy"} },
+    { "mining",             "getmininginfo",          &getmininginfo,          {} },
+    { "mining",             "getnetworkhashps",       &getnetworkhashps,       {"nblocks","height","algo"} },
+    { "mining",             "prioritisetransaction",  &prioritisetransaction,  {"txid","dummy","fee_delta"} },
     { "mining",             "pprpcsb",                &pprpcsb,                {"header_hash", "mix_hash", "nonce"} },
-
+    { "mining",             "setminingalgo",          &setminingalgo,          {"algo"} },
+    { "mining",             "submitblock",            &submitblock,            {"hexdata","dummy"} },
 
     { "generating",         "generatetoaddress",      &generatetoaddress,      {"nblocks","address","maxtries"} },
+
     { "hidden",             "estimatefee",            &estimatefee,            {} },
-
-    { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },
-
     { "hidden",             "estimaterawfee",         &estimaterawfee,         {"conf_target", "threshold"} },
+    { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },
 };
 
 void RegisterMiningRPCCommands(CRPCTable &t)
