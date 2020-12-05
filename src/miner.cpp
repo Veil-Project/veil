@@ -1252,17 +1252,17 @@ int GetMiningAlgorithm() {
     return nMiningAlgorithm;
 }
 
-bool SetMiningAlgorithm(const std::string& algo) {
-    if (algo == PROGPOW_STRING) {
-        nMiningAlgorithm = MINE_PROGPOW;
-        return true;
-    } else if (algo == SHA256D_STRING) {
-        nMiningAlgorithm = MINE_SHA256D;
-        return true;
-    } else if (algo == RANDOMX_STRING) {
-        // Catches the default
-        nMiningAlgorithm = MINE_RANDOMX;
+bool SetMiningAlgorithm(const std::string& algo, bool fSet) {
+    int setAlgo = -1;
+
+    if (algo == PROGPOW_STRING)      setAlgo = MINE_PROGPOW;
+    else if (algo == SHA256D_STRING) setAlgo = MINE_SHA256D;
+    else if (algo == RANDOMX_STRING) setAlgo = MINE_RANDOMX;
+
+    if (setAlgo != -1) {
+        if (fSet) nMiningAlgorithm = setAlgo;
         return true;
     }
+
     return false;
 }

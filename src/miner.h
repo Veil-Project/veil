@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -49,7 +50,7 @@ static std::string GetMiningType(int nPoWType, bool fProofOfStake = false, bool 
 }
 
 int GetMiningAlgorithm();
-bool SetMiningAlgorithm(const std::string& algo);
+bool SetMiningAlgorithm(const std::string& algo, bool fSet = true);
 
 // End Pow algorithm to use
 
