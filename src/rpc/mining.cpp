@@ -79,7 +79,7 @@ static UniValue GetNetworkHashPS(int lookup, int height, std::string type) {
     while (pb->nHeight > 0)
     {
         // find the last of the algo
-        if (0 == type.compare("PoS")) {
+        if (0 == type.compare("pos")) {
             if (pb->IsProofOfStake()) found=true;
         } else if (0 == type.compare("sha256d")) {
             if (pb->GetBlockTime() < Params().PowUpdateTimestamp()) return 0;
@@ -110,7 +110,7 @@ static UniValue GetNetworkHashPS(int lookup, int height, std::string type) {
     while ((nCountBlocks < lookup) && (pb->nHeight > 1))
     {
         pb = pb->pprev;
-        if (0 == type.compare("PoS")) {
+        if (0 == type.compare("pos")) {
             if (pb->IsProofOfStake()) {
                 nCountBlocks++;
                 pbFirst = pb;
@@ -173,7 +173,7 @@ static UniValue getnetworkhashps(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. nblocks     (numeric, optional, default=120) The number of blocks, or -1 for blocks since last difficulty change.\n"
             "2. height      (numeric, optional, default=-1) To estimate at the time of the given height.\n"
-            "3. algo        (string, optional, default="+GetMiningType(GetMiningAlgorithm(), false, false)+") Algo to calculate [randomx, sha256d, progpow, xr16t, PoS].\n"
+            "3. algo        (string, optional, default="+GetMiningType(GetMiningAlgorithm(), false, false)+") Algo to calculate [randomx, sha256d, progpow, xr16t, pos].\n"
             "\nResult:\n"
             "x             (numeric) Hashes per second estimated\n"
             "\nExamples:\n"
@@ -187,7 +187,7 @@ static UniValue getnetworkhashps(const JSONRPCRequest& request)
         // Check if it's a mining algorithm
         if (!SetMiningAlgorithm(algo, false))
             // check that it's not one of the other two
-            if (algo.compare("PoS") && algo.compare("xr16t"))
+            if (algo.compare("pos") && algo.compare("xr16t"))
                 throw JSONRPCError(RPC_INVALID_PARAMETER,
                                    strprintf("%s is not a supported mining type", algo));
     }

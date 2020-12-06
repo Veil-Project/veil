@@ -25,6 +25,7 @@
 #include <shutdown.h>
 #include <timedata.h>
 #include <util.h>
+#include <miner.h>
 #include <utilmoneystr.h>
 #include <wallet/coincontrol.h>
 #include <wallet/feebumper.h>
@@ -4449,11 +4450,21 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() > 2) {
+    if (request.fHelp || request.params.size() > 3) {
         throw std::runtime_error(
-                "generatecontinuous (true|false) (threads)\n"
+                "generatecontinuous <activate> (threads) (override)\n"
                 "\nMine blocks continuously while the request is running.\n"
-                "\n(note for Randomx, any value under 4 will use 4 threads)\n"
+                "\nArguments:\n"
+                "1. activate        (boolean, required) Enable or disable mining\n"
+                "2. threads         (int, required) for enabling, number of threads\n"
+                "3. override        (boolean, optional) override thread warnings\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"success\": true|false,   (boolean) Status of the request\n"
+                "  \"algorithm\": \"string\",     (string) Algorithm being mined\n"
+                "  \"threads\": nnn,          (int) Number of threads being used\n"
+                "  \"message\": \"text\",         (string) Informational message\n"
+                "}\n"
                 "\nExamples:\n"
                 + HelpExampleCli("generatecontinuous", "true 4")
                 + HelpExampleRpc("generateoontinuous", "true, 4")
@@ -4470,12 +4481,17 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
     if (request.params.size() > 1)
         nThreads = request.params[1].get_int();
 
+    bool fOverride = false;
+    if (request.params.size() > 2)
+        fOverride = request.params[2].get_bool();
+
     std::shared_ptr<CReserveScript> coinbase_script;
     pwallet->GetScriptForMining(coinbase_script);
 
     // If the keypool is exhausted, no script is returned at all.  Catch this.
     if (!coinbase_script) {
-        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT,
+                           "Error: Keypool ran out, please call keypoolrefill first");
     }
 
     //throw an error if no script was provided
@@ -4483,7 +4499,46 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
     }
 
-    return generateBlocks(fGenerate, nThreads, coinbase_script);
+    int nAlgo = GetMiningAlgorithm();
+    std::string sAlgo = GetMiningType(nAlgo, false, false);
+    std:string sWarning = "";
+
+    if (fGenerate) {
+        if (GenerateActive())
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Mining already active");
+
+        int nCores = GetNumCores();
+        if ((nAlgo == MINE_SHA256D) && (nThreads > (nCores - 1)))
+            sWarning = strprintf("Available concurrent threads: %d, limit sha256d to max %d threads",
+                                 nCores, nCores-1);
+
+        if ((nAlgo == MINE_RANDOMX) && (nThreads < 4)) {
+            sWarning = "RandomX must be at least 4 threads";
+            // Note this changes the nThreads input, for accuracy of the result
+            // message, So this check needs to be below the threads check above
+            nThreads = 4;
+        }
+
+        if (!fOverride && sWarning.compare(""))
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Error: %s", sWarning.c_str()));
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("success", true);
+    result.pushKV("algorithm", sAlgo);
+    if (!fGenerate) {
+        result.pushKV("threads", 0);
+        result.pushKV("message", "Mining stopped");
+    } else {
+        result.pushKV("threads", nThreads);
+        if (sWarning.compare(""))
+            result.pushKV("message", strprintf("Warning: %s", sWarning.c_str()));
+        else
+            result.pushKV("message", "Mining started");
+    }
+
+    generateBlocks(fGenerate, nThreads, coinbase_script);
+    return result;
 }
 
 UniValue rescanblockchain(const JSONRPCRequest& request)
