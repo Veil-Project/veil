@@ -73,7 +73,7 @@ bool MnemonicWalletInit::Open() const
             return false;
         }
 
-        if (gArgs.GetBoolArg("-exchangesandservicesmode", false))
+        if (gArgs.GetBoolArg("-exchangesandservicesmode", false) || !gArgs.GetBoolArg("-staking",true))
             pwallet->SetStakingEnabled(false);
 
         AddWallet(pwallet);

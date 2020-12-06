@@ -988,6 +988,8 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
         tooltip += tr("Transactions after this will not yet be visible.");
     }
 
+    veilStatusBar->updateStakingCheckbox();
+
     // Don't word-wrap this (fixed-width) tooltip
     tooltip = QString("<nobr>") + tooltip + QString("</nobr>");
 
