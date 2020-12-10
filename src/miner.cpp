@@ -1211,8 +1211,6 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
     }
     fGenerateBitcoins = fGenerate;
 
-    SetMiningAlgorithm(gArgs.GetArg("-mine", RANDOMX_STRING));
-
     if (nThreads < 0) {
         // In regtest threads defaults to 1
         nThreads = 1;
@@ -1254,12 +1252,17 @@ int GetMiningAlgorithm() {
     return nMiningAlgorithm;
 }
 
-void SetMiningAlgorithm(const std::string& algo) {
-    if (algo == PROGPOW_STRING) {
-        nMiningAlgorithm = MINE_PROGPOW;
-    } else if (algo == SHA256D_STRING) {
-        nMiningAlgorithm = MINE_SHA256D;
-    } else {
-        nMiningAlgorithm = MINE_RANDOMX;
+bool SetMiningAlgorithm(const std::string& algo, bool fSet) {
+    int setAlgo = -1;
+
+    if (algo == PROGPOW_STRING)      setAlgo = MINE_PROGPOW;
+    else if (algo == SHA256D_STRING) setAlgo = MINE_SHA256D;
+    else if (algo == RANDOMX_STRING) setAlgo = MINE_RANDOMX;
+
+    if (setAlgo != -1) {
+        if (fSet) nMiningAlgorithm = setAlgo;
+        return true;
     }
+
+    return false;
 }

@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -33,8 +34,23 @@ enum {
     MINE_SHA256D = 2
 };
 
+static std::string GetMiningType(int nPoWType, bool fProofOfStake = false, bool block=true) {
+    if (block) {
+        if (fProofOfStake) return "PoS";
+        if (!nPoWType) return "X16RT";
+        if (nPoWType & CBlockHeader::SHA256D_BLOCK) return "Sha256d";
+        if (nPoWType & CBlockHeader::RANDOMX_BLOCK) return "RandomX";
+        if (nPoWType & CBlockHeader::PROGPOW_BLOCK) return "ProgPow";
+    } else {
+        if (MINE_RANDOMX == nPoWType) return RANDOMX_STRING;
+        if (MINE_PROGPOW == nPoWType) return PROGPOW_STRING;
+        if (MINE_SHA256D == nPoWType) return SHA256D_STRING;
+    }
+    return "Unknown";
+}
+
 int GetMiningAlgorithm();
-void SetMiningAlgorithm(const std::string& algo);
+bool SetMiningAlgorithm(const std::string& algo, bool fSet = true);
 
 // End Pow algorithm to use
 
