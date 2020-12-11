@@ -54,6 +54,11 @@ const char * RANDOMX_STRING = "randomx";
 
 int nMiningAlgorithm = MINE_RANDOMX;
 
+bool fGenerateActive = false;
+
+bool GenerateActive() { return fGenerateActive; };
+void setGenerate(bool fGenerate) { fGenerateActive = fGenerate; };
+
 std::map<uint256, int64_t>mapComputeTimeTransactions;
 
 // Unconfirmed transactions in the memory pool often depend on other
@@ -839,7 +844,6 @@ void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned
     pblock->hashWitnessMerkleRoot = BlockWitnessMerkleRoot(*pblock, &malleated);
 }
 
-bool fGenerateBitcoins = false;
 bool fMintableCoins = false;
 int nMintableLastCheck = 0;
 
@@ -859,7 +863,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
     enablewallet = !gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET);
 #endif
 
-    while (fGenerateBitcoins || (fProofOfStake && enablewallet))
+    while (GenerateActive() || (fProofOfStake && enablewallet))
     {
         boost::this_thread::interruption_point();
 #ifdef ENABLE_WALLET
@@ -941,8 +945,9 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         }
 #endif
 
-        if (fGenerateBitcoins && !fProofOfStake) {
-            // If the miner was turned on and we are in IsInitialBlockDownload(), sleep 60 seconds, before trying again
+        if (GenerateActive() && !fProofOfStake) {
+            // If the miner was turned on and we are in IsInitialBlockDownload(),
+            // sleep 60 seconds, before trying again
             if (IsInitialBlockDownload() && !gArgs.GetBoolArg("-genoverride", false)) {
                 MilliSleep(60000);
                 continue;
@@ -992,8 +997,9 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 }
                 pblock->mixHash = mix_hash;
             } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+                uint256 midStateHash = pblock->GetSha256dMidstate();
                 while (nTries < nInnerLoopCount &&
-                       !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits,
+                       !CheckProofOfWork(pblock->GetSha256D(midStateHash), pblock->nBits,
                                          Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK)) {
                     boost::this_thread::interruption_point();
                     ++nTries;
@@ -1037,14 +1043,14 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
     LogPrintf("Veil RandomX Miner started\n");
 
     unsigned int nExtraNonce = 0;
-    static const int nInnerLoopCount = 100000;
+    static const int nInnerLoopCount = RANDOMX_INNER_LOOP_COUNT;
     bool fBlockFoundAlready = false;
 
-    while (fGenerateBitcoins)
+    while (GenerateActive())
     {
         boost::this_thread::interruption_point();
 
-        if (fGenerateBitcoins) { // If the miner was turned on and we are in IsInitialBlockDownload(), sleep 60 seconds, before trying again
+        if (GenerateActive()) { // If the miner was turned on and we are in IsInitialBlockDownload(), sleep 60 seconds, before trying again
             if (IsInitialBlockDownload() && !gArgs.GetBoolArg("-genoverride", false)) {
                 MilliSleep(60000);
                 continue;
@@ -1124,18 +1130,22 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
             }
         }
 
-        if (fBlockFoundAlready) {
-            fBlockFoundAlready = false;
+        int32_t nTimeDuration = GetTime() - nTimeStart;
+        double nHashSpeed = 0;
+        if (!nTimeDuration) nTimeDuration = 1;
+        {
+            LOCK(cs_nonce);
+            nHashes += nTries;
+            nHashSpeed = arith_uint256(nHashes/nTimeDuration).getdouble();
+        }
+        LogPrint(BCLog::BLOCKCREATION, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__, nHashSpeed);
+
+        if (nTries == nInnerLoopCount) {
             continue;
         }
 
-        LOCK(cs_nonce);
-        nHashes += nTries;
-        int32_t nTimeDuration = GetTime() - nTimeStart;
-        if (!nTimeDuration) nTimeDuration = 1;
-        LogPrint(BCLog::BLOCKCREATION, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__,
-                 arith_uint256(nHashes/nTimeDuration).getdouble());
-        if (nTries == nInnerLoopCount) {
+        if (fBlockFoundAlready) {
+            fBlockFoundAlready = false;
             continue;
         }
 
@@ -1221,9 +1231,7 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
         error("%s: pthreadGroupPoW is null! Cannot mine.", __func__);
         return;
     }
-    fGenerateBitcoins = fGenerate;
-
-    SetMiningAlgorithm(gArgs.GetArg("-mine", RANDOMX_STRING));
+    setGenerate(fGenerate);
 
     if (nThreads < 0) {
         // In regtest threads defaults to 1
@@ -1266,12 +1274,17 @@ int GetMiningAlgorithm() {
     return nMiningAlgorithm;
 }
 
-void SetMiningAlgorithm(const std::string& algo) {
-    if (algo == PROGPOW_STRING) {
-        nMiningAlgorithm = MINE_PROGPOW;
-    } else if (algo == SHA256D_STRING) {
-        nMiningAlgorithm = MINE_SHA256D;
-    } else {
-        nMiningAlgorithm = MINE_RANDOMX;
+bool SetMiningAlgorithm(const std::string& algo, bool fSet) {
+    int setAlgo = -1;
+
+    if (algo == PROGPOW_STRING)      setAlgo = MINE_PROGPOW;
+    else if (algo == SHA256D_STRING) setAlgo = MINE_SHA256D;
+    else if (algo == RANDOMX_STRING) setAlgo = MINE_RANDOMX;
+
+    if (setAlgo != -1) {
+        if (fSet) nMiningAlgorithm = setAlgo;
+        return true;
     }
+
+    return false;
 }

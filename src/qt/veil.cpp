@@ -720,6 +720,15 @@ int main(int argc, char *argv[])
     }
 #endif
 
+    // Check for mine algo to be valid
+    std::string sAlgo = gArgs.GetArg("-mine", RANDOMX_STRING);
+    if (!SetMiningAlgorithm(sAlgo))
+    {
+        error = "invalid mining algorithm: " + sAlgo;
+        QMessageBox::critical(0, QObject::tr(PACKAGE_NAME),
+            QObject::tr("Error parsing command line arguments: %1.").arg(QString::fromStdString(error)));
+        return EXIT_FAILURE;
+    }
     // Check for miningaddress (has to be after we setup the parameters
     std::string sAddress = gArgs.GetArg("-miningaddress", "");
     if (!sAddress.empty()) {

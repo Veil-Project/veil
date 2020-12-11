@@ -6,11 +6,13 @@
 #define VEILSTATUSBAR_H
 
 #include <QWidget>
+#include <QDateTime>
 #include <miner.h>
 #include "unlockpassworddialog.h"
 
 class BitcoinGUI;
 class WalletModel;
+class ClientModel;
 class QPushButton;
 
 namespace Ui {
@@ -31,7 +33,9 @@ public:
     void setSyncStatusVisible(bool fVisible);
 #ifdef ENABLE_WALLET
     void setWalletModel(WalletModel *model);
+    void setClientModel(ClientModel *clientModel);
     void updateStakingCheckbox();
+    void setNumBlocks(const QDateTime& blockDate);
 #endif
 
 private Q_SLOTS:
@@ -46,6 +50,7 @@ private:
     Ui::VeilStatusBar *ui;
     BitcoinGUI* mainWindow;
     WalletModel *walletModel = nullptr;
+    ClientModel *clientModel = nullptr;
     UnlockPasswordDialog *unlockPasswordDialog = nullptr;
 
     bool preparingFlag = false;

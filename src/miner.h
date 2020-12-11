@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -33,14 +34,33 @@ enum {
     MINE_SHA256D = 2
 };
 
+static std::string GetMiningType(int nPoWType, bool fProofOfStake = false, bool block=true) {
+    if (block) {
+        if (fProofOfStake) return "PoS";
+        if (!nPoWType) return "X16RT";
+        if (nPoWType & CBlockHeader::SHA256D_BLOCK) return "Sha256d";
+        if (nPoWType & CBlockHeader::RANDOMX_BLOCK) return "RandomX";
+        if (nPoWType & CBlockHeader::PROGPOW_BLOCK) return "ProgPow";
+    } else {
+        if (MINE_RANDOMX == nPoWType) return RANDOMX_STRING;
+        if (MINE_PROGPOW == nPoWType) return PROGPOW_STRING;
+        if (MINE_SHA256D == nPoWType) return SHA256D_STRING;
+    }
+    return "Unknown";
+}
+
 int GetMiningAlgorithm();
-void SetMiningAlgorithm(const std::string& algo);
+bool SetMiningAlgorithm(const std::string& algo, bool fSet = true);
 
 // End Pow algorithm to use
 
 namespace Consensus { struct Params; };
 
 static const bool DEFAULT_PRINTPRIORITY = false;
+
+// This is used for both the nonce separation and the loop count, so
+// make it a constant used by both to maintain their synchronization
+static const uint32_t RANDOMX_INNER_LOOP_COUNT = 100000;
 
 enum TemplateFlags
 {
@@ -220,6 +240,9 @@ private:
       * of updated descendants. */
     int UpdatePackagesForAdded(const CTxMemPool::setEntries& alreadyAdded, indexed_modified_transaction_set &mapModifiedTx) EXCLUSIVE_LOCKS_REQUIRED(mempool.cs);
 };
+
+bool GenerateActive();
+void setGenerate(bool fGenerate);
 
 /** Modify the extranonce in a block */
 void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
