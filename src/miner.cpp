@@ -843,6 +843,20 @@ CCriticalSection cs_nonce;
 static int32_t nNonce_base = 0;
 static arith_uint256 nHashes = 0;
 static int32_t nTimeStart = 0;
+static int32_t nTimeDuration = 0;
+
+double GetHashSpeed() {
+    LOCK(cs_nonce);
+    if (!nTimeDuration) return 0;
+    return arith_uint256(nHashes/nTimeDuration).getdouble();
+}
+
+void ClearHashSpeed() {
+    LOCK(cs_nonce);
+    nHashes = 0;
+    nTimeStart = 0;
+    nTimeDuration = 0;
+}
 
 void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false, bool fProofOfFullNode = false) {
     LogPrintf("Veil Miner started\n");
@@ -1001,12 +1015,16 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 return;
             }
 
-            LOCK(cs_nonce);
-            nHashes += nTries;
-            int32_t nTimeDuration = GetTime() - nTimeStart;
-            if (!nTimeDuration) nTimeDuration = 1;
-            LogPrint(BCLog::BLOCKCREATION, "%s: PoW Hashspeed %d kh/s\n", __func__,
-                     arith_uint256(nHashes/1000/nTimeDuration).getdouble());
+            double nHashSpeed = 0;
+            {
+                LOCK(cs_nonce);
+                nHashes += nTries;
+                nTimeDuration = GetTime() - nTimeStart;
+                if (!nTimeDuration) nTimeDuration = 1;
+                nHashSpeed = arith_uint256(nHashes/1000/nTimeDuration).getdouble();
+            }
+            LogPrint(BCLog::BLOCKCREATION, "%s: PoW Hashspeed %d kh/s\n", __func__, nHashSpeed);
+
             if (nTries == nInnerLoopCount) {
                 continue;
             }
@@ -1114,13 +1132,15 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
             }
         }
 
-        int32_t nTimeDuration = GetTime() - nTimeStart;
         double nHashSpeed = 0;
-        if (!nTimeDuration) nTimeDuration = 1;
         {
             LOCK(cs_nonce);
-            nHashes += nTries;
-            nHashSpeed = arith_uint256(nHashes/nTimeDuration).getdouble();
+            nTimeDuration = GetTime() - nTimeStart;
+            if (!nTimeDuration) nTimeDuration = 1;
+            {
+                nHashes += nTries;
+                nHashSpeed = arith_uint256(nHashes/nTimeDuration).getdouble();
+            }
         }
         LogPrint(BCLog::BLOCKCREATION, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__, nHashSpeed);
 

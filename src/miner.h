@@ -49,6 +49,8 @@ static std::string GetMiningType(int nPoWType, bool fProofOfStake = false, bool 
     return "Unknown";
 }
 
+double GetHashSpeed();
+void ClearHashSpeed();
 int GetMiningAlgorithm();
 bool SetMiningAlgorithm(const std::string& algo, bool fSet = true);
 
