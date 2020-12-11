@@ -1,6 +1,6 @@
 
 // Copyright (c) 2009-2018 The Bitcoin Core developers
-// Copyright (c) 2018-2019 The Veil developers
+// Copyright (c) 2018-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -5077,7 +5077,7 @@ void CWallet::AutoZeromint()
 
         // Return if something went wrong during minting
         if (strError != ""){
-            LogPrintf("CWallet::AutoZeromint(): auto minting failed with error: %s\n", strError);
+            LogPrintf("%s: auto minting failed with error: %s\n", __func__, strError);
             return;
         }
         nZerocoinBalance = GetZerocoinBalance(false);
@@ -5883,7 +5883,7 @@ string CWallet::MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std:
 
     if (!coinControl->HasSelected()) {
         string strError = _("Error: No valid utxo!");
-        LogPrintf("MintZerocoin() : %s", strError.c_str());
+        LogPrintf("%s: %s\n", __func__, strError.c_str());
         return strError;
     }
 
@@ -5925,7 +5925,7 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
 
     if (IsLocked() || IsUnlockedForStakingOnly()) {
         string strError = _("Error: Wallet locked, unable to create transaction!");
-        LogPrintf("MintZerocoin() : %s", strError.c_str());
+        LogPrintf("%s: %s\n", __func__, strError.c_str());
         return strError;
     }
 

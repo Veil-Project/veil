@@ -14,6 +14,7 @@
 #include <fs.h>
 #include <rpc/server.h>
 #include <init.h>
+#include <miner.h>
 #include <noui.h>
 #include <shutdown.h>
 #include <util.h>
@@ -134,6 +135,12 @@ static bool AppInit(int argc, char* argv[])
         if (!AppInitSanityChecks())
         {
             // InitError will have been called with detailed error, which ends up on console
+            return false;
+        }
+        std::string sAlgo = gArgs.GetArg("-mine", RANDOMX_STRING);
+        if (!SetMiningAlgorithm(sAlgo))
+        {
+            fprintf(stderr, "Error: Invalid mining algorithm: %s\n", sAlgo.c_str());
             return false;
         }
         std::string sAddress = gArgs.GetArg("-miningaddress", "");

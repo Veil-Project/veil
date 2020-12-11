@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -105,6 +106,10 @@ const CBlockIndex* CBlockIndex::GetAncestor(int height) const
             pindexWalk = pindexWalk->pskip;
             heightWalk = heightSkip;
         } else {
+            if (!pindexWalk->pprev) {
+                LogPrintf("%s: pindexWalk failed:  Hash: %s, Current Height: %d, Working Height: %d\n",
+                          __func__, pindexWalk->phashBlock->GetHex(), height, nHeight);
+            }
             assert(pindexWalk->pprev);
             pindexWalk = pindexWalk->pprev;
             heightWalk--;

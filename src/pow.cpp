@@ -21,15 +21,6 @@
 #include <validation.h>
 #include <chainparams.h>
 
-std::string GetType(int nPoWType, bool fProofOfStake) {
-    if (fProofOfStake) return "PoS";
-    if (!nPoWType) return "X16RT";
-    if (nPoWType & CBlockHeader::SHA256D_BLOCK) return "Sha256d";
-    if (nPoWType & CBlockHeader::RANDOMX_BLOCK) return "RandomX";
-    if (nPoWType & CBlockHeader::PROGPOW_BLOCK) return "ProgPow";
-    return "Unknown";
-}
-
 // TODO, build an class object that holds this data
 // Used by CPU miner for randomx
 CCriticalSection cs_randomx_mining;
@@ -341,7 +332,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         LogPrint(BCLog::BLOCKCREATION,
                  "%s: Blocks Measured=%d, PoS Blocks=%d, ActualPoWBlocks=%d, ExpectedPoWBlocks=%d, nPosSpacing=%d Overdue=%d (%s)\n",
                  __func__, nBlocksMeasured, nCountBlocks, nBlocksPoW, nBlocksIntended,
-                 nPosSpacing, nOverdueTime, GetType(nPoWType, fProofOfStake).c_str());
+                 nPosSpacing, nOverdueTime, GetMiningType(nPoWType, fProofOfStake).c_str());
     } else {
         // In the case of fProofOfStake, the actual timespan already runs to the tip, so
         // we're not going to add in the time from last of the proof to tip.
@@ -352,7 +343,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
     }
 
     LogPrint(BCLog::BLOCKCREATION, "%s: nActualTimespan=%d, nTargetTimespan=%d Overdue=%d (%s)\n", __func__,
-             nActualTimespan, nTargetTimespan, nOverdueTime, GetType(nPoWType, fProofOfStake).c_str());
+             nActualTimespan, nTargetTimespan, nOverdueTime, GetMiningType(nPoWType, fProofOfStake).c_str());
     // ***
     // Make sure we don't overadjust
 
@@ -360,20 +351,20 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         // if we're ahead and adjusting, we might already be where we need
         // to be.  Don't make it more difficult if we're already overdue.
         LogPrint(BCLog::BLOCKCREATION, "%s: %s is ahead but now overdue, don't adjust anymore.\n",
-                 __func__, GetType(nPoWType, fProofOfStake).c_str());
+                 __func__, GetMiningType(nPoWType, fProofOfStake).c_str());
         return bnNew.GetCompact();
     }
 
     if ((nActualTimespan > nTargetTimespan) && (nOverdueTime <= 0)) {
         // if we're behind, and we're not overdue, we might be where we need to be
         LogPrint(BCLog::BLOCKCREATION, "%s: %s is behind but moving don't adjust anymore.\n",
-            __func__, GetType(nPoWType, fProofOfStake).c_str());
+            __func__, GetMiningType(nPoWType, fProofOfStake).c_str());
         return bnNew.GetCompact();
     }
     // ***
 
     LogPrint(BCLog::BLOCKCREATION, "%s: Adjusting %s: old target: %s\n",
-             __func__, GetType(nPoWType, fProofOfStake).c_str(), bnNew.GetHex());
+             __func__, GetMiningType(nPoWType, fProofOfStake).c_str(), bnNew.GetHex());
 
     arith_uint256 bnOld(bnNew); // Save the old target
 
@@ -389,12 +380,12 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         // If we should be reducing the difficulty, and the target has gone down, we've overflowed.
         LogPrint(BCLog::BLOCKCREATION, "%s: Multiplier %.4f for %s overflowed.  Setting Min Difficulty.\n",
                  __func__, (double) ((double)nActualTimespan / (double)nTargetTimespan),
-                 GetType(nPoWType, fProofOfStake).c_str());
+                 GetMiningType(nPoWType, fProofOfStake).c_str());
         bnNew = bnPowLimit;
     }
 
     LogPrint(BCLog::BLOCKCREATION, "%s: Adjusting %s: new target: %s\n",
-             __func__, GetType(nPoWType, fProofOfStake).c_str(), bnNew.GetHex());
+             __func__, GetMiningType(nPoWType, fProofOfStake).c_str(), bnNew.GetHex());
     return bnNew.GetCompact();
 }
 

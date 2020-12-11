@@ -58,38 +58,104 @@ unsigned int ParseConfirmTarget(const UniValue& value)
  * or from the last difficulty change if 'lookup' is nonpositive.
  * If 'height' is nonnegative, compute the estimate at the time when a given block was found.
  */
-static UniValue GetNetworkHashPS(int lookup, int height) {
+static UniValue GetNetworkHashPS(int lookup, int height, std::string type) {
     CBlockIndex *pb = chainActive.Tip();
 
     if (height >= 0 && height < chainActive.Height())
         pb = chainActive[height];
 
+    // if after fork, set pb to fork height unless specifying pos or x16rt
+
     if (pb == nullptr || !pb->nHeight)
         return 0;
 
     // If lookup is -1, then use blocks since last difficulty change.
-    if (lookup <= 0)
-        lookup = 1;
+    if (lookup <= 1)
+        lookup = 2;
 
-    // If lookup is larger than chain, then set it to chain length.
-    if (lookup > pb->nHeight)
-        lookup = pb->nHeight;
-
-    CBlockIndex *pb0 = pb;
-    int64_t minTime = pb0->GetBlockTime();
-    int64_t maxTime = minTime;
-    for (int i = 0; i < lookup; i++) {
-        pb0 = pb0->pprev;
-        int64_t time = pb0->GetBlockTime();
-        minTime = std::min(time, minTime);
-        maxTime = std::max(time, maxTime);
+    CBlockIndex *pbLast = pb;
+    CBlockIndex *pbFirst = nullptr;
+    bool found = false;
+    while (pb->nHeight > 0)
+    {
+        // find the last of the algo
+        if (0 == type.compare("pos")) {
+            if (pb->IsProofOfStake()) found=true;
+        } else if (0 == type.compare("sha256d")) {
+            if (pb->GetBlockTime() < Params().PowUpdateTimestamp()) return 0;
+            if (pb->IsSha256DProofOfWork()) found=true;
+        } else if (0 == type.compare("randomx")) {
+            if (pb->GetBlockTime() < Params().PowUpdateTimestamp()) return 0;
+            if (pb->IsRandomXProofOfWork()) found=true;
+        } else if (0 == type.compare("progpow")) {
+            if (pb->GetBlockTime() < Params().PowUpdateTimestamp()) return 0;
+            if (pb->IsProgProofOfWork()) found=true;
+        } else if (0 == type.compare("xr16t")) {
+            if (pb->IsX16RTProofOfWork()) found=true;
+        } else {
+            // Unknown Algo
+            return 0;
+        }
+        if (found) {
+            pbLast = pb;
+            break;
+        }
+        pb = pb->pprev;
     }
+
+    if (!found) return 0;
+
+    // find the nth previous
+    uint32_t nCountBlocks = 1;
+    while ((nCountBlocks < lookup) && (pb->nHeight > 1))
+    {
+        pb = pb->pprev;
+        if (0 == type.compare("pos")) {
+            if (pb->IsProofOfStake()) {
+                nCountBlocks++;
+                pbFirst = pb;
+            }
+        } else if (0 == type.compare("sha256d")) {
+            if (pb->IsSha256DProofOfWork()) {
+                nCountBlocks++;
+                pbFirst = pb;
+            }
+        } else if (0 == type.compare("randomx")) {
+            if (pb->IsRandomXProofOfWork()) {
+                nCountBlocks++;
+                pbFirst = pb;
+            }
+        } else if (0 == type.compare("progpow")) {
+            if (pb->IsProgProofOfWork()) {
+                nCountBlocks++;
+                pbFirst = pb;
+            }
+        } else { // xr16rt
+            if (pb->IsX16RTProofOfWork()) {
+                nCountBlocks++;
+                pbFirst = pb;
+            }
+        }
+        // Check if we should continue
+        if (((0 != type.compare("sha256d")) || (0 != type.compare("randomx")) || (0 != type.compare("progpow"))) &&
+            (pb->GetBlockTime() < Params().PowUpdateTimestamp()))
+        {
+            // Don't keep searching, abort now
+            break;
+        }
+    }
+
+    // only one was found
+    if (!pbFirst || !pbLast || (pbFirst == pbLast)) return 0;
+
+    int64_t minTime = pbFirst->GetBlockTime();
+    int64_t maxTime = pbLast->GetBlockTime();
 
     // In case there's a situation where minTime == maxTime, we don't want a divide by zero exception.
     if (minTime == maxTime)
         return 0;
 
-    arith_uint256 workDiff = pb->nChainWork - pb0->nChainWork;
+    arith_uint256 workDiff = pbLast->nChainWork - pbFirst->nChainWork;
     int64_t timeDiff = maxTime - minTime;
 
     return workDiff.getdouble() / timeDiff;
@@ -97,15 +163,17 @@ static UniValue GetNetworkHashPS(int lookup, int height) {
 
 static UniValue getnetworkhashps(const JSONRPCRequest& request)
 {
-    if (request.fHelp || request.params.size() > 2)
+    if (request.fHelp || request.params.size() > 3)
         throw std::runtime_error(
-            "getnetworkhashps ( nblocks height )\n"
+            "getnetworkhashps ( nblocks height algo )\n"
             "\nReturns the estimated network hashes per second based on the last n blocks.\n"
             "Pass in [blocks] to override # of blocks, -1 specifies since last difficulty change.\n"
-            "Pass in [height] to estimate the network speed at the time when a certain block was found.\n"
+            "Pass in [height] to estimate the network hash at the time when a certain block was found.\n"
+            "Pass in [algo] to estimate the network hash for a different algo then your wallet is set to.\n"
             "\nArguments:\n"
             "1. nblocks     (numeric, optional, default=120) The number of blocks, or -1 for blocks since last difficulty change.\n"
             "2. height      (numeric, optional, default=-1) To estimate at the time of the given height.\n"
+            "3. algo        (string, optional, default="+GetMiningType(GetMiningAlgorithm(), false, false)+") Algo to calculate [randomx, sha256d, progpow, xr16t, pos].\n"
             "\nResult:\n"
             "x             (numeric) Hashes per second estimated\n"
             "\nExamples:\n"
@@ -113,8 +181,21 @@ static UniValue getnetworkhashps(const JSONRPCRequest& request)
             + HelpExampleRpc("getnetworkhashps", "")
        );
 
-    LOCK(cs_main);
-    return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 120, !request.params[1].isNull() ? request.params[1].get_int() : -1);
+
+    if (!(request.params[2].isNull())) {
+        std::string algo = request.params[2].get_str();
+        // Check if it's a mining algorithm
+        if (!SetMiningAlgorithm(algo, false))
+            // check that it's not one of the other two
+            if (algo.compare("pos") && algo.compare("xr16t"))
+                throw JSONRPCError(RPC_INVALID_PARAMETER,
+                                   strprintf("%s is not a supported mining type", algo));
+    }
+
+    return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 120,
+                            !request.params[1].isNull() ? request.params[1].get_int() : -1,
+                            !request.params[2].isNull() ? request.params[2].get_str()
+                                                        : GetMiningType(GetMiningAlgorithm(), false, false));
 }
 
 UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript)
@@ -265,6 +346,7 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
             "  \"blocks\": nnn,             (numeric) The current block\n"
             "  \"currentblockweight\": nnn, (numeric) The last block weight\n"
             "  \"currentblocktx\": nnn,     (numeric) The last block transaction\n"
+            "  \"algorithm\": \"xxxx\",        (string) Algorithm set to mine (progpow, randomx, sha256d)\n"
             "  \"difficulty\": xxx.xxxxx    (numeric) The current difficulty\n"
             "  \"networkhashps\": nnn,      (numeric) The network hashes per second\n"
             "  \"pooledtx\": n              (numeric) The size of the mempool\n"
@@ -276,14 +358,26 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
             + HelpExampleRpc("getmininginfo", "")
         );
 
+    const Consensus::Params& ConsensusParams = Params().GetConsensus();
+    int nAlgo = GetMiningAlgorithm();
+    std::string sMiningAlgo = GetMiningType(nAlgo, false, false);
+
+    int nBlockType = CBlock::RANDOMX_BLOCK;
+    if (nAlgo == MINE_PROGPOW) nBlockType = CBlock::PROGPOW_BLOCK;
+    else if (nAlgo == MINE_SHA256D) nBlockType = CBlock::SHA256D_BLOCK;
 
     LOCK(cs_main);
 
     UniValue obj(UniValue::VOBJ);
+
+    double nDiff = GetDifficulty(GetNextWorkRequired(chainActive.Tip(), nullptr, ConsensusParams,
+                                                     false, nBlockType));
+
     obj.pushKV("blocks",           (int)chainActive.Height());
     obj.pushKV("currentblockweight", (uint64_t)nLastBlockWeight);
     obj.pushKV("currentblocktx",   (uint64_t)nLastBlockTx);
-    obj.pushKV("difficulty",       (double)GetDifficulty(chainActive.Tip()));
+    obj.pushKV("algorithm",        sMiningAlgo);
+    obj.pushKV("difficulty",       (double)nDiff);
     obj.pushKV("networkhashps",    getnetworkhashps(request));
     obj.pushKV("pooledtx",         (uint64_t)mempool.size());
     obj.pushKV("chain",            Params().NetworkIDString());
@@ -291,6 +385,39 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
     return obj;
 }
 
+static UniValue setminingalgo(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+            "setminingalgo algorithm\n"
+            "\nChanges your mining algorithm to [algorithm].  Note that mining must be turned off when command is used.\n"
+            "\nArguments:\n"
+            "1. algorithm   (string, required) Algorithm to mine [progpow, randomx, sha256d].\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"success\": true|false, (boolean) Status of the switch\n"
+            "  \"message\": \"text\",     (text) Informational message about the switch\n"
+            "}\n"
+            "\nExamples:\n"
+            + HelpExampleCli("setminingalgo", "sha256d")
+            + HelpExampleRpc("setminingalgo", "sha256d")
+       );
+
+    if (GenerateActive())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "mining must be stopped to change algorithm");
+
+    std::string sOldAlgo = GetMiningType(GetMiningAlgorithm(), false, false);
+    std::string sNewAlgo = request.params[0].get_str();
+    // Check if it's a mining algorithm
+    if (!SetMiningAlgorithm(sNewAlgo)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s is not a supported mining type", sNewAlgo));
+    }
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("success", true);
+    result.pushKV("message", strprintf("Mining algorithm changed from %s to %s", sOldAlgo, sNewAlgo));
+    return result;
+
+}
 
 // NOTE: Unlike wallet RPC (which use VEIL values), mining RPCs follow GBT (BIP 22) in using satoshi amounts
 static UniValue prioritisetransaction(const JSONRPCRequest& request)
@@ -1153,20 +1280,19 @@ static UniValue estimaterawfee(const JSONRPCRequest& request)
 static const CRPCCommand commands[] =
 { //  category              name                      actor (function)         argNames
   //  --------------------- ------------------------  -----------------------  ----------
-    { "mining",             "getnetworkhashps",       &getnetworkhashps,       {"nblocks","height"} },
-    { "mining",             "getmininginfo",          &getmininginfo,          {} },
-    { "mining",             "prioritisetransaction",  &prioritisetransaction,  {"txid","dummy","fee_delta"} },
     { "mining",             "getblocktemplate",       &getblocktemplate,       {"template_request"} },
-    { "mining",             "submitblock",            &submitblock,            {"hexdata","dummy"} },
+    { "mining",             "getmininginfo",          &getmininginfo,          {} },
+    { "mining",             "getnetworkhashps",       &getnetworkhashps,       {"nblocks","height","algo"} },
+    { "mining",             "prioritisetransaction",  &prioritisetransaction,  {"txid","dummy","fee_delta"} },
     { "mining",             "pprpcsb",                &pprpcsb,                {"header_hash", "mix_hash", "nonce"} },
-
+    { "mining",             "setminingalgo",          &setminingalgo,          {"algo"} },
+    { "mining",             "submitblock",            &submitblock,            {"hexdata","dummy"} },
 
     { "generating",         "generatetoaddress",      &generatetoaddress,      {"nblocks","address","maxtries"} },
+
     { "hidden",             "estimatefee",            &estimatefee,            {} },
-
-    { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },
-
     { "hidden",             "estimaterawfee",         &estimaterawfee,         {"conf_target", "threshold"} },
+    { "util",               "estimatesmartfee",       &estimatesmartfee,       {"conf_target", "estimate_mode"} },
 };
 
 void RegisterMiningRPCCommands(CRPCTable &t)

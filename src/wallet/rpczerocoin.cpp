@@ -1,5 +1,5 @@
 // Copyright (c) 2015-2019 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -579,8 +579,6 @@ UniValue listzerocoinamounts(const JSONRPCRequest& request)
                 HelpExampleCli("listzerocoinamounts", "") + HelpExampleRpc("listzerocoinamounts", ""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
-
-    EnsureWalletIsUnlocked(pwallet);
 
     std::pair<ZerocoinSpread, ZerocoinSpread> pZerocoinDist = pwallet->GetMyZerocoinDistribution();
     UniValue ret(UniValue::VARR);
