@@ -52,8 +52,13 @@ private:
     WalletModel *walletModel = nullptr;
     ClientModel *clientModel = nullptr;
     UnlockPasswordDialog *unlockPasswordDialog = nullptr;
+#ifdef ENABLE_WALLET
+    void setStakingText();
+#endif
 
     bool preparingFlag = false;
+    bool syncFlag = true;
+    static const int64_t ACTIVE_STAKING_MAX_TIME = 70;
 };
 
 #endif // VEILSTATUSBAR_H

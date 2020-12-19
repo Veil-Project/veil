@@ -10,6 +10,7 @@
 #include <qt/walletmodel.h>
 #include <qt/veil/qtutils.h>
 #include <iostream>
+#include <timedata.h>
 #ifdef ENABLE_WALLET
 #include <wallet/wallet.h> // For DEFAULT_DISABLE_WALLET
 #endif
@@ -51,6 +52,7 @@ void VeilStatusBar::updateSyncIndicator(int height){
 
 void VeilStatusBar::setSyncStatusVisible(bool fVisible) {
     ui->btnSync->setVisible(fVisible);
+    syncFlag = fVisible;
 }
 
 void VeilStatusBar::onBtnSyncClicked(){
@@ -59,6 +61,52 @@ void VeilStatusBar::onBtnSyncClicked(){
 
 #ifdef ENABLE_WALLET
 bool fBlockNextStakeCheckSignal = false;
+void VeilStatusBar::setStakingText() {
+
+    // Determine if staking is recently active. Note that this is not immediate effect. Staking could be disabled and it could take some time (activeStakingMaxTime) update state.
+    int64_t nTimeLastHashing = 0;
+    if (!mapHashedBlocks.empty()) {
+        auto pindexBest = chainActive.Tip();
+        if (mapHashedBlocks.count(pindexBest->GetBlockHash())) {
+            nTimeLastHashing = mapHashedBlocks.at(pindexBest->GetBlockHash());
+        } else if (mapHashedBlocks.count(pindexBest->pprev->GetBlockHash())) {
+            nTimeLastHashing = mapHashedBlocks.at(pindexBest->pprev->GetBlockHash());
+        }
+    }
+    bool fStakingActive = false;
+    if (nTimeLastHashing)
+        fStakingActive = GetAdjustedTime() + MAX_FUTURE_BLOCK_TIME - nTimeLastHashing < ACTIVE_STAKING_MAX_TIME;
+	
+    WalletModel::EncryptionStatus eStatus = this->walletModel->getEncryptionStatus();
+
+    if (syncFlag){
+	ui->checkStaking->setText("Staking Disabled while Syncing");
+    }else if (WalletModel::Locked == eStatus) {
+        ui->checkStaking->setText("Unlock wallet for Staking");
+    }else if (this->walletModel->isStakingEnabled()) {
+	if (fStakingActive) {
+            ui->checkStaking->setText("Staking Enabled");
+	}else{
+
+            interfaces::Wallet& wallet = walletModel->wallet();
+            interfaces::WalletBalances balances = wallet.getBalances();
+            int64_t zerocoin_balance = balances.zerocoin_balance;
+
+	    if (0.0 < zerocoin_balance) {
+                ui->checkStaking->setText("Enabling...");
+            }else{
+                ui->checkStaking->setText("You need some zerocoin");
+            }
+	}
+    }else{
+	if (fStakingActive) {
+	    ui->checkStaking->setText("Disabling...");
+	}else{
+	    ui->checkStaking->setText("Staking Disabled");
+	}
+    }
+}
+
 void VeilStatusBar::onCheckStakingClicked(bool res) {
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
         return;
@@ -77,16 +125,19 @@ void VeilStatusBar::onCheckStakingClicked(bool res) {
             openToastDialog(dialogMsg, mainWindow);
             fBlockNextStakeCheckSignal = true;
             ui->checkStaking->setChecked(false);
+            setStakingText();
             return;
         }else{
             this->walletModel->setStakingEnabled(true);
             mainWindow->updateWalletStatus();
             openToastDialog("Staking enabled", mainWindow);
+            setStakingText();
         }
     } else {
         this->walletModel->setStakingEnabled(false);
         mainWindow->updateWalletStatus();
-        openToastDialog("Staking disabled", mainWindow);
+        openToastDialog("Staking disabled - this may a few minutes", mainWindow);
+        setStakingText();
     }
 
 }
@@ -192,11 +243,15 @@ void VeilStatusBar::updateStakingCheckbox()
 
     if(walletModel) {
         WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
-        bool stakingStatus = walletModel->isStakingEnabled() && lockState != WalletModel::Locked;
+
+	ui->checkStaking->setEnabled(!syncFlag);
+        setStakingText();
+
+	bool stakingStatus = walletModel->isStakingEnabled() && lockState != WalletModel::Locked && !syncFlag;
         if (ui->checkStaking->isChecked() != stakingStatus) {
             fBlockNextStakeCheckSignal = true;
             ui->checkStaking->setChecked(stakingStatus);
-            return;
+	    return;
         }
     }
 }
