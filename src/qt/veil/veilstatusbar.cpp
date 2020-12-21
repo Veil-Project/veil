@@ -136,7 +136,7 @@ void VeilStatusBar::onCheckStakingClicked(bool res) {
     } else {
         this->walletModel->setStakingEnabled(false);
         mainWindow->updateWalletStatus();
-        openToastDialog("Staking disabled - this may a few minutes", mainWindow);
+        openToastDialog("Staking disabled - this may take a few minutes", mainWindow);
         setStakingText();
     }
 
