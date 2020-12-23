@@ -42,6 +42,7 @@
 #include <crypto/hash-ops.h>
 
 std::map<std::string, CBlock> mapProgPowTemplates;
+std::map<std::string, CBlock> mapSha256dTemplates;
 
 unsigned int ParseConfirmTarget(const UniValue& value)
 {
@@ -555,10 +556,11 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             "  \"sizelimit\" : n,                  (numeric) limit of block size\n"
             "  \"weightlimit\" : n,                (numeric) limit of block weight\n"
             "  \"curtime\" : ttt,                  (numeric) current timestamp in seconds since epoch (Jan 1 1970 GMT)\n"
-            "  \"bits\" : \"xxxxxxxx\",              (string) compressed target of next block\n"
+            "  \"bits\" : \"xxxxxxxx\",            (string) compressed target of next block\n"
             "  \"height\" : n                      (numeric) The height of the next block\n"
             "  \"pprpcheader\" : \"xxxx\"          (string) The header hash that can be used by the local GPU miner to mine a block (using -miningaddress) as the destination for the coinbase tx\n"
             "  \"pprpcepoch\" : n                  (numeric) The epoch of the progpow pprpcheader given to user to be used by the local GPU miner\n"
+	    "  \"sha256drpcheader\" : \"xxxx\"     (string) The header hash that can be used by the local SHA miner to mine a block (using -miningaddress) as the destination for the coinbase tx\n"
             "}\n"
 
             "\nExamples:\n"
@@ -921,6 +923,23 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             lastheader = pblock->GetProgPowHeaderHash().GetHex();
         }
     }
+
+   if (pblock->IsSha256D()) {
+	std::string address = gArgs.GetArg("-miningaddress", "");
+	if (IsValidDestinationString(address)) {
+		static std::string lastheader = "";
+		if (mapSha256dTemplates.count(lastheader)) {
+			if (pblock->nTime - 60 < mapSha256dTemplates.at(lastheader).nTime) {
+				result.pushKV("sha256drpcheader", lastheader);
+				return result;
+			}
+		}
+
+		result.pushKV("sha256drpcheader", pblock->GetSha256DPoWHash().GetHex());
+		mapSha256dTemplates[pblock->GetSha256DPoWHash().GetHex()] = *pblock;
+		lastheader = pblock->GetSha256DPoWHash().GetHex();
+	}
+   }
 
     return result;
 }
