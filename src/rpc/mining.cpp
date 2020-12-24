@@ -43,6 +43,7 @@
 
 std::map<std::string, CBlock> mapProgPowTemplates;
 std::map<std::string, CBlock> mapSha256dTemplates;
+std::map<std::string, CBlock> mapRandomXTemplates;
 
 unsigned int ParseConfirmTarget(const UniValue& value)
 {
@@ -560,7 +561,8 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             "  \"height\" : n                      (numeric) The height of the next block\n"
             "  \"pprpcheader\" : \"xxxx\"          (string) The header hash that can be used by the local GPU miner to mine a block (using -miningaddress) as the destination for the coinbase tx\n"
             "  \"pprpcepoch\" : n                  (numeric) The epoch of the progpow pprpcheader given to user to be used by the local GPU miner\n"
-	    "  \"sha256drpcheader\" : \"xxxx\"     (string) The header hash that can be used by the local SHA miner to mine a block (using -miningaddress) as the destination for the coinbase tx\n"
+            "  \"randomxrpcheader\" : \"xxxx\"     (string) The header hash that can be used by the local RandomX miner to mine a block (using -miningaddress) as the destination for the coinbase tx\n"
+	        "  \"sha256drpcheader\" : \"xxxx\"     (string) The header hash that can be used by the local SHA miner to mine a block (using -miningaddress) as the destination for the coinbase tx\n"
             "}\n"
 
             "\nExamples:\n"
@@ -712,6 +714,8 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
         // Clear pindexPrev so future calls make a new block, despite any failures from here on
         pindexPrev = nullptr;
         mapProgPowTemplates.clear();
+        mapSha256dTemplates.clear();
+        mapRandomXTemplates.clear();
 
         // Store the pindexBest used before CreateNewBlock, to avoid races
         nTransactionsUpdatedLast = mempool.GetTransactionsUpdated();
@@ -905,9 +909,9 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     result.pushKV("proofoffullnodehash", pblock->hashPoFN.GetHex());
     result.pushKV("mining_disabled", (!CheckConsecutivePoW(*pblock , pindexPrev))? true : false );
 
-    if (pblock->IsProgPow()) {
-        std::string address = gArgs.GetArg("-miningaddress", "");
-        if (IsValidDestinationString(address)) {
+    std::string sMiningAddress = gArgs.GetArg("-miningaddress", "");
+    if (IsValidDestinationString(sMiningAddress)) {
+        if (pblock->IsProgPow()) {            
             static std::string lastheader = "";
             if (mapProgPowTemplates.count(lastheader)) {
                 if (pblock->nTime - 60 < mapProgPowTemplates.at(lastheader).nTime) {
@@ -917,29 +921,36 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
                 }
             }
 
-            result.pushKV("pprpcheader", pblock->GetProgPowHeaderHash().GetHex());
-            result.pushKV("pprpcepoch", progpow::get_epoch_number(pblock->nHeight));
-            mapProgPowTemplates[pblock->GetProgPowHeaderHash().GetHex()] = *pblock;
             lastheader = pblock->GetProgPowHeaderHash().GetHex();
+            result.pushKV("pprpcheader", lastheader);
+            result.pushKV("pprpcepoch", progpow::get_epoch_number(pblock->nHeight));
+            mapProgPowTemplates[lastheader] = *pblock;
+        } else if (pblock->IsSha256D()) {
+            static std::string lastheader = "";
+            if (mapSha256dTemplates.count(lastheader)) {
+                if (pblock->nTime - 60 < mapSha256dTemplates.at(lastheader).nTime) {
+                    result.pushKV("sha256drpcheader", lastheader);
+                    return result;
+                }
+            }
+
+            lastheader = pblock->GetSha256DPoWHash().GetHex();	
+            result.pushKV("sha256drpcheader", lastheader);
+            mapSha256dTemplates[lastheader] = *pblock;
+        } else if (pblock->IsRandomX()) {
+            static std::string lastheader = "";
+            if (mapRandomXTemplates.count(lastheader)) {
+                if (pblock->nTime - 60 < mapRandomXTemplates.at(lastheader).nTime) {
+                    result.pushKV("randomxrpcheader", lastheader);
+                    return result;
+                }
+            }
+
+            lastheader = pblock->GetRandomXHeaderHash().GetHex();	
+            result.pushKV("randomxrpcheader", lastheader);
+            mapRandomXTemplates[lastheader] = *pblock;
         }
     }
-
-   if (pblock->IsSha256D()) {
-	std::string address = gArgs.GetArg("-miningaddress", "");
-	if (IsValidDestinationString(address)) {
-		static std::string lastheader = "";
-		if (mapSha256dTemplates.count(lastheader)) {
-			if (pblock->nTime - 60 < mapSha256dTemplates.at(lastheader).nTime) {
-				result.pushKV("sha256drpcheader", lastheader);
-				return result;
-			}
-		}
-
-		result.pushKV("sha256drpcheader", pblock->GetSha256DPoWHash().GetHex());
-		mapSha256dTemplates[pblock->GetSha256DPoWHash().GetHex()] = *pblock;
-		lastheader = pblock->GetSha256DPoWHash().GetHex();
-	}
-   }
 
     return result;
 }
