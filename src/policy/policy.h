@@ -48,9 +48,7 @@ static unsigned int maxStandardRingctStackItems() { return MAX_STANDARD_RINGCT_S
 static const unsigned int MAX_STANDARD_P2WSH_STACK_ITEM_SIZE = 80;
 /** The maximum size of each witness stack item in a RingCT script */
 static const unsigned int MAX_STANDARD_RINGCT_STACK_ITEM_SIZE = 384 + (50 * 352); // 50 inputs
-static const unsigned int MAX_STANDARD_RINGCT_STACK_ITEM_SIZE_OLD = 4096;
-static unsigned int maxStandardRingctStackItemSize() {
-    return (isPowTimeStampActive() ? MAX_STANDARD_RINGCT_STACK_ITEM_SIZE : MAX_STANDARD_RINGCT_STACK_ITEM_SIZE_OLD); }
+static unsigned int maxStandardRingctStackItemSize() { return MAX_STANDARD_RINGCT_STACK_ITEM_SIZE; }
 /** The maximum size of a standard witnessScript */
 static const unsigned int MAX_STANDARD_P2WSH_SCRIPT_SIZE = 3600;
 /** Min feerate for defining dust. Historically this has been based on the

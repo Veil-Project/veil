@@ -527,10 +527,6 @@ extern std::unique_ptr<CZerocoinDB> pzerocoinDB;
  */
 int GetSpendHeight(const CCoinsViewCache& inputs);
 
-// XXX - TODO - Change below to be relevant
-//static bool isPowTimeStampActive() { return (chainActive.Tip()->nTime >= nPowTimeStampActive); }
-static bool isPowTimeStampActive() { return (chainActive.Height() >= 0); }
-
 extern VersionBitsCache versionbitscache;
 
 /**

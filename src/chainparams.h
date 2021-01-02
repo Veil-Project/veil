@@ -135,7 +135,7 @@ public:
 
     /** Proof of Stake **/
     CAmount MinimumStakeQuantity() const { return nMinimumStakeQuantity; }
-    int HeightRingCtPoSStart() const { return nHeightRingCtPoSStart; }
+    uint32_t HeightRingCtPoSStart() const { return nHeightRingCtPoSStart; }
     int RequiredStakeDepth() const { return nRequiredStakeDepth; }
 
     /** Consensus params **/
@@ -219,7 +219,7 @@ protected:
     int nProofOfFullNodeRounds;
     int nHeightSupplyCreationStop;
     CAmount nMinimumStakeQuantity;
-    int nHeightRingCtPoSStart;
+    uint32_t nHeightRingCtPoSStart;
     int nRequiredStakeDepth;
 
     //Time and height enforcements    

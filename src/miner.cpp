@@ -986,7 +986,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             }
 
             int nTries = 0;
-            if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+            if (pblock->IsProgPow()) {
                 uint256 mix_hash;
                 while (nTries < nInnerLoopCount &&
                         !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits,
@@ -996,7 +996,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     ++pblock->nNonce64;
                 }
                 pblock->mixHash = mix_hash;
-            } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+            } else if (pblock->IsSha256D()) {
                 uint256 midStateHash = pblock->GetSha256dMidstate();
                 while (nTries < nInnerLoopCount &&
                        !CheckProofOfWork(pblock->GetSha256D(midStateHash), pblock->nBits,
@@ -1004,13 +1004,6 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     boost::this_thread::interruption_point();
                     ++nTries;
                     ++pblock->nNonce64;
-                }
-            } else if (pblock->nTime < Params().PowUpdateTimestamp()) {
-                while (nTries < nInnerLoopCount &&
-                       !CheckProofOfWork(pblock->GetX16RTPoWHash(), pblock->nBits, Params().GetConsensus())) {
-                    boost::this_thread::interruption_point();
-                    ++nTries;
-                    ++pblock->nNonce;
                 }
             } else {
                 LogPrintf("%s: Unknown hashing algorithm found!\n");
@@ -1088,7 +1081,7 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
         }
 
         int nTries = 0;
-        if (pblock->IsRandomX() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+        if (pblock->IsRandomX()) {
             arith_uint256 bnTarget;
             bool fNegative;
             bool fOverflow;
@@ -1261,7 +1254,7 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
         return;
 
     // XXX - Todo - find a way to clean out the old threads or reuse the threads already created
-    if (GetMiningAlgorithm() == MINE_RANDOMX && GetTime() >= Params().PowUpdateTimestamp()) {
+    if (GetMiningAlgorithm() == MINE_RANDOMX) {
         pthreadGroupRandomX->create_thread(boost::bind(&StartRandomXMining, pthreadGroupPoW,
                                            nThreads, coinbaseScript));
     } else {

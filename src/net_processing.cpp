@@ -1981,7 +1981,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         bool fNewEnforcement = false;
         if (chainActive.Tip()) {
-            fNewEnforcement = chainActive.Tip()->GetBlockTime() >= Params().PowUpdateTimestamp();
+            fNewEnforcement = chainActive.Height() >= Params().HeightRingCtPoSStart();
         }
 
         int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT : MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
@@ -2131,10 +2131,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
     bool fNewEnforcement = false;
     if (chainActive.Tip()) {
-        fNewEnforcement = chainActive.Tip()->GetBlockTime() >= Params().PowUpdateTimestamp();
+        fNewEnforcement = chainActive.Height() >= Params().HeightRingCtPoSStart();
     }
 
-    int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT :MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
+    int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT : MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
 
     if (fNewEnforcement && pfrom->nVersion < nMinPeerVersion) {
         // disconnect from peers older than this proto version
