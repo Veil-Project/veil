@@ -232,37 +232,49 @@ void Balance::refreshWalletStatus() {
     // Check wallet status
     interfaces::Wallet& wallet = walletModel->wallet();
     std::string strAddress;
-    std::vector<interfaces::WalletAddress> addresses = wallet.getLabelAddress("stealth");
-    if(!addresses.empty()) {
-        interfaces::WalletAddress address = addresses[0];
-        if (address.dest.type() == typeid(CStealthAddress)){
+    std::string addressName = " ";
+    isminetype isMine = ISMINE_NO;
+    std::string purpose = " ";
+
+    if (displayAddressSet) {
+        bool doesAddyExist = wallet.getAddress(currentDisplayAddress, &addressName, &isMine, &purpose);
+        strAddress = EncodeDestination(currentDisplayAddress, !("receive_miner" == purpose));
+    } else {
+        std::vector<interfaces::WalletAddress> addresses = wallet.getLabelAddress("stealth");
+        if(!addresses.empty()) {
+            interfaces::WalletAddress address = addresses[0];
+            if (address.dest.type() == typeid(CStealthAddress)){
+                bool fBech32 = true;
+                strAddress = EncodeDestination(address.dest,true);
+                addressName = "stealth";
+            }
+        }else {
+            ui->copyAddress->setVisible(true);
+            ui->labelReceive->setAlignment(Qt::AlignLeft);
+            ui->labelReceive->setText("Receiving address");
+            // Generate a new address to associate with given label
+            // TODO: Use only one stealth address here.
+            CStealthAddress address;
+            if (!walletModel->wallet().getNewStealthAddress(address)) {
+                ui->labelQr->setText("");
+                ui->copyAddress->setVisible(false);
+                ui->labelReceive->setText("Wallet Locked");
+                ui->labelReceive->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
+                ui->labelAddress->setText("");
+                return;
+            }
             bool fBech32 = true;
-            strAddress = EncodeDestination(address.dest,true);
+            strAddress = address.ToString(fBech32);
+            wallet.setAddressBook(DecodeDestination(strAddress), "stealth", "receive", fBech32);
+            addressName = "stealth"; 
         }
-    }else {
-        ui->copyAddress->setVisible(true);
-        ui->labelReceive->setAlignment(Qt::AlignLeft);
-        ui->labelReceive->setText("Receiving address");
-        // Generate a new address to associate with given label
-        // TODO: Use only one stealth address here.
-        CStealthAddress address;
-        if (!walletModel->wallet().getNewStealthAddress(address)) {
-            ui->labelQr->setText("");
-            ui->copyAddress->setVisible(false);
-            ui->labelReceive->setText("Wallet Locked");
-            ui->labelReceive->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-            ui->labelAddress->setText("");
-            return;
-        }
-        bool fBech32 = true;
-        strAddress = address.ToString(fBech32);
-        wallet.setAddressBook(DecodeDestination(strAddress), "stealth", "receive", fBech32);
     }
 
     qAddress = QString::fromStdString(strAddress);
 
     // set address
     ui->labelAddress->setText(qAddress.left(12) + "..." + qAddress.right(12));
+    ui->labelAddressName->setText(QString::fromStdString(addressName));
 
     SendCoinsRecipient info;
     info.address = qAddress;
@@ -320,4 +332,7 @@ void Balance::refreshWalletStatus() {
 #endif
 }
 
-
+void Balance::setDisplayRcvAddress(CTxDestination *displayAddress) {
+    displayAddressSet = true;
+    currentDisplayAddress = *displayAddress;
+}
