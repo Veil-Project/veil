@@ -362,6 +362,7 @@ public:
         nZerocoinRequiredStakeDepthV2 = 1000; //The required confirmations for a zerocoin to be stakable
         nRequiredStakeDepth= 1000; //The required confirmations for a RingCT TXO to be stakable
         nHeightPoSStart = 1500;
+        nHeightRingCtPoSStart = 2000000;
         nKernelModulus = 100;
         nCoinbaseMaturity = 100;
         nProofOfFullNodeRounds = 4;
@@ -543,6 +544,7 @@ public:
         nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
         nRequiredStakeDepth= 12; //The required confirmations for a RingCT TXO to be stakable
         nHeightPoSStart = 100;
+        nHeightRingCtPoSStart = 2000000;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
         nProofOfFullNodeRounds = 4;
@@ -713,6 +715,7 @@ public:
         nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
         nRequiredStakeDepth= 12; //The required confirmations for a RingCT TXO to be stakable
         nHeightPoSStart = 100;
+        nHeightRingCtPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
         nProofOfFullNodeRounds = 4;
@@ -862,6 +865,7 @@ public:
         nZerocoinRequiredStakeDepth = 10; //The required confirmations for a zerocoin to be stakable
         nRequiredStakeDepth= 12; //The required confirmations for a RingCT TXO to be stakable
         nHeightPoSStart = 100;
+        nHeightRingCtPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
         nProofOfFullNodeRounds = 4;
@@ -893,7 +897,6 @@ const CChainParams &Params() {
 // Not called prior to Algo change fork
 int64_t CChainParams::GetDwgPastBlocks(const CBlockIndex* pindex, const int nPowType, const bool fProofOfStake) const
 {
-    assert(pindex->GetBlockTime() >= Params().PowUpdateTimestamp()); // Shouldn't be called if we're not active on the new PoW system
     if (fProofOfStake)
         return consensus.nDgwPastBlocks * 2; // count twice as many blocks
     return consensus.nDgwPastBlocks;
@@ -902,7 +905,6 @@ int64_t CChainParams::GetDwgPastBlocks(const CBlockIndex* pindex, const int nPow
 // Not called prior to Algo change fork
 int64_t CChainParams::GetTargetSpacing(const CBlockIndex* pindex, const int nPoWType, const bool fProofOfStake) const
 {
-    assert(pindex->GetBlockTime() >= Params().PowUpdateTimestamp()); // Shouldn't be called if we're not active on the new PoW system
     if (nPoWType & CBlockHeader::PROGPOW_BLOCK)
         return consensus.nProgPowTargetSpacing;
     if (nPoWType & CBlockHeader::RANDOMX_BLOCK)
