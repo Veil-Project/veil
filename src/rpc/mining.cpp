@@ -228,16 +228,16 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
         // This will check if the key block needs to change and will take down the cache and vm, and spin up the new ones
         CheckIfValidationKeyShouldChangeAndUpdate(GetKeyBlock(pblock->nHeight));
 
-        if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+        if (pblock->IsProgPow()) {
             uint256 mix_hash;
             while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount &&
                    !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits,
-                                     Params().GetConsensus(), CBlockHeader::PROGPOW_BLOCK)) {
+                                     Params().GetConsensus(), CBlockHeader::PROGPOW_BLOCK) && !ShutdownRequested()) {
                 ++pblock->nNonce64;
                 --nMaxTries;
             }
             pblock->mixHash = mix_hash;
-        } else if (pblock->IsRandomX() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+        } else if (pblock->IsRandomX()) {
             char hash[RANDOMX_HASH_SIZE];
 
             arith_uint256 bnTarget;
@@ -246,7 +246,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
 
             bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
 
-            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount) {
+            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount && !ShutdownRequested()) {
                 // RandomX hash
                 uint256 hash_blob = pblock->GetRandomXHeaderHash();
                 randomx_calculate_hash(GetMyMachineValidating(), &hash_blob, sizeof uint256(), hash);
@@ -260,19 +260,15 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
                 ++pblock->nNonce;
                 --nMaxTries;
             }
-        } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
+        } else if (pblock->IsSha256D()) {
             while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount &&
                    !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits,
-                                     Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK)) {
+                                     Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK) && !ShutdownRequested()) {
                 ++pblock->nNonce64;
                 --nMaxTries;
             }
         } else {
-            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount &&
-                   !CheckProofOfWork(pblock->GetX16RTPoWHash(), pblock->nBits, Params().GetConsensus())) {
-                ++pblock->nNonce;
-                --nMaxTries;
-            }
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "%s: Unknown hashing algorithm found!");
         }
         if (nMaxTries == 0) {
             break;

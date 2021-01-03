@@ -863,7 +863,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
     enablewallet = !gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET);
 #endif
 
-    while (GenerateActive() || (fProofOfStake && enablewallet))
+    while (!ShutdownRequested() && (GenerateActive() || (fProofOfStake && enablewallet)))
     {
         boost::this_thread::interruption_point();
 #ifdef ENABLE_WALLET
