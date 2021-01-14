@@ -239,7 +239,9 @@ RANDOMX_EXPORT void randomx_destroy_vm(randomx_vm *machine);
 RANDOMX_EXPORT void randomx_calculate_hash(randomx_vm *machine, const void *input, size_t inputSize, void *output);
 
 /**
- * Paired functions used to calculate multiple RandomX hashes during mining for example.
+ * Paired functions used to calculate multiple RandomX hashes more efficiently.
+ * randomx_calculate_hash_first is called for the first input value.
+ * randomx_calculate_hash_next will output the hash value of the previous input.
  *
  * @param machine is a pointer to a randomx_vm structure. Must not be NULL.
  * @param tempHash an array of 8 64-bit values used to store intermediate data between calls to randomx_calculate_hash_first and randomx_calculate_hash_next.
@@ -250,8 +252,8 @@ RANDOMX_EXPORT void randomx_calculate_hash(randomx_vm *machine, const void *inpu
  * @param output is a pointer to memory where the hash will be stored. Must not
  *        be NULL and at least RANDOMX_HASH_SIZE bytes must be available for writing.
 */
-RANDOMX_EXPORT void randomx_calculate_hash_first(randomx_vm* machine, uint64_t *tempHash, const void* input, size_t inputSize);
-RANDOMX_EXPORT void randomx_calculate_hash_next(randomx_vm* machine, uint64_t *tempHash, const void* nextInput, size_t nextInputSize, void* output);
+RANDOMX_EXPORT void randomx_calculate_hash_first(randomx_vm* machine, const void* input, size_t inputSize);
+RANDOMX_EXPORT void randomx_calculate_hash_next(randomx_vm* machine, const void* nextInput, size_t nextInputSize, void* output);
 
 #if defined(__cplusplus)
 }
