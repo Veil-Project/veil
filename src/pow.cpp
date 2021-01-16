@@ -488,12 +488,12 @@ void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_p
         boost::this_thread::interruption_point();
         if (!fInitialized) {
             boost::this_thread::interruption_point();
-            auto full_flags = RANDOMX_FLAG_FULL_MEM;
-
-            myMiningCache = randomx_alloc_cache((randomx_flags)global_randomx_flags);
+            auto full_flags = RANDOMX_FLAG_FULL_MEM | randomx_get_flags();
+            LogPrint(BCLog::BLOCKCREATION, "%s: RandomX flags set to %s\n", __func__, full_flags);
+            myMiningCache = randomx_alloc_cache(full_flags);
 
             /// Create the RandomX Dataset
-            myMiningDataset = randomx_alloc_dataset((randomx_flags)global_randomx_flags);
+            myMiningDataset = randomx_alloc_dataset(full_flags);
             mining_key_block = GetKeyBlock(chainActive.Height());
 
             randomx_init_cache(myMiningCache, &mining_key_block, sizeof(mining_key_block));
