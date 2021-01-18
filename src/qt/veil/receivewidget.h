@@ -27,7 +27,7 @@ public:
     virtual void showEvent(QShowEvent *event) override;
     virtual void hideEvent(QHideEvent *event) override;
     void setWalletModel(WalletModel *model);
-
+    void setDisplayRcvAddress(CTxDestination *displayAddress);
 
     void refreshWalletStatus();
 
@@ -45,6 +45,9 @@ private:
     QString qAddress;
 
     bool generateNewAddress(bool isOnDemand = false);
+
+    bool displayAddressSet = false;
+    CTxDestination currentDisplayAddress;
 };
 
 #endif // RECEIVEWIDGET_H

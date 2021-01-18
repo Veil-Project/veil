@@ -11,6 +11,7 @@
 #endif
 
 #include <amount.h>
+#include <script/standard.h>
 
 #include <QLabel>
 #include <QMainWindow>
@@ -235,6 +236,8 @@ public Q_SLOTS:
        @param[in] ret       pointer to a bool that will be modified to whether Ok was clicked (modal only)
     */
     void message(const QString &title, const QString &message, unsigned int style, bool *ret = nullptr);
+
+    void updatedSelectedRcvAddress(CTxDestination* selectedRcvAddress);
 
 #ifdef ENABLE_WALLET
     void initWalletMenu(std::string& mnemonic, unsigned int& flag, bool& ret);

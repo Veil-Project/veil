@@ -37,6 +37,7 @@
 #include <chainparams.h>
 #include <interfaces/handler.h>
 #include <interfaces/node.h>
+#include <key_io.h>
 #include <ui_interface.h>
 #include <util.h>
 
@@ -260,6 +261,7 @@ BitcoinGUI::BitcoinGUI(interfaces::Node& node, const PlatformStyle *_platformSty
     modalOverlay = new ModalOverlay(this->centralWidget(), this);
 #ifdef ENABLE_WALLET
     if(enableWallet) {
+        connect(walletFrame, SIGNAL(changeSelectedRcvAddress(CTxDestination*)), this, SLOT(updatedSelectedRcvAddress(CTxDestination*)));
         connect(walletFrame, SIGNAL(requestedSyncWarningInfo()), this, SLOT(showModalOverlay()));
         connect(labelBlocksIcon, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
         connect(progressBar, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
@@ -1515,6 +1517,13 @@ void BitcoinGUI::toggleNetworkActive()
 {
     m_node.setNetworkActive(!m_node.getNetworkActive());
 }
+
+#ifdef ENABLE_WALLET
+void BitcoinGUI::updatedSelectedRcvAddress(CTxDestination* selectedRcvAddress) {
+    balance->setDisplayRcvAddress(selectedRcvAddress);
+    balance->refreshWalletStatus();
+}
+#endif 
 
 UnitDisplayStatusBarControl::UnitDisplayStatusBarControl(const PlatformStyle *platformStyle) :
     optionsModel(0),

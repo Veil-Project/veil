@@ -76,6 +76,8 @@ bool WalletFrame::addWallet(WalletModel *walletModel)
 
     connect(walletView, SIGNAL(outOfSyncWarningClicked()), this, SLOT(outOfSyncWarningClicked()));
 
+    connect(walletView, SIGNAL(signalChangeSelectedAddress(CTxDestination*)), this, SLOT(notifySelectedRcvAddyChanged(CTxDestination*)));
+
     return true;
 }
 
@@ -98,6 +100,9 @@ bool WalletFrame::removeWallet(const QString &name)
 
     WalletView *walletView = mapWalletViews.take(name);
     walletStack->removeWidget(walletView);
+
+    disconnect(walletView, SIGNAL(signalChangeSelectedAddress(CTxDestination*)), this, SLOT(notifySelectedRcvAddyChanged(CTxDestination*)));
+
     delete walletView;
     return true;
 }
@@ -232,4 +237,9 @@ WalletView *WalletFrame::currentWalletView()
 void WalletFrame::outOfSyncWarningClicked()
 {
     Q_EMIT requestedSyncWarningInfo();
+}
+
+void WalletFrame::notifySelectedRcvAddyChanged(CTxDestination* selectedRcvAddress)
+{
+    Q_EMIT changeSelectedRcvAddress(selectedRcvAddress);
 }
