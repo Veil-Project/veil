@@ -232,7 +232,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
             uint256 mix_hash;
             while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount &&
                    !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits,
-                                     Params().GetConsensus(), CBlockHeader::PROGPOW_BLOCK)) {
+                                     Params().GetConsensus(), CBlockHeader::PROGPOW_BLOCK) && !ShutdownRequested()) {
                 ++pblock->nNonce64;
                 --nMaxTries;
             }
@@ -246,7 +246,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
 
             bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
 
-            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount) {
+            while (nMaxTries > 0 && pblock->nNonce < nInnerLoopCount && !ShutdownRequested()) {
                 // RandomX hash
                 uint256 hash_blob = pblock->GetRandomXHeaderHash();
                 randomx_calculate_hash(GetMyMachineValidating(), &hash_blob, sizeof uint256(), hash);
@@ -263,7 +263,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
         } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
             while (nMaxTries > 0 && pblock->nNonce64 < nInnerLoopCount &&
                    !CheckProofOfWork(pblock->GetSha256DPoWHash(), pblock->nBits,
-                                     Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK)) {
+                                     Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK) && !ShutdownRequested()) {
                 ++pblock->nNonce64;
                 --nMaxTries;
             }
