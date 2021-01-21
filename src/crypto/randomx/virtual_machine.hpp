@@ -38,6 +38,7 @@ public:
 	virtual ~randomx_vm() = 0;
 	virtual void allocate() = 0;
 	virtual void getFinalResult(void* out, size_t outSize) = 0;
+    virtual void hashAndFill(void* out, size_t outSize, uint64_t *fill_state) = 0;
 	virtual void setDataset(randomx_dataset* dataset) { }
 	virtual void setCache(randomx_cache* cache) { }
 	virtual void initScratchpad(void* seed) = 0;
@@ -67,6 +68,7 @@ protected:
 	uint64_t datasetOffset;
 public:
 	std::string cacheKey;
+    alignas(16) uint64_t tempHash[8]; //8 64-bit values used to store intermediate data
 };
 
 namespace randomx {
@@ -78,6 +80,7 @@ namespace randomx {
 		void allocate() override;
 		void initScratchpad(void* seed) override;
 		void getFinalResult(void* out, size_t outSize) override;
+        void hashAndFill(void* out, size_t outSize, uint64_t *fill_state) override;
 	protected:
 		void generateProgram(void* seed);
 	};
