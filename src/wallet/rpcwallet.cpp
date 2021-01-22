@@ -3400,6 +3400,7 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
             "  \"hdseedid\": \"<hash160>\"            (string, optional) the Hash160 of the HD seed (only present when HD is enabled)\n"
             "  \"hdmasterkeyid\": \"<hash160>\"       (string, optional) alias for hdseedid retained for backwards-compatibility. Will be removed in V0.18.\n"
             "  \"private_keys_enabled\": true|false (boolean) false if privatekeys are disabled for this wallet (enforced watch-only wallet)\n"
+	    "  \"staking_enabled\" : true|false     (boolean) true if staking is enabled\n"
             "  \"staking_active\": true|false       (boolean) true if wallet is actively trying to create new blocks using proof of stake\n"
             "}\n"
             "\nExamples:\n"
@@ -3437,6 +3438,8 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
         obj.pushKV("hdmasterkeyid", seed_id.GetHex());
     }
     obj.pushKV("private_keys_enabled", !pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
+
+    obj.pushKV("staking_enabled", pwallet->IsStakingEnabled());
 
     // Determine if staking is recently active. Note that this is not immediate effect. Staking could be disabled and it could take up to 70 seconds to update state.
     int64_t nTimeLastHashing = 0;

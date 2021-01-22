@@ -30,6 +30,8 @@
 
 #include <iostream>
 
+#include <key_io.h>
+
 #define DECORATION_SIZE 54
 #define NUM_ITEMS 5
 
@@ -222,6 +224,7 @@ AddressesWidget::AddressesWidget(const PlatformStyle *platformStyle, WalletView 
     ui->lblSplit->setVisible(false);
     //connect(ui->btnMiningAddress,SIGNAL(clicked()),this,SLOT(onNewMinerAddressClicked()));
     //connect(ui->btnMiningAddress2,SIGNAL(clicked()),this,SLOT(onNewMinerAddressClicked()));
+
 }
 
 void AddressesWidget::setWalletModel(WalletModel *model)
@@ -240,6 +243,11 @@ void AddressesWidget::handleAddressClicked(const QModelIndex &index){
         listView = ui->listAddresses;
         type = AddressTableModel::Receive;
         updatedIndex = proxyModel->mapToSource(index);
+        auto address = this->model->index(updatedIndex.row(), AddressTableModel::Address, updatedIndex);
+        QString addressStr = this->model->data(address, Qt::DisplayRole).toString();
+        CTxDestination selectedAddress = DecodeDestination(addressStr.toStdString());
+
+        Q_EMIT rcvAddressSelected(&selectedAddress);
     }else{
         listView = ui->listContacts;
         type = AddressTableModel::Send;
@@ -371,6 +379,7 @@ void AddressesWidget::onNewAddressClicked(){
         openToastDialog(QString::fromStdString(toast + " Creation Failed"), mainWindow->getGUI());
     }
     // if it's the first one created, display it without having to reload
+// WE NEED TO DISPLAY THE NEW ADDRESS HERE AND IN THE BALANCE AND RECEIVE WIDGETS
     onForeground();
 }
 

@@ -345,6 +345,7 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
             "  \"algorithm\": \"xxxx\",        (string) Algorithm set to mine (progpow, randomx, sha256d)\n"
             "  \"difficulty\": xxx.xxxxx    (numeric) The current difficulty\n"
             "  \"networkhashps\": nnn,      (numeric) The network hashes per second\n"
+            "  \"hashspeed\": nnn,          (numeric) The system hashes per second\n"
             "  \"pooledtx\": n              (numeric) The size of the mempool\n"
             "  \"chain\": \"xxxx\",           (string) current network name as defined in BIP70 (main, test, regtest)\n"
             "  \"warnings\": \"...\"          (string) any network and blockchain warnings\n"
@@ -375,6 +376,7 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
     obj.pushKV("algorithm",        sMiningAlgo);
     obj.pushKV("difficulty",       (double)nDiff);
     obj.pushKV("networkhashps",    getnetworkhashps(request));
+    obj.pushKV("hashspeed",        GetHashSpeed());
     obj.pushKV("pooledtx",         (uint64_t)mempool.size());
     obj.pushKV("chain",            Params().NetworkIDString());
     obj.pushKV("warnings",         GetWarnings("statusbar"));
@@ -386,7 +388,7 @@ static UniValue setminingalgo(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
             "setminingalgo algorithm\n"
-            "\nChanges your mining algorithm to [algorithm].  Note that mining must be turned off when command is used.\n"
+            "\nChanges your mining algorithm to [algorithm].  Note that mining must be turned off when command is used.  This will also have the side effect of clearing your mining statistics.\n"
             "\nArguments:\n"
             "1. algorithm   (string, required) Algorithm to mine [progpow, randomx, sha256d].\n"
             "\nResult:\n"
@@ -408,6 +410,7 @@ static UniValue setminingalgo(const JSONRPCRequest& request)
     if (!SetMiningAlgorithm(sNewAlgo)) {
         throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("%s is not a supported mining type", sNewAlgo));
     }
+    ClearHashSpeed();
     UniValue result(UniValue::VOBJ);
     result.pushKV("success", true);
     result.pushKV("message", strprintf("Mining algorithm changed from %s to %s", sOldAlgo, sNewAlgo));

@@ -50,6 +50,9 @@ public:
 
     void refreshWalletStatus();
 
+Q_SIGNALS:
+    void rcvAddressSelected(CTxDestination *address);
+
 private Q_SLOTS:
     void onMyAddressClicked();
     void onContactsClicked();

@@ -507,4 +507,21 @@ extern "C" {
 		machine->getFinalResult(output, RANDOMX_HASH_SIZE);
 	}
 
+    void randomx_calculate_hash_first(randomx_vm* machine, const void* input, size_t inputSize) {
+        blake2b(machine->tempHash, sizeof(machine->tempHash), input, inputSize, nullptr, 0);
+        machine->initScratchpad(machine->tempHash);
+    }
+
+    void randomx_calculate_hash_next(randomx_vm* machine, const void* nextInput, size_t nextInputSize, void* output) {
+        machine->resetRoundingMode();
+        for (uint32_t chain = 0; chain < RANDOMX_PROGRAM_COUNT - 1; ++chain) {
+            machine->run(machine->tempHash);
+            blake2b(machine->tempHash, sizeof(machine->tempHash), machine->getRegisterFile(), sizeof(randomx::RegisterFile), nullptr, 0);
+        }
+        machine->run(machine->tempHash);
+
+        // Finish current hash and fill the scratchpad for the next hash at the same time
+        blake2b(machine->tempHash, sizeof(machine->tempHash), nextInput, nextInputSize, nullptr, 0);
+        machine->hashAndFill(output, RANDOMX_HASH_SIZE, machine->tempHash);
+    }
 }

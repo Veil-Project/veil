@@ -238,10 +238,10 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = 1579805817;
 
         // The best chain should have at least this much work.
-        consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
+        consensus.nMinimumChainWork = uint256S("0x000000000000000000000000000000000000000000000000000000005442ac21");
 
         // By default assume that the signatures in ancestors of this block are valid.
-        consensus.defaultAssumeValid = uint256S("0x42145acdde948865d73a8b318fea09b9e9cb826f93007c7a21b4f103822da86d"); //534292
+        consensus.defaultAssumeValid = uint256S("0x4e280b14b8bf62cc6dbb9db87ad2e3a8cb0be9265790b89ffb1c053fd47e6543"); //1012533
 
         consensus.nMinRCTOutputDepth = 12;
 
@@ -279,11 +279,10 @@ public:
         vSeeds.emplace_back("node06.veil-project.com");
         vSeeds.emplace_back("node07.veil-project.com");
         vSeeds.emplace_back("node08.veil-project.com");
-        vSeeds.emplace_back("node09.veil-project.com"); // Mimir seeder
+        vSeeds.emplace_back("node09.veil-project.com");
         vSeeds.emplace_back("node10.veil-project.com"); // Codeofalltrades seeder
         vSeeds.emplace_back("node11.veil-project.com"); // CaveSpectre seeder
         // single point DNS failure backups
-        vSeeds.emplace_back("seed.veil.rune.network");             // Mimir seeder
         vSeeds.emplace_back("veilseed.codeofalltrades.com");       // Codeofalltrades seeder
         vSeeds.emplace_back("veilseed.veil-stats.com");            // Codeofalltrades seeder
         vSeeds.emplace_back("veil-seed.pontificatingnobody.com");  // CaveSpectre seeder
@@ -332,10 +331,10 @@ public:
         };
 
         chainTxData = ChainTxData{
-            // Data from rpc: getchaintxstats 4096 0000000000000000002e63058c023a9a1de233554f28c7b21380b6c9003f36a8
-            /* nTime    */ 1567171584,
-            /* nTxCount */ 963868,
-            /* dTxRate  */ 0.0393
+            // Data from rpc: getchaintxstats 4096 4e280b14b8bf62cc6dbb9db87ad2e3a8cb0be9265790b89ffb1c053fd47e6543 (height 1012533)
+            /* nTime    */ 1608561453,
+            /* nTxCount */ 2308996,
+            /* dTxRate  */ 0.0353
         };
 
         /* disable fallback fee on mainnet */
@@ -477,11 +476,10 @@ public:
         vSeeds.emplace_back("testnode04.veil-project.com");
         vSeeds.emplace_back("testnode05.veil-project.com");
         vSeeds.emplace_back("testnode06.veil-project.com");
-        vSeeds.emplace_back("testnode07.veil-project.com"); // Mimir seeder
+        vSeeds.emplace_back("testnode07.veil-project.com");
         vSeeds.emplace_back("testnode08.veil-project.com"); // Codeofalltrades seeder
         vSeeds.emplace_back("testnode09.veil-project.com"); // CaveSpectre seeder
         // single point DNS failure backups
-        vSeeds.emplace_back("seedtest.veil.rune.network");              // Mimir seeder
         vSeeds.emplace_back("veilseedtestnet.codeofalltrades.com");     // Codeofalltrades seeder
         vSeeds.emplace_back("veil-seed-test.pontificatingnobody.com");  // CaveSpectre seeder
 
@@ -647,11 +645,10 @@ public:
         vSeeds.emplace_back("devnode01.veil-project.com");
         vSeeds.emplace_back("devnode02.veil-project.com");
         vSeeds.emplace_back("devnode03.veil-project.com");
-        vSeeds.emplace_back("devnode04.veil-project.com"); // Mimir seeder
+        vSeeds.emplace_back("devnode04.veil-project.com"); 
         vSeeds.emplace_back("devnode05.veil-project.com"); // Codeofalltrades seeder
         vSeeds.emplace_back("devnode06.veil-project.com"); // CaveSpectre seeder
         // single point DNS failure backups
-        vSeeds.emplace_back("seeddev.veil.rune.network");              // Mimir seeder
         vSeeds.emplace_back("veil-devnet-seed.codeofalltrades.com");     // Codeofalltrades seeder
         vSeeds.emplace_back("veil-seed-dev.pontificatingnobody.com");  // CaveSpectre seeder
 

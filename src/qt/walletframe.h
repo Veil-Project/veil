@@ -50,6 +50,8 @@ Q_SIGNALS:
     /** Notify that the user has requested more information about the out-of-sync warning */
     void requestedSyncWarningInfo();
 
+    void changeSelectedRcvAddress(CTxDestination* newSelectedRcvAddress);
+
 private:
     QStackedWidget *windowStack;
     QStackedWidget *walletStack;
@@ -98,6 +100,9 @@ public Q_SLOTS:
     void usedReceivingAddresses();
     /** Pass on signal over requested out-of-sync-warning information */
     void outOfSyncWarningClicked();
+
+    /** Notify selection of Receive Address **/
+    void notifySelectedRcvAddyChanged(CTxDestination* selectedRcvAddress);
 };
 
 #endif // BITCOIN_QT_WALLETFRAME_H

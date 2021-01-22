@@ -144,6 +144,8 @@ public Q_SLOTS:
     /** User has requested more information about the out of sync state */
     void requestedSyncWarningInfo();
 
+    void updatedRcvAddySelection(CTxDestination* selectedRcvAddress);
+
 Q_SIGNALS:
     /** Signal that we want to show the main window */
     void showNormalIfMinimized();
@@ -157,6 +159,9 @@ Q_SIGNALS:
     void incomingTransaction(const QString& date, int unit, const CAmount& amount, const QString& type, const QString& address, const QString& label, const QString& walletName);
     /** Notify that the out of sync warning icon has been pressed */
     void outOfSyncWarningClicked();
+
+    /** Signal that the selected receive address has changed **/
+    void signalChangeSelectedAddress(CTxDestination* selectedRcvAddress);
 };
 
 #endif // BITCOIN_QT_WALLETVIEW_H

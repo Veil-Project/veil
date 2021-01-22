@@ -90,30 +90,40 @@ bool ReceiveWidget::generateNewAddress(bool isOnDemand){
     interfaces::Wallet& wallet = walletModel->wallet();
 
     std::string strAddress;
-    std::vector<interfaces::WalletAddress> addresses = wallet.getLabelAddress("stealth");
-    if(!isOnDemand && !addresses.empty()) {
-        interfaces::WalletAddress address = addresses[0];
-        if (address.dest.type() == typeid(CStealthAddress)){
+    std::string addressName = " ";
+    isminetype isMine = ISMINE_NO;
+    std::string purpose = " ";
+
+    if (!isOnDemand && displayAddressSet) {
+        bool doesAddyExist = wallet.getAddress(currentDisplayAddress, &addressName, &isMine, &purpose);
+        strAddress = EncodeDestination(currentDisplayAddress, !("receive_miner" == purpose));
+    } else {
+        std::vector<interfaces::WalletAddress> addresses = wallet.getLabelAddress("stealth");
+        if(!isOnDemand && !addresses.empty()) {
+            interfaces::WalletAddress address = addresses[0];
+            if (address.dest.type() == typeid(CStealthAddress)){
+                bool fBech32 = true;
+                strAddress = EncodeDestination(address.dest,true);
+            }
+        }else {
+            // Generate a new address to associate with given label
+            CStealthAddress address;
+            if (!wallet.getNewStealthAddress(address)) {
+                openToastDialog("Wallet Encrypted, please unlock it first", mainWindow->getGUI());
+                return false;
+            }
             bool fBech32 = true;
-            strAddress = EncodeDestination(address.dest,true);
+            strAddress = address.ToString(fBech32);
+            // Store it
+            wallet.setAddressBook(DecodeDestination(strAddress), "", "receive", true);
         }
-    }else {
-        // Generate a new address to associate with given label
-        CStealthAddress address;
-        if (!wallet.getNewStealthAddress(address)) {
-            openToastDialog("Wallet Encrypted, please unlock it first", mainWindow->getGUI());
-            return false;
-        }
-        bool fBech32 = true;
-        strAddress = address.ToString(fBech32);
-        // Store it
-        wallet.setAddressBook(DecodeDestination(strAddress), "", "receive", true);
     }
 
     qAddress =  QString::fromStdString(strAddress);
 
     // set address
     ui->labelAddress->setText(qAddress.left(16) + "..." + qAddress.right(16));
+    ui->labelAddressName->setText(QString::fromStdString(addressName));
 
     SendCoinsRecipient info;
     info.address = qAddress;
@@ -214,4 +224,10 @@ void ReceiveWidget::refreshWalletStatus() {
     // Label Address
     // TODO: Use latest address instead of generate one every time.
     generateNewAddress();
+}
+
+void ReceiveWidget::setDisplayRcvAddress(CTxDestination *displayAddress) {
+    displayAddressSet = true;
+    currentDisplayAddress = *displayAddress;
+    generateNewAddress(false);   
 }

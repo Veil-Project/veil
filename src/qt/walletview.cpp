@@ -90,10 +90,18 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     connect(sendCoinsPage, SIGNAL(message(QString,QString,unsigned int)), this, SIGNAL(message(QString,QString,unsigned int)));
     // Pass through messages from transactionView
     connect(transactionView, SIGNAL(message(QString,QString,unsigned int)), this, SIGNAL(message(QString,QString,unsigned int)));
+
+    // Notification that a new receive Address has been selected
+    connect(addressesWidget, SIGNAL(rcvAddressSelected(CTxDestination*)), this, SLOT(updatedRcvAddySelection(CTxDestination*)));
 }
 
 WalletView::~WalletView()
 {
+}
+
+void WalletView::updatedRcvAddySelection(CTxDestination* selectedRcvAddress){
+    receiveWidget->setDisplayRcvAddress(selectedRcvAddress);
+    Q_EMIT signalChangeSelectedAddress(selectedRcvAddress);
 }
 
 void WalletView::setBitcoinGUI(BitcoinGUI *gui)
