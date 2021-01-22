@@ -133,6 +133,7 @@ bool RingCtStakeCandidate::CreateCoinStake(CWallet* pwallet, const CAmount& nBlo
     if (!panonWallet->AddAnonInputs(wtx, rtx, vecSend, /*fSign*/false, /*nRingSize*/Params().DefaultRingSize(), /*nInputsPerSig*/32, nFeeRet, &coinControl, strError))
         return error("%s: AddAnonInputs failed with error %s", __func__, strError);
 
+    txCoinStake = CMutableTransaction(*wtx.tx);
     return true;
 }
 

@@ -1252,6 +1252,8 @@ bool AnonWallet::MintableRingCtCoins()
     int nRequiredDepth = Params().RequiredStakeDepth();
     assert(nRequiredDepth >= Params().GetConsensus().nMinRCTOutputDepth);
 
+    LOCK2(cs_main, pwalletParent->cs_wallet);
+
     for (const auto &ri : mapRecords) {
         const uint256 &txhash = ri.first;
         const CTransactionRecord &rtx = ri.second;

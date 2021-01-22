@@ -3971,6 +3971,8 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<CStakeInput> >& listInp
 
     int nRequiredDepth = Params().RequiredStakeDepth();
 
+    LOCK2(cs_main, cs_wallet);
+
     std::vector<COutputR> vRctCoins;
     pAnonWalletMain->AvailableAnonCoins(vRctCoins);
     for (const COutputR& rctOut : vRctCoins) {

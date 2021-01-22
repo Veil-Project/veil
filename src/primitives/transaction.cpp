@@ -39,7 +39,7 @@ std::string CTxIn::ToString() const
     std::string str;
     str += "CTxIn(";
     str += prevout.ToSubString();
-    if (prevout.IsNull() && !IsZerocoinSpend())
+    if (prevout.IsNull() && !IsPoS())
         str += strprintf(", coinbase %s", HexStr(scriptSig));
     else
         str += strprintf(", scriptSig=%s", HexStr(scriptSig).substr(0, 24));
@@ -183,6 +183,11 @@ CAmount CTxIn::GetZerocoinSpent() const
     return (nSequence&CTxIn::SEQUENCE_LOCKTIME_MASK) * COIN;
 }
 
+bool CTxIn::IsPoS() const
+{
+    return IsAnonInput() || IsZerocoinSpend();
+}
+
 bool CTxIn::IsZerocoinSpend() const
 {
     return scriptSig.IsZerocoinSpend();
@@ -304,7 +309,7 @@ std::string CTransaction::ToString() const
 
 bool CTransaction::IsCoinBase() const
 {
-    return !IsZerocoinSpend() && (vin.size() == 1 && vin[0].prevout.IsNull());
+    return !IsPoS() && (vin.size() == 1 && vin[0].prevout.IsNull());
 }
 
 bool CTransaction::IsCoinStake() const
@@ -312,7 +317,7 @@ bool CTransaction::IsCoinStake() const
     if (vin.empty())
         return false;
 
-    if (vin.size() != 1 || !vin[0].IsZerocoinSpend())
+    if (vin.size() != 1 || !vin[0].IsPoS())
         return false;
 
     // the coin stake transaction is marked with the first output empty
@@ -331,6 +336,15 @@ bool CTransaction::HasBlindedValues() const
             return true;
     }
 
+    return false;
+}
+
+bool CTransaction::IsPoS() const
+{
+    for (const CTxIn& in : vin) {
+        if (in.IsAnonInput() || in.IsZerocoinSpend())
+            return true;
+    }
     return false;
 }
 
