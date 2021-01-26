@@ -36,7 +36,7 @@
 
 
 // Preferences.
-const int DEFAULT_AUTOMINT_DENOM = 10;
+const int DEFAULT_AUTOMINT_DENOM = 1000;
 
 // Application startup time (used for uptime calculation)
 int64_t GetStartupTime();
