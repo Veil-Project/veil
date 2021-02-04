@@ -39,15 +39,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 typedef enum {
-  RANDOMX_FLAG_DEFAULT = 0,
-  RANDOMX_FLAG_LARGE_PAGES = 1,
-  RANDOMX_FLAG_HARD_AES = 2,
-  RANDOMX_FLAG_FULL_MEM = 4,
-  RANDOMX_FLAG_JIT = 8,
-  RANDOMX_FLAG_SECURE = 16,
-  RANDOMX_FLAG_ARGON2_SSSE3 = 32,
-  RANDOMX_FLAG_ARGON2_AVX2 = 64,
-  RANDOMX_FLAG_ARGON2 = 96
+    RANDOMX_FLAG_DEFAULT = 0,
+    RANDOMX_FLAG_LARGE_PAGES = 1,
+    RANDOMX_FLAG_HARD_AES = 2,
+    RANDOMX_FLAG_FULL_MEM = 4,
+    RANDOMX_FLAG_JIT = 8,
+    RANDOMX_FLAG_SECURE = 16,
+    RANDOMX_FLAG_ARGON2_SSSE3 = 32,
+    RANDOMX_FLAG_ARGON2_AVX2 = 64,
+    RANDOMX_FLAG_ARGON2 = 96
 } randomx_flags;
 
 typedef struct randomx_dataset randomx_dataset;
@@ -83,6 +83,7 @@ extern "C" {
  *            RANDOMX_FLAG_FULL_MEM
  *            RANDOMX_FLAG_SECURE
  *         These flags must be added manually if desired.
+ *         On OpenBSD RANDOMX_FLAG_SECURE is enabled by default in JIT mode as W^X is enforced by the OS.
  */
 RANDOMX_EXPORT randomx_flags randomx_get_flags(void);
 
@@ -239,12 +240,15 @@ RANDOMX_EXPORT void randomx_destroy_vm(randomx_vm *machine);
 RANDOMX_EXPORT void randomx_calculate_hash(randomx_vm *machine, const void *input, size_t inputSize, void *output);
 
 /**
- * Paired functions used to calculate multiple RandomX hashes more efficiently.
- * randomx_calculate_hash_first is called for the first input value.
- * randomx_calculate_hash_next will output the hash value of the previous input.
+ * Set of functions used to calculate multiple RandomX hashes more efficiently.
+ * randomx_calculate_hash_first will begin a hash calculation.
+ * randomx_calculate_hash_next  will output the hash value of the previous input
+ *                              and begin the calculation of the next hash.
+ * randomx_calculate_hash_last  will output the hash value of the previous input.
+ *
+ * WARNING: These functions may alter the floating point rounding mode of the calling thread.
  *
  * @param machine is a pointer to a randomx_vm structure. Must not be NULL.
- * @param tempHash an array of 8 64-bit values used to store intermediate data between calls to randomx_calculate_hash_first and randomx_calculate_hash_next.
  * @param input is a pointer to memory to be hashed. Must not be NULL.
  * @param inputSize is the number of bytes to be hashed.
  * @param nextInput is a pointer to memory to be hashed for the next hash. Must not be NULL.
@@ -254,6 +258,7 @@ RANDOMX_EXPORT void randomx_calculate_hash(randomx_vm *machine, const void *inpu
 */
 RANDOMX_EXPORT void randomx_calculate_hash_first(randomx_vm* machine, const void* input, size_t inputSize);
 RANDOMX_EXPORT void randomx_calculate_hash_next(randomx_vm* machine, const void* nextInput, size_t nextInputSize, void* output);
+RANDOMX_EXPORT void randomx_calculate_hash_last(randomx_vm* machine, void* output);
 
 #if defined(__cplusplus)
 }

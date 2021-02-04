@@ -18,7 +18,6 @@
 #include "crypto/randomx/intrin_portable.h"
 #include "crypto/randomx/jit_compiler.hpp"
 #include "crypto/randomx/aes_hash.hpp"
-
 #include "crypto/randomx/utility.hpp"
 
 #include <array>
@@ -1141,9 +1140,6 @@ BOOST_AUTO_TEST_CASE(randomx_run_tests)
 
     runTest("Hash test 2e (compiler)", RANDOMX_HAVE_COMPILER && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), test_e);
 
-    randomx_destroy_vm(vm);
-    vm = nullptr;
-
     randomx_release_cache(cache);
     cache = randomx_alloc_cache(RANDOMX_FLAG_ARGON2_SSSE3);
 
@@ -1166,6 +1162,39 @@ BOOST_AUTO_TEST_CASE(randomx_run_tests)
         assert(cacheMemory[1568413] == 0xf1b62fe6210bf8b1);
         assert(cacheMemory[33554431] == 0x1f47f056d05cd99b);
     });
+
+    if (cache != nullptr)
+    randomx_release_cache(cache);
+    cache = randomx_alloc_cache(RANDOMX_FLAG_DEFAULT);
+
+    runTest("Hash batch test", RANDOMX_HAVE_COMPILER && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), []() {
+        char hash1[RANDOMX_HASH_SIZE];
+        char hash2[RANDOMX_HASH_SIZE];
+        char hash3[RANDOMX_HASH_SIZE];
+        initCache("test key 000");
+        char input1[] = "This is a test";
+        char input2[] = "Lorem ipsum dolor sit amet";
+        char input3[] = "sed do eiusmod tempor incididunt ut labore et dolore magna aliqua";
+
+        randomx_calculate_hash_first(vm, input1, sizeof(input1) - 1);
+        randomx_calculate_hash_next(vm, input2, sizeof(input2) - 1, &hash1);
+        randomx_calculate_hash_next(vm, input3, sizeof(input3) - 1, &hash2);
+        randomx_calculate_hash_last(vm, &hash3);
+
+        assert(equalsHex(hash1, "639183aae1bf4c9a35884cb46b09cad9175f04efd7684e7262a0ac1c2f0b4e3f"));
+        assert(equalsHex(hash2, "300a0adb47603dedb42228ccb2b211104f4da45af709cd7547cd049e9489c969"));
+        assert(equalsHex(hash3, "c36d4ed4191e617309867ed66a443be4075014e2b061bcdaf9ce7b721d2b77a8"));
+    });
+
+    runTest("Preserve rounding mode", RANDOMX_FREQ_CFROUND > 0, []() {
+        rx_set_rounding_mode(RoundToNearest);
+        char hash[RANDOMX_HASH_SIZE];
+        assert(equalsHex(hash, "300a0adb47603dedb42228ccb2b211104f4da45af709cd7547cd049e9489c969"));
+        assert(rx_get_rounding_mode() == RoundToNearest);
+    });
+
+    randomx_destroy_vm(vm);
+    vm = nullptr;
 
     if (cache != nullptr)
         randomx_release_cache(cache);
