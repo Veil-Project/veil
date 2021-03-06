@@ -102,7 +102,6 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
         auto txout = wtx.tx->vpout[i];
         auto ismine = wallet.IsMine(txout.get());
         result.txout_is_mine.emplace_back(ismine);
-        result.txout_address.emplace_back();
         CScript scriptPubKey;
         auto fAddressIsMine = ismine;
         if (txout->GetScriptPubKey(scriptPubKey)) {
