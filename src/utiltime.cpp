@@ -108,3 +108,61 @@ std::string FormatISO8601Time(int64_t nTime) {
 #endif
     return strprintf("%02i:%02i:%02iZ", ts.tm_hour, ts.tm_min, ts.tm_sec);
 }
+
+uint64_t ISO8601Date_Now()
+{
+     time_t rawtime;
+     time ( &rawtime );
+
+     return (uint64_t) rawtime;
+}
+
+uint64_t ISO8601Date_FromString(const std::string& dateString)
+{
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    sscanf(dateString.c_str(), "%d-%d-%d:%d:%d", &year, &month, &day, &hour, &minute);
+    tm time;
+    time.tm_year = year - 1900; // Year since 1900
+    time.tm_mon = month - 1;    // 0-11
+    time.tm_mday = day;         // 1-31
+    time.tm_hour = hour;        // 0-23
+    time.tm_min = minute;       // 0-59
+    time.tm_sec = 0;
+    time_t rawtime = mktime(&time);
+    return (uint64_t)rawtime;
+}
+
+bool ISO8601Date_Validate(const std::string& dateString)
+{
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    sscanf(dateString.c_str(), "%d-%d-%d:%d:%d", &year, &month, &day, &hour, &minute);
+    if (year < 1900)
+        return false;
+    if (month < 1 || month > 12)
+        return false;
+    if (day < 1)
+        return false;
+    if ( (month == 1 || month == 3 || month == 5 || month == 7 || month == 9 || month == 11) && day > 31 )
+        return false;
+    if ( (month == 4 || month == 6 || month == 8 || month == 10 || month == 12) && day > 30 )
+        return false;
+    if ( (month == 2) && (year % 400 == 0 || (year % 4 == 0 && year % 100 != 0) && (day != 29) ) )
+        return false;
+    else if ( month == 2 && day > 28)
+        return false;
+    if (hour > 24)
+        return false;
+    if (minute > 60)
+        return false;
+
+    return true;
+}
+
