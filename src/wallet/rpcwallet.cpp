@@ -2608,7 +2608,7 @@ static UniValue exporttransactions(const JSONRPCRequest& request)
     std::string help_text {};
     if (!IsDeprecatedRPCEnabled("accounts")) {
         help_text = "exporttransactions (dummy filename start end filter include_watchonly)\n"
-            "\nExports transactions between 'start' date and 'end' date matching 'categories' to a CSV file.\n"
+            "\nExports transactions between 'start' date and 'end' date matching 'filter' to a CSV file.\n"
             "Note: To export from a specified \"account\", restart veild with -deprecatedrpc=accounts and\n"
             "use this RPC with an \"account\" argument\n"
             "\nArguments:\n"
@@ -2635,7 +2635,7 @@ static UniValue exporttransactions(const JSONRPCRequest& request)
             + HelpExampleRpc("exporttransactions", "\"*\", \"\", 2020-01-01, 2020-12-31");
     } else {
         help_text = "exporttransactions ( \"account\" filename start end filter include_watchonly)\n"
-            "\nExports transactions between 'start' date and 'end' date matching 'categories' to a CSV file for 'account'.\n"
+            "\nExports transactions between 'start' date and 'end' date matching 'filter' to a CSV file for 'account'.\n"
             "\nArguments:\n"
             "1. \"dummy\"      (string, optional) If set, should be \"*\" for backwards compatibility.\n"
             "2. \"filename\"   (string, optional) The filename with path (either absolute or relative to veild) [default=<datadir>/export/transactions.csv].\n"
