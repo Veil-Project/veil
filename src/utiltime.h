@@ -34,5 +34,7 @@ void MilliSleep(int64_t n);
 std::string FormatISO8601DateTime(int64_t nTime);
 std::string FormatISO8601Date(int64_t nTime);
 std::string FormatISO8601Time(int64_t nTime);
-
+uint64_t ISO8601Date_Now();
+uint64_t ISO8601Date_FromString(const std::string& dateString);
+bool ISO8601Date_Validate(const std::string& dateString);
 #endif // BITCOIN_UTILTIME_H

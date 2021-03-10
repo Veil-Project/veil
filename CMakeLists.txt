@@ -14,6 +14,7 @@ include_directories(src/crypto)
 include_directories(src/crypto/ctaes)
 include_directories(src/crypto/external)
 include_directories(src/crypto/x16r)
+include_directories(src/csv)
 include_directories(src/index)
 include_directories(src/interfaces)
 include_directories(src/leveldb/db)
@@ -181,6 +182,11 @@ add_executable(veil
         src/crypto/sha256_sse41.cpp
         src/crypto/sha512.cpp
         src/crypto/sha512.h
+        src/csv/CSVread.cpp
+        src/csv/CSVwrite.cpp
+        src/csv/libcsv.c.cpp
+        src/csv/strerror.cpp
+        src/csv/strerror.hpp
         src/index/base.cpp
         src/index/base.h
         src/index/txindex.cpp
