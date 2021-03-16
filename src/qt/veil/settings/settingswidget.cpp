@@ -298,7 +298,7 @@ void SettingsWidget::updateStakingCheckboxStatus(){
         ui->labelStacking->setProperty("cssClass" , "btn-text-settings");
         ui->checkBoxStaking->setVisible(false);
     }else{
-        ui->labelStacking->setText("Unlock wallet for staking");
+        ui->labelStacking->setText("Unlock Wallet For Staking");
         ui->checkBoxStaking->setVisible(true);
     }
 }

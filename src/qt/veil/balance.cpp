@@ -129,7 +129,7 @@ void Balance::onBtnBalanceClicked(int type){
             thirdBalance = balances.basecoin_balance;
             widget = ui->btnBalance;
             posy = 0;
-            posx = widget->pos().rx()+150;
+            posx = widget->pos().rx()+190;
            break;
         case 1:
             firstTitle = QString::fromStdString("Zerocoin");

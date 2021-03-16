@@ -330,7 +330,7 @@
     <message>
         <location line="+5"/>
         <location line="+1"/>
-        <source>Unlock wallet</source>
+        <source>Unlock Wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4201,7 +4201,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+49"/>
-        <source>Unlock wallet for staking</source>
+        <source>Unlock Wallet For Staking</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5532,7 +5532,7 @@ be used to restore your wallet.</source>
     </message>
     <message>
         <location line="+64"/>
-        <source>Unlock wallet for staking</source>
+        <source>Unlock Wallet For Staking</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
