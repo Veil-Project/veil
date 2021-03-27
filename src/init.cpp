@@ -1757,9 +1757,10 @@ bool AppInitMain()
 
 
     // Automint denom
-    if(nPreferredDenom == DEFAULT_AUTOMINT_DENOM) {
+    if(gArgs.IsArgSet("-nautomintdenom")){
         nPreferredDenom = gArgs.GetArg("-nautomintdenom", DEFAULT_AUTOMINT_DENOM);
         if(nPreferredDenom != 10 && nPreferredDenom != 100 && nPreferredDenom != 1000 && nPreferredDenom != 10000){
+        	LogPrintf("Invalid -nautomintdenom value set: %d. Defaulting to : %d\n", nPreferredDenom, DEFAULT_AUTOMINT_DENOM);
             nPreferredDenom = DEFAULT_AUTOMINT_DENOM;
         }
     }
