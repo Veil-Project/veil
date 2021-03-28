@@ -74,8 +74,11 @@ void VeilStatusBar::setStakingText() {
         }
     }
     bool fStakingActive = false;
+    auto pwallet = GetMainWallet();
+
+    //if at least 1 mature zerocoin, staking is active
     if (nTimeLastHashing)
-        fStakingActive = GetAdjustedTime() + MAX_FUTURE_BLOCK_TIME - nTimeLastHashing < ACTIVE_STAKING_MAX_TIME;
+    	fStakingActive = pwallet->GetZerocoinBalance(true) > 0;
 	
     WalletModel::EncryptionStatus eStatus = this->walletModel->getEncryptionStatus();
 
@@ -93,7 +96,7 @@ void VeilStatusBar::setStakingText() {
             int64_t zerocoin_balance = balances.zerocoin_balance;
 
 	    if (0.0 < zerocoin_balance) {
-                ui->checkStaking->setText("Enabling...");
+                ui->checkStaking->setText("Waiting for zerocoin to mature...");
             }else{
                 ui->checkStaking->setText("You need some zerocoin");
             }

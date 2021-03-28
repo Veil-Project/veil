@@ -3442,7 +3442,7 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
     }
     bool fStakingActive = false;
     if (nTimeLastHashing)
-        fStakingActive = GetAdjustedTime() + MAX_FUTURE_BLOCK_TIME - nTimeLastHashing < 70;
+    	fStakingActive = pwallet->GetZerocoinBalance(true) > 0;
 
     obj.pushKV("staking_active", fStakingActive);
 
