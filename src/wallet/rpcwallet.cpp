@@ -733,7 +733,7 @@ static UniValue listaddresses(const JSONRPCRequest& request)
         // Only get basecoin and stealth addresses
         if (!((item.first.type() == typeid(WitnessV0KeyHash)) ||
               (item.first.type() == typeid(CStealthAddress)) ||
-			  (item.first.type() == typeid(CKeyID)))) continue;
+              (item.first.type() == typeid(CKeyID)))) continue;
         // Only get mine
         if (!pwallet->IsMine(item.first)) continue;
         // If we're balance only, require a balance
