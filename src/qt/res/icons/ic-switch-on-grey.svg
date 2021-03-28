@@ -12,9 +12,9 @@
    viewBox="0 0 37 20"
    version="1.1"
    id="svg11"
-   sodipodi:docname="ic-switch-off.svg"
+   sodipodi:docname="ic-switch-on-grey.svg"
    inkscape:version="1.0.2-2 (e86c870879, 2021-01-15)"
-   inkscape:export-filename="C:\Users\ajh21\Downloads\ICONS TEST\on\ic-switch-on-grey@3x.png"
+   inkscape:export-filename="C:\Users\ajh21\Downloads\ICONS TEST\on\ic-switch-on@3x.png"
    inkscape:export-xdpi="288"
    inkscape:export-ydpi="288">
   <metadata
@@ -63,7 +63,7 @@
      stroke-width="1"
      fill="none"
      fill-rule="evenodd"
-     transform="matrix(-0.99999638,0,0,1,36.999867,0)"
+     transform="matrix(0.99999638,0,0,1,1.3484731e-4,0)"
      style="fill:#b3b3b3">
     <g
        id="ic-switch-on"

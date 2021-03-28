@@ -307,6 +307,7 @@ public:
     }
     void setStakingEnabled(bool fEnableStaking) override { m_wallet.SetStakingEnabled(fEnableStaking); }
     bool isStakingEnabled() override { return m_wallet.IsStakingEnabled(); }
+    bool isStakingActive() override { return m_wallet.IsStakingActive(); }
 
     void abortRescan() override { m_wallet.AbortRescan(); }
     bool backupWallet(const std::string& filename) override { return m_wallet.BackupWallet(filename); }

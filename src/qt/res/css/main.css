@@ -698,19 +698,6 @@ QCheckBox#checkStaking::indicator {
     height:25px;
 }
 
-QCheckBox#checkStaking {
-    background-image: url(":/icons/ic-switch-off-png");
-    background-repeat:no-repeat;
-    background-position:left center;
-    color:#bababa;
-    margin-right:5px;
-}
-
-QCheckBox#checkStaking:checked {
-    background-image: url(":/icons/ic-switch-on-png");
-    color:#105aef;
-}
-
 QPushButton#btnSync{
     color:#707070;
     border:none;

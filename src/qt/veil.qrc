@@ -259,7 +259,9 @@
         <file alias="ic-receive-png2">res/icons/ic-receive.png</file>
         <file alias="ic-send-png2">res/icons/ic-send.png</file>
         <file alias="ic-switch-off-png">res/icons/ic-switch-off.png</file>
+        <file alias="ic-switch-off-blue-png">res/icons/ic-switch-off-blue.png</file>
         <file alias="ic-switch-on-png">res/icons/ic-switch-on.png</file>
+        <file alias="ic-switch-on-grey-png">res/icons/ic-switch-on-grey.png</file>
         <file alias="ic-transactions-png2">res/icons/ic-transactions.png</file>
         <file alias="ic-addresses-png2">res/icons/ic-addresses.png</file>
         <file alias="ic-progress-6-6-complete-14x14">res/icons/ic-progress-6-6-complete-14x14.png</file>
