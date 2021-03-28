@@ -731,8 +731,10 @@ static UniValue listaddresses(const JSONRPCRequest& request)
     for (const auto& item: pwallet->mapAddressBook)
     {
         // Only get basecoin and stealth addresses
+    	//
         if (!((item.first.type() == typeid(WitnessV0KeyHash)) ||
-              (item.first.type() == typeid(CStealthAddress)))) continue;
+              (item.first.type() == typeid(CStealthAddress)) ||
+			  (item.first.type() == typeid(CKeyID)))) continue;
         // Only get mine
         if (!pwallet->IsMine(item.first)) continue;
         // If we're balance only, require a balance
@@ -743,9 +745,12 @@ static UniValue listaddresses(const JSONRPCRequest& request)
         if (item.first.type() == typeid(CStealthAddress)) {
             entry.pushKV("address", EncodeDestination(item.first, true));
             entry.pushKV("amount", ValueFromAmount(AnonBalances[item.first]));
-        } else {
+        } else if (item.first.type() == typeid(WitnessV0KeyHash)) {
             entry.pushKV("address", EncodeDestination(item.first));
             entry.pushKV("amount", ValueFromAmount(balances[item.first]));
+        } else {
+        	entry.pushKV("address", EncodeDestination(item.first, false));
+        	entry.pushKV("amount", ValueFromAmount(balances[item.first]));
         }
 
         entry.pushKV("label", item.second.name);
