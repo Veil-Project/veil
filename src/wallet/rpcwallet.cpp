@@ -731,7 +731,6 @@ static UniValue listaddresses(const JSONRPCRequest& request)
     for (const auto& item: pwallet->mapAddressBook)
     {
         // Only get basecoin and stealth addresses
-    	//
         if (!((item.first.type() == typeid(WitnessV0KeyHash)) ||
               (item.first.type() == typeid(CStealthAddress)) ||
 			  (item.first.type() == typeid(CKeyID)))) continue;
