@@ -814,19 +814,13 @@ void BlockAssembler::addPackageTxs(int &nPackagesSelected, int &nDescendantsUpda
     }
 }
 
-void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce)
+void IncrementExtraNonce(CBlock* pblock, unsigned int nHeight, unsigned int& nExtraNonce)
 {
     // Update nExtraNonce
-    static uint256 hashPrevBlock;
-    if (hashPrevBlock != pblock->hashPrevBlock)
-    {
-        nExtraNonce = 0;
-        hashPrevBlock = pblock->hashPrevBlock;
-    }
     ++nExtraNonce;
-    unsigned int nHeight = pindexPrev->nHeight+1; // Height first in coinbase required for block.version=2
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
-    txCoinbase.vin[0].scriptSig = (CScript() << nHeight << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
+    // Height first in coinbase required for block.version=2
+    txCoinbase.vin[0].scriptSig = (CScript() << (nHeight+1) << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);
 
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
@@ -964,24 +958,19 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         }
 
         CBlock *pblock = &pblocktemplate->block;
-        int32_t nNonceLocal;
 
         if (!fProofOfStake)
         {
             {
                 LOCK(cs_nonce);
-                nNonceLocal = nNonce_base++;
+                nExtraNonce = nNonce_base++;
                 if (!nTimeStart)
                     nTimeStart = GetTime();
             }
 
             pblock->nNonce = 0;
             pblock->nNonce64 = rand();
-            {
-                LOCK(cs_main);
-                nExtraNonce = nNonceLocal;
-                IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
-            }
+            IncrementExtraNonce(pblock, chainActive.Height(), nExtraNonce);
 
             int nTries = 0;
             if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
@@ -1073,21 +1062,16 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
             continue;
 
         CBlock *pblock = &pblocktemplate->block;
-        int32_t nNonceLocal;
 
         {
             LOCK(cs_nonce);
-            nNonceLocal = nNonce_base++;
+            nExtraNonce = nNonce_base++;
             if (!nTimeStart)
                 nTimeStart = GetTime();
         }
 
         pblock->nNonce = startNonce;
-        {
-            LOCK(cs_main);
-            nExtraNonce = nNonceLocal;
-            IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
-        }
+        IncrementExtraNonce(pblock, chainActive.Height(), nExtraNonce);
 
         int nTries = 0;
         if (pblock->IsRandomX() && pblock->nTime >= Params().PowUpdateTimestamp()) {

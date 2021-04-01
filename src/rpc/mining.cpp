@@ -220,10 +220,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
         if (!pblocktemplate.get())
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
         CBlock *pblock = &pblocktemplate->block;
-        {
-            LOCK(cs_main);
-            IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
-        }
+        IncrementExtraNonce(pblock, chainActive.Height(), nExtraNonce);
 
         // This will check if the key block needs to change and will take down the cache and vm, and spin up the new ones
         CheckIfValidationKeyShouldChangeAndUpdate(GetKeyBlock(pblock->nHeight));
