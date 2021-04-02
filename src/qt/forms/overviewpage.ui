@@ -94,7 +94,7 @@
            <number>0</number>
           </property>
           <item>
-           <layout class="QVBoxLayout" name="vLayoutTxes" stretch="1,0,10">
+           <layout class="QVBoxLayout" name="vLayoutTxes" stretch="1,0,0,10">
             <property name="spacing">
              <number>0</number>
             </property>
@@ -200,27 +200,14 @@
               <property name="frameShadow">
                <enum>QFrame::Raised</enum>
               </property>
-              <layout class="QVBoxLayout" name="verticalLayout_3" stretch="2,0,0,0,1,0,3">
+              <layout class="QVBoxLayout" name="verticalLayout_3" stretch="0,0,0,0,0,0,0,0,0,0,0,0,0,0">
                <property name="sizeConstraint">
                 <enum>QLayout::SetDefaultConstraint</enum>
                </property>
                <item>
-                <spacer name="verticalSpacer_4">
-                 <property name="orientation">
-                  <enum>Qt::Vertical</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>20</width>
-                   <height>80</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item>
-                <widget class="QLabel" name="label">
+                <widget class="QLabel" name="label_4">
                  <property name="text">
-                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:24pt; color:#707070;&quot;&gt;Time to transfer some Veil to your wallet&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:22pt;&quot;&gt;Looks like you are new here!&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                  </property>
                 </widget>
                </item>
@@ -232,33 +219,126 @@
                  <property name="sizeHint" stdset="0">
                   <size>
                    <width>20</width>
-                   <height>16</height>
+                   <height>40</height>
                   </size>
                  </property>
                 </spacer>
                </item>
                <item>
-                <widget class="QLabel" name="label_2">
+                <widget class="QLabel" name="label_3">
                  <property name="text">
-                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt; color:#707070;&quot;&gt;You can now send veil to your receiving address.&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt; color:#707070;&quot;&gt;New transactions will appear here when the wallet is 100% synced.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt; &quot;&gt;Let's get you up to speed quickly.&lt;br/&gt;&lt;/span&gt;&lt;span style=&quot; font-size:14pt; color:#707070;&quot;&gt;Visit &lt;a href=&quot;https://veil.tools&quot;&gt;&lt;span style=&quot; font-size:14pt; text-decoration: underline; color:#0000ff;&quot;&gt;https://veil.tools&lt;/span&gt;&lt;/a&gt;&lt;span style=&quot; font-size:14pt; color:#707070;&quot;&gt; to download the lastest snapshot.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <spacer name="verticalSpacer">
+                <spacer name="verticalSpacer_8">
                  <property name="orientation">
                   <enum>Qt::Vertical</enum>
                  </property>
                  <property name="sizeHint" stdset="0">
                   <size>
                    <width>20</width>
-                   <height>24</height>
+                   <height>40</height>
                   </size>
                  </property>
                 </spacer>
                </item>
                <item>
-                <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="3,1,3">
+                <widget class="QLabel" name="label_5">
+                 <property name="text">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:15pt;&quot;&gt;While the snapshot is downloading, encrypt your wallet.&lt;br/&gt;&lt;/span&gt;&lt;span style=&quot; font-size:14pt; color:#707070;&quot;&gt;Gear icon -&amp;gt; Encrypt wallet&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="verticalSpacer_5">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>50</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QLabel" name="label">
+                 <property name="text">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;div align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt;&quot;&gt;Address &amp; Coin Types&lt;/span&gt;&lt;/div&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_2">
+                 <property name="text">
+                  <string>&lt;style&gt;
+td { padding-top:5px; padding-right: 50px; color:#707070; text-align: center; font-size:13pt}
+&lt;/style&gt;
+&lt;table style=&quot;text-align: center; width:80%&quot;&gt;
+&lt;tr&gt;
+&lt;td&gt;&amp;nbsp;&lt;/td&gt;&lt;td&gt;&lt;b&gt;&lt;u&gt;Basecoin&lt;\u&gt;&lt;\b&gt;&lt;/td&gt;&lt;td&gt;&lt;b&gt;&lt;u&gt;Stealth(CT)&lt;\b&gt;&lt;\u&gt;&lt;/td&gt;&lt;td&gt;&lt;b&gt;&lt;u&gt;RingCT&lt;\b&gt;&lt;\u&gt;&lt;/td&gt;&lt;td &gt;&lt;b&gt;&lt;u&gt;Zerocoin&lt;\u&gt;&lt;\b&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;b&gt;Address Format&lt;\b&gt;&lt;/td&gt;&lt;td&gt;bv1gf….dsfs&lt;/td&gt;&lt;td&gt;sv1m….drgc&lt;/td&gt;&lt;td&gt;sv1m….drgc&lt;/td&gt;&lt;td&gt;----&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td valign=&quot;middle&quot;&gt;&lt;b&gt;Usage&lt;\b&gt;&lt;/td&gt;&lt;td valign=&quot;middle&quot;&gt;Exchanges, Mining&lt;/td&gt;&lt;td valign=&quot;middle&quot;&gt;Privacy&lt;/td&gt;&lt;td valign=&quot;middle&quot;&gt;Privacy&lt;/td&gt;&lt;td valign=&quot;middle&quot;&gt;Staking&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;b&gt;Privacy Level&lt;\b&gt;&lt;/td&gt;&lt;td&gt;Public&lt;/td&gt;&lt;td&gt;Partial Privacy&lt;/td&gt;&lt;td&gt;Complete Privacy&lt;/td&gt;&lt;td&gt;Public&lt;/td&gt;
+&lt;/tr&gt;</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="verticalSpacer_7">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>50</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_6">
+                 <property name="text">
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt;&quot;&gt;Finally we need to create a basecoin address.&lt;br/&gt;&lt;/span&gt;&lt;span style=&quot; font-size:14pt; color:#707070;&quot;&gt;Gear icon -&amp;gt; Advanced Options -&gt; Console Tab&lt;br/&gt;
+Enter getnewbasecoinaddress&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QFrame" name="frame">
+                 <property name="frameShape">
+                  <enum>QFrame::StyledPanel</enum>
+                 </property>
+                 <property name="frameShadow">
+                  <enum>QFrame::Raised</enum>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="verticalSpacer_6">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>30</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="3,0,3">
                  <item>
                   <spacer name="horizontalSpacer_3">
                    <property name="orientation">
@@ -298,7 +378,7 @@ background-color:#0e45b4;
 }</string>
                    </property>
                    <property name="text">
-                    <string>Learn more about Veil</string>
+                    <string>Learn more about Veil &gt;&gt;</string>
                    </property>
                   </widget>
                  </item>
@@ -332,6 +412,19 @@ background-color:#0e45b4;
                </item>
               </layout>
              </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacer">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>40</height>
+               </size>
+              </property>
+             </spacer>
             </item>
             <item>
              <widget class="QListView" name="listTransactions">
