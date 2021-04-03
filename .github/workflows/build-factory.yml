@@ -138,6 +138,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y python3-setuptools libcap-dev zlib1g-dev cmake
+        sudo -H pip install setuptools
     - name: Get macOS SDK
       run: |
         mkdir -p depends/sdk-sources
