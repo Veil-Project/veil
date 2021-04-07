@@ -127,6 +127,7 @@ AddressBookPage::AddressBookPage(const PlatformStyle *platformStyle, Mode _mode,
     if(tab == SendingTab)
         contextMenu->addAction(deleteAction);
     contextMenu->addSeparator();
+    //contextMenu->setStyleSheet("QMenu::item:selected {background-color: #bababa;}");
 
     // Connect signals for context menu actions
     connect(copyAddressAction, SIGNAL(triggered()), this, SLOT(onCopyAddressClicked()));
