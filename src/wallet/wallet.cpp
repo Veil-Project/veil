@@ -4702,7 +4702,7 @@ void CWallet::MarkReserveKeysAsUsed(int64_t keypool_id)
     }
 }
 
-void CWallet::GetScriptForMining(std::shared_ptr<CReserveScript> &script)
+void CWallet::GetScriptForMiningReserveKey(std::shared_ptr<CReserveScript> &script)
 {
     std::shared_ptr<CReserveKey> rKey = std::make_shared<CReserveKey>(this);
     CPubKey pubkey;
@@ -4711,6 +4711,19 @@ void CWallet::GetScriptForMining(std::shared_ptr<CReserveScript> &script)
 
     script = rKey;
     script->reserveScript = CScript() << ToByteVector(pubkey) << OP_CHECKSIG;
+}
+
+void CWallet::GetScriptForMining(std::shared_ptr<CReserveScript> &script)
+{
+    std::string sAddress = gArgs.GetArg("-miningaddress", "");
+    if (!sAddress.empty()) {
+        CTxDestination dest = DecodeDestination(sAddress);
+
+        script = std::make_shared<CReserveScript>();
+        script->reserveScript = GetScriptForDestination(dest);
+        return;
+    }
+    return GetScriptForMiningReserveKey(script);
 }
 
 void CWallet::LockCoin(const COutPoint& output)
