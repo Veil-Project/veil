@@ -13,12 +13,6 @@
   <property name="windowTitle">
    <string>Send veil</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">border:none;
-padding:0px;
-margin:0px;
-background-color:white;</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout_3">
    <property name="spacing">
     <number>0</number>
@@ -37,10 +31,6 @@ background-color:white;</string>
    </property>
    <item>
     <widget class="QFrame" name="frame_1">
-     <property name="styleSheet">
-      <string notr="true">background-color:white;
-border:none;</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>

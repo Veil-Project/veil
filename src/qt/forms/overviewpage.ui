@@ -64,11 +64,6 @@
      </property>
      <item>
       <widget class="QFrame" name="txes_container">
-       <property name="styleSheet">
-        <string notr="true">#txes_container{
- background-color:white;
-}</string>
-       </property>
        <layout class="QVBoxLayout" name="verticalLayout_1">
         <property name="spacing">
          <number>0</number>
@@ -337,34 +332,6 @@ background-color:#0e45b4;
              <widget class="QListView" name="listTransactions">
               <property name="mouseTracking">
                <bool>true</bool>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">QListView { 
-background: transparent;
- }
-
-/* Works for both QListView and QListWidget */
-QListView::item {
-    /* Won't work without borders set */
-    border: 0px;
-    padding: 10px;
-}
-
-QListView::item:selected
-{
-    background-color:#a10;
-}
-
-/* For icon only */
-QListView::icon {
-    left: 10px;
-}
-
-/* For text only */
-QListView::text {
-    left: 13px;
-}
-</string>
               </property>
               <property name="frameShape">
                <enum>QFrame::NoFrame</enum>

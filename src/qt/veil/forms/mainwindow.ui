@@ -42,12 +42,6 @@
      </property>
      <item>
       <widget class="QWidget" name="containerBalance" native="true">
-       <property name="styleSheet">
-        <string notr="true">#containerBalance{
-  border: none;
-  background-color: qlineargradient(y1:0, y2: 1, stop: 0 #ffffff, stop: 1 #e7eefd);
-}</string>
-       </property>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="leftMargin">
          <number>0</number>
@@ -359,11 +353,6 @@ margin:0 0 20 10;</string>
      </item>
      <item>
       <widget class="QStackedWidget" name="stackedWidget">
-       <property name="styleSheet">
-        <string notr="true">border: none;
-padding: 0em 0em;
-background-color: #fff;</string>
-       </property>
        <widget class="QWidget" name="stackFirst">
         <layout class="QVBoxLayout" name="verticalLayout_3">
          <property name="bottomMargin">

@@ -88,6 +88,14 @@ BitcoinGUI::BitcoinGUI(interfaces::Node& node, const PlatformStyle *_platformSty
 
     this->setStyleSheet(GUIUtil::loadStyleSheet());
 
+    if(!gArgs.GetArg("-darkmode", "").empty()){
+    	QPalette pal= QApplication::palette();
+    	pal.setColor(QPalette::Text, QColor("#ababaa"));
+    	pal.setColor(QPalette::Window, QColor(Qt::black));
+    	pal.setColor(QPalette::Background, QColor(Qt::black));
+    	QApplication::setPalette(pal);
+    }
+
     QSettings settings;
     if (!restoreGeometry(settings.value("MainWindowGeometry").toByteArray())) {
         // Restore failed (perhaps missing setting), center the window

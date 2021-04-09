@@ -18,4 +18,5 @@ FORMS += \
     ../src/qt/forms/transactiondescdialog.ui \
 
 RESOURCES += \
-    ../src/qt/veil.qrc
+    ../src/qt/veil.qrc \
+    ../src/qt/qdarkstyle/theme/style.qrc \

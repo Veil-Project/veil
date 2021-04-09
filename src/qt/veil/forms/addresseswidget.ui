@@ -31,11 +31,6 @@
    </property>
    <item>
     <widget class="QFrame" name="container">
-     <property name="styleSheet">
-      <string notr="true">background-color:white;
-border:none;
-</string>
-     </property>
      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,1,1,1">
       <property name="spacing">
        <number>0</number>

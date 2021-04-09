@@ -4,6 +4,79 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 */
 
+/** START sendcoinsdialog.ui */
+#SendCoinsDialog{
+    padding:0px;
+    margin:0px;
+    background-color:white;
+}
+#frame_1{
+    background-color:white;
+    border:none;
+}
+/** END sendcoinsdialog.ui */
+
+/** START receivewidget.ui */
+#frame_5{
+    border:none;
+    padding:0px;
+    margin:0px;
+    background-color:white;
+}
+/** END receivewidget.ui */
+
+/** START addresseswidget.ui */
+#container{
+    background-color:white;
+    border:none;
+}
+/** END addresseswidget.ui */
+
+/** START mainwindow.ui */
+#stackedWidget{
+    border: none;
+    padding: 0em 0em;
+    background-color: #fff;
+}
+/** END mainwindow.ui */
+
+/** START overviewpage.ui */
+QListView { 
+    background: transparent;
+}
+
+/* Works for both QListView and QListWidget */
+QListView::item {
+    /* Won't work without borders set */
+    border: 0px;
+    padding: 10px;
+}
+
+QListView::item:selected
+{
+    background-color:#a10;
+}
+
+/* For icon only */
+QListView::icon {
+    left: 10px;
+}
+
+/* For text only */
+QListView::text {
+    left: 13px;
+}
+/** END overviewpage.ui */
+
+/** START widgetsettings.ui */
+#label_3,#label_4,#label_6,#label_7,#label_8,#label_9,#label_12{
+    background-color:#bababa;
+}
+
+#txes_container{
+    background-color:white;
+}
+
 #centralWidget{
     border: none;
     padding: 0em 0em;
@@ -43,10 +116,10 @@ QStackedWidget{
 
 
 #containerBalance{
+  background-color: qlineargradient(y1:0, y2: 1, stop: 0 #ffffff, stop: 1 #e7eefd);
   opacity: 0.1;
   border: none;
   padding: 0em 0em;
-  background-color: qlineargradient(y1:0, y2: 1, stop: 0 #ffffff, stop: 1 #cc026dff);
 }
 
 

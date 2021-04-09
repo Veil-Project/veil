@@ -57,6 +57,15 @@ Balance::Balance(QWidget *parent, BitcoinGUI* gui) :
     connect(ui->btnImmature, SIGNAL(clicked()), this, SLOT(onBtnImmatureClicked()));
     connect(ui->copyAddress, SIGNAL(clicked()), this, SLOT(onBtnCopyAddressClicked()));
 
+    QPixmap logoAddress(107,92);
+    if(!gArgs.GetArg("-darkmode", "").empty()){
+    	logoAddress.load(":/icons/simbol-white-png");
+    }
+    else{
+    	logoAddress.load(":/icons/simbol-png");
+    }
+	QIcon LogoIcon(logoAddress);
+	ui->pushButtonLogo->setIcon(LogoIcon);
 }
 
 bool Balance::eventFilter(QObject *obj, QEvent *event) {

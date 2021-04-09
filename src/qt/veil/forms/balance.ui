@@ -47,14 +47,6 @@
        <height>640</height>
       </size>
      </property>
-     <property name="styleSheet">
-      <string notr="true">#containerBalance{
-border: none;
-background-color: qlineargradient(y1:0, y2: 1, stop: 0 #ffffff, stop: 1 #e7eefd);
-padding-left:10px;
-padding-right:10px;
-}</string>
-     </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <property name="spacing">
        <number>0</number>
@@ -89,7 +81,7 @@ padding-right:10px;
          <number>0</number>
         </property>
         <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
-         <widget class="QPushButton" name="pushButton">
+         <widget class="QPushButton" name="pushButtonLogo">
           <property name="minimumSize">
            <size>
             <width>213</width>
@@ -105,10 +97,6 @@ border:none;</string>
           </property>
           <property name="text">
            <string/>
-          </property>
-          <property name="icon">
-           <iconset resource="../../veil.qrc">
-            <normaloff>:/icons/simbol-png</normaloff>:/icons/simbol-png</iconset>
           </property>
           <property name="iconSize">
            <size>

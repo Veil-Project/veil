@@ -1,0 +1,189 @@
+/*
+// Copyright (c) 2019-2020 The Veil developers
+// Distributed under the MIT software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
+*
+
+/** START sendcoinsdialog.ui */
+#SendCoinsDialog{
+    padding:0px;
+    margin:0px;
+    background-color:black;
+}
+#frame_1{
+    background-color:black;
+    border:none;
+}
+/** END sendcoinsdialog.ui */
+
+/** START receivewidget.ui */
+#frame_5{
+    border:none;
+    padding:0px;
+    margin:0px;
+    background-color:black;
+}
+/** END receivewidget.ui */
+
+/** START addresseswidget.ui */
+#container{
+    background-color:black;
+    border:none;
+}
+/** END addresseswidget.ui */
+
+/** START mainwindow.ui */
+/**
+#stackedWidget{
+    border: none;
+    padding: 0em 0em;
+    background-color: black;
+}
+*/
+/** END mainwindow.ui */
+
+QWidget#VeilStatusBar {
+    background-color: black;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+QFrame#frameStatusBar {
+    background-color:black;
+    border-bottom:0px;
+    border-right:0px;
+    border-left:0px;
+}
+
+/** START overviewpage.ui */
+QListView { 
+    background: transparent;
+}
+
+/* Works for both QListView and QListWidget */
+QListView::item {
+    /* Won't work without borders set */
+    border: 0px;
+    padding: 10px;
+}
+
+QListView::item:selected
+{
+    background-color:#a10;
+}
+
+/* For icon only */
+QListView::icon {
+    left: 10px;
+}
+
+/* For text only */
+QListView::text {
+    left: 13px;
+}
+/** END overviewpage.ui */
+
+/** START widgetsettings.ui */
+#label_3,#label_4,#label_6,#label_7,#label_8,#label_9,#label_12{
+    background-color: black;
+}
+
+.SettingsWidget{
+    background-color:black;
+}
+
+SettingsWidget{
+    background-color:black;
+}
+
+#frame{
+   border:none;
+   background-color:black;
+}
+
+#scrollArea{
+   border:none;
+   background-color:black;
+} 
+
+#btnBackup{
+   text-align: left;
+   color: #575756;
+   background-color:black;
+   border:0;
+}
+
+#btnPassword{
+   text-align: left;
+   color: #575756;
+   background-color:black;
+   border:0;
+}
+
+#labelStacking{
+   text-align: left;
+   color: #575756;
+   background-color:black;
+   border:0;
+}
+
+#btnPreferences{
+   text-align: left;
+   color: #575756;
+   background-color:black;
+   border:0;
+}
+
+#btnMinting{
+  text-align: left;
+   color: #575756;
+   background-color:black;
+   border:0;
+}
+
+#btnFaq{
+  text-align: left;
+   color: #575756;
+   background-color:black;
+   border:0;
+}
+
+#btnAdvance{
+  text-align: left;
+   color: #575756;
+   background-color:black;
+   border:0;
+}
+/** END settingswidget.ui */
+
+#containerBalance{
+  opacity: 0.1;
+  border: none;
+  padding: 0em 0em;
+  background-color: qlineargradient(y1:0, y2: 1, stop: 0 #0d124d, stop: 1 #080b2e);
+}
+
+/** Table view (Transactions)  */
+
+QTableView {
+    background-color: black;
+    border: none;
+    padding: 0em 0em;
+}
+QHeaderView::section {background-color: black;}
+QHeaderView {background-color: black;}
+QTableCornerButton::section {background-color: black;}
+
+#txes_container{
+  background-color:black;
+}
+
+QListView::item {
+    /* Won't work without borders set */
+    border: 0px;
+    padding: 10px;
+    background-color: black;
+}
+
+
