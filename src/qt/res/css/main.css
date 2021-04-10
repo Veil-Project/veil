@@ -264,6 +264,31 @@ QListView::text {
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       BALANCE
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+#labelBalance{
+    background-color: transparent;
+    color: #707070;
+    font-size: 24px;
+}
+
+#btnUnconfirmed{
+    background-color:transparent;
+    color: #707070;
+}
+
+#labelUnconfirmed{
+    background-color:transparent;
+    color: #707070;
+}
+
+#btnImmature{
+    background-color:transparent;
+    color: #707070;
+}
+
+#labelImmature{
+    background-color:transparent;
+    color: #707070;
+}
 
 QLabel#labelReceive {
    background-color: transparent;

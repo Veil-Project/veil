@@ -147,13 +147,6 @@ border:none;</string>
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
-              <property name="styleSheet">
-               <string notr="true">#labelBalance{
-background-color: transparent;
-color: #707070;
-font-size: 24px;
-}</string>
-              </property>
               <property name="text">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:medium; font-weight:600;&quot;&gt;N/A Veil&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
@@ -185,10 +178,6 @@ margin-right:15px;</string>
               <property name="layoutDirection">
                <enum>Qt::RightToLeft</enum>
               </property>
-              <property name="styleSheet">
-               <string notr="true">background-color:transparent;
-color: #707070;</string>
-              </property>
               <property name="text">
                <string>Unconfirmed</string>
               </property>
@@ -200,10 +189,6 @@ color: #707070;</string>
             </item>
             <item>
              <widget class="QLabel" name="labelUnconfirmed">
-              <property name="styleSheet">
-               <string notr="true">background-color: transparent;
-color: #707070;</string>
-              </property>
               <property name="text">
                <string>N/A VEIL</string>
               </property>
@@ -233,10 +218,6 @@ color: #707070;</string>
               <property name="layoutDirection">
                <enum>Qt::RightToLeft</enum>
               </property>
-              <property name="styleSheet">
-               <string notr="true">background-color:transparent;
-color: #707070;</string>
-              </property>
               <property name="text">
                <string>Immature</string>
               </property>
@@ -248,10 +229,6 @@ color: #707070;</string>
             </item>
             <item>
              <widget class="QLabel" name="labelImmature">
-              <property name="styleSheet">
-               <string notr="true">background-color: transparent;
-color: #707070;</string>
-              </property>
               <property name="text">
                <string>N/A VEIL</string>
               </property>

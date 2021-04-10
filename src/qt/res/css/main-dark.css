@@ -141,6 +141,66 @@ QListView::text {
 /** END overviewpage.ui */
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       BALANCE
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+#labelBalance{
+    background-color: transparent;
+    color: #bababa;
+    font-size: 24px;
+}
+
+#btnUnconfirmed{
+    background-color:transparent;
+    color: #bababa;
+}
+
+#labelUnconfirmed{
+    background-color:transparent;
+    color: #bababa;
+}
+
+#btnImmature{
+    background-color:transparent;
+    color: #bababa;
+}
+
+#labelImmature{
+    background-color:transparent;
+    color: #bababa;
+}
+
+QLabel#labelReceive {
+   background-color: transparent;
+   color: #bababa;
+}
+
+QLabel#textBalance {
+    font-size:18px;
+    color: #bababa;
+    background-color: transparent;
+}
+
+#container_address {
+    border-bottom : 1px solid #707070;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       Transaction Detail
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+QLabel[cssClass~="label-detail"]{
+    color:#105aef;
+    font-size:18px;
+}
+
+
+QLabel[cssClass~="text-detail"]{
+    color:#bababa;
+    font-size:18px;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       START SCROLL BAR
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
@@ -181,10 +241,10 @@ QScrollBar::sub-line:vertical {
 HH       END SCROLL BAR
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
-/** START widgetsettings.ui */
+/** START settingswidget.ui */
 /** line spacers */
 #label,#label_3,#label_4,#label_6,#label_7,#label_8,#label_9,#label_12{
-    background-color: #575756;
+    background-color: #bababa;
 }
 
 #frame{
@@ -194,49 +254,49 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 #btnBackup{
    text-align: left;
-   color: #575756;
+   color: #bababa;
    background-color:black;
    border:0;
 }
 
 #btnPassword{
    text-align: left;
-   color: #575756;
+   color: #bababa;
    background-color:black;
    border:0;
 }
 
 #labelStacking{
    text-align: left;
-   color: #575756;
+   color: #bababa;
    background-color:black;
    border:0;
 }
 
 #btnPreferences{
    text-align: left;
-   color: #575756;
+   color: #bababa;
    background-color:black;
    border:0;
 }
 
 #btnMinting{
   text-align: left;
-   color: #575756;
+   color: #bababa;
    background-color:black;
    border:0;
 }
 
 #btnFaq{
   text-align: left;
-   color: #575756;
+   color: #bababa;
    background-color:black;
    border:0;
 }
 
 #btnAdvance{
   text-align: left;
-   color: #575756;
+   color: #bababa;
    background-color:black;
    border:0;
 }
