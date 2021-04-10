@@ -32,6 +32,34 @@ QMenuBar::item:pressed {
     background-color:black;
     border:none;
 }
+
+QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#dddddd;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:black;
+    color: #707070;
+}
 /** END sendcoinsdialog.ui */
 
 /** START receivewidget.ui */

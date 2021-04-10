@@ -428,35 +428,6 @@ margin:0px;</string>
            <property name="toolTip">
             <string>Clear all fields of the form.</string>
            </property>
-           <property name="styleSheet">
-            <string notr="true">QPushButton {
-    border-radius: 6px;
-    border:  1px solid #707070;
-    background-color:#ffffff;
-    color: #707070;
-    font-size: 14px;
-    padding:8;
-    text-align:center !important;
-}
-
-QPushButton:checked {
-    border:  1px solid #105aef;
-    background-color:#105aef;
-    color: #FFFFFF;
-}
-
-QPushButton:hover {
-    border:  1px solid #bababa;
-    background-color:#bababa;
-    color: #FFFFFF;
-}
-
-QPushButton:unchecked {
-    border:  1px solid #707070;
-    background-color:#ffffff;
-    color: #707070;
-}</string>
-           </property>
            <property name="text">
             <string>Clear All</string>
            </property>
@@ -474,35 +445,6 @@ QPushButton:unchecked {
            <property name="toolTip">
             <string>Send to multiple recipients at once</string>
            </property>
-           <property name="styleSheet">
-            <string notr="true">QPushButton {
-    border-radius: 6px;
-    border:  1px solid #707070;
-    background-color:#ffffff;
-    color: #707070;
-    font-size: 14px;
-    padding:8;
-    text-align:center !important;
-}
-
-QPushButton:checked {
-    border:  1px solid #105aef;
-    background-color:#105aef;
-    color: #FFFFFF;
-}
-
-QPushButton:hover {
-    border:  1px solid #bababa;
-    background-color:#bababa;
-    color: #FFFFFF;
-}
-
-QPushButton:unchecked {
-    border:  1px solid #707070;
-    background-color:#ffffff;
-    color: #707070;
-}</string>
-           </property>
            <property name="text">
             <string>Add Recipient</string>
            </property>
@@ -517,35 +459,6 @@ QPushButton:unchecked {
          </item>
          <item>
           <widget class="QPushButton" name="pushButtonCoinControl">
-           <property name="styleSheet">
-            <string notr="true">QPushButton {
-    border-radius: 6px;
-    border:  1px solid #707070;
-    background-color:#ffffff;
-    color: #707070;
-    font-size: 14px;
-    padding:8;
-    text-align:center !important;
-}
-
-QPushButton:checked {
-    border:  1px solid #105aef;
-    background-color:#105aef;
-    color: #FFFFFF;
-}
-
-QPushButton:hover {
-    border:  1px solid #bababa;
-    background-color:#bababa;
-    color: #FFFFFF;
-}
-
-QPushButton:unchecked {
-    border:  1px solid #707070;
-    background-color:#ffffff;
-    color: #707070;
-}</string>
-           </property>
            <property name="text">
             <string>Coin Control</string>
            </property>
