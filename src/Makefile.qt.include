@@ -449,6 +449,7 @@ RES_ICONS = \
   qt/res/icons/ic-progress-8-10@2x.png \
   qt/res/icons/ic-copy.png \
   qt/res/icons/simbol.png \
+  qt/res/icons/simbol-white.png \
   qt/res/icons/ic-switch-on@2x.png \
   qt/res/icons/ic-watch-off.png \
   qt/res/icons/ic-close-active.png \
