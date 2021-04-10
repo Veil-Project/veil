@@ -3,6 +3,24 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 *
+/** START styling file menu to dark mode */
+QMenuBar {
+    background-color: #080b2e;
+}
+
+QMenuBar::item {
+    color: white;
+    background: transparent;
+}
+
+QMenuBar::item:selected {
+    background: #8c8c8c;
+}
+
+QMenuBar::item:pressed {
+    background: #707070;
+}
+/** END styling file menu to dark mode */
 
 /** START sendcoinsdialog.ui */
 #SendCoinsDialog{
