@@ -45,6 +45,14 @@ QListView {
     background: transparent;
 }
 
+#comboFilter{
+    margin-right:6px;
+}
+
+#comboSort{
+    margin-right:6px;
+}
+
 /* Works for both QListView and QListWidget */
 QListView::item {
     /* Won't work without borders set */
