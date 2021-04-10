@@ -94,32 +94,14 @@ QListView::text {
 }
 /** END overviewpage.ui */
 
-/** START widgetsettings.ui */
-#label_3,#label_4,#label_6,#label_7,#label_8,#label_9,#label_12{
-    background-color: black;
-}
-
-.SettingsWidget{
-    background-color:black;
-}
-
-SettingsWidget{
-    background-color:black;
-}
-
-#frame{
-   border:none;
-   background-color:black;
-}
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       START SCROLL BAR
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 #scrollArea{
    border:none;
    background-color:black;
 } 
-
-/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       START SCROLL BAR
-HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 QScrollBar:vertical {
    border: 0px solid #999999;
@@ -153,7 +135,16 @@ QScrollBar::sub-line:vertical {
 HH       END SCROLL BAR
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** START widgetsettings.ui */
+/** line spacers */
+#label,#label_3,#label_4,#label_6,#label_7,#label_8,#label_9,#label_12{
+    background-color: #575756;
+}
 
+#frame{
+   border:none;
+   background-color:black;
+}
 
 #btnBackup{
    text-align: left;
