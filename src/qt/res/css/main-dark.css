@@ -117,6 +117,44 @@ SettingsWidget{
    background-color:black;
 } 
 
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       START SCROLL BAR
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+QScrollBar:vertical {
+   border: 0px solid #999999;
+   background:#dddddd;
+   width:7px;
+   margin: 0px 0px 0px 0px;
+   border-radius:3px;
+}
+
+QScrollBar::handle:vertical {
+    background: #bababa;
+    min-height: 0px;
+    border-radius:3px;
+}
+
+QScrollBar::add-line:vertical {
+    background: #bababa;
+    height: 0px;
+    subcontrol-position: bottom;
+    subcontrol-origin: margin;
+}
+
+QScrollBar::sub-line:vertical {
+    background: #bababa;
+    height: 0px;
+    subcontrol-position: top;
+    subcontrol-origin: margin;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       END SCROLL BAR
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+
+
 #btnBackup{
    text-align: left;
    color: #575756;
