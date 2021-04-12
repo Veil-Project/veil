@@ -37,12 +37,6 @@ AC_CONFIG_LINKS([src/crypto/randomx/asm/program_sshash_prefetch.inc:src/crypto/r
 AC_CONFIG_LINKS([src/crypto/randomx/asm/program_xmm_constants.inc:src/crypto/randomx/asm/program_xmm_constants.inc])
 AC_CONFIG_LINKS([src/crypto/randomx/asm/randomx_reciprocal.inc:src/crypto/randomx/asm/randomx_reciprocal.inc])
 
-m4_ifndef([PKG_PROG_PKG_CONFIG], [AC_MSG_ERROR([PKG_PROG_PKG_CONFIG macro not found. Please install pkg-config and re-run autogen.sh])])
-+PKG_PROG_PKG_CONFIG
-+if test "x$PKG_CONFIG" = x; then
-+  AC_MSG_ERROR([pkg-config not found])
-+fi
-
 BITCOIN_DAEMON_NAME=veild
 BITCOIN_GUI_NAME=veil-qt
 BITCOIN_CLI_NAME=veil-cli
@@ -1180,36 +1174,6 @@ AC_SUBST(UNIVALUE_CFLAGS)
 AC_SUBST(UNIVALUE_LIBS)
 
 BITCOIN_QT_PATH_PROGS([PROTOC], [protoc],$protoc_bin_path)
-dnl libmultiprocess library check
-
-libmultiprocess_found=no
-if test "x$with_libmultiprocess" = xyes || test "x$with_libmultiprocess" = xauto; then
-  m4_ifdef([PKG_CHECK_MODULES], [PKG_CHECK_MODULES([LIBMULTIPROCESS], [libmultiprocess], [
-     libmultiprocess_found=yes;
-     libmultiprocess_prefix=`$PKG_CONFIG --variable=prefix libmultiprocess`;
-  ], [true])])
-elif test "x$with_libmultiprocess" != xno; then
-  AC_MSG_ERROR([--with-libmultiprocess=$with_libmultiprocess value is not yes, auto, or no])
-fi
-AC_SUBST(LIBMULTIPROCESS_CFLAGS)
-AC_SUBST(LIBMULTIPROCESS_LIBS)
-
-dnl Enable multiprocess check
-
-if test "x$enable_multiprocess" = xyes; then
-  if test "x$libmultiprocess_found" != xyes; then
-    AC_MSG_ERROR([--enable-multiprocess=yes option specified but libmultiprocess library was not found. May need to install libmultiprocess library, or specify install path with PKG_CONFIG_PATH environment variable. Running 'pkg-config --debug libmultiprocess' may be helpful for debugging.])
-  fi
-  build_multiprocess=yes
-elif test "x$enable_multiprocess" = xauto; then
-  build_multiprocess=$libmultiprocess_found
-else
-  build_multiprocess=no
-fi
-
-AM_CONDITIONAL([BUILD_MULTIPROCESS],[test "x$build_multiprocess" = xyes])
-AM_CONDITIONAL([BUILD_BITCOIN_NODE], [test "x$build_multiprocess" = xyes])
-AM_CONDITIONAL([BUILD_BITCOIN_GUI], [test "x$build_multiprocess" = xyes])
 
 AC_MSG_CHECKING([whether to build veild])
 AM_CONDITIONAL([BUILD_BITCOIND], [test x$build_bitcoind = xyes])
