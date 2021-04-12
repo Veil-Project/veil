@@ -5883,7 +5883,7 @@ bool AnonWallet::SelectBlindedCoins(const std::vector<COutputR> &vAvailableCoins
     // add preset inputs to the total value selected
     nValueRet += nValueFromPresetInputs;
 
-    std::random_shuffle(setCoinsRet.begin(), setCoinsRet.end(), GetRandInt);
+    Shuffle(setCoinsRet.begin(), setCoinsRet.end(), FastRandomContext());
 
     return res;
 }
@@ -5972,7 +5972,7 @@ void AnonWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySaf
         }
     }
 
-    random_shuffle(vCoins.begin(), vCoins.end(), GetRandInt);
+    Shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
     return;
 }
 
@@ -6062,7 +6062,7 @@ bool AnonWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const CoinEligi
     std::vector<std::pair<CAmount, std::pair<MapRecords_t::const_iterator,unsigned int> > > vValue;
     CAmount nTotalLower = 0;
 
-    random_shuffle(vCoins.begin(), vCoins.end(), GetRandInt);
+    Shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
 
     for (const auto &r : vCoins) {
         //if (!r.fSpendable)
