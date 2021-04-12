@@ -1096,6 +1096,7 @@ fi
 
   PKG_CHECK_MODULES([SSL], [libssl],, [AC_MSG_ERROR(openssl not found.)])
   PKG_CHECK_MODULES([CRYPTO], [libcrypto],,[AC_MSG_ERROR(libcrypto not found.)])
+  BITCOIN_QT_CHECK([PKG_CHECK_MODULES([PROTOBUF], [protobuf], [have_protobuf=yes], [BITCOIN_QT_FAIL(libprotobuf not found)])])
 
 dnl libevent check
 
@@ -1138,6 +1139,7 @@ if test "x$use_zmq" = xyes; then
       ZMQ_CFLAGS="$ZMQ_CFLAGS -DZMQ_STATIC"
     ;;
   esac
+  BITCOIN_QT_CHECK(AC_CHECK_LIB([protobuf] ,[main],[PROTOBUF_LIBS=-lprotobuf], BITCOIN_QT_FAIL(libprotobuf not found)))
 fi
 
 dnl univalue check
