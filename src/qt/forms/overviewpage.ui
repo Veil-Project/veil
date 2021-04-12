@@ -19,6 +19,9 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
+  <property name="styleSheet">
+   <string/>
+  </property>
   <layout class="QVBoxLayout" name="topLayout">
    <property name="spacing">
     <number>0</number>
@@ -40,6 +43,9 @@
      <property name="visible">
       <bool>false</bool>
      </property>
+     <property name="styleSheet">
+      <string notr="true">QLabel { background-color: #6F9BF5; color:#FFFFFF; }</string>
+     </property>
      <property name="wordWrap">
       <bool>true</bool>
      </property>
@@ -58,6 +64,11 @@
      </property>
      <item>
       <widget class="QFrame" name="txes_container">
+       <property name="styleSheet">
+        <string notr="true">#txes_container{
+ background-color:white;
+}</string>
+       </property>
        <layout class="QVBoxLayout" name="verticalLayout_1">
         <property name="spacing">
          <number>0</number>
@@ -94,6 +105,9 @@
               </property>
               <item>
                <widget class="QLabel" name="title">
+                <property name="styleSheet">
+                 <string notr="true">padding:10 0 10 0;</string>
+                </property>
                 <property name="text">
                  <string>Transactions</string>
                 </property>
@@ -132,6 +146,9 @@
                   <height>16777215</height>
                  </size>
                 </property>
+                <property name="styleSheet">
+                 <string notr="true">#comboFilter{\n margin-right:6px;\n}</string>
+                </property>
                 <property name="currentText">
                  <string/>
                 </property>
@@ -154,6 +171,11 @@
                 <property name="layoutDirection">
                  <enum>Qt::LeftToRight</enum>
                 </property>
+                <property name="styleSheet">
+                 <string notr="true">#comboSort{
+ margin-right:6px;
+}</string>
+                </property>
                </widget>
               </item>
              </layout>
@@ -168,6 +190,9 @@
                 <width>0</width>
                 <height>0</height>
                </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border:none;</string>
               </property>
               <property name="frameShape">
                <enum>QFrame::StyledPanel</enum>
@@ -258,6 +283,20 @@
                    <property name="focusPolicy">
                     <enum>Qt::NoFocus</enum>
                    </property>
+                   <property name="styleSheet">
+                    <string notr="true">#btnGoFaq {
+border-radius: 6px;
+color: #FFFFFF;
+font-size: 16px;
+background-color:#105aef;
+line-height:10px;
+padding:8 20 8 20;
+}
+
+#btnGoFaq:hover {
+background-color:#0e45b4;
+}</string>
+                   </property>
                    <property name="text">
                     <string>Learn more about Veil</string>
                    </property>
@@ -298,6 +337,34 @@
              <widget class="QListView" name="listTransactions">
               <property name="mouseTracking">
                <bool>true</bool>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">QListView { 
+background: transparent;
+ }
+
+/* Works for both QListView and QListWidget */
+QListView::item {
+    /* Won't work without borders set */
+    border: 0px;
+    padding: 10px;
+}
+
+QListView::item:selected
+{
+    background-color:#a10;
+}
+
+/* For icon only */
+QListView::icon {
+    left: 10px;
+}
+
+/* For text only */
+QListView::text {
+    left: 13px;
+}
+</string>
               </property>
               <property name="frameShape">
                <enum>QFrame::NoFrame</enum>

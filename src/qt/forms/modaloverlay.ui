@@ -22,6 +22,9 @@
   <layout class="QVBoxLayout" name="verticalLayout_3">
    <item>
     <widget class="QWidget" name="bgWidget" native="true">
+     <property name="styleSheet">
+      <string notr="true">#bgWidget { background: transparent; border:none; }</string>
+     </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <property name="leftMargin">
        <number>64</number>
@@ -55,6 +58,14 @@
           <height>300</height>
          </size>
         </property>
+        <property name="styleSheet">
+         <string notr="true">#frame{
+	background: rgba(255,255,255,240);
+    background-color:white;
+    border-radius: 6px; 
+    border:none;
+}</string>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
@@ -85,6 +96,17 @@
              <height>0</height>
             </size>
            </property>
+           <property name="styleSheet">
+            <string notr="true">#frame_icon{
+   border:none;
+   border-top-left-radius: 6px; 
+   border-bottom-left-radius: 6px; 
+	background:transparent;
+   border-image: url(&quot;:/icons/banner-modal&quot;) 0 0 0 0 stretch stretch;
+   padding:0px;
+   margin:0px;
+}</string>
+           </property>
            <property name="frameShape">
             <enum>QFrame::StyledPanel</enum>
            </property>
@@ -100,6 +122,19 @@
          </item>
          <item>
           <widget class="QWidget" name="contentWidget" native="true">
+           <property name="styleSheet">
+            <string notr="true">#contentWidget {
+background: rgba(255,255,255,240); 
+ padding:0px;
+ margin:0px;
+border:none;
+   border-top-right-radius: 6px; 
+   border-bottom-right-radius: 6px; 
+
+}
+
+QLabel { color: rgb(40,40,40);  }</string>
+           </property>
            <layout class="QVBoxLayout" name="verticalLayoutSub" stretch="1,0,0,0">
             <property name="spacing">
              <number>0</number>
@@ -131,6 +166,9 @@
                 </property>
                 <item>
                  <widget class="QLabel" name="infoText">
+                  <property name="styleSheet">
+                   <string notr="true">font-size:16px;</string>
+                  </property>
                   <property name="text">
                    <string>Recent transactions may not yet be visible, and therefore your wallet's balance might be incorrect. This information will be correct once your wallet has finished synchronizing with the Veil network, as detailed below.</string>
                   </property>
@@ -148,6 +186,9 @@
                    <font>
                     <pointsize>-1</pointsize>
                    </font>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">font-size:16px;</string>
                   </property>
                   <property name="text">
                    <string>Attempting to spend veil that are affected by not-yet-displayed transactions will not be accepted by the network.</string>
@@ -197,6 +238,9 @@
                 <width>0</width>
                 <height>150</height>
                </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">border:none;</string>
               </property>
               <property name="frameShape">
                <enum>QFrame::StyledPanel</enum>
@@ -305,6 +349,10 @@
                  </item>
                  <item>
                   <widget class="QProgressBar" name="progressBar">
+                   <property name="styleSheet">
+                    <string notr="true">border:none;
+background-color:white;</string>
+                   </property>
                    <property name="value">
                     <number>24</number>
                    </property>
@@ -407,6 +455,19 @@
                <widget class="QPushButton" name="closeButton">
                 <property name="focusPolicy">
                  <enum>Qt::NoFocus</enum>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">#closeButton {
+color:#105aef; 
+border: none;
+padding: 0em 0em;
+background:none;
+font-size:18px;
+}
+
+#closeButton:hover {
+color:#0e45b4; 
+}</string>
                 </property>
                 <property name="text">
                  <string>Hide</string>
