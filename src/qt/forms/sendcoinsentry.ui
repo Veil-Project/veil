@@ -94,34 +94,12 @@
            <property name="toolTip">
             <string>The Veil stealth address to send the payment to</string>
            </property>
-           <property name="styleSheet">
-            <string notr="true">#payTo {   
-	padding:8;
-   margin-left:12px;
-	font-size:16px;
-	margin-right:3px;
-	background:transparent;
-   background-color:transparent;
-	border-top:none;
-	border-left:none;
-	border-right:none;
-   border-bottom:1px solid #bababa;
-}
-
-#payTo:focus {
-    border-bottom:1px solid #105aef;
-}</string>
-           </property>
           </widget>
          </item>
          <item>
           <widget class="QPushButton" name="btnAddressBook">
            <property name="focusPolicy">
             <enum>Qt::NoFocus</enum>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">background:transparent;
-border:none;</string>
            </property>
            <property name="text">
             <string/>
@@ -160,12 +138,6 @@ border:none;</string>
            <height>20</height>
           </size>
          </property>
-         <property name="styleSheet">
-          <string notr="true">padding:0px;
-margin:0px;
-margin-left:6px;
-color:#105AEF;</string>
-         </property>
          <property name="text">
           <string>Address</string>
          </property>
@@ -182,24 +154,6 @@ color:#105AEF;</string>
          <property name="focusPolicy">
           <enum>Qt::StrongFocus</enum>
          </property>
-         <property name="styleSheet">
-          <string notr="true">#payAmount {
-	padding:8;
-  margin-left:12px;
-	margin-right:12px;
-	font-size:16px;
-	background:transparent;
-   background-color:transparent;
-	border-top:none;
-	border-left:none;
-	border-right:none;
-   border-bottom:1px solid #bababa;
-}
-
-#payAmount_2:focus {
-    border-bottom:1px solid #105aef;
-}</string>
-         </property>
         </widget>
        </item>
        <item row="0" column="2" rowspan="2">
@@ -215,10 +169,6 @@ color:#105AEF;</string>
            <width>1</width>
            <height>16777215</height>
           </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">background-color:#bfbfbf;
-margin-top:24px</string>
          </property>
          <property name="text">
           <string/>
@@ -254,13 +204,6 @@ margin-top:24px</string>
               <height>20</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">border:none;
-margin:0px;
-margin-left:6px;
-padding:0px;
-color:#105AEF;</string>
-            </property>
             <property name="text">
              <string>Amount</string>
             </property>
@@ -276,12 +219,6 @@ color:#105AEF;</string>
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">border:none;
-background-color:transparent;
-margin:0px;
-padding:0px;</string>
             </property>
             <property name="text">
              <string/>
@@ -305,11 +242,6 @@ padding:0px;</string>
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">margin:0px;
-padding:0px;
-border:none;</string>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <property name="spacing">
@@ -347,13 +279,6 @@ border:none;</string>
            <height>20</height>
           </size>
          </property>
-         <property name="styleSheet">
-          <string notr="true">border:none;
-margin:0px;
-padding:0px;
-color:#105AEF;
-margin-left:3px;</string>
-         </property>
          <property name="text">
           <string>Address Label</string>
          </property>
@@ -369,24 +294,6 @@ margin-left:3px;</string>
          </property>
          <property name="toolTip">
           <string>Enter a label for this address to add it to the list of used addresses</string>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">#addAsLabel {   
-	padding:8;
-  margin-left:12px;
-	margin-right:20px;
-	font-size:16px;
-	background:transparent;
-   background-color:transparent;
-	border-top:none;
-	border-left:none;
-	border-right:none;
-   border-bottom:1px solid #bababa;
-}
-
-#addAsLabel:focus {
-    border-bottom:1px solid #105aef;
-}</string>
          </property>
         </widget>
        </item>
