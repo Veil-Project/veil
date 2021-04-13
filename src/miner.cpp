@@ -1011,7 +1011,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     ++pblock->nNonce;
                 }
             } else {
-                LogPrintf("%s: Unknown hashing algorithm found!\n");
+                LogPrintf("%s: Unknown hashing algorithm found!\n", __func__);
                 return;
             }
 
@@ -1023,8 +1023,8 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 if (!nTimeDuration) nTimeDuration = 1;
                 nHashSpeed = arith_uint256(nHashes/1000/nTimeDuration).getdouble();
             }
-            LogPrint(BCLog::BLOCKCREATION, "%s: PoW Hashspeed %d kh/s\n", __func__, nHashSpeed);
 
+            LogPrint(BCLog::MINING, "%s: PoW Hashspeed %d kh/s\n", __func__,  nHashSpeed);
             if (nTries == nInnerLoopCount) {
                 continue;
             }
@@ -1032,7 +1032,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
 
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
-            LogPrint(BCLog::BLOCKCREATION, "%s : Failed to process new block\n", __func__);
+            LogPrint(BCLog::MINING, "%s: Failed to process new block\n", __func__);
             continue;
         }
 
@@ -1142,8 +1142,8 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
                 nHashSpeed = arith_uint256(nHashes/nTimeDuration).getdouble();
             }
         }
-        LogPrint(BCLog::BLOCKCREATION, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__, nHashSpeed);
 
+        LogPrint(BCLog::MINING, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__, nHashSpeed);
         if (nTries == nInnerLoopCount) {
             continue;
         }
@@ -1155,7 +1155,7 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
 
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
-            LogPrint(BCLog::BLOCKCREATION, "%s: Failed to process new block\n", __func__);
+            LogPrint(BCLog::MINING, "%s: Failed to process new block\n", __func__);
             continue;
         }
 
