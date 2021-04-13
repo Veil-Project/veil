@@ -1433,11 +1433,12 @@ AddressNewContact#errorMessage {
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       addressreceive.ui
+HH      addressreceive.ui
+HH      widget name="AddressReceive"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** AddressReceive */
-#AddressReceive{
+AddressReceive#AddressReceive{
     background-color: transparent;
 }
 
@@ -1465,7 +1466,8 @@ AddressReceive#btnCopy {
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       balance.ui
+HH      balance.ui
+HH      widget name="Balance"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** Balance */
@@ -1574,20 +1576,201 @@ Balance#labelAddressName {
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       createpassword.ui
+HH      createpassword.ui
+HH      widget name="CreatePassword"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** labelTitle */
+CreatePassword#labelTitle {
+    color:#105aef;
+}
+
+/** frame */
+CreatePassword#frame {
+    border:none;
+}
+
+/** editPassword */
+CreatePassword#editPassword {
+    background-color:transparent;
+    color:#707070;
+    font-size:16px;
+    border:0px;
+    padding-right:6px;
+    padding-left:6px;
+    padding-top:6px;
+    padding-bottom:2px;
+}
+
+/** separatorPassword */
+CreatePassword#separatorPassword {
+    background-color:#707070;
+}
+
+/** editPasswordRepeat */
+CreatePassword#editPasswordRepeat {
+background-color:transparent;
+    color:#707070;
+    font-size:16px;
+    border:0px;
+    padding-right:6px;
+    padding-left:6px;
+    padding-top:12px;
+    padding-bottom:2px;
+}
+
+/** separatorPasswordRepeat */
+CreatePassword#separatorPasswordRepeat {
+    background-color:#707070;
+}
+
+/** errorMessage */
+CreatePassword#errorMessage {
+    color:#fd1337;
+}
+
+/** labelBody */
+CreatePassword#labelBody {
+    color:#bababa;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       mainwindow.ui
+HH      mainwindow.ui 
+HH      widget name=""
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** containerBalance */
+#containerBalance {
+    border: none;
+    background-color: qlineargradient(y1:0, y2: 1, stop: 0 #ffffff, stop: 1 #e7eefd);
+}
 
+/** labelVeilImg */
+#labelVeilImg {
+    background-color: transparent;
+    margin:0 0 0 10;
+}
+
+/** btnBalance */
+#btnBalance {
+    background-color:transparent;
+}
+
+/** labelBalance */
+#labelBalance{
+    background-color: transparent;
+    color: #707070;
+    font-size: 24px;
+}
+
+/** labelBalance */
+#label {
+    background-color:#bababa;
+}
+
+/** label_2 */
+#label_2 {
+    background-color: transparent;
+    color: #707070;
+}
+
+/** labelUnspendable */
+#labelUnspendable {
+    background-color: transparent;
+    color: #707070;
+}
+
+/** label_5 */
+#label_5 {
+    background-color: transparent;
+    color: #707070;
+}
+
+/** labelInmature */
+#labelInmature {
+    background-color: transparent;
+    color: #707070;
+}
+
+/** labelQr */
+#labelQr {
+    background-color: transparent;
+    margin:0 0 20 10;
+}
+
+/** labelReceive */
+#labelReceive {
+    background-color: transparent;
+    color: #004377;
+}
+
+/** copyAddress */
+#copyAddress {
+    background-color: transparent;
+}
+
+/** labelAddress */
+#labelAddress {
+    background-color: transparent;
+}
+
+/** stackedWidget */
+#stackedWidget {
+    border: none;
+    padding: 0em 0em;
+    background-color: #fff;
+}
+
+/** title */
+#title {
+    padding:10 0 10 0;
+}
+
+/** line */
+#line {
+    background-color:#bababa;
+}
+
+/** checkStacking */
+#checkStacking::indicator {
+    border: 0;
+    background: none;
+}
+
+#checkStacking {
+    background-image: url(&quot;:/icons/ic-switch-off&quot;) ;
+    background-repeat:no-repeat;
+    background-position:left center;
+    padding:8 4 8 30px;
+}
+
+#checkStacking:checked {
+    background-image: url(&quot;:/icons/ic-switch-on&quot;) ;
+}
+
+/** checkWatch */
+#checkWatch::indicator {
+    border: 0;
+    background: none;
+}
+
+#checkWatch {
+    background-image: url(&quot;:/icons/ic-watch-off&quot;) ;
+    background-repeat:no-repeat;
+    background-position:center;
+    padding:4 8 4 8;
+}
+
+#checkWatch:checked {
+    background-image: url(&quot;:/icons/ic-watch-on&quot;) ;
+}
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       receivewidget.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** WORD */
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       sendconfirmation.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** WORD */
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsadvance.ui
@@ -1892,9 +2075,149 @@ SettingsRestoreSeed#label_2 {
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       settingswidget.ui
+HH      settingswidget.ui
+HH      name="SettingsWidget"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** SettingsWidget */
+#SettingsWidget {
+    background-color:white;
+}
+
+/** frame */
+SettingsWidget#frame {
+    border:none;
+    background-color:white;
+}
+
+/** title */
+SettingsWidget#title {
+    padding:10 0 10 0;
+}
+
+/** scrollArea */
+SettingsWidget#scrollArea {
+    border:none;
+    background-color:white;
+}
+
+/** label_12 */
+SettingsWidget#label_12 {
+    background-color:#bababa;
+}
+
+/** scrollArea */
+SettingsWidget#scrollArea {
+    text-align: left;
+    color: #575756;
+    background-color:transparent;
+    border:0;
+}
+
+/** label */
+SettingsWidget#label {
+    background-color:#bababa;
+}
+
+/** btnPassword */
+SettingsWidget#btnPassword {
+text-align: left;
+    color: #575756;
+    background-color:transparent;
+    border:0;
+}
+
+/** label_3 */
+SettingsWidget#label_3 {
+    background-color:#bababa;
+}
+
+/** labelStacking */
+SettingsWidget#labelStacking {
+    text-align: left;
+    color: #575756;
+    background-color:transparent;
+    border:0;
+}
+
+/** checkBoxStaking */
+SettingsWidget#checkBoxStaking::indicator {
+    border: 0;
+    background: none;
+}
+
+SettingsWidget#checkBoxStaking {
+    background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
+    background-repeat:no-repeat;
+    background-position:left center;
+    padding:4 4 8 30px;
+}
+
+SettingsWidget#checkBoxStaking:checked {
+    background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
+}
+
+/** label_7 */
+SettingsWidget#label_7 {
+    background-color:#bababa;
+}
+
+/** titleOptions */
+SettingsWidget#titleOptions {
+    padding:10 0 10 0;
+}
+
+/** btnPreferences */
+SettingsWidget#btnPreferences {
+    text-align: left;
+    color: #575756;
+    background-color:transparent;
+    border:0;
+}
+
+/** label_8 */
+SettingsWidget#label_8 {
+    background-color:#bababa;
+}
+
+/** btnMinting */
+SettingsWidget#btnMinting {
+    text-align: left;
+    color: #575756;
+    background-color:transparent;
+    border:0;
+}
+
+/** label_9 */
+SettingsWidget#label_9 {
+    background-color:#bababa;
+}
+
+/** btnFaq */
+SettingsWidget#btnFaq {
+    text-align: left;
+    color: #575756;
+    background-color:transparent;
+    border:0;
+}
+
+/** label_4 */
+SettingsWidget#label_4 {
+    background-color:#bababa;
+}
+
+/** btnAdvance */
+SettingsWidget#btnAdvance {
+    text-align: left;
+    color: #575756;
+    background-color:transparent;
+    border:0;
+}
+
+/** label_6 */
+SettingsWidget#label_6 {
+    background-color:#bababa;
+}
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       toast.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
@@ -2061,8 +2384,26 @@ HH       unlockpassworddialog.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       updateaddress.ui
+HH      updateaddress.ui
+HH	widget name="UpdateAddress"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** UpdateAddress */
+UpdateAddress#UpdateAddress {
+    background-color:transparent;
+}
+
+/** frame */
+UpdateAddress#frame {
+    background-color: white;
+    padding: 10px 10px 10px 10px;
+    border-radius: 20px;
+}
+
+/** errorMessage */
+UpdateAddress#errorMessage {
+    color:#fd1337;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       veilstatusbar.ui
