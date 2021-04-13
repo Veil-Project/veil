@@ -8,7 +8,7 @@
 HH       addressbookpage.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** newAddress */
-QPushButton {
+AddressBookPage QPushButton {
     border-radius: 6px;
     border:  1px solid #707070;
     background-color:#ffffff;
@@ -18,26 +18,26 @@ QPushButton {
     text-align:center !important;
 }
 
-QPushButton:checked {
+AddressBookPage QPushButton:checked {
     border:  1px solid #105aef;
     background-color:#105aef;
     color: #FFFFFF;
 }
 
-QPushButton:hover {
+AddressBookPage QPushButton:hover {
     border:  1px solid #bababa;
     background-color:#bababa;
     color: #FFFFFF;
 }
 
-QPushButton:unchecked {
+AddressBookPage QPushButton:unchecked {
     border:  1px solid #707070;
     background-color:#ffffff;
     color: #707070;
 }
 
 /** copyAddress */
-QPushButton {
+AddressBookPage QPushButton {
     border-radius: 6px;
     border:  1px solid #707070;
     background-color:#ffffff;
@@ -47,26 +47,26 @@ QPushButton {
     text-align:center !important;
 }
 
-QPushButton:checked {
+AddressBookPage QPushButton:checked {
     border:  1px solid #105aef;
     background-color:#105aef;
     color: #FFFFFF;
 }
 
-QPushButton:hover {
+AddressBookPage QPushButton:hover {
     border:  1px solid #bababa;
     background-color:#bababa;
     color: #FFFFFF;
 }
 
-QPushButton:unchecked {
+AddressBookPage QPushButton:unchecked {
     border:  1px solid #707070;
     background-color:#ffffff;
     color: #707070;
 }
 
 /** deleteAddress */
-QPushButton {
+AddressBookPage QPushButton {
     border-radius: 6px;
     border:  1px solid #707070;
     background-color:#ffffff;
@@ -76,25 +76,25 @@ QPushButton {
     text-align:center !important;
 }
 
-QPushButton:checked {
+AddressBookPage QPushButton:checked {
     border:  1px solid #105aef;
     background-color:#105aef;
     color: #FFFFFF;
 }
 
-QPushButton:hover {
+AddressBookPage QPushButton:hover {
     border:  1px solid #bababa;
     background-color:#bababa;
     color: #FFFFFF;
 }
 
-QPushButton:unchecked {
+AddressBookPage QPushButton:unchecked {
     border:  1px solid #707070;
     background-color:#ffffff;
     color: #707070;
 }
 /** exportButton */
-QPushButton {
+AddressBookPage QPushButton {
     border-radius: 6px;
     border:  1px solid #707070;
     background-color:#ffffff;
@@ -104,25 +104,25 @@ QPushButton {
     text-align:center !important;
 }
 
-QPushButton:checked {
+AddressBookPage QPushButton:checked {
     border:  1px solid #105aef;
     background-color:#105aef;
     color: #FFFFFF;
 }
 
-QPushButton:hover {
+AddressBookPage QPushButton:hover {
     border:  1px solid #bababa;
     background-color:#bababa;
     color: #FFFFFF;
 }
 
-QPushButton:unchecked {
+AddressBookPage QPushButton:unchecked {
     border:  1px solid #707070;
     background-color:#ffffff;
     color: #707070;
 }
 /** closeButton */
-QPushButton {
+AddressBookPage QPushButton {
     border-radius: 6px;
     border:  1px solid #105aef;
     color: #105aef;
@@ -130,7 +130,7 @@ QPushButton {
     padding:10 10 10 10;
 }
 
-QPushButton:hover {
+AddressBookPage QPushButton:hover {
     color: #FFFFFF;
     background-color:#4070d3;
     border:  1px solid #4070d3;
@@ -140,20 +140,20 @@ QPushButton:hover {
 HH       askpassphrasedialog.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** frame */
-#frame {
+AskPassphraseDialog#frame {
     background-color:white;
     border-radius:20px;
     padding:10px;
 }
 
 /** warningLabel */
-#warningLabel {
+AskPassphraseDialog#warningLabel {
     color:#bababa;
     font-size:13px;
 }
 
 /** passLabel1 */
-#passLabel1 {
+AskPassphraseDialog#passLabel1 {
     padding:0px;
     margin:0px;
     margin-left:6px;
@@ -161,7 +161,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** passLabel2 */
-#passLabel2 {
+AskPassphraseDialog#passLabel2 {
     padding:0px;
     margin:0px;
     margin-left:6px;
@@ -169,7 +169,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** passLabel3 */
-#passLabel3 {
+AskPassphraseDialog#passLabel3 {
     padding:0px;
     margin:0px;
     margin-left:6px;
@@ -177,7 +177,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** toggleShowPasswordButton */
-#toggleShowPasswordButton {
+AskPassphraseDialog#toggleShowPasswordButton {
     padding-top:5px;
     color:#bababa;
     font-size:13px;
@@ -185,7 +185,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** capsLabel */
-#capsLabel {
+AskPassphraseDialog#capsLabel {
     font-size:13px;
 }
 
@@ -193,81 +193,81 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 HH       coincontroldialog.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** frame_2 */
-#frame_2 {
+CoinControlDialog#frame_2 {
     background-color:white;
     border-radius:20px;
     padding: 12px;
 }
 
 /** labelCoinControlQuantityText */
-#labelCoinControlQuantityText {
+CoinControlDialog#labelCoinControlQuantityText {
     color:#707070;
 }
 
 /** labelCoinControlQuantity */
-#labelCoinControlQuantity {
+CoinControlDialog#labelCoinControlQuantity {
     color:#707070;
 }
 
 /** labelCoinControlBytesText */
-#labelCoinControlBytesText {
+CoinControlDialog#labelCoinControlBytesText {
     color:#707070;
 }
 
 /** labelCoinControlBytes */
-#labelCoinControlBytes {
+CoinControlDialog#labelCoinControlBytes {
     color:#707070;
 }
 
 /** labelCoinControlAmountText */
-#labelCoinControlAmountText {
+CoinControlDialog#labelCoinControlAmountText {
     color:#707070;
 }
 
 /** labelCoinControlAmount */
-#labelCoinControlAmount {
+CoinControlDialog#labelCoinControlAmount {
     color:#707070;
 }
 
 /** labelCoinControlFeeText */
-#labelCoinControlFeeText {
+CoinControlDialog#labelCoinControlFeeText {
     color:#707070;
 }
 
 /** labelCoinControlFee */
-#labelCoinControlFee {
+CoinControlDialog#labelCoinControlFee {
     color:#707070;
 }
 
 /** labelCoinControlAfterFeeText */
-#labelCoinControlAfterFeeText {
+CoinControlDialog#labelCoinControlAfterFeeText {
     color:#707070;
 }
 
 /** labelCoinControlAfterFee */
-#labelCoinControlAfterFee {
+CoinControlDialog#labelCoinControlAfterFee {
     color:#707070;
 }
 
 /** labelCoinControlChangeText */
-#labelCoinControlChangeText {
+CoinControlDialog#labelCoinControlChangeText {
     color:#707070;
 }
 
 /** labelCoinControlChange */
-#labelCoinControlChange {
+CoinControlDialog#labelCoinControlChange {
     color:#707070;
 }
 
 /** frame */
-#frame {
+CoinControlDialog#frame {
     background-color:white;
     color:#707070;
     font-size:13.5px;
 }
 
 /** treeWidget */
-#treeWidget {
+CoinControlDialog#treeWidget {
     background-color:white;
     color:#707070;
     font-size:13.5px;
@@ -275,7 +275,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** buttonBox */
-QPushButton#buttonBox {
+CoinControlDialog QPushButton#buttonBox {
     border-radius: 6px;
     color: #FFFFFF;
     font-size: 16px;
@@ -284,7 +284,7 @@ QPushButton#buttonBox {
     padding:8 20 8 20;
 }
 
-QPushButton#buttonBox:hover {
+CoinControlDialog QPushButton#buttonBox:hover {
     background-color:#0e45b4;
 }
 
@@ -292,44 +292,44 @@ QPushButton#buttonBox:hover {
 HH       debugwindow.ui (15)
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** RPCConsole */
-#RPCConsole {
+RPCConsole#RPCConsole {
     background-color:white;
     border:none;
 }
 
 /** frame */
-#frame {
+RPCConsole#frame {
     background-color: white;
 }
 
 /** tabWidget */
-#tabWidget {
+RPCConsole#tabWidget {
     background-color:white;
     color:#707070;
     font-size:13.5px;
 }
 
 /** tab_info */
-#tab_info {
+RPCConsole#tab_info {
     color:#707070;
     font-size:13.5px;
     font-weight:200;
 }
 
 /** labelNetwork */
-#labelNetwork {
+RPCConsole#labelNetwork {
     color:#707070;
     font-size:16px;
     font-weight:bold;
 }
 
 /** labelDebugLogfile */
-#labelDebugLogfile {
+RPCConsole#labelDebugLogfile {
     padding-bottom:5px;
 }
 
 /** openDebugLogfileButton */
-#openDebugLogfileButton {
+RPCConsole#openDebugLogfileButton {
     border-radius: 6px;
     color: #FFFFFF;
     font-size: 16px;
@@ -338,19 +338,19 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
     padding:8 20 8 20;
 }
 
-#openDebugLogfileButton:hover {
+RPCConsole#openDebugLogfileButton:hover {
     background-color:#0e45b4;
 }
 
 /** labelMempoolTitle */
-#labelMempoolTitle {
+RPCConsole#labelMempoolTitle {
     color:#707070;
     font-size:16px;
     font-weight:bold;
 }
 
 /** label_9*/
-#label_9 {
+RPCConsole#label_9 {
     color:#707070;
     font-size:16px;
     font-weight:bold;
@@ -360,33 +360,33 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** messagesWidget */
-#messagesWidget {
+RPCConsole#messagesWidget {
     border: 1px solid #bababa;
 }
 
 /** lineEdit */
-#lineEdit {
+RPCConsole#lineEdit {
     border: 1px solid #bababa;
 }
 
 /** label_16 */
-#label_16 {
+RPCConsole#label_16 {
     color:#707070;
     font-size:13.5px;
 }
 
 /** peerWidget */
-#peerWidget {
+RPCConsole#peerWidget {
     border: 1px solid #bababa;
 }
 
 /** banlistWidget */
-#banlistWidget {
+RPCConsole#banlistWidget {
     border: 1px solid #bababa;
 }
 
 /** peerHeading */
-#peerHeading {
+RPCConsole#peerHeading {
     color:#707070;
     font-size:13.5px;
 }
@@ -400,18 +400,18 @@ HH       helpmessagedialog.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** HelpMessageDialog */
-#HelpMessageDialog {
+HelpMessageDialog#HelpMessageDialog {
     background-color:white;
     border:none;
 }
 
 /** frame_2 */
-#frame_2 {
+HelpMessageDialog#frame_2 {
     background-color:white;
 }
 
 /** okButton */
-QPushButton#okButton {
+HelpMessageDialog QPushButton#okButton {
     border-radius: 6px;
     color: #FFFFFF;
     font-size: 16px;
@@ -420,7 +420,7 @@ QPushButton#okButton {
     padding:5 20 5 20;
 }
 
-QPushButton#okButton:hover {
+HelpMessageDialog QPushButton#okButton:hover {
     background-color:#0e45b4;
 }
 
@@ -428,40 +428,40 @@ QPushButton#okButton:hover {
 HH       intro.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** frame */
-#frame {
+Intro#frame {
     border-image: url(&quot;:/icons/splash_background&quot;) 0 0 0 0 stretch stretch;
     padding:0px;
     margin:0px;
 }
 
 /** frame2 */
-#frame2 {
+Intro#frame2 {
     background-color: white;
     padding: 2px 10px 2px 10px;
     border-radius:20px;
 }
 
 /** pushButton */
-#pushButton {
+Intro#pushButton {
     background-color:transparent;
     border:none;
 }
 
 /** label_2 */
-#label_2 {
+Intro#label_2 {
     text-align:center;
     color:#707070;
     font-size:18px;
 }
 
 /** groupBox */
-#groupBox {
+Intro#groupBox {
     background-color:#ffffff;
     border-radius:0;
 }
 
 /** frame_2*/
-#frame_2 {
+Intro#frame_2 {
     padding:3px;
     border:none;
     background:transparent;
@@ -469,7 +469,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** dataDirectory */
-#dataDirectory {
+Intro#dataDirectory {
     padding:8px;
     border:0px;
     font-size:15px;
@@ -480,7 +480,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** ellipsisButton */
-#ellipsisButton {
+Intro#ellipsisButton {
     background-color:transparent;
     border:0px;
 
@@ -493,12 +493,12 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 HH       modaloverlay.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** bgWidget */
-#bgWidget {
+ModalOverlay#bgWidget {
     background: transparent; border:none;
 }
 
 /** frame */
-#frame {
+ModalOverlay#frame {
     background: rgba(255,255,255,240);
     background-color:white;
     border-radius: 6px; 
@@ -506,7 +506,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** frame_icon */
-#frame_icon {
+ModalOverlay#frame_icon {
     border:none;
     border-top-left-radius: 6px; 
     border-bottom-left-radius: 6px; 
@@ -517,7 +517,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** contentWidget */
-#contentWidget {
+ModalOverlay#contentWidget {
     background: rgba(255,255,255,240); 
     padding:0px;
     margin:0px;
@@ -526,33 +526,33 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
     border-bottom-right-radius: 6px; 
 }
 
-QLabel {
+ModalOverlay QLabel {
     color: rgb(40,40,40);
 }
 
 /** infoText */
-#infoText {
+ModalOverlay#infoText {
     font-size:16px;
 }
 
 /** infoTextStrong */
-#infoTextStrong {
+ModalOverlay#infoTextStrong {
     font-size:16px;
 }
 
 /** frame_2 */
-#frame_2 {
+ModalOverlay#frame_2 {
     border:none;
 }
 
 /** progressBar */
-#progressBar {
+ModalOverlay#progressBar {
     border:none;
     background-color:white;
 }
 
 /** closeButton */
-#closeButton {
+ModalOverlay#closeButton {
     color:#105aef; 
     border: none;
     padding: 0em 0em;
@@ -560,7 +560,7 @@ QLabel {
     font-size:18px;
 }
 
-#closeButton:hover {
+ModalOverlay#closeButton:hover {
     color:#0e45b4; 
 }
 
@@ -572,80 +572,80 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 HH       optionsdialog.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** windowTitle */
-#windowTitle {
+OptionsDialog#windowTitle {
     background-color:white;
     border:none;
 }
 
 /** tabMain */
-#tabMain {
+OptionsDialog#tabMain {
     padding-top:6px;
     background-color:transparent;
 }
 
 /** frame_2 */
-#frame_2 {
+OptionsDialog#frame_2 {
     background-color:#10000000;
     border-radius:20px;
     padding:9px;
 }
 
 /** pruneSize */
-#pruneSize {
+OptionsDialog#pruneSize {
     border-bottom: 1px solid #bababa;
 }
 
 /** databaseCache */
-#databaseCache {
+OptionsDialog#databaseCache {
     border-bottom: 1px solid #bababa;
 }
 
 /** threadsScriptVerif */
-#threadsScriptVerif {
+OptionsDialog#threadsScriptVerif {
     border-bottom: 1px solid #bababa;
 }
 
 /** tabWallet */
-#tabWallet {
+OptionsDialog#tabWallet {
     padding-top:6px;
 }
 
 /** frame_3*/
-#frame_3 {
+OptionsDialog#frame_3 {
     background-color:#10000000;
     border-radius:20px;
     padding:9px;
 }
 
 /** groupBox*/
-#groupBox {
+OptionsDialog#groupBox {
     background-color:transparent;
 }
 
 /** tabNetwork*/
-#tabNetwork {
+OptionsDialog#tabNetwork {
     padding-top:6px;
 }
 
 /** frame_5*/
-#frame_5 {
+OptionsDialog#frame_5 {
     background-color:#10000000;
     border-radius:20px;
     padding:9px;
 }
 
 /** frame_4*/
-#frame_4 {
+OptionsDialog#frame_4 {
     background-color:transparent;
 }
 
 /** tabWindow */
-#tabWindow {
+OptionsDialog#tabWindow {
     padding-top:6px;
 }
 
 /** frame_6*/
-#frame_6 {
+OptionsDialog#frame_6 {
     background-color:#10000000;
     border-radius:20px;
     padding:9px;
@@ -653,48 +653,48 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 
 /** frame_9*/
-#frame_9 {
+OptionsDialog#frame_9 {
     background-color:transparent;
 }
 
 /** tabDisplay */
-#tabDisplay {
+OptionsDialog#tabDisplay {
     padding-top:6px;
 }
 
 /** #frame_8 */
-#frame_8 {
+OptionsDialog#frame_8 {
     background-color:#10000000;
     border-radius:20px;
     padding:9px;
 }
 
 /** frame_7 */
-#frame_7 {
+OptionsDialog#frame_7 {
     background-color:transparent;
 }
 
 /** langLabel */
-#langLabel {
+OptionsDialog#langLabel {
     font-size:13px;
 }
 
 /** lang */
-QValueComboBox {
+OptionsDialog QValueComboBox {
     font-size:13px;
     selection-color: #000000;
 }
 
-QValueComboBox QFrame {
+OptionsDialog QValueComboBox QFrame {
     background-color:white;
 }
 
-QValueComboBox::drop-down {
+OptionsDialog QValueComboBox::drop-down {
     background-color:white;
     color:#bababa;
 }
 
-QToolTip {
+OptionsDialog QToolTip {
     color: #ffffff;
     background-color: #6f9bf5;
     font-size:11pt;
@@ -707,32 +707,32 @@ QToolTip {
 }
 
 /** thirdPartyTxUrlsLabel */
-#thirdPartyTxUrlsLabel {
+OptionsDialog#thirdPartyTxUrlsLabel {
     font-size:13px;
 }
 
 /** thirdPartyTxUrls */
-#thirdPartyTxUrls {
+OptionsDialog#thirdPartyTxUrls {
     font-size:13px;
 }
 
 /** overriddenByCommandLineInfoLabel */
-#overriddenByCommandLineInfoLabel {
+OptionsDialog#overriddenByCommandLineInfoLabel {
     font-size:13px;
 }
 
 /** openBitcoinConfButton */
-#openBitcoinConfButton {
+OptionsDialog#openBitcoinConfButton {
     color: rgb(106,148,255);
 }
 
 /** resetButton */
-#resetButton {
+OptionsDialog#resetButton {
     color: rgb(106,148,255);
 }
 
 /** cancelButton */
-#cancelButton {
+OptionsDialog#cancelButton {
     border-radius: 6px;
     color: #FFFFFF;
     font-size: 16px;
@@ -741,12 +741,12 @@ QToolTip {
     padding:8 20 8 20;
 }
 
-#cancelButton:hover {
+OptionsDialog#cancelButton:hover {
     background-color:#0e45b4;
 }
 
 /** okButton */
-#okButton {
+OptionsDialog#okButton {
     border-radius: 6px;
     color: #FFFFFF;
     font-size: 16px;
@@ -755,12 +755,12 @@ QToolTip {
     padding:8 20 8 20;
 }
 
-okButton:hover {
+OptionsDialog okButton:hover {
     background-color:#0e45b4;
 }
 
 /** unitLabel */
-#unitLabel {
+OptionsDialog#unitLabel {
     font-size:13px;
 }
 
@@ -768,37 +768,37 @@ okButton:hover {
 HH       overviewpage.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** labelAlerts */
-QLabel {
+OverviewPage QLabel {
     background-color: #6F9BF5; color:#FFFFFF;
 }
 
 /** txes_container */
-#txes_container {
+OverviewPage#txes_container {
     background-color:white;
 }
 
 /** title */
-#title {
+OverviewPage#title {
     padding:10 0 10 0;
 }
 
 /** comboFilter */
-#comboFilter {
+OverviewPage#comboFilter {
     margin-right:6px;
 }
 
 /** comboSort */
-#comboSort {
+OverviewPage#comboSort {
     margin-right:6px;
 }
 
 /** containerEmpty */
-#containerEmpty {
+OverviewPage#containerEmpty {
     border:none;
 }
 
 /** btnGoFaq */
-#btnGoFaq {
+OverviewPage#btnGoFaq {
     border-radius: 6px;
     color: #FFFFFF;
     font-size: 16px;
@@ -807,33 +807,33 @@ QLabel {
     padding:8 20 8 20;
 }
 
-#btnGoFaq:hover {
+OverviewPage#btnGoFaq:hover {
     background-color:#0e45b4;
 }
 
 /** listTransactions */
-QListView { 
+OverviewPage QListView { 
     background: transparent;
 }
 
 /* Works for both QListView and QListWidget */
-QListView::item {
+OverviewPage QListView::item {
     /* Won't work without borders set */
     border: 0px;
     padding: 10px;
 }
 
-QListView::item:selected {
+OverviewPage QListView::item:selected {
     background-color:#a10;
 }
 
 /* For icon only */
-QListView::icon {
+OverviewPage QListView::icon {
     left: 10px;
 }
 
 /* For text only */
-QListView::text {
+OverviewPage QListView::text {
     left: 13px;
 }
 
@@ -850,7 +850,7 @@ HH       sendcoinsdialog.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SendCoinsDialog */
-#SendCoinsDialog {
+SendCoinsDialog#SendCoinsDialog {
     border:none;
     padding:0px;
     margin:0px;
@@ -858,95 +858,95 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** frame_1 */
-#frame_1 {
+SendCoinsDialog#frame_1 {
     background-color:white;
     border:none;
 }
 
 /** title */
-#title {
+SendCoinsDialog#title {
     padding:10 0 10 0;
 }
 
 /** labelCoinControlQuantityText */
-#labelCoinControlQuantityText {
+SendCoinsDialog#labelCoinControlQuantityText {
     color:#707070;
 }
 
 /** labelCoinControlQuantity */
-#labelCoinControlQuantity {
+SendCoinsDialog#labelCoinControlQuantity {
     color:#707070;
 }
 
 /** labelCoinControlBytesText */
-#labelCoinControlBytesText {
+SendCoinsDialog#labelCoinControlBytesText {
     color:#707070;
 }
 
 /** labelCoinControlBytes */
-#labelCoinControlBytes {
+SendCoinsDialog#labelCoinControlBytes {
     color:#707070;
 }
 
 /** labelCoinControlAmountText */
-#labelCoinControlAmountText {
+SendCoinsDialog#labelCoinControlAmountText {
     color:#707070;
 }
 
 /** labelCoinControlAmount */
-#labelCoinControlAmount {
+SendCoinsDialog#labelCoinControlAmount {
     color:#707070;
 }
 
 /** labelCoinControlLowOutputText */
-#labelCoinControlLowOutputText {
+SendCoinsDialog#labelCoinControlLowOutputText {
     color:#707070;
 }
 
 /** labelCoinControlLowOutput */
-#labelCoinControlLowOutput {
+SendCoinsDialog#labelCoinControlLowOutput {
     color:#707070;
 }
 
 /** labelCoinControlFeeText */
-#labelCoinControlFeeText {
+SendCoinsDialog#labelCoinControlFeeText {
     color:#707070;
 }
 
 /** labelCoinControlFee */
-#labelCoinControlFee {
+SendCoinsDialog#labelCoinControlFee {
     color:#707070;
 }
 
 /** labelCoinControlAfterFeeText */
-#labelCoinControlAfterFeeText {
+SendCoinsDialog#labelCoinControlAfterFeeText {
     color:#707070;
 }
 
 /** labelCoinControlAfterFee */
-#labelCoinControlAfterFee {
+SendCoinsDialog#labelCoinControlAfterFee {
     color:#707070;
 }
 
 /** labelCoinControlChangeText */
-#labelCoinControlChangeText {
+SendCoinsDialog#labelCoinControlChangeText {
     color:#707070;
 }
 
 /** labelCoinControlChange */
-#labelCoinControlChange {
+SendCoinsDialog#labelCoinControlChange {
     color:#707070;
 }
 
 /** scrollArea */
-#scrollArea {
+SendCoinsDialog#scrollArea {
     border:none;
     padding:0px;
     margin:0px;
 }
 
 /** frame_2 */
-QToolTip {
+SendCoinsDialog QToolTip {
     color: #ffffff;
     background-color: #6f9bf5;
     font-size:13px;
@@ -959,7 +959,7 @@ QToolTip {
 }
 
 /** clearButton */
-QPushButton {
+SendCoinsDialog QPushButton {
     border-radius: 6px;
     border:  1px solid #707070;
     background-color:#ffffff;
@@ -969,26 +969,26 @@ QPushButton {
     text-align:center !important;
 }
 
-QPushButton:checked {
+SendCoinsDialog QPushButton:checked {
     border:  1px solid #105aef;
     background-color:#105aef;
     color: #FFFFFF;
 }
 
-QPushButton:hover {
+SendCoinsDialog QPushButton:hover {
     border:  1px solid #bababa;
     background-color:#bababa;
     color: #FFFFFF;
 }
 
-QPushButton:unchecked {
+SendCoinsDialog QPushButton:unchecked {
     border:  1px solid #707070;
     background-color:#ffffff;
     color: #707070;
 }
 
 /** addButton */
-QPushButton {
+SendCoinsDialog QPushButton {
     border-radius: 6px;
     border:  1px solid #707070;
     background-color:#ffffff;
@@ -998,26 +998,26 @@ QPushButton {
     text-align:center !important;
 }
 
-QPushButton:checked {
+SendCoinsDialog QPushButton:checked {
     border:  1px solid #105aef;
     background-color:#105aef;
     color: #FFFFFF;
 }
 
-QPushButton:hover {
+SendCoinsDialog QPushButton:hover {
     border:  1px solid #bababa;
     background-color:#bababa;
     color: #FFFFFF;
 }
 
-QPushButton:unchecked {
+SendCoinsDialog QPushButton:unchecked {
     border:  1px solid #707070;
     background-color:#ffffff;
     color: #707070;
 }
 
 /** pushButtonCoinControl */
-QPushButton {
+SendCoinsDialog QPushButton {
     border-radius: 6px;
     border:  1px solid #707070;
     background-color:#ffffff;
@@ -1027,26 +1027,26 @@ QPushButton {
     text-align:center !important;
 }
 
-QPushButton:checked {
+SendCoinsDialog QPushButton:checked {
     border:  1px solid #105aef;
     background-color:#105aef;
     color: #FFFFFF;
 }
 
-QPushButton:hover {
+SendCoinsDialog QPushButton:hover {
     border:  1px solid #bababa;
     background-color:#bababa;
     color: #FFFFFF;
 }
 
-QPushButton:unchecked {
+SendCoinsDialog QPushButton:unchecked {
     border:  1px solid #707070;
     background-color:#ffffff;
     color: #707070;
 }
 
 /** sendButton */
-#sendButton {
+SendCoinsDialog#sendButton {
     border-radius: 6px;
     border:  1px solid #105aef;
     color: #105aef;
@@ -1054,7 +1054,7 @@ QPushButton:unchecked {
     padding:10 50 10 50;
 }
 
-#sendButton:hover {
+SendCoinsDialog#sendButton:hover {
     color: #FFFFFF;
     background-color:#4070d3;
     border:  1px solid #4070d3;
@@ -1065,7 +1065,7 @@ HH       sendcoinsentry.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** payTo */
-#payTo {   
+SendCoinsEntry#payTo {   
     padding:8;
     margin-left:12px;
     font-size:16px;
@@ -1078,18 +1078,18 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
     border-bottom:1px solid #bababa;
 }
 
-#payTo:focus {
+SendCoinsEntry#payTo:focus {
     border-bottom:1px solid #105aef;
 }
 
 /** btnAddressBook */
-#btnAddressBook {
+SendCoinsEntry#btnAddressBook {
     background:transparent;
     border:none;
 }
 
 /** label */
-#label {
+SendCoinsEntry#label {
     padding:0px;
     margin:0px;
     margin-left:6px;
@@ -1097,7 +1097,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** payAmount */
-#payAmount {
+SendCoinsEntry#payAmount {
     padding:8;
     margin-left:12px;
     margin-right:12px;
@@ -1110,18 +1110,18 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
     border-bottom:1px solid #bababa;
 }
 
-#payAmount_2:focus {
+SendCoinsEntry#payAmount_2:focus {
     border-bottom:1px solid #105aef;
 }
 
 /** label_5 */
-#label_5 {
+SendCoinsEntry#label_5 {
     background-color:#bfbfbf;
     margin-top:24px;
 }
 
 /** label_2 */
-#label_2 {
+SendCoinsEntry#label_2 {
     border:none;
     margin:0px;
     margin-left:6px;
@@ -1130,7 +1130,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** btnRemove */
-#btnRemove {
+SendCoinsEntry#btnRemove {
     border:none;
     background-color:transparent;
     margin:0px;
@@ -1138,14 +1138,14 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** frame_3 */
-#frame_3 {
+SendCoinsEntry#frame_3 {
     margin:0px;
     padding:0px;
     border:none;
 }
 
 /** label_3 */
-#label_3 {
+SendCoinsEntry#label_3 {
     border:none;
     margin:0px;
     padding:0px;
@@ -1154,7 +1154,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** addAsLabel */
-#addAsLabel {   
+SendCoinsEntry#addAsLabel {   
     padding:8;
     margin-left:12px;
     margin-right:20px;
@@ -1167,7 +1167,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
     border-bottom:1px solid #bababa;
 }
 
-#addAsLabel:focus {
+SendCoinsEntry#addAsLabel:focus {
     border-bottom:1px solid #105aef;
 }
 
@@ -1180,7 +1180,7 @@ HH       splashscreenveil.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SplashScreenVeil */
-#SplashScreenVeil {
+SplashScreenVeil#SplashScreenVeil {
     border-image: url(&quot;:/icons/res/icons/bg-splash@3x&quot;) 0 0 0 0 stretch stretch;
     border:none;
     padding: 0px;
@@ -1188,14 +1188,14 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** frame */
-#frame {
+SplashScreenVeil#frame {
     border:none;
     padding:0px;
     margin:0px;
 }
 
 /** labelLoading */
-#labelLoading {
+SplashScreenVeil#labelLoading {
     margin-bottom:7px;
 }
 
@@ -1354,14 +1354,14 @@ QListView::text {
 HH       addressesmenu.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** AddressesMenu */
-#AddressesMenu {
+AddressesMenu#AddressesMenu {
     background-color:transparent;
     border:none;
     color:#bababa;
 }
 
 /** frame */
-#frame {
+AddressesMenu#frame {
 	background-color:white;
 	border-radius:9px;
 	padding:3px;
@@ -1369,29 +1369,29 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** btnCopy */
-QPushButton{
+AddressesMenu QPushButton{
 	padding-left:6px;
 }
 
-QPushButton::hover{
+AddressesMenu QPushButton::hover{
 	color:black;
 }
 
 /** btnEdit */
-QPushButton{
+AddressesMenu QPushButton{
 	padding-left:6px;
 }
 
-QPushButton::hover{
+AddressesMenu QPushButton::hover{
 	color:black;
 }
 
 /** btnDelete */
-QPushButton{
+AddressesMenu QPushButton{
 	padding-left:6px;
 }
 
-QPushButton::hover{
+AddressesMenu QPushButton::hover{
 	color:black;
 }
 
@@ -1431,19 +1431,19 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 HH       settingsadvance.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** SettingsAdvance */
-#SettingsAdvance{
+SettingsAdvance#SettingsAdvance{
     background-color:transparent;
 }
 
 /** frame */
-#frame{
+SettingsAdvance#frame{
     background-color: white;
     padding: 10px 10px 10px 10px;
     border-radius: 20px;
 }
 
 /** btnEsc */
-#btnEsc {
+SettingsAdvance#btnEsc {
     background-color:transparent;
     border:0;
     background-image: url(&quot;:/icons/ic-close&quot;) ;
@@ -1451,7 +1451,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
     background-position:center;
 }
 
-#btnEsc:hover {
+SettingsAdvance#btnEsc:hover {
     background-image: url(&quot;:/icons/ic-close-active&quot;) ;
 }
 
@@ -1460,13 +1460,13 @@ HH       settingsadvanceconsole.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** frame */
-#frame {
+SettingsAdvanceConsole#frame {
     background-color:#FFFFFF;
     border:1px solid #707070;
 }
 
 /** btnArrow */
-#btnArrow {
+SettingsAdvanceConsole#btnArrow {
     background-color:transparent;
     border:0;
     background-image: url(&quot;:/icons/ic-arrow-right&quot;) ;
@@ -1475,7 +1475,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** lineEdit */
-#lineEdit {
+SettingsAdvanceConsole#lineEdit {
     border:1px solid #105aef;
     border-radius:0;
     background:white;
@@ -1511,13 +1511,13 @@ HH       settingsfaq01.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SettingsFaq01 */
-#SettingsFaq01 {
+SettingsFaq01#SettingsFaq01 {
     font-size:16px;
     color:#707070;
 }
 
 /** label_2 */
-#label_2 {
+SettingsFaq01#label_2 {
     font-weight:200;
 }
 
@@ -1526,13 +1526,13 @@ HH       settingsfaq03.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SettingsFaq03 */
-#SettingsFaq03 {
+SettingsFaq03#SettingsFaq03 {
     font-size:16px;
     color:#707070;
 }
 
 /** label2 */
-#label2 {
+SettingsFaq03#label2 {
     font-weight:200;
 }
 
@@ -1541,13 +1541,13 @@ HH       settingsfaq04.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SettingsFaq04 */
-#SettingsFaq04 {
+SettingsFaq04#SettingsFaq04 {
     font-size:16px;
     color:#707070;
 }
 
 /** label_2 */
-#label_2 {
+SettingsFaq04#label_2 {
     font-weight:200;
 }
 
@@ -1556,13 +1556,13 @@ HH       settingsfaq05.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SettingsFaq05 */
-#SettingsFaq05 {
+SettingsFaq05#SettingsFaq05 {
     font-size:16px;
     color:#707070;
 }
 
 /** label_2 */
-#label_2 {
+SettingsFaq05#label_2 {
     font-weight:200;
 }
 
@@ -1571,13 +1571,13 @@ HH       settingsfaq06.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SettingsFaq06 */
-#SettingsFaq06 {
+SettingsFaq06#SettingsFaq06 {
     font-size:16px;
     color:#707070;
 }
 
 /** label_2 */
-#label_2 {
+SettingsFaq06#label_2 {
     font-weight:200;
 }
 
@@ -1586,13 +1586,13 @@ HH       settingsfaq07.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SettingsFaq07 */
-#SettingsFaq07 {
+SettingsFaq07#SettingsFaq07 {
     font-size:16px;
     color:#707070;
 }
 
 /** label_2 */
-#label_2 {
+SettingsFaq07#label_2 {
     font-weight:200;
 }
 
@@ -1601,13 +1601,13 @@ HH       settingsfaq08.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SettingsFaq08 */
-#SettingsFaq08 {
+SettingsFaq08#SettingsFaq08 {
     font-size:16px;
     color:#707070;
 }
 
 /** label_2 */
-#label_2 {
+SettingsFaq08#label_2 {
     font-weight:200;
 }
 
@@ -1616,13 +1616,13 @@ HH       settingsfaq09.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SettingsFaq09 */
-#SettingsFaq09 {
+SettingsFaq09#SettingsFaq09 {
     font-size:16px;
     color:#707070;
 }
 
 /** label */
-#label {
+SettingsFaq09#label {
     font-weight:200;
 }
 
@@ -1631,13 +1631,13 @@ HH       settingsfaq10.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SettingsFaq10 */
-#SettingsFaq10 {
+SettingsFaq10#SettingsFaq10 {
     font-size:16px;
     color:#707070;
 }
 
 /** label_2 */
-#label_2 {
+SettingsFaq10#label_2 {
     font-weight:200;
 }
 
@@ -1646,13 +1646,13 @@ HH       settingsfaq12.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SettingsFaq12 */
-#SettingsFaq12 {
+SettingsFaq12#SettingsFaq12 {
     font-size:16px;
     color:#707070;
 }
 
 /** label_2 */
-#label_2 {
+SettingsFaq12#label_2 {
     font-weight:200;
 }
 
@@ -1681,7 +1681,7 @@ HH       settingsrestore.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** frame */
-#frame{
+SettingsRestore#frame{
     background-color: white;
     padding: 10px 10px 10px 10px;
     border-radius:20px;
@@ -1692,12 +1692,12 @@ HH       settingsrestorefile.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** frame */
-#frame {
+SettingsRestoreFile#frame {
     border:0;
 }
 
 /** btnFolder */
-#btnFolder {
+SettingsRestoreFile#btnFolder {
     padding:8px;
     border:none;
     font-size:16px;
@@ -1706,7 +1706,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** editPassword */
-#editPassword {
+SettingsRestoreFile#editPassword {
     color:#bababa;
     padding:8px;
     border:none;
@@ -1715,7 +1715,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 /** errorMessage */
-#errorMessage {
+SettingsRestoreFile#errorMessage {
     color:#fd1337;
 }
 
@@ -1724,7 +1724,7 @@ HH       settingsrestoreseed.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** label_2 */
-#label_2 {
+SettingsRestoreSeed#label_2 {
     color:#bababa;
     font-size:16px;
 }
@@ -1738,21 +1738,21 @@ HH       toast.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** Toast */
-#Toast {
+Toast#Toast {
     background-color:transparent;
     margin:0px;
     border:none;
 }
 
 /** frame */
-#frame {
+Toast#frame {
     background-color:#bababa;
     border-radius:20px;
     border:1px solid #bababa;
 }
 
 /** text */
-#text {
+Toast#text {
     font-size:16px;
     color:#ffffff;
     text-align:center;
@@ -1772,12 +1772,12 @@ HH       tutorialcreatewalletwidget.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** label */
-#label {
+TutorialCreateWalletWidget#label {
     color:#105aef;
 }
 
 /** btnCreate */
-QPushButton {
+TutorialCreateWalletWidget QPushButton {
     border-radius: 6px;
     border:  1px solid #707070;
     background-color:#ffffff;
@@ -1787,19 +1787,19 @@ QPushButton {
     text-align:center !important;
 }
 
-QPushButton:checked {
+TutorialCreateWalletWidget QPushButton:checked {
     border:  1px solid #105aef;
     background-color:#105aef;
     color: #FFFFFF;
 }
 
-QPushButton:hover {
+TutorialCreateWalletWidget QPushButton:hover {
     border:  1px solid #bababa;
     background-color:#bababa;
     color: #FFFFFF;
 }
 
-QPushButton:unchecked {
+TutorialCreateWalletWidget QPushButton:unchecked {
     border:  1px solid #707070;
     background-color:#ffffff;
     color: #707070;
@@ -1807,7 +1807,7 @@ QPushButton:unchecked {
 
 
 /** btnRestore */
-QPushButton {
+TutorialCreateWalletWidget QPushButton {
     border-radius: 6px;
     border:  1px solid #707070;
     background-color:#ffffff;
@@ -1817,19 +1817,19 @@ QPushButton {
     text-align:center !important;
 }
 
-QPushButton:checked {
+TutorialCreateWalletWidget QPushButton:checked {
     border:  1px solid #105aef;
     background-color:#105aef;
     color: #FFFFFF;
 }
 
-QPushButton:hover {
+TutorialCreateWalletWidget QPushButton:hover {
     border:  1px solid #bababa;
     background-color:#bababa;
     color: #FFFFFF;
 }
 
-QPushButton:unchecked {
+TutorialCreateWalletWidget QPushButton:unchecked {
     border:  1px solid #707070;
     background-color:#ffffff;
     color: #707070;
@@ -1844,17 +1844,17 @@ HH       tutorialmnemoniccode.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** labelMessage */
-#labelMessage {
+TutorialMnemonicCode#labelMessage {
     color:#105aef;
 }
 
 /** label_4 */
-#label_4 {
+TutorialMnemonicCode#label_4 {
     color:#bababa;
 }
 
 /** btnReveal */
-#btnReveal {
+TutorialMnemonicCode#btnReveal {
     border-radius: 6px;
     color: #FFFFFF;
     font-size: 16px;
@@ -1863,11 +1863,11 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
     padding:8 20 8 20;
 }
 
-#btnReveal:hover {
+TutorialMnemonicCode#btnReveal:hover {
     background-color:#0e45b4;
 }
 
-#btnReveal:disabled {
+TutorialMnemonicCode#btnReveal:disabled {
     color: #bababa;
     background-color:#ffffff;
     border-color:#105aef;
@@ -1879,13 +1879,13 @@ HH       tutorialmnemonicrevealed.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** labelMessage */
-#labelMessage {
+TutorialMnemonicRevealed#labelMessage {
     color:#105aef;
 }
 
 
 /** label_4 */
-#label_4 {
+TutorialMnemonicRevealed#label_4 {
     color:#bababa;
     padding-top:3px;
 }
@@ -1906,26 +1906,26 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 HH       veilstatusbar.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** checkStaking */
-#checkStaking::indicator {
+VeilStatusBar#checkStaking::indicator {
     border: 0;
     background: none;
-	 margin: 0;
-	 padding: 0;
-	width:40px;
-	height:30px;
- }
+    margin: 0;
+    padding: 0;
+    width:40px;
+    height:30px;
+}
 
- #checkStaking {
- background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
- background-repeat:no-repeat;
- background-position:left center;
- color:#bababa;
- }
+VeilStatusBar#checkStaking {
+    background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
+    background-repeat:no-repeat;
+    background-position:left center;
+    color:#bababa;
+}
 
- #checkStaking:checked {
- background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
- color:#105aef;
- }
+VeilStatusBar#checkStaking:checked {
+    background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
+    color:#105aef;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       BALANCE
