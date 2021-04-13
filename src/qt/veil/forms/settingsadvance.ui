@@ -13,12 +13,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">#SettingsAdvance{
-background-color:transparent;
-}
-</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="leftMargin">
     <number>20</number>
@@ -36,13 +30,6 @@ background-color:transparent;
     <widget class="QFrame" name="frame">
      <property name="autoFillBackground">
       <bool>false</bool>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">#frame{
-  background-color: white;
-  padding: 10px 10px 10px 10px;
-  border-radius: 20px;
-}</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -121,19 +108,6 @@ background-color:transparent;
             <height>32</height>
            </size>
           </property>
-          <property name="styleSheet">
-           <string notr="true">#btnEsc {
-background-color:transparent;
-border:0;
-background-image: url(&quot;:/icons/ic-close&quot;) ;
-background-repeat:no-repeat;
-background-position:center;
-}
-
-#btnEsc:hover {
-background-image: url(&quot;:/icons/ic-close-active&quot;) ;
-}</string>
-          </property>
           <property name="text">
            <string/>
           </property>
@@ -174,9 +148,6 @@ background-image: url(&quot;:/icons/ic-close-active&quot;) ;
         </item>
         <item>
          <widget class="QPushButton" name="btnInformation">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>Information</string>
           </property>
@@ -200,9 +171,6 @@ background-image: url(&quot;:/icons/ic-close-active&quot;) ;
         </item>
         <item>
          <widget class="QPushButton" name="btnConsole">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>Console</string>
           </property>

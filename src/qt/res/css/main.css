@@ -1353,6 +1353,47 @@ QListView::text {
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       addressesmenu.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** AddressesMenu */
+#AddressesMenu {
+    background-color:transparent;
+    border:none;
+    color:#bababa;
+}
+
+/** frame */
+#frame {
+	background-color:white;
+	border-radius:9px;
+	padding:3px;
+	border: 1px solid #bababa;
+}
+
+/** btnCopy */
+QPushButton{
+	padding-left:6px;
+}
+
+QPushButton::hover{
+	color:black;
+}
+
+/** btnEdit */
+QPushButton{
+	padding-left:6px;
+}
+
+QPushButton::hover{
+	color:black;
+}
+
+/** btnDelete */
+QPushButton{
+	padding-left:6px;
+}
+
+QPushButton::hover{
+	color:black;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       addresseswidget.ui
@@ -1389,10 +1430,57 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsadvance.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** SettingsAdvance */
+#SettingsAdvance{
+    background-color:transparent;
+}
+
+/** frame */
+#frame{
+    background-color: white;
+    padding: 10px 10px 10px 10px;
+    border-radius: 20px;
+}
+
+/** btnEsc */
+#btnEsc {
+    background-color:transparent;
+    border:0;
+    background-image: url(&quot;:/icons/ic-close&quot;) ;
+    background-repeat:no-repeat;
+    background-position:center;
+}
+
+#btnEsc:hover {
+    background-image: url(&quot;:/icons/ic-close-active&quot;) ;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsadvanceconsole.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** frame */
+#frame {
+    background-color:#FFFFFF;
+    border:1px solid #707070;
+}
+
+/** btnArrow */
+#btnArrow {
+    background-color:transparent;
+    border:0;
+    background-image: url(&quot;:/icons/ic-arrow-right&quot;) ;
+    background-repeat:no-repeat;
+    background-position:center;
+}
+
+/** lineEdit */
+#lineEdit {
+    border:1px solid #105aef;
+    border-radius:0;
+    background:white;
+    color:#707070;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsadvanceinformation.ui
@@ -1422,41 +1510,151 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 HH       settingsfaq01.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** SettingsFaq01 */
+#SettingsFaq01 {
+    font-size:16px;
+    color:#707070;
+}
+
+/** label_2 */
+#label_2 {
+    font-weight:200;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsfaq03.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** SettingsFaq03 */
+#SettingsFaq03 {
+    font-size:16px;
+    color:#707070;
+}
+
+/** label2 */
+#label2 {
+    font-weight:200;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsfaq04.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** SettingsFaq04 */
+#SettingsFaq04 {
+    font-size:16px;
+    color:#707070;
+}
+
+/** label_2 */
+#label_2 {
+    font-weight:200;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsfaq05.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** SettingsFaq05 */
+#SettingsFaq05 {
+    font-size:16px;
+    color:#707070;
+}
+
+/** label_2 */
+#label_2 {
+    font-weight:200;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsfaq06.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** SettingsFaq06 */
+#SettingsFaq06 {
+    font-size:16px;
+    color:#707070;
+}
+
+/** label_2 */
+#label_2 {
+    font-weight:200;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsfaq07.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** SettingsFaq07 */
+#SettingsFaq07 {
+    font-size:16px;
+    color:#707070;
+}
+
+/** label_2 */
+#label_2 {
+    font-weight:200;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsfaq08.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** SettingsFaq08 */
+#SettingsFaq08 {
+    font-size:16px;
+    color:#707070;
+}
+
+/** label_2 */
+#label_2 {
+    font-weight:200;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsfaq09.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** SettingsFaq09 */
+#SettingsFaq09 {
+    font-size:16px;
+    color:#707070;
+}
+
+/** label */
+#label {
+    font-weight:200;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsfaq10.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** SettingsFaq10 */
+#SettingsFaq10 {
+    font-size:16px;
+    color:#707070;
+}
+
+/** label_2 */
+#label_2 {
+    font-weight:200;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsfaq12.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** SettingsFaq12 */
+#SettingsFaq12 {
+    font-size:16px;
+    color:#707070;
+}
+
+/** label_2 */
+#label_2 {
+    font-weight:200;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsminting.ui
@@ -1482,13 +1680,54 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 HH       settingsrestore.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** frame */
+#frame{
+    background-color: white;
+    padding: 10px 10px 10px 10px;
+    border-radius:20px;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsrestorefile.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** frame */
+#frame {
+    border:0;
+}
+
+/** btnFolder */
+#btnFolder {
+    padding:8px;
+    border:none;
+    font-size:16px;
+    border-bottom:1px solid #bababa;
+    color:#bababa;
+}
+
+/** editPassword */
+#editPassword {
+    color:#bababa;
+    padding:8px;
+    border:none;
+    font-size:16px;
+    border-bottom:1px solid #bababa;
+}
+
+/** errorMessage */
+#errorMessage {
+    color:#fd1337;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsrestoreseed.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** label_2 */
+#label_2 {
+    color:#bababa;
+    font-size:16px;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingswidget.ui
@@ -1497,6 +1736,28 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       toast.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** Toast */
+#Toast {
+    background-color:transparent;
+    margin:0px;
+    border:none;
+}
+
+/** frame */
+#frame {
+    background-color:#bababa;
+    border-radius:20px;
+    border:1px solid #bababa;
+}
+
+/** text */
+#text {
+    font-size:16px;
+    color:#ffffff;
+    text-align:center;
+    padding:6px;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       tooltipbalance.ui
@@ -1510,6 +1771,70 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 HH       tutorialcreatewalletwidget.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** label */
+#label {
+    color:#105aef;
+}
+
+/** btnCreate */
+QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+
+/** btnRestore */
+QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       tutoriallanguageswidget.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
@@ -1518,9 +1843,52 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 HH       tutorialmnemoniccode.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** labelMessage */
+#labelMessage {
+    color:#105aef;
+}
+
+/** label_4 */
+#label_4 {
+    color:#bababa;
+}
+
+/** btnReveal */
+#btnReveal {
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 16px;
+    background-color:#105aef;
+    line-height:10px;
+    padding:8 20 8 20;
+}
+
+#btnReveal:hover {
+    background-color:#0e45b4;
+}
+
+#btnReveal:disabled {
+    color: #bababa;
+    background-color:#ffffff;
+    border-color:#105aef;
+    border:1px solid #bababa;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       tutorialmnemonicrevealed.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** labelMessage */
+#labelMessage {
+    color:#105aef;
+}
+
+
+/** label_4 */
+#label_4 {
+    color:#bababa;
+    padding-top:3px;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       tutorialwidget.ui
@@ -1537,6 +1905,27 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       veilstatusbar.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** checkStaking */
+#checkStaking::indicator {
+    border: 0;
+    background: none;
+	 margin: 0;
+	 padding: 0;
+	width:40px;
+	height:30px;
+ }
+
+ #checkStaking {
+ background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
+ background-repeat:no-repeat;
+ background-position:left center;
+ color:#bababa;
+ }
+
+ #checkStaking:checked {
+ background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
+ color:#105aef;
+ }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       BALANCE

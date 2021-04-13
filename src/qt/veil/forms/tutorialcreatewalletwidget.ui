@@ -59,9 +59,6 @@
        <height>40</height>
       </size>
      </property>
-     <property name="styleSheet">
-      <string notr="true">color:#105aef;</string>
-     </property>
      <property name="text">
       <string>Select an option below
 </string>
@@ -110,37 +107,6 @@
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">QPushButton {
-    border-radius: 6px;
-    border:  1px solid #707070;
-    background-color:#ffffff;
-    color: #707070;
-    font-size: 14px;
-    padding:10;
-    text-align:center !important;
-}
-
-QPushButton:checked {
-    border:  1px solid #105aef;
-    background-color:#105aef;
-    color: #FFFFFF;
-}
-
-QPushButton:hover {
-    border:  1px solid #bababa;
-    background-color:#bababa;
-    color: #FFFFFF;
-}
-
-QPushButton:unchecked {
-    border:  1px solid #707070;
-    background-color:#ffffff;
-    color: #707070;
-}
-
-</string>
-        </property>
         <property name="text">
          <string>Create wallet</string>
         </property>
@@ -168,37 +134,6 @@ QPushButton:unchecked {
           <width>190</width>
           <height>16777215</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QPushButton {
-    border-radius: 6px;
-    border:  1px solid #707070;
-    background-color:#ffffff;
-    color: #707070;
-    font-size: 14px;
-    padding:10;
-    text-align:center !important;
-}
-
-QPushButton:checked {
-    border:  1px solid #105aef;
-    background-color:#105aef;
-    color: #FFFFFF;
-}
-
-QPushButton:hover {
-    border:  1px solid #bababa;
-    background-color:#bababa;
-    color: #FFFFFF;
-}
-
-QPushButton:unchecked {
-    border:  1px solid #707070;
-    background-color:#ffffff;
-    color: #707070;
-}
-
-</string>
         </property>
         <property name="text">
          <string>Restore wallet</string>
