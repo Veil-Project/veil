@@ -13,11 +13,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">#AddressReceive{
- background-color: transparent;
-}</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="leftMargin">
     <number>10</number>
@@ -35,13 +30,6 @@
     <widget class="QFrame" name="frame">
      <property name="autoFillBackground">
       <bool>false</bool>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">#frame{
- background-color: white;
-  padding: 10px 10px 10px 10px;
-  border-radius: 20px;
-}</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -82,9 +70,6 @@
           <width>16777215</width>
           <height>40</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true"/>
         </property>
         <property name="text">
          <string>New Receiving Address</string>
@@ -165,10 +150,6 @@
         </item>
         <item>
          <widget class="QLabel" name="labelAddress">
-          <property name="styleSheet">
-           <string notr="true">color:#707070;
-font-size:16px;</string>
-          </property>
           <property name="text">
            <string>Failed To Generate. Ensure Wallet Is Unlocked.</string>
           </property>
@@ -176,14 +157,6 @@ font-size:16px;</string>
         </item>
         <item>
          <widget class="QPushButton" name="btnCopy">
-          <property name="styleSheet">
-           <string notr="true">background-color:transparent;
-border:0;
-background-image: url(&quot;:/icons/ic-copy-small&quot;) ;
-background-repeat:no-repeat;
-background-position: center;
-padding:4;</string>
-          </property>
           <property name="text">
            <string/>
           </property>
@@ -217,9 +190,6 @@ padding:4;</string>
           <width>300</width>
           <height>16777215</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true"/>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -258,9 +228,6 @@ padding:4;</string>
          <widget class="QPushButton" name="btnSave">
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="styleSheet">
-           <string notr="true"/>
           </property>
           <property name="text">
            <string>OK</string>

@@ -1399,17 +1399,326 @@ AddressesMenu QPushButton::hover{
 HH       addresseswidget.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** container */
+AddressesWidget#container {
+    background-color:white;
+    border:none;
+}
+
+/** groupBox */
+AddressesWidget#groupBox {
+	border:0;
+}
+
+/** btnMyAddresses */
+AddressesWidget QPushButton {
+    color: #bababa;
+    font-size:20px;
+    font-weight:light;
+    background-color:transparent;
+    border:0;
+    padding:10px 0px 10px 0px;
+    background-image: none ;
+    background-repeat:no-repeat;
+    background-position: center bottom;
+}
+
+AddressesWidget QPushButton:checked {
+    background-image: url(&quot;:/icons/ic-title&quot;) ;
+    background-repeat:no-repeat;
+    background-position: center bottom;
+    color: #105aef;
+}
+
+AddressesWidget QPushButton:hover {
+    color: #707070;
+}
+
+AddressesWidget QPushButton:unchecked {
+    background-image: none ;
+    color: #bababa;
+}
+
+/** btnContacts */
+AddressesWidget QPushButton {
+    color: #bababa;
+    font-size:20px;
+    font-weight:light;
+    background-color:transparent;
+    border:0;
+    padding:10 0 10 0;
+    background-image: none ;
+    background-repeat:no-repeat;
+    background-position: center bottom;
+}
+
+AddressesWidget QPushButton:checked {
+    background-image: url(&quot;:/icons/ic-title&quot;) ;
+    background-repeat:no-repeat;
+    background-position: center bottom;
+    color: #105aef;
+}
+
+AddressesWidget QPushButton:hover {
+    color: #707070;
+}
+
+AddressesWidget QPushButton:unchecked {
+    background-image: none ;
+    color: #bababa;
+}
+
+/** btnMiningAddress */
+AddressesWidget#btnMiningAddress {
+    color: #707070;
+    font-size:18px;
+    font-weight:light;	
+    background-color:transparent;
+    border:none;
+    padding:4px 0px 4px 4px;
+}
+
+/** btnMiningAddress2 */
+AddressesWidget#btnMiningAddress2 {
+    background-color:transparent;
+    border:none;
+}
+
+/** lblSplit */
+AddressesWidget#lblSplit {
+    background-color:#bababa;
+    margin-top:12px;
+    margin-bottom:12px;
+}
+
+/** btnAdd */
+AddressesWidget#btnAdd {
+    color: #707070;
+    font-size:18px;
+    font-weight:light;	
+    background-color:transparent;
+    border:none;
+    padding:4px 0px 4px 6px;
+}
+
+/** btnAddIcon */
+AddressesWidget#btnAddIcon {
+    background-color:transparent;
+    border:none;
+}
+
+/** containerEmpty */
+AddressesWidget#containerEmpty {
+    border:none;
+}
+
+/** listAddresses */
+AddressesWidget QListView {
+    background: transparent;
+}
+
+/* Works for both QListView and QListWidget */
+AddressesWidget QListView::item {
+    /* Won't work without borders set */
+    border: 0px;
+    padding: 10px;
+}
+
+/* For icon only */
+AddressesWidget QListView::icon {
+    left: 10px;
+}
+
+/* For text only */
+AddressesWidget QListView::text {
+    left: 10px;
+    font-size:13px;
+}
+
+/** listContacts */
+AddressesWidget QListView { 
+    background: transparent;
+}
+
+/* Works for both QListView and QListWidget */
+AddressesWidget QListView::item {
+    /* Won't work without borders set */
+    border: 0px;
+    padding: 10px;
+}
+
+/* For icon only */
+AddressesWidget QListView::icon {
+    left: 10px;
+}
+
+/* For text only */
+AddressesWidget QListView::text {
+    left: 10px;
+    font-size:13px;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       addressnewcontact.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** AddressNewContact */
+#AddressNewContact{
+    background-color:transparent;
+}
+
+/** frame */
+AddressNewContact#frame{
+    background-color: white;
+    padding: 10px 10px 10px 10px;
+    border-radius: 20px;
+}
+
+/** errorMessage */
+AddressNewContact#errorMessage {
+    color:#fd1337;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       addressreceive.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** AddressReceive */
+#AddressReceive{
+    background-color: transparent;
+}
+
+/** frame */
+AddressReceive#frame{
+    background-color: white;
+    padding: 10px 10px 10px 10px;
+    border-radius: 20px;
+}
+
+/** labelAddress */
+AddressReceive#labelAddress {
+    color:#707070;
+    font-size:16px;
+}
+
+/** btnCopy */
+AddressReceive#btnCopy {
+    background-color:transparent;
+    border:0;
+    background-image: url(&quot;:/icons/ic-copy-small&quot;);
+    background-repeat:no-repeat;
+    background-position: center;
+    padding:4;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       balance.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** Balance */
+#Balance {
+    border:none;
+}
+
+/** containerBalance */
+Balance#containerBalance {
+    border: none;
+    background-color: qlineargradient(y1:0, y2: 1, stop: 0 #ffffff, stop: 1 #e7eefd);
+    padding-left:10px;
+    padding-right:10px;
+}
+
+/** pushButton */
+Balance#pushButton {
+    background-color:transparent;
+    border:none;
+}
+
+/** btnBalance */
+Balance#btnBalance {
+    background-color:transparent;
+}
+
+/** labelBalance */
+Balance#labelBalance{
+    background-color: transparent;
+    color: #707070;
+    font-size: 24px;
+}
+
+/** label */
+Balance#label {
+    background-color:#bababa;
+    margin-left:15px;
+    margin-right:15px;
+}
+
+/** btnUnconfirmed */
+Balance#btnUnconfirmed {
+    background-color:transparent;
+    color: #707070;
+}
+
+/** labelUnconfirmed */
+Balance#labelUnconfirmed {
+    background-color:transparent;
+    color: #707070;
+}
+
+/** btnImmature */
+Balance#btnImmature {
+    background-color:transparent;
+    color: #707070;
+}
+
+/** labelImmature */
+Balance#labelImmature {
+    background-color:transparent;
+    color: #707070;
+}
+
+/** labelQr */
+Balance#labelQr {
+    background-color: transparent;
+    margin:0 0 20 10;
+}
+
+/** horiz */
+Balance#horiz{
+    padding-left:5px;
+    padding-right:5px;
+}
+
+/** labelReceive */
+Balance#labelReceive {
+    background-color: transparent;
+    color: #004377;
+}
+
+/** copyAddress */
+Balance#copyAddress {
+    background-color: transparent;
+}
+
+/** labelAddress */
+Balance#labelAddress {
+    background-color: transparent;
+    padding-left:5px;
+    padding-right:5px;
+    padding-bottom:3px;
+    font-size:11px;
+    color:#707070;
+}
+
+/** labelAddressName */
+Balance#labelAddressName {
+    background-color: transparent;
+    padding-left:5px;
+    padding-right:5px;
+    padding-bottom:3px;
+    font-size:11px;
+    color:#707070;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       createpassword.ui
