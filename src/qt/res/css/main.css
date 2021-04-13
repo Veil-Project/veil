@@ -1203,153 +1203,6 @@ SplashScreenVeil#labelLoading {
 HH       transactiondescdialog.ui (none)
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
-
-#centralWidget{
-    border: none;
-    padding: 0em 0em;
-}
-
-#TutorialWidget{
-    border: none;
-    padding: 0em 0em;
-}
-
-.SettingsWidget{
-    background-color:white;
-}
-
-SettingsWidget{
-    background-color:white;
-}
-
-QStackedWidget{
-    border: none;
-    padding: 0em 0em;
-}
-
-.QStackedWidget{
-    border: none;
-    padding: 0em 0em;
-}
-
-/** Container Left on tutorial  */
-#containerLeft {
-    border-image: url(":/icons/Banner_inicio2") 0 0 0 0 stretch stretch;
-    padding:0px;
-    margin:0px;
-}
-
-/** Container Balance  */
-
-
-#containerBalance{
-  opacity: 0.1;
-  border: none;
-  padding: 0em 0em;
-  background-color: qlineargradient(y1:0, y2: 1, stop: 0 #ffffff, stop: 1 #cc026dff);
-}
-
-
-/** Send screen */
-/** Esto lo agregué directamente desde el .ui porque no funciona por alguna razón.. 3 am acá y no lo estoy encontrando :\ */
-QLineEdit{
-    background-color: #fff;
-    background: #fff;
-    selection-background-color: #8bc3f5;
-    border: 2px solid rgb(33, 255, 231);
-}
-
-
-/** Toolbar  */
-
-#mainToolBar {
-    background-color:#080b2e ;
-    border: none;
-    color:#080b2e;
-    padding:0px;
-}
-
-
-QToolBar > QToolButton {
-
-    background-color: #080b2e;
-    selection-background-color:transparent;
-    border-left: 0px;
-    border-right: 0px;
-    border-top: 0px;
-    min-height:2.5em;
-    padding: 1em 0em;
-    font-size: 11px;
-    color:#aaa;
-    width: 80px;
-    height: 20px;
-}
-/*
-QToolBar > QToolButton::menu-button {
-    left:0.5px;
-}
-*/
-
-QToolBar > QToolButton:checked {
-background-image: url(":/icons/ic_nav_active") ;
-background-position: left center;
-background-repeat:no-repeat;
-font-size: 11px 18px;
-}
-
-/* QToolBar > QToolButton:hover:!selected { */
-QToolBar > QToolButton:hover {
-    background-color: rgba(0, 0, 0,0.2);
-
-}
-
-QToolBar > QToolButton#ToolbarSpacer:hover:!selected {
-    background-color: #372f44; /* Do not highlight placeholder on hover */
-}
-
-QToolBar > QToolButton:pressed {
-    background-color: #99372f44;
-
-}
-
-#appToolBar{
-    background-color:#080b2e ;
-    border: none;
-    color:#080b2e;
-}
-
-
-/** Table view (Transactions)  */
-
-QTableView {
-    background-color: transparent;
-    border: none;
-    padding: 0em 0em;
-}
-QHeaderView::section {background-color: transparent;}
-QHeaderView {background-color: transparent;}
-QTableCornerButton::section {background-color: transparent;}
-
-/* Works for both QListView and QListWidget */
-QListView::item {
-    /* Won't work without borders set */
-    border: 0px;
-
-    padding-left: 10px;
-    padding-bottom:10px;
-    padding-top:10px;
-}
-
-/* For icon only */
-QListView::icon {
-    left: 10px;
-}
-
-/* For text only */
-QListView::text {
-    left: 10px;
-}
-
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       addressesmenu.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
@@ -2235,6 +2088,153 @@ VeilStatusBar#checkStaking:checked {
     background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
     color:#105aef;
 }
+
+#centralWidget{
+    border: none;
+    padding: 0em 0em;
+}
+
+#TutorialWidget{
+    border: none;
+    padding: 0em 0em;
+}
+
+.SettingsWidget{
+    background-color:white;
+}
+
+SettingsWidget{
+    background-color:white;
+}
+
+QStackedWidget{
+    border: none;
+    padding: 0em 0em;
+}
+
+.QStackedWidget{
+    border: none;
+    padding: 0em 0em;
+}
+
+/** Container Left on tutorial  */
+#containerLeft {
+    border-image: url(":/icons/Banner_inicio2") 0 0 0 0 stretch stretch;
+    padding:0px;
+    margin:0px;
+}
+
+/** Container Balance  */
+
+
+#containerBalance{
+  opacity: 0.1;
+  border: none;
+  padding: 0em 0em;
+  background-color: qlineargradient(y1:0, y2: 1, stop: 0 #ffffff, stop: 1 #cc026dff);
+}
+
+
+/** Send screen */
+/** Esto lo agregué directamente desde el .ui porque no funciona por alguna razón.. 3 am acá y no lo estoy encontrando :\ */
+QLineEdit{
+    background-color: #fff;
+    background: #fff;
+    selection-background-color: #8bc3f5;
+    border: 2px solid rgb(33, 255, 231);
+}
+
+
+/** Toolbar  */
+
+#mainToolBar {
+    background-color:#080b2e ;
+    border: none;
+    color:#080b2e;
+    padding:0px;
+}
+
+
+QToolBar > QToolButton {
+
+    background-color: #080b2e;
+    selection-background-color:transparent;
+    border-left: 0px;
+    border-right: 0px;
+    border-top: 0px;
+    min-height:2.5em;
+    padding: 1em 0em;
+    font-size: 11px;
+    color:#aaa;
+    width: 80px;
+    height: 20px;
+}
+/*
+QToolBar > QToolButton::menu-button {
+    left:0.5px;
+}
+*/
+
+QToolBar > QToolButton:checked {
+background-image: url(":/icons/ic_nav_active") ;
+background-position: left center;
+background-repeat:no-repeat;
+font-size: 11px 18px;
+}
+
+/* QToolBar > QToolButton:hover:!selected { */
+QToolBar > QToolButton:hover {
+    background-color: rgba(0, 0, 0,0.2);
+
+}
+
+QToolBar > QToolButton#ToolbarSpacer:hover:!selected {
+    background-color: #372f44; /* Do not highlight placeholder on hover */
+}
+
+QToolBar > QToolButton:pressed {
+    background-color: #99372f44;
+
+}
+
+#appToolBar{
+    background-color:#080b2e ;
+    border: none;
+    color:#080b2e;
+}
+
+
+/** Table view (Transactions)  */
+
+QTableView {
+    background-color: transparent;
+    border: none;
+    padding: 0em 0em;
+}
+QHeaderView::section {background-color: transparent;}
+QHeaderView {background-color: transparent;}
+QTableCornerButton::section {background-color: transparent;}
+
+/* Works for both QListView and QListWidget */
+QListView::item {
+    /* Won't work without borders set */
+    border: 0px;
+
+    padding-left: 10px;
+    padding-bottom:10px;
+    padding-top:10px;
+}
+
+/* For icon only */
+QListView::icon {
+    left: 10px;
+}
+
+/* For text only */
+QListView::text {
+    left: 10px;
+}
+
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       BALANCE
