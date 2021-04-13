@@ -130,7 +130,7 @@ margin:0 0 0 10;</string>
                <string notr="true">background-color:transparent;</string>
               </property>
               <property name="text">
-               <string>Total balance</string>
+               <string>Total Balance</string>
               </property>
              </widget>
             </item>
