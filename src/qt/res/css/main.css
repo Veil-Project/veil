@@ -425,11 +425,12 @@ HelpMessageDialog QPushButton#okButton:hover {
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       intro.ui
+HH      intro.ui
+HH      name="Intro"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** frame */
 Intro#frame {
-    border-image: url(&quot;:/icons/splash_background&quot;) 0 0 0 0 stretch stretch;
+    border-image: url(":/icons/splash_background") 0 0 0 0 stretch stretch;
     padding:0px;
     margin:0px;
 }
@@ -511,7 +512,7 @@ ModalOverlay#frame_icon {
     border-top-left-radius: 6px; 
     border-bottom-left-radius: 6px; 
     background:transparent;
-    border-image: url(&quot;:/icons/banner-modal&quot;) 0 0 0 0 stretch stretch;
+    border-image: url(":/icons/banner-modal") 0 0 0 0 stretch stretch;
     padding:0px;
     margin:0px;
 }
@@ -1181,7 +1182,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SplashScreenVeil */
 SplashScreenVeil#SplashScreenVeil {
-    border-image: url(&quot;:/icons/res/icons/bg-splash@3x&quot;) 0 0 0 0 stretch stretch;
+    border-image: url(":/icons/res/icons/bg-splash@3x") 0 0 0 0 stretch stretch;
     border:none;
     padding: 0px;
     margin: 0px;
@@ -1277,7 +1278,7 @@ AddressesWidget QPushButton {
 }
 
 AddressesWidget QPushButton:checked {
-    background-image: url(&quot;:/icons/ic-title&quot;) ;
+    background-image: url(":/icons/ic-title") ;
     background-repeat:no-repeat;
     background-position: center bottom;
     color: #105aef;
@@ -1306,7 +1307,7 @@ AddressesWidget QPushButton {
 }
 
 AddressesWidget QPushButton:checked {
-    background-image: url(&quot;:/icons/ic-title&quot;) ;
+    background-image: url(":/icons/ic-title") ;
     background-repeat:no-repeat;
     background-position: center bottom;
     color: #105aef;
@@ -1459,7 +1460,7 @@ AddressReceive#labelAddress {
 AddressReceive#btnCopy {
     background-color:transparent;
     border:0;
-    background-image: url(&quot;:/icons/ic-copy-small&quot;);
+    background-image: url(":/icons/ic-copy-small");
     background-repeat:no-repeat;
     background-position: center;
     padding:4;
@@ -1736,14 +1737,14 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 #checkStacking {
-    background-image: url(&quot;:/icons/ic-switch-off&quot;) ;
+    background-image: url(":/icons/ic-switch-off") ;
     background-repeat:no-repeat;
     background-position:left center;
     padding:8 4 8 30px;
 }
 
 #checkStacking:checked {
-    background-image: url(&quot;:/icons/ic-switch-on&quot;) ;
+    background-image: url(":/icons/ic-switch-on") ;
 }
 
 /** checkWatch */
@@ -1753,14 +1754,14 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 }
 
 #checkWatch {
-    background-image: url(&quot;:/icons/ic-watch-off&quot;) ;
+    background-image: url(":/icons/ic-watch-off") ;
     background-repeat:no-repeat;
     background-position:center;
     padding:4 8 4 8;
 }
 
 #checkWatch:checked {
-    background-image: url(&quot;:/icons/ic-watch-on&quot;) ;
+    background-image: url(":/icons/ic-watch-on") ;
 }
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       receivewidget.ui
@@ -1791,13 +1792,13 @@ SettingsAdvance#frame{
 SettingsAdvance#btnEsc {
     background-color:transparent;
     border:0;
-    background-image: url(&quot;:/icons/ic-close&quot;) ;
+    background-image: url(":/icons/ic-close") ;
     background-repeat:no-repeat;
     background-position:center;
 }
 
 SettingsAdvance#btnEsc:hover {
-    background-image: url(&quot;:/icons/ic-close-active&quot;) ;
+    background-image: url(":/icons/ic-close-active") ;
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
@@ -1814,7 +1815,7 @@ SettingsAdvanceConsole#frame {
 SettingsAdvanceConsole#btnArrow {
     background-color:transparent;
     border:0;
-    background-image: url(&quot;:/icons/ic-arrow-right&quot;) ;
+    background-image: url(":/icons/ic-arrow-right") ;
     background-repeat:no-repeat;
     background-position:center;
 }
@@ -1828,9 +1829,207 @@ SettingsAdvanceConsole#lineEdit {
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       settingsadvanceinformation.ui
+HH      settingsadvanceinformation.ui
+HH      name="SettingsAdvanceInformation"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** label_1 */
+SettingsAdvanceInformation#label_1 {
+    color:#707070;
+    font-size:18px;
+    font-weight:bold;
+}
+
+/** label_10 */
+SettingsAdvanceInformation#label_10 {
+    color:#707070;
+    font-size:18px;
+    font-weight:200;
+}
+
+/** label_11 */
+SettingsAdvanceInformation#label_11 {
+    color:#707070;
+    font-size:18px;
+}
+
+/** label_12 */
+SettingsAdvanceInformation#label_12 {
+    color:#707070;
+    font-size:18px;
+    font-weight:200;
+}
+
+/** label_13 */
+SettingsAdvanceInformation#label_13 {
+    color:#707070;
+    font-size:18px;
+}
+
+/** label_14 */
+SettingsAdvanceInformation#label_14 {
+    color:#707070;
+    font-size:18px;
+    font-weight:200;
+}
+
+/** label_15 */
+SettingsAdvanceInformation#label_15 {
+    color:#707070;
+    font-size:18px;
+}
+
+/** label_16 */
+SettingsAdvanceInformation#label_16 {
+    color:#707070;
+    font-size:18px;
+    font-weight:200;
+}
+
+/** label_17 */
+SettingsAdvanceInformation#label_17 {
+    color:#707070;
+    font-size:18px;
+}
+
+/** label_18 */
+SettingsAdvanceInformation#label_18 {
+    color:#707070;
+    font-size:18px;
+    font-weight:200;
+}
+
+/** label_19 */
+SettingsAdvanceInformation#label_19 {
+    color:#707070;
+    font-size:18px;
+}
+
+/** label_2 */
+SettingsAdvanceInformation#label_2 {
+    color:#707070;
+    font-size:18px;
+    font-weight:bold;
+}
+
+/** label_21 */
+SettingsAdvanceInformation#label_21 {
+    color:#707070;
+    font-size:18px;
+    font-weight:200;
+}
+
+/** label_22 */
+SettingsAdvanceInformation#label_22 {
+    color:#707070;
+    font-size:18px;
+}
+
+/** label_23 */
+SettingsAdvanceInformation#label_23 {
+    color:#707070;
+    font-size:18px;
+    font-weight:200;
+}
+
+/** label_24 */
+SettingsAdvanceInformation#label_24 {
+    color:#707070;
+    font-size:18px;
+}
+
+/** label_3 */
+SettingsAdvanceInformation#label_3 {
+    color:#707070;
+    font-size:18px;
+    font-weight:bold;
+}
+
+/** label_31 */
+SettingsAdvanceInformation#label_31 {
+    color:#707070;
+    font-size:18px;
+    font-weight:200;
+}
+
+/** label_32 */
+SettingsAdvanceInformation#label_32 {
+    color:#707070;
+    font-size:18px;
+}
+
+/** label_33 */
+SettingsAdvanceInformation#label_33 {
+    color:#707070;
+    font-size:18px;
+    font-weight:200;
+}
+
+/** label_34 */
+SettingsAdvanceInformation#label_34 {
+    color:#707070;
+    font-size:18px;
+}
+
+/** label_4 */
+SettingsAdvanceInformation#label_4 {
+    color:#707070;
+    font-size:18px;
+    font-weight:bold;
+}
+
+/** label_41 */
+SettingsAdvanceInformation#label_41 {
+    color:#707070;
+    font-size:18px;
+    font-weight:200;
+}
+
+/** label_42 */
+SettingsAdvanceInformation#label_42 {
+    color:#707070;
+    font-size:18px;
+}
+
+/** label_43 */
+SettingsAdvanceInformation#label_43 {
+    color:#707070;
+    font-size:18px;
+    font-weight:200;
+}
+
+/** label_44 */
+SettingsAdvanceInformation#label_44 {
+    color:#707070;
+    font-size:18px;
+}
+
+/** frame */
+SettingsAdvanceInformation#frame {
+    border:0;
+    background:white;
+}
+
+/** labelDebug */
+SettingsAdvanceInformation#labelDebug {
+    color:#707070;
+    font-size:18px;
+    text-align:center;
+}
+
+/** btnDebug */
+SettingsAdvanceInformation#btnDebug {
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 16px;
+    background-color:#105aef;
+    line-height:10px;
+    padding:8 20 8 20;
+}
+
+SettingsAdvanceInformation#btnDebug:hover {
+    background-color:#0e45b4;
+}
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsadvancenetwork.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
@@ -2147,14 +2346,14 @@ SettingsWidget#checkBoxStaking::indicator {
 }
 
 SettingsWidget#checkBoxStaking {
-    background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
+    background-image: url(":/icons/ic-switch-off-png") ;
     background-repeat:no-repeat;
     background-position:left center;
     padding:4 4 8 30px;
 }
 
 SettingsWidget#checkBoxStaking:checked {
-    background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
+    background-image: url(":/icons/ic-switch-on-png") ;
 }
 
 /** label_7 */
@@ -2249,8 +2448,167 @@ HH       tooltipbalance.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       transactiondetaildialog.ui
+HH      transactiondetaildialog.ui
+HH      name="TransactionDetailDialog"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** text */
+#TransactionDetailDialog
+color:#bababa;
+
+/** frame */
+TransactionDetailDialog#frame{
+    background-color: white;
+    padding: 10px 10px 10px 10px;
+    border-radius:20px;
+}
+
+/** title */
+TransactionDetailDialog#title {
+    color:#105aef;
+    font-size:20px;
+    padding-left:30px;
+}
+
+/**btnEsc */
+TransactionDetailDialog#btnEsc {
+    background-color:transparent;
+    border:0px;
+}
+
+TransactionDetailDialog#btnEsc:hover {
+}
+
+/** labelId */
+TransactionDetailDialog#labelId {
+    color:#105aef;
+}
+
+/** explorerButton */
+TransactionDetailDialog QPushButton {
+    border:  none;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+}
+
+/** label_27 */
+TransactionDetailDialog#label_27 {
+    background-color:#bababa;
+}
+
+/** labelAmount */
+TransactionDetailDialog#labelAmount {
+    color:#105aef;
+}
+
+/** label_25 */
+TransactionDetailDialog#label_25 {
+    background-color:#bababa;
+}
+
+/** frameContainer */
+TransactionDetailDialog#frameContainer{
+    background-color: white;
+    padding: 0px 0px 0px 0px;
+    border-style: none;
+    border-color: transparent;
+    border-width: 0px;
+    border-radius: 0px;
+}
+
+/** labelSend */
+TransactionDetailDialog#labelSend {
+    color:#105aef;
+}
+
+/** pushButton */
+TransactionDetailDialog#pushButton {
+    background-color:transparent;
+    border:0;
+    background-image: url(":/res/ic-arrow-down.png") ;
+    background-repeat:no-repeat;
+    background-position:center;
+}
+
+/** label_19 */
+TransactionDetailDialog#label_19 {
+    background-color:#bababa;
+}
+
+/** labelInputs */
+TransactionDetailDialog#labelInputs {
+    color:#105aef;
+}
+
+/** pushButton_2 */
+TransactionDetailDialog#pushButton_2 {
+    background-color:transparent;
+    border:0;
+    background-image: url(":/res/ic-arrow-down.png") ;
+    background-repeat:no-repeat;
+    background-position:center;
+}
+
+/** label_20 */
+TransactionDetailDialog#label_20 {
+    background-color:#bababa;
+}
+
+/** labelFee */
+TransactionDetailDialog#labelFee {
+    color:#105aef;
+}
+
+/** label_21 */
+TransactionDetailDialog#label_21 {
+    background-color:#bababa;
+}
+
+/** labelConfirmations */
+TransactionDetailDialog#labelConfirmations {
+    color:#105aef;
+}
+
+/** label_22 */
+TransactionDetailDialog#label_22 {
+    background-color:#bababa;
+}
+
+/** labelSize */
+TransactionDetailDialog#labelSize {
+    color:#105aef;
+}
+
+/** label_23 */
+TransactionDetailDialog#label_23 {
+    background-color:#bababa;
+}
+
+/** labelDate */
+TransactionDetailDialog#labelDate {
+    color:#105aef;
+}
+
+/** label_24 */
+TransactionDetailDialog#label_24 {
+    background-color:#bababa;
+}
+
+/** labelStatus */
+TransactionDetailDialog#labelStatus {
+    color:#105aef;
+}
+
+/** separatorComputeTime */
+TransactionDetailDialog#separatorComputeTime {
+    background-color:#bababa;
+}
+
+/** labelComputeTime */
+TransactionDetailDialog#labelComputeTime {
+    color:#105aef;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       tutorialcreatewalletwidget.ui
@@ -2419,14 +2777,14 @@ VeilStatusBar#checkStaking::indicator {
 }
 
 VeilStatusBar#checkStaking {
-    background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
+    background-image: url(":/icons/ic-switch-off-png") ;
     background-repeat:no-repeat;
     background-position:left center;
     color:#bababa;
 }
 
 VeilStatusBar#checkStaking:checked {
-    background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
+    background-image: url(":/icons/ic-switch-on-png") ;
     color:#105aef;
 }
 
