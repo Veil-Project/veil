@@ -31,13 +31,6 @@
      <property name="autoFillBackground">
       <bool>false</bool>
      </property>
-     <property name="styleSheet">
-      <string notr="true">#frame{
-  background-color: white;
-border:0;
-  padding: 10px 10px 10px 10px;
-}</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -52,10 +45,6 @@ border:0;
           <width>16777215</width>
           <height>40</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color:#bababa;
-font-size:18px;</string>
         </property>
         <property name="text">
          <string>Select Zerocoin denominations to
@@ -96,10 +85,6 @@ font-size:18px;</string>
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">color:#707070;
-font-size:16px;</string>
-        </property>
         <property name="text">
          <string>10</string>
         </property>
@@ -134,10 +119,6 @@ font-size:16px;</string>
           <width>300</width>
           <height>16777215</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color:#707070;
-font-size:16px;</string>
         </property>
         <property name="text">
          <string>100</string>
@@ -174,10 +155,6 @@ font-size:16px;</string>
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">color:#707070;
-font-size:16px;</string>
-        </property>
         <property name="text">
          <string>1000</string>
         </property>
@@ -212,10 +189,6 @@ font-size:16px;</string>
           <width>300</width>
           <height>16777215</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color:#707070;
-font-size:16px;</string>
         </property>
         <property name="text">
          <string>100000</string>

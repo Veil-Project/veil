@@ -1827,10 +1827,47 @@ ReceiveWidget#labelAddress {
     color:#707070;
 }
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       sendconfirmation.ui
+HH      sendconfirmation.ui
+HH      name="SendConfirmation"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
-/** WORD */
 
+/** frame */
+#frame {
+  background-color: white;
+  border-radius:20px;
+  padding-bottom:10px;
+  padding-top:10px;
+}
+
+/** frame_2*/
+#frame_2 {
+    background:transparent;
+}
+
+/** labelSend */
+#labelSend {
+    color:#105aef;
+}
+
+/** label */
+#label {
+    background-color:#bababa;
+}
+
+/** labelAmount */
+#labelAmount {
+    color:#105aef;
+}
+
+/** label_2 */
+#label_2 {
+    background-color:#bababa;
+}
+
+/** labelFee */
+#labelFee {
+    color:#105aef;
+}
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsadvance.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
@@ -2159,8 +2196,42 @@ HH       settingsadvancepeers.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       settingsbackup.ui
+HH      settingsbackup.ui
+HH      name="SettingsBackup"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** SettingsBackup */
+#SettingsBackup{
+    background-color:transparent;
+    border:none;
+}
+
+/** frame */
+SettingsBackup#frame{
+    background-color: white;
+    padding: 10px 10px 10px 10px;
+    border-radius: 20px;
+}
+
+/** btnFolder */
+SettingsBackup#btnFolder {
+    padding:8px;
+    border:none;
+    font-size:18px;
+    border-bottom:1px solid #bababa;
+    margin-left:20px;
+}
+
+/** pushButton */
+SettingsBackup#pushButton {
+    background-color:transparent;
+    border:none;
+}
+
+/** errorMessage */
+SettingsBackup#errorMessage {
+    color:#fd1337;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH      settingschangepassword.ui
@@ -2949,8 +3020,46 @@ QPushButton:unchecked {
     border:1px solid #0e45b4;
 }
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       settingsmintingauto.ui
+HH      settingsmintingauto.ui
+HH      name="SettingsMintingAuto"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** frame */
+SettingsMintingAuto#frame {
+    background-color: white;
+    border:0;
+    padding: 10px 10px 10px 10px;
+}
+
+/** labelTitle*/
+SettingsMintingAuto#labelTitle {
+    color:#bababa;
+    font-size:18px;
+}
+
+/** checkBox10 */
+SettingsMintingAuto#checkBox10 {
+    color:#707070;
+    font-size:16px;
+}
+
+/** checkBox100*/
+SettingsMintingAuto#checkBox100 {
+    color:#707070;
+    font-size:16px;
+}
+
+/** checkBox1000*/
+SettingsMintingAuto#checkBox1000 {
+    color:#707070;
+    font-size:16px;
+}
+
+/** checkBox100000 */
+SettingsMintingAuto#checkBox100000 {
+    color:#707070;
+    font-size:16px;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH      settingsmintingmanual.ui
@@ -3103,8 +3212,41 @@ SettingsNetwork#editPort:focus {
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       settingspreferences.ui
+HH      settingspreferences.ui
+HH      name="SettingsPreferences"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** frame */
+SettingsPreferences#frame {
+    background-color: white;
+    padding: 10px 10px 10px 10px;
+    border-radius:20px;
+}
+
+/** comboLanguage */
+SettingsPreferences#comboLanguage {
+    border:0;
+    padding:8;
+    border-bottom:1px solid #bababa;
+}
+
+/** checkBoxLaunch */
+SettingsPreferences#checkBoxLaunch {
+    color:#707070;
+    font-size:16px;
+}
+
+/** checkBoxMinTray */
+SettingsPreferences#checkBoxMinTray {
+    color:#707070;
+    font-size:16px;
+}
+
+/** checkBoxMinExit */
+SettingsPreferences#checkBoxMinExit {
+    color:#707070;
+    font-size:16px;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsrestore.ui
@@ -3628,8 +3770,171 @@ TutorialCreateWalletWidget QPushButton:unchecked {
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       tutoriallanguageswidget.ui
+HH      tutoriallanguageswidget.ui
+HH      name="TutorialLanguagesWidget"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** TutorialLanguagesWidget */
+#TutorialLanguagesWidget {
+    background-color:white;
+    border:none;
+}
+
+/** labelTitle */
+#labelTitle {
+    color:#105aef;
+}
+
+/** groupBox */
+#groupBox {
+    border:none;
+    background-color:white;
+}
+
+/** pushButton_en */
+QPushButton#pushButton_en {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton#pushButton_en:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton#pushButton_en:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton#pushButton_en:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+/** pushButton_es */
+QPushButton#pushButton_es {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton#pushButton_es:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton#pushButton_es:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton#pushButton_es:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+/** pushButton_port */
+QPushButton#pushButton_port {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton#pushButton_port:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton#pushButton_port:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton#pushButton_port:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+/** pushButton_it */
+QPushButton#pushButton_it {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton#pushButton_it:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton#pushButton_it:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton#pushButton_it:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+/** pushButton_fr */
+QPushButton#pushButton_fr {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:10;
+    text-align:center !important;
+}
+
+QPushButton#pushButton_fr:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton#pushButton_fr:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton#pushButton_fr:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       tutorialmnemoniccode.ui
