@@ -185,7 +185,6 @@ border:none;</string>
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
         <property name="alignment">
          <set>Qt::AlignCenter</set>
         </property>
