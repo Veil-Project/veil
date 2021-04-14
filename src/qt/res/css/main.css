@@ -2089,8 +2089,70 @@ SettingsAdvanceInformation#btnDebug:hover {
     background-color:#0e45b4;
 }
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       settingsadvancenetwork.ui
+HH      settingsadvancenetwork.ui
+HH      name="SettingsAdvanceNetwork"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** frame */
+SettingsAdvanceNetwork#frame {
+    border:0;
+}
+
+/** frameNetwork */
+SettingsAdvanceNetwork#frameNetwork {
+    border:1px solid #707070;
+}
+
+/** sliderSize */
+SettingsAdvanceNetwork#sliderSize {
+    font-size:18px;
+    color:#707070;
+}
+
+/** frame_2 */
+SettingsAdvanceNetwork#frame_2 {
+    border:0;
+}
+
+/** label*/
+SettingsAdvanceNetwork#label {
+    font-size:18px;
+    color:#707070;
+}
+
+/** label_2*/
+SettingsAdvanceNetwork#label_2 {
+    background-color:#105aef;
+}
+
+/** label_3 */
+SettingsAdvanceNetwork#label_3 {
+    font-size:18px;
+    color:#707070;
+}
+
+/** amountReceived*/
+SettingsAdvanceNetwork#amountReceived {
+    font-size:18px;
+    color:#707070;
+}
+
+/** label_4 */
+SettingsAdvanceNetwork#label_4 {
+    background-color:rgba(16,90,239, 0.4);
+}
+
+/** label_5 */
+SettingsAdvanceNetwork#label_5 {
+    font-size:18px;
+    color:#707070;
+}
+
+/** amountSent */
+SettingsAdvanceNetwork#amountSent {
+    font-size:18px;
+    color:#707070;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsadvancepeers.ui
@@ -3268,8 +3330,71 @@ Toast#text {
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       tooltipbalance.ui
+HH      tooltipbalance.ui
+HH      name="TooltipBalance"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** TooltipBalance */
+#TooltipBalance {
+    background-color:transparent
+}
+
+/** frame */
+TooltipBalance#frame {
+    background-color:#ffffff;
+    border-radius:14px;
+    border:1px solid #bababa;
+}
+
+/** lblFirst */
+TooltipBalance#lblFirst {
+    color:#105aef;
+    font-size:12px;
+    text-align:center;
+    padding-left:34px;
+}
+
+/** pushButton */
+TooltipBalance#pushButton {
+    border:none;
+    background-color:transparent;
+}
+
+/** textZero */
+TooltipBalance#textZero {
+    font-size:14px;
+    color:#707070;
+    text-align:center;
+    padding-bottom:4px;
+}
+
+/** lblSecond */
+TooltipBalance#lblSecond {
+    color:#105aef;
+    font-size:12px;
+    text-align:center;
+}
+
+/** textRing */
+TooltipBalance#textRing {
+    font-size:14px;
+    color:#707070;
+    text-align:center;
+}
+
+/** lblThird */
+TooltipBalance#lblThird {
+    color:#105aef;
+    font-size:12px;
+    text-align:center;
+}
+
+/** textBasecoin */
+TooltipBalance#textBasecoin {
+    font-size:14px;
+    color:#707070;
+    text-align:center;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH      transactiondetaildialog.ui
@@ -3558,12 +3683,129 @@ TutorialMnemonicRevealed#label_4 {
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       tutorialwidget.ui
+HH      tutorialwidget.ui
+HH      name="TutorialWidget"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** TutorialWidget */
+#TutorialWidget {
+    border:none;
+    padding:0px;
+    margin:0px;
+}
+
+/** containerLeft */
+TutorialWidget#containerLeft {
+    border-image: url(":/icons/Banner_inicio2") 0 0 0 0 stretch stretch;
+    padding:0px;
+    margin:0px;
+    border:none;
+}
+
+/** messageTop */
+TutorialWidget#messageTop {
+    font-size:20px;
+    font-weight:bold;
+    color:#FFFFFF;
+}
+
+/** messageBottom */
+TutorialWidget#messageBottom {
+    font-size:16px;
+    color:#FFFFFF;
+    padding:0 20px;
+}
+
+/** frame_2 */
+TutorialWidget#frame_2 {
+    padding-left:16px;
+    padding-right:16px;
+    background-color:white;
+}
+
+/** QStackTutorialContainer */
+TutorialWidget#frame2 {
+    background-color: white;
+    border: none;
+    padding: 0em 0em;
+}
+
+/** line_2 */
+TutorialWidget#line_2 {
+    background-color:#bababa;
+}
+
+/** btnBack */
+TutorialWidget#btnBack {
+    color:#105aef; 
+    border: none;
+    padding: 0em 0em;
+}
+
+TutorialWidget#btnBack:hover {
+    color:#0e45b4; 
+}
+
+/** btnLineSeparator */
+TutorialWidget#btnLineSeparator {
+    background-color:#bababa;
+}
+
+/** btnNext */
+TutorialWidget#btnNext {
+    color:#105aef;
+    border: none;
+    padding: 0em 0em;
+} 
+
+TutorialWidget#btnNext:focus { 
+    background-color: rgb(255, 255, 255);
+    border:none; 
+}
+
+TutorialWidget#btnNext:hover {
+    color:#0e45b4;
+} 
+
+TutorialWidget#btnNext:checked{
+    background-color: none;
+    border: none;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       unlockpassworddialog.ui
+HH      unlockpassworddialog.ui
+HH      name="UnlockPasswordDialog"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** frame */
+UnlockPasswordDialog#frame {
+    background-color:transparent; border:0;
+}
+
+/** frame_2 */
+UnlockPasswordDialog#frame_2 {
+    background-color: white;
+    padding: 10px 10px 10px 10px;
+    border-radius:20px;
+}
+
+/** labelDescription*/
+UnlockPasswordDialog#labelDescription {
+    color:#707070;
+    padding-right:4;
+}
+
+/** editPassword */
+UnlockPasswordDialog#editPassword {
+    padding:8;
+    border:0;
+    border-bottom:1px solid #bababa;
+}
+
+/** errorMessage */
+UnlockPasswordDialog#errorMessage {
+    color:#fd1337;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH      updateaddress.ui
