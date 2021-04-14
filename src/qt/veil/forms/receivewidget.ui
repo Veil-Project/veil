@@ -13,11 +13,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">border:none;
-padding:0px;
-margin:0px;</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="0">
    <property name="spacing">
     <number>0</number>
@@ -42,12 +37,6 @@ margin:0px;</string>
        <height>100</height>
       </size>
      </property>
-     <property name="styleSheet">
-      <string notr="true">border:none;
-padding:0px;
-margin:0px;
-background-color:white;</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -59,9 +48,6 @@ background-color:white;</string>
        <layout class="QHBoxLayout" name="horizontalLayout_2">
         <item>
          <widget class="QLabel" name="title">
-          <property name="styleSheet">
-           <string notr="true">padding:10 0 10 0;</string>
-          </property>
           <property name="text">
            <string>Receive veil</string>
           </property>
@@ -84,9 +70,6 @@ background-color:white;</string>
       </item>
       <item>
        <widget class="QFrame" name="frame">
-        <property name="styleSheet">
-         <string notr="true">border:none;</string>
-        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
@@ -96,11 +79,6 @@ background-color:white;</string>
         <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,0,3,0">
          <item>
           <widget class="QLabel" name="label">
-           <property name="styleSheet">
-            <string notr="true">color:#707070;
-font-size:16px;
-font-weight:bold;</string>
-           </property>
            <property name="text">
             <string>This is your Veil receiving address</string>
            </property>
@@ -133,10 +111,6 @@ font-weight:bold;</string>
              <height>0</height>
             </size>
            </property>
-           <property name="styleSheet">
-            <string notr="true">color:#707070;
-font-size:16px;</string>
-           </property>
            <property name="text">
             <string>A sender can copy the address or scan the 
 QR code to send you veil</string>
@@ -151,9 +125,6 @@ QR code to send you veil</string>
          </item>
          <item>
           <widget class="QFrame" name="frame_2">
-           <property name="styleSheet">
-            <string notr="true">border:none;</string>
-           </property>
            <property name="frameShape">
             <enum>QFrame::StyledPanel</enum>
            </property>
@@ -176,9 +147,6 @@ QR code to send you veil</string>
             </item>
             <item alignment="Qt::AlignHCenter">
              <widget class="QLabel" name="labelQr">
-              <property name="styleSheet">
-               <string notr="true">background-color: transparent;</string>
-              </property>
               <property name="text">
                <string/>
               </property>
@@ -257,9 +225,6 @@ QR code to send you veil</string>
                   <height>16777215</height>
                  </size>
                 </property>
-                <property name="styleSheet">
-                 <string notr="true">color:#707070;</string>
-                </property>
                 <property name="text">
                  <string>N/A</string>
                 </property>
@@ -272,9 +237,6 @@ QR code to send you veil</string>
                   <width>300</width>
                   <height>16777215</height>
                  </size>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">color:#707070;</string>
                 </property>
                 <property name="text">
                  <string>Failed to generate (ensure wallet is unlocked)</string>

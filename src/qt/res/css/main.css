@@ -1763,11 +1763,69 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 #checkWatch:checked {
     background-image: url(":/icons/ic-watch-on") ;
 }
-/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       receivewidget.ui
-HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
-/** WORD */
 
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH      receivewidget.ui
+HH      name="ReceiveWidget"
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** ReceiveWidget */
+#ReceiveWidget {
+    border:none;
+    padding:0px;
+    margin:0px;
+}
+
+/** frame_5 */
+ReceiveWidget#frame_5 {
+    border:none;
+    padding:0px;
+    margin:0px;
+    background-color:white;
+}
+
+/** title */
+ReceiveWidget#title {
+    padding:10 0 10 0;
+}
+
+/** frame */
+ReceiveWidget#frame {
+    border:none;
+}
+
+/** label */
+ReceiveWidget#label {
+    color:#707070;
+    font-size:16px;
+    font-weight:bold;
+}
+
+/** label_2 */
+ReceiveWidget#label_2 {
+    color:#707070;
+    font-size:16px;
+}
+
+/** frame_2 */
+ReceiveWidget#frame_2 {
+    border:none;
+}
+
+/** labelQr */
+ReceiveWidget#labelQr {
+    background-color: transparent;
+}
+
+/** labelAddressName */
+ReceiveWidget#labelAddressName {
+    color:#707070;
+}
+
+/** labelAddress */
+ReceiveWidget#labelAddress {
+    color:#707070;
+}
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       sendconfirmation.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
@@ -2043,8 +2101,23 @@ HH       settingsbackup.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       settingschangepassword.ui
+HH      settingschangepassword.ui
+HH      name="SettingsChangePassword"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** frame */
+SettingsChangePassword#frame {
+  background-color: white;
+  padding: 10px 10px 10px 10px;
+  border-radius:20px;
+}
+
+
+/** frame */
+SettingsChangePassword#frame {
+  background-color: white;
+  padding: 10px 10px 10px 10px;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsfaq.ui
@@ -2818,12 +2891,154 @@ HH       settingsmintingauto.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       settingsmintingmanual.ui
+HH      settingsmintingmanual.ui
+HH      name="SettingsMintingManual"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** frame */
+SettingsMintingManual#frame{
+    background-color: white;
+    border:0;
+    padding: 10px 10px 10px 10px;
+}
+
+/** label_4 */
+SettingsMintingManual#label_4 {
+    color:#707070;
+    font-size:16px;
+}
+
+/** labelZVeilBalance */
+SettingsMintingManual#labelZVeilBalance {
+    color:#707070;
+    font-size:22px;
+}
+
+/** label_6 */
+SettingsMintingManual#label_6 {
+    color:#707070;
+    font-size:16px;
+}
+
+/** labelConvertable */
+SettingsMintingManual#labelConvertable {
+    color:#707070;
+    font-size:22px;
+}
+
+/** label_3 */
+SettingsMintingManual#label_3 {
+    background-color:#bababa;
+}
+
+/** btnMint */
+SettingsMintingManual#btnMint {
+    border-radius: 6px;
+    color: #105aef;
+    font-size: 16px;
+    background-color:#FFFFFF;
+    border:1px solid #105aef;
+    line-height:10px;
+    padding:8 12 8 12 ;
+}
+
+SettingsMintingManual#btnMint:hover {
+    background-color:#FFFFFF;
+    color:#0e45b4;
+    border:1px solid #0e45b4;
+}
+
+/** label_2 */
+SettingsMintingManual#label_2 {
+    color:#bababa;
+    font-size:18px;
+}
+
+/** errorMessage */
+SettingsMintingManual#errorMessage {
+    color:#fd1337;
+}
+
+/** label */
+SettingsMintingManual#label {
+    color:#bababa;
+    font-size:18px;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       settingsnetwork.ui
+HH      settingsnetwork.ui
+HH      name="SettingsNetwork"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** frame */
+SettingsNetwork#frame{
+    background-color: white;
+    padding: 10px 10px 10px 10px;
+    border-radius:20px;
+}
+
+/** checkBoxLaunch */
+SettingsNetwork#checkBoxLaunch {
+    color:#707070;
+    font-size:16px;
+}
+
+/** checkBoxMinTray */
+SettingsNetwork#checkBoxMinTray {
+    color:#707070;
+    font-size:16px;
+}
+
+/** checkBoxMinExit */
+SettingsNetwork#checkBoxMinExit {
+    color:#707070;
+    font-size:16px;
+}
+
+/** frame_2 */
+SettingsNetwork#frame_2 {
+    border:none;
+    padding:0px;
+}
+
+/** label */
+SettingsNetwork#label {
+    color:#707070;
+    font-size:16px;
+}
+
+/** editProxy */
+SettingsNetwork#editProxy  { 
+    padding:8;
+    border:0;
+    border-bottom:1px solid #bababa;
+}
+
+SettingsNetwork#editProxy:focus { 
+    border-bottom:1px solid #105aef;
+}
+
+/** frame_3 */
+SettingsNetwork#frame_3 {
+    border:none;
+    padding:0px;
+}
+
+/** label_2 */
+SettingsNetwork#label_2 {
+    color:#707070;
+    font-size:16px;
+}
+
+/** editPort */
+SettingsNetwork#editPort { 
+    padding:8;
+    border:0;
+    border-bottom:1px solid #bababa;
+}
+
+SettingsNetwork#editPort:focus { 
+    border-bottom:1px solid #105aef;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingspreferences.ui
