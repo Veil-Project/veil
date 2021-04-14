@@ -2048,7 +2048,403 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsfaq.ui
+HH      name="SettingsFaq"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** SettingsFaq */
+#SettingsFaq{
+    background-color:transparent;
+}
+
+/** frameBase */
+SettingsFaq#frameBase {
+    border:none;
+    background-color: transparent;
+    border-radius: 20px;
+}
+
+/** frame */
+SettingsFaq#frame{
+    border-image: url(":/icons/img-banner-top-png") 0 0 0 0 stretch stretch;
+    padding:10px;
+    margin:0px;
+    border-top-right-radius: 20px;
+    border-top-left-radius: 20px;
+}
+
+/** frame_t */
+SettingsFaq#frame_t {
+    background:none;
+    background-color:transparent;
+}
+
+/** label_3 */
+SettingsFaq#label_3 {
+    text-align: left;
+    color: #ffffff;
+    font-size:40px;
+    font-weight:light;
+}
+
+/** btnEsc */
+SettingsFaq#btnEsc {
+    background-color:transparent;
+    border:0px;
+    background-repeat:no-repeat;
+    background-position: center;
+}
+
+/** #frame_2 */
+SettingsFaq#frame_2 {
+    border:none;
+    border-bottom-right-radius: 20px;
+    border-bottom-left-radius: 20px;
+    margin:0px;
+}
+
+/** scrollArea */
+SettingsFaq#scrollArea {
+    border-right:1px solid #707070;
+    margin:0px;
+    background-color:white;
+}
+
+SettingsFaq QScrollBar {
+    background-color:white;
+    border:0;
+}
+
+SettingsFaq QScrollBar:vertical {             
+    border: 0px ;
+    background:white;
+    width:10px;    
+    margin: 0px 0px 0px 0px;
+}
+
+/** scrollAreaWidgetContents */
+SettingsFaq#scrollAreaWidgetContents {
+    background-color:white;
+    border-right:1px solid #707070;
+}
+
+/** groupBox */
+SettingsFaq#groupBox {
+    background-color:white;
+    border:none;
+    margin:0px;
+}
+
+/** radioButton_01 */
+SettingsFaq#radioButton_01 {
+    border-radius: 0px;
+    border:  none;
+    margin:0px;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10px 30px 10px 30px;
+    text-align:center !important;
+}
+
+SettingsFaq#radioButton_01:checked {
+    border:  none;
+    background-color:rgba(16,90,239,0.2);
+    color: #707070;
+    margin:0px;
+}
+
+SettingsFaq#radioButton_01:unchecked {
+    border:  none;
+    background-color:white;
+    color: #707070;
+}
+
+SettingsFaq#radioButton_01::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}
+
+/** radioButton_03 */
+SettingsFaq#radioButton_03 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+SettingsFaq#radioButton_03:checked {
+    border:  0;
+    background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+SettingsFaq#radioButton_03:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+SettingsFaq#radioButton_03::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}
+
+/** radioButton_04 */
+SettingsFaq#radioButton_04 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+SettingsFaq#radioButton_04:checked {
+    border:  0;
+    background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+SettingsFaq#radioButton_04:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+SettingsFaq#radioButton_04::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}
+
+/** radioButton_05 */
+SettingsFaq#radioButton_05 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+SettingsFaq#radioButton_05:checked {
+    border:  0;
+    background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+SettingsFaq#radioButton_05:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+SettingsFaq#radioButton_05::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}
+
+/** radioButton_06 */
+SettingsFaq#radioButton_06 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+SettingsFaq#radioButton_06:checked {
+    border:  0;
+     background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+SettingsFaq#radioButton_06:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+SettingsFaq#radioButton_06::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}
+
+/** radioButton_07 */
+SettingsFaq#radioButton_07 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+SettingsFaq#radioButton_07:checked {
+    border:  0;
+    background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+SettingsFaq#radioButton_07:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+SettingsFaq#radioButton_07::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}
+
+/** radioButton_08 */
+SettingsFaq#radioButton_08 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+SettingsFaq#radioButton_08:checked {
+    border:  0;
+    background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+SettingsFaq#radioButton_08:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+SettingsFaq#radioButton_08::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}
+
+/** radioButton_09 */
+SettingsFaq#radioButton_09 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+SettingsFaq#radioButton_09:checked {
+    border:  0;
+    background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+SettingsFaq#radioButton_09:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+SettingsFaq#radioButton_09:indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}
+
+/** radioButton_10 */
+SettingsFaq#radioButton_10 {
+    border-radius: 0;
+    border:  0;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10 30 10 30;
+    text-align:center !important;
+}
+
+SettingsFaq#radioButton_10:checked {
+    border:  0;
+    background-color:rgba(16,90,239,0.2);
+    color: #707070;
+}
+
+SettingsFaq#radioButton_10:unchecked {
+    border:  0;
+    background-color:white;
+    color: #707070;
+}
+
+SettingsFaq#radioButton_10::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}
+
+/** radioButton_12 */
+SettingsFaq#radioButton_12 {
+    border-radius: 0px;
+    border:  none;
+    margin:0px;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 18px;
+    padding:10px 30px 10px 30px;
+    text-align:center !important;
+}
+
+SettingsFaq#radioButton_12:checked {
+    border:  none;
+    background-color:rgba(16,90,239,0.2);
+    color: #707070;
+    margin:0px;
+}
+
+SettingsFaq#radioButton_12:unchecked {
+    border:  none;
+    background-color:white;
+    color: #707070;
+}
+
+SettingsFaq#radioButton_12::indicator {
+    width:                  0px;
+    height:                 0px;
+    border-radius:          0px;
+}
+
+/** scrollArea_2 */
+SettingsFaq#scrollArea_2 {
+    background-color:white;
+    border:0;
+}
+
+/** scrollAreaWidgetContents_2 */
+SettingsFaq#scrollAreaWidgetContents_2 {
+    background-color:white;
+    border:0;
+}
+
+/** stackedWidget */
+SettingsFaq#stackedWidget {
+    background-color:transparent;
+    border:0;
+}
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsfaq01.ui
@@ -2201,9 +2597,222 @@ SettingsFaq12#label_2 {
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
-HH       settingsminting.ui
+HH      settingsminting.ui
+HH      name="SettingsMinting"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/** frame */
+#frame{
+    background-color: white;
+    padding: 10px 10px 10px 10px;
+    border-radius:20px;
+    border:none;
+}
+
+/** frame_1 */
+#groupBox {
+    border:0;
+}
+
+/** btnAuto */
+QPushButton {
+    color: #bababa;
+    font-size:20px;
+    font-weight:light;
+    background-color:transparent;
+    border:0;
+    padding:0px 0px 10px 24px;
+    background-image: none ;
+    background-repeat:no-repeat;
+    background-position: center bottom;
+}
+
+QPushButton:checked {
+    color: #105aef;
+}
+
+QPushButton:hover {
+    color: #707070;
+}
+
+QPushButton:unchecked {
+    background-image: none ;
+    color: #bababa;
+}
+
+/** btnEsc */
+#btnEsc {
+    background-color:transparent;
+    border:none;
+}
+
+/** container */
+    border:none;
+    padding:0px;
+
+/** frame_2 */
+#frame {
+    background-color: white;
+    border:0;
+    padding: 10px 10px 10px 10px;
+}
+
+/** labelTitle */
+#labelTitle {
+    color:#bababa;
+    font-size:18px;
+}
+
+/** label */
+#label {
+    color:#bababa;
+    font-size:14px;
+}
+
+/** line */
+#line {
+    background-color:#bababa;
+}
+
+/** frame_3 */
+#frame {
+    background-color: white;
+    border:0;
+    padding: 10px 10px 10px 10px;
+}
+
+/** frame_31 */
+#frame_31 {
+    border:none; padding:0px;
+}
+
+/** frame_311 */
+#frame_311 {
+    padding:0px;
+}
+
+/** label_4 */
+#label_4 {
+    color:#707070;
+    font-size:16px;
+}
+
+/** labelZVeilBalance */
+#labelZVeilBalance {
+    color:#707070;
+    font-size:22px;
+}
+
+/** label_7 */
+#label_7 {
+    color:#707070;
+    font-size:16px;
+    padding-top:3px;
+}
+
+/** labelConvertableBasecoin */
+#labelConvertableBasecoin {
+    color:#707070;
+    font-size:22px;
+    padding-bottom:3px;
+}
+
+/** frame_312 */
+#frame_312 {
+    padding:0px;
+}
+
+/** label_6 */
+#label_6 {
+    color:#707070;
+    font-size:16px;
+}
+
+/** labelConvertableCt */
+#labelConvertableCt {
+    color:#707070;
+    font-size:22px;
+}
+
+/** label_5 */
+#label_5 {
+    color:#707070;
+    font-size:16px;
+    padding-top:3px;
+}
+
+/** labelConvertibleRingCt */
+#labelConvertibleRingCt {
+    color:#707070;
+    font-size:22px;
+    padding-bottom:3px;
+}
+
+/** label_3 */
+#label_3 {
+    background-color:#bababa;
+}
+
+/** label_2 */
+#label_2 {
+    color:#bababa;
+    font-size:18px;
+}
+
+/** warnLabel */
+#warnLabel {
+    color:#fd1337;
+}
+
+/** editAmount */
+#editAmount {
+    padding:8px;
+    font-size:16px;
+    border-top:0px;
+    border-left:0px;
+    border-right:0px;
+    border-bottom:1px solid #bababa;
+    background-color:transparent;
+}
+
+/** useBasecoin */
+#useBasecoin {
+    color:#bababa;
+}
+
+/** errorMessage */
+#errorMessage {
+    color:#fd1337;
+}
+
+/** btnSendMint */
+#btnSendMint:enabled {
+    border-radius: 6px;
+    color: #105aef;
+    font-size: 16px;
+    background-color:#FFFFFF;
+    border:1px solid #105aef;
+    line-height:10px;
+    padding:8px 12px 8px 12px ;
+    padding-bottom:10px;
+}
+
+#btnSendMint:disabled {
+    border-radius: 6px;
+    color: #C0C0C0;
+    font-size: 16px;
+    background-color:#FFFFFF;
+    border:1px solid #B0C4DE;
+    line-height:10px;
+    padding:8px 12px 8px 12px ;
+    padding-bottom:10px;
+}
+
+#btnSendMint:hover {
+    background-color:#FFFFFF;
+    color:#0e45b4;
+    border:1px solid #0e45b4;
+}
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       settingsmintingauto.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
