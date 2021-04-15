@@ -1940,7 +1940,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** SplashScreenVeil */
 QWidget#SplashScreenVeil {
-    border-image: url(:/icons/res/icons/bg-splash@3x) 0 0 0 0 stretch stretch;
+    border-image: url(":/icons/res/icons/bg-splash@3x") 0 0 0 0 stretch stretch;
     border:none;
     padding: 0px;
     margin: 0px;
