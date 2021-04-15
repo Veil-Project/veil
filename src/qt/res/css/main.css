@@ -1869,7 +1869,7 @@ QStackedWidget#SendCoinsEntry QLineEdit#payAmount {
     border-bottom:1px solid #bababa;
 }
 
-QStackedWidget#SendCoinsEntry# QLineEditpayAmount_2:focus {
+QStackedWidget#SendCoinsEntry QLineEditpayAmount_2:focus {
     border-bottom:1px solid #105aef;
 }
 
