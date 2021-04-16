@@ -1526,7 +1526,7 @@ QDialog#OptionsDialog#unitLabel {
 HH       overviewpage.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** labelAlerts */
-QWidget#OverviewPage QLabel {
+QWidget#OverviewPage QLabel#labelAlerts {
     background-color: #6F9BF5; color:#FFFFFF;
 }
 
