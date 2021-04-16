@@ -203,6 +203,12 @@
             </item>
             <item alignment="Qt::AlignHCenter">
              <widget class="QPushButton" name="btnImmature">
+              <property name="maximumSize">
+               <size>
+                <width>78</width>
+                <height>16777215</height>
+               </size>
+              </property>
               <property name="layoutDirection">
                <enum>Qt::RightToLeft</enum>
               </property>
