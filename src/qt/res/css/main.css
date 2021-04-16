@@ -2553,6 +2553,7 @@ QWidget#ReceiveWidget QFrame#frame {
 
 /** label */
 QWidget#ReceiveWidget QLabel#label {
+    background-color: transparent;
     color:#707070;
     font-size:16px;
     font-weight:bold;
@@ -2582,6 +2583,16 @@ QWidget#ReceiveWidget QLabel#labelAddressName {
 /** labelAddress */
 QWidget#ReceiveWidget QLabel#labelAddress {
     color:#707070;
+}
+
+/** btnCreate * CSS Migration Display Fix */
+QWidget#ReceiveWidget QPushButton#btnCreate {
+    background-color: transparent;
+}
+
+/** btnCopy * CSS Migration Display Fix */
+QWidget#ReceiveWidget QPushButton#btnCopy {
+    background-color: transparent;
 }
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH      sendconfirmation.ui
