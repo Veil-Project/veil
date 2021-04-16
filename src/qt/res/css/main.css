@@ -1185,40 +1185,40 @@ HH      name="Intro"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /* frame */
-QWidget#Intro#frame {
+QDialog#Intro QFrame#frame {
     border-image: url(":/icons/splash_background") 0 0 0 0 stretch stretch;
     padding:0px;
     margin:0px;
 }
 
 /* frame2 */
-QWidget#Intro#frame2 {
+QDialog#Intro QFrame#frame2 {
     background-color: white;
     padding: 2px 10px 2px 10px;
     border-radius:20px;
 }
 
 /** pushButton */
-QWidget#Intro#pushButton {
+QDialog#Intro QPushButton#pushButton {
     background-color:transparent;
     border:none;
 }
 
 /** label_2 */
-QWidget#Intro#label_2 {
+QDialog#Intro QLabel#label_2 {
     text-align:center;
     color:#707070;
     font-size:18px;
 }
 
 /** groupBox */
-QWidget#Intro#groupBox {
+QDialog#Intro QGroupBox#groupBox {
     background-color:#ffffff;
     border-radius:0;
 }
 
 /* frame_2*/
-QWidget#Intro#frame_2 {
+QDialog#Intro QFrame#frame_2 {
     padding:3px;
     border:none;
     background:transparent;
@@ -1226,7 +1226,7 @@ QWidget#Intro#frame_2 {
 }
 
 /** dataDirectory */
-QWidget#Intro#dataDirectory {
+QDialog#Intro QLineEdit#dataDirectory {
     padding:8px;
     border:0px;
     font-size:15px;
@@ -1237,10 +1237,9 @@ QWidget#Intro#dataDirectory {
 }
 
 /** ellipsisButton */
-QWidget#Intro#ellipsisButton {
+QDialog#Intro QPushButton#ellipsisButton {
     background-color:transparent;
     border:0px;
-
     background-repeat:no-repeat;
     background-position: center;
     margin-right:24px;
@@ -1698,7 +1697,7 @@ QDialog#SendCoinsDialog QLabel#labelCoinControlChange {
 }
 
 /** scrollArea */
-QDialog#SendCoinsDialog QScrollArea#scrollArea {
+QDialog#SendCoinsDialog QScrollArea#scrollArea QWidget {
     border:none;
     padding:0px;
     margin:0px;
@@ -3070,7 +3069,7 @@ QDialog#SettingsFaq QFrame#frame_2 {
 }
 
 /** scrollArea */
-QDialog#SettingsFaq QScrollArea#scrollArea {
+QDialog#SettingsFaq QScrollArea#scrollArea QWidget {
     border-right:1px solid #707070;
     margin:0px;
     background-color:white;
@@ -3396,7 +3395,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_12::indicator {
 }
 
 /** scrollArea_2 */
-QDialog#SettingsFaq QScrollArea#scrollArea_2 {
+QDialog#SettingsFaq QScrollArea#scrollArea_2 QWidget {
     background-color:white;
     border:0;
 }
@@ -4075,8 +4074,19 @@ QWidget#SettingsWidget {
     background-color:white;
 }
 
+/* 
+*  special QFrame and QScrollArea styling 
+*  required to display no-borders and background properly
+*/
+
 /* frame */
-QWidget#SettingsWidget QFrame#frame {
+QWidget#SettingsWidget QFrame {
+    border:none;
+    background-color:white;
+}
+
+/** scrollArea */
+QWidget#SettingsWidget QScrollArea QWidget{
     border:none;
     background-color:white;
 }
@@ -4084,12 +4094,6 @@ QWidget#SettingsWidget QFrame#frame {
 /** title */
 QWidget#SettingsWidget QPushButton#title {
     padding:10 0 10 0;
-}
-
-/** scrollArea */
-QWidget#SettingsWidget QScrollArea#scrollArea {
-    border:none;
-    background-color:white;
 }
 
 /** label_12 */
