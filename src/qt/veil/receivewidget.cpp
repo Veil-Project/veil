@@ -125,6 +125,7 @@ bool ReceiveWidget::generateNewAddress(bool isOnDemand){
     ui->labelAddress->setText(qAddress.left(16) + "..." + qAddress.right(16));
     if("" != addressName){
         ui->labelAddressName->setText(QString::fromStdString(addressName));
+        ui->labelAddressName->show();
     }
     else{
     	ui->labelAddressName->hide();
