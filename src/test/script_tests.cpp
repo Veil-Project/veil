@@ -10,7 +10,6 @@
 #include <script/script.h>
 #include <script/script_error.h>
 #include <script/sign.h>
-<<<<<<< HEAD
 #include <util/system.h>
 #include <util/strencodings.h>
 #include <test/test_veil.h>

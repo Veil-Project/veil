@@ -6,7 +6,7 @@
 #include <wallet/deterministicmint.h>
 #include <logging.h>
 #include "ztracker.h"
-#include "util.h"
+#include "util/system.h"
 #include "sync.h"
 #include "txdb.h"
 #include "wallet/walletdb.h"

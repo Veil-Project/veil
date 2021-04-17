@@ -6,7 +6,7 @@
 #ifndef VEIL_EXTKEY_H
 #define VEIL_EXTKEY_H
 
-#include <util.h>
+#include <util/system.h>
 #include <key.h>
 #include <veil/ringct/stealth.h>
 #include <veil/ringct/types.h>

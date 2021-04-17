@@ -9,7 +9,7 @@
 
 #include <support/allocators/secure.h>
 #include <random.h>
-#include <util.h>
+#include <util/system.h>
 
 secp256k1_context *secp256k1_ctx_blind = nullptr;
 

@@ -13,7 +13,7 @@
 #include <script/script.h>
 #include <veil/ringct/keyutil.h>
 #include <veil/ringct/stealth.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <support/allocators/secure.h>
 

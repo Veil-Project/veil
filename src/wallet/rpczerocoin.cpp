@@ -9,7 +9,7 @@
 #include <wallet/deterministicmint.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
-#include <utilmoneystr.h>
+#include <util/moneystr.h>
 #include <validation.h>
 #include <veil/zerocoin/accumulators.h>
 #include <veil/zerocoin/zwallet.h>

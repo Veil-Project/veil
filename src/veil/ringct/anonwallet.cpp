@@ -14,7 +14,7 @@
 #include <validation.h>
 #include <consensus/validation.h>
 #include <consensus/merkle.h>
-#include <utilmoneystr.h>
+#include <util/moneystr.h>
 #include <script/script.h>
 #include <script/standard.h>
 #include <script/sign.h>
