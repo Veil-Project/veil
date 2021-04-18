@@ -94,6 +94,24 @@
            <property name="toolTip">
             <string>The Veil stealth address to send the payment to</string>
            </property>
+           <property name="styleSheet">
+            <string notr="true">#payTo {   
+	padding:8;
+   margin-left:12px;
+	font-size:16px;
+	margin-right:3px;
+	background:transparent;
+   background-color:transparent;
+	border-top:none;
+	border-left:none;
+	border-right:none;
+   border-bottom:1px solid #bababa;
+}
+
+#payTo:focus {
+    border-bottom:1px solid #105aef;
+}</string>
+           </property>
           </widget>
          </item>
          <item>
@@ -153,6 +171,24 @@
         <widget class="QLineEdit" name="payAmount">
          <property name="focusPolicy">
           <enum>Qt::StrongFocus</enum>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">#payAmount {
+	padding:8;
+  margin-left:12px;
+	margin-right:12px;
+	font-size:16px;
+	background:transparent;
+   background-color:transparent;
+	border-top:none;
+	border-left:none;
+	border-right:none;
+   border-bottom:1px solid #bababa;
+}
+
+#payAmount_2:focus {
+    border-bottom:1px solid #105aef;
+}</string>
          </property>
         </widget>
        </item>

@@ -219,6 +219,12 @@ QR code to send you veil</string>
               </item>
               <item>
                <widget class="QLabel" name="labelAddressName">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
                 <property name="maximumSize">
                  <size>
                   <width>300</width>

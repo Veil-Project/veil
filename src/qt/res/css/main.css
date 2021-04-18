@@ -1615,6 +1615,23 @@ QDialog#SendCoinsDialog {
     background-color:white;
 }
 
+/* 
+*  special QFrame and QScrollArea styling 
+*  required to display no-borders and background properly
+*/
+
+/* frame */
+QDialog#SendCoinsDialog QFrame {
+    border:none;
+    background-color:white;
+}
+
+/** scrollArea */
+QDialog#SendCoinsDialog QScrollArea QWidget{
+    border:none;
+    background-color:white;
+}
+
 /* frame_1 */
 QDialog#SendCoinsDialog QFrame#frame_1 {
     background-color:white;
@@ -1822,24 +1839,6 @@ QDialog#SendCoinsDialog QPushButton#sendButton:hover {
 HH       sendcoinsentry.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
-/** payTo */
-QStackedWidget#SendCoinsEntry QValidatedLineEdit#payTo {   
-    padding:8;
-    margin-left:12px;
-    font-size:16px;
-    margin-right:3px;
-    background:transparent;
-    background-color:transparent;
-    border-top:none;
-    border-left:none;
-    border-right:none;
-    border-bottom:1px solid #bababa;
-}
-
-QStackedWidget#SendCoinsEntry QValidatedLineEdit#payTo:focus {
-    border-bottom:1px solid #105aef;
-}
-
 /** btnAddressBook */
 QStackedWidget#SendCoinsEntry QPushButton#btnAddressBook {
     background:transparent;
@@ -1853,25 +1852,6 @@ QStackedWidget#SendCoinsEntry QLabel#label {
     margin-left:6px;
     color:#105AEF;
 }
-
-/** payAmount */
-QStackedWidget#SendCoinsEntry QLineEdit#payAmount {
-    padding:8;
-    margin-left:12px;
-    margin-right:12px;
-    font-size:16px;
-    background:transparent;
-    background-color:transparent;
-    border-top:none;
-    border-left:none;
-    border-right:none;
-    border-bottom:1px solid #bababa;
-}
-
-QStackedWidget#SendCoinsEntry QLineEditpayAmount_2:focus {
-    border-bottom:1px solid #105aef;
-}
-
 /** label_5 */
 QStackedWidget#SendCoinsEntry QLabel#label_5 {
     background-color:#bfbfbf;
