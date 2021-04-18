@@ -3112,7 +3112,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_01:checked {
 
 QDialog#SettingsFaq QRadioButton#radioButton_01:unchecked {
     border:  none;
-    background-color:white;
+    background-color:rgba(255,255,255,0.2);
     color: #707070;
 }
 
@@ -3141,7 +3141,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_03:checked {
 
 QDialog#SettingsFaq QRadioButton#radioButton_03:unchecked {
     border:  0;
-    background-color:white;
+    background-color:rgba(255,255,255,0.2);
     color: #707070;
 }
 
@@ -3170,7 +3170,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_04:checked {
 
 QDialog#SettingsFaq QRadioButton#radioButton_04:unchecked {
     border:  0;
-    background-color:white;
+    background-color:rgba(255,255,255,0.2);
     color: #707070;
 }
 
@@ -3199,7 +3199,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_05:checked {
 
 QDialog#SettingsFaq QRadioButton#radioButton_05:unchecked {
     border:  0;
-    background-color:white;
+    background-color:rgba(255,255,255,0.2);
     color: #707070;
 }
 
@@ -3228,7 +3228,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_06:checked {
 
 QDialog#SettingsFaq QRadioButton#radioButton_06:unchecked {
     border:  0;
-    background-color:white;
+    background-color:rgba(255,255,255,0.2);
     color: #707070;
 }
 
@@ -3257,7 +3257,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_07:checked {
 
 QDialog#SettingsFaq QRadioButton#radioButton_07:unchecked {
     border:  0;
-    background-color:white;
+    background-color:rgba(255,255,255,0.2);
     color: #707070;
 }
 
@@ -3286,7 +3286,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_08:checked {
 
 QDialog#SettingsFaq QRadioButton#radioButton_08:unchecked {
     border:  0;
-    background-color:white;
+    background-color:rgba(255,255,255,0.2);
     color: #707070;
 }
 
@@ -3315,7 +3315,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_09:checked {
 
 QDialog#SettingsFaq QRadioButton#radioButton_09:unchecked {
     border:  0;
-    background-color:white;
+    background-color:rgba(255,255,255,0.2);
     color: #707070;
 }
 
@@ -3344,7 +3344,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_10:checked {
 
 QDialog#SettingsFaq QRadioButton#radioButton_10:unchecked {
     border:  0;
-    background-color:white;
+    background-color:rgba(255,255,255,0.2);
     color: #707070;
 }
 
@@ -3375,7 +3375,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_12:checked {
 
 QDialog#SettingsFaq QRadioButton#radioButton_12:unchecked {
     border:  none;
-    background-color:white;
+    background-color:rgba(255,255,255,0.2);
     color: #707070;
 }
 
