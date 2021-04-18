@@ -3601,6 +3601,7 @@ QDialog#SettingsMinting QPushButton:unchecked {
 QDialog#SettingsMinting QPushButton#btnEsc {
     background-color:transparent;
     border:none;
+    margin:0px 20px 0px 0px;
 }
 
 /** container */
@@ -3616,6 +3617,17 @@ QDialog#SettingsMinting QFrame#frame {
     padding: 10px 10px 10px 10px;
 }
 
+/** titlecontainer ADDED*/
+QDialog#SettingsMinting QFrame#titlecontainer {
+    border:none;
+}
+
+/** groupBox_2 ADDED */
+QDialog#SettingsMinting QGroupBox#groupBox_2 {
+    border:none;
+    background-color:white;
+}
+
 /** labelTitle */
 QDialog#SettingsMinting QLabel#labelTitle {
     color:#bababa;
@@ -3626,6 +3638,7 @@ QDialog#SettingsMinting QLabel#labelTitle {
 QDialog#SettingsMinting QLabel#label {
     color:#bababa;
     font-size:14px;
+    background-color: transparent;
 }
 
 /** line */
