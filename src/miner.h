@@ -247,7 +247,7 @@ bool GenerateActive();
 void setGenerate(bool fGenerate);
 
 /** Modify the extranonce in a block */
-void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
+void IncrementExtraNonce(CBlock* pblock, unsigned int nHeight, unsigned int& nExtraNonce);
 int64_t UpdateTime(CBlock* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
 void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScript> coinbaseScript);
 void ThreadStakeMiner();
