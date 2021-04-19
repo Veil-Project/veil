@@ -13,6 +13,9 @@
   <property name="windowTitle">
    <string>Welcome</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true"/>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="leftMargin">
     <number>0</number>
@@ -43,6 +46,14 @@
      <property name="autoFillBackground">
       <bool>false</bool>
      </property>
+     <property name="styleSheet">
+      <string notr="true">#frame{
+border-image: url(&quot;:/icons/splash_background&quot;) 0 0 0 0 stretch stretch;
+    padding:0px;
+    margin:0px;
+}
+</string>
+     </property>
      <property name="frameShape">
       <enum>QFrame::NoFrame</enum>
      </property>
@@ -70,6 +81,14 @@
         <property name="autoFillBackground">
          <bool>false</bool>
         </property>
+        <property name="styleSheet">
+         <string notr="true">#frame2{
+  background-color: white;
+  padding: 2px 10px 2px 10px;
+border-radius:20px;
+}
+</string>
+        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
@@ -90,6 +109,10 @@
            </property>
            <property name="focusPolicy">
             <enum>Qt::NoFocus</enum>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">background-color:transparent;
+border:none;</string>
            </property>
            <property name="text">
             <string/>
@@ -127,6 +150,9 @@
              <height>40</height>
             </size>
            </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
            <property name="text">
             <string>Welcome to %1</string>
            </property>
@@ -153,6 +179,11 @@
          </item>
          <item>
           <widget class="QLabel" name="label_2">
+           <property name="styleSheet">
+            <string notr="true">text-align:center;
+color:#707070;
+font-size:18px;</string>
+           </property>
            <property name="text">
             <string>Please select a directory for your wallet
 and blockchain data.</string>
@@ -188,6 +219,12 @@ and blockchain data.</string>
            </property>
            <property name="autoFillBackground">
             <bool>false</bool>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">#groupBox {
+        background-color:#ffffff;
+        border-radius:0;
+}</string>
            </property>
            <property name="title">
             <string/>
@@ -239,6 +276,14 @@ and blockchain data.</string>
            <property name="layoutDirection">
             <enum>Qt::LeftToRight</enum>
            </property>
+           <property name="styleSheet">
+            <string notr="true">#frame_2{
+ padding:3px;
+border:none;
+background:transparent;
+background-color:transparent;
+}</string>
+           </property>
            <property name="frameShape">
             <enum>QFrame::StyledPanel</enum>
            </property>
@@ -284,6 +329,15 @@ and blockchain data.</string>
               <property name="focusPolicy">
                <enum>Qt::StrongFocus</enum>
               </property>
+              <property name="styleSheet">
+               <string notr="true">padding:8px;
+border:0px;
+font-size:15px;
+border-bottom:1px solid #bababa;
+background-repeat:no-repeat;
+background-position:right center;
+text-align:left;</string>
+              </property>
               <property name="text">
                <string>/home/rich/Documents/Veil</string>
               </property>
@@ -317,6 +371,16 @@ and blockchain data.</string>
               </property>
               <property name="focusPolicy">
                <enum>Qt::NoFocus</enum>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">#ellipsisButton {
+background-color:transparent;
+border:0px;
+
+background-repeat:no-repeat;
+background-position: center;
+margin-right:24px;
+}</string>
               </property>
               <property name="text">
                <string/>
@@ -416,6 +480,9 @@ and blockchain data.</string>
              <property name="focusPolicy">
               <enum>Qt::NoFocus</enum>
              </property>
+             <property name="styleSheet">
+              <string notr="true"/>
+             </property>
              <property name="text">
               <string>CANCEL</string>
              </property>
@@ -441,6 +508,9 @@ and blockchain data.</string>
             <widget class="QPushButton" name="btnSave">
              <property name="focusPolicy">
               <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="styleSheet">
+              <string notr="true"/>
              </property>
              <property name="text">
               <string>OK</string>

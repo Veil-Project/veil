@@ -63,6 +63,35 @@
        <property name="toolTip">
         <string>Create a new address</string>
        </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}</string>
+       </property>
        <property name="text">
         <string>&amp;New</string>
        </property>
@@ -80,6 +109,35 @@
        <property name="toolTip">
         <string>Copy the currently selected address to the system clipboard</string>
        </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}</string>
+       </property>
        <property name="text">
         <string>&amp;Copy</string>
        </property>
@@ -96,6 +154,35 @@
       <widget class="QPushButton" name="deleteAddress">
        <property name="toolTip">
         <string>Delete the currently selected address from the list</string>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}</string>
        </property>
        <property name="text">
         <string>&amp;Delete</string>
@@ -127,6 +214,35 @@
        <property name="toolTip">
         <string>Export the data in the current tab to a file</string>
        </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}</string>
+       </property>
        <property name="text">
         <string>&amp;Export</string>
        </property>
@@ -146,6 +262,21 @@
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="styleSheet">
+        <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #105aef;
+    color: #105aef;
+    font-size: 16px;
+    padding:10 10 10 10;
+}
+
+QPushButton:hover {
+    color: #FFFFFF;
+    background-color:#4070d3;
+    border:  1px solid #4070d3;
+}</string>
        </property>
        <property name="text">
         <string>Close</string>

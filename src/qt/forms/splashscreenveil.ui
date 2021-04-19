@@ -13,6 +13,14 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">#SplashScreenVeil{
+	border-image: url(&quot;:/icons/res/icons/bg-splash@3x&quot;) 0 0 0 0 stretch stretch;
+	border:none;
+	padding: 0px;
+	margin: 0px;
+}</string>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
     <number>0</number>
@@ -31,6 +39,11 @@
    </property>
    <item>
     <widget class="QFrame" name="frame">
+     <property name="styleSheet">
+      <string notr="true">border:none;
+padding:0px;
+margin:0px;</string>
+     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -109,6 +122,9 @@
       </item>
       <item alignment="Qt::AlignHCenter">
        <widget class="QLabel" name="labelLoading">
+        <property name="styleSheet">
+         <string notr="true">margin-bottom:7px;</string>
+        </property>
         <property name="text">
          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; color:#ffffff;&quot;&gt;Loading..&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
         </property>

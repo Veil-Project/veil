@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>Debug window</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">background-color:white;
+border:none;</string>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout_6">
    <item>
     <widget class="QFrame" name="frame">
@@ -21,6 +25,9 @@
        <width>0</width>
        <height>0</height>
       </size>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">  background-color: white;</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
@@ -31,10 +38,21 @@
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
        <widget class="QTabWidget" name="tabWidget">
+        <property name="styleSheet">
+         <string notr="true">background-color:white;
+color:#707070;
+font-size:13.5px;
+</string>
+        </property>
         <property name="currentIndex">
          <number>0</number>
         </property>
         <widget class="QWidget" name="tab_info">
+         <property name="styleSheet">
+          <string notr="true">color:#707070;
+font-size:13.5px;
+font-weight:200;</string>
+         </property>
          <attribute name="title">
           <string>&amp;Information</string>
          </attribute>
@@ -133,6 +151,11 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;
+font-size:16px;
+font-weight:bold;</string>
+            </property>
             <property name="text">
              <string>Network</string>
             </property>
@@ -184,6 +207,9 @@
             </item>
             <item alignment="Qt::AlignHCenter">
              <widget class="QLabel" name="labelDebugLogfile">
+              <property name="styleSheet">
+               <string notr="true">padding-bottom:5px;</string>
+              </property>
               <property name="text">
                <string>Debug log file</string>
               </property>
@@ -205,6 +231,20 @@
               </property>
               <property name="toolTip">
                <string>Open the %1 debug log file from the current data directory. This can take a few seconds for large log files.</string>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">#openDebugLogfileButton{
+border-radius: 6px;
+color: #FFFFFF;
+font-size: 16px;
+background-color:#105aef;
+line-height:10px;
+padding:8 20 8 20;
+}
+
+#openDebugLogfileButton:hover {
+background-color:#0e45b4;
+}</string>
               </property>
               <property name="text">
                <string>Open</string>
@@ -270,6 +310,11 @@
               <weight>75</weight>
               <bold>true</bold>
              </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;
+font-size:16px;
+font-weight:bold;</string>
             </property>
             <property name="text">
              <string>Memory Pool</string>
@@ -405,6 +450,14 @@
               <weight>75</weight>
               <bold>true</bold>
              </font>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;
+font-size:16px;
+font-weight:bold;
+padding-top:9px;
+margin:0px;
+padding-left:0px;</string>
             </property>
             <property name="text">
              <string>General</string>
@@ -567,6 +620,9 @@
               <height>100</height>
              </size>
             </property>
+            <property name="styleSheet">
+             <string notr="true">border: 1px solid #bababa;</string>
+            </property>
             <property name="readOnly">
              <bool>true</bool>
             </property>
@@ -618,6 +674,9 @@
             </item>
             <item>
              <widget class="QLineEdit" name="lineEdit">
+              <property name="styleSheet">
+               <string notr="true">border: 1px solid #bababa;</string>
+              </property>
               <property name="placeholderText">
                <string/>
               </property>
@@ -928,6 +987,11 @@
                  </item>
                  <item>
                   <widget class="QLabel" name="label_16">
+                   <property name="styleSheet">
+                    <string notr="true">
+color:#707070;
+font-size:13.5px;</string>
+                   </property>
                    <property name="text">
                     <string>Received</string>
                    </property>
@@ -1222,6 +1286,9 @@
             </property>
             <item>
              <widget class="QTableView" name="peerWidget">
+              <property name="styleSheet">
+               <string notr="true">border: 1px solid #bababa;</string>
+              </property>
               <property name="horizontalScrollBarPolicy">
                <enum>Qt::ScrollBarAsNeeded</enum>
               </property>
@@ -1286,6 +1353,9 @@
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
+              <property name="styleSheet">
+               <string notr="true">border: 1px solid #bababa;</string>
+              </property>
               <property name="horizontalScrollBarPolicy">
                <enum>Qt::ScrollBarAsNeeded</enum>
               </property>
@@ -1318,6 +1388,11 @@
             </property>
             <property name="cursor">
              <cursorShape>IBeamCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">
+color:#707070;
+font-size:13.5px;</string>
             </property>
             <property name="text">
              <string>Select a peer to view detailed information.</string>

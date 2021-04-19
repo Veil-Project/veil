@@ -13,6 +13,12 @@
   <property name="windowTitle">
    <string>Send veil</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">border:none;
+padding:0px;
+margin:0px;
+background-color:white;</string>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout_3">
    <property name="spacing">
     <number>0</number>
@@ -31,6 +37,10 @@
    </property>
    <item>
     <widget class="QFrame" name="frame_1">
+     <property name="styleSheet">
+      <string notr="true">background-color:white;
+border:none;</string>
+     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -45,6 +55,9 @@
         </property>
         <item>
          <widget class="QLabel" name="title">
+          <property name="styleSheet">
+           <string notr="true">padding:10 0 10 0;</string>
+          </property>
           <property name="text">
            <string>Send veil</string>
           </property>
@@ -92,6 +105,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Quantity:</string>
             </property>
@@ -101,6 +117,9 @@
            <widget class="QLabel" name="labelCoinControlQuantity">
             <property name="cursor">
              <cursorShape>IBeamCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>0</string>
@@ -118,6 +137,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Bytes:</string>
             </property>
@@ -127,6 +149,9 @@
            <widget class="QLabel" name="labelCoinControlBytes">
             <property name="cursor">
              <cursorShape>IBeamCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>0</string>
@@ -160,6 +185,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Amount:</string>
             </property>
@@ -169,6 +197,9 @@
            <widget class="QLabel" name="labelCoinControlAmount">
             <property name="cursor">
              <cursorShape>IBeamCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>0.00 Veil</string>
@@ -183,6 +214,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Dust:</string>
             </property>
@@ -192,6 +226,9 @@
            <widget class="QLabel" name="labelCoinControlLowOutput">
             <property name="cursor">
              <cursorShape>IBeamCursor</cursorShape>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string>no</string>
@@ -228,6 +265,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Fee:</string>
             </property>
@@ -235,6 +275,9 @@
           </item>
           <item row="0" column="1">
            <widget class="QLabel" name="labelCoinControlFee">
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>0.00 Veil</string>
             </property>
@@ -264,6 +307,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>After Fee:</string>
             </property>
@@ -271,6 +317,9 @@
           </item>
           <item row="0" column="1">
            <widget class="QLabel" name="labelCoinControlAfterFee">
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>0.00 Veil</string>
             </property>
@@ -284,6 +333,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Change:</string>
             </property>
@@ -291,6 +343,9 @@
           </item>
           <item row="1" column="1">
            <widget class="QLabel" name="labelCoinControlChange">
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>0.00 Veil</string>
             </property>
@@ -302,6 +357,11 @@
       </item>
       <item>
        <widget class="QScrollArea" name="scrollArea">
+        <property name="styleSheet">
+         <string notr="true">border:none;
+padding:0px;
+margin:0px;</string>
+        </property>
         <property name="widgetResizable">
          <bool>true</bool>
         </property>
@@ -353,6 +413,19 @@
       </item>
       <item>
        <widget class="QFrame" name="frame_2">
+        <property name="styleSheet">
+         <string notr="true">QToolTip {
+    color: #ffffff;
+    background-color: #6f9bf5;
+    font-size:13px;
+    border: none;
+    border-radius:20px;
+    padding:6px;
+    margin:0px;
+    qproperty-alignment: 'AlignVCenter | AlignCenter';
+    qproperty-wordWrap: true;
+}</string>
+        </property>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
           <widget class="QPushButton" name="clearButton">
@@ -364,6 +437,35 @@
            </property>
            <property name="toolTip">
             <string>Clear all fields of the form.</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}</string>
            </property>
            <property name="text">
             <string>Clear All</string>
@@ -382,6 +484,35 @@
            <property name="toolTip">
             <string>Send to multiple recipients at once</string>
            </property>
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}</string>
+           </property>
            <property name="text">
             <string>Add Recipient</string>
            </property>
@@ -396,6 +527,35 @@
          </item>
          <item>
           <widget class="QPushButton" name="pushButtonCoinControl">
+           <property name="styleSheet">
+            <string notr="true">QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}</string>
+           </property>
            <property name="text">
             <string>Coin Control</string>
            </property>
@@ -427,6 +587,21 @@
            </property>
            <property name="toolTip">
             <string>Confirm the send action</string>
+           </property>
+           <property name="styleSheet">
+            <string notr="true">#sendButton {
+    border-radius: 6px;
+    border:  1px solid #105aef;
+    color: #105aef;
+    font-size: 16px;
+    padding:10 50 10 50;
+}
+
+#sendButton:hover {
+    color: #FFFFFF;
+    background-color:#4070d3;
+    border:  1px solid #4070d3;
+}</string>
            </property>
            <property name="text">
             <string>Send</string>

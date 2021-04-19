@@ -31,6 +31,16 @@
    </property>
    <item>
     <widget class="QFrame" name="frame_2">
+     <property name="styleSheet">
+      <string notr="true">
+
+
+#frame_2{
+	background-color:white;
+	border-radius:20px;
+	padding: 12px;
+}</string>
+     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -68,6 +78,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Quantity:</string>
             </property>
@@ -80,6 +93,9 @@
             </property>
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string notr="true">0</string>
@@ -97,6 +113,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Bytes:</string>
             </property>
@@ -109,6 +128,9 @@
             </property>
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string notr="true">0</string>
@@ -142,6 +164,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Amount:</string>
             </property>
@@ -154,6 +179,9 @@
             </property>
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string notr="true">0.00 Veil</string>
@@ -222,6 +250,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Fee:</string>
             </property>
@@ -234,6 +265,9 @@
             </property>
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string notr="true">0.00 Veil</string>
@@ -267,6 +301,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>After Fee:</string>
             </property>
@@ -279,6 +316,9 @@
             </property>
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string notr="true">0.00 Veil</string>
@@ -299,6 +339,9 @@
               <bold>true</bold>
              </font>
             </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
+            </property>
             <property name="text">
              <string>Change:</string>
             </property>
@@ -314,6 +357,9 @@
             </property>
             <property name="contextMenuPolicy">
              <enum>Qt::ActionsContextMenu</enum>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">color:#707070;</string>
             </property>
             <property name="text">
              <string notr="true">0.00 Veil</string>
@@ -334,6 +380,11 @@
           <width>0</width>
           <height>40</height>
          </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color:white;
+color:#707070;
+font-size:13.5px;</string>
         </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
@@ -394,6 +445,9 @@
            </item>
            <item>
             <widget class="QComboBox" name="coinTypeComboBox">
+             <property name="styleSheet">
+              <string notr="true"/>
+             </property>
             </widget>
            </item>
            <item>
@@ -425,6 +479,13 @@
        <widget class="CoinControlTreeWidget" name="treeWidget">
         <property name="contextMenuPolicy">
          <enum>Qt::CustomContextMenu</enum>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color:white;
+color:#707070;
+font-size:13.5px;
+alternate-background-color:#7fb3d2;
+</string>
         </property>
         <property name="sortingEnabled">
          <bool>false</bool>
@@ -505,6 +566,20 @@
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QPushButton{
+border-radius: 6px;
+color: #FFFFFF;
+font-size: 16px;
+background-color:#105aef;
+line-height:10px;
+padding:8 20 8 20;
+}
+
+QPushButton:hover {
+background-color:#0e45b4;
+}</string>
         </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>

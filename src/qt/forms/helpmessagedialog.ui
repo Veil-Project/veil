@@ -10,9 +10,19 @@
     <height>400</height>
    </rect>
   </property>
+  <property name="styleSheet">
+   <string notr="true">background-color:white;
+border:none;</string>
+  </property>
   <layout class="QHBoxLayout" name="horizontalLayout_2">
    <item>
     <widget class="QFrame" name="frame_2">
+     <property name="styleSheet">
+      <string notr="true">#frame_2{
+background-color:white;
+
+}</string>
+     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -151,6 +161,20 @@
         </item>
         <item>
          <widget class="QDialogButtonBox" name="okButton">
+          <property name="styleSheet">
+           <string notr="true">QPushButton{
+border-radius: 6px;
+color: #FFFFFF;
+font-size: 16px;
+background-color:#105aef;
+line-height:10px;
+padding:5 20 5 20;
+}
+
+QPushButton:hover {
+background-color:#0e45b4;
+}</string>
+          </property>
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
