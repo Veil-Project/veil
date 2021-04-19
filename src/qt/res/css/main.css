@@ -947,6 +947,11 @@ QWidget#AskPassphraseDialog QLabel#capsLabel {
 HH       coincontroldialog.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+/* CoinControlDialog */
+QDialog#CoinControlDialog {
+    background: rgba(255,255,255,0);
+}
+
 /* frame_2 */
 QDialog#CoinControlDialog QFrame#frame_2 {
     background-color:white;
@@ -1330,7 +1335,7 @@ HH       optionsdialog.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** windowTitle */
-QDialog#OptionsDialog#windowTitle {
+QDialog#OptionsDialog {
     background-color:white;
     border:none;
 }
@@ -1349,17 +1354,17 @@ QDialog#OptionsDialog QFrame#frame_2 {
 }
 
 /** pruneSize */
-QDialog#OptionsDialog#pruneSize {
+QDialog#OptionsDialog QSpinBox#pruneSize {
     border-bottom: 1px solid #bababa;
 }
 
 /** databaseCache */
-QDialog#OptionsDialog#databaseCache {
+QDialog#OptionsDialog QSpinBox#databaseCache {
     border-bottom: 1px solid #bababa;
 }
 
 /** threadsScriptVerif */
-QDialog#OptionsDialog#threadsScriptVerif {
+QDialog#OptionsDialog QSpinBox#threadsScriptVerif {
     border-bottom: 1px solid #bababa;
 }
 
@@ -1376,7 +1381,7 @@ QDialog#OptionsDialog QFrame#frame_3 {
 }
 
 /** groupBox*/
-QDialog#OptionsDialog#groupBox {
+QDialog#OptionsDialog QGroupBox#groupBox {
     background-color:transparent;
 }
 
@@ -1481,11 +1486,13 @@ QDialog#OptionsDialog QLabel#overriddenByCommandLineInfoLabel {
 
 /** openBitcoinConfButton */
 QDialog#OptionsDialog QPushButton#openBitcoinConfButton {
+    background-color:transparent;
     color: rgb(106,148,255);
 }
 
 /** resetButton */
 QDialog#OptionsDialog QPushButton#resetButton {
+    background-color:transparent;
     color: rgb(106,148,255);
 }
 
@@ -1518,8 +1525,37 @@ QDialog#OptionsDialog QPushButton#okButton:hover {
 }
 
 /** unitLabel */
-QDialog#OptionsDialog#unitLabel {
+QDialog#OptionsDialog #unitLabel {
     font-size:13px;
+}
+
+/** proxyIp ADDED */
+QDialog#OptionsDialog QValidatedLineEdit#proxyIp {
+    background-color:transparent;
+    border: none;
+}
+
+/** proxyIp ADDED */
+QDialog#OptionsDialog QLineEdit#proxyPort {
+    background-color:transparent;
+    border: none;
+}
+
+/** proxyIpTor ADDED */
+QDialog#OptionsDialog QValidatedLineEdit#proxyIpTor {
+    background-color:transparent;
+    border: none;
+}
+
+/** proxyPortTor ADDED */
+QDialog#OptionsDialog QLineEdit#proxyPortTor {
+    background-color:transparent;
+    border: none;
+}
+
+/** thirdPartyTxUrls ADDED */
+QDialog#OptionsDialog QLineEdit#thirdPartyTxUrls {
+    border: none;
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
@@ -4111,13 +4147,14 @@ QWidget#SettingsWidget QLabel#label {
     background-color:#bababa;
 }
 
-/** btnPassword */
+/** btnPassword  (overridden)
 QWidget#SettingsWidget QPushButton#btnPassword {
 text-align: left;
     color: #575756;
     background-color:transparent;
     border:0;
 }
+*/
 
 /** label_3 */
 QWidget#SettingsWidget QLabel#label_3 {
@@ -4159,52 +4196,56 @@ QWidget#SettingsWidget QPushButton#titleOptions {
     padding:10 0 10 0;
 }
 
-/** btnPreferences */
+/** btnPreferences  (overridden)
 QWidget#SettingsWidget QPushButton#btnPreferences {
     text-align: left;
     color: #575756;
     background-color:transparent;
     border:0;
 }
+*/
 
 /** label_8 */
 QWidget#SettingsWidget QLabel#label_8 {
     background-color:#bababa;
 }
 
-/** btnMinting */
+/** btnMinting (overridden)
 QWidget#SettingsWidget QPushButton#btnMinting {
     text-align: left;
     color: #575756;
     background-color:transparent;
     border:0;
 }
+*/
 
 /** label_9 */
 QWidget#SettingsWidget QLabel#label_9 {
     background-color:#bababa;
 }
 
-/** btnFaq */
+/** btnFaq (overridden)
 QWidget#SettingsWidget QPushButton#btnFaq {
     text-align: left;
     color: #575756;
     background-color:transparent;
     border:0;
 }
+*/
 
 /** label_4 */
 QWidget#SettingsWidget QLabel#label_4 {
     background-color:#bababa;
 }
 
-/** btnAdvance */
+/** btnAdvance (overridden)
 QWidget#SettingsWidget QPushButton#btnAdvance {
     text-align: left;
     color: #575756;
     background-color:transparent;
     border:0;
 }
+*/
 
 /** label_6 */
 QWidget#SettingsWidget QLabel#label_6 {
