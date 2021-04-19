@@ -4,6 +4,1206 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 */
 
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       addressbookpage.ui
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** newAddress */
+QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+/** copyAddress */
+QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+/** deleteAddress */
+QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+/** exportButton */
+QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+/** closeButton */
+QPushButton {
+    border-radius: 6px;
+    border:  1px solid #105aef;
+    color: #105aef;
+    font-size: 16px;
+    padding:10 10 10 10;
+}
+
+QPushButton:hover {
+    color: #FFFFFF;
+    background-color:#4070d3;
+    border:  1px solid #4070d3;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       askpassphrasedialog.ui
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** frame */
+#frame {
+    background-color:white;
+    border-radius:20px;
+    padding:10px;
+}
+
+/** warningLabel */
+#warningLabel {
+    color:#bababa;
+    font-size:13px;
+}
+
+/** passLabel1 */
+#passLabel1 {
+    padding:0px;
+    margin:0px;
+    margin-left:6px;
+    color:#105AEF;
+}
+
+/** passLabel2 */
+#passLabel2 {
+    padding:0px;
+    margin:0px;
+    margin-left:6px;
+    color:#105AEF;
+}
+
+/** passLabel3 */
+#passLabel3 {
+    padding:0px;
+    margin:0px;
+    margin-left:6px;
+    color:#105AEF;
+}
+
+/** toggleShowPasswordButton */
+#toggleShowPasswordButton {
+    padding-top:5px;
+    color:#bababa;
+    font-size:13px;
+    padding-left:12px;
+}
+
+/** capsLabel */
+#capsLabel {
+    font-size:13px;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       coincontroldialog.ui
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** frame_2 */
+#frame_2 {
+    background-color:white;
+    border-radius:20px;
+    padding: 12px;
+}
+
+/** labelCoinControlQuantityText */
+#labelCoinControlQuantityText {
+    color:#707070;
+}
+
+/** labelCoinControlQuantity */
+#labelCoinControlQuantity {
+    color:#707070;
+}
+
+/** labelCoinControlBytesText */
+#labelCoinControlBytesText {
+    color:#707070;
+}
+
+/** labelCoinControlBytes */
+#labelCoinControlBytes {
+    color:#707070;
+}
+
+/** labelCoinControlAmountText */
+#labelCoinControlAmountText {
+    color:#707070;
+}
+
+/** labelCoinControlAmount */
+#labelCoinControlAmount {
+    color:#707070;
+}
+
+/** labelCoinControlFeeText */
+#labelCoinControlFeeText {
+    color:#707070;
+}
+
+/** labelCoinControlFee */
+#labelCoinControlFee {
+    color:#707070;
+}
+
+/** labelCoinControlAfterFeeText */
+#labelCoinControlAfterFeeText {
+    color:#707070;
+}
+
+/** labelCoinControlAfterFee */
+#labelCoinControlAfterFee {
+    color:#707070;
+}
+
+/** labelCoinControlChangeText */
+#labelCoinControlChangeText {
+    color:#707070;
+}
+
+/** labelCoinControlChange */
+#labelCoinControlChange {
+    color:#707070;
+}
+
+/** frame */
+#frame {
+    background-color:white;
+    color:#707070;
+    font-size:13.5px;
+}
+
+/** treeWidget */
+#treeWidget {
+    background-color:white;
+    color:#707070;
+    font-size:13.5px;
+    alternate-background-color:#7fb3d2;
+}
+
+/** buttonBox */
+QPushButton#buttonBox {
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 16px;
+    background-color:#105aef;
+    line-height:10px;
+    padding:8 20 8 20;
+}
+
+QPushButton#buttonBox:hover {
+    background-color:#0e45b4;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       debugwindow.ui (15)
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** RPCConsole */
+#RPCConsole {
+    background-color:white;
+    border:none;
+}
+
+/** frame */
+#frame {
+    background-color: white;
+}
+
+/** tabWidget */
+#tabWidget {
+    background-color:white;
+    color:#707070;
+    font-size:13.5px;
+}
+
+/** tab_info */
+#tab_info {
+    color:#707070;
+    font-size:13.5px;
+    font-weight:200;
+}
+
+/** labelNetwork */
+#labelNetwork {
+    color:#707070;
+    font-size:16px;
+    font-weight:bold;
+}
+
+/** labelDebugLogfile */
+#labelDebugLogfile {
+    padding-bottom:5px;
+}
+
+/** openDebugLogfileButton */
+#openDebugLogfileButton {
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 16px;
+    background-color:#105aef;
+    line-height:10px;
+    padding:8 20 8 20;
+}
+
+#openDebugLogfileButton:hover {
+    background-color:#0e45b4;
+}
+
+/** labelMempoolTitle */
+#labelMempoolTitle {
+    color:#707070;
+    font-size:16px;
+    font-weight:bold;
+}
+
+/** label_9*/
+#label_9 {
+    color:#707070;
+    font-size:16px;
+    font-weight:bold;
+    padding-top:9px;
+    margin:0px;
+    padding-left:0px;
+}
+
+/** messagesWidget */
+#messagesWidget {
+    border: 1px solid #bababa;
+}
+
+/** lineEdit */
+#lineEdit {
+    border: 1px solid #bababa;
+}
+
+/** label_16 */
+#label_16 {
+    color:#707070;
+    font-size:13.5px;
+}
+
+/** peerWidget */
+#peerWidget {
+    border: 1px solid #bababa;
+}
+
+/** banlistWidget */
+#banlistWidget {
+    border: 1px solid #bababa;
+}
+
+/** peerHeading */
+#peerHeading {
+    color:#707070;
+    font-size:13.5px;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       editaddressdialog.ui (none)
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       helpmessagedialog.ui
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** HelpMessageDialog */
+#HelpMessageDialog {
+    background-color:white;
+    border:none;
+}
+
+/** frame_2 */
+#frame_2 {
+    background-color:white;
+}
+
+/** okButton */
+QPushButton#okButton {
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 16px;
+    background-color:#105aef;
+    line-height:10px;
+    padding:5 20 5 20;
+}
+
+QPushButton#okButton:hover {
+    background-color:#0e45b4;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       intro.ui
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** frame */
+#frame {
+    border-image: url(&quot;:/icons/splash_background&quot;) 0 0 0 0 stretch stretch;
+    padding:0px;
+    margin:0px;
+}
+
+/** frame2 */
+#frame2 {
+    background-color: white;
+    padding: 2px 10px 2px 10px;
+    border-radius:20px;
+}
+
+/** pushButton */
+#pushButton {
+    background-color:transparent;
+    border:none;
+}
+
+/** label_2 */
+#label_2 {
+    text-align:center;
+    color:#707070;
+    font-size:18px;
+}
+
+/** groupBox */
+#groupBox {
+    background-color:#ffffff;
+    border-radius:0;
+}
+
+/** frame_2*/
+#frame_2 {
+    padding:3px;
+    border:none;
+    background:transparent;
+    background-color:transparent;
+}
+
+/** dataDirectory */
+#dataDirectory {
+    padding:8px;
+    border:0px;
+    font-size:15px;
+    border-bottom:1px solid #bababa;
+    background-repeat:no-repeat;
+    background-position:right center;
+    text-align:left;
+}
+
+/** ellipsisButton */
+#ellipsisButton {
+    background-color:transparent;
+    border:0px;
+
+    background-repeat:no-repeat;
+    background-position: center;
+    margin-right:24px;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       modaloverlay.ui
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** bgWidget */
+#bgWidget {
+    background: transparent; border:none;
+}
+
+/** frame */
+#frame {
+    background: rgba(255,255,255,240);
+    background-color:white;
+    border-radius: 6px; 
+    border:none;
+}
+
+/** frame_icon */
+#frame_icon {
+    border:none;
+    border-top-left-radius: 6px; 
+    border-bottom-left-radius: 6px; 
+    background:transparent;
+    border-image: url(&quot;:/icons/banner-modal&quot;) 0 0 0 0 stretch stretch;
+    padding:0px;
+    margin:0px;
+}
+
+/** contentWidget */
+#contentWidget {
+    background: rgba(255,255,255,240); 
+    padding:0px;
+    margin:0px;
+    border:none;
+    border-top-right-radius: 6px; 
+    border-bottom-right-radius: 6px; 
+}
+
+QLabel {
+    color: rgb(40,40,40);
+}
+
+/** infoText */
+#infoText {
+    font-size:16px;
+}
+
+/** infoTextStrong */
+#infoTextStrong {
+    font-size:16px;
+}
+
+/** frame_2 */
+#frame_2 {
+    border:none;
+}
+
+/** progressBar */
+#progressBar {
+    border:none;
+    background-color:white;
+}
+
+/** closeButton */
+#closeButton {
+    color:#105aef; 
+    border: none;
+    padding: 0em 0em;
+    background:none;
+    font-size:18px;
+}
+
+#closeButton:hover {
+    color:#0e45b4; 
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       openuridialog.ui (none)
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       optionsdialog.ui
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** windowTitle */
+#windowTitle {
+    background-color:white;
+    border:none;
+}
+
+/** tabMain */
+#tabMain {
+    padding-top:6px;
+    background-color:transparent;
+}
+
+/** frame_2 */
+#frame_2 {
+    background-color:#10000000;
+    border-radius:20px;
+    padding:9px;
+}
+
+/** pruneSize */
+#pruneSize {
+    border-bottom: 1px solid #bababa;
+}
+
+/** databaseCache */
+#databaseCache {
+    border-bottom: 1px solid #bababa;
+}
+
+/** threadsScriptVerif */
+#threadsScriptVerif {
+    border-bottom: 1px solid #bababa;
+}
+
+/** tabWallet */
+#tabWallet {
+    padding-top:6px;
+}
+
+/** frame_3*/
+#frame_3 {
+    background-color:#10000000;
+    border-radius:20px;
+    padding:9px;
+}
+
+/** groupBox*/
+#groupBox {
+    background-color:transparent;
+}
+
+/** tabNetwork*/
+#tabNetwork {
+    padding-top:6px;
+}
+
+/** frame_5*/
+#frame_5 {
+    background-color:#10000000;
+    border-radius:20px;
+    padding:9px;
+}
+
+/** frame_4*/
+#frame_4 {
+    background-color:transparent;
+}
+
+/** tabWindow */
+#tabWindow {
+    padding-top:6px;
+}
+
+/** frame_6*/
+#frame_6 {
+    background-color:#10000000;
+    border-radius:20px;
+    padding:9px;
+}
+
+
+/** frame_9*/
+#frame_9 {
+    background-color:transparent;
+}
+
+/** tabDisplay */
+#tabDisplay {
+    padding-top:6px;
+}
+
+/** #frame_8 */
+#frame_8 {
+    background-color:#10000000;
+    border-radius:20px;
+    padding:9px;
+}
+
+/** frame_7 */
+#frame_7 {
+    background-color:transparent;
+}
+
+/** langLabel */
+#langLabel {
+    font-size:13px;
+}
+
+/** lang */
+QValueComboBox {
+    font-size:13px;
+    selection-color: #000000;
+}
+
+QValueComboBox QFrame {
+    background-color:white;
+}
+
+QValueComboBox::drop-down {
+    background-color:white;
+    color:#bababa;
+}
+
+QToolTip {
+    color: #ffffff;
+    background-color: #6f9bf5;
+    font-size:11pt;
+    border: none;
+    border-radius:20px;
+    padding:6px;
+    margin:0px;
+    min-height: 35px;
+    qproperty-alignment: 'AlignVCenter | AlignCenter';
+}
+
+/** thirdPartyTxUrlsLabel */
+#thirdPartyTxUrlsLabel {
+    font-size:13px;
+}
+
+/** thirdPartyTxUrls */
+#thirdPartyTxUrls {
+    font-size:13px;
+}
+
+/** overriddenByCommandLineInfoLabel */
+#overriddenByCommandLineInfoLabel {
+    font-size:13px;
+}
+
+/** openBitcoinConfButton */
+#openBitcoinConfButton {
+    color: rgb(106,148,255);
+}
+
+/** resetButton */
+#resetButton {
+    color: rgb(106,148,255);
+}
+
+/** cancelButton */
+#cancelButton {
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 16px;
+    background-color:#105aef;
+    line-height:10px;
+    padding:8 20 8 20;
+}
+
+#cancelButton:hover {
+    background-color:#0e45b4;
+}
+
+/** okButton */
+#okButton {
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 16px;
+    background-color:#105aef;
+    line-height:10px;
+    padding:8 20 8 20;
+}
+
+okButton:hover {
+    background-color:#0e45b4;
+}
+
+/** unitLabel */
+#unitLabel {
+    font-size:13px;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       overviewpage.ui
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+/** labelAlerts */
+QLabel {
+    background-color: #6F9BF5; color:#FFFFFF;
+}
+
+/** txes_container */
+#txes_container {
+    background-color:white;
+}
+
+/** title */
+#title {
+    padding:10 0 10 0;
+}
+
+/** comboFilter */
+#comboFilter {
+    margin-right:6px;
+}
+
+/** comboSort */
+#comboSort {
+    margin-right:6px;
+}
+
+/** containerEmpty */
+#containerEmpty {
+    border:none;
+}
+
+/** btnGoFaq */
+#btnGoFaq {
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-size: 16px;
+    background-color:#105aef;
+    line-height:10px;
+    padding:8 20 8 20;
+}
+
+#btnGoFaq:hover {
+    background-color:#0e45b4;
+}
+
+/** listTransactions */
+QListView { 
+    background: transparent;
+}
+
+/* Works for both QListView and QListWidget */
+QListView::item {
+    /* Won't work without borders set */
+    border: 0px;
+    padding: 10px;
+}
+
+QListView::item:selected {
+    background-color:#a10;
+}
+
+/* For icon only */
+QListView::icon {
+    left: 10px;
+}
+
+/* For text only */
+QListView::text {
+    left: 13px;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       receivecoinsdialog.ui (none)
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       receiverequestdialog.ui (none)
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       sendcoinsdialog.ui
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** SendCoinsDialog */
+#SendCoinsDialog {
+    border:none;
+    padding:0px;
+    margin:0px;
+    background-color:white;
+}
+
+/** frame_1 */
+#frame_1 {
+    background-color:white;
+    border:none;
+}
+
+/** title */
+#title {
+    padding:10 0 10 0;
+}
+
+/** labelCoinControlQuantityText */
+#labelCoinControlQuantityText {
+    color:#707070;
+}
+
+/** labelCoinControlQuantity */
+#labelCoinControlQuantity {
+    color:#707070;
+}
+
+/** labelCoinControlBytesText */
+#labelCoinControlBytesText {
+    color:#707070;
+}
+
+/** labelCoinControlBytes */
+#labelCoinControlBytes {
+    color:#707070;
+}
+
+/** labelCoinControlAmountText */
+#labelCoinControlAmountText {
+    color:#707070;
+}
+
+/** labelCoinControlAmount */
+#labelCoinControlAmount {
+    color:#707070;
+}
+
+/** labelCoinControlLowOutputText */
+#labelCoinControlLowOutputText {
+    color:#707070;
+}
+
+/** labelCoinControlLowOutput */
+#labelCoinControlLowOutput {
+    color:#707070;
+}
+
+/** labelCoinControlFeeText */
+#labelCoinControlFeeText {
+    color:#707070;
+}
+
+/** labelCoinControlFee */
+#labelCoinControlFee {
+    color:#707070;
+}
+
+/** labelCoinControlAfterFeeText */
+#labelCoinControlAfterFeeText {
+    color:#707070;
+}
+
+/** labelCoinControlAfterFee */
+#labelCoinControlAfterFee {
+    color:#707070;
+}
+
+/** labelCoinControlChangeText */
+#labelCoinControlChangeText {
+    color:#707070;
+}
+
+/** labelCoinControlChange */
+#labelCoinControlChange {
+    color:#707070;
+}
+
+/** scrollArea */
+#scrollArea {
+    border:none;
+    padding:0px;
+    margin:0px;
+}
+
+/** frame_2 */
+QToolTip {
+    color: #ffffff;
+    background-color: #6f9bf5;
+    font-size:13px;
+    border: none;
+    border-radius:20px;
+    padding:6px;
+    margin:0px;
+    qproperty-alignment: 'AlignVCenter | AlignCenter';
+    qproperty-wordWrap: true;
+}
+
+/** clearButton */
+QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+/** addButton */
+QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+/** pushButtonCoinControl */
+QPushButton {
+    border-radius: 6px;
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+    font-size: 14px;
+    padding:8;
+    text-align:center !important;
+}
+
+QPushButton:checked {
+    border:  1px solid #105aef;
+    background-color:#105aef;
+    color: #FFFFFF;
+}
+
+QPushButton:hover {
+    border:  1px solid #bababa;
+    background-color:#bababa;
+    color: #FFFFFF;
+}
+
+QPushButton:unchecked {
+    border:  1px solid #707070;
+    background-color:#ffffff;
+    color: #707070;
+}
+
+/** sendButton */
+#sendButton {
+    border-radius: 6px;
+    border:  1px solid #105aef;
+    color: #105aef;
+    font-size: 16px;
+    padding:10 50 10 50;
+}
+
+#sendButton:hover {
+    color: #FFFFFF;
+    background-color:#4070d3;
+    border:  1px solid #4070d3;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       sendcoinsentry.ui
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** payTo */
+#payTo {   
+    padding:8;
+    margin-left:12px;
+    font-size:16px;
+    margin-right:3px;
+    background:transparent;
+    background-color:transparent;
+    border-top:none;
+    border-left:none;
+    border-right:none;
+    border-bottom:1px solid #bababa;
+}
+
+#payTo:focus {
+    border-bottom:1px solid #105aef;
+}
+
+/** btnAddressBook */
+#btnAddressBook {
+    background:transparent;
+    border:none;
+}
+
+/** label */
+#label {
+    padding:0px;
+    margin:0px;
+    margin-left:6px;
+    color:#105AEF;
+}
+
+/** payAmount */
+#payAmount {
+    padding:8;
+    margin-left:12px;
+    margin-right:12px;
+    font-size:16px;
+    background:transparent;
+    background-color:transparent;
+    border-top:none;
+    border-left:none;
+    border-right:none;
+    border-bottom:1px solid #bababa;
+}
+
+#payAmount_2:focus {
+    border-bottom:1px solid #105aef;
+}
+
+/** label_5 */
+#label_5 {
+    background-color:#bfbfbf;
+    margin-top:24px;
+}
+
+/** label_2 */
+#label_2 {
+    border:none;
+    margin:0px;
+    margin-left:6px;
+    padding:0px;
+    color:#105AEF;
+}
+
+/** btnRemove */
+#btnRemove {
+    border:none;
+    background-color:transparent;
+    margin:0px;
+    padding:0px;
+}
+
+/** frame_3 */
+#frame_3 {
+    margin:0px;
+    padding:0px;
+    border:none;
+}
+
+/** label_3 */
+#label_3 {
+    border:none;
+    margin:0px;
+    padding:0px;
+    color:#105AEF;
+    margin-left:3px;
+}
+
+/** addAsLabel */
+#addAsLabel {   
+    padding:8;
+    margin-left:12px;
+    margin-right:20px;
+    font-size:16px;
+    background:transparent;
+    background-color:transparent;
+    border-top:none;
+    border-left:none;
+    border-right:none;
+    border-bottom:1px solid #bababa;
+}
+
+#addAsLabel:focus {
+    border-bottom:1px solid #105aef;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       signverifymessagedialog.ui (none)
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       splashscreenveil.ui
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+/** SplashScreenVeil */
+#SplashScreenVeil {
+    border-image: url(&quot;:/icons/res/icons/bg-splash@3x&quot;) 0 0 0 0 stretch stretch;
+    border:none;
+    padding: 0px;
+    margin: 0px;
+}
+
+/** frame */
+#frame {
+    border:none;
+    padding:0px;
+    margin:0px;
+}
+
+/** labelLoading */
+#labelLoading {
+    margin-bottom:7px;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       transactiondescdialog.ui (none)
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+
 #centralWidget{
     border: none;
     padding: 0em 0em;
