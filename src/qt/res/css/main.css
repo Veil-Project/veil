@@ -69,6 +69,10 @@ QLineEdit{
     padding:0px;
 }
 
+QMenu:item:selected {
+    color: #000000;
+    background-color: #6f9bf5;
+}
 
 QToolBar > QToolButton {
 

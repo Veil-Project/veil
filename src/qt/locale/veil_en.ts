@@ -443,7 +443,7 @@
     </message>
     <message>
         <location line="+124"/>
-        <source>Total balance</source>
+        <source>Total Balance</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4191,17 +4191,17 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+109"/>
-        <source>Backup wallet</source>
+        <source>Backup Wallet</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+50"/>
-        <source>Change password</source>
+        <source>Change Password</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location line="+49"/>
-        <source>Unlock wallet for staking</source>
+        <source>Unlock Wallet For Staking</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4221,7 +4221,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+50"/>
-        <source>Zerocoin minting</source>
+        <source>Zerocoin Minting</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4231,7 +4231,7 @@ to have automatically minted by automint</source>
     </message>
     <message>
         <location line="+50"/>
-        <source>Advanced options</source>
+        <source>Advanced Options</source>
         <translation type="unfinished"></translation>
     </message>
 </context>
@@ -5532,7 +5532,7 @@ be used to restore your wallet.</source>
     </message>
     <message>
         <location line="+64"/>
-        <source>Unlock wallet for staking</source>
+        <source>Unlock Wallet For Staking</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

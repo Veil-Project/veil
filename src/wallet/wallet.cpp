@@ -3908,7 +3908,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
                 LOCK(cs_main);
                 //Double check that this will pass time requirements
                 if (nTxNewTime <= nTimeMinBlock) {
-                    LogPrint(BCLog::BLOCKCREATION, "CreateCoinStake() : kernel found, but it is too far in the past \n");
+                    LogPrint(BCLog::STAKING, "%s : kernel found, but it is too far in the past \n", __func__);
                     continue;
                 }
                 nHeight = chainActive.Height();
@@ -4008,7 +4008,7 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listI
         }
     }
 
-    LogPrint(BCLog::BLOCKCREATION, "%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());
+    LogPrint(BCLog::STAKING, "%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());
 
     return true;
 }

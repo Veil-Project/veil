@@ -155,11 +155,8 @@ TestChain100Setup::CreateAndProcessBlock(const std::vector<CMutableTransaction>&
     for (const CMutableTransaction& tx : txns)
         block.vtx.push_back(MakeTransactionRef(tx));
     // IncrementExtraNonce creates a valid coinbase and merkleRoot
-    {
-        LOCK(cs_main);
-        unsigned int extraNonce = 0;
-        IncrementExtraNonce(&block, chainActive.Tip(), extraNonce);
-    }
+    unsigned int extraNonce = 0;
+    IncrementExtraNonce(&block, chainActive.Height(), extraNonce);
 
     while (!CheckProofOfWork(block.GetX16RTPoWHash(), block.nBits, chainparams.GetConsensus())) ++block.nNonce;
 

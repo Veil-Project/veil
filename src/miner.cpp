@@ -515,7 +515,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         }
         auto spend = TxInToZerocoinSpend(pblock->vtx[1]->vin[0]);
         if (!spend) {
-            LogPrint(BCLog::BLOCKCREATION, "%s: failed to get spend for txin", __func__);
+            LogPrint(BCLog::STAKING, "%s: failed to get spend for txin", __func__);
             return nullptr;
         }
 
@@ -525,17 +525,17 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 #ifdef ENABLE_WALLET
         if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) || !pwalletMain->GetZerocoinKey(bnSerial, key)) {
 #endif
-            LogPrint(BCLog::BLOCKCREATION, "%s: Failed to get zerocoin key from wallet!\n", __func__);
+            LogPrint(BCLog::STAKING, "%s: Failed to get zerocoin key from wallet!\n", __func__);
             return nullptr;
 #ifdef ENABLE_WALLET
         }
 #endif
 
         if (!key.Sign(pblock->GetHash(), pblock->vchBlockSig)) {
-            LogPrint(BCLog::BLOCKCREATION, "%s: Failed to sign block hash\n", __func__);
+            LogPrint(BCLog::STAKING, "%s: Failed to sign block hash\n", __func__);
             return nullptr;
         }
-        LogPrint(BCLog::BLOCKCREATION, "%s: FOUND STAKE!!\n block: \n%s\n", __func__, pblock->ToString());
+        LogPrint(BCLog::STAKING, "%s: FOUND STAKE!!\n block: \n%s\n", __func__, pblock->ToString());
     }
 
     if (pindexPrev && pindexPrev != chainActive.Tip()) {
@@ -814,19 +814,13 @@ void BlockAssembler::addPackageTxs(int &nPackagesSelected, int &nDescendantsUpda
     }
 }
 
-void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce)
+void IncrementExtraNonce(CBlock* pblock, unsigned int nHeight, unsigned int& nExtraNonce)
 {
     // Update nExtraNonce
-    static uint256 hashPrevBlock;
-    if (hashPrevBlock != pblock->hashPrevBlock)
-    {
-        nExtraNonce = 0;
-        hashPrevBlock = pblock->hashPrevBlock;
-    }
     ++nExtraNonce;
-    unsigned int nHeight = pindexPrev->nHeight+1; // Height first in coinbase required for block.version=2
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
-    txCoinbase.vin[0].scriptSig = (CScript() << nHeight << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
+    // Height first in coinbase required for block.version=2
+    txCoinbase.vin[0].scriptSig = (CScript() << (nHeight+1) << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);
 
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
@@ -932,7 +926,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 auto it = mapStakeHashCounter.find(nHeight);
                 if (it != mapStakeHashCounter.end() && it->second != nStakeHashesLast) {
                     nStakeHashesLast = it->second;
-                    LogPrint(BCLog::BLOCKCREATION, "%s: Tried %d stake hashes for block %d last=%d\n", __func__, nStakeHashesLast, nHeight+1, mapHashedBlocks.at(hashBestBlock));
+                    LogPrint(BCLog::STAKING, "%s: Tried %d stake hashes for block %d last=%d\n", __func__, nStakeHashesLast, nHeight+1, mapHashedBlocks.at(hashBestBlock));
                 }
                 // wait half of the nHashDrift with max wait of 3 minutes
                 int rand = GetRandInt(20); // add small randomness to prevent all nodes from being on too similar of timing
@@ -964,24 +958,19 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         }
 
         CBlock *pblock = &pblocktemplate->block;
-        int32_t nNonceLocal;
 
         if (!fProofOfStake)
         {
             {
                 LOCK(cs_nonce);
-                nNonceLocal = nNonce_base++;
+                nExtraNonce = nNonce_base++;
                 if (!nTimeStart)
                     nTimeStart = GetTime();
             }
 
             pblock->nNonce = 0;
             pblock->nNonce64 = rand();
-            {
-                LOCK(cs_main);
-                nExtraNonce = nNonceLocal;
-                IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
-            }
+            IncrementExtraNonce(pblock, chainActive.Height(), nExtraNonce);
 
             int nTries = 0;
             if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
@@ -1011,7 +1000,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     ++pblock->nNonce;
                 }
             } else {
-                LogPrintf("%s: Unknown hashing algorithm found!\n");
+                LogPrintf("%s: Unknown hashing algorithm found!\n", __func__);
                 return;
             }
 
@@ -1023,8 +1012,8 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 if (!nTimeDuration) nTimeDuration = 1;
                 nHashSpeed = arith_uint256(nHashes/1000/nTimeDuration).getdouble();
             }
-            LogPrint(BCLog::BLOCKCREATION, "%s: PoW Hashspeed %d kh/s\n", __func__, nHashSpeed);
 
+            LogPrint(BCLog::MINING, "%s: PoW Hashspeed %d kh/s\n", __func__,  nHashSpeed);
             if (nTries == nInnerLoopCount) {
                 continue;
             }
@@ -1032,7 +1021,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
 
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
-            LogPrint(BCLog::BLOCKCREATION, "%s : Failed to process new block\n", __func__);
+            LogPrint(BCLog::MINING, "%s: Failed to process new block\n", __func__);
             continue;
         }
 
@@ -1073,21 +1062,16 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
             continue;
 
         CBlock *pblock = &pblocktemplate->block;
-        int32_t nNonceLocal;
 
         {
             LOCK(cs_nonce);
-            nNonceLocal = nNonce_base++;
+            nExtraNonce = nNonce_base++;
             if (!nTimeStart)
                 nTimeStart = GetTime();
         }
 
         pblock->nNonce = startNonce;
-        {
-            LOCK(cs_main);
-            nExtraNonce = nNonceLocal;
-            IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
-        }
+        IncrementExtraNonce(pblock, chainActive.Height(), nExtraNonce);
 
         int nTries = 0;
         if (pblock->IsRandomX() && pblock->nTime >= Params().PowUpdateTimestamp()) {
@@ -1142,8 +1126,8 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
                 nHashSpeed = arith_uint256(nHashes/nTimeDuration).getdouble();
             }
         }
-        LogPrint(BCLog::BLOCKCREATION, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__, nHashSpeed);
 
+        LogPrint(BCLog::MINING, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__, nHashSpeed);
         if (nTries == nInnerLoopCount) {
             continue;
         }
@@ -1155,7 +1139,7 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
 
         std::shared_ptr<const CBlock> shared_pblock = std::make_shared<const CBlock>(*pblock);
         if (!ProcessNewBlock(Params(), shared_pblock, true, nullptr)) {
-            LogPrint(BCLog::BLOCKCREATION, "%s: Failed to process new block\n", __func__);
+            LogPrint(BCLog::MINING, "%s: Failed to process new block\n", __func__);
             continue;
         }
 

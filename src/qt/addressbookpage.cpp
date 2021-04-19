@@ -127,6 +127,7 @@ AddressBookPage::AddressBookPage(const PlatformStyle *platformStyle, Mode _mode,
     if(tab == SendingTab)
         contextMenu->addAction(deleteAction);
     contextMenu->addSeparator();
+    //contextMenu->setStyleSheet("QMenu::item:selected {background-color: #bababa;}");
 
     // Connect signals for context menu actions
     connect(copyAddressAction, SIGNAL(triggered()), this, SLOT(onCopyAddressClicked()));
@@ -162,6 +163,7 @@ void AddressBookPage::setModel(AddressTableModel *_model)
     // Set column widths
     ui->tableView->horizontalHeader()->setSectionResizeMode(AddressTableModel::Label, QHeaderView::Stretch);
     ui->tableView->horizontalHeader()->setSectionResizeMode(AddressTableModel::Address, QHeaderView::ResizeToContents);
+    ui->tableView->horizontalHeader()->setSectionResizeMode(AddressTableModel::Address_dot, QHeaderView::ResizeToContents);
 
     connect(ui->tableView->selectionModel(), SIGNAL(selectionChanged(QItemSelection,QItemSelection)),
         this, SLOT(selectionChanged()));
@@ -305,6 +307,7 @@ void AddressBookPage::on_exportButton_clicked()
     writer.setModel(proxyModel);
     writer.addColumn("Label", AddressTableModel::Label, Qt::EditRole);
     writer.addColumn("Address", AddressTableModel::Address, Qt::EditRole);
+    writer.addColumn("Address_dot", AddressTableModel::Address_dot, Qt::EditRole);
 
     if(!writer.write()) {
         QMessageBox::critical(this, tr("Exporting Failed"),
