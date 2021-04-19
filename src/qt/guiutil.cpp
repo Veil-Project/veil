@@ -70,10 +70,15 @@ namespace GUIUtil {
 
 QString loadStyleSheet(){
     QFile file(":/css/main");
+    QFile fileDark(":/css/main-dark");
+    QString stylesheet = QString();
     if(file.open(QFile::ReadOnly)){
-        return QLatin1String(file.readAll());
+       	stylesheet += QLatin1String(file.readAll());
     }
-    return QString();
+    if(fileDark.open(QFile::ReadOnly) && !gArgs.GetArg("-darkmode", "").empty()){
+		stylesheet += QLatin1String(fileDark.readAll());
+	}
+    return stylesheet;
 }
 
 QString dateTimeStr(const QDateTime &date)
