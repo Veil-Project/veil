@@ -280,6 +280,7 @@
         <file alias="ic-copy-blue-png">res/icons/ic-copy.png</file>
         <file alias="ic-close-png">res/icons/ic-close.png</file>
         <file alias="simbol-png">res/icons/simbol.png</file>
+        <file alias="simbol-white-png">res/icons/simbol-white.png</file>
         <file alias="ic-add-account-png">res/icons/ic-add-account.png</file>
         <file alias="ic-reset-options-png">res/icons/ic-reset-options.png</file>
         <file alias="ic-locked-png">res/icons/ic-locked.png</file>
@@ -326,6 +327,7 @@
     </qresource>
     <qresource prefix="/css">
         <file alias="main">res/css/main.css</file>
+        <file alias="main-dark">res/css/main-dark.css</file>
     </qresource>
     <qresource prefix="/">
         <file>res/icons/ic-addresses.png</file>
