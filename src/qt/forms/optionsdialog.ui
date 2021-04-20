@@ -291,6 +291,13 @@
                </property>
               </widget>
              </item>
+             <item>
+              <widget class="QCheckBox" name="applyDarkMode">
+               <property name="text">
+                <string>Dark Mode</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </widget>
           </item>

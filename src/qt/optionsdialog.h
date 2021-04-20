@@ -62,6 +62,7 @@ private Q_SLOTS:
 
     void onHideOrphansCheck(bool state);
     void onShowComputeTimeCheck(bool state);
+    void onApplyDarkModeCheck(bool state);
 
 Q_SIGNALS:
     void proxyIpChecks(QValidatedLineEdit *pUiProxyIp, int nProxyPort);

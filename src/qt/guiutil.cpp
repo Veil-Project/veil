@@ -9,6 +9,7 @@
 #include <qt/bitcoinunits.h>
 #include <qt/qvalidatedlineedit.h>
 #include <qt/walletmodel.h>
+#include <qt/veil/qtutils.h>
 
 #include <base58.h>
 #include <chainparams.h>
@@ -58,6 +59,8 @@
 #include <QUrlQuery>
 #include <QMouseEvent>
 #include <QFile>
+#include <QSettings>
+
 
 
 #if QT_VERSION >= 0x50200
@@ -75,7 +78,11 @@ QString loadStyleSheet(){
     if(file.open(QFile::ReadOnly)){
        	stylesheet += QLatin1String(file.readAll());
     }
-    if(fileDark.open(QFile::ReadOnly) && !gArgs.GetArg("-darkmode", "").empty()){
+
+    QSettings settings;
+    bool bDarkMode = settings.value("bDarkMode", false).toBool();
+
+    if(fileDark.open(QFile::ReadOnly) && bDarkMode){
 		stylesheet += QLatin1String(fileDark.readAll());
 	}
     return stylesheet;
