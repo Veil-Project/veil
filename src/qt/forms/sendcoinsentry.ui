@@ -119,6 +119,10 @@
            <property name="focusPolicy">
             <enum>Qt::NoFocus</enum>
            </property>
+           <property name="styleSheet">
+            <string notr="true">background:transparent;
+border:none;</string>
+           </property>
            <property name="text">
             <string/>
            </property>
@@ -155,6 +159,12 @@
            <width>16777215</width>
            <height>20</height>
           </size>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">padding:0px;
+margin:0px;
+margin-left:6px;
+color:#105AEF;</string>
          </property>
          <property name="text">
           <string>Address</string>
@@ -206,6 +216,10 @@
            <height>16777215</height>
           </size>
          </property>
+         <property name="styleSheet">
+          <string notr="true">background-color:#bfbfbf;
+margin-top:24px</string>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -240,6 +254,13 @@
               <height>20</height>
              </size>
             </property>
+            <property name="styleSheet">
+             <string notr="true">border:none;
+margin:0px;
+margin-left:6px;
+padding:0px;
+color:#105AEF;</string>
+            </property>
             <property name="text">
              <string>Amount</string>
             </property>
@@ -255,6 +276,12 @@
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">border:none;
+background-color:transparent;
+margin:0px;
+padding:0px;</string>
             </property>
             <property name="text">
              <string/>
@@ -278,6 +305,11 @@
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">margin:0px;
+padding:0px;
+border:none;</string>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_3">
        <property name="spacing">
@@ -315,6 +347,13 @@
            <height>20</height>
           </size>
          </property>
+         <property name="styleSheet">
+          <string notr="true">border:none;
+margin:0px;
+padding:0px;
+color:#105AEF;
+margin-left:3px;</string>
+         </property>
          <property name="text">
           <string>Address Label</string>
          </property>
@@ -330,6 +369,24 @@
          </property>
          <property name="toolTip">
           <string>Enter a label for this address to add it to the list of used addresses</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">#addAsLabel {   
+	padding:8;
+  margin-left:12px;
+	margin-right:20px;
+	font-size:16px;
+	background:transparent;
+   background-color:transparent;
+	border-top:none;
+	border-left:none;
+	border-right:none;
+   border-bottom:1px solid #bababa;
+}
+
+#addAsLabel:focus {
+    border-bottom:1px solid #105aef;
+}</string>
          </property>
         </widget>
        </item>

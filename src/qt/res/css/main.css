@@ -1927,6 +1927,24 @@ QStackedWidget#SendCoinsEntry QLabel#label_3 {
     margin-left:3px;
 }
 
+/** ADDED payTo override */
+QStackedWidget#SendCoinsEntry #payTo {   
+    padding:8;
+    margin-left:12px;
+    font-size:16px;
+    margin-right:3px;
+    background:transparent;
+    background-color:green;
+    border-top:none;
+    border-left:none;
+    border-right:none;
+    border-bottom:1px solid #bababa;
+}
+
+QStackedWidget#SendCoinsEntry #payTo:focus {
+    border-bottom:1px solid #105aef;
+}
+
 /** addAsLabel */
 QStackedWidget#SendCoinsEntry QLineEdit#addAsLabel {   
     padding:8;
