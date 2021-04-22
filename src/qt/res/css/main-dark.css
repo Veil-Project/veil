@@ -4199,7 +4199,7 @@ QDialog#UnlockPasswordDialog QFrame#frame {
 
 /* frame_2 */
 QDialog#UnlockPasswordDialog QFrame#frame_2 {
-    background-color: #000000;
+    background-color: #c5c8cb;
     padding: 10px 10px 10px 10px;
     border-radius:20px;
 }
