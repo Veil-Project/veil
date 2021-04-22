@@ -6,6 +6,7 @@
 veil dark base -> #080B2E
 veil dark light -> #F7FBFE
 veil dark light blue -> #4273B9
+pop-up background -> #c5c8cb
 text color -> #bababa
 */
 
@@ -3658,7 +3659,7 @@ QWidget#TransactionDetailDialog {
 
 /** frame */
 QWidget#TransactionDetailDialog QFrame#frame{
-    background-color: #000000;
+    background-color: #c5c8cb;
     padding: 10px 10px 10px 10px;
     border-radius:20px;
 }
@@ -3709,7 +3710,7 @@ QWidget#TransactionDetailDialog QLabel#label_25 {
 
 /* frameContainer */
 QWidget#TransactionDetailDialog QFrame#frameContainer{
-    background-color: #000000;
+    background-color: #c5c8cb;
     padding: 0px 0px 0px 0px;
     border-style: none;
     border-color: transparent;
