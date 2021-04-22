@@ -200,6 +200,7 @@ void ReceiveWidget::setWalletModel(WalletModel *model){
 }
 
 void ReceiveWidget::showEvent(QShowEvent *event){
+	/*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -208,9 +209,11 @@ void ReceiveWidget::showEvent(QShowEvent *event){
     a->setEndValue(1);
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
 }
 
 void ReceiveWidget::hideEvent(QHideEvent *event){
+	/*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -219,6 +222,7 @@ void ReceiveWidget::hideEvent(QHideEvent *event){
     a->setEndValue(0);
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
 }
 
 ReceiveWidget::~ReceiveWidget()

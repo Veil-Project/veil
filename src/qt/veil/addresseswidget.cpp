@@ -274,6 +274,7 @@ void AddressesWidget::initAddressesView(){
 }
 
 void AddressesWidget::showEvent(QShowEvent *event){
+	/*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -282,10 +283,12 @@ void AddressesWidget::showEvent(QShowEvent *event){
     a->setEndValue(1);
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
     reloadTab(isOnMyAddresses);
 }
 
 void AddressesWidget::hideEvent(QHideEvent *event){
+	/*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -294,6 +297,7 @@ void AddressesWidget::hideEvent(QHideEvent *event){
     a->setEndValue(0);
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
 }
 
 // We override the virtual resizeEvent of the QWidget to adjust tables column

@@ -550,6 +550,7 @@ void OverviewPage::showEvent(QShowEvent *event){
     if (fHide != filter->orphansHidden())
         hideOrphans(fHide);
 
+    /*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -558,9 +559,11 @@ void OverviewPage::showEvent(QShowEvent *event){
     a->setEndValue(1);
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
 }
 
 void OverviewPage::hideEvent(QHideEvent *event){
+	/*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -569,4 +572,5 @@ void OverviewPage::hideEvent(QHideEvent *event){
     a->setEndValue(0);
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
 }
