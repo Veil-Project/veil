@@ -93,6 +93,8 @@ int nZeromintPercentage = 100;
 const int64_t AUTOMINT_DELAY = (60 * 5); // Wait at least 5 minutes until Automint starts
 int nPreferredDenom = 10;
 
+int qrColorCode = 0xffffff;
+
 ArgsManager gArgs;
 
 CTranslationInterface translationInterface;

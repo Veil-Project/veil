@@ -3,7 +3,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-veil dark base -> #000000 -> 080B2E
+veil dark base -> #080B2E
+veil dark light -> #F7FBFE
+veil dark light blue -> #4273B9
 text color -> #bababa
 */
 
@@ -878,7 +880,7 @@ QWidget#OverviewPage QListView::item:selected {
 }
 
 QWidget#OverviewPage QListView::item:selected {
-    background-color:#OD124D;
+    background-color:#0D124D;
 }
 
 /* For icon only */

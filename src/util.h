@@ -47,6 +47,7 @@ extern bool fEnableZeromint;
 extern bool fEnableDandelion;
 extern const int64_t AUTOMINT_DELAY;
 extern int nPreferredDenom;
+extern int qrColorCode;
 
 /** Signals for translation. */
 class CTranslationInterface

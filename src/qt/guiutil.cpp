@@ -84,6 +84,7 @@ QString loadStyleSheet(){
 
     if(fileDark.open(QFile::ReadOnly) && bDarkMode){
 		stylesheet += QLatin1String(fileDark.readAll());
+		qrColorCode = 0xf7fbfe;
 	}
     return stylesheet;
 }

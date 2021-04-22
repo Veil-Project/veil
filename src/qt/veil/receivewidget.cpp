@@ -152,13 +152,13 @@ bool ReceiveWidget::generateNewAddress(bool isOnDemand){
                 return false;
             }
             QImage qrImage = QImage(code->width + 8, code->width + 8, QImage::Format_RGB32);
-            qrImage.fill(0xffffff);
+            qrImage.fill(qrColorCode);
             unsigned char *p = code->data;
             for (int y = 0; y < code->width; y++)
             {
                 for (int x = 0; x < code->width; x++)
                 {
-                    qrImage.setPixel(x + 4, y + 4, ((*p & 1) ? 0x004377 : 0xffffff));
+                    qrImage.setPixel(x + 4, y + 4, ((*p & 1) ? 0x004377 : qrColorCode));
                     p++;
                 }
             }
@@ -167,7 +167,7 @@ bool ReceiveWidget::generateNewAddress(bool isOnDemand){
             int qrImageSize = 275;
 
             QImage qrAddrImage = QImage(qrImageSize, qrImageSize,  QImage::Format_RGB32);//QR_IMAGE_SIZE, QR_IMAGE_SIZE+20, QImage::Format_RGB32);
-            qrAddrImage.fill(0xffffff);
+            qrAddrImage.fill(qrColorCode);
             QPainter painter(&qrAddrImage);
             painter.drawImage(0, 0, qrImage.scaled(qrImageSize,qrImageSize));//QR_IMAGE_SIZE, QR_IMAGE_SIZE));
             QFont font = GUIUtil::fixedPitchFont();
