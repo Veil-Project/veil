@@ -43,11 +43,8 @@ darwin_debug_CXXFLAGS=$(darwin_debug_CFLAGS)
 darwin_native_binutils=native_cctools
 ifeq ($(strip $(FORCE_USE_SYSTEM_CLANG)),)
 darwin_native_toolchain=native_cctools
-<<<<<<< HEAD
-=======
 else
 darwin_native_toolchain=
 endif
 
 darwin_cmake_system=Darwin
->>>>>>> c9c572a36... depends: Allow building with system clang
