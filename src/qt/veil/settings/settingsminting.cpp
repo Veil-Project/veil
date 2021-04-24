@@ -53,6 +53,15 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
         ui->btnSendMint->setEnabled(true);
     }
 
+    //retrieved saved settings if nautomintdenom is not in use
+    QSettings* settings = getSettings();
+    if (!gArgs.IsArgSet("-nautomintdenom") && settings->contains("nAutomintDenom")){
+		int tempPref = settings->value("nAutomintDenom").toInt();
+		if(tempPref != nPreferredDenom && tempPref != 0){
+			nPreferredDenom = tempPref;
+		}
+	}
+
     switch (nPreferredDenom){
         case 10:
             ui->radioButton10->setChecked(true);
@@ -81,13 +90,23 @@ SettingsMinting::SettingsMinting(QWidget *parent, WalletView *mainWindow, Wallet
     connect(ui->btnEsc,SIGNAL(clicked()),this, SLOT(close()));
     connect(ui->btnSendMint,SIGNAL(clicked()),this, SLOT(btnMint()));
     connect(ui->editAmount, SIGNAL(returnPressed()), this, SLOT(btnMint()));
-    connect(ui->radioButton10, SIGNAL(toggled(bool)), this, SLOT(onCheck10Clicked(bool)));
-    connect(ui->radioButton100, SIGNAL(toggled(bool)), this, SLOT(onCheck100Clicked(bool)));
-    connect(ui->radioButton1000, SIGNAL(toggled(bool)), this, SLOT(onCheck1000Clicked(bool)));
-    connect(ui->radioButton100000, SIGNAL(toggled(bool)), this, SLOT(onCheck100000Clicked(bool)));
+    if(gArgs.IsArgSet("-nautomintdenom")){
+    	ui->labelAutomintConfig->setVisible(true);
+    	ui->radioButton10->setEnabled(0);
+    	ui->radioButton100->setEnabled(0);
+    	ui->radioButton1000->setEnabled(0);
+    	ui->radioButton100000->setEnabled(0);
+    	ui->checkAutomintInstant->setEnabled(0);
+    }
+    else{
+    	ui->labelAutomintConfig->setVisible(false);
+    	connect(ui->radioButton10, SIGNAL(toggled(bool)), this, SLOT(onCheck10Clicked(bool)));
+    	connect(ui->radioButton100, SIGNAL(toggled(bool)), this, SLOT(onCheck100Clicked(bool)));
+    	connect(ui->radioButton1000, SIGNAL(toggled(bool)), this, SLOT(onCheck1000Clicked(bool)));
+    	connect(ui->radioButton100000, SIGNAL(toggled(bool)), this, SLOT(onCheck100000Clicked(bool)));
+    	connect(ui->checkAutomintInstant, SIGNAL(toggled(bool)), this, SLOT(onCheckFullMintClicked(bool)));
+    }
     connect(ui->editAmount, SIGNAL(textChanged(const QString &)), this, SLOT(mintAmountChange(const QString &)));
-
-    connect(ui->checkAutomintInstant, SIGNAL(toggled(bool)), this, SLOT(onCheckFullMintClicked(bool)));
 
 }
 
