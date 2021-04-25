@@ -67,7 +67,7 @@
               <enum>Qt::NoFocus</enum>
              </property>
              <property name="text">
-              <string>My addresses</string>
+              <string>My Addresses</string>
              </property>
              <property name="iconSize">
               <size>
