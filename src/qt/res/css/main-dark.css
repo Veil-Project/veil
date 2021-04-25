@@ -4322,14 +4322,14 @@ QDialog#UpdateAddress QLabel#errorMessage {
 HH       veilstatusbar.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 QWidget#VeilStatusBar {
-    background-color: #0d124d;
+    background-color: #080B2E;
     border: none;
     padding: 0;
     margin: 0;
 }
 
 QFrame#frameStatusBar {
-    background-color:#0d124d;
+    background-color:#080B2E;
     border-bottom:0px;
     border-right:0px;
     border-left:0px;
