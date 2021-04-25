@@ -5,6 +5,7 @@
 
 veil dark black -> #000000
 veil dark base -> #080B2E
+veil dark base lighter -> #0d124d
 veil dark light -> #F7FBFE
 veil dark light blue -> #4273B9
 pop-up background -> #f7fbfe
@@ -55,6 +56,18 @@ QPushButton[cssClass~="btn-text-settings"]:hover {
 
 *[cssClass~="btn-text-settings"]:hover {
     color:#105aef;
+}
+
+QToolTip {
+    color: #ffffff;
+    background-color: #0d124d;
+    font-size:11pt;
+    border: none;
+    border-radius:20px;
+    padding:6px;
+    margin:0px;
+    min-height: 35px;
+    qproperty-alignment: 'AlignVCenter | AlignCenter';
 }
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       addressbookpage.ui
@@ -769,7 +782,7 @@ QDialog#OptionsDialog QValueComboBox::drop-down {
 
 QDialog#OptionsDialog QToolTip {
     color: #ffffff;
-    background-color: #6f9bf5;
+    background-color: #0d124d;
     font-size:11pt;
     border: none;
     border-radius:20px;
@@ -873,7 +886,7 @@ HH       overviewpage.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** labelAlerts */
 QWidget#OverviewPage QLabel#labelAlerts {
-    background-color: #6F9BF5;
+    background-color: #0d124d;
     color:#FFFFFF;
 }
 
@@ -1095,7 +1108,7 @@ QDialog#SendCoinsDialog QScrollArea#scrollArea QWidget {
 /* frame_2 */
 QDialog#SendCoinsDialog QToolTip {
     color: #ffffff;
-    background-color: #6f9bf5;
+    background-color: #0d124d;
     font-size:13px;
     border: none;
     border-radius:20px;
