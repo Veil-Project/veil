@@ -33,6 +33,39 @@ QLineEdit[cssClass~="edit-primary"]:focus {
 HH      ????
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
+QMenuBar {
+  background-color: #000023;
+  padding: 2px;
+  border: 1px solid #19232D;
+  color: #E0E1E3;
+  selection-background-color: #0d124d;
+}
+
+QMenuBar:focus {
+  border: 1px solid #346792;
+}
+
+QMenuBar::item {
+  background: transparent;
+  padding: 4px;
+}
+
+QMenuBar::item:selected {
+  padding: 4px;
+  background: transparent;
+  border: 0px solid #455364;
+  background-color: #0d124d;
+}
+
+QMenuBar::item:pressed {
+  padding: 4px;
+  border: 0px solid #455364;
+  background-color: #0d124d;
+  color: #E0E1E3;
+  margin-bottom: 0px;
+  padding-bottom: 0px;
+}
+
 
 QPushButton[cssClass~="btn-text-settings"] {
     text-align: left;
@@ -366,18 +399,18 @@ HH       debugwindow.ui (15)
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** RPCConsole */
 QWidget#RPCConsole {
-    background-color:#000000;
+    background-color:white;
     border:none;
 }
 
 /** frame */
 QWidget#RPCConsole QFrame#frame {
-    background-color: #000000;
+    background-color: white;
 }
 
 /** tabWidget */
 QWidget#RPCConsole QTabWidget#tabWidget {
-    background-color:#000000;
+    background-color:white;
     color:#bababa;
     font-size:13.5px;
 }
