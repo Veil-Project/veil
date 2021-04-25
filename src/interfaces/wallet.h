@@ -302,6 +302,9 @@ public:
     virtual void setStakingEnabled(bool fEnableStaking) = 0;
     virtual bool isStakingEnabled() = 0;
 
+    //! Return whether wallet is actively staking.
+    virtual bool isStakingActive() = 0;
+
     //! Register handler for unload message.
     using UnloadFn = std::function<void()>;
     virtual std::unique_ptr<Handler> handleUnload(UnloadFn fn) = 0;

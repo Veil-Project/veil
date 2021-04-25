@@ -167,6 +167,39 @@ CAmount CzTracker::GetUnconfirmedBalance() const
     return GetBalance(false, true);
 }
 
+CAmount CzTracker::GetConfirmationsRemainingForStaking() const
+{
+	//zerocoin database entries not loaded yet
+	if(!fInitialized)
+		return -2;
+
+    CAmount maxMintConfirmations = -1;
+
+    //find max confirmations
+	for (auto& it : mapSerialHashes) {
+		CMintMeta mint = it.second;
+		if (mint.nVersion < CZerocoinMint::STAKABLE_VERSION)
+			continue;
+		if (mint.isUsed || mint.isArchived || mint.nHeight <= 0)
+			continue;
+
+		int mintConfirmations = chainActive.Height() - mint.nHeight;
+
+		//mature zerocoin available for staking
+		if(Params().Zerocoin_RequiredStakeDepthV2() - mintConfirmations <= 0)
+			return 0;
+		if(mintConfirmations > maxMintConfirmations)
+			maxMintConfirmations = mintConfirmations;
+	}
+
+	//no stakable zerocoin in wallet
+	if(maxMintConfirmations == -1)
+		return -1;
+
+	//confirmations remaining
+	return Params().Zerocoin_RequiredStakeDepthV2() - maxMintConfirmations;
+}
+
 std::vector<CMintMeta> CzTracker::GetMints(bool fConfirmedOnly) const
 {
     vector<CMintMeta> vMints;

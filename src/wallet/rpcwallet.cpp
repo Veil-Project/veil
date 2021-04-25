@@ -3434,21 +3434,7 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
 
     obj.pushKV("staking_enabled", pwallet->IsStakingEnabled());
 
-    // Determine if staking is recently active. Note that this is not immediate effect. Staking could be disabled and it could take up to 70 seconds to update state.
-    int64_t nTimeLastHashing = 0;
-    if (!mapHashedBlocks.empty()) {
-        auto pindexBest = chainActive.Tip();
-        if (mapHashedBlocks.count(pindexBest->GetBlockHash())) {
-            nTimeLastHashing = mapHashedBlocks.at(pindexBest->GetBlockHash());
-        } else if (mapHashedBlocks.count(pindexBest->pprev->GetBlockHash())) {
-            nTimeLastHashing = mapHashedBlocks.at(pindexBest->pprev->GetBlockHash());
-        }
-    }
-    bool fStakingActive = false;
-    if (nTimeLastHashing)
-        fStakingActive = GetAdjustedTime() + MAX_FUTURE_BLOCK_TIME - nTimeLastHashing < 70;
-
-    obj.pushKV("staking_active", fStakingActive);
+    obj.pushKV("staking_active", pwallet->IsStakingActive());
 
     UniValue objSeedData(UniValue::VOBJ);
     auto pAnonWallet = pwallet->GetAnonWallet();

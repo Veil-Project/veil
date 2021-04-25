@@ -689,6 +689,7 @@ protected:
     std::unique_ptr<CzTracker> zTracker;
     bool fUnlockForStakingOnly = false;
     bool fStakingEnabled = true;
+    bool fHasStakableInputs = false;
 
     WalletBatch *encrypted_batch = nullptr;
 
@@ -981,6 +982,7 @@ public:
     bool IsUnlockedForStakingOnly() const { return fUnlockForStakingOnly; }
     void SetStakingEnabled(bool fStakingEnabled) { this->fStakingEnabled = fStakingEnabled; }
     bool IsStakingEnabled() const { return fStakingEnabled; }
+    bool IsStakingActive();
 
     /*
      * Rescan abort properties

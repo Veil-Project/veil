@@ -45,6 +45,7 @@ public:
     std::vector<SerialHash> GetSerialHashes();
     std::vector<CMintMeta> GetMints(bool fConfirmedOnly) const;
     CAmount GetUnconfirmedBalance() const;
+    CAmount GetConfirmationsRemainingForStaking() const;
     std::set<CMintMeta> ListMints(bool fUnusedOnly, bool fMatureOnly, bool fUpdateStatus);
     void RemovePending(const uint256& txid);
     void SetPubcoinUsed(const PubCoinHash& hashPubcoin, const uint256& txid);

@@ -892,6 +892,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             }
 
             if (!pwallet || !pwallet->IsStakingEnabled() || (pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly())) {
+				mapHashedBlocks.clear();
                 MilliSleep(5000);
                 continue;
             }
@@ -1197,7 +1198,7 @@ void ThreadStakeMiner()
             LogPrintf("%s: interrupted\n", __func__);
         }
     }
-
+    mapHashedBlocks.clear();
     LogPrintf("%s: exiting\n", __func__);
 }
 

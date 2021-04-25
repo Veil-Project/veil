@@ -417,6 +417,9 @@ RES_ICONS = \
   qt/res/icons/img-start-logo@2x.png \
   qt/res/icons/ic-watch-off@2x.png \
   qt/res/icons/ic-switch-on.png \
+  qt/res/icons/ic-switch-on-grey.png \
+  qt/res/icons/ic-switch-on-grey@2x.png \
+  qt/res/icons/ic-switch-on-grey@3x.png \
   qt/res/icons/ic-progress-4-10@2x.png \
   qt/res/icons/ic-progress-10-10.png \
   qt/res/icons/ic-copy@3x.png \
@@ -552,6 +555,9 @@ RES_ICONS = \
   qt/res/icons/ic-progress-6-6-complete-14x14.png \
   qt/res/icons/ic-switch-on.png \
   qt/res/icons/ic-switch-off.png \
+  qt/res/icons/ic-switch-off-blue.png \
+  qt/res/icons/ic-switch-off-blue@2x.png \
+  qt/res/icons/ic-switch-off-blue@3x.png \
   qt/res/icons/ic-addresses.png \
   qt/res/icons/ic-transactions.png \
   qt/res/icons/ic-send.png \
