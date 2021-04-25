@@ -7,7 +7,7 @@ veil dark black -> #000000
 veil dark base -> #080B2E
 veil dark light -> #F7FBFE
 veil dark light blue -> #4273B9
-pop-up background -> #c5c8cb
+pop-up background -> #f7fbfe
 pop-up dark gray text -> #575756
 text color -> #bababa
 */
@@ -561,8 +561,8 @@ ModalOverlay#ModalOverlay QWidget#bgWidget {
 
 /* frame */
 ModalOverlay#ModalOverlay QFrame#frame {
-    background: #c5c8cb;
-    background-color:#c5c8cb;
+    background: #f7fbfe;
+    background-color:#f7fbfe;
     border-radius: 6px; 
     border:none;
 }
@@ -580,7 +580,7 @@ ModalOverlay#ModalOverlay QFrame#frame_icon {
 
 /** contentWidget */
 ModalOverlay#ModalOverlay QWidget#contentWidget {
-    background: #c5c8cb; 
+    background: #f7fbfe; 
     padding:0px;
     margin:0px;
     border:none;
@@ -3729,7 +3729,7 @@ QWidget#TransactionDetailDialog {
 
 /** frame */
 QWidget#TransactionDetailDialog QFrame#frame{
-    background-color: #c5c8cb;
+    background-color: #f7fbfe;
     padding: 10px 10px 10px 10px;
     border-radius:20px;
 }
@@ -3780,7 +3780,7 @@ QWidget#TransactionDetailDialog QLabel#label_25 {
 
 /* frameContainer */
 QWidget#TransactionDetailDialog QFrame#frameContainer{
-    background-color: #c5c8cb;
+    background-color: #f7fbfe;
     padding: 0px 0px 0px 0px;
     border-style: none;
     border-color: transparent;
@@ -4269,7 +4269,7 @@ QDialog#UnlockPasswordDialog QFrame#frame {
 
 /* frame_2 */
 QDialog#UnlockPasswordDialog QFrame#frame_2 {
-    background-color: #c5c8cb;
+    background-color: #f7fbfe;
     padding: 10px 10px 10px 10px;
     border-radius:20px;
 }
