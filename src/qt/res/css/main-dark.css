@@ -3726,16 +3726,17 @@ HH      transactiondetaildialog.ui
 HH      name="TransactionDetailDialog"
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
-/** text */
-QWidget#TransactionDetailDialog {
-    color:#bababa;
+/** default text color */
+QWidget#TransactionDetailDialog QLabel{
+    color:#f7fbfe;
 }
 
 /** frame */
 QWidget#TransactionDetailDialog QFrame#frame{
-    background-color: #f7fbfe;
+    background-color: #000000;
     padding: 10px 10px 10px 10px;
     border-radius:20px;
+    border: 2px solid #f7fbfe;
 }
 
 /** title */
@@ -3763,28 +3764,28 @@ QWidget#TransactionDetailDialog QLabel#labelId {
 QWidget#TransactionDetailDialog QPushButton {
     border:  none;
     background-color:transparent;
-    color: #bababa;
+    color: #f7fbfe;
     font-size: 14px;
 }
 
 /** label_27 */
 QWidget#TransactionDetailDialog QLabel#label_27 {
-    background-color:#bababa;
+    background-color:#f7fbfe;
 }
 
 /** labelAmount */
-QWidget#TransactionDetailDialog#labelAmount {
+QWidget#TransactionDetailDialog QLabel#labelAmount {
     color:#105aef;
 }
 
 /** label_25 */
 QWidget#TransactionDetailDialog QLabel#label_25 {
-    background-color:#bababa;
+    background-color:#f7fbfe;
 }
 
 /* frameContainer */
 QWidget#TransactionDetailDialog QFrame#frameContainer{
-    background-color: #f7fbfe;
+    background-color: #000000;
     padding: 0px 0px 0px 0px;
     border-style: none;
     border-color: transparent;
@@ -3808,7 +3809,7 @@ QWidget#TransactionDetailDialog QPushButton#pushButton {
 
 /** label_19 */
 QWidget#TransactionDetailDialog QLabel#label_19 {
-    background-color:#bababa;
+    background-color:#f7fbfe;
 }
 
 /** labelInputs */
@@ -3827,7 +3828,7 @@ QWidget#TransactionDetailDialog QPushButton#pushButton_2 {
 
 /** label_20 */
 QWidget#TransactionDetailDialog QLabel#label_20 {
-    background-color:#bababa;
+    background-color:#f7fbfe;
 }
 
 /** labelFee */
@@ -3837,7 +3838,7 @@ QWidget#TransactionDetailDialog QLabel#labelFee {
 
 /** label_21 */
 QWidget#TransactionDetailDialog QLabel#label_21 {
-    background-color:#bababa;
+    background-color:#f7fbfe;
 }
 
 /** labelConfirmations */
@@ -3847,7 +3848,7 @@ QWidget#TransactionDetailDialog QLabel#labelConfirmations {
 
 /** label_22 */
 QWidget#TransactionDetailDialog QLabel#label_22 {
-    background-color:#bababa;
+    background-color:#f7fbfe;
 }
 
 /** labelSize */
@@ -3857,7 +3858,7 @@ QWidget#TransactionDetailDialog QLabel#labelSize {
 
 /** label_23 */
 QWidget#TransactionDetailDialog QLabel#label_23 {
-    background-color:#bababa;
+    background-color:#f7fbfe;
 }
 
 /** labelDate */
@@ -3867,7 +3868,7 @@ QWidget#TransactionDetailDialog QLabel#labelDate {
 
 /** label_24 */
 QWidget#TransactionDetailDialog QLabel#label_24 {
-    background-color:#bababa;
+    background-color:#f7fbfe;
 }
 
 /** labelStatus */
@@ -3877,7 +3878,7 @@ QWidget#TransactionDetailDialog QLabel#labelStatus {
 
 /** separatorComputeTime */
 QWidget#TransactionDetailDialog QLabel#separatorComputeTime {
-    background-color:#bababa;
+    background-color:#f7fbfe;
 }
 
 /** labelComputeTime */
