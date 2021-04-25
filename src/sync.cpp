@@ -4,6 +4,10 @@
 
 #include <sync.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config/veil-config.h>
+#endif
+
 #include <logging.h>
 #include <utilstrencodings.h>
 
