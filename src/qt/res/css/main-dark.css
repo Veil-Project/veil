@@ -755,15 +755,15 @@ QDialog#OptionsDialog QLabel#langLabel {
 /** lang */
 QDialog#OptionsDialog QValueComboBox {
     font-size:13px;
-    selection-color: #000000;
+    selection-color: #f7fbfe
 }
 
 QDialog#OptionsDialog QValueComboBox QFrame {
-    background-color:#000000;
+    background-color:#f7fbfe;
 }
 
 QDialog#OptionsDialog QValueComboBox::drop-down {
-    background-color:#000000;
+    background-color:#f7fbfe;
     color:#bababa;
 }
 
