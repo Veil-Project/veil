@@ -290,7 +290,7 @@
                   <bool>true</bool>
                  </property>
                  <property name="text">
-                  <string>Receiving address</string>
+                  <string>Receiving Address</string>
                  </property>
                 </widget>
                </item>
