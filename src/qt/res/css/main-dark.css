@@ -2989,7 +2989,7 @@ QDialog#SettingsMinting QFrame#frame{
     background-color: #000000;
     padding: 10px 10px 10px 10px;
     border-radius:20px;
-    border:none;
+    border: 2px solid #f7fbfe;
 }
 
 /* frame_1 */
@@ -3036,13 +3036,6 @@ QDialog#SettingsMinting QFrame#container {
     padding:0px;
 }
 
-/**frame_2 */
-QDialog#SettingsMinting QFrame#frame {
-    background-color: #000000;
-    border:0;
-    padding: 10px 10px 10px 10px;
-}
-
 /** titlecontainer ADDED*/
 QDialog#SettingsMinting QFrame#titlecontainer {
     border:none;
@@ -3070,13 +3063,6 @@ QDialog#SettingsMinting QLabel#label {
 /** line */
 QDialog#SettingsMinting Line#line {
     background-color:#bababa;
-}
-
-/* frame_3 */
-QDialog#SettingsMinting QFrame#frame {
-    background-color: #000000;
-    border:0;
-    padding: 10px 10px 10px 10px;
 }
 
 /* frame_31 */
