@@ -48,6 +48,10 @@ extern bool fEnableDandelion;
 extern const int64_t AUTOMINT_DELAY;
 extern int nPreferredDenom;
 extern int qrColorCode;
+extern int selectedBgColorCode;
+extern int mouseOverBgColorCode;
+extern int selectedTextColorCode;
+extern int selectedDateColorCode;
 
 /** Signals for translation. */
 class CTranslationInterface

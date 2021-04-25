@@ -64,13 +64,13 @@ public:
         if (option.state & QStyle::State_Selected) {
             QRect selectedRect = option.rect;
             selectedRect.setLeft(0);
-            painter->fillRect(selectedRect, QColor("#CEDDFB"));
-            foreground = QColor("#575756");
+            painter->fillRect(selectedRect, selectedBgColorCode);
+            foreground = selectedTextColorCode;
         }else if(option.state & QStyle::State_MouseOver){
             QRect selectedRect = option.rect;
             selectedRect.setLeft(0);
-            painter->fillRect(selectedRect, QColor("#F4F4F4"));
-            foreground = QColor("#575756");
+            painter->fillRect(selectedRect, mouseOverBgColorCode);
+            foreground = selectedTextColorCode;
         } else{
             foreground = option.palette.color(QPalette::Text);
         }
@@ -177,7 +177,7 @@ public:
         painter->drawText(amountRect, Qt::AlignRight|Qt::AlignTop, amountText);
 
         // Draw the date
-        painter->setPen(QColor("#707070"));
+        painter->setPen(selectedDateColorCode);
 
         /* twice the size than the current font size */
         //font.setPointSize(14);

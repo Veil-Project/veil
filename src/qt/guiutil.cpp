@@ -85,6 +85,10 @@ QString loadStyleSheet(){
     if(fileDark.open(QFile::ReadOnly) && bDarkMode){
 		stylesheet += QLatin1String(fileDark.readAll());
 		qrColorCode = 0xf7fbfe;
+		selectedBgColorCode = 0xf7fbfe;
+		mouseOverBgColorCode = 0xbababa;
+		selectedTextColorCode = 0x000000;
+		selectedDateColorCode = 0x707070;
 	}
     return stylesheet;
 }
@@ -135,6 +139,7 @@ void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent)
     //widget->setFont(fixedPitchFont());
     // We don't want translators to use own addresses in translations
     // and this is the only place, where this address is supplied.
+
     widget->setPlaceholderText(QObject::tr("Enter a Veil stealth address (e.g. %1)").arg(
         QString::fromStdString(DummyAddress(Params()))));
     widget->setValidator(new BitcoinAddressEntryValidator(parent));

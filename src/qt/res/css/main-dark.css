@@ -8,6 +8,7 @@ veil dark base -> #080B2E
 veil dark light -> #F7FBFE
 veil dark light blue -> #4273B9
 pop-up background -> #c5c8cb
+pop-up dark gray text -> #575756
 text color -> #bababa
 */
 
@@ -560,8 +561,8 @@ ModalOverlay#ModalOverlay QWidget#bgWidget {
 
 /* frame */
 ModalOverlay#ModalOverlay QFrame#frame {
-    background: rgba(255,255,255,240);
-    background-color:#000000;
+    background: #c5c8cb;
+    background-color:#c5c8cb;
     border-radius: 6px; 
     border:none;
 }
@@ -579,7 +580,7 @@ ModalOverlay#ModalOverlay QFrame#frame_icon {
 
 /** contentWidget */
 ModalOverlay#ModalOverlay QWidget#contentWidget {
-    background: rgba(255,255,255,240); 
+    background: #c5c8cb; 
     padding:0px;
     margin:0px;
     border:none;
@@ -588,7 +589,7 @@ ModalOverlay#ModalOverlay QWidget#contentWidget {
 }
 
 ModalOverlay#ModalOverlay QLabel {
-    color: #bababa;
+    color: #000000;
 }
 
 /** infoText */
@@ -606,10 +607,16 @@ ModalOverlay#ModalOverlay QFrame#frame_2 {
     border:none;
 }
 
-/** progressBar */
+/** progressBar css to make it hidden*/
 ModalOverlay#ModalOverlay QProgressBar#progressBar {
     border:none;
-    background-color:#000000;
+    background-color: transparent;
+}
+
+/** ADDED to make progressBar hidden*/
+ModalOverlay#ModalOverlay QProgressBar#progressBar::chunk {
+    border:none;
+    background-color: transparent;
 }
 
 /** closeButton */
@@ -880,7 +887,17 @@ QWidget#OverviewPage QLabel#title {
 QWidget#OverviewPage QComboBox#comboFilter {
     margin-right:6px;
     color: #bababa;
-    background: #000000;
+    background-color: transparent;
+}
+
+QWidget#OverviewPage QComboBox#comboFilter::down-arrow {
+    image:url(":/icons/ic-arrow-down") ;
+    width: 14px;
+    height: 14px;
+}
+
+QWidget#OverviewPage QComboBox#comboFilter::drop-down:button {
+    border: none;
 }
 
 /** comboSort */
@@ -888,6 +905,10 @@ QWidget#OverviewPage QComboBox#comboSort {
     margin-right:6px;
     color: #bababa;
     background: #000000;
+}
+
+QWidget#OverviewPage QComboBox#comboSort::drop-down:button {
+    border: none;
 }
 
 /** containerEmpty */
@@ -1084,8 +1105,8 @@ QDialog#SendCoinsDialog QToolTip {
 QDialog#SendCoinsDialog QPushButton {
     border-radius: 6px;
     border:  1px solid #bababa;
-    background-color:#ffffff;
-    color: #bababa;
+    background-color:#f7fbfe;
+    color: #000000;
     font-size: 14px;
     padding:8;
     text-align:center !important;
@@ -1098,8 +1119,8 @@ QDialog#SendCoinsDialog QPushButton:checked {
 }
 
 QDialog#SendCoinsDialog QPushButton:hover {
-    border:  1px solid #bababa;
-    background-color:#bababa;
+    border:  1px solid #4070d3;
+    background-color:#4070d3;
     color: #FFFFFF;
 }
 
@@ -1110,58 +1131,58 @@ QDialog#SendCoinsDialog QPushButton:unchecked {
 }
 
 /** addButton */
-QDialog#SendCoinsDialog QPushButton {
+QDialog#SendCoinsDialog QPushButton#addButton {
     border-radius: 6px;
     border:  1px solid #bababa;
-    background-color:#ffffff;
-    color: #bababa;
+    background-color:#f7fbfe;
+    color: #000000;
     font-size: 14px;
     padding:8;
     text-align:center !important;
 }
 
-QDialog#SendCoinsDialog QPushButton:checked {
+QDialog#SendCoinsDialog QPushButton#addButton:checked {
     border:  1px solid #105aef;
     background-color:#105aef;
     color: #FFFFFF;
 }
 
-QDialog#SendCoinsDialog QPushButton:hover {
-    border:  1px solid #bababa;
-    background-color:#bababa;
+QDialog#SendCoinsDialog QPushButton#addButton:hover {
+    border:  1px solid #4070d3;
+    background-color:#4070d3;
     color: #FFFFFF;
 }
 
-QDialog#SendCoinsDialog QPushButton:unchecked {
+QDialog#SendCoinsDialog QPushButton#addButton:unchecked {
     border:  1px solid #bababa;
     background-color:#ffffff;
     color: #bababa;
 }
 
 /** pushButtonCoinControl */
-QDialog#SendCoinsDialog QPushButton {
+QDialog#SendCoinsDialog QPushButton#pushButtonCoinControl {
     border-radius: 6px;
     border:  1px solid #bababa;
-    background-color:#ffffff;
-    color: #bababa;
+    background-color:#f7fbfe;
+    color: #000000;
     font-size: 14px;
     padding:8;
     text-align:center !important;
 }
 
-QDialog#SendCoinsDialog QPushButton:checked {
+QDialog#SendCoinsDialog QPushButton#pushButtonCoinControl:checked {
     border:  1px solid #105aef;
     background-color:#105aef;
     color: #FFFFFF;
 }
 
-QDialog#SendCoinsDialog QPushButton:hover {
-    border:  1px solid #bababa;
-    background-color:#bababa;
+QDialog#SendCoinsDialog QPushButton#pushButtonCoinControl:hover {
+    border:  1px solid #4070d3;
+    background-color:#4070d3;
     color: #FFFFFF;
 }
 
-QDialog#SendCoinsDialog QPushButton:unchecked {
+QDialog#SendCoinsDialog QPushButton#pushButtonCoinControl:unchecked {
     border:  1px solid #bababa;
     background-color:#ffffff;
     color: #bababa;
@@ -1170,8 +1191,8 @@ QDialog#SendCoinsDialog QPushButton:unchecked {
 /** sendButton */
 QDialog#SendCoinsDialog QPushButton#sendButton {
     border-radius: 6px;
-    border:  1px solid #105aef;
-    color: #105aef;
+    border:  1px solid #bababa;
+    color: #000000;
     font-size: 16px;
     padding:10 50 10 50;
 }
@@ -1665,12 +1686,13 @@ QWidget#Balance QLabel#labelQr {
 QWidget#Balance QFrame#horiz{
     padding-left:5px;
     padding-right:5px;
+    background-color: transparent;
 }
 
 /** labelReceive */
 QWidget#Balance QLabel#labelReceive {
     background-color: transparent;
-    color: #004377;
+    color: #105aef;
 }
 
 /** copyAddress */
