@@ -642,14 +642,14 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** windowTitle */
 QDialog#OptionsDialog {
-    background-color:#000000;
+    background-color:#f7fbfe;
     border:none;
 }
 
 /** tabMain */
 QDialog#OptionsDialog QWidget#tabMain {
     padding-top:6px;
-    background-color:transparent;
+    background-color:#f7fbfe;
 }
 
 /* frame_2 */
@@ -677,6 +677,7 @@ QDialog#OptionsDialog QSpinBox#threadsScriptVerif {
 /** tabWallet */
 QDialog#OptionsDialog QWidget#tabWallet {
     padding-top:6px;
+    background-color:#f7fbfe;
 }
 
 /* frame_3*/
@@ -694,6 +695,7 @@ QDialog#OptionsDialog QGroupBox#groupBox {
 /** tabNetwork*/
 QDialog#OptionsDialog QWidget#tabNetwork {
     padding-top:6px;
+    background-color:#f7fbfe;
 }
 
 /* frame_5*/
@@ -711,6 +713,7 @@ QDialog#OptionsDialog QFrame#frame_4 {
 /** tabWindow */
 QDialog#OptionsDialog QWidget#tabWindow {
     padding-top:6px;
+    background-color:#f7fbfe;
 }
 
 /* frame_6*/
@@ -729,6 +732,7 @@ QDialog#OptionsDialog QFrame#frame_9 {
 /** tabDisplay */
 QDialog#OptionsDialog QWidget#tabDisplay {
     padding-top:6px;
+    background-color:#f7fbfe;
 }
 
 /** #frame_8 */
