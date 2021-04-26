@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Send veil</string>
+   <string>Send Veil</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_3">
    <property name="spacing">
@@ -46,7 +46,7 @@
         <item>
          <widget class="QLabel" name="title">
           <property name="text">
-           <string>Send veil</string>
+           <string>Send Veil</string>
           </property>
          </widget>
         </item>
