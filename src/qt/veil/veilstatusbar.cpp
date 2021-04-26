@@ -119,27 +119,41 @@ void VeilStatusBar::onCheckStakingClicked(bool res) {
 
     // Miner thread starts in init.cpp, but staking enabled flag is checked each iteration of the miner, so can be enabled or disabled here
     WalletModel::EncryptionStatus lockState = walletModel->getEncryptionStatus();
-    if (res){
-        if (gArgs.GetBoolArg("-exchangesandservicesmode", false) || lockState == WalletModel::Locked) {
-            QString dialogMsg = gArgs.GetBoolArg("-exchangesandservicesmode", false) ? "Staking is disabled in exchange mode" : "Must unlock wallet before staking can be enabled";
-            openToastDialog(dialogMsg, mainWindow);
-            fBlockNextStakeCheckSignal = true;
-            ui->checkStaking->setChecked(false);
-            setStakingText();
-            return;
-        }else{
-            this->walletModel->setStakingEnabled(true);
-            mainWindow->updateWalletStatus();
-            openToastDialog("Staking enabled", mainWindow);
-            setStakingText();
-        }
-    } else {
-        this->walletModel->setStakingEnabled(false);
-        mainWindow->updateWalletStatus();
-        openToastDialog("Staking disabled - this may take a few minutes", mainWindow);
-        setStakingText();
-    }
 
+	if (gArgs.GetBoolArg("-exchangesandservicesmode", false)) {
+		QString dialogMsg = "Staking is disabled in exchange mode";
+		openToastDialog(dialogMsg, mainWindow);
+		fBlockNextStakeCheckSignal = true;
+		ui->checkStaking->setChecked(false);
+		setStakingText();
+		return;
+	} else if (lockState == WalletModel::Locked) {
+		QString dialogMsg = "Must unlock wallet before staking can be enabled";
+		openToastDialog(dialogMsg, mainWindow);
+		fBlockNextStakeCheckSignal = true;
+		ui->checkStaking->setChecked(false);
+		setStakingText();
+
+		mainWindow->showHide(true);
+		UnlockPasswordDialog *dialog = new UnlockPasswordDialog(/*fUnlockForStakingOnly*/true, this->walletModel, mainWindow);
+		if(openDialogWithOpaqueBackground(dialog, mainWindow, 4)){
+			openToastDialog("Wallet unlocked for staking", mainWindow);
+		}else{
+			openToastDialog("Wallet not unlocked for staking", mainWindow);
+		}
+	}else{
+		if(!this->walletModel->isStakingEnabled()){
+			this->walletModel->setStakingEnabled(true);
+			mainWindow->updateWalletStatus();
+			openToastDialog("Enabling staking - this may take a few minutes", mainWindow);
+			setStakingText();
+		}else {
+			this->walletModel->setStakingEnabled(false);
+			mainWindow->updateWalletStatus();
+			openToastDialog("Disabling staking - this may take a few minutes", mainWindow);
+			setStakingText();
+		}
+	}
 }
 
 bool fBlockNextBtnLockSignal = false;
