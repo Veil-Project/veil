@@ -74,13 +74,13 @@ public:
         if (option.state & QStyle::State_Selected) {
             QRect selectedRect = option.rect;
             selectedRect.setLeft(0);
-            painter->fillRect(selectedRect, QColor("#CEDDFB"));
-            foreground = QColor("#575756");
+            painter->fillRect(selectedRect, selectedBgColorCode);
+            foreground = selectedTextColorCode;
         }else if(option.state & QStyle::State_MouseOver){
             QRect selectedRect = option.rect;
             selectedRect.setLeft(0);
-            painter->fillRect(selectedRect, QColor("#F4F4F4"));
-            foreground = QColor("#575756");
+            painter->fillRect(selectedRect, mouseOverBgColorCode);
+            foreground = selectedTextColorCode;
             QIcon icon(":/icons/ic-menu-png");
             QRect mainRect2 = option.rect;
             QRect decorationRect(mainRect2.topRight(), QSize(42, 42));
@@ -256,17 +256,25 @@ void AddressesWidget::handleAddressClicked(const QModelIndex &index){
 
     listView->setCurrentIndex(updatedIndex);
     QRect rect = listView->visualRect(index);
-    QPoint pos = rect.topRight();
-    pos.setX(pos.x() - (DECORATION_SIZE * 2));
-    pos.setY(pos.y() + (DECORATION_SIZE));
+
     const QString constType = type;
-    if(!this->menu) this->menu = new AddressesMenu(constType , updatedIndex, this, this->mainWindow, this->model);
+    if(!this->menu) this->menu = new AddressesMenu(constType , updatedIndex, mainWindow->getGUI(), this->mainWindow, this->model);
     else {
-        this->menu->hide();
         this->menu->setInitData(updatedIndex, this->model, constType);
     }
+
+    QPoint pos = mainWindow->getGUI()->mapFromGlobal(QCursor::pos());
+
+	if(pos.x()+menu->width()>mainWindow->getGUI()->width()){
+		pos.setX(pos.x() - menu->width());
+	}
+	if(pos.y()+menu->height()>mainWindow->getGUI()->height()){
+		pos.setY(pos.y() - menu->height());
+	}
+
     menu->move(pos);
     menu->show();
+    menu->raise();
 }
 
 void AddressesWidget::initAddressesView(){
