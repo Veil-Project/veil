@@ -1934,6 +1934,17 @@ bool AppInitMain()
         // Link thread groups
         LinkAutoSpendThreadGroup(&threadGroupAutoSpend);
 
+        // Validate wallet mining address.
+        std::string sAddress = gArgs.GetArg("-miningaddress", "");
+        if (!sAddress.empty()) {
+            CTxDestination dest = DecodeDestination(sAddress);
+
+            auto pt = GetMainWallet();
+            if (pt && pt->IsMine(dest) != ISMINE_SPENDABLE) {
+                return InitError(strprintf(_("Invalid -miningaddress: '%s' not owned by wallet"), sAddress));
+            }
+        }
+
         // Start wallet CPU mining if the -gen=<n> parameter is given
         int nThreads = gArgs.GetArg("-gen", 0);
         if (nThreads) {

@@ -1221,6 +1221,7 @@ public:
 
     const std::string& GetLabelName(const CScript& scriptPubKey) const;
 
+    void GetScriptForMiningReserveKey(std::shared_ptr<CReserveScript> &script);
     void GetScriptForMining(std::shared_ptr<CReserveScript> &script);
 
     unsigned int GetKeyPoolSize() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet)
