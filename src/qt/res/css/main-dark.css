@@ -8,6 +8,7 @@ veil dark base -> #080B2E
 veil dark base lighter -> #0d124d
 veil dark light -> #F7FBFE
 veil dark light blue -> #4273B9
+veil blue header text -> #105aef;
 pop-up background -> #f7fbfe
 pop-up dark gray text -> #575756
 text color -> #bababa
@@ -235,6 +236,7 @@ QWidget#AddressBookPage QPushButton:hover {
     border:  1px solid #4070d3;
 }
 
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       askpassphrasedialog.ui
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
@@ -244,6 +246,7 @@ QWidget#AskPassphraseDialog QFrame#frame {
     background-color:#000000;
     border-radius:20px;
     padding:10px;
+    border: 2px solid #f7fbfe;
 }
 
 /** warningLabel */
@@ -260,6 +263,11 @@ QWidget#AskPassphraseDialog QLabel#passLabel1 {
     color:#105AEF;
 }
 
+/** passEdit1 */
+QWidget#AskPassphraseDialog QLineEdit#passEdit1 {
+    background-color:#000000;
+}
+
 /** passLabel2 */
 QWidget#AskPassphraseDialog QLabel#passLabel2 {
     padding:0px;
@@ -268,12 +276,22 @@ QWidget#AskPassphraseDialog QLabel#passLabel2 {
     color:#105AEF;
 }
 
+/** passEdit2 */
+QWidget#AskPassphraseDialog QLineEdit#passEdit2 {
+    background-color:#000000;
+}
+
 /** passLabel3 */
 QWidget#AskPassphraseDialog QLabel#passLabel3 {
     padding:0px;
     margin:0px;
     margin-left:6px;
     color:#105AEF;
+}
+
+/** passEdit3 */
+QWidget#AskPassphraseDialog QLineEdit#passEdit3 {
+    background-color:#000000;
 }
 
 /** toggleShowPasswordButton */
@@ -300,82 +318,82 @@ QDialog#CoinControlDialog {
 
 /* frame_2 */
 QDialog#CoinControlDialog QFrame#frame_2 {
-    background-color:#000000;
+    background-color:white;
     border-radius:20px;
     padding: 12px;
 }
 
 /** labelCoinControlQuantityText */
 QDialog#CoinControlDialog QLabel#labelCoinControlQuantityText {
-    color:#bababa;
+    color:#707070;
 }
 
 /** labelCoinControlQuantity */
 QDialog#CoinControlDialog QLabel#labelCoinControlQuantity {
-    color:#bababa;
+    color:#707070;
 }
 
 /** labelCoinControlBytesText */
 QDialog#CoinControlDialog QLabel#labelCoinControlBytesText {
-    color:#bababa;
+    color:#707070;
 }
 
 /** labelCoinControlBytes */
 QDialog#CoinControlDialog QLabel#labelCoinControlBytes {
-    color:#bababa;
+    color:#707070;
 }
 
 /** labelCoinControlAmountText */
 QDialog#CoinControlDialog QLabel#labelCoinControlAmountText {
-    color:#bababa;
+    color:#707070;
 }
 
 /** labelCoinControlAmount */
 QDialog#CoinControlDialog QLabel#labelCoinControlAmount {
-    color:#bababa;
+    color:#707070;
 }
 
 /** labelCoinControlFeeText */
 QDialog#CoinControlDialog#labelCoinControlFeeText {
-    color:#bababa;
+    color:#707070;
 }
 
 /** labelCoinControlFee */
 QDialog#CoinControlDialog QLabel#labelCoinControlFee {
-    color:#bababa;
+    color:#707070;
 }
 
 /** labelCoinControlAfterFeeText */
 QDialog#CoinControlDialog QLabel#labelCoinControlAfterFeeText {
-    color:#bababa;
+    color:#707070;
 }
 
 /** labelCoinControlAfterFee */
 QDialog#CoinControlDialog QLabel#labelCoinControlAfterFee {
-    color:#bababa;
+    color:#707070;
 }
 
 /** labelCoinControlChangeText */
 QDialog#CoinControlDialog QLabel#labelCoinControlChangeText {
-    color:#bababa;
+    color:#707070;
 }
 
 /** labelCoinControlChange */
 QDialog#CoinControlDialog QLabel#labelCoinControlChange {
-    color:#bababa;
+    color:#707070;
 }
 
 /* frame */
 QDialog#CoinControlDialog QFrame#frame {
-    background-color:#000000;
-    color:#bababa;
+    background-color:white;
+    color:#707070;
     font-size:13.5px;
 }
 
 /** treeWidget */
 QDialog#CoinControlDialog CoinControlTreeWidget#treeWidget {
-    background-color:#000000;
-    color:#bababa;
+    background-color:white;
+    color:#707070;
     font-size:13.5px;
     alternate-background-color:#7fb3d2;
 }
@@ -1412,30 +1430,42 @@ QWidget#AddressesMenu QFrame#frame {
 }
 
 /** btnCopy */
-QWidget#AddressesMenu QPushButton{
-	padding-left:6px;
+QWidget#AddressesMenu QPushButton#btnCopy{
+    background-color:transparent;
+    border:none;
+    color:#bababa;
+    font-size:12px;
+    padding-left:6px;
 }
 
-QWidget#AddressesMenu QPushButton::hover{
-	color:#000000;
+QWidget#AddressesMenu QPushButton#btnCopy::hover{
+    color:#105aef;
 }
 
 /** btnEdit */
-QWidget#AddressesMenu QPushButton{
-	padding-left:6px;
+QWidget#AddressesMenu QPushButton#btnEdit{
+    background-color:transparent;
+    border:none;
+    color:#bababa;
+    font-size:12px;
+    padding-left:6px;
 }
 
-QWidget#AddressesMenu QPushButton::hover{
-	color:#000000;
+QWidget#AddressesMenu QPushButton#btnEdit::hover{
+    color:#105aef;
 }
 
 /** btnDelete */
-QWidget#AddressesMenu QPushButton{
-	padding-left:6px;
+QWidget#AddressesMenu QPushButton#btnDelete{
+    background-color:transparent;
+    border:none;
+    color:#bababa;
+    font-size:12px;
+    padding-left:6px;
 }
 
-QWidget#AddressesMenu QPushButton::hover{
-	color:#000000;
+QWidget#AddressesMenu QPushButton#btnDelete::hover{
+    color:#105aef;
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
@@ -4306,9 +4336,10 @@ QDialog#UnlockPasswordDialog QFrame#frame {
 
 /* frame_2 */
 QDialog#UnlockPasswordDialog QFrame#frame_2 {
-    background-color: #f7fbfe;
+    background-color: #000000;
     padding: 10px 10px 10px 10px;
     border-radius:20px;
+    border: 2px solid #f7fbfe;
 }
 
 /** labelDescription*/
@@ -4319,6 +4350,7 @@ QDialog#UnlockPasswordDialog QLabel#labelDescription {
 
 /** editPassword */
 QDialog#UnlockPasswordDialog QLineEdit#editPassword {
+    background-color: #000000;
     padding:8;
     border:0;
     border-bottom:1px solid #bababa;

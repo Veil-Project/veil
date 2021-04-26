@@ -2014,30 +2014,42 @@ QWidget#AddressesMenu QFrame#frame {
 }
 
 /** btnCopy */
-QWidget#AddressesMenu QPushButton{
-	padding-left:6px;
+QWidget#AddressesMenu QPushButton#btnCopy{
+    background-color:transparent;
+    border:none;
+    color:#bababa;
+    font-size:12px;
+    padding-left:6px;
 }
 
-QWidget#AddressesMenu QPushButton::hover{
-	color:black;
+QWidget#AddressesMenu QPushButton#btnCopy::hover{
+    color:black;
 }
 
 /** btnEdit */
-QWidget#AddressesMenu QPushButton{
-	padding-left:6px;
+QWidget#AddressesMenu QPushButton#btnEdit{
+    background-color:transparent;
+    border:none;
+    color:#bababa;
+    font-size:12px;
+    padding-left:6px;
 }
 
-QWidget#AddressesMenu QPushButton::hover{
-	color:black;
+QWidget#AddressesMenu QPushButton#btnEdit::hover{
+    color:black;
 }
 
 /** btnDelete */
-QWidget#AddressesMenu QPushButton{
-	padding-left:6px;
+QWidget#AddressesMenu QPushButton#btnDelete{
+    background-color:transparent;
+    border:none;
+    color:#bababa;
+    font-size:12px;
+    padding-left:6px;
 }
 
-QWidget#AddressesMenu QPushButton::hover{
-	color:black;
+QWidget#AddressesMenu QPushButton#btnDelete::hover{
+    color:black;
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
