@@ -47,7 +47,7 @@
          </size>
         </property>
         <property name="text">
-         <string>Edit address label</string>
+         <string>Edit Address Label</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>

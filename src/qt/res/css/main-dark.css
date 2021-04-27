@@ -4379,6 +4379,22 @@ QDialog#UpdateAddress QFrame#frame {
     background-color: #000000;
     padding: 10px 10px 10px 10px;
     border-radius: 20px;
+    border: 2px solid #f7fbfe;
+}
+
+/* ADDED labelTitle*/
+QDialog#UpdateAddress QLabel#labelTitle {
+    background-color: #000000;
+}
+
+/* ADDED label*/
+QDialog#UpdateAddress QLabel#label {
+    background-color: #000000;
+}
+
+/* ADDED editLabel*/
+QDialog#UpdateAddress QLineEdit#editLabel {
+    background-color: #000000;
 }
 
 /** errorMessage */
