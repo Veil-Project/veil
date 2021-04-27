@@ -2919,7 +2919,9 @@ QWidget#SettingsFaq03 {
 
 /** label2 */
 QWidget#SettingsFaq03 QLabel#label2 {
+    font-size:16px;
     font-weight:200;
+    color:#bababa;
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
@@ -3010,6 +3012,7 @@ QWidget#SettingsFaq09 {
 /** label */
 QWidget#SettingsFaq09 QLabel#label {
     font-weight:200;
+    color:#bababa;
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
