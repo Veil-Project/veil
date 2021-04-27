@@ -79,10 +79,12 @@ QString loadStyleSheet(){
        	stylesheet += QLatin1String(file.readAll());
     }
 
-    QSettings settings;
-    bool bDarkMode = settings.value("bDarkMode", false).toBool();
+    if (isDarkModeSet == 0){
+    	 QSettings settings;
+    	 isDarkModeSet = settings.value("bDarkMode", false).toBool();
+    }
 
-    if(fileDark.open(QFile::ReadOnly) && bDarkMode){
+    if(fileDark.open(QFile::ReadOnly) && isDarkModeSet){
 		stylesheet += QLatin1String(fileDark.readAll());
 		qrColorCode = 0xf7fbfe;
 		selectedBgColorCode = 0xf7fbfe;
