@@ -3726,12 +3726,12 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** TooltipBalance */
 QWidget#TooltipBalance {
-    background-color:transparent
+    background-color:#000000;
 }
 
 /* frame */
 QWidget#TooltipBalance QFrame#frame {
-    background-color:#ffffff;
+    background-color:#000000;
     border-radius:14px;
     border:1px solid #bababa;
 }
