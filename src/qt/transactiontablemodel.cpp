@@ -470,29 +470,27 @@ QString TransactionTableModel::formatTxToAddress(const TransactionRecord *wtx, b
 QVariant TransactionTableModel::addressColor(const TransactionRecord *wtx) const
 {
     // Show addresses without label in a less visible color
-	if(!isDarkModeSet){
-        switch(wtx->type)
+    switch(wtx->type)
+    {
+    case TransactionRecord::RecvWithAddress:
+    case TransactionRecord::SendToAddress:
+    case TransactionRecord::Generated:
+    case TransactionRecord::CTRecvWithAddress:
+    case TransactionRecord::CTSendToAddress:
+    case TransactionRecord::CTGenerated:
+    case TransactionRecord::RingCTRecvWithAddress:
+    case TransactionRecord::RingCTSendToAddress:
+    case TransactionRecord::RingCTGenerated:
         {
-        case TransactionRecord::RecvWithAddress:
-        case TransactionRecord::SendToAddress:
-        case TransactionRecord::Generated:
-        case TransactionRecord::CTRecvWithAddress:
-        case TransactionRecord::CTSendToAddress:
-        case TransactionRecord::CTGenerated:
-        case TransactionRecord::RingCTRecvWithAddress:
-        case TransactionRecord::RingCTSendToAddress:
-        case TransactionRecord::RingCTGenerated:
-            {
-            QString label = walletModel->getAddressTableModel()->labelForAddress(QString::fromStdString(wtx->address));
-            if(label.isEmpty())
-                return COLOR_BAREADDRESS;
-            } break;
-        case TransactionRecord::SendToSelf:
+        QString label = walletModel->getAddressTableModel()->labelForAddress(QString::fromStdString(wtx->address));
+        if(label.isEmpty())
             return COLOR_BAREADDRESS;
-        default:
-			break;
-        }
-	}
+        } break;
+    case TransactionRecord::SendToSelf:
+        return COLOR_BAREADDRESS;
+    default:
+        break;
+    }
     return QVariant();
 }
 
