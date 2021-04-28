@@ -246,7 +246,7 @@ QWidget#AskPassphraseDialog QFrame#frame {
     background-color:#000000;
     border-radius:20px;
     padding:10px;
-    border: 2px solid #f7fbfe;
+    border: 2px solid #bababa;
 }
 
 /** warningLabel */
@@ -3055,7 +3055,7 @@ QDialog#SettingsMinting QFrame#frame{
     background-color: #000000;
     padding: 10px 10px 10px 10px;
     border-radius:20px;
-    border: 2px solid #f7fbfe;
+    border: 2px solid #bababa;
 }
 
 /* frame_1 */
@@ -3793,7 +3793,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** default text color */
 QWidget#TransactionDetailDialog QLabel{
-    color:#f7fbfe;
+    color:#bababa;
 }
 
 /** frame */
@@ -3801,7 +3801,7 @@ QWidget#TransactionDetailDialog QFrame#frame{
     background-color: #000000;
     padding: 10px 10px 10px 10px;
     border-radius:20px;
-    border: 2px solid #f7fbfe;
+    border: 2px solid #bababa;
 }
 
 /** title */
@@ -4342,7 +4342,7 @@ QDialog#UnlockPasswordDialog QFrame#frame_2 {
     background-color: #000000;
     padding: 10px 10px 10px 10px;
     border-radius:20px;
-    border: 2px solid #f7fbfe;
+    border: 2px solid #bababa;
 }
 
 /** labelDescription*/
@@ -4379,7 +4379,7 @@ QDialog#UpdateAddress QFrame#frame {
     background-color: #000000;
     padding: 10px 10px 10px 10px;
     border-radius: 20px;
-    border: 2px solid #f7fbfe;
+    border: 2px solid #bababa;
 }
 
 /* ADDED labelTitle*/
