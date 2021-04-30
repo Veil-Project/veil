@@ -12,11 +12,27 @@
 #include "veil/zerocoin/zchain.h"
 #include "primitives/zerocoin.h"
 #include "shutdown.h"
+#include "veil/lru_cache.h"
+
+#include <utility>
 
 using namespace libzerocoin;
 
+// This is only used to store pair<hash, denom> in a map, so the cheap hash is fine.
+struct ChecksumHeightHash
+{
+    std::size_t operator()(const std::pair<uint256, CoinDenomination> p) const
+    {
+        // convert CoinDenomination to int to use std::hash<int> (for mac compatibility)
+        return p.first.GetCheapHash() ^ std::hash<int>()(p.second);
+    }
+};
+
 std::map<uint256, CBigNum> mapAccumulatorValues;
 std::list<uint256> listAccCheckpointsNoDB;
+// This needs to be able to contain a reasonable number of distinct (accumulator hash, denom) pairs
+// that could occur in a block or it may not be effective.
+static veil::SimpleLRUCache<std::pair<uint256, CoinDenomination>, int, ChecksumHeightHash> cacheChecksumHeights(1024);
 
 uint256 GetChecksum(const CBigNum &bnValue)
 {
@@ -28,20 +44,34 @@ uint256 GetChecksum(const CBigNum &bnValue)
 // Find the first occurrence of a certain accumulator checksum. Return 0 if not found.
 int GetChecksumHeight(uint256 hashChecksum, CoinDenomination denomination)
 {
+    int height = 0;
+    std::pair<uint256, CoinDenomination> p(hashChecksum, denomination);
+    if (cacheChecksumHeights.get(p, height) && height > 0) {
+        // Verify that the block in question is in the main chain still
+        CBlockIndex* pindex = chainActive[height];
+        if (pindex && pindex->GetAccumulatorHash(denomination) == hashChecksum)
+            return height;
+
+        // fall through to search and re-insert if possible
+    }
     CBlockIndex* pindex = chainActive[0];
     if (!pindex)
         return 0;
 
     //Search through blocks to find the checksum
     while (pindex) {
+        height = pindex->nHeight;
         if (pindex->GetAccumulatorHash(denomination) == hashChecksum)
-            return pindex->nHeight;
+        {
+            cacheChecksumHeights.set(p, height);
+            return height;
+        }
 
         //Skip forward in groups of 10 blocks since checkpoints only change every 10 blocks
-        if (pindex->nHeight % 10 == 0) {
-            if (pindex->nHeight + 10 > chainActive.Height())
-                return 0;
-            pindex = chainActive[pindex->nHeight + 10];
+        if (height % 10 == 0) {
+            if (height + 10 > chainActive.Height())
+                break;
+            pindex = chainActive[height + 10];
             continue;
         }
 
