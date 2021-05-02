@@ -973,6 +973,13 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             IncrementExtraNonce(pblock, chainActive.Height(), nExtraNonce);
 
             int nTries = 0;
+            bool success = false;
+            // As SHA runs much faster than the other algorithms, run more of them in this section
+            // to avoid lock contention from creating block templates. Use a separate counter
+            // nMidLoopCount to keep track of this, so that we can check every nInnerLoopCount hashes
+            // if the block is done.
+            int nMidTries = 0;
+            static const int nMidLoopCount = 0x1000;
             if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
                 uint256 mix_hash;
                 while (nTries < nInnerLoopCount &&
@@ -983,14 +990,25 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     ++pblock->nNonce64;
                 }
                 pblock->mixHash = mix_hash;
+                success = nTries != nInnerLoopCount;
             } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
                 uint256 midStateHash = pblock->GetSha256dMidstate();
-                while (nTries < nInnerLoopCount &&
-                       !CheckProofOfWork(pblock->GetSha256D(midStateHash), pblock->nBits,
-                                         Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK)) {
-                    boost::this_thread::interruption_point();
-                    ++nTries;
-                    ++pblock->nNonce64;
+                // Exit loop when nMidLoopCount loops are done, or when a new block is found.
+                // Either way, success will be false.
+                while (nMidTries < nMidLoopCount && chainActive.Height() < pblock->nHeight) {
+                    while (nTries < nInnerLoopCount &&
+                           !CheckProofOfWork(pblock->GetSha256D(midStateHash), pblock->nBits,
+                                             Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK)) {
+                        boost::this_thread::interruption_point();
+                        ++nTries;
+                        ++pblock->nNonce64;
+                    }
+                    if (nTries != nInnerLoopCount) {
+                        success = true;
+                        break;
+                    }
+                    ++nMidTries;
+                    nTries = 0;
                 }
             } else if (pblock->nTime < Params().PowUpdateTimestamp()) {
                 while (nTries < nInnerLoopCount &&
@@ -999,6 +1017,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     ++nTries;
                     ++pblock->nNonce;
                 }
+                success = nTries != nInnerLoopCount;
             } else {
                 LogPrintf("%s: Unknown hashing algorithm found!\n", __func__);
                 return;
@@ -1007,14 +1026,14 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             double nHashSpeed = 0;
             {
                 LOCK(cs_nonce);
-                nHashes += nTries;
+                nHashes += nTries + (nMidTries * nInnerLoopCount);
                 nTimeDuration = GetTime() - nTimeStart;
                 if (!nTimeDuration) nTimeDuration = 1;
                 nHashSpeed = arith_uint256(nHashes/1000/nTimeDuration).getdouble();
             }
 
             LogPrint(BCLog::MINING, "%s: PoW Hashspeed %d kh/s\n", __func__,  nHashSpeed);
-            if (nTries == nInnerLoopCount) {
+            if (!success) {
                 continue;
             }
         }
@@ -1024,6 +1043,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             LogPrint(BCLog::MINING, "%s: Failed to process new block\n", __func__);
             continue;
         }
+        LogPrint(BCLog::MINING, "%s: Found block\n", __func__);
 
         if (!fProofOfStake)
             coinbaseScript->KeepScript();
