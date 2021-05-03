@@ -192,6 +192,7 @@ BITCOIN_CORE_H = \
   veil/dandelioninventory.h \
   veil/invalid.h \
   veil/invalid_list.h \
+  veil/lru_cache.h \
   veil/proofoffullnode/proofoffullnode.h \
   veil/proofofstake/kernel.h \
   veil/proofofstake/blockvalidation.h \
