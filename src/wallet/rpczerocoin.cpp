@@ -151,20 +151,20 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
 
     if (request.fHelp || params.size() < 1 || params.size() > 3)
         throw std::runtime_error(
-                "mintzerocoin amount ( utxos )\n"
+                "mintzerocoin amount ( allowbasecoin utxos )\n"
                 "\nMint the specified zerocoin amount\n"
                 "\nArguments:\n"
-                "1. amount      (numeric, required) Enter an amount of veil to convert to zerocoin\n"
+                "1. amount        (numeric, required) Enter an amount of veil to convert to zerocoin\n"
                 "2. allowbasecoin (bool, optional) Whether to allow transparent, non-private, coins to be included (WARNING: "
                 "setting to true will result in loss of privacy and can reveal information about your wallet to the public!!\n"
-                "3. utxos       (string, optional) A json array of objects.\n"
+                "3. utxos         (string, optional) A json array of objects.\n"
                 "                   Each object needs the txid (string) and vout (numeric)\n"
                 "  [\n"
                 "    {\n"
                 "      \"txid\":\"txid\",    (string) The transaction id\n"
                 "      \"vout\": n         (numeric) The output number\n"
-                "    }\n"
-                "    ,...\n"
+                "    },\n"
+                "    ...\n"
                 "  ]\n"
 
                 "\nResult:\n"
@@ -172,34 +172,33 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
                 "  {\n"
                 "    \"txid\": \"xxx\",         (string) Transaction ID.\n"
                 "    \"value\": amount,       (numeric) Minted amount.\n"
-                "    \"pubcoin\": \"xxx\",      (string) Pubcoin in hex format.\n"
-                "    \"randomness\": \"xxx\",   (string) Hex encoded randomness.\n"
-                "    \"serial\": \"xxx\",       (string) Serial in hex format.\n"
+                "    \"serialhash\": \"xxx\",   (string) Serial number in hex format.\n"
+                "    \"pubcoinhash\": \"xxx\",  (string) Pubcoin in hex format.\n"
+                "    \"seedhash\": \"xxx\",     (string) Public master seed in hex format.\n"
+                "    \"count\": nnn           (numeric) The sequence number of the mint.\n"
                 "    \"time\": nnn            (numeric) Time to mint this transaction.\n"
-                "  }\n"
-                "  ,...\n"
-                "]\n" +
-                HelpExampleCli("mintzerocoin", "false, 50") +
+                "  },\n"
+                "  ...\n"
+                "]\n" 
+
+                "\nExamples:\n"
+                "\nMint 50 from anywhere\n" +
+                HelpExampleCli("mintzerocoin", "50") +
                 "\nMint 13 from a specific output\n" +
-                HelpExampleCli("mintzerocoin", "13 \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
+                HelpExampleCli("mintzerocoin", "13 false \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\"") +
                 "\nAs a json rpc call\n" +
-                HelpExampleRpc("mintzerocoin", "13, \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\""));
+                HelpExampleRpc("mintzerocoin", "13 false \"[{\\\"txid\\\":\\\"a08e6907dbbd3d809776dbfc5d82e371b764ed838b5655e72f463568df1aadf0\\\",\\\"vout\\\":1}]\""));
 
     LOCK2(cs_main, pwallet->cs_wallet);
     TRY_LOCK(mempool.cs, fMempoolLocked);
     if (!fMempoolLocked)
         throw JSONRPCError(RPC_INTERNAL_ERROR, "failed to lock mempool");
 
-//    if (params.size() == 1) {
-//        RPCTypeCheck(params, boost::assign::list_of(UniValue::VNUM));
-//    } else {
-//        RPCTypeCheck(params, boost::assign::list_of(UniValue::VNUM)(UniValue::VARR));
-//    }
-
     int64_t nTime = GetTimeMillis();
 
     EnsureWalletIsUnlocked(pwallet);
 
+    // parameter 1, amount.
     CAmount nAmount = params[0].get_int() * COIN;
 
     CWalletTx wtx(pwallet, nullptr);
@@ -207,6 +206,7 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
     std::string strError;
     std::vector<COutPoint> vOutpts;
 
+    // parameter 2, allowbasecoin. optional.
     bool fUseBasecoin = false;
     if (params.size() > 1)
         fUseBasecoin = params[1].get_bool();
@@ -227,6 +227,7 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
     if (inputtype == OUTPUT_NULL)
         throw JSONRPCError(RPC_WALLET_ERROR, "Insufficient Balance");
 
+    // parameter 3, utxos. optional.
     if (params.size() > 2) {
         UniValue outputs = params[2].get_array();
         for (unsigned int idx = 0; idx < outputs.size(); idx++) {
@@ -261,8 +262,8 @@ UniValue mintzerocoin(const JSONRPCRequest& request)
         UniValue m(UniValue::VOBJ);
         m.push_back(Pair("txid", wtx.tx->GetHash().GetHex()));
         m.push_back(Pair("value", ValueFromAmount(libzerocoin::ZerocoinDenominationToAmount(dMint.GetDenomination()))));
-        m.push_back(Pair("pubcoinhash", dMint.GetPubcoinHash().GetHex()));
         m.push_back(Pair("serialhash", dMint.GetSerialHash().GetHex()));
+        m.push_back(Pair("pubcoinhash", dMint.GetPubcoinHash().GetHex()));
         m.push_back(Pair("seedhash", dMint.GetSeedHash().GetHex()));
         m.push_back(Pair("count", (int64_t)dMint.GetCount()));
         m.push_back(Pair("time", GetTimeMillis() - nTime));
