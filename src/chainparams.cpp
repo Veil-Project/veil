@@ -263,6 +263,7 @@ public:
         nPowTimeStampActive = 1604163600;
 
         nHeightKIenforce = 1212090;
+        nTimeKIfork = 1621180800;
 
         int nTimeStart = 1540413025;
         uint32_t nNonce = 3492319;
@@ -456,6 +457,7 @@ public:
         nPowTimeStampActive = 1602806399; // Used by block.h for serialization
 
         nHeightKIenforce = 594157;
+        nTimeKIfork = 1621180800;
 
         int nTimeStart = 1548379385;
         uint32_t nNonce = 4234676;
@@ -628,6 +630,7 @@ public:
         nPowTimeStampActive = 1584372883; // Used by block.h for serialization
 
         nHeightKIenforce = 0;
+        nTimeKIfork = 4776508800;
 
         int nTimeStart = 1548379385;
         uint32_t nNonce = 4234676;
@@ -796,6 +799,7 @@ public:
         nPowTimeStampActive = nPowUpdateTimestamp;
 
         nHeightKIenforce = 100;
+        nTimeKIfork = 4776508800;
 
         genesis = CreateGenesisBlock(1597617372, 3962663, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();

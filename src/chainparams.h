@@ -148,6 +148,7 @@ public:
     int HeightEnforceBlacklist() const { return nHeightEnforceBlacklist; }
 
     uint32_t PowUpdateTimestamp() const { return nPowUpdateTimestamp; }
+    uint64_t KIforkTimestamp() const { return nTimeKIfork; }
     uint64_t HeightKIenforce() const { return nHeightKIenforce; }
 
     /**
@@ -230,6 +231,7 @@ protected:
 
     uint32_t nPowUpdateTimestamp;
     uint64_t nHeightKIenforce;
+    uint64_t nTimeKIfork;
 };
 
 /**
