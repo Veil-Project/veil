@@ -4527,6 +4527,7 @@ bool AnonWallet::AddStealthDestinationMeta(const CKeyID& idStealth, const CKeyID
 
 bool AnonWallet::AddKeyToParent(const CKey& keySharedSecret)
 {
+    LOCK(pwalletParent->cs_wallet);
     //Since the new key is not derived through Ext, for now keep it in CWallet keystore
     bool fSuccess = true;
     if (!pwalletParent->AddKeyPubKey(keySharedSecret, keySharedSecret.GetPubKey())) {

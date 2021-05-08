@@ -4647,6 +4647,7 @@ std::set<CTxDestination> CWallet::GetLabelAddresses(const std::string& label) co
 
 bool CReserveKey::GetReservedKey(CPubKey& pubkey, bool internal)
 {
+    LOCK(pwallet->cs_wallet);
     if (nIndex == -1)
     {
         CKeyPool keypool;
@@ -4663,14 +4664,17 @@ bool CReserveKey::GetReservedKey(CPubKey& pubkey, bool internal)
 
 void CReserveKey::KeepKey()
 {
-    if (nIndex != -1)
+    LOCK(pwallet->cs_wallet);
+    if (nIndex != -1) {
         pwallet->KeepKey(nIndex);
+    }
     nIndex = -1;
     vchPubKey = CPubKey();
 }
 
 void CReserveKey::ReturnKey()
 {
+    LOCK(pwallet->cs_wallet);
     if (nIndex != -1) {
         pwallet->ReturnKey(nIndex, fInternal, vchPubKey);
     }
