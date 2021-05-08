@@ -262,6 +262,8 @@ public:
         /// Used by block.h for serialization
         nPowTimeStampActive = 1604163600;
 
+        nHeightKIenforce = 1212090;
+
         int nTimeStart = 1540413025;
         uint32_t nNonce = 3492319;
         genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
@@ -453,6 +455,8 @@ public:
         nPowUpdateTimestamp = 1602806399; // Tuesday, 15 October 2020, 11:59:59 PM GMT
         nPowTimeStampActive = 1602806399; // Used by block.h for serialization
 
+        nHeightKIenforce = 594157;
+
         int nTimeStart = 1548379385;
         uint32_t nNonce = 4234676;
         genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
@@ -623,6 +627,8 @@ public:
         nPowUpdateTimestamp = 1584372883; // Mon Mar 16 2020 09:34:43
         nPowTimeStampActive = 1584372883; // Used by block.h for serialization
 
+        nHeightKIenforce = 0;
+
         int nTimeStart = 1548379385;
         uint32_t nNonce = 4234676;
         genesis = CreateGenesisBlock(nTimeStart, nNonce, 0x1e0ffff0, 1, 50 * COIN);
@@ -789,6 +795,8 @@ public:
         /// Used by block.h for serialization
         nPowTimeStampActive = nPowUpdateTimestamp;
 
+        nHeightKIenforce = 100;
+
         genesis = CreateGenesisBlock(1597617372, 3962663, 0x207fffff, 1, 50 * COIN);
         consensus.hashGenesisBlock = genesis.GetHash();
 //        assert(consensus.hashGenesisBlock == uint256S("0x0b229468d80839ed5162523e375f8da1d84adae0889745500625ea8a098b3f1d"));
@@ -903,6 +911,23 @@ int64_t CChainParams::GetTargetSpacing(const CBlockIndex* pindex, const int nPoW
         return consensus.nPowTargetSpacing/2; // Special case - actual block spacing
     return consensus.nPowTargetSpacing;
 }
+
+bool CChainParams::CheckKIenforced(const CBlockIndex* pindex) const
+{
+    if (pindex->nHeight >= Params().HeightKIenforce()) {
+        return true;
+    }
+    return false;
+}
+
+bool CChainParams::CheckKIenforced(int nSpendHeight) const
+{
+    if (nSpendHeight >= Params().HeightKIenforce()) {
+        return true;
+    }
+    return false;
+}
+
 
 std::unique_ptr<CChainParams> CreateChainParams(const std::string& chain)
 {

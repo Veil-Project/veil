@@ -13,6 +13,7 @@
 
 // TODO remove the following dependencies
 #include <chain.h>
+#include <chainparams.h>
 #include <coins.h>
 #include <utilmoneystr.h>
 #include <chainparams.h>
@@ -473,7 +474,11 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
                 const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
 
                 if (!state.m_setHaveKI.insert(ki).second) {
-                    return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki-tx-double");
+                    if (::Params().CheckKIenforced(nSpendHeight))
+                        return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki-tx-double");
+                    else
+                        LogPrint(BCLog::RINGCT, "%s: block=%d tx=%s spending ki: %s\n", __func__,
+                                 nSpendHeight, tx.GetHash().GetHex(), HexStr(ki).c_str());
                 }
             }
 
