@@ -301,8 +301,8 @@ public:
         nZerocoinAccount = 100000;
 
         //sv for "stealth veil" & bv for "basecoin veil"
-        bech32Prefixes[STEALTH_ADDRESS].assign("sv","sv"+2);
-        bech32Prefixes[BASE_ADDRESS].assign("bv", "bv"+2);
+        bech32Prefixes[STEALTH_ADDRESS].assign("sv",&"sv"[2]);
+        bech32Prefixes[BASE_ADDRESS].assign("bv", &"bv"[2]);
         bech32_hrp_stealth = "sv";
         bech32_hrp_base = "bv";
 
@@ -491,8 +491,8 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
-        bech32Prefixes[STEALTH_ADDRESS].assign("tps","tps"+3);
-        bech32Prefixes[BASE_ADDRESS].assign("tv", "tv"+2);
+        bech32Prefixes[STEALTH_ADDRESS].assign("tps",&"tps"[3]);
+        bech32Prefixes[BASE_ADDRESS].assign("tv", &"tv"[2]);
         nBIP44ID = 0x80000001;
         nRingCTAccount = 20000;
         nZerocoinAccount = 100000;
@@ -662,8 +662,8 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
-        bech32Prefixes[STEALTH_ADDRESS].assign("tps","tps"+3);
-        bech32Prefixes[BASE_ADDRESS].assign("tv", "tv"+2);
+        bech32Prefixes[STEALTH_ADDRESS].assign("tps",&"tps"[3]);
+        bech32Prefixes[BASE_ADDRESS].assign("tv", &"tv"[2]);
         nBIP44ID = 0x80000001;
         nRingCTAccount = 20000;
         nZerocoinAccount = 100000;
@@ -832,8 +832,8 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
-        bech32Prefixes[STEALTH_ADDRESS].assign("tps","tps"+3);
-        bech32Prefixes[BASE_ADDRESS].assign("tv", "tv"+2);
+        bech32Prefixes[STEALTH_ADDRESS].assign("tps", &"tps"[3]);
+        bech32Prefixes[BASE_ADDRESS].assign("tv", &"tv"[2]);
         nBIP44ID = 0x80000001;
         nRingCTAccount = 20000;
         nZerocoinAccount = 100000;
