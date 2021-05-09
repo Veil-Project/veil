@@ -396,7 +396,10 @@ bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator
         if (!IsBlockHashInChain(hashBlock, nHeightTest))
             return error("%s: mint tx %s is not in chain", __func__, txid.GetHex());
 
-        nHeightMintAdded = mapBlockIndex[hashBlock]->nHeight;
+        {
+            LOCK(cs_mapblockindex);
+            nHeightMintAdded = mapBlockIndex[hashBlock]->nHeight;
+        }
 
         //get the checkpoint added at the next multiple of 10
         int nHeightCheckpoint = nHeightMintAdded + (10 - (nHeightMintAdded % 10));

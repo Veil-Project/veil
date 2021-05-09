@@ -175,6 +175,7 @@ private:
 
 public:
     CChain chainActive;
+    CCriticalSection cs_mapblockindex;
     BlockMap mapBlockIndex;
     std::multimap<CBlockIndex*, CBlockIndex*> mapBlocksUnlinked;
     CBlockIndex *pindexBestInvalid = nullptr;
@@ -239,7 +240,7 @@ private:
 
 
 CCriticalSection cs_main;
-
+CCriticalSection& cs_mapblockindex = g_chainstate.cs_mapblockindex;
 BlockMap& mapBlockIndex = g_chainstate.mapBlockIndex;
 CChain& chainActive = g_chainstate.chainActive;
 CBlockIndex *pindexBestHeader = nullptr;
@@ -317,8 +318,6 @@ namespace {
 
 CBlockIndex* FindForkInGlobalIndex(const CChain& chain, const CBlockLocator& locator)
 {
-    AssertLockHeld(cs_main);
-
     // Find the latest block common to locator and chain - we expect that
     // locator.vHave is sorted descending by height.
     for (const uint256& hash : locator.vHave) {
@@ -1289,7 +1288,7 @@ bool GetTransaction(const uint256& hash, CTransactionRef& txOut, const Consensus
 
 bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight, const CBlockIndex* pindex)
 {
-    LOCK(cs_main);
+    LOCK2(cs_main, cs_mapblockindex);
 
     if (hashBlock == uint256() || !mapBlockIndex.count(hashBlock))
         return false;
@@ -1649,7 +1648,6 @@ bool CScriptCheck::operator()() {
 
 int GetSpendHeight(const CCoinsViewCache& inputs)
 {
-    LOCK(cs_main);
     CBlockIndex* pindexPrev = LookupBlockIndex(inputs.GetBestBlock());
     return pindexPrev->nHeight + 1;
 }
@@ -2283,9 +2281,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         //  relative to a piece of software is an objective fact these defaults can be easily reviewed.
         // This setting doesn't force the selection of any particular chain but makes validating some faster by
         //  effectively caching the result of part of the verification.
-        BlockMap::const_iterator  it = mapBlockIndex.find(hashAssumeValid);
-        if (it != mapBlockIndex.end()) {
-            if (it->second->GetAncestor(pindex->nHeight) == pindex &&
+        CBlockIndex* block = LookupBlockIndex(hashAssumeValid);
+        if (block != nullptr) {
+            if (block->GetAncestor(pindex->nHeight) == pindex &&
                 pindexBestHeader->GetAncestor(pindex->nHeight) == pindex &&
                 pindexBestHeader->nChainWork >= nMinimumChainWork) {
                 // This block is a member of the assumed verified chain and an ancestor of the best header.
@@ -3602,50 +3600,64 @@ static const unsigned int PRUNE_COUNT = 12;
 */
 void PruneStaleBlockIndexes()
 {
-    static int64_t lastPrunedHeight = 0;
+    // Use the same lock for convenience.
+    static int64_t lastPrunedHeight GUARDED_BY(cs_mapblockindex) = 0;
 
     // This isn't going to change while we're processing, so just leave and try again later.
     if (!pindexBestHeader) return;
 
-    // If mapBlockIndex isn't bloated, don't bother taking the time.
-    if (chainActive.Height() > static_cast<int>(mapBlockIndex.size() - PRUNE_COUNT)) {
-        return;
+    std::set<uint256> setDelete;
+    uint32_t irrelevantIndexes = 0;
+    int64_t lowestPrunedHeight = -1;
+    int64_t currentHeight;
+    std::vector<std::pair<uint256, CBlockIndex*>> checkPrunable;
+    {
+        LOCK(cs_mapblockindex);
+        // This doesn't require the mapblockindex lock but may change while we wait on it.
+        currentHeight = chainActive.Height();
+        // If mapBlockIndex isn't bloated, don't bother taking the time.
+        if (currentHeight > static_cast<int>(mapBlockIndex.size() - PRUNE_COUNT)) {
+            return;
+        }
+
+        // Guess at the size
+        checkPrunable.reserve(mapBlockIndex.size() - currentHeight);
+        LogPrintf("%s: Checking for stale indexes. Block index size=%d; Chain height=%d\n",
+                  __func__, mapBlockIndex.size(), currentHeight);
+
+        for (const auto& p : mapBlockIndex) {
+            const CBlockIndex* pindex = p.second;
+            // If we've already checked to this height, don't waste time
+            if (pindex->nHeight >= lastPrunedHeight)
+                checkPrunable.emplace_back(p);
+        }
     }
 
-    LogPrintf("%s: Checking for stale indexes. Block index size=%d; Chain height=%d\n",
-              __func__, mapBlockIndex.size(), chainActive.Height());
-
-    uint32_t irrelevantIndexes = 0;
-    int64_t lowestPrunedHeight = lastPrunedHeight;
-    std::set<uint256> setDelete;
-
-    for (const auto& p : mapBlockIndex) {
+    // Determine what can be deleted from mapBlockIndex while not holding the lock for it
+    for (const auto& p : checkPrunable) {
         const CBlockIndex* pindex = p.second;
-        // If we've already checked to this height, don't waste time
-
-        if (pindex->nHeight < lastPrunedHeight)
-            continue;
-
         // If it's not in the active chain, and not in our best header ancestor list.
         if (!chainActive.Contains(pindex) && (!IsAncestor(pindexBestHeader, pindex))) {
             irrelevantIndexes++;
 
             // if it's also old enough, add it to the prune list.
-            if (chainActive.Height() > static_cast<int>(pindex->nHeight + PRUNE_DEPTH)) {
+            if (currentHeight > static_cast<int>(pindex->nHeight + PRUNE_DEPTH)) {
                 setDelete.emplace(p.first);
 
-                // save the lowest height that we're purging
-                if ((pindex->nHeight < lowestPrunedHeight) || (lowestPrunedHeight <= lastPrunedHeight)) {
+                // save the lowest height that we're purging, even if it's lower than the previous
+                // lastPrunedHeight
+                if (pindex->nHeight < lowestPrunedHeight || lowestPrunedHeight == -1) {
                     lowestPrunedHeight = pindex->nHeight;
                 }
             }
         }
     }
 
-    if (irrelevantIndexes > 0) {
+    if (setDelete.size() > 0) {
          LogPrintf("%s: Erasing %d of %d irrelevant indexes.  LastPrunedHeight now %d.\n",
                    __func__, setDelete.size(), irrelevantIndexes, lowestPrunedHeight);
 
+         LOCK(cs_mapblockindex);
          // Purge the ones we flagged
          for (const uint256& hash : setDelete) {
              mapBlockIndex.erase(hash);
@@ -3848,14 +3860,17 @@ bool CChainState::InvalidateBlock(CValidationState& state, const CChainParams& c
     // back to the mempool.
     UpdateMempoolForReorg(disconnectpool, true);
 
-    // The resulting new best tip may not be in setBlockIndexCandidates anymore, so
-    // add it again.
-    BlockMap::iterator it = mapBlockIndex.begin();
-    while (it != mapBlockIndex.end()) {
-        if (it->second->IsValid(BLOCK_VALID_TRANSACTIONS) && it->second->nChainTx && !setBlockIndexCandidates.value_comp()(it->second, chainActive.Tip())) {
-            setBlockIndexCandidates.insert(it->second);
+    {
+        LOCK(cs_mapblockindex);
+        // The resulting new best tip may not be in setBlockIndexCandidates anymore, so
+        // add it again.
+        BlockMap::iterator it = mapBlockIndex.begin();
+        while (it != mapBlockIndex.end()) {
+            if (it->second->IsValid(BLOCK_VALID_TRANSACTIONS) && it->second->nChainTx && !setBlockIndexCandidates.value_comp()(it->second, chainActive.Tip())) {
+                setBlockIndexCandidates.insert(it->second);
+            }
+            it++;
         }
-        it++;
     }
 
     InvalidChainFound(pindex);
@@ -3875,22 +3890,25 @@ void CChainState::ResetBlockFailureFlags(CBlockIndex *pindex) {
 
     int nHeight = pindex->nHeight;
 
-    // Remove the invalidity flag from this block and all its descendants.
-    BlockMap::iterator it = mapBlockIndex.begin();
-    while (it != mapBlockIndex.end()) {
-        if (!it->second->IsValid() && it->second->GetAncestor(nHeight) == pindex) {
-            it->second->nStatus &= ~BLOCK_FAILED_MASK;
-            setDirtyBlockIndex.insert(it->second);
-            if (it->second->IsValid(BLOCK_VALID_TRANSACTIONS) && it->second->nChainTx && setBlockIndexCandidates.value_comp()(chainActive.Tip(), it->second)) {
-                setBlockIndexCandidates.insert(it->second);
+    {
+        LOCK(cs_mapblockindex);
+        // Remove the invalidity flag from this block and all its descendants.
+        BlockMap::iterator it = mapBlockIndex.begin();
+        while (it != mapBlockIndex.end()) {
+            if (!it->second->IsValid() && it->second->GetAncestor(nHeight) == pindex) {
+                it->second->nStatus &= ~BLOCK_FAILED_MASK;
+                setDirtyBlockIndex.insert(it->second);
+                if (it->second->IsValid(BLOCK_VALID_TRANSACTIONS) && it->second->nChainTx && setBlockIndexCandidates.value_comp()(chainActive.Tip(), it->second)) {
+                    setBlockIndexCandidates.insert(it->second);
+                }
+                if (it->second == pindexBestInvalid) {
+                    // Reset invalid block marker if it was pointing to one of those.
+                    pindexBestInvalid = nullptr;
+                }
+                m_failed_blocks.erase(it->second);
             }
-            if (it->second == pindexBestInvalid) {
-                // Reset invalid block marker if it was pointing to one of those.
-                pindexBestInvalid = nullptr;
-            }
-            m_failed_blocks.erase(it->second);
+            it++;
         }
-        it++;
     }
 
     // Remove the invalidity flag from all ancestors too.
@@ -3911,27 +3929,33 @@ void ResetBlockFailureFlags(CBlockIndex *pindex) {
 CBlockIndex* CChainState::AddToBlockIndex(const CBlockHeader& block, bool fProofOfStake, bool fProofOfFullNode)
 {
     AssertLockHeld(cs_main);
+    CBlockIndex* pindexNew;
 
     // Check for duplicate
     uint256 hash = block.GetHash();
-    BlockMap::iterator it = mapBlockIndex.find(hash);
-    if (it != mapBlockIndex.end())
-        return it->second;
-
-    // Construct new block index object
-    CBlockIndex* pindexNew = new CBlockIndex(block);
-    // We assign the sequence id to blocks only when the full data is available,
-    // to avoid miners withholding blocks but broadcasting headers, to get a
-    // competitive advantage.
-    pindexNew->nSequenceId = 0;
-    BlockMap::iterator mi = mapBlockIndex.insert(std::make_pair(hash, pindexNew)).first;
-    pindexNew->phashBlock = &((*mi).first);
-    BlockMap::iterator miPrev = mapBlockIndex.find(block.hashPrevBlock);
-    if (miPrev != mapBlockIndex.end())
     {
-        pindexNew->pprev = (*miPrev).second;
-        pindexNew->nHeight = pindexNew->pprev->nHeight + 1;
-        pindexNew->BuildSkip();
+        // atomic lookup+insert
+        LOCK(cs_mapblockindex);
+
+        BlockMap::iterator it = mapBlockIndex.find(hash);
+        if (it != mapBlockIndex.end())
+            return it->second;
+
+        // Construct new block index object
+        pindexNew = new CBlockIndex(block);
+        // We assign the sequence id to blocks only when the full data is available,
+        // to avoid miners withholding blocks but broadcasting headers, to get a
+        // competitive advantage.
+        pindexNew->nSequenceId = 0;
+        BlockMap::iterator mi = mapBlockIndex.insert(std::make_pair(hash, pindexNew)).first;
+        pindexNew->phashBlock = &((*mi).first);
+        BlockMap::iterator miPrev = mapBlockIndex.find(block.hashPrevBlock);
+        if (miPrev != mapBlockIndex.end())
+        {
+            pindexNew->pprev = (*miPrev).second;
+            pindexNew->nHeight = pindexNew->pprev->nHeight + 1;
+            pindexNew->BuildSkip();
+        }
     }
     pindexNew->nTimeMax = (pindexNew->pprev ? std::max(pindexNew->pprev->nTimeMax, pindexNew->nTime) : pindexNew->nTime);
 
@@ -4695,12 +4719,11 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
     AssertLockHeld(cs_main);
     // Check for duplicate
     uint256 hash = block.GetHash();
-    BlockMap::iterator miSelf = mapBlockIndex.find(hash);
     CBlockIndex *pindex = nullptr;
     if (hash != chainparams.GetConsensus().hashGenesisBlock) {
-        if (miSelf != mapBlockIndex.end()) {
+        pindex = LookupBlockIndex(hash);
+        if (pindex != nullptr) {
             // Block header is already known.
-            pindex = miSelf->second;
             if (ppindex)
                 *ppindex = pindex;
             if (pindex->nStatus & BLOCK_FAILED_MASK)
@@ -4717,11 +4740,9 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
         }
 
         // Get prev block index
-        CBlockIndex* pindexPrev = nullptr;
-        BlockMap::iterator mi = mapBlockIndex.find(block.hashPrevBlock);
-        if (mi == mapBlockIndex.end())
+        CBlockIndex* pindexPrev = LookupBlockIndex(block.hashPrevBlock);
+        if (pindexPrev == nullptr)
             return state.DoS(10, error("%s: prev block not found", __func__), 0, "prev-blk-not-found");
-        pindexPrev = (*mi).second;
         if (pindexPrev->nStatus & BLOCK_FAILED_MASK)
             return state.DoS(100, error("%s: prev block invalid", __func__), REJECT_INVALID, "bad-prevblk");
         if (!ContextualCheckBlockHeader(block, state, chainparams, pindexPrev, GetAdjustedTime()))
@@ -5051,7 +5072,9 @@ uint64_t CalculateCurrentUsage()
 /* Prune a block file (modify associated database entries)*/
 void PruneOneBlockFile(const int fileNumber)
 {
-    LOCK(cs_LastBlockFile);
+    AssertLockHeld(cs_main);
+    AssertLockHeld(cs_LastBlockFile);
+    LOCK(cs_mapblockindex);
 
     for (const auto& entry : mapBlockIndex) {
         CBlockIndex* pindex = entry.second;
@@ -5251,6 +5274,9 @@ CBlockIndex * CChainState::InsertBlockIndex(const uint256& hash)
     if (hash.IsNull())
         return nullptr;
 
+    // atomic lookup+insert
+    LOCK(cs_mapblockindex);
+
     // Return existing
     BlockMap::iterator mi = mapBlockIndex.find(hash);
     if (mi != mapBlockIndex.end())
@@ -5273,11 +5299,14 @@ bool CChainState::LoadBlockIndex(const Consensus::Params& consensus_params, CBlo
 
     // Calculate nChainWork
     std::vector<std::pair<int, CBlockIndex*> > vSortedByHeight;
-    vSortedByHeight.reserve(mapBlockIndex.size());
-    for (const std::pair<const uint256, CBlockIndex*>& item : mapBlockIndex)
     {
-        CBlockIndex* pindex = item.second;
-        vSortedByHeight.push_back(std::make_pair(pindex->nHeight, pindex));
+        LOCK(cs_mapblockindex);
+        vSortedByHeight.reserve(mapBlockIndex.size());
+        for (const std::pair<const uint256, CBlockIndex*>& item : mapBlockIndex)
+        {
+            CBlockIndex* pindex = item.second;
+            vSortedByHeight.push_back(std::make_pair(pindex->nHeight, pindex));
+        }
     }
     sort(vSortedByHeight.begin(), vSortedByHeight.end());
     for (const std::pair<int, CBlockIndex*>& item : vSortedByHeight)
@@ -5342,11 +5371,14 @@ bool static LoadBlockIndexDB(const CChainParams& chainparams) EXCLUSIVE_LOCKS_RE
     // Check presence of blk files
     LogPrintf("Checking all blk files are present...\n");
     std::set<int> setBlkDataFiles;
-    for (const std::pair<const uint256, CBlockIndex*>& item : mapBlockIndex)
     {
-        CBlockIndex* pindex = item.second;
-        if (pindex->nStatus & BLOCK_HAVE_DATA) {
-            setBlkDataFiles.insert(pindex->nFile);
+        LOCK(cs_mapblockindex);
+        for (const std::pair<const uint256, CBlockIndex*>& item : mapBlockIndex)
+        {
+            CBlockIndex* pindex = item.second;
+            if (pindex->nStatus & BLOCK_HAVE_DATA) {
+                setBlkDataFiles.insert(pindex->nFile);
+            }
         }
     }
     for (std::set<int>::iterator it = setBlkDataFiles.begin(); it != setBlkDataFiles.end(); it++)
@@ -5376,21 +5408,26 @@ bool LoadChainTip(const CChainParams& chainparams)
 
     if (chainActive.Tip() && chainActive.Tip()->GetBlockHash() == pcoinsTip->GetBestBlock()) return true;
 
-    if (pcoinsTip->GetBestBlock().IsNull() && mapBlockIndex.size() == 1) {
-        // In case we just added the genesis block, connect it now, so
-        // that we always have a chainActive.Tip() when we return.
-        LogPrintf("%s: Connecting genesis block...\n", __func__);
-        CValidationState state;
-        if (!ActivateBestChain(state, chainparams)) {
-            LogPrintf("%s: failed to activate chain (%s)\n", __func__, FormatStateMessage(state));
+    CBlockIndex* pindex;
+    {
+        LOCK(cs_mapblockindex);
+
+        if (pcoinsTip->GetBestBlock().IsNull() && mapBlockIndex.size() == 1) {
+            // In case we just added the genesis block, connect it now, so
+            // that we always have a chainActive.Tip() when we return.
+            LogPrintf("%s: Connecting genesis block...\n", __func__);
+            CValidationState state;
+            if (!ActivateBestChain(state, chainparams)) {
+                LogPrintf("%s: failed to activate chain (%s)\n", __func__, FormatStateMessage(state));
+                return false;
+            }
+        }
+
+        // Load pointer to end of best chain
+        pindex = LookupBlockIndex(pcoinsTip->GetBestBlock());
+        if (!pindex) {
             return false;
         }
-    }
-
-    // Load pointer to end of best chain
-    CBlockIndex* pindex = LookupBlockIndex(pcoinsTip->GetBestBlock());
-    if (!pindex) {
-        return false;
     }
     chainActive.SetTip(pindex);
 
@@ -5575,18 +5612,21 @@ bool CChainState::ReplayBlocks(const CChainParams& params, CCoinsView* view)
     const CBlockIndex* pindexNew;            // New tip during the interrupted flush.
     const CBlockIndex* pindexFork = nullptr; // Latest block common to both the old and the new tip.
 
-    if (mapBlockIndex.count(hashHeads[0]) == 0) {
-        return error("ReplayBlocks(): reorganization to unknown block requested");
-    }
-    pindexNew = mapBlockIndex[hashHeads[0]];
-
-    if (!hashHeads[1].IsNull()) { // The old tip is allowed to be 0, indicating it's the first flush.
-        if (mapBlockIndex.count(hashHeads[1]) == 0) {
-            return error("ReplayBlocks(): reorganization from unknown block requested");
+    {
+        LOCK(cs_mapblockindex);
+        if (mapBlockIndex.count(hashHeads[0]) == 0) {
+            return error("ReplayBlocks(): reorganization to unknown block requested");
         }
-        pindexOld = mapBlockIndex[hashHeads[1]];
-        pindexFork = LastCommonAncestor(pindexOld, pindexNew);
-        assert(pindexFork != nullptr);
+        pindexNew = mapBlockIndex[hashHeads[0]];
+
+        if (!hashHeads[1].IsNull()) { // The old tip is allowed to be 0, indicating it's the first flush.
+            if (mapBlockIndex.count(hashHeads[1]) == 0) {
+                return error("ReplayBlocks(): reorganization from unknown block requested");
+            }
+            pindexOld = mapBlockIndex[hashHeads[1]];
+            pindexFork = LastCommonAncestor(pindexOld, pindexNew);
+            assert(pindexFork != nullptr);
+        }
     }
 
     // Rollback along the old branch.
@@ -5666,6 +5706,7 @@ bool CChainState::RewindBlockIndex(const CChainParams& params)
         }
     }
 
+    LOCK(cs_mapblockindex);
     // Reduce validity flag and have-data flags.
     // We do this after actual disconnecting, otherwise we'll end up writing the lack of data
     // to disk before writing the chainstate, resulting in a failure to continue if interrupted.
@@ -5763,10 +5804,13 @@ void UnloadBlockIndex()
         warningcache[b].clear();
     }
 
-    for (BlockMap::value_type& entry : mapBlockIndex) {
-        delete entry.second;
+    {
+        LOCK(cs_mapblockindex);
+        for (BlockMap::value_type& entry : mapBlockIndex) {
+            delete entry.second;
+        }
+        mapBlockIndex.clear();
     }
-    mapBlockIndex.clear();
     fHavePruned = false;
 
     g_chainstate.UnloadBlockIndex();
@@ -5779,6 +5823,7 @@ bool LoadBlockIndex(const CChainParams& chainparams)
     if (!fReindex) {
         bool ret = LoadBlockIndexDB(chainparams);
         if (!ret) return false;
+        LOCK(cs_mapblockindex);
         needs_init = mapBlockIndex.empty();
     }
 
@@ -5802,8 +5847,11 @@ bool CChainState::LoadGenesisBlock(const CChainParams& chainparams)
     // mapBlockIndex. Note that we can't use chainActive here, since it is
     // set based on the coins db, not the block index db, which is the only
     // thing loaded at this point.
-    if (mapBlockIndex.count(chainparams.GenesisBlock().GetHash()))
-        return true;
+    {
+        LOCK(cs_mapblockindex);
+        if (mapBlockIndex.count(chainparams.GenesisBlock().GetHash()))
+            return true;
+    }
 
     try {
         CBlock &block = const_cast<CBlock&>(chainparams.GenesisBlock());
@@ -5958,17 +6006,21 @@ void CChainState::CheckBlockIndex(const Consensus::Params& consensusParams)
     // so we have the genesis block in mapBlockIndex but no active chain.  (A few of the tests when
     // iterating the block tree require that chainActive has been initialized.)
     if (chainActive.Height() < 0) {
+        LOCK(cs_mapblockindex);
         assert(mapBlockIndex.size() <= 1);
         return;
     }
 
     // Build forward-pointing map of the entire block tree.
     std::multimap<CBlockIndex*,CBlockIndex*> forward;
-    for (auto& entry : mapBlockIndex) {
-        forward.insert(std::make_pair(entry.second->pprev, entry.second));
-    }
+    {
+        LOCK(cs_mapblockindex);
+        for (auto& entry : mapBlockIndex) {
+            forward.insert(std::make_pair(entry.second->pprev, entry.second));
+        }
 
-    assert(forward.size() == mapBlockIndex.size());
+        assert(forward.size() == mapBlockIndex.size());
+    }
 
     std::pair<std::multimap<CBlockIndex*,CBlockIndex*>::iterator,std::multimap<CBlockIndex*,CBlockIndex*>::iterator> rangeGenesis = forward.equal_range(nullptr);
     CBlockIndex *pindex = rangeGenesis.first->second;
@@ -6314,6 +6366,7 @@ public:
     CMainCleanup() {}
     ~CMainCleanup() {
         // block headers
+        LOCK(cs_mapblockindex);
         BlockMap::iterator it1 = mapBlockIndex.begin();
         for (; it1 != mapBlockIndex.end(); it1++)
             delete (*it1).second;

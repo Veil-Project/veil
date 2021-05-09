@@ -910,14 +910,9 @@ int AnonWallet::GetDepthInMainChain(const uint256 &blockhash, int nIndex) const
     if (hashUnset(blockhash))
         return 0;
 
-    AssertLockHeld(cs_main);
-
     // Find the block it claims to be in
-    BlockMap::iterator mi = mapBlockIndex.find(blockhash);
-    if (mi == mapBlockIndex.end())
-        return 0;
-    CBlockIndex *pindex = (*mi).second;
-    if (!pindex || !chainActive.Contains(pindex))
+    CBlockIndex* pindex = LookupBlockIndex(blockhash);
+    if (pindex == nullptr || !chainActive.Contains(pindex))
         return 0;
 
     //pindexRet = pindex;
@@ -6227,14 +6222,12 @@ std::set<uint256> AnonWallet::GetConflicts(const uint256 &txid) const
 
 void AnonWallet::MarkConflicted(const uint256 &hashBlock, const uint256 &hashTx)
 {
-    LOCK2(cs_main, pwalletParent->cs_wallet);
-
     int conflictconfirms = 0;
 
-    BlockMap::iterator mi = mapBlockIndex.find(hashTx);
-    if (mi != mapBlockIndex.end()) {
-        if (chainActive.Contains(mi->second))
-            conflictconfirms = -(chainActive.Height() - mi->second->nHeight + 1);
+    CBlockIndex* block = LookupBlockIndex(hashTx);
+    if (block != nullptr) {
+        if (chainActive.Contains(block))
+            conflictconfirms = -(chainActive.Height() - block->nHeight + 1);
     }
 
     // If number of conflict confirms cannot be determined, this means
@@ -6243,6 +6236,8 @@ void AnonWallet::MarkConflicted(const uint256 &hashBlock, const uint256 &hashTx)
     // case.
     if (conflictconfirms >= 0)
         return;
+
+    LOCK2(cs_main, pwalletParent->cs_wallet);
 
     // Do not flush the wallet here for performance reasons
     AnonWalletDB walletdb(*walletDatabase, "r+", false);

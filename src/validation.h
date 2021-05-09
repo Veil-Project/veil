@@ -154,7 +154,9 @@ extern CBlockPolicyEstimator feeEstimator;
 extern CTxMemPool mempool;
 extern std::atomic_bool g_is_mempool_loaded;
 typedef std::unordered_map<uint256, CBlockIndex*, BlockHasher> BlockMap;
-extern BlockMap& mapBlockIndex;
+// Only protects the map, not any attributes of its contents.
+extern CCriticalSection& cs_mapblockindex;
+extern BlockMap& mapBlockIndex GUARDED_BY(cs_mapblockindex);
 extern uint64_t nLastBlockTx;
 extern uint64_t nLastBlockWeight;
 extern const std::string strMessageMagic;
@@ -309,7 +311,7 @@ uint64_t CalculateCurrentUsage();
 /**
  *  Mark one block file as pruned.
  */
-void PruneOneBlockFile(const int fileNumber);
+void PruneOneBlockFile(const int fileNumber) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /**
  *  Actually unlink the specified files
@@ -484,7 +486,7 @@ bool ReplayBlocks(const CChainParams& params, CCoinsView* view);
 
 inline CBlockIndex* LookupBlockIndex(const uint256& hash)
 {
-    AssertLockHeld(cs_main);
+    LOCK(cs_mapblockindex);
     BlockMap::const_iterator it = mapBlockIndex.find(hash);
     return it == mapBlockIndex.end() ? nullptr : it->second;
 }

@@ -203,9 +203,14 @@ void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMin
             continue;
         }
 
-        if (!mapBlockIndex.count(hashBlock)) {
-            vMissingMints.push_back(meta);
-            continue;
+        int nHeight;
+        {
+            LOCK(cs_mapblockindex);
+            if (!mapBlockIndex.count(hashBlock)) {
+                vMissingMints.push_back(meta);
+                continue;
+            }
+            nHeight = mapBlockIndex[hashBlock]->nHeight;
         }
 
         //see if this mint is spent
@@ -245,12 +250,12 @@ void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMin
         }
 
         // if meta data is correct, then no need to update
-        if (meta.txid == txHash && meta.nHeight == mapBlockIndex[hashBlock]->nHeight && meta.isUsed == fSpent)
+        if (meta.txid == txHash && meta.nHeight == nHeight && meta.isUsed == fSpent)
             continue;
 
         //mark this mint for update
         meta.txid = txHash;
-        meta.nHeight = mapBlockIndex[hashBlock]->nHeight;
+        meta.nHeight = nHeight;
         meta.isUsed = fSpent;
         LogPrintf("%s: found updates for pubcoinhash = %s\n", __func__, meta.hashPubcoin.GetHex());
 

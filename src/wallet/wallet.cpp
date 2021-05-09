@@ -1303,8 +1303,6 @@ bool CWallet::AbandonTransaction(const uint256& hashTx)
 
 void CWallet::MarkConflicted(const uint256& hashBlock, const uint256& hashTx)
 {
-    LOCK2(cs_main, cs_wallet);
-
     int conflictconfirms = 0;
     CBlockIndex* pindex = LookupBlockIndex(hashBlock);
     if (pindex && chainActive.Contains(pindex)) {
@@ -1316,6 +1314,8 @@ void CWallet::MarkConflicted(const uint256& hashBlock, const uint256& hashTx)
     // case.
     if (conflictconfirms >= 0)
         return;
+
+    LOCK2(cs_main, cs_wallet);
 
     // Do not flush the wallet here for performance reasons
     WalletBatch batch(*database, "r+", false);
@@ -5604,8 +5604,6 @@ int CMerkleTx::GetDepthInMainChain() const
     if (hashUnset())
         return 0;
 
-    AssertLockHeld(cs_main);
-
     // Find the block it claims to be in
     CBlockIndex* pindex = LookupBlockIndex(hashBlock);
     if (!pindex || !chainActive.Contains(pindex))
@@ -6498,9 +6496,12 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
         if (!GetTransaction(mint.GetTxHash(), txMint, Params().GetConsensus(), hashBlock)) {
             receipt.SetStatus("Unable to find transaction containing mint", nStatus);
             fArchive = true;
-        } else if (!mapBlockIndex.count(hashBlock) || !chainActive.Contains(mapBlockIndex.at(hashBlock))) {
-            receipt.SetStatus("Mint did not make it into blockchain", nStatus);
-            fArchive = true;
+        } else {
+            LOCK(cs_mapblockindex);
+            if (!mapBlockIndex.count(hashBlock) || !chainActive.Contains(mapBlockIndex.at(hashBlock))) {
+                receipt.SetStatus("Mint did not make it into blockchain", nStatus);
+                fArchive = true;
+            }
         }
 
         // archive this mint as an orphan

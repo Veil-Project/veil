@@ -168,13 +168,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     CMutableTransaction txCoinStake;
     CBlockIndex* pindexPrev;
+    //Do not pass in the chain tip, because it can change. Instead pass the blockindex directly from mapblockindex, which is const.
+    auto pindexTip = chainActive.Tip();
+    if (!pindexTip)
+        return nullptr;
+    auto hashBest = pindexTip->GetBlockHash();
     {
-        LOCK(cs_main);
-        //Do not pass in the chain tip, because it can change. Instead pass the blockindex directly from mapblockindex, which is const.
-        auto pindexTip = chainActive.Tip();
-        if (!pindexTip)
-            return nullptr;
-        auto hashBest = pindexTip->GetBlockHash();
+        LOCK(cs_mapblockindex);
         pindexPrev = mapBlockIndex.at(hashBest);
     }
     if (fProofOfStake && pindexPrev->nHeight + 1 >= Params().HeightPoSStart()) {
