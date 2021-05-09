@@ -235,6 +235,7 @@ WalletTx MakeWalletTx(CHDWallet& wallet, MapRecords_t::const_iterator irtx)
 //! Construct wallet tx status struct.
 WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
 {
+    LOCK(cs_main);
     WalletTxStatus result;
     auto mi = ::mapBlockIndex.find(wtx.hashBlock);
     CBlockIndex* block = mi != ::mapBlockIndex.end() ? mi->second : nullptr;
