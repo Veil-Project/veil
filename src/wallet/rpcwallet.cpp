@@ -1,6 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
-// Copyright (c) 2018-2020 The Veil developers
+// Copyright (c) 2018-2021 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -2653,8 +2653,12 @@ static UniValue gettransaction(const JSONRPCRequest& request)
         obj_vin.pushKV("from_me", fIsMyInput);
         if (txin.IsAnonInput()) {
             obj_vin.pushKV("type", "ringct");
+
             COutPoint myOutpoint;
+            uint32_t nSigInputs, nSigRingSize;
+            txin.GetAnonInfo(nSigInputs, nSigRingSize);
             bool isMyInput = pwalletAnon->IsMyAnonInput(txin, myOutpoint);
+
             obj_vin.pushKV("is_mine_ki", isMyInput);
             if (isMyInput) {
                 UniValue obj(UniValue::VOBJ);
@@ -2671,6 +2675,18 @@ static UniValue gettransaction(const JSONRPCRequest& request)
                 arrRing.push_back(obj);
             }
             obj_vin.pushKV("ringct_inputs", arrRing);
+            const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+            uint32_t nInputs, nRingSize;
+            txin.GetAnonInfo(nInputs, nRingSize);
+
+            UniValue arrKeyImages(UniValue::VARR);
+            for (unsigned int k = 0; k < nSigInputs; k++) {
+                const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*nSigInputs]);
+                UniValue objKeyImage(UniValue::VOBJ);
+                objKeyImage.pushKV(std::to_string(k), HexStr(ki));
+                arrKeyImages.push_back(objKeyImage);
+            }
+            obj_vin.pushKV("key_images", arrKeyImages);
         } else if (txin.IsZerocoinSpend()) {
             obj_vin.pushKV("type", "zerocoinspend");
             auto spend = TxInToZerocoinSpend(txin);
@@ -2743,6 +2759,11 @@ static UniValue gettransaction(const JSONRPCRequest& request)
             vchEphemPK.resize(EPHEMERAL_PUBKEY_LENGTH);
             memcpy(&vchEphemPK[0], &outRingCT->vData[0], EPHEMERAL_PUBKEY_LENGTH);
             obj_out.pushKV("ephemeral_pubkey", HexStr(vchEphemPK));
+
+            std::vector<uint8_t> objKeyImage;
+            objKeyImage.resize(33);
+            memcpy(&objKeyImage[0], &outRingCT->pk[0], 33);
+            obj_out.pushKV("key_image", HexStr(objKeyImage));
         } else if (pout->GetType() == OUTPUT_DATA) {
             obj_out.pushKV("type", "data");
             CTxOutData* outData = (CTxOutData*)pout.get();
