@@ -2658,7 +2658,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         if (state.fHasAnonOutput || state.fHasAnonInput) {
             COutPoint op(txhash, 0);
             if (state.fHasAnonInput) {
-                assert(state.m_setHaveKI.size());
+                if(state.m_setHaveKI.size() == 0){
+                    LogPrint(BCLog::RINGCT, "%s: block=%d tx=%s setHaveKI size is 0!\n", __func__,
+                             pindex->nHeight, txhash.ToString());
+                }
             }
             for (const auto &txin : tx.vin) {
                 if (txin.IsAnonInput()) {

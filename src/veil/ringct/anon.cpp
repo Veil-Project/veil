@@ -135,9 +135,9 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
                 return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki-tx-double");
             }
 
-            if (mempool.HaveKeyImage(ki, txhashKI) && txhashKI != txhash) {
-                return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki-mempool");
-            }
+//            if (mempool.HaveKeyImage(ki, txhashKI) && txhashKI != txhash) {
+//                return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki-mempool");
+//            }
 
             if (pblocktree->ReadRCTKeyImage(ki, txhashKI) && txhashKI != txhash) {
                 LogPrintf("%s: Key image in tx %s\n", __func__, txhashKI.GetHex());
