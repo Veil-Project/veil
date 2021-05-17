@@ -148,6 +148,8 @@ public:
     int HeightEnforceBlacklist() const { return nHeightEnforceBlacklist; }
 
     uint32_t PowUpdateTimestamp() const { return nPowUpdateTimestamp; }
+    uint64_t KIforkTimestamp() const { return nTimeKIfork; }
+    uint64_t HeightKIenforce() const { return nHeightKIenforce; }
 
     /**
      * Returns the number of blocks to use for Dark Gravity Wave calculations
@@ -158,6 +160,10 @@ public:
      * Returns the target spacing for the given algo
      */
     int64_t GetTargetSpacing(const CBlockIndex* pindex, const int nPoWType, const bool fProofOfStake) const;
+
+    bool CheckKIenforced(const CBlockIndex* pindex) const;
+    bool CheckKIenforced(int nSpendHeight) const;
+
 
 protected:
     CChainParams() {}
@@ -224,6 +230,8 @@ protected:
     int nMaxHeaderRequestWithoutPoW;
 
     uint32_t nPowUpdateTimestamp;
+    uint64_t nHeightKIenforce;
+    uint64_t nTimeKIfork;
 };
 
 /**

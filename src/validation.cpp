@@ -2442,6 +2442,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     std::vector<libzerocoin::SerialNumberSoKProof> vProofs;
     std::vector<uint256> vTxidProofs;
     std::vector<CTransactionRef> vBlacklistTxOutpoints;
+    state.m_setHaveKI.clear();
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2656,6 +2657,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         // Index rct outputs and keyimages
         if (state.fHasAnonOutput || state.fHasAnonInput) {
             COutPoint op(txhash, 0);
+            if (state.fHasAnonInput) {
+                assert(state.m_setHaveKI.size());
+            }
             for (const auto &txin : tx.vin) {
                 if (txin.IsAnonInput()) {
                     uint32_t nAnonInputs, nRingSize;
