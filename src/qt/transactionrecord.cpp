@@ -411,10 +411,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             if (wtx.txout_address_is_mine[i]) {
                 // Received by Bitcoin Address
                 sub.type = TransactionRecord::RecvWithAddress;
-                bool fBech32 = false;    
-                if (boost::get<CScriptID>(&wtx.txout_address[i])){
-                    fBech32 = true;
-                }            
+                bool fBech32 = (bool)boost::get<CScriptID>(&wtx.txout_address[i]);        
                 sub.address = EncodeDestination(wtx.txout_address[i], fBech32);
             } else {
                 // Received by IP connection (deprecated features), or a multisignature or other non-simple transaction
@@ -509,7 +506,8 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                         continue;
                     // Sent to Bitcoin Address
                     sub.type = TransactionRecord::SendToAddress;
-                    sub.address = EncodeDestination(wtx.txout_address[nOut]);
+                    bool fBech32 = (bool)boost::get<CScriptID>(&wtx.txout_address[nOut]);    
+                    sub.address = EncodeDestination(wtx.txout_address[nOut], fBech32);
                 } else {
                     // Sent to IP, or other non-address transaction like OP_EVAL
                     sub.type = TransactionRecord::SendToOther;
@@ -532,7 +530,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             //
             parts.append(TransactionRecord(hash, nTime, nSize, TransactionRecord::Other, "", nNet, 0));
             parts.last().involvesWatchAddress = involvesWatchAddress;
-        }
+        } 
     }
 
     return parts;
