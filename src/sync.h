@@ -74,14 +74,21 @@ public:
 void EnterCritical(const char* pszName, const char* pszFile, int nLine, void* cs, bool fTry = false);
 void LeaveCritical();
 std::string LocksHeld();
-void AssertLockHeldInternal(const char* pszName, const char* pszFile, int nLine, void* cs) ASSERT_EXCLUSIVE_LOCK(cs);
 void AssertLockNotHeldInternal(const char* pszName, const char* pszFile, int nLine, void* cs);
 void DeleteLock(void* cs);
+
+void _AssertLockHeld(const char* pszName, const char* pszFile, int nLine, void* cs);
+template <typename T>
+void AssertLockHeldInternal(const char* pszName, const char* pszFile, int nLine, T* cs) ASSERT_EXCLUSIVE_LOCK(cs) {
+    _AssertLockHeld(pszName, pszFile, nLine, (void*)cs);
+}
 #else
 void static inline EnterCritical(const char* pszName, const char* pszFile, int nLine, void* cs, bool fTry = false) {}
 void static inline LeaveCritical() {}
-void static inline AssertLockHeldInternal(const char* pszName, const char* pszFile, int nLine, void* cs) ASSERT_EXCLUSIVE_LOCK(cs) {}
-void static inline AssertLockNotHeldInternal(const char* pszName, const char* pszFile, int nLine, void* cs) {}
+template <typename T>
+void static inline AssertLockHeldInternal(const char* pszName, const char* pszFile, int nLine, T* cs) ASSERT_EXCLUSIVE_LOCK(cs) {}
+template <typename T>
+void static inline AssertLockNotHeldInternal(const char* pszName, const char* pszFile, int nLine, T* cs) {}
 void static inline DeleteLock(void* cs) {}
 #endif
 #define AssertLockHeld(cs) AssertLockHeldInternal(#cs, __FILE__, __LINE__, &cs)
