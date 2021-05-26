@@ -725,21 +725,25 @@ public:
 /** An in-memory indexed chain of blocks. */
 class CChain {
 private:
-    std::vector<CBlockIndex*> vChain;
+    mutable CCriticalSection cs_vchain;
+    std::vector<CBlockIndex*> vChain GUARDED_BY(cs_vchain);
 
 public:
     /** Returns the index entry for the genesis block of this chain, or nullptr if none. */
     CBlockIndex *Genesis() const {
+        LOCK(cs_vchain);
         return vChain.size() > 0 ? vChain[0] : nullptr;
     }
 
     /** Returns the index entry for the tip of this chain, or nullptr if none. */
     CBlockIndex *Tip() const {
+        LOCK(cs_vchain);
         return vChain.size() > 0 ? vChain[vChain.size() - 1] : nullptr;
     }
 
     /** Returns the index entry at a particular height in this chain, or nullptr if no such height exists. */
     CBlockIndex *operator[](int nHeight) const {
+        LOCK(cs_vchain);
         if (nHeight < 0 || nHeight >= (int)vChain.size())
             return nullptr;
         return vChain[nHeight];
@@ -747,6 +751,10 @@ public:
 
     /** Compare two chains efficiently. */
     friend bool operator==(const CChain &a, const CChain &b) {
+        // Maintain consistent lock order.
+        if (&b < &a) return b == a;
+
+        LOCK2(a.cs_vchain, b.cs_vchain);
         return a.vChain.size() == b.vChain.size() &&
                a.vChain[a.vChain.size() - 1] == b.vChain[b.vChain.size() - 1];
     }
@@ -758,6 +766,7 @@ public:
 
     /** Find the successor of a block in this chain, or nullptr if the given index is not found or is the tip. */
     CBlockIndex *Next(const CBlockIndex *pindex) const {
+        LOCK(cs_vchain);
         if (Contains(pindex))
             return (*this)[pindex->nHeight + 1];
         else
@@ -766,6 +775,7 @@ public:
 
     /** Return the maximal height in the chain. Is equal to chain.Tip() ? chain.Tip()->nHeight : -1. */
     int Height() const {
+        LOCK(cs_vchain);
         return vChain.size() - 1;
     }
 
