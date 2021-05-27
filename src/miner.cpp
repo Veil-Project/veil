@@ -499,7 +499,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if(fProofOfFullNode && !fProofOfStake)
         LogPrint(BCLog::BLOCKCREATION, "%s: A block can not be proof of full node and proof of work.\n", __func__);
     else if(fProofOfFullNode && fProofOfStake) {
-        LOCK(cs_main);
+        AssertLockHeld(cs_main);
         pblock->hashPoFN = veil::GetFullNodeHash(*pblock, pindexPrev);
     }
 

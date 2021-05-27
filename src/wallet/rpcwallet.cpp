@@ -721,7 +721,7 @@ static UniValue listaddresses(const JSONRPCRequest& request)
             throw JSONRPCError(RPC_INVALID_PARAMETER, type + " is not a valid address type");
         }
     }
-    LOCK(pwallet->cs_wallet);
+    LOCK2(cs_main, pwallet->cs_wallet);
 
     UniValue results(UniValue::VARR);
     AnonWallet* pAnonWallet = wallet->GetAnonWallet();
@@ -2110,10 +2110,18 @@ static void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, const
                 {
                     if (wtx.GetDepthInMainChain() < 1)
                         entry.pushKV("category", "orphan");
-                    else if (wtx.GetBlocksToMaturity() > 0)
-                        entry.pushKV("category", "immature");
                     else
-                        entry.pushKV("category", "generate");
+                    {
+                        int nBlocksToMaturity;
+                        {
+                            LOCK(cs_main);
+                            nBlocksToMaturity = wtx.GetBlocksToMaturity();
+                        }
+                        if (nBlocksToMaturity > 0)
+                            entry.pushKV("category", "immature");
+                        else
+                            entry.pushKV("category", "generate");
+                    }
                 }
                 else
                 {
