@@ -179,92 +179,104 @@ enum BlockMemFlags: uint32_t {
 class CBlockIndex
 {
 public:
-    //! pointer to the hash of the block, if any. Memory is owned by this CBlockIndex
-    const uint256* phashBlock;
+    //! pointer to the hash of the block, if any. Memory is owned by mapBlockIndex
+    const uint256* phashBlock{nullptr};
 
     //! pointer to the index of the predecessor of this block
-    CBlockIndex* pprev;
+    CBlockIndex* pprev{nullptr};
 
     //! pointer to the index of some further predecessor of this block
-    CBlockIndex* pskip;
+    CBlockIndex* pskip{nullptr};
 
     //! height of the entry in the chain. The genesis block has height 0
-    int nHeight;
+    int nHeight{0};
 
     //! money supply tracking
-    int64_t nMoneySupply;
+    int64_t nMoneySupply{0};
 
     //! zerocoin mint supply tracking
-    int64_t nMint;
+    int64_t nMint{0};
 
     //! Which # file this block is stored in (blk?????.dat)
-    int nFile;
+    int nFile{0};
 
     //! Byte offset within blk?????.dat where this block's data is stored
-    unsigned int nDataPos;
+    unsigned int nDataPos{0};
 
     //! Byte offset within rev?????.dat where this block's undo data is stored
-    unsigned int nUndoPos;
+    unsigned int nUndoPos{0};
 
     //! (memory only) Total amount of work (expected number of hashes) in the chain up to and including this block
-    arith_uint256 nChainWork;
+    arith_uint256 nChainWork{};
 
     //! (memory only) Total amount of work (only looking at PoW) in the chain up to and including this block
-    arith_uint256 nChainPoW;
+    arith_uint256 nChainPoW{};
 
     //! Number of transactions in this block.
     //! Note: in a potential headers-first mode, this number cannot be relied upon
-    unsigned int nTx;
+    unsigned int nTx{0};
 
     //! (memory only) Number of transactions in the chain up to and including this block.
     //! This value will be non-zero only if and only if transactions for this block and all its parents are available.
     //! Change to 64-bit type when necessary; won't happen before 2030
-    unsigned int nChainTx;
+    unsigned int nChainTx{0};
 
-    int64_t nAnonOutputs; // last index
+    int64_t nAnonOutputs{0}; // last index
 
     //! Verification status of this block. See enum BlockStatus
-    uint32_t nStatus;
+    uint32_t nStatus{0};
 
-    bool fProofOfStake;
-    bool fProofOfFullNode;
+    bool fProofOfStake{false};
+    bool fProofOfFullNode{false};
 
     //! Funds sent into the network to serve as an additional reward to stakers and miners
-    CAmount nNetworkRewardReserve;
+    CAmount nNetworkRewardReserve{0};
 
     //! block header
-    int32_t nVersion;
-    uint256 hashVeilData;
-    uint32_t nTime;
-    uint32_t nBits;
-    uint32_t nNonce;
+    int32_t nVersion{0};
+    uint256 hashVeilData{};
+    uint32_t nTime{0};
+    uint32_t nBits{0};
+    uint32_t nNonce{0};
 
     //! ProgPow Header items
     // Height was already in the CBlockIndex
-    uint64_t nNonce64;
-    uint256 mixHash;
+    uint64_t nNonce64{0};
+    uint256 mixHash{};
 
     //! (memory only) Sequential id assigned to distinguish order in which blocks are received.
-    int32_t nSequenceId;
+    int32_t nSequenceId{0};
 
     //! zerocoin specific fields
     std::map<libzerocoin::CoinDenomination, int64_t> mapZerocoinSupply;
     std::vector<libzerocoin::CoinDenomination> vMintDenominationsInBlock;
 
     //! (memory only) Maximum nTime in the chain up to and including this block.
-    unsigned int nTimeMax;
+    unsigned int nTimeMax{0};
 
     //! Hash value for the accumulator. Can be used to access the zerocoindb for the accumulator value
     std::map<libzerocoin::CoinDenomination ,uint256> mapAccumulatorHashes;
 
-    uint256 hashMerkleRoot;
-    uint256 hashWitnessMerkleRoot;
-    uint256 hashPoFN;
-    uint256 hashAccumulators;
+    uint256 hashMerkleRoot{};
+    uint256 hashWitnessMerkleRoot{};
+    uint256 hashPoFN{};
+    uint256 hashAccumulators{};
 
     //! vector that holds a proof of stake proof hash if the block has one. If not, its empty and has less memory
     //! overhead than an empty uint256
     std::vector<unsigned char> vHashProof;
+
+    void ResetMaps()
+    {
+        for (auto& denom : libzerocoin::zerocoinDenomList) {
+            mapAccumulatorHashes[denom] = uint256();
+        }
+
+        // Start supply of each denomination with 0s
+        for (auto& denom : libzerocoin::zerocoinDenomList) {
+            mapZerocoinSupply.insert(std::make_pair(denom, 0));
+        }
+    }
 
     void SetNull()
     {
@@ -301,14 +313,7 @@ public:
         hashWitnessMerkleRoot = uint256();
         hashAccumulators = uint256();
 
-        for (auto& denom : libzerocoin::zerocoinDenomList) {
-            mapAccumulatorHashes[denom] = uint256();
-        }
-
-        // Start supply of each denomination with 0s
-        for (auto& denom : libzerocoin::zerocoinDenomList) {
-            mapZerocoinSupply.insert(std::make_pair(denom, 0));
-        }
+        ResetMaps();
 
         vMintDenominationsInBlock.clear();
 
@@ -327,27 +332,23 @@ public:
 
     CBlockIndex()
     {
-        SetNull();
+        ResetMaps();
     }
 
     explicit CBlockIndex(const CBlockHeader& block)
+        : nHeight{static_cast<int>(block.nHeight)},
+          nVersion{block.nVersion},
+          hashVeilData{block.hashVeilData},
+          nTime{block.nTime},
+          nBits{block.nBits},
+          nNonce{block.nNonce},
+          nNonce64{block.nNonce64},
+          mixHash{block.mixHash},
+          hashMerkleRoot{block.hashMerkleRoot},
+          hashWitnessMerkleRoot{block.hashWitnessMerkleRoot},
+          hashAccumulators{block.hashAccumulators}
     {
-        SetNull();
-
-        nVersion       = block.nVersion;
-        hashVeilData   = block.hashVeilData;
-        hashMerkleRoot = block.hashMerkleRoot;
-        hashWitnessMerkleRoot = block.hashWitnessMerkleRoot;
-        hashAccumulators = block.hashAccumulators;
-        nTime          = block.nTime;
-        nBits          = block.nBits;
-        nNonce         = block.nNonce;
-        nMint          = 0;
-
-        //ProgPow
-        nNonce64       = block.nNonce64;
-        mixHash        = block.mixHash;
-        nHeight        = block.nHeight;
+        ResetMaps();
     }
 
     CDiskBlockPos GetBlockPos() const {

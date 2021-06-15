@@ -2815,8 +2815,6 @@ static UniValue listsinceblock(const JSONRPCRequest& request)
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
 
-    LOCK2(cs_main, pwallet->cs_wallet);
-
     const CBlockIndex* pindex = nullptr;    // Block index of the specified block or the common ancestor, if the block provided was in a deactivated chain.
     const CBlockIndex* paltindex = nullptr; // Block index of the specified block, even if it's in a deactivated chain.
     int target_confirms = 1;
@@ -2855,6 +2853,8 @@ static UniValue listsinceblock(const JSONRPCRequest& request)
     int depth = pindex ? (1 + chainActive.Height() - pindex->nHeight) : -1;
 
     UniValue transactions(UniValue::VARR);
+
+    LOCK2(cs_main, pwallet->cs_wallet);
 
     for (const std::pair<const uint256, CWalletTx>& pairWtx : pwallet->mapWallet) {
         CWalletTx tx = pairWtx.second;

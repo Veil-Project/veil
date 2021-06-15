@@ -565,14 +565,15 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
             uint256 hashBlock;
             if (!GetTransaction(txid, txRef, Params().GetConsensus(), hashBlock, true))
                 continue;
-            auto it = mapBlockIndex.find(hashBlock);
-            if (it == mapBlockIndex.end())
+
+            CBlockIndex* block = LookupBlockIndex(hashBlock);
+            if (block == nullptr)
                 continue;
 
-            if (!chainActive.Contains(it->second))
+            if (!chainActive.Contains(block))
                 continue;
 
-            nDepth = chainActive.Height() - it->second->nHeight + 1;
+            nDepth = chainActive.Height() - block->nHeight + 1;
         }
 
         if (nDepth < 1)
@@ -888,15 +889,15 @@ void CoinControlDialog::updateView(int nCoinType)
                 if (!GetTransaction(txid, txRef, Params().GetConsensus(), hashBlock, true))
                     continue;
 
-                auto it = mapBlockIndex.find(hashBlock);
-                if (it == mapBlockIndex.end())
+                CBlockIndex* block = LookupBlockIndex(hashBlock);
+                if (block == nullptr)
                     continue;
 
-                if (!chainActive.Contains(it->second))
+                if (!chainActive.Contains(block))
                     continue;
 
-                nDepth = chainActive.Height() - it->second->nHeight + 1;
-                nTimeTx = it->second->GetBlockTime();
+                nDepth = chainActive.Height() - block->nHeight + 1;
+                nTimeTx = block->GetBlockTime();
             }
 
             for (unsigned int i = 0; i < txRecord.vout.size(); i++) {
@@ -1062,15 +1063,15 @@ void CoinControlDialog::updateView(int nCoinType)
                 if (!GetTransaction(mint.txid, txRef, Params().GetConsensus(), hashBlock, true))
                     continue;
 
-                auto it = mapBlockIndex.find(hashBlock);
-                if (it == mapBlockIndex.end())
+                CBlockIndex* block = LookupBlockIndex(hashBlock);
+                if (block == nullptr)
                     continue;
 
-                if (!chainActive.Contains(it->second))
+                if (!chainActive.Contains(block))
                     continue;
 
-                nDepth = chainActive.Height() - it->second->nHeight + 1;
-                nTimeTx = it->second->GetBlockTime();
+                nDepth = chainActive.Height() - block->nHeight + 1;
+                nTimeTx = block->GetBlockTime();
             }
 
             // increase the count for each denom we see
