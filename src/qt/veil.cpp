@@ -319,11 +319,15 @@ BitcoinApplication::BitcoinApplication(interfaces::Node& node, int &argc, char *
 
 void BitcoinApplication::setupPlatformStyle()
 {
+// This causes compatibility issues with macOS 10.14+
+// Disabling of dark mode may already be handled in info.plist.in section NSRequiresAquaSystemAppearance
+#if 0
 #if defined(Q_OS_MAC)
     // This is a work around for our not having as yet any "Dark Mode" compatible
     // stylesheets.  Enforce the use of known-good Aqua style on systems that support
     // the NSAppearance property.
     disableDarkMode();
+#endif
 #endif
 
     // UI per-platform customization

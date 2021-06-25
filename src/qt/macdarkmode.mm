@@ -19,19 +19,19 @@ bool isDarkMode()
 // the NSAppearance property.
 //
 // That is to say, the interface is only available on 10.14+.
-@interface NSApplication (NSAppearanceCustomization) <NSAppearanceCustomization>
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wavailability"
-@property (nullable, strong) NSAppearance *appearance;
-@property (readonly, strong) NSAppearance *effectiveAppearance;
-#pragma clang diagnostic pop
-@end
+//@interface NSApplication (NSAppearanceCustomization) <NSAppearanceCustomization>
+//#pragma clang diagnostic push
+//#pragma clang diagnostic ignored "-Wavailability"
+//@property (nullable, strong) NSAppearance *appearance;
+//@property (readonly, strong) NSAppearance *effectiveAppearance;
+//#pragma clang diagnostic pop
+//@end
 
-void disableDarkMode()
-{
-    if ([[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:(NSOperatingSystemVersion){10,14,0}])
-    {
-        NSApp.appearance = [NSAppearance appearanceNamed: NSAppearanceNameAqua];
-    }
-}
+//void disableDarkMode()
+//{
+//    if ([[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:(NSOperatingSystemVersion){10,14,0}])
+//    {
+//        NSApp.appearance = [NSAppearance appearanceNamed: NSAppearanceNameAqua];
+//    }
+//}
 
