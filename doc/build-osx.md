@@ -84,6 +84,7 @@ compiled in disable-wallet mode with:
 In this case there is no dependency on [*Berkeley DB*](#berkeley-db) and [*SQLite*](#sqlite).
 
 Mining is also possible in disable-wallet mode using the `getblocktemplate` RPC call.
+
 ## Running
 
 Veil is now available at `./src/veild`
