@@ -434,7 +434,12 @@ bool CzTracker::UpdateStatusInternal(const std::set<uint256>& setMempool, const 
         }
 
         // An orphan tx if hashblock is in mapBlockIndex but not in chain active
-        if (mapBlockIndex.count(hashBlock) && !chainActive.Contains(mapBlockIndex.at(hashBlock))) {
+        bool orphaned;
+        {
+            LOCK(cs_mapblockindex);
+            orphaned = mapBlockIndex.count(hashBlock) && !chainActive.Contains(mapBlockIndex.at(hashBlock));
+        }
+        if (orphaned) {
             LogPrintf("%s : Found orphaned mint txid=%s\n", __func__, mint.txid.GetHex());
             mint.isUsed = false;
             mint.nHeight = 0;

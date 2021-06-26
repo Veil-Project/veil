@@ -8,6 +8,8 @@
 
 #include <optional.h>
 
+#include <optional.h>
+
 // Descending order comparator
 struct {
     bool operator()(const OutputGroup& a, const OutputGroup& b) const

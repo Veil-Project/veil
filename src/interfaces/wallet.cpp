@@ -235,9 +235,9 @@ WalletTx MakeWalletTx(CHDWallet& wallet, MapRecords_t::const_iterator irtx)
 //! Construct wallet tx status struct.
 WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
 {
+    LOCK(cs_main);
     WalletTxStatus result;
-    auto mi = ::mapBlockIndex.find(wtx.hashBlock);
-    CBlockIndex* block = mi != ::mapBlockIndex.end() ? mi->second : nullptr;
+    CBlockIndex* block = LookupBlockIndex(wtx.hashBlock);
     result.block_height = (block ? block->nHeight : std::numeric_limits<int>::max());
     result.blocks_to_maturity = wtx.GetBlocksToMaturity();
     result.depth_in_main_chain = wtx.GetDepthInMainChain();
@@ -255,9 +255,8 @@ WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
 WalletTxStatus MakeWalletTxStatus(AnonWallet* pAnonWallet, const uint256 &hash, const CTransactionRecord &rtx)
 {
     WalletTxStatus result;
-    auto mi = ::mapBlockIndex.find(rtx.blockHash);
 
-    CBlockIndex* block = mi != ::mapBlockIndex.end() ? mi->second : nullptr;
+    CBlockIndex* block = LookupBlockIndex(rtx.blockHash);
     result.block_height = (block ? block->nHeight : std::numeric_limits<int>::max()),
 
             result.blocks_to_maturity = 0;

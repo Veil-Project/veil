@@ -653,12 +653,15 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    // Preferences check
-    // If the UI settings have a different value than the server args then use the UI settings.
-    QSettings* settings = getSettings();
-    int tempPref = settings->value("nAutomintDenom").toInt();
-    if(tempPref != nPreferredDenom && tempPref != 0){
-        nPreferredDenom = tempPref;
+    // Automint denom
+    // If nautomintdenom is set, use it
+    // Else use saved UI settings
+    if(!gArgs.IsArgSet("-nautomintdenom")){
+    	QSettings* settings = getSettings();
+    	int tempPref = settings->value("nAutomintDenom").toInt();
+		if(tempPref != nPreferredDenom && tempPref != 0){
+			nPreferredDenom = tempPref;
+		}
     }
 
     // Now that the QApplication is setup and we have parsed our parameters, we can set the platform style
