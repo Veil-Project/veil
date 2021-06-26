@@ -141,7 +141,7 @@ border:none;</string>
              <string notr="true">background-color:transparent;</string>
             </property>
             <property name="text">
-             <string>Total balance</string>
+             <string>Total Balance</string>
             </property>
             <property name="icon">
              <iconset resource="../../veil.qrc">

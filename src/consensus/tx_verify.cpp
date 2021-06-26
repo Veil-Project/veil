@@ -13,6 +13,7 @@
 
 // TODO remove the following dependencies
 #include <chain.h>
+#include <chainparams.h>
 #include <coins.h>
 #include <util/moneystr.h>
 #include <chainparams.h>
@@ -463,7 +464,24 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     size_t nBasecoin = 0, nCt = 0, nRingCT = 0, nZerocoin = 0;
     nValueIn = 0;
     for (unsigned int i = 0; i < tx.vin.size(); ++i) {
+
+        uint32_t nInputs, nRingSize;
+        tx.vin[i].GetAnonInfo(nInputs, nRingSize);
+        const std::vector<uint8_t> &vKeyImages = tx.vin[i].scriptData.stack[0];
+
         if (tx.vin[i].IsAnonInput()) {
+            for (size_t k = 0; k < nInputs; ++k) {
+                const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
+
+                if (!state.m_setHaveKI.insert(ki).second) {
+                    if (::Params().CheckKIenforced(nSpendHeight))
+                        return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki-tx-double");
+                    else
+                        LogPrint(BCLog::RINGCT, "%s: block=%d tx=%s spending ki: %s\n", __func__,
+                                 nSpendHeight, tx.GetHash().GetHex(), HexStr(ki).c_str());
+                }
+            }
+
             state.fHasAnonInput = true;
             nRingCT++;
             continue;

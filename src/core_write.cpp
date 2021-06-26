@@ -1,4 +1,5 @@
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2021 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -207,6 +208,12 @@ void OutputToJSON(uint256 &txid, int i,
             entry.pushKV("type", "ringct");
             entry.pushKV("vout.n", i);
             entry.pushKV("pubkey", HexStr(s->pk.begin(), s->pk.end()));
+
+            std::vector<uint8_t> objKeyImage;
+            objKeyImage.resize(33);
+            memcpy(&objKeyImage[0], &s->pk[0], 33);
+            entry.pushKV("key_image", HexStr(objKeyImage));
+
             entry.pushKV("valueCommitment", HexStr(&s->commitment.data[0], &s->commitment.data[0]+33));
             entry.pushKV("data_hex", HexStr(s->vData.begin(), s->vData.end()));
 
@@ -295,6 +302,18 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
                     arrRing.push_back(obj);
                 }
                 in.pushKV("ringct_inputs", arrRing);
+                const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+                uint32_t nInputs, nRingSize;
+                txin.GetAnonInfo(nInputs, nRingSize);
+
+                UniValue arrKeyImages(UniValue::VARR);
+                for (unsigned int k = 0; k < nSigInputs; k++) {
+                    const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*nSigInputs]);
+                    UniValue objKeyImage(UniValue::VOBJ);
+                    objKeyImage.pushKV(std::to_string(k), HexStr(ki));
+                    arrKeyImages.push_back(objKeyImage);
+                }
+                in.pushKV("key_images", arrKeyImages);
             }
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());

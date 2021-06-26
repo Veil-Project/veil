@@ -19,7 +19,7 @@ Then install [Homebrew](https://brew.sh).
 
 ## Dependencies
 ```shell
-    brew install automake libtool boost miniupnpc openssl pkg-config protobuf python qt libevent qrencode gmp
+    brew install automake libtool boost miniupnpc openssl pkg-config protobuf python qt@5 libevent qrencode gmp
 ```
 
 If you run into issues, check [Homebrew's troubleshooting page](https://docs.brew.sh/Troubleshooting).
@@ -84,6 +84,7 @@ compiled in disable-wallet mode with:
 In this case there is no dependency on [*Berkeley DB*](#berkeley-db) and [*SQLite*](#sqlite).
 
 Mining is also possible in disable-wallet mode using the `getblocktemplate` RPC call.
+
 ## Running
 
 Veil is now available at `./src/veild`

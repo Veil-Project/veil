@@ -147,16 +147,14 @@ static bool rest_headers(HTTPRequest* req,
     const CBlockIndex* tip = nullptr;
     std::vector<const CBlockIndex *> headers;
     headers.reserve(count);
-    {
-        LOCK(cs_main);
-        tip = chainActive.Tip();
-        const CBlockIndex* pindex = LookupBlockIndex(hash);
-        while (pindex != nullptr && chainActive.Contains(pindex)) {
-            headers.push_back(pindex);
-            if (headers.size() == (unsigned long)count)
-                break;
-            pindex = chainActive.Next(pindex);
-        }
+
+    tip = chainActive.Tip();
+    const CBlockIndex* pindex = LookupBlockIndex(hash);
+    while (pindex != nullptr && chainActive.Contains(pindex)) {
+        headers.push_back(pindex);
+        if (headers.size() == (unsigned long)count)
+            break;
+        pindex = chainActive.Next(pindex);
     }
 
     CDataStream ssHeader(SER_NETWORK, PROTOCOL_VERSION);
@@ -210,22 +208,17 @@ static bool rest_block(HTTPRequest* req,
         return RESTERR(req, HTTP_BAD_REQUEST, "Invalid hash: " + hashStr);
 
     CBlock block;
-    CBlockIndex* pblockindex = nullptr;
-    CBlockIndex* tip = nullptr;
-    {
-        LOCK(cs_main);
-        tip = chainActive.Tip();
-        pblockindex = LookupBlockIndex(hash);
-        if (!pblockindex) {
-            return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not found");
-        }
-
-        if (IsBlockPruned(pblockindex))
-            return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not available (pruned data)");
-
-        if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
-            return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not found");
+    CBlockIndex* tip = chainActive.Tip();
+    CBlockIndex* pblockindex = LookupBlockIndex(hash);
+    if (!pblockindex) {
+        return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not found");
     }
+
+    if (IsBlockPruned(pblockindex))
+        return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not available (pruned data)");
+
+    if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus()))
+        return RESTERR(req, HTTP_NOT_FOUND, hashStr + " not found");
 
     CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION | RPCSerializationFlags());
     ssBlock << block;

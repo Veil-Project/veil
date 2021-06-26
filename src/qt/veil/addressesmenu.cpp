@@ -19,9 +19,14 @@ AddressesMenu::AddressesMenu(const QString _type, const QModelIndex &_index, QWi
     mainWindow(_mainWindow),
     index(_index),
     type(_type),
-    model(_model)
+    model(_model),
+	timeoutTimer(0)
+
 {
     ui->setupUi(this);
+
+    timeoutTimer = new QTimer(this);
+    connect(timeoutTimer, SIGNAL(timeout()), this, SLOT(hide()));
 
     connect(ui->btnCopy,SIGNAL(clicked()),this,SLOT(onBtnCopyAddressClicked()));
     connect(ui->btnDelete,SIGNAL(clicked()),this,SLOT(onBtnDeleteAddressClicked()));
@@ -81,7 +86,15 @@ void AddressesMenu::setInitData(const QModelIndex &_index, AddressTableModel *_m
 }
 
 void AddressesMenu::showEvent(QShowEvent *event){
-    QTimer::singleShot(3500, this, SLOT(hide()));
+	timeoutTimer->start(3500);
+}
+
+void AddressesMenu::enterEvent(QEvent *event){
+	timeoutTimer->stop();
+}
+
+void AddressesMenu::leaveEvent(QEvent *event){
+	hide();
 }
 
 AddressesMenu::~AddressesMenu() {
