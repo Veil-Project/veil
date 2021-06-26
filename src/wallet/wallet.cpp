@@ -771,8 +771,10 @@ bool CWallet::IsSpent(const uint256& hash, unsigned int n) const
         }
     }
 
-    if (setAnonTx.count(hash))
+    if (setAnonTx.count(hash)) {
+        LOCK(cs_main);
         return pAnonWalletMain->IsSpent(hash, n);
+    }
 
     return false;
 }
@@ -1301,8 +1303,6 @@ bool CWallet::AbandonTransaction(const uint256& hashTx)
 
 void CWallet::MarkConflicted(const uint256& hashBlock, const uint256& hashTx)
 {
-    LOCK2(cs_main, cs_wallet);
-
     int conflictconfirms = 0;
     CBlockIndex* pindex = LookupBlockIndex(hashBlock);
     if (pindex && chainActive.Contains(pindex)) {
@@ -1314,6 +1314,8 @@ void CWallet::MarkConflicted(const uint256& hashBlock, const uint256& hashTx)
     // case.
     if (conflictconfirms >= 0)
         return;
+
+    LOCK2(cs_main, cs_wallet);
 
     // Do not flush the wallet here for performance reasons
     WalletBatch batch(*database, "r+", false);
@@ -2310,9 +2312,12 @@ CAmount CWalletTx::GetDebit(const isminefilter& filter) const
 
 CAmount CWalletTx::GetCredit(const isminefilter& filter, bool fResetCache) const
 {
-    // Must wait until coinbase is safely deep enough in the chain before valuing it
-    if (IsCoinBase() && GetBlocksToMaturity() > 0)
-        return 0;
+    {
+        LOCK(cs_main);
+        // Must wait until coinbase is safely deep enough in the chain before valuing it
+        if (IsCoinBase() && GetBlocksToMaturity() > 0)
+            return 0;
+    }
 
     CAmount credit = 0;
     if (filter & ISMINE_SPENDABLE)
@@ -2345,6 +2350,7 @@ CAmount CWalletTx::GetCredit(const isminefilter& filter, bool fResetCache) const
 
 CAmount CWalletTx::GetImmatureCredit(bool fUseCache) const
 {
+    LOCK(cs_main);
     if (IsCoinBase() && GetBlocksToMaturity() > 0 && IsInMainChain())
     {
         if (fUseCache && fImmatureCreditCached)
@@ -2362,9 +2368,12 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache, const isminefilter& filter
     if (pwallet == nullptr)
         return 0;
 
-    // Must wait until coinbase is safely deep enough in the chain before valuing it
-    if (IsCoinBase() && GetBlocksToMaturity() > 0)
-        return 0;
+    {
+        LOCK(cs_main);
+        // Must wait until coinbase is safely deep enough in the chain before valuing it
+        if (IsCoinBase() && GetBlocksToMaturity() > 0)
+            return 0;
+    }
 
     CAmount* cache = nullptr;
     bool* cache_used = nullptr;
@@ -2408,6 +2417,7 @@ CAmount CWalletTx::GetAvailableCredit(bool fUseCache, const isminefilter& filter
 
 CAmount CWalletTx::GetImmatureWatchOnlyCredit(const bool fUseCache) const
 {
+    LOCK(cs_main);
     if (IsCoinBase() && GetBlocksToMaturity() > 0 && IsInMainChain())
     {
         if (fUseCache && fImmatureWatchCreditCached)
@@ -4496,7 +4506,7 @@ std::map<CTxDestination, CAmount> CWallet::GetAddressBalances()
     std::map<CTxDestination, CAmount> balances;
 
     {
-        LOCK(cs_wallet);
+        LOCK2(cs_main, cs_wallet);
         for (const auto& walletEntry : mapWallet)
         {
             const CWalletTx *pcoin = &walletEntry.second;
@@ -4647,6 +4657,7 @@ std::set<CTxDestination> CWallet::GetLabelAddresses(const std::string& label) co
 
 bool CReserveKey::GetReservedKey(CPubKey& pubkey, bool internal)
 {
+    LOCK(pwallet->cs_wallet);
     if (nIndex == -1)
     {
         CKeyPool keypool;
@@ -4663,14 +4674,17 @@ bool CReserveKey::GetReservedKey(CPubKey& pubkey, bool internal)
 
 void CReserveKey::KeepKey()
 {
-    if (nIndex != -1)
+    LOCK(pwallet->cs_wallet);
+    if (nIndex != -1) {
         pwallet->KeepKey(nIndex);
+    }
     nIndex = -1;
     vchPubKey = CPubKey();
 }
 
 void CReserveKey::ReturnKey()
 {
+    LOCK(pwallet->cs_wallet);
     if (nIndex != -1) {
         pwallet->ReturnKey(nIndex, fInternal, vchPubKey);
     }
@@ -5590,8 +5604,6 @@ int CMerkleTx::GetDepthInMainChain() const
     if (hashUnset())
         return 0;
 
-    AssertLockHeld(cs_main);
-
     // Find the block it claims to be in
     CBlockIndex* pindex = LookupBlockIndex(hashBlock);
     if (!pindex || !chainActive.Contains(pindex))
@@ -6484,9 +6496,12 @@ bool CWallet::CreateZerocoinSpendTransaction(CAmount nValue, int nSecurityLevel,
         if (!GetTransaction(mint.GetTxHash(), txMint, Params().GetConsensus(), hashBlock)) {
             receipt.SetStatus("Unable to find transaction containing mint", nStatus);
             fArchive = true;
-        } else if (!mapBlockIndex.count(hashBlock) || !chainActive.Contains(mapBlockIndex.at(hashBlock))) {
-            receipt.SetStatus("Mint did not make it into blockchain", nStatus);
-            fArchive = true;
+        } else {
+            LOCK(cs_mapblockindex);
+            if (!mapBlockIndex.count(hashBlock) || !chainActive.Contains(mapBlockIndex.at(hashBlock))) {
+                receipt.SetStatus("Mint did not make it into blockchain", nStatus);
+                fArchive = true;
+            }
         }
 
         // archive this mint as an orphan

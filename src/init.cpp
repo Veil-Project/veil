@@ -716,6 +716,10 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
                 break; // This error is logged in OpenBlockFile
             LogPrintf("Reindexing block file blk%05u.dat...\n", (unsigned int)nFile);
             LoadExternalBlockFile(chainparams, file, &pos);
+            if (ShutdownRequested()) {
+                LogPrintf("Shutdown requested. Exit %s\n", __func__);
+                return;
+            }
             nFile++;
         }
         pblocktree->WriteReindexing(false);
@@ -733,6 +737,10 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             fs::path pathBootstrapOld = GetDataDir() / "bootstrap.dat.old";
             LogPrintf("Importing bootstrap.dat...\n");
             LoadExternalBlockFile(chainparams, file);
+            if (ShutdownRequested()) {
+                LogPrintf("Shutdown requested. Exit %s\n", __func__);
+                return;
+            }
             RenameOver(pathBootstrap, pathBootstrapOld);
         } else {
             LogPrintf("Warning: Could not open bootstrap file %s\n", pathBootstrap.string());
@@ -745,6 +753,10 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         if (file) {
             LogPrintf("Importing blocks file %s...\n", path.string());
             LoadExternalBlockFile(chainparams, file);
+            if (ShutdownRequested()) {
+                LogPrintf("Shutdown requested. Exit %s\n", __func__);
+                return;
+            }
         } else {
             LogPrintf("Warning: Could not open blocks file %s\n", path.string());
         }
@@ -1602,10 +1614,13 @@ bool AppInitMain()
                     break;
                 }
 
-                // If the loaded chain has a wrong genesis, bail out immediately
-                // (we're likely using a testnet datadir, or the other way around).
-                if (!mapBlockIndex.empty() && !LookupBlockIndex(chainparams.GetConsensus().hashGenesisBlock)) {
-                    return InitError(_("Incorrect or no genesis block found. Wrong datadir for network?"));
+                {
+                    LOCK(cs_mapblockindex);
+                    // If the loaded chain has a wrong genesis, bail out immediately
+                    // (we're likely using a testnet datadir, or the other way around).
+                    if (!mapBlockIndex.empty() && !LookupBlockIndex(chainparams.GetConsensus().hashGenesisBlock)) {
+                        return InitError(_("Incorrect or no genesis block found. Wrong datadir for network?"));
+                    }
                 }
 
                 // Check for changed -prune state.  What we are concerned about is a user who has pruned blocks
@@ -1835,14 +1850,12 @@ bool AppInitMain()
 
     // ********************************************************* Step 12: start node
 
-    int chain_active_height;
-
     //// debug print
     {
-        LOCK(cs_main);
+        LOCK(cs_mapblockindex);
         LogPrintf("mapBlockIndex.size() = %u\n", mapBlockIndex.size());
-        chain_active_height = chainActive.Height();
     }
+    int chain_active_height = chainActive.Height();
     LogPrintf("nBestHeight = %d\n", chain_active_height);
 
     if (gArgs.GetBoolArg("-listenonion", DEFAULT_LISTEN_ONION))

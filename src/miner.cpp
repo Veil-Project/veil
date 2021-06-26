@@ -168,13 +168,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     CMutableTransaction txCoinStake;
     CBlockIndex* pindexPrev;
+    //Do not pass in the chain tip, because it can change. Instead pass the blockindex directly from mapblockindex, which is const.
+    auto pindexTip = chainActive.Tip();
+    if (!pindexTip)
+        return nullptr;
+    auto hashBest = pindexTip->GetBlockHash();
     {
-        LOCK(cs_main);
-        //Do not pass in the chain tip, because it can change. Instead pass the blockindex directly from mapblockindex, which is const.
-        auto pindexTip = chainActive.Tip();
-        if (!pindexTip)
-            return nullptr;
-        auto hashBest = pindexTip->GetBlockHash();
+        LOCK(cs_mapblockindex);
         pindexPrev = mapBlockIndex.at(hashBest);
     }
     if (fProofOfStake && pindexPrev->nHeight + 1 >= Params().HeightPoSStart()) {
@@ -499,7 +499,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if(fProofOfFullNode && !fProofOfStake)
         LogPrint(BCLog::BLOCKCREATION, "%s: A block can not be proof of full node and proof of work.\n", __func__);
     else if(fProofOfFullNode && fProofOfStake) {
-        LOCK(cs_main);
+        AssertLockHeld(cs_main);
         pblock->hashPoFN = veil::GetFullNodeHash(*pblock, pindexPrev);
     }
 

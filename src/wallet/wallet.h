@@ -1157,7 +1157,7 @@ public:
      *     or external keypool
      */
     bool ReserveKeyFromKeyPool(int64_t& nIndex, CKeyPool& keypool, bool fRequestedInternal);
-    void KeepKey(int64_t nIndex);
+    void KeepKey(int64_t nIndex) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
     void ReturnKey(int64_t nIndex, bool fInternal, const CPubKey& pubkey);
     bool GetKeyFromPool(CPubKey &key, bool internal = false);
     int64_t GetOldestKeyPoolTime();
@@ -1380,8 +1380,8 @@ class CReserveKey final : public CReserveScript
 {
 protected:
     CWallet* pwallet;
-    int64_t nIndex;
-    CPubKey vchPubKey;
+    int64_t nIndex GUARDED_BY(pwallet->cs_wallet);
+    CPubKey vchPubKey GUARDED_BY(pwallet->cs_wallet);
     bool fInternal;
 public:
     explicit CReserveKey(CWallet* pwalletIn)

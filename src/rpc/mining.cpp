@@ -993,25 +993,19 @@ static UniValue pprpcsb(const JSONRPCRequest& request) {
     blockptr->mixHash = calculated_mix_hash;
 
     uint256 hash = blockptr->GetHash();
-    {
-        LOCK(cs_main);
-        const CBlockIndex* pindex = LookupBlockIndex(hash);
-        if (pindex) {
-            if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
-                return "duplicate";
-            }
-            if (pindex->nStatus & BLOCK_FAILED_MASK) {
-                return "duplicate-invalid";
-            }
+    const CBlockIndex* pindex = LookupBlockIndex(hash);
+    if (pindex) {
+        if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
+            return "duplicate";
+        }
+        if (pindex->nStatus & BLOCK_FAILED_MASK) {
+            return "duplicate-invalid";
         }
     }
 
-    {
-        LOCK(cs_main);
-        const CBlockIndex* pindex = LookupBlockIndex(blockptr->hashPrevBlock);
-        if (pindex) {
-            UpdateUncommittedBlockStructures(*blockptr, pindex, Params().GetConsensus());
-        }
+    pindex = LookupBlockIndex(blockptr->hashPrevBlock);
+    if (pindex) {
+        UpdateUncommittedBlockStructures(*blockptr, pindex, Params().GetConsensus());
     }
 
     bool new_block;
@@ -1069,25 +1063,19 @@ static UniValue submitblock(const JSONRPCRequest& request)
     }
 
     uint256 hash = block.GetHash();
-    {
-        LOCK(cs_main);
-        const CBlockIndex* pindex = LookupBlockIndex(hash);
-        if (pindex) {
-            if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
-                return "duplicate";
-            }
-            if (pindex->nStatus & BLOCK_FAILED_MASK) {
-                return "duplicate-invalid";
-            }
+    const CBlockIndex* pindex = LookupBlockIndex(hash);
+    if (pindex) {
+        if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
+            return "duplicate";
+        }
+        if (pindex->nStatus & BLOCK_FAILED_MASK) {
+            return "duplicate-invalid";
         }
     }
 
-    {
-        LOCK(cs_main);
-        const CBlockIndex* pindex = LookupBlockIndex(block.hashPrevBlock);
-        if (pindex) {
-            UpdateUncommittedBlockStructures(block, pindex, Params().GetConsensus());
-        }
+    pindex = LookupBlockIndex(block.hashPrevBlock);
+    if (pindex) {
+        UpdateUncommittedBlockStructures(block, pindex, Params().GetConsensus());
     }
 
     bool new_block;
