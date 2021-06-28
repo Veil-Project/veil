@@ -199,7 +199,7 @@ extern "C" {
             int count = 0;
             while(cache != nullptr && count++ < 60 && !cache->isInitialized()) {
                 LogPrintf("%s : Cache not initialized\n", __func__);
-                MilliSleep(250);
+                UninterruptibleSleep(std::chrono::milliseconds{250});
             }
         }
 

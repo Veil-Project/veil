@@ -1465,7 +1465,7 @@ void ProcessStagingBatchVerify()
                 mapStagedBlocksCopy = mapStagedBlocks;
         }
         if (fNextIter) {
-            MilliSleep(500);
+            UninterruptibleSleep(std::chrono::milliseconds{500});
             continue;
         }
 
@@ -1573,7 +1573,7 @@ void ProcessStaging()
             }
         }
         if (!fProcessNext) {
-            MilliSleep(100);
+            UninterruptibleSleep(std::chrono::milliseconds{100});
             continue;
         }
 
@@ -1583,7 +1583,7 @@ void ProcessStaging()
         }
 
         if (!fProcessNext) {
-            MilliSleep(100);
+            UninterruptibleSleep(std::chrono::milliseconds{100});
             continue;
         }
 
