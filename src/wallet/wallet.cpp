@@ -3882,7 +3882,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
 
     //Small sleep if too far back on timing
     if (GetAdjustedTime() - chainActive.Tip()->GetBlockTime() < 1)
-        MilliSleep(2500);
+        UninterruptibleSleep(std::chrono::milliseconds{2500});
 
     CAmount nCredit = 0;
     CScript scriptPubKeyKernel;
@@ -6813,7 +6813,7 @@ void AutoSpendZeroCoin()
             if (count < 100) {
                 count++;
                 boost::this_thread::interruption_point();
-                MilliSleep(nMilliSeconds);
+                UninterruptibleSleep(std::chrono::milliseconds{nMilliSeconds});
                 boost::this_thread::interruption_point();
                 continue;
             }
