@@ -90,7 +90,7 @@ bool ReceiveWidget::generateNewAddress(bool isOnDemand){
     interfaces::Wallet& wallet = walletModel->wallet();
 
     std::string strAddress;
-    std::string addressName = " ";
+    std::string addressName = "";
     isminetype isMine = ISMINE_NO;
     std::string purpose = " ";
 
@@ -123,7 +123,13 @@ bool ReceiveWidget::generateNewAddress(bool isOnDemand){
 
     // set address
     ui->labelAddress->setText(qAddress.left(16) + "..." + qAddress.right(16));
-    ui->labelAddressName->setText(QString::fromStdString(addressName));
+    if("" != addressName){
+        ui->labelAddressName->setText(QString::fromStdString(addressName));
+        ui->labelAddressName->show();
+    }
+    else{
+    	ui->labelAddressName->hide();
+    }
 
     SendCoinsRecipient info;
     info.address = qAddress;
@@ -146,13 +152,13 @@ bool ReceiveWidget::generateNewAddress(bool isOnDemand){
                 return false;
             }
             QImage qrImage = QImage(code->width + 8, code->width + 8, QImage::Format_RGB32);
-            qrImage.fill(0xffffff);
+            qrImage.fill(qrColorCode);
             unsigned char *p = code->data;
             for (int y = 0; y < code->width; y++)
             {
                 for (int x = 0; x < code->width; x++)
                 {
-                    qrImage.setPixel(x + 4, y + 4, ((*p & 1) ? 0x004377 : 0xffffff));
+                    qrImage.setPixel(x + 4, y + 4, ((*p & 1) ? 0x004377 : qrColorCode));
                     p++;
                 }
             }
@@ -161,7 +167,7 @@ bool ReceiveWidget::generateNewAddress(bool isOnDemand){
             int qrImageSize = 275;
 
             QImage qrAddrImage = QImage(qrImageSize, qrImageSize,  QImage::Format_RGB32);//QR_IMAGE_SIZE, QR_IMAGE_SIZE+20, QImage::Format_RGB32);
-            qrAddrImage.fill(0xffffff);
+            qrAddrImage.fill(qrColorCode);
             QPainter painter(&qrAddrImage);
             painter.drawImage(0, 0, qrImage.scaled(qrImageSize,qrImageSize));//QR_IMAGE_SIZE, QR_IMAGE_SIZE));
             QFont font = GUIUtil::fixedPitchFont();
@@ -194,6 +200,7 @@ void ReceiveWidget::setWalletModel(WalletModel *model){
 }
 
 void ReceiveWidget::showEvent(QShowEvent *event){
+	/*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -202,9 +209,11 @@ void ReceiveWidget::showEvent(QShowEvent *event){
     a->setEndValue(1);
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
 }
 
 void ReceiveWidget::hideEvent(QHideEvent *event){
+	/*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -213,6 +222,7 @@ void ReceiveWidget::hideEvent(QHideEvent *event){
     a->setEndValue(0);
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
 }
 
 ReceiveWidget::~ReceiveWidget()

@@ -13,19 +13,12 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">font-size:16px;
-color:#707070;</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="0">
    <property name="rightMargin">
     <number>60</number>
    </property>
    <item alignment="Qt::AlignTop">
     <widget class="QLabel" name="label2">
-     <property name="styleSheet">
-      <string notr="true">font-weight:200;</string>
-     </property>
      <property name="text">
       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; text-decoration: underline;&quot;&gt;Backup wallet&lt;/span&gt;&lt;span&gt;&lt;br /&gt;&lt;/span&gt;&lt;span&gt;&lt;br /&gt;&lt;/span&gt;&lt;span&gt;Go to Setting&amp;gt;Backup Wallet.&lt;/span&gt;&lt;/p&gt;
 &lt;p &gt;&lt;span&gt;Select either Wallet File or Recovery Seed Phrase&lt;/span&gt;&lt;/p&gt;

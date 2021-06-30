@@ -13,11 +13,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">#UpdateAddress{
-	background-color:transparent;
-}</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="leftMargin">
     <number>10</number>
@@ -36,13 +31,6 @@
      <property name="autoFillBackground">
       <bool>false</bool>
      </property>
-     <property name="styleSheet">
-      <string notr="true">#frame{
-  background-color: white;
-  padding: 10px 10px 10px 10px;
-  border-radius: 20px;
-}</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -58,11 +46,8 @@
           <height>40</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true"/>
-        </property>
         <property name="text">
-         <string>Edit address label</string>
+         <string>Edit Address Label</string>
         </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
@@ -132,9 +117,6 @@
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true"/>
-        </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
         </property>
@@ -142,9 +124,6 @@
       </item>
       <item>
        <widget class="QLabel" name="errorMessage">
-        <property name="styleSheet">
-         <string notr="true">color:#fd1337;</string>
-        </property>
         <property name="text">
          <string>Error</string>
         </property>
@@ -186,9 +165,6 @@
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
           </property>
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>CANCEL</string>
           </property>
@@ -211,9 +187,6 @@
          <widget class="QPushButton" name="btnSave">
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="styleSheet">
-           <string notr="true"/>
           </property>
           <property name="text">
            <string>SAVE</string>

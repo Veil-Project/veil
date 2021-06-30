@@ -13,12 +13,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">#SettingsBackup{
-  background-color:transparent;
-  border:none;
-}</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="leftMargin">
     <number>20</number>
@@ -43,13 +37,6 @@
      <property name="autoFillBackground">
       <bool>false</bool>
      </property>
-     <property name="styleSheet">
-      <string notr="true">#frame{
-  background-color: white;
-  padding: 10px 10px 10px 10px;
-  border-radius: 20px;
-}</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -67,9 +54,6 @@
           <width>16777215</width>
           <height>40</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true"/>
         </property>
         <property name="text">
          <string>Backup wallet</string>
@@ -114,13 +98,6 @@
           <property name="layoutDirection">
            <enum>Qt::RightToLeft</enum>
           </property>
-          <property name="styleSheet">
-           <string notr="true">padding:8px;
-border:none;
-font-size:18px;
-border-bottom:1px solid #bababa;
-margin-left:20px;</string>
-          </property>
           <property name="text">
            <string>Select destination folder</string>
           </property>
@@ -134,10 +111,6 @@ margin-left:20px;</string>
         </item>
         <item>
          <widget class="QPushButton" name="pushButton">
-          <property name="styleSheet">
-           <string notr="true">background-color:transparent;
-border:none;</string>
-          </property>
           <property name="text">
            <string/>
           </property>
@@ -169,9 +142,6 @@ border:none;</string>
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true"/>
-        </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
         </property>
@@ -191,9 +161,6 @@ border:none;</string>
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true"/>
-        </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
         </property>
@@ -201,9 +168,6 @@ border:none;</string>
       </item>
       <item alignment="Qt::AlignHCenter">
        <widget class="QLabel" name="errorMessage">
-        <property name="styleSheet">
-         <string notr="true">color:#fd1337;</string>
-        </property>
         <property name="text">
          <string>Destination folder not available</string>
         </property>
@@ -242,9 +206,6 @@ border:none;</string>
         </item>
         <item>
          <widget class="QPushButton" name="btnEsc">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>CANCEL</string>
           </property>
@@ -265,9 +226,6 @@ border:none;</string>
         </item>
         <item>
          <widget class="QPushButton" name="btnSave">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>SAVE</string>
           </property>

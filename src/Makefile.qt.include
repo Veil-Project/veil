@@ -449,6 +449,7 @@ RES_ICONS = \
   qt/res/icons/ic-progress-8-10@2x.png \
   qt/res/icons/ic-copy.png \
   qt/res/icons/simbol.png \
+  qt/res/icons/simbol-white.png \
   qt/res/icons/ic-switch-on@2x.png \
   qt/res/icons/ic-watch-off.png \
   qt/res/icons/ic-close-active.png \
@@ -698,7 +699,8 @@ RES_IMAGES =
 RES_MOVIES = $(wildcard $(srcdir)/qt/res/movies/spinner-*.png)
 
 RES_CSS = \
-  qt/res/css/main.css
+  qt/res/css/main.css \
+  qt/res/css/main-dark.css
 
 BITCOIN_RC = qt/res/bitcoin-qt-res.rc
 

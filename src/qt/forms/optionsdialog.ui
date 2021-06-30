@@ -19,27 +19,16 @@
   <property name="windowTitle">
    <string>Options</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">background-color:white;
-border:none;</string>
-  </property>
   <property name="modal">
    <bool>true</bool>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QTabWidget" name="tabWidget">
-     <property name="styleSheet">
-      <string notr="true"/>
-     </property>
      <property name="currentIndex">
       <number>1</number>
      </property>
      <widget class="QWidget" name="tabMain">
-      <property name="styleSheet">
-       <string notr="true">padding-top:6px;
-background-color:transparent;</string>
-      </property>
       <attribute name="title">
        <string>&amp;Main</string>
       </attribute>
@@ -51,13 +40,6 @@ background-color:transparent;</string>
            <width>0</width>
            <height>0</height>
           </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">#frame_2{
-background-color:#10000000;
-border-radius:20px;
-padding:9px;
-}</string>
          </property>
          <property name="frameShape">
           <enum>QFrame::StyledPanel</enum>
@@ -115,9 +97,6 @@ padding:9px;
             </item>
             <item alignment="Qt::AlignHCenter">
              <widget class="QSpinBox" name="pruneSize">
-              <property name="styleSheet">
-               <string notr="true">border-bottom: 1px solid #bababa;</string>
-              </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
               </property>
@@ -175,9 +154,6 @@ padding:9px;
             </item>
             <item alignment="Qt::AlignHCenter">
              <widget class="QSpinBox" name="databaseCache">
-              <property name="styleSheet">
-               <string notr="true">border-bottom: 1px solid #bababa;</string>
-              </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
               </property>
@@ -228,9 +204,6 @@ padding:9px;
               <property name="toolTip">
                <string>(0 = auto, &lt;0 = leave that many cores free)</string>
               </property>
-              <property name="styleSheet">
-               <string notr="true">border-bottom: 1px solid #bababa;</string>
-              </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
               </property>
@@ -257,9 +230,6 @@ padding:9px;
       </layout>
      </widget>
      <widget class="QWidget" name="tabWallet">
-      <property name="styleSheet">
-       <string notr="true">padding-top:6px;</string>
-      </property>
       <attribute name="title">
        <string>W&amp;allet</string>
       </attribute>
@@ -271,13 +241,6 @@ padding:9px;
            <width>0</width>
            <height>100</height>
           </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">#frame_3{
-background-color:#10000000;
-border-radius:20px;
-padding:9px;
-}</string>
          </property>
          <property name="frameShape">
           <enum>QFrame::StyledPanel</enum>
@@ -300,9 +263,6 @@ padding:9px;
           </property>
           <item>
            <widget class="QGroupBox" name="groupBox">
-            <property name="styleSheet">
-             <string notr="true">background-color:transparent;</string>
-            </property>
             <property name="title">
              <string>Expert</string>
             </property>
@@ -331,6 +291,13 @@ padding:9px;
                </property>
               </widget>
              </item>
+             <item>
+              <widget class="QCheckBox" name="applyDarkMode">
+               <property name="text">
+                <string>Enable Dark Theme</string>
+               </property>
+              </widget>
+             </item>
             </layout>
            </widget>
           </item>
@@ -353,9 +320,6 @@ padding:9px;
       </layout>
      </widget>
      <widget class="QWidget" name="tabNetwork">
-      <property name="styleSheet">
-       <string notr="true">padding-top:6px;</string>
-      </property>
       <attribute name="title">
        <string>&amp;Network</string>
       </attribute>
@@ -367,13 +331,6 @@ padding:9px;
            <width>0</width>
            <height>0</height>
           </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">#frame_5{
-background-color:#10000000;
-border-radius:20px;
-padding:9px;
-}</string>
          </property>
          <property name="frameShape">
           <enum>QFrame::StyledPanel</enum>
@@ -401,9 +358,6 @@ padding:9px;
               <width>0</width>
               <height>0</height>
              </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:transparent;</string>
             </property>
             <property name="frameShape">
              <enum>QFrame::StyledPanel</enum>
@@ -744,9 +698,6 @@ padding:9px;
       </layout>
      </widget>
      <widget class="QWidget" name="tabWindow">
-      <property name="styleSheet">
-       <string notr="true">padding-top:6px;</string>
-      </property>
       <attribute name="title">
        <string>&amp;Window</string>
       </attribute>
@@ -758,13 +709,6 @@ padding:9px;
            <width>0</width>
            <height>100</height>
           </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">#frame_6{
-background-color:#10000000;
-border-radius:20px;
-padding:9px;
-}</string>
          </property>
          <property name="frameShape">
           <enum>QFrame::StyledPanel</enum>
@@ -792,9 +736,6 @@ padding:9px;
                   <width>0</width>
                   <height>0</height>
                 </size>
-              </property>
-              <property name="styleSheet">
-                <string notr="true">background-color:transparent;</string>
               </property>
               <property name="frameShape">
                 <enum>QFrame::StyledPanel</enum>
@@ -867,22 +808,12 @@ padding:9px;
       </layout>
      </widget>
      <widget class="QWidget" name="tabDisplay">
-      <property name="styleSheet">
-       <string notr="true">padding-top:6px;</string>
-      </property>
       <attribute name="title">
        <string>&amp;Display</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_Display">
        <item>
         <widget class="QFrame" name="frame_8">
-         <property name="styleSheet">
-          <string notr="true">#frame_8{
-background-color:#10000000;
-border-radius:20px;
-padding:9px;
-}</string>
-         </property>
          <property name="frameShape">
           <enum>QFrame::StyledPanel</enum>
          </property>
@@ -910,9 +841,6 @@ padding:9px;
               <height>100</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:transparent;</string>
-            </property>
             <property name="frameShape">
              <enum>QFrame::StyledPanel</enum>
             </property>
@@ -936,9 +864,6 @@ padding:9px;
               <layout class="QHBoxLayout" name="horizontalLayout_1_Display">
                <item>
                 <widget class="QLabel" name="langLabel">
-                 <property name="styleSheet">
-                  <string notr="true">font-size:13px;</string>
-                 </property>
                  <property name="text">
                   <string>User Interface &amp;language:</string>
                  </property>
@@ -955,32 +880,6 @@ padding:9px;
                  <property name="toolTip">
                   <string>The user interface language can be set here. This setting will take effect after restarting %1.</string>
                  </property>
-                 <property name="styleSheet">
-                  <string notr="true">QValueComboBox{
-	font-size:13px;
-    selection-color: #000000;
-}
-
-QValueComboBox QFrame{
-	background-color:white;
-}
-
-QValueComboBox::drop-down {
-   background-color:white;
-   color:#bababa;
-}
-QToolTip {
-    color: #ffffff;
-    background-color: #6f9bf5;
-    font-size:11pt;
-    border: none;
-    border-radius:20px;
-    padding:6px;
-    margin:0px;
-    min-height: 35px;
-    qproperty-alignment: 'AlignVCenter | AlignCenter';
-}</string>
-                 </property>
                 </widget>
                </item>
               </layout>
@@ -989,9 +888,6 @@ QToolTip {
               <layout class="QHBoxLayout" name="horizontalLayout_2_Display">
                <item>
                 <widget class="QLabel" name="unitLabel">
-                 <property name="styleSheet">
-                  <string notr="true">font-size:13px;</string>
-                 </property>
                  <property name="text">
                   <string>&amp;Unit to show amounts in:</string>
                  </property>
@@ -1008,33 +904,6 @@ QToolTip {
                  <property name="toolTip">
                   <string>Choose the default subdivision unit to show in the interface and when sending coins.</string>
                  </property>
-                 <property name="styleSheet">
-                  <string notr="true">QValueComboBox{
-	font-size:13px;
-    selection-color: #000000;
-}
-
-QValueComboBox QFrame{
-	background-color:white;
-}
-
-QValueComboBox::drop-down {
-   background-color:white;
-   color:#bababa;
-}
-
-QToolTip {
-    color: #ffffff;
-    background-color: #6f9bf5;
-    font-size:11pt;
-    border: none;
-    border-radius:20px;
-    padding:6px;
-    margin:0px;
-    min-height: 35px;
-    qproperty-alignment: 'AlignVCenter | AlignCenter';
-}</string>
-                 </property>
                 </widget>
                </item>
               </layout>
@@ -1045,9 +914,6 @@ QToolTip {
                 <widget class="QLabel" name="thirdPartyTxUrlsLabel">
                  <property name="toolTip">
                   <string>Third party URLs (e.g. a block explorer) that appear in the transactions tab as context menu items. %s in the URL is replaced by transaction hash. Multiple URLs are separated by vertical bar |.</string>
-                 </property>
-                 <property name="styleSheet">
-                  <string notr="true">font-size:13px;</string>
                  </property>
                  <property name="text">
                   <string>&amp;Third party transaction URLs</string>
@@ -1061,9 +927,6 @@ QToolTip {
                 <widget class="QLineEdit" name="thirdPartyTxUrls">
                  <property name="toolTip">
                   <string>Third party URLs (e.g. a block explorer) that appear in the transactions tab as context menu items. %s in the URL is replaced by transaction hash. Multiple URLs are separated by vertical bar |.</string>
-                 </property>
-                 <property name="styleSheet">
-                  <string notr="true">font-size:13px;</string>
                  </property>
                 </widget>
                </item>
@@ -1099,9 +962,6 @@ QToolTip {
        <layout class="QHBoxLayout" name="horizontalLayout_Bottom">
         <item>
          <widget class="QLabel" name="overriddenByCommandLineInfoLabel">
-          <property name="styleSheet">
-           <string notr="true">font-size:13px;</string>
-          </property>
           <property name="text">
            <string>Active command-line options that override above options:</string>
           </property>
@@ -1160,9 +1020,6 @@ QToolTip {
          <property name="toolTip">
           <string>Open the %1 configuration file from the working directory.</string>
          </property>
-         <property name="styleSheet">
-          <string notr="true">color: rgb(106,148,255);</string>
-         </property>
          <property name="text">
           <string>Open Configuration File</string>
          </property>
@@ -1189,9 +1046,6 @@ QToolTip {
          </property>
          <property name="toolTip">
           <string>Reset all client options to default.</string>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">color: rgb(106,148,255);</string>
          </property>
          <property name="text">
           <string>&amp;Reset Options</string>
@@ -1283,20 +1137,6 @@ QToolTip {
              <height>0</height>
             </size>
            </property>
-           <property name="styleSheet">
-            <string notr="true">#cancelButton{
-border-radius: 6px;
-color: #FFFFFF;
-font-size: 16px;
-background-color:#105aef;
-line-height:10px;
-padding:8 20 8 20;
-}
-
-cancelButton:hover {
-background-color:#0e45b4;
-}</string>
-           </property>
            <property name="text">
             <string>Cancel</string>
            </property>
@@ -1312,20 +1152,6 @@ background-color:#0e45b4;
              <width>90</width>
              <height>0</height>
             </size>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">#okButton{
-border-radius: 6px;
-color: #FFFFFF;
-font-size: 16px;
-background-color:#105aef;
-line-height:10px;
-padding:8 20 8 20;
-}
-
-okButton:hover {
-background-color:#0e45b4;
-}</string>
            </property>
            <property name="text">
             <string>Ok</string>

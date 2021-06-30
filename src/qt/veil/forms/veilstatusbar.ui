@@ -128,29 +128,6 @@
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
             </property>
-            <property name="styleSheet">
-             <string notr="true">
- #checkStaking::indicator {
-    border: 0;
-    background: none;
-	 margin: 0;
-	 padding: 0;
-	width:40px;
-	height:30px;
- }
-
- #checkStaking {
- background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
- background-repeat:no-repeat;
- background-position:left center;
- color:#bababa;
- }
-
- #checkStaking:checked {
- background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
- color:#105aef;
- }</string>
-            </property>
             <property name="text">
              <string>Staking</string>
             </property>

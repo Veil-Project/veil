@@ -49,7 +49,7 @@ SplashScreenVeil::SplashScreenVeil(interfaces::Node& node, Qt::WindowFlags f, co
     this->setStyleSheet(GUIUtil::loadStyleSheet());
 
     this->resize(800, 514);
-    ui->frame->setStyleSheet("#frame{border-image: url(\":/icons/splash_background\") 0 0 0 0 stretch stretch;padding: 0;margin: 0;}");
+    //ui->frame->setStyleSheet("#frame{border-image: url(\":/icons/splash_background\") 0 0 0 0 stretch stretch;padding: 0;margin: 0;}");
 
     // Set window title
     setWindowTitle(titleText + " " + titleAddText);

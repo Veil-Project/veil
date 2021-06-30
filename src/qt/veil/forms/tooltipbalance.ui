@@ -19,9 +19,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">background-color:transparent</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
     <widget class="QFrame" name="frame">
@@ -37,13 +34,6 @@
        <height>200</height>
       </size>
      </property>
-     <property name="styleSheet">
-      <string notr="true">#frame {
-background-color:#ffffff;
-border-radius:14px;
-border:1px solid #bababa;
-}</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -58,12 +48,6 @@ border:1px solid #bababa;
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
          <widget class="QLabel" name="lblFirst">
-          <property name="styleSheet">
-           <string notr="true">color:#105aef;
-font-size:12px;
-text-align:center;
-padding-left:34px;</string>
-          </property>
           <property name="text">
            <string>Zerocoin</string>
           </property>
@@ -89,10 +73,6 @@ padding-left:34px;</string>
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
           </property>
-          <property name="styleSheet">
-           <string notr="true">border:none;
-background-color:transparent;</string>
-          </property>
           <property name="text">
            <string/>
           </property>
@@ -112,12 +92,6 @@ background-color:transparent;</string>
       </item>
       <item>
        <widget class="QLabel" name="textZero">
-        <property name="styleSheet">
-         <string notr="true">font-size:14px;
-color:#707070;
-text-align:center;
-padding-bottom:4px;</string>
-        </property>
         <property name="text">
          <string>0.00 veil</string>
         </property>
@@ -128,11 +102,6 @@ padding-bottom:4px;</string>
       </item>
       <item>
        <widget class="QLabel" name="lblSecond">
-        <property name="styleSheet">
-         <string notr="true">color:#105aef;
-font-size:12px;
-text-align:center;</string>
-        </property>
         <property name="text">
          <string>RingCT &amp; CT</string>
         </property>
@@ -143,11 +112,6 @@ text-align:center;</string>
       </item>
       <item>
        <widget class="QLabel" name="textRing">
-        <property name="styleSheet">
-         <string notr="true">font-size:14px;
-color:#707070;
-text-align:center;</string>
-        </property>
         <property name="text">
          <string>0.00 veil</string>
         </property>
@@ -158,11 +122,6 @@ text-align:center;</string>
       </item>
       <item alignment="Qt::AlignHCenter">
        <widget class="QLabel" name="lblThird">
-        <property name="styleSheet">
-         <string notr="true">color:#105aef;
-font-size:12px;
-text-align:center;</string>
-        </property>
         <property name="text">
          <string>Basecoin</string>
         </property>
@@ -170,11 +129,6 @@ text-align:center;</string>
       </item>
       <item alignment="Qt::AlignHCenter">
        <widget class="QLabel" name="textBasecoin">
-        <property name="styleSheet">
-         <string notr="true">font-size:14px;
-color:#707070;
-text-align:center;</string>
-        </property>
         <property name="text">
          <string>0.00 veil</string>
         </property>

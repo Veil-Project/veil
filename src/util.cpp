@@ -93,6 +93,13 @@ int nZeromintPercentage = 100;
 const int64_t AUTOMINT_DELAY = (60 * 5); // Wait at least 5 minutes until Automint starts
 int nPreferredDenom = 10;
 
+bool isDarkModeSet = 0;
+int qrColorCode = 0xffffff;
+int selectedBgColorCode = 0xceddfb;
+int mouseOverBgColorCode = 0xf4f4f4;
+int selectedTextColorCode = 0x575756;
+int selectedDateColorCode = 0x707070;
+
 ArgsManager gArgs;
 
 CTranslationInterface translationInterface;

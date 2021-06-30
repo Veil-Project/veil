@@ -9,6 +9,7 @@
 #include <qt/bitcoinunits.h>
 #include <qt/qvalidatedlineedit.h>
 #include <qt/walletmodel.h>
+#include <qt/veil/qtutils.h>
 
 #include <base58.h>
 #include <chainparams.h>
@@ -58,6 +59,8 @@
 #include <QUrlQuery>
 #include <QMouseEvent>
 #include <QFile>
+#include <QSettings>
+
 
 
 #if QT_VERSION >= 0x50200
@@ -70,10 +73,26 @@ namespace GUIUtil {
 
 QString loadStyleSheet(){
     QFile file(":/css/main");
+    QFile fileDark(":/css/main-dark");
+    QString stylesheet = QString();
     if(file.open(QFile::ReadOnly)){
-        return QLatin1String(file.readAll());
+       	stylesheet += QLatin1String(file.readAll());
     }
-    return QString();
+
+    if (isDarkModeSet == 0){
+    	 QSettings settings;
+    	 isDarkModeSet = settings.value("bDarkMode", false).toBool();
+    }
+
+    if(fileDark.open(QFile::ReadOnly) && isDarkModeSet){
+		stylesheet += QLatin1String(fileDark.readAll());
+		qrColorCode = 0xf7fbfe;
+		selectedBgColorCode = 0xf7fbfe;
+		mouseOverBgColorCode = 0xbababa;
+		selectedTextColorCode = 0x000000;
+		selectedDateColorCode = 0x707070;
+	}
+    return stylesheet;
 }
 
 QString dateTimeStr(const QDateTime &date)
@@ -122,6 +141,7 @@ void setupAddressWidget(QValidatedLineEdit *widget, QWidget *parent)
     //widget->setFont(fixedPitchFont());
     // We don't want translators to use own addresses in translations
     // and this is the only place, where this address is supplied.
+
     widget->setPlaceholderText(QObject::tr("Enter a Veil stealth address (e.g. %1)").arg(
         QString::fromStdString(DummyAddress(Params()))));
     widget->setValidator(new BitcoinAddressEntryValidator(parent));

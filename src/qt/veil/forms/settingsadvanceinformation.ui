@@ -45,11 +45,6 @@
         </property>
         <item>
          <widget class="QLabel" name="label_1">
-          <property name="styleSheet">
-           <string notr="true">color:#707070;
-font-size:18px;
-font-weight:bold;</string>
-          </property>
           <property name="text">
            <string>General</string>
           </property>
@@ -74,11 +69,6 @@ font-weight:bold;</string>
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;
-font-weight:200;</string>
-            </property>
             <property name="text">
              <string>Client version:</string>
             </property>
@@ -86,10 +76,6 @@ font-weight:200;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_11">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;</string>
-            </property>
             <property name="text">
              <string>v0.17.0.0-afd206ceb-dirty</string>
             </property>
@@ -116,11 +102,6 @@ font-size:18px;</string>
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;
-font-weight:200;</string>
-            </property>
             <property name="text">
              <string>User agent:</string>
             </property>
@@ -128,10 +109,6 @@ font-weight:200;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_13">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;</string>
-            </property>
             <property name="text">
              <string>/Satoshi:0.17.0/</string>
             </property>
@@ -158,11 +135,6 @@ font-size:18px;</string>
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;
-font-weight:200;</string>
-            </property>
             <property name="text">
              <string>Using BerkeleyDB version: </string>
             </property>
@@ -170,10 +142,6 @@ font-weight:200;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_15">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;</string>
-            </property>
             <property name="text">
              <string>Berkeley DB 4.8.30</string>
             </property>
@@ -200,11 +168,6 @@ font-size:18px;</string>
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;
-font-weight:200;</string>
-            </property>
             <property name="text">
              <string>Datadir: </string>
             </property>
@@ -212,10 +175,6 @@ font-weight:200;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_17">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;</string>
-            </property>
             <property name="text">
              <string>/Users/furszy/Desktop/veil-test</string>
             </property>
@@ -242,11 +201,6 @@ font-size:18px;</string>
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;
-font-weight:200;</string>
-            </property>
             <property name="text">
              <string>Startup time:  </string>
             </property>
@@ -254,10 +208,6 @@ font-weight:200;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_19">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;</string>
-            </property>
             <property name="text">
              <string>Thu Oct 25 01:32:28 2018</string>
             </property>
@@ -283,11 +233,6 @@ font-size:18px;</string>
         </item>
         <item>
          <widget class="QLabel" name="label_2">
-          <property name="styleSheet">
-           <string notr="true">color:#707070;
-font-size:18px;
-font-weight:bold;</string>
-          </property>
           <property name="text">
            <string>Network</string>
           </property>
@@ -312,11 +257,6 @@ font-weight:bold;</string>
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;
-font-weight:200;</string>
-            </property>
             <property name="text">
              <string>Name:</string>
             </property>
@@ -324,10 +264,6 @@ font-weight:200;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_22">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;</string>
-            </property>
             <property name="text">
              <string>main</string>
             </property>
@@ -354,11 +290,6 @@ font-size:18px;</string>
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;
-font-weight:200;</string>
-            </property>
             <property name="text">
              <string>Number conections:</string>
             </property>
@@ -366,10 +297,6 @@ font-weight:200;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_24">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;</string>
-            </property>
             <property name="text">
              <string>0 (In: 0 / Out:0)</string>
             </property>
@@ -395,11 +322,6 @@ font-size:18px;</string>
         </item>
         <item>
          <widget class="QLabel" name="label_3">
-          <property name="styleSheet">
-           <string notr="true">color:#707070;
-font-size:18px;
-font-weight:bold;</string>
-          </property>
           <property name="text">
            <string>Blockchain</string>
           </property>
@@ -424,11 +346,6 @@ font-weight:bold;</string>
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;
-font-weight:200;</string>
-            </property>
             <property name="text">
              <string>Current number of blocks:</string>
             </property>
@@ -436,10 +353,6 @@ font-weight:200;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_32">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;</string>
-            </property>
             <property name="text">
              <string>0</string>
             </property>
@@ -466,11 +379,6 @@ font-size:18px;</string>
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;
-font-weight:200;</string>
-            </property>
             <property name="text">
              <string>Last block time: </string>
             </property>
@@ -478,10 +386,6 @@ font-weight:200;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_34">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;</string>
-            </property>
             <property name="text">
              <string>Thu Sep 6 20:21:49 2018</string>
             </property>
@@ -507,11 +411,6 @@ font-size:18px;</string>
         </item>
         <item>
          <widget class="QLabel" name="label_4">
-          <property name="styleSheet">
-           <string notr="true">color:#707070;
-font-size:18px;
-font-weight:bold;</string>
-          </property>
           <property name="text">
            <string>Memory pool</string>
           </property>
@@ -536,11 +435,6 @@ font-weight:bold;</string>
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;
-font-weight:200;</string>
-            </property>
             <property name="text">
              <string>Current number of transactions:</string>
             </property>
@@ -548,10 +442,6 @@ font-weight:200;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_42">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;</string>
-            </property>
             <property name="text">
              <string>0</string>
             </property>
@@ -578,11 +468,6 @@ font-size:18px;</string>
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;
-font-weight:200;</string>
-            </property>
             <property name="text">
              <string>Last block time: </string>
             </property>
@@ -590,10 +475,6 @@ font-weight:200;</string>
           </item>
           <item>
            <widget class="QLabel" name="label_44">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:18px;</string>
-            </property>
             <property name="text">
              <string>0.00 KB</string>
             </property>
@@ -638,10 +519,6 @@ font-size:18px;</string>
          <height>16777215</height>
         </size>
        </property>
-       <property name="styleSheet">
-        <string notr="true">border:0;
-background:white;</string>
-       </property>
        <property name="frameShape">
         <enum>QFrame::StyledPanel</enum>
        </property>
@@ -676,11 +553,6 @@ background:white;</string>
         </item>
         <item alignment="Qt::AlignBottom">
          <widget class="QLabel" name="labelDebug">
-          <property name="styleSheet">
-           <string notr="true">color:#707070;
-font-size:18px;
-text-align:center;</string>
-          </property>
           <property name="text">
            <string>Debug log file</string>
           </property>
@@ -691,20 +563,6 @@ text-align:center;</string>
         </item>
         <item alignment="Qt::AlignBottom">
          <widget class="QPushButton" name="btnDebug">
-          <property name="styleSheet">
-           <string notr="true">#btnDebug {
-border-radius: 6px;
-color: #FFFFFF;
-font-size: 16px;
-background-color:#105aef;
-line-height:10px;
-padding:8 20 8 20;
-}
-
-#btnDebug:hover {
-background-color:#0e45b4;
-}</string>
-          </property>
           <property name="text">
            <string>Open</string>
           </property>

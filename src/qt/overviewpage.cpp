@@ -64,13 +64,13 @@ public:
         if (option.state & QStyle::State_Selected) {
             QRect selectedRect = option.rect;
             selectedRect.setLeft(0);
-            painter->fillRect(selectedRect, QColor("#CEDDFB"));
-            foreground = QColor("#575756");
+            painter->fillRect(selectedRect, selectedBgColorCode);
+            foreground = selectedTextColorCode;
         }else if(option.state & QStyle::State_MouseOver){
             QRect selectedRect = option.rect;
             selectedRect.setLeft(0);
-            painter->fillRect(selectedRect, QColor("#F4F4F4"));
-            foreground = QColor("#575756");
+            painter->fillRect(selectedRect, mouseOverBgColorCode);
+            foreground = selectedTextColorCode;
         } else{
             foreground = option.palette.color(QPalette::Text);
         }
@@ -128,7 +128,7 @@ public:
         bool confirmed = index.data(TransactionTableModel::ConfirmedRole).toBool();
         QVariant value = index.data(Qt::ForegroundRole);
 
-        if(value.canConvert<QBrush>())
+        if(!isDarkModeSet && value.canConvert<QBrush>())
         {
             QBrush brush = qvariant_cast<QBrush>(value);
             foreground = brush.color();
@@ -177,7 +177,7 @@ public:
         painter->drawText(amountRect, Qt::AlignRight|Qt::AlignTop, amountText);
 
         // Draw the date
-        painter->setPen(QColor("#707070"));
+        painter->setPen(selectedDateColorCode);
 
         /* twice the size than the current font size */
         //font.setPointSize(14);
@@ -550,6 +550,7 @@ void OverviewPage::showEvent(QShowEvent *event){
     if (fHide != filter->orphansHidden())
         hideOrphans(fHide);
 
+    /*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -558,9 +559,11 @@ void OverviewPage::showEvent(QShowEvent *event){
     a->setEndValue(1);
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
 }
 
 void OverviewPage::hideEvent(QHideEvent *event){
+	/*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -569,4 +572,5 @@ void OverviewPage::hideEvent(QHideEvent *event){
     a->setEndValue(0);
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
 }

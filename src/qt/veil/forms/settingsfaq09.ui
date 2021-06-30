@@ -13,10 +13,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">font-size:16px;
-color:#707070;</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="rightMargin">
     <number>60</number>
@@ -28,9 +24,6 @@ color:#707070;</string>
        <width>0</width>
        <height>0</height>
       </size>
-     </property>
-     <property name="styleSheet">
-      <string notr="true">font-weight:200;</string>
      </property>
      <property name="text">
       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot;font-weight:600; text-decoration: underline;&quot;&gt;How do I mine VEIL?&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;span&gt;&lt;br/&gt;Veil's mining is split between 3 algorithms: ProgPoW, RandomX, and SHA-256d. Users can participate in mining with any combination of algorithms assuming sufficient resources are available.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;span&gt;ProgPoW mining with GPU requires additional third party software. Both Nvidia and AMD GPUs are supported. For up-to-date information on this and pools visit the &lt;/span&gt;&lt;a target=&quot;_blank&quot; href=&quot;https://discord.veil-project.com/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Veil Discord server&lt;/span&gt;&lt;/a&gt;&lt;span&gt;.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;span&gt;RandomX mining with CPU is available within the Veil wallet software.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;span&gt;SHA-256d mining, as popularized by Bitcoin, is also available. Unlike ProgPoW and RandomX, this algorithm is ASIC and FPGA mining friendly. For more information on this visit the &lt;/span&gt;&lt;a target=&quot;_blank&quot; href=&quot;https://discord.veil-project.com/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Veil Discord server&lt;/span&gt;&lt;/a&gt;&lt;span&gt;.&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;span&gt;For the latest mining instructions, please visit the mining channel on the &lt;/span&gt;&lt;a target=&quot;_blank&quot; href=&quot;https://discord.veil-project.com/&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;Veil Discord server&lt;/span&gt;&lt;/a&gt;&lt;span&gt; or see the official Veil announcement thread on the &lt;/span&gt;&lt;a target=&quot;_blank&quot; href=&quot;https://bitcointalk.org/index.php?topic=5065331.0&quot;&gt;&lt;span style=&quot; text-decoration: underline; color:#0000ff;&quot;&gt;BitcoinTalk forum&lt;/span&gt;&lt;/a&gt;&lt;span&gt;. &lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
