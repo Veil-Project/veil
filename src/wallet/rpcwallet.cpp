@@ -2707,7 +2707,7 @@ static UniValue exporttransactions(const JSONRPCRequest& request)
 
     // Prepare transaction filter
      std::string transactionFilterString = !request.params[4].isNull() ? request.params[4].get_str() : "";
-     vector<std::string> transactionFilters;
+     std::vector<std::string> transactionFilters;
      String_Tokenize(transactionFilterString, '|', transactionFilters);
 
      // Prepare watchonly filter
@@ -4960,7 +4960,7 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
 
     int nAlgo = GetMiningAlgorithm();
     std::string sAlgo = GetMiningType(nAlgo, false, false);
-    std:string sWarning = "";
+    std::string sWarning = "";
 
     if (fGenerate) {
         if (GenerateActive())

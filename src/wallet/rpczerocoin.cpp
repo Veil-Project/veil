@@ -450,7 +450,7 @@ UniValue getzerocoinbalance(const JSONRPCRequest& request)
         return NullUniValue;
 
     if (request.fHelp || params.size() != 0)
-        throw runtime_error(
+        throw std::runtime_error(
                 "getzerocoinbalance\n"
                 "\nReturn the wallet's total zerocoin balance.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
@@ -481,7 +481,7 @@ UniValue listmintedzerocoins(const JSONRPCRequest& request)
         return NullUniValue;
     UniValue params = request.params;
     if (request.fHelp || params.size() > 2)
-        throw runtime_error(
+        throw std::runtime_error(
                 "listmintedzerocoins (fVerbose) (fMatureOnly)\n"
                 "\nList all zerocoin mints in the wallet.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
@@ -523,7 +523,7 @@ UniValue listmintedzerocoins(const JSONRPCRequest& request)
     auto zwallet = pwallet->GetZWallet();
     zwallet->SyncWithChain(false);
 
-    set<CMintMeta> setMints = pwallet->ListMints(true, fMatureOnly, true);
+    std::set<CMintMeta> setMints = pwallet->ListMints(true, fMatureOnly, true);
 
     // sort the mints by descending confirmations
     std::list<CMintMeta> listMints(setMints.begin(), setMints.end());
@@ -562,7 +562,7 @@ UniValue listzerocoinamounts(const JSONRPCRequest& request)
         return NullUniValue;
     UniValue params = request.params;
     if (request.fHelp || params.size() != 0)
-        throw runtime_error(
+        throw std::runtime_error(
                 "listzerocoinamounts\n"
                 "\nGet information about your zerocoin amounts.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
@@ -602,7 +602,7 @@ UniValue listspentzerocoins(const JSONRPCRequest& request)
         return NullUniValue;
     UniValue params = request.params;
     if (request.fHelp || params.size() != 0)
-        throw runtime_error(
+        throw std::runtime_error(
                 "listspentzerocoins\n"
                 "\nList all the spent zerocoin mints in the wallet.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
@@ -621,7 +621,7 @@ UniValue listspentzerocoins(const JSONRPCRequest& request)
     EnsureWalletIsUnlocked(pwallet);
 
     WalletBatch walletdb(pwallet->GetDBHandle());
-    list<CBigNum> listPubCoin = walletdb.ListSpentCoinsSerial();
+    std::list<CBigNum> listPubCoin = walletdb.ListSpentCoinsSerial();
 
     UniValue jsonList(UniValue::VARR);
     for (const CBigNum& pubCoinItem : listPubCoin) {
@@ -631,7 +631,7 @@ UniValue listspentzerocoins(const JSONRPCRequest& request)
     return jsonList;
 }
 
-UniValue DoZerocoinSpend(CWallet* pwallet, const CAmount nAmount, bool fMintChange, bool fMinimizeChange, const int nSecurityLevel, vector<CZerocoinMint>& vMintsSelected, std::string address_str)
+UniValue DoZerocoinSpend(CWallet* pwallet, const CAmount nAmount, bool fMintChange, bool fMinimizeChange, const int nSecurityLevel, std::vector<CZerocoinMint>& vMintsSelected, std::string address_str)
 {
     int64_t nTimeStart = GetTimeMillis();
     CTxDestination dest; // Optional sending address. Dummy initialization here.
@@ -702,7 +702,7 @@ UniValue spendzerocoinmints(const JSONRPCRequest& request)
 
     UniValue params = request.params;
     if (request.fHelp || params.size() < 1 || params.size() > 2)
-        throw runtime_error(
+        throw std::runtime_error(
                 "spendzerocoinmints mints_list (\"address\") \n"
                 "\nSpend zerocoin mints to a VEIL address.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
@@ -758,7 +758,7 @@ UniValue spendzerocoinmints(const JSONRPCRequest& request)
     CAmount nAmount(0);   // Spending amount
 
     // fetch mints and update nAmount
-    vector<CZerocoinMint> vMintsSelected;
+    std::vector<CZerocoinMint> vMintsSelected;
     for(unsigned int i=0; i < arrMints.size(); i++) {
 
         CZerocoinMint mint;
@@ -784,10 +784,10 @@ UniValue spendzerocoinmints(const JSONRPCRequest& request)
 UniValue ResetMints(CWallet* pwallet)
 {
     WalletBatch walletdb(pwallet->GetDBHandle());
-    set<CMintMeta> setMints = pwallet->ListMints(false, false, true);
-    vector<CMintMeta> vMintsToFind(setMints.begin(), setMints.end());
-    vector<CMintMeta> vMintsMissing;
-    vector<CMintMeta> vMintsToUpdate;
+    std::set<CMintMeta> setMints = pwallet->ListMints(false, false, true);
+    std::vector<CMintMeta> vMintsToFind(setMints.begin(), setMints.end());
+    std::vector<CMintMeta> vMintsMissing;
+    std::vector<CMintMeta> vMintsToUpdate;
 
     // search all of our available data for these mints
     FindMints(vMintsToFind, vMintsToUpdate, vMintsMissing);
@@ -816,9 +816,9 @@ UniValue ResetSpends(CWallet* pwallet)
 {
     WalletBatch walletdb(pwallet->GetDBHandle());
     CzTracker* zTracker = pwallet->GetZTrackerPointer();
-    set<CMintMeta> setMints = zTracker->ListMints(false, false, false);
-    list<CZerocoinSpend> listSpends = walletdb.ListSpentCoins();
-    list<CZerocoinSpend> listUnconfirmedSpends;
+    std::set<CMintMeta> setMints = zTracker->ListMints(false, false, false);
+    std::list<CZerocoinSpend> listSpends = walletdb.ListSpentCoins();
+    std::list<CZerocoinSpend> listUnconfirmedSpends;
 
     for (CZerocoinSpend& spend : listSpends) {
         CTransactionRef txRef;
@@ -855,8 +855,8 @@ UniValue ResetSpends(CWallet* pwallet)
 
 UniValue ReconsiderZerocoins(CWallet* pwallet)
 {
-    list<CZerocoinMint> listMints;
-    list<CDeterministicMint> listDMints;
+    std::list<CZerocoinMint> listMints;
+    std::list<CDeterministicMint> listDMints;
 
     pwallet->ReconsiderZerocoins(listMints, listDMints);
 
@@ -890,7 +890,7 @@ UniValue rescanzerocoinwallet(const JSONRPCRequest& request)
 
     UniValue params = request.params;
     if (request.fHelp || params.size() > 1)
-        throw runtime_error(
+        throw std::runtime_error(
                 "rescanzerocoinwallet\n"
                 "Rescans for all local zerocoin mints & spends."
                 + HelpRequiringPassphrase(wallet.get()) +
@@ -920,7 +920,7 @@ UniValue resetmintzerocoin(const JSONRPCRequest& request)
 
     UniValue params = request.params;
     if (request.fHelp || params.size() > 1)
-        throw runtime_error(
+        throw std::runtime_error(
                 "resetmintzerocoin ( fullscan )\n"
                 "\nScan the blockchain for all of the zerocoins that are held in the wallet.dat.\n"
                 "Update any meta-data that is incorrect. Archive any mints that are not able to be found.\n" +
@@ -959,7 +959,7 @@ UniValue resetspentzerocoin(const JSONRPCRequest& request)
 
     UniValue params = request.params;
     if (request.fHelp || params.size() != 0)
-        throw runtime_error(
+        throw std::runtime_error(
                 "resetspentzerocoin\n"
                 "\nScan the blockchain for all of the zerocoins that are held in the wallet.dat.\n"
                 "Reset mints that are considered spent that did not make it into the blockchain.\n"
@@ -991,7 +991,7 @@ UniValue getarchivedzerocoin(const JSONRPCRequest& request)
 
     UniValue params = request.params;
     if(request.fHelp || params.size() != 0)
-        throw runtime_error(
+        throw std::runtime_error(
                 "getarchivedzerocoin\n"
                 "\nDisplay zerocoins that were archived because they were believed to be orphans.\n"
                 "Provides enough information to recover mint if it was incorrectly archived.\n" +
@@ -1017,8 +1017,8 @@ UniValue getarchivedzerocoin(const JSONRPCRequest& request)
     EnsureWalletIsUnlocked(pwallet);
 
     WalletBatch walletdb(pwallet->GetDBHandle());
-    list<CZerocoinMint> listMints = walletdb.ListArchivedZerocoins();
-    list<CDeterministicMint> listDMints = walletdb.ListArchivedDeterministicMints();
+    std::list<CZerocoinMint> listMints = walletdb.ListArchivedZerocoins();
+    std::list<CDeterministicMint> listDMints = walletdb.ListArchivedDeterministicMints();
 
     UniValue arrRet(UniValue::VARR);
     for (const CZerocoinMint& mint : listMints) {
@@ -1054,7 +1054,7 @@ UniValue exportzerocoins(const JSONRPCRequest& request)
 
     UniValue params = request.params;
     if(request.fHelp || params.empty() || params.size() > 2)
-        throw runtime_error(
+        throw std::runtime_error(
                 "exportzerocoins include_spent ( denomination )\n"
                 "\nExports zerocoin mints that are held by this wallet.dat\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
@@ -1095,7 +1095,7 @@ UniValue exportzerocoins(const JSONRPCRequest& request)
         denomination = libzerocoin::IntToZerocoinDenomination(params[1].get_int());
 
     CzTracker* zTracker = pwallet->GetZTrackerPointer();
-    set<CMintMeta> setMints = zTracker->ListMints(!fIncludeSpent, false, false);
+    std::set<CMintMeta> setMints = zTracker->ListMints(!fIncludeSpent, false, false);
 
     UniValue jsonList(UniValue::VARR);
     for (const CMintMeta& meta : setMints) {
@@ -1139,7 +1139,7 @@ UniValue importzerocoins(const JSONRPCRequest& request)
 
     UniValue params = request.params;
     if(request.fHelp || params.size() == 0)
-        throw runtime_error(
+        throw std::runtime_error(
                 "importzerocoins importdata \n"
                 "\n[{\"d\":denomination,\"p\":\"pubcoin_hex\",\"s\":\"serial_hex\",\"r\":\"randomness_hex\",\"t\":\"txid\",\"h\":height, \"u\":used},{\"d\":...}]\n"
                 "\nImport zerocoin mints.\n"
@@ -1237,7 +1237,7 @@ UniValue reconsiderzerocoins(const JSONRPCRequest& request)
         return NullUniValue;
     UniValue params = request.params;
     if(request.fHelp || !params.empty())
-        throw runtime_error(
+        throw std::runtime_error(
                 "reconsiderzerocoins\n"
                 "\nCheck archived zerocoin list to see if any mints were added to the blockchain.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
@@ -1271,7 +1271,7 @@ UniValue generatemintlist(const JSONRPCRequest& request)
         return NullUniValue;
     UniValue params = request.params;
     if(request.fHelp || params.size() != 2)
-        throw runtime_error(
+        throw std::runtime_error(
                 "generatemintlist\n"
                 "\nShow mints that are derived from the deterministic zerocoin seed.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
@@ -1328,7 +1328,7 @@ UniValue deterministiczerocoinstate(const JSONRPCRequest& request)
         return NullUniValue;
     UniValue params = request.params;
     if (request.fHelp || params.size() != 0)
-        throw runtime_error(
+        throw std::runtime_error(
                 "deterministiczerocoinstate\n"
                 "\nThe current state of the mintpool of the deterministic zerocoin wallet.\n"
                         "\nResult:\n"
@@ -1365,7 +1365,7 @@ UniValue searchdeterministiczerocoin(const JSONRPCRequest& request)
 
     UniValue params = request.params;
     if(request.fHelp || params.size() != 3)
-        throw runtime_error(
+        throw std::runtime_error(
                 "searchdeterministiczerocoin\n"
                 "\nMake an extended search for deterministically generated zerocoins that have not yet been recognized by the wallet.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
@@ -1412,7 +1412,7 @@ UniValue startautospend(const JSONRPCRequest& request)
 
     UniValue params = request.params;
     if (request.fHelp || params.size() > 3)
-        throw runtime_error(
+        throw std::runtime_error(
                 "startautospend\n"
                 "\nStart auto spending zerocoin to a address this wallet controls\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
@@ -1458,7 +1458,7 @@ UniValue stopautospend(const JSONRPCRequest& request)
 {
     UniValue params = request.params;
     if(request.fHelp || params.size())
-        throw runtime_error(
+        throw std::runtime_error(
                 "stopautospend\n"
                 "\nStop auto spending zerocoin\n");
 
@@ -1475,7 +1475,7 @@ UniValue getautospendaddress(const JSONRPCRequest& request)
 
     UniValue params = request.params;
     if (request.fHelp || params.size())
-        throw runtime_error(
+        throw std::runtime_error(
                 "getautospendaddress\n"
                 "\nShows the current autospend stealth address\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"

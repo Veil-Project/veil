@@ -1929,7 +1929,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
         LOCK2(cs_main, pwalletParent->cs_wallet);
 
         std::set<CInputCoin> setCoins;
-        vector<COutput> vAvailableCoins;
+        std::vector<COutput> vAvailableCoins;
         if (!fZerocoinInputs)
             pwalletParent->AvailableCoins(vAvailableCoins, true, coinControl);
         CoinSelectionParams coin_selection_params; // Parameters for coin selection, init with dummy

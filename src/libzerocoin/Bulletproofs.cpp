@@ -55,7 +55,7 @@ void Bulletproofs::Prove(const CBN_matrix ck_inner_g,
     CBigNum x;
     while (N1 > 1) {
         hasher = CHashWriter1024(0,0);
-        pair<CBigNum, CBigNum> cLcR = findcLcR(a_sets2, b_sets2);
+        std::pair<CBigNum, CBigNum> cLcR = findcLcR(a_sets2, b_sets2);
         CBigNum cL = cLcR.first;
         CBigNum cR = cLcR.second;
 
@@ -68,7 +68,7 @@ void Bulletproofs::Prove(const CBN_matrix ck_inner_g,
                 temp = temp.mul_mod(ny, q);
                 ymPowers.push_back(temp);
             }
-            pair<CBigNum, CBigNum> AkBk = firstPreChallengeShifts(
+            std::pair<CBigNum, CBigNum> AkBk = firstPreChallengeShifts(
                     g_sets, u_inner, a_sets2, b_sets2, cL, cR, ymPowers);
 
             Ak = AkBk.first;
@@ -82,7 +82,7 @@ void Bulletproofs::Prove(const CBN_matrix ck_inner_g,
             g_sets = get_new_gs_hs(g_sets, -1, x, s);
 
         } else {
-            pair<CBigNum, CBigNum> AkBk = preChallengeShifts(
+            std::pair<CBigNum, CBigNum> AkBk = preChallengeShifts(
                     g_sets, h_sets,  u_inner, a_sets2, b_sets2, cL, cR);
 
             Ak = AkBk.first;
@@ -192,20 +192,20 @@ CBN_matrix Bulletproofs::splitIntoSets(const CBN_matrix ck_inner_g, const int s)
 }
 
 // Function for reduction when mu > 1
-pair<CBigNum, CBigNum> Bulletproofs::findcLcR(const CBN_matrix a_sets, const CBN_matrix b_sets)
+std::pair<CBigNum, CBigNum> Bulletproofs::findcLcR(const CBN_matrix a_sets, const CBN_matrix b_sets)
 {
     const CBigNum q = params->serialNumberSoKCommitmentGroup.groupOrder;
 
     CBigNum cL = dotProduct(a_sets[0], b_sets[1], q);
     CBigNum cR = dotProduct(a_sets[1], b_sets[0], q);
 
-    return make_pair(cL, cR);
+    return std::make_pair(cL, cR);
 }
 
 
 
 // reduction used in innerProductProve when mu > 1
-pair<CBigNum, CBigNum> Bulletproofs::firstPreChallengeShifts(
+std::pair<CBigNum, CBigNum> Bulletproofs::firstPreChallengeShifts(
         const CBN_matrix g_sets, const CBigNum u_inner,
         const CBN_matrix a_sets, const CBN_matrix b_sets, CBigNum cL, CBigNum cR,
         const CBN_vector ymPowers)
@@ -226,10 +226,10 @@ pair<CBigNum, CBigNum> Bulletproofs::firstPreChallengeShifts(
         Bk = Bk.mul_mod(g_sets[1][i].pow_mod(b_sets[0][i].mul_mod(ymPowers[n1+i+1],q),p),p);
     }
 
-    return make_pair(Ak, Bk);
+    return std::make_pair(Ak, Bk);
 }
 
-pair<CBigNum, CBigNum> Bulletproofs::preChallengeShifts(
+std::pair<CBigNum, CBigNum> Bulletproofs::preChallengeShifts(
         const CBN_matrix g_sets, const CBN_matrix h_sets, const CBigNum u_inner,
         const CBN_matrix a_sets, const CBN_matrix b_sets, CBigNum cL, CBigNum cR)
 {
@@ -249,7 +249,7 @@ pair<CBigNum, CBigNum> Bulletproofs::preChallengeShifts(
         Bk = Bk.mul_mod(h_sets[1][i].pow_mod(b_sets[0][i],p),p);
     }
 
-    return make_pair(Ak, Bk);
+    return std::make_pair(Ak, Bk);
 }
 
 

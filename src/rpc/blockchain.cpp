@@ -402,7 +402,7 @@ static UniValue getzerocoinsupply(const JSONRPCRequest& request)
     UniValue resArr(UniValue::VARR);
     for (auto denom : libzerocoin::zerocoinDenomList) {
         UniValue denomObj(UniValue::VOBJ);
-        denomObj.push_back(Pair("denom", to_string(denom)));
+        denomObj.push_back(Pair("denom", std::to_string(denom)));
         int64_t denomSupply = pblockindex->mapZerocoinSupply.at(denom) * (denom*COIN);
         denomObj.push_back(Pair("amount", denomSupply));
         denomObj.push_back(Pair("amount_formatted", FormatMoney(denomSupply)));
@@ -2448,7 +2448,7 @@ UniValue scantxoutset(const JSONRPCRequest& request)
 UniValue findserial(const JSONRPCRequest& request)
 {
     if(request.fHelp || request.params.size() != 1)
-        throw runtime_error(
+        throw std::runtime_error(
                 "findserial \"serial\"\n"
                 "\nSearches the zerocoin database for a zerocoin spend transaction that contains the specified serial\n"
 
