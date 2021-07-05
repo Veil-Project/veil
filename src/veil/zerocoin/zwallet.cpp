@@ -252,8 +252,11 @@ void CzWallet::SyncWithChain(bool fGenerateMintPool)
                 }
 
                 CBlockIndex* pindex = nullptr;
-                if (mapBlockIndex.count(hashBlock))
-                    pindex = mapBlockIndex.at(hashBlock);
+                {
+                    LOCK(cs_mapblockindex);
+                    if (mapBlockIndex.count(hashBlock))
+                        pindex = mapBlockIndex.at(hashBlock);
+                }
 
                 if (!setAddedTx.count(txHash)) {
                     CBlock block;

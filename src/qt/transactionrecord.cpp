@@ -1,6 +1,6 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
 // Copyright (c) 2011-2019 The Particl developers
-// Copyright (c) 2018-2019 Veil developers
+// Copyright (c) 2018-2021 Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -411,7 +411,11 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             if (wtx.txout_address_is_mine[i]) {
                 // Received by Bitcoin Address
                 sub.type = TransactionRecord::RecvWithAddress;
-                sub.address = EncodeDestination(wtx.txout_address[i]);
+                bool fBech32 = false;    
+                if (boost::get<CScriptID>(&wtx.txout_address[i])){
+                    fBech32 = true;
+                }            
+                sub.address = EncodeDestination(wtx.txout_address[i], fBech32);
             } else {
                 // Received by IP connection (deprecated features), or a multisignature or other non-simple transaction
                 sub.type = TransactionRecord::RecvFromOther;

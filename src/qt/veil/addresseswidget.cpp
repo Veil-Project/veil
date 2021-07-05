@@ -256,17 +256,25 @@ void AddressesWidget::handleAddressClicked(const QModelIndex &index){
 
     listView->setCurrentIndex(updatedIndex);
     QRect rect = listView->visualRect(index);
-    QPoint pos = rect.topRight();
-    pos.setX(pos.x() - (DECORATION_SIZE * 2));
-    pos.setY(pos.y() + (DECORATION_SIZE));
+
     const QString constType = type;
-    if(!this->menu) this->menu = new AddressesMenu(constType , updatedIndex, this, this->mainWindow, this->model);
+    if(!this->menu) this->menu = new AddressesMenu(constType , updatedIndex, mainWindow->getGUI(), this->mainWindow, this->model);
     else {
-        this->menu->hide();
         this->menu->setInitData(updatedIndex, this->model, constType);
     }
+
+    QPoint pos = mainWindow->getGUI()->mapFromGlobal(QCursor::pos());
+
+	if(pos.x()+menu->width()>mainWindow->getGUI()->width()){
+		pos.setX(pos.x() - menu->width());
+	}
+	if(pos.y()+menu->height()>mainWindow->getGUI()->height()){
+		pos.setY(pos.y() - menu->height());
+	}
+
     menu->move(pos);
     menu->show();
+    menu->raise();
 }
 
 void AddressesWidget::initAddressesView(){

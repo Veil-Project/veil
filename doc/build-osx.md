@@ -16,7 +16,7 @@ Then install [Homebrew](https://brew.sh).
 Dependencies
 ----------------------
 
-    brew install automake berkeley-db4 libtool boost miniupnpc openssl pkg-config protobuf python qt libevent qrencode gmp
+    brew install automake berkeley-db4 libtool boost miniupnpc openssl pkg-config protobuf python qt@5 libevent qrencode gmp
 
 See [dependencies.md](dependencies.md) for a complete overview.
 
@@ -38,7 +38,7 @@ you can use [the installation script included in contrib/](/contrib/install_db4.
 like so
 
 ```shell
-./contrib/install_db4.sh .
+CFLAGS="-Wno-error=implicit-function-declaration"  ./contrib/install_db4.sh .
 ```
 
 from the root of the repository.

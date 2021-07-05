@@ -220,10 +220,7 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
         if (!pblocktemplate.get())
             throw JSONRPCError(RPC_INTERNAL_ERROR, "Couldn't create new block");
         CBlock *pblock = &pblocktemplate->block;
-        {
-            LOCK(cs_main);
-            IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
-        }
+        IncrementExtraNonce(pblock, chainActive.Height(), nExtraNonce);
 
         // This will check if the key block needs to change and will take down the cache and vm, and spin up the new ones
         CheckIfValidationKeyShouldChangeAndUpdate(GetKeyBlock(pblock->nHeight));
@@ -996,25 +993,19 @@ static UniValue pprpcsb(const JSONRPCRequest& request) {
     blockptr->mixHash = calculated_mix_hash;
 
     uint256 hash = blockptr->GetHash();
-    {
-        LOCK(cs_main);
-        const CBlockIndex* pindex = LookupBlockIndex(hash);
-        if (pindex) {
-            if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
-                return "duplicate";
-            }
-            if (pindex->nStatus & BLOCK_FAILED_MASK) {
-                return "duplicate-invalid";
-            }
+    const CBlockIndex* pindex = LookupBlockIndex(hash);
+    if (pindex) {
+        if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
+            return "duplicate";
+        }
+        if (pindex->nStatus & BLOCK_FAILED_MASK) {
+            return "duplicate-invalid";
         }
     }
 
-    {
-        LOCK(cs_main);
-        const CBlockIndex* pindex = LookupBlockIndex(blockptr->hashPrevBlock);
-        if (pindex) {
-            UpdateUncommittedBlockStructures(*blockptr, pindex, Params().GetConsensus());
-        }
+    pindex = LookupBlockIndex(blockptr->hashPrevBlock);
+    if (pindex) {
+        UpdateUncommittedBlockStructures(*blockptr, pindex, Params().GetConsensus());
     }
 
     bool new_block;
@@ -1072,25 +1063,19 @@ static UniValue submitblock(const JSONRPCRequest& request)
     }
 
     uint256 hash = block.GetHash();
-    {
-        LOCK(cs_main);
-        const CBlockIndex* pindex = LookupBlockIndex(hash);
-        if (pindex) {
-            if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
-                return "duplicate";
-            }
-            if (pindex->nStatus & BLOCK_FAILED_MASK) {
-                return "duplicate-invalid";
-            }
+    const CBlockIndex* pindex = LookupBlockIndex(hash);
+    if (pindex) {
+        if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
+            return "duplicate";
+        }
+        if (pindex->nStatus & BLOCK_FAILED_MASK) {
+            return "duplicate-invalid";
         }
     }
 
-    {
-        LOCK(cs_main);
-        const CBlockIndex* pindex = LookupBlockIndex(block.hashPrevBlock);
-        if (pindex) {
-            UpdateUncommittedBlockStructures(block, pindex, Params().GetConsensus());
-        }
+    pindex = LookupBlockIndex(block.hashPrevBlock);
+    if (pindex) {
+        UpdateUncommittedBlockStructures(block, pindex, Params().GetConsensus());
     }
 
     bool new_block;

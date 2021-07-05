@@ -168,13 +168,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     CMutableTransaction txCoinStake;
     CBlockIndex* pindexPrev;
+    //Do not pass in the chain tip, because it can change. Instead pass the blockindex directly from mapblockindex, which is const.
+    auto pindexTip = chainActive.Tip();
+    if (!pindexTip)
+        return nullptr;
+    auto hashBest = pindexTip->GetBlockHash();
     {
-        LOCK(cs_main);
-        //Do not pass in the chain tip, because it can change. Instead pass the blockindex directly from mapblockindex, which is const.
-        auto pindexTip = chainActive.Tip();
-        if (!pindexTip)
-            return nullptr;
-        auto hashBest = pindexTip->GetBlockHash();
+        LOCK(cs_mapblockindex);
         pindexPrev = mapBlockIndex.at(hashBest);
     }
     if (fProofOfStake && pindexPrev->nHeight + 1 >= Params().HeightPoSStart()) {
@@ -499,7 +499,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if(fProofOfFullNode && !fProofOfStake)
         LogPrint(BCLog::BLOCKCREATION, "%s: A block can not be proof of full node and proof of work.\n", __func__);
     else if(fProofOfFullNode && fProofOfStake) {
-        LOCK(cs_main);
+        AssertLockHeld(cs_main);
         pblock->hashPoFN = veil::GetFullNodeHash(*pblock, pindexPrev);
     }
 
@@ -515,7 +515,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         }
         auto spend = TxInToZerocoinSpend(pblock->vtx[1]->vin[0]);
         if (!spend) {
-            LogPrint(BCLog::BLOCKCREATION, "%s: failed to get spend for txin", __func__);
+            LogPrint(BCLog::STAKING, "%s: failed to get spend for txin", __func__);
             return nullptr;
         }
 
@@ -525,17 +525,17 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 #ifdef ENABLE_WALLET
         if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) || !pwalletMain->GetZerocoinKey(bnSerial, key)) {
 #endif
-            LogPrint(BCLog::BLOCKCREATION, "%s: Failed to get zerocoin key from wallet!\n", __func__);
+            LogPrint(BCLog::STAKING, "%s: Failed to get zerocoin key from wallet!\n", __func__);
             return nullptr;
 #ifdef ENABLE_WALLET
         }
 #endif
 
         if (!key.Sign(pblock->GetHash(), pblock->vchBlockSig)) {
-            LogPrint(BCLog::BLOCKCREATION, "%s: Failed to sign block hash\n", __func__);
+            LogPrint(BCLog::STAKING, "%s: Failed to sign block hash\n", __func__);
             return nullptr;
         }
-        LogPrint(BCLog::BLOCKCREATION, "%s: FOUND STAKE!!\n block: \n%s\n", __func__, pblock->ToString());
+        LogPrint(BCLog::STAKING, "%s: FOUND STAKE!!\n block: \n%s\n", __func__, pblock->ToString());
     }
 
     if (pindexPrev && pindexPrev != chainActive.Tip()) {
@@ -814,19 +814,13 @@ void BlockAssembler::addPackageTxs(int &nPackagesSelected, int &nDescendantsUpda
     }
 }
 
-void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce)
+void IncrementExtraNonce(CBlock* pblock, unsigned int nHeight, unsigned int& nExtraNonce)
 {
     // Update nExtraNonce
-    static uint256 hashPrevBlock;
-    if (hashPrevBlock != pblock->hashPrevBlock)
-    {
-        nExtraNonce = 0;
-        hashPrevBlock = pblock->hashPrevBlock;
-    }
     ++nExtraNonce;
-    unsigned int nHeight = pindexPrev->nHeight+1; // Height first in coinbase required for block.version=2
     CMutableTransaction txCoinbase(*pblock->vtx[0]);
-    txCoinbase.vin[0].scriptSig = (CScript() << nHeight << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
+    // Height first in coinbase required for block.version=2
+    txCoinbase.vin[0].scriptSig = (CScript() << (nHeight+1) << CScriptNum(nExtraNonce)) + COINBASE_FLAGS;
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);
 
     pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
@@ -932,7 +926,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 auto it = mapStakeHashCounter.find(nHeight);
                 if (it != mapStakeHashCounter.end() && it->second != nStakeHashesLast) {
                     nStakeHashesLast = it->second;
-                    LogPrint(BCLog::BLOCKCREATION, "%s: Tried %d stake hashes for block %d last=%d\n", __func__, nStakeHashesLast, nHeight+1, mapHashedBlocks.at(hashBestBlock));
+                    LogPrint(BCLog::STAKING, "%s: Tried %d stake hashes for block %d last=%d\n", __func__, nStakeHashesLast, nHeight+1, mapHashedBlocks.at(hashBestBlock));
                 }
                 // wait half of the nHashDrift with max wait of 3 minutes
                 int rand = GetRandInt(20); // add small randomness to prevent all nodes from being on too similar of timing
@@ -964,26 +958,28 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         }
 
         CBlock *pblock = &pblocktemplate->block;
-        int32_t nNonceLocal;
 
         if (!fProofOfStake)
         {
             {
                 LOCK(cs_nonce);
-                nNonceLocal = nNonce_base++;
+                nExtraNonce = nNonce_base++;
                 if (!nTimeStart)
                     nTimeStart = GetTime();
             }
 
             pblock->nNonce = 0;
             pblock->nNonce64 = rand();
-            {
-                LOCK(cs_main);
-                nExtraNonce = nNonceLocal;
-                IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
-            }
+            IncrementExtraNonce(pblock, chainActive.Height(), nExtraNonce);
 
             int nTries = 0;
+            bool success = false;
+            // As SHA runs much faster than the other algorithms, run more of them in this section
+            // to avoid lock contention from creating block templates. Use a separate counter
+            // nMidLoopCount to keep track of this, so that we can check every nInnerLoopCount hashes
+            // if the block is done.
+            int nMidTries = 0;
+            static const int nMidLoopCount = 0x1000;
             if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
                 uint256 mix_hash;
                 while (nTries < nInnerLoopCount &&
@@ -994,14 +990,25 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     ++pblock->nNonce64;
                 }
                 pblock->mixHash = mix_hash;
+                success = nTries != nInnerLoopCount;
             } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
                 uint256 midStateHash = pblock->GetSha256dMidstate();
-                while (nTries < nInnerLoopCount &&
-                       !CheckProofOfWork(pblock->GetSha256D(midStateHash), pblock->nBits,
-                                         Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK)) {
-                    boost::this_thread::interruption_point();
-                    ++nTries;
-                    ++pblock->nNonce64;
+                // Exit loop when nMidLoopCount loops are done, or when a new block is found.
+                // Either way, success will be false.
+                while (nMidTries < nMidLoopCount && chainActive.Height() < pblock->nHeight) {
+                    while (nTries < nInnerLoopCount &&
+                           !CheckProofOfWork(pblock->GetSha256D(midStateHash), pblock->nBits,
+                                             Params().GetConsensus(), CBlockHeader::SHA256D_BLOCK)) {
+                        boost::this_thread::interruption_point();
+                        ++nTries;
+                        ++pblock->nNonce64;
+                    }
+                    if (nTries != nInnerLoopCount) {
+                        success = true;
+                        break;
+                    }
+                    ++nMidTries;
+                    nTries = 0;
                 }
             } else if (pblock->nTime < Params().PowUpdateTimestamp()) {
                 while (nTries < nInnerLoopCount &&
@@ -1010,6 +1017,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     ++nTries;
                     ++pblock->nNonce;
                 }
+                success = nTries != nInnerLoopCount;
             } else {
                 LogPrintf("%s: Unknown hashing algorithm found!\n", __func__);
                 return;
@@ -1018,14 +1026,14 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             double nHashSpeed = 0;
             {
                 LOCK(cs_nonce);
-                nHashes += nTries;
+                nHashes += nTries + (nMidTries * nInnerLoopCount);
                 nTimeDuration = GetTime() - nTimeStart;
                 if (!nTimeDuration) nTimeDuration = 1;
                 nHashSpeed = arith_uint256(nHashes/1000/nTimeDuration).getdouble();
             }
 
             LogPrint(BCLog::MINING, "%s: PoW Hashspeed %d kh/s\n", __func__,  nHashSpeed);
-            if (nTries == nInnerLoopCount) {
+            if (!success) {
                 continue;
             }
         }
@@ -1035,6 +1043,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             LogPrint(BCLog::MINING, "%s: Failed to process new block\n", __func__);
             continue;
         }
+        LogPrint(BCLog::MINING, "%s: Found block\n", __func__);
 
         if (!fProofOfStake)
             coinbaseScript->KeepScript();
@@ -1073,21 +1082,16 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
             continue;
 
         CBlock *pblock = &pblocktemplate->block;
-        int32_t nNonceLocal;
 
         {
             LOCK(cs_nonce);
-            nNonceLocal = nNonce_base++;
+            nExtraNonce = nNonce_base++;
             if (!nTimeStart)
                 nTimeStart = GetTime();
         }
 
         pblock->nNonce = startNonce;
-        {
-            LOCK(cs_main);
-            nExtraNonce = nNonceLocal;
-            IncrementExtraNonce(pblock, chainActive.Tip(), nExtraNonce);
-        }
+        IncrementExtraNonce(pblock, chainActive.Height(), nExtraNonce);
 
         int nTries = 0;
         if (pblock->IsRandomX() && pblock->nTime >= Params().PowUpdateTimestamp()) {

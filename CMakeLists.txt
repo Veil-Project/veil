@@ -14,6 +14,7 @@ include_directories(src/crypto)
 include_directories(src/crypto/ctaes)
 include_directories(src/crypto/external)
 include_directories(src/crypto/x16r)
+include_directories(src/csv)
 include_directories(src/index)
 include_directories(src/interfaces)
 include_directories(src/leveldb/db)
@@ -181,6 +182,11 @@ add_executable(veil
         src/crypto/sha256_sse41.cpp
         src/crypto/sha512.cpp
         src/crypto/sha512.h
+        src/csv/CSVread.cpp
+        src/csv/CSVwrite.cpp
+        src/csv/libcsv.c.cpp
+        src/csv/strerror.cpp
+        src/csv/strerror.hpp
         src/index/base.cpp
         src/index/base.h
         src/index/txindex.cpp
@@ -1022,6 +1028,6 @@ add_executable(veil
         src/versionbits.h
         src/walletinitinterface.h
         src/warnings.cpp
-        src/warnings.h src/veil/zerocoin/spendreceipt.h src/veil/ringct/temprecipient.h src/veil/ringct/temprecipient.cpp src/veil/zerocoin/spendreceipt.cpp src/veil/ringct/outputrecord.cpp src/veil/ringct/outputrecord.h src/wallet/walletbalances.h src/veil/ringct/transactionrecord.h src/veil/zerocoin/mintmeta.h src/test/zerocoin_zkp_tests.cpp src/veil/zerocoin/lrucache.h src/veil/zerocoin/lrucache.cpp src/veil/zerocoin/precompute.h src/veil/zerocoin/precompute.cpp src/libzerocoin/PubcoinSignature.h src/libzerocoin/PubcoinSignature.cpp src/test/zerocoin_pubcoinsig_tests.cpp src/veil/invalid_list.h src/veil/invalid_list.cpp)
+        src/warnings.h src/veil/lru_cache.h src/veil/zerocoin/spendreceipt.h src/veil/ringct/temprecipient.h src/veil/ringct/temprecipient.cpp src/veil/zerocoin/spendreceipt.cpp src/veil/ringct/outputrecord.cpp src/veil/ringct/outputrecord.h src/wallet/walletbalances.h src/veil/ringct/transactionrecord.h src/veil/zerocoin/mintmeta.h src/test/zerocoin_zkp_tests.cpp src/veil/zerocoin/lrucache.h src/veil/zerocoin/lrucache.cpp src/veil/zerocoin/precompute.h src/veil/zerocoin/precompute.cpp src/libzerocoin/PubcoinSignature.h src/libzerocoin/PubcoinSignature.cpp src/test/zerocoin_pubcoinsig_tests.cpp src/veil/invalid_list.h src/veil/invalid_list.cpp)
 
 qt5_use_modules(veil Core Widgets Gui)

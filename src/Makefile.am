@@ -115,6 +115,8 @@ BITCOIN_CORE_H = \
   consensus/tx_verify.h \
   core_io.h \
   core_memusage.h \
+  csv/csv.h \
+  csv/CSV.hpp \
   cuckoocache.h \
   fs.h \
   httprpc.h \
@@ -192,6 +194,7 @@ BITCOIN_CORE_H = \
   veil/dandelioninventory.h \
   veil/invalid.h \
   veil/invalid_list.h \
+  veil/lru_cache.h \
   veil/proofoffullnode/proofoffullnode.h \
   veil/proofofstake/kernel.h \
   veil/proofofstake/blockvalidation.h \
@@ -689,6 +692,11 @@ libbitcoin_util_a_SOURCES = \
   compat/glibc_sanity.cpp \
   compat/glibcxx_sanity.cpp \
   compat/strnlen.cpp \
+  csv/CSVread.cpp \
+  csv/CSVwrite.cpp \
+  csv/libcsv.c \
+  csv/strerror.cpp \
+  csv/strerror.hpp \
   fs.cpp \
   interfaces/handler.cpp \
   interfaces/node.cpp \
@@ -820,6 +828,7 @@ CLEANFILES += consensus/*.gcda consensus/*.gcno
 CLEANFILES += crypto/*.gcda crypto/*.gcno
 CLEANFILES += crypto/randomx/*.gcda crypto/randomx/*.gcno
 CLEANFILES += crypto/randomx/blake2/*.gcda crypto/randomx/blake2/*.gcno
+CLEANFILES += csv/*.gcda csv/*.gcno
 CLEANFILES += policy/*.gcda policy/*.gcno
 CLEANFILES += primitives/*.gcda primitives/*.gcno
 CLEANFILES += script/*.gcda script/*.gcno

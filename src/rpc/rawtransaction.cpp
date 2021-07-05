@@ -51,8 +51,6 @@ static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& 
     TxToUniv(tx, uint256(), vTxRingCtInputs, entry, true, RPCSerializationFlags());
 
     if (!hashBlock.IsNull()) {
-        LOCK(cs_main);
-
         entry.pushKV("blockhash", hashBlock.GetHex());
         CBlockIndex* pindex = LookupBlockIndex(hashBlock);
         if (pindex) {
@@ -164,8 +162,6 @@ static UniValue getrawtransaction(const JSONRPCRequest& request)
     }
 
     if (!request.params[2].isNull()) {
-        LOCK(cs_main);
-
         uint256 blockhash = ParseHashV(request.params[2], "parameter 3");
         blockindex = LookupBlockIndex(blockhash);
         if (!blockindex) {
@@ -248,7 +244,6 @@ static UniValue gettxoutproof(const JSONRPCRequest& request)
     CBlockIndex* pblockindex = nullptr;
     uint256 hashBlock;
     if (!request.params[1].isNull()) {
-        LOCK(cs_main);
         hashBlock = uint256S(request.params[1].get_str());
         pblockindex = LookupBlockIndex(hashBlock);
         if (!pblockindex) {
@@ -272,8 +267,6 @@ static UniValue gettxoutproof(const JSONRPCRequest& request)
     if (g_txindex && !pblockindex) {
         g_txindex->BlockUntilSyncedToCurrentChain();
     }
-
-    LOCK(cs_main);
 
     if (pblockindex == nullptr)
     {
@@ -328,8 +321,6 @@ static UniValue verifytxoutproof(const JSONRPCRequest& request)
     std::vector<unsigned int> vIndex;
     //if (merkleBlock.txn.ExtractMatches(vMatch, vIndex) != merkleBlock.header.hashMerkleRoot)
     //    return res;
-
-    LOCK(cs_main);
 
     const CBlockIndex* pindex = LookupBlockIndex(merkleBlock.header.GetHash());
     if (!pindex || !chainActive.Contains(pindex) || pindex->nTx == 0) {

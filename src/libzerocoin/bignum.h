@@ -281,7 +281,7 @@ public:
     {
         unsigned int nSize = BN_bn2mpi(bn, NULL);
         if (nSize < 4)
-            return 0;
+            return uint256(0);
         if (bitSize() > 256) {
             return MaxUint256();
         }
@@ -289,7 +289,7 @@ public:
         BN_bn2mpi(bn, &vch[0]);
         if (vch.size() > 4)
             vch[4] &= 0x7f;
-        uint256 n = 0;
+        uint256 n(0);
         for (unsigned int i = 0, j = vch.size()-1; i < sizeof(n) && j >= 4; i++, j--)
             ((unsigned char*)&n)[i] = vch[j];
         return n;
@@ -298,7 +298,7 @@ public:
     arith_uint256 getarith_uint256() const
     {
         auto n = getuint256();
-        return Uint256ToArith(n);
+        return UintToArith256(n);
     }
 
     void setvch(const std::vector<unsigned char>& vch)

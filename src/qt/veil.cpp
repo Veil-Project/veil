@@ -319,11 +319,15 @@ BitcoinApplication::BitcoinApplication(interfaces::Node& node, int &argc, char *
 
 void BitcoinApplication::setupPlatformStyle()
 {
+// This causes compatibility issues with macOS 10.14+
+// Disabling of dark mode may already be handled in info.plist.in section NSRequiresAquaSystemAppearance
+#if 0
 #if defined(Q_OS_MAC)
     // This is a work around for our not having as yet any "Dark Mode" compatible
     // stylesheets.  Enforce the use of known-good Aqua style on systems that support
     // the NSAppearance property.
     disableDarkMode();
+#endif
 #endif
 
     // UI per-platform customization
@@ -649,12 +653,15 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    // Preferences check
-    // If the UI settings have a different value than the server args then use the UI settings.
-    QSettings* settings = getSettings();
-    int tempPref = settings->value("nAutomintDenom").toInt();
-    if(tempPref != nPreferredDenom && tempPref != 0){
-        nPreferredDenom = tempPref;
+    // Automint denom
+    // If nautomintdenom is set, use it
+    // Else use saved UI settings
+    if(!gArgs.IsArgSet("-nautomintdenom")){
+    	QSettings* settings = getSettings();
+    	int tempPref = settings->value("nAutomintDenom").toInt();
+		if(tempPref != nPreferredDenom && tempPref != 0){
+			nPreferredDenom = tempPref;
+		}
     }
 
     // Now that the QApplication is setup and we have parsed our parameters, we can set the platform style
