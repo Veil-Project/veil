@@ -204,48 +204,6 @@ jobs:
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
-  build-i686-win32:
-    name: Build for Win32
-    needs: create-source-distribution
-    runs-on: ubuntu-18.04
-    env:
-      ARTIFACT_DIR: win32-binaries
-    steps:
-    - name: Getting Source
-      uses: actions/download-artifact@v1
-      with:
-        name: ${{ env.SOURCE_ARTIFACT }}
-    - name: Extract Archives
-      run: |
-        tar -xzf depends.tar.gz
-        tar -xzf veil-*.tar.gz --strip-components=1
-      working-directory: ${{ env.SOURCE_ARTIFACT }}
-    - name: Install Required Packages
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y g++-mingw-w64-i686 mingw-w64-i686-dev
-    - name: Switch MinGW GCC and G++ to POSIX Threading
-      run: |
-        sudo update-alternatives --set i686-w64-mingw32-gcc /usr/bin/i686-w64-mingw32-gcc-posix
-        sudo update-alternatives --set i686-w64-mingw32-g++ /usr/bin/i686-w64-mingw32-g++-posix
-    - name: Build Dependencies
-      run: make -C depends -j$(nproc) HOST=i686-w64-mingw32
-      working-directory: ${{ env.SOURCE_ARTIFACT }}
-    - name: Build Veil
-      run: |
-        ./configure --disable-jni --prefix=$(realpath depends/i686-w64-mingw32)
-        make -j$(nproc)
-      working-directory: ${{ env.SOURCE_ARTIFACT }}
-    - name: Prepare Files for Artifact
-      run: |
-        mkdir -p $ARTIFACT_DIR
-        strip $SOURCE_ARTIFACT/src/{veil-cli.exe,veil-tx.exe,veild.exe,qt/veil-qt.exe}
-        mv $SOURCE_ARTIFACT/src/{veil-cli.exe,veil-tx.exe,veild.exe,qt/veil-qt.exe} $ARTIFACT_DIR
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v1
-      with:
-        name: ${{ env.ARTIFACT_DIR }}
-        path: ${{ env.ARTIFACT_DIR }}
   build-arm-linux-gnueabihf:
     name: Build for ARM Linux 32bit
     needs: create-source-distribution
