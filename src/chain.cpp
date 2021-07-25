@@ -254,14 +254,16 @@ const CBlockIndex* LastCommonAncestor(const CBlockIndex* pa, const CBlockIndex* 
 void CBlockIndex::AddAccumulator(libzerocoin::CoinDenomination denom, CBigNum bnAccumulator)
 {
     mapAccumulatorHashes[denom] = SerializeHash(bnAccumulator);
+    hashAccumulators = SerializeHash(mapAccumulatorHashes);
 }
 
 void CBlockIndex::AddAccumulator(AccumulatorMap mapAccumulator)
 {
     for(libzerocoin::CoinDenomination denom : libzerocoin::zerocoinDenomList) {
         CBigNum bnAccumulator = mapAccumulator.GetValue(denom);
-        AddAccumulator(denom, bnAccumulator);
+        mapAccumulatorHashes[denom] = SerializeHash(bnAccumulator);
     }
+    hashAccumulators = SerializeHash(mapAccumulatorHashes);
 }
 
 uint256 CBlockIndex::GetRandomXPoWHash() const
