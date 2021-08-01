@@ -58,6 +58,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
 
     receiveCoinsPage = new ReceiveCoinsDialog(platformStyle);
     receiveWidget = new ReceiveWidget(this, this);
+    miningWidget = new MiningWidget(this, this);
     sendCoinsPage = new SendCoinsDialog(platformStyle,0, this);
     addressesWidget = new AddressesWidget(platformStyle, this);
     settingsWidget = new SettingsWidget(this);
@@ -69,6 +70,7 @@ WalletView::WalletView(const PlatformStyle *_platformStyle, QWidget *parent):
     addWidget(transactionsPage);
     //addWidget(receiveCoinsPage);
     addWidget(receiveWidget);
+    addWidget(miningWidget);
     addWidget(sendCoinsPage);
     addWidget(addressesWidget);
     addWidget(settingsWidget);
@@ -147,6 +149,7 @@ void WalletView::setWalletModel(WalletModel *_walletModel)
     settingsWidget->setWalletModel(walletModel);
     //receiveCoinsPage->setModel(_walletModel);
     receiveWidget->setWalletModel(_walletModel);
+    miningWidget->setWalletModel(_walletModel);
     sendCoinsPage->setModel(_walletModel);
     usedReceivingAddressesPage->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
     usedSendingAddressesPage->setModel(_walletModel ? _walletModel->getAddressTableModel() : nullptr);
@@ -219,6 +222,11 @@ void WalletView::gotoSendCoinsPage(QString addr)
 
     if (!addr.isEmpty())
         sendCoinsPage->setAddress(addr);
+}
+
+void WalletView::gotoMiningPage()
+{
+    setCurrentWidget(miningWidget);
 }
 
 void WalletView::gotoAddressesPage(){

@@ -151,6 +151,8 @@ private:
     QAction* overviewAction = nullptr;
     QAction* addressesAction = nullptr;
     QAction* settingsAction = nullptr;
+    QAction* settingsAction2 = nullptr;
+    QAction* miningAction = nullptr;
     //QAction* historyAction = nullptr;
     QAction* quitAction = nullptr;
     QAction* sendCoinsAction = nullptr;
@@ -288,6 +290,8 @@ private Q_SLOTS:
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
+    /** Switch to mining page */
+    void gotoMiningPage();
     /** Switch to addresses page */
     void gotoAddressesPage();
     /** Switch to settings page */

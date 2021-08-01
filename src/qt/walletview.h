@@ -11,6 +11,7 @@
 #include <qt/veil/settings/settingswidget.h>
 #include <qt/bitcoingui.h>
 #include <qt/veil/receivewidget.h>
+#include <qt/veil/miningwidget.h>
 #include <qt/veil/addresseswidget.h>
 
 #include <QLabel>
@@ -85,6 +86,7 @@ private:
     QWidget *transactionsPage;
     ReceiveCoinsDialog *receiveCoinsPage;
     ReceiveWidget *receiveWidget;
+    MiningWidget *miningWidget;
     SendCoinsDialog *sendCoinsPage;
     AddressesWidget *addressesWidget;
     SettingsWidget *settingsWidget;
@@ -106,6 +108,8 @@ public Q_SLOTS:
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
+    /** Switch to mining page */
+    void gotoMiningPage();
     /** Switch to addresses page */
     void gotoAddressesPage();
     /** Switch to settings page */

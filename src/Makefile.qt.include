@@ -60,6 +60,7 @@ QT_FORMS_UI = \
   qt/veil/forms/settingsrestoreseed.ui \
   qt/veil/forms/settingswidget.ui \
   qt/veil/forms/receivewidget.ui \
+  qt/veil/forms/miningwidget.ui \
   qt/veil/forms/addresseswidget.ui \
   qt/veil/forms/addressnewcontact.ui \
   qt/veil/forms/addressreceive.ui \
@@ -154,6 +155,7 @@ QT_MOC_CPP = \
   qt/veil/settings/moc_settingsrestoreseed.cpp \
   qt/veil/settings/moc_settingswidget.cpp \
   qt/veil/moc_receivewidget.cpp \
+  qt/veil/moc_miningwidget.cpp \
   qt/veil/moc_addresseswidget.cpp \
   qt/veil/moc_addressnewcontact.cpp \
   qt/veil/moc_addressreceive.cpp \
@@ -279,6 +281,7 @@ BITCOIN_QT_H = \
   qt/veil/settings/settingsrestoreseed.h \
   qt/veil/settings/settingswidget.h \
   qt/veil/receivewidget.h \
+  qt/veil/miningwidget.h \
   qt/veil/qtutils.h \
   qt/veil/addresseswidget.h \
   qt/veil/addressnewcontact.h \
@@ -556,6 +559,7 @@ RES_ICONS = \
   qt/res/icons/ic-transactions.png \
   qt/res/icons/ic-send.png \
   qt/res/icons/ic-receive.png \
+  qt/res/icons/ic_mined_white.png \
   qt/res/icons/ic-information.png \
   qt/res/icons/logo-splash@3x.png \
   qt/res/icons/logo-splash@2x.png \
@@ -672,6 +676,7 @@ BITCOIN_QT_WALLET_CPP = \
   qt/veil/settings/settingsrestoreseed.cpp \
   qt/veil/settings/settingswidget.cpp \
   qt/veil/receivewidget.cpp \
+  qt/veil/miningwidget.cpp \
   qt/veil/addresseswidget.cpp \
   qt/veil/addressnewcontact.cpp \
   qt/veil/addressreceive.cpp \
