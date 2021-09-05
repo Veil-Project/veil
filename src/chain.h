@@ -388,7 +388,7 @@ public:
 
         block.hashMerkleRoot = hashMerkleRoot;
         block.hashWitnessMerkleRoot = hashWitnessMerkleRoot;
-        block.hashAccumulators = SerializeHash(mapAccumulatorHashes);
+        block.hashAccumulators = hashAccumulators;
         //ProgPow
         block.nNonce64       = nNonce64;
         block.mixHash        = mixHash;
