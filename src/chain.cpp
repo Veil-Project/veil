@@ -109,8 +109,8 @@ const CBlockIndex* CBlockIndex::GetAncestor(int height) const
             heightWalk = heightSkip;
         } else {
             if (!pindexWalk->pprev) {
-                LogPrintf("%s: pindexWalk failed:  Hash: %s, Current Height: %d, Working Height: %d\n",
-                          __func__, pindexWalk->phashBlock->GetHex(), height, nHeight);
+                LogPrintf("%s: pindexWalk:  Hash: %s, Looking for Height: %d, Current Height: %d, Working Height: %d, pindexWalk height: %d\n",
+                          __func__, pindexWalk->phashBlock->GetHex(), height, heightWalk, nHeight, pindexWalk->nHeight);
             }
             assert(pindexWalk->pprev);
             pindexWalk = pindexWalk->pprev;
@@ -254,14 +254,16 @@ const CBlockIndex* LastCommonAncestor(const CBlockIndex* pa, const CBlockIndex* 
 void CBlockIndex::AddAccumulator(libzerocoin::CoinDenomination denom, CBigNum bnAccumulator)
 {
     mapAccumulatorHashes[denom] = SerializeHash(bnAccumulator);
+    hashAccumulators = SerializeHash(mapAccumulatorHashes);
 }
 
 void CBlockIndex::AddAccumulator(AccumulatorMap mapAccumulator)
 {
     for(libzerocoin::CoinDenomination denom : libzerocoin::zerocoinDenomList) {
         CBigNum bnAccumulator = mapAccumulator.GetValue(denom);
-        AddAccumulator(denom, bnAccumulator);
+        mapAccumulatorHashes[denom] = SerializeHash(bnAccumulator);
     }
+    hashAccumulators = SerializeHash(mapAccumulatorHashes);
 }
 
 uint256 CBlockIndex::GetRandomXPoWHash() const
@@ -273,6 +275,14 @@ uint256 CBlockIndex::GetProgPowHash(uint256& mix_hash) const
 {
     CBlockHeader header = GetBlockHeader();
     return ProgPowHash(header, mix_hash);
+}
+
+void CBlockIndex::CopyBlockHashIntoIndex()
+{
+    if (phashBlock) {
+        _phashBlock.reset(new uint256(*phashBlock));
+        phashBlock = _phashBlock.get();
+    }
 }
 
 // We are going to be performing a block hash for RandomX. To see if we need to spin up a new

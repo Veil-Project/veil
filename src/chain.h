@@ -15,8 +15,9 @@
 #include <uint256.h>
 #include <libzerocoin/bignum.h>
 
-#include <vector>
 #include <map>
+#include <memory>
+#include <vector>
 
 /**
  * Maximum amount of time that a block timestamp is allowed to exceed the
@@ -178,8 +179,11 @@ enum BlockMemFlags: uint32_t {
  */
 class CBlockIndex
 {
+private:
+    //! owned pointer to the hash of the block, for use when erased from mapBlockIndex.
+    std::shared_ptr<const uint256> _phashBlock;
 public:
-    //! pointer to the hash of the block, if any. Memory is owned by mapBlockIndex
+    //! pointer to the hash of the block, if any. Memory is owned by mapBlockIndex, if this index is in mapBlockIndex
     const uint256* phashBlock{nullptr};
 
     //! pointer to the index of the predecessor of this block
@@ -384,7 +388,7 @@ public:
 
         block.hashMerkleRoot = hashMerkleRoot;
         block.hashWitnessMerkleRoot = hashWitnessMerkleRoot;
-        block.hashAccumulators = SerializeHash(mapAccumulatorHashes);
+        block.hashAccumulators = hashAccumulators;
         //ProgPow
         block.nNonce64       = nNonce64;
         block.mixHash        = mixHash;
@@ -572,6 +576,8 @@ public:
     //! Adds all accumulators to the block idnex given an accumulator map
     void AddAccumulator(AccumulatorMap mapAccumulator);
 
+    //! Copies the value of phashBlock (if any) into a new uint256 owned by the CBlockIndex.
+    void CopyBlockHashIntoIndex();
 };
 
 arith_uint256 GetBlockProof(const CBlockIndex& block);

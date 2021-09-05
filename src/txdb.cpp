@@ -324,6 +324,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
 
                 // zerocoin
                 pindexNew->mapAccumulatorHashes = diskindex.mapAccumulatorHashes;
+                pindexNew->hashAccumulators = diskindex.hashAccumulators;
                 pindexNew->mapZerocoinSupply = diskindex.mapZerocoinSupply;
                 pindexNew->vMintDenominationsInBlock = diskindex.vMintDenominationsInBlock;
 

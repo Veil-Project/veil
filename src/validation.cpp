@@ -2759,6 +2759,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         return state.DoS(100, error("%s: Failed to calculate new zerocoin supply for block=%s height=%d", __func__,
                                     block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID);
     pindex->mapAccumulatorHashes = block.mapAccumulatorHashes;
+    pindex->hashAccumulators = block.hashAccumulators;
 
     // track money supply and mint amount info
     CAmount nMoneySupplyPrev = pindex->pprev ? pindex->pprev->nMoneySupply : 0;
@@ -3606,10 +3607,11 @@ void PruneStaleBlockIndexes()
     // This isn't going to change while we're processing, so just leave and try again later.
     if (!pindexBestHeader) return;
 
-    std::set<uint256> setDelete;
     uint32_t irrelevantIndexes = 0;
     int64_t lowestPrunedHeight = -1;
     int64_t currentHeight;
+    std::set<const CBlockIndex*> setDelete;
+    std::set<const CBlockIndex*> setMaybeDelete;
     std::vector<std::pair<uint256, CBlockIndex*>> checkPrunable;
     {
         LOCK(cs_mapblockindex);
@@ -3642,29 +3644,62 @@ void PruneStaleBlockIndexes()
 
             // if it's also old enough, add it to the prune list.
             if (currentHeight > static_cast<int>(pindex->nHeight + PRUNE_DEPTH)) {
-                setDelete.emplace(p.first);
+                setDelete.emplace(pindex);
 
                 // save the lowest height that we're purging, even if it's lower than the previous
                 // lastPrunedHeight
                 if (pindex->nHeight < lowestPrunedHeight || lowestPrunedHeight == -1) {
                     lowestPrunedHeight = pindex->nHeight;
                 }
+            } else if (!chainActive.Contains(pindex->pprev) && !IsAncestor(pindexBestHeader, pindex->pprev)) {
+                // Or, if an ancestor might be pruned, in which case we would have to prune, note it to check later.
+                setMaybeDelete.emplace(pindex);
+            }
+        }
+    }
+
+    int descendants = 0;
+    for (const CBlockIndex* pindex : setMaybeDelete) {
+        for (const CBlockIndex* prune : setDelete) {
+            if (IsAncestor(pindex, prune)) {
+                ++descendants;
+                setDelete.emplace(pindex);
+                break;
             }
         }
     }
 
     if (setDelete.size() > 0) {
-         LogPrintf("%s: Erasing %d of %d irrelevant indexes.  LastPrunedHeight now %d.\n",
-                   __func__, setDelete.size(), irrelevantIndexes, lowestPrunedHeight);
+        LogPrintf("%s: Erasing %d of %d irrelevant indexes, including %d descendants.  LastPrunedHeight now %d.\n",
+                  __func__, setDelete.size(), irrelevantIndexes, descendants, lowestPrunedHeight);
 
-         LOCK(cs_mapblockindex);
-         // Purge the ones we flagged
-         for (const uint256& hash : setDelete) {
-             mapBlockIndex.erase(hash);
-         }
+        LOCK(cs_mapblockindex);
+        // Purge the ones we flagged
+        for (const CBlockIndex* pindex : setDelete) {
+            auto p = mapBlockIndex.find(*pindex->phashBlock);
+            if (p != mapBlockIndex.end()) {
+                p->second->CopyBlockHashIntoIndex();
+                mapBlockIndex.erase(p);
+            }
+        }
 
-         // Step back a little for safety
-         lastPrunedHeight = lowestPrunedHeight;
+        // Step back a little for safety
+        lastPrunedHeight = lowestPrunedHeight;
+
+        // Double-check remaining unpruned indexes
+        for (const auto& p : mapBlockIndex) {
+            const CBlockIndex* pindex = p.second;
+
+            if (!chainActive.Contains(pindex)) {
+                if (setDelete.find(pindex->pprev) != setDelete.end()) {
+                    LogPrintf("%s: DANGER: Potentially dangling pprev pointer at orphan hash=%s height=%d. Chain height=%d\n",
+                              __func__, pindex->phashBlock->GetHex(), pindex->nHeight, chainActive.Height());
+                } else if (setDelete.find(pindex->pskip) != setDelete.end()) {
+                    LogPrintf("%s: DANGER: Potentially dangling pskip pointer at orphan hash=%s height=%d. Chain height=%d\n",
+                              __func__, pindex->phashBlock->GetHex(), pindex->nHeight, chainActive.Height());
+                }
+            }
+        }
     }
 }
 
