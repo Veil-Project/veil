@@ -45,7 +45,7 @@ private:
     CCriticalSection cs_mycache;
 
 public:
-    SimpleLRUCache(int s) : csize(s < 1 ? 10 : s), keyValuesMap(csize) {}
+    SimpleLRUCache(int s) : csize(s < 1 ? 10 : s), keyValuesMap(s < 1 ? 10 : s) {}
 
     void set(const K key, const V value) {
         LOCK(cs_mycache);
