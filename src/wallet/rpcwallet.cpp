@@ -4989,6 +4989,7 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
         result.pushKV("threads", 0);
         result.pushKV("message", "Mining stopped");
     } else {
+        ClearHashSpeed();
         result.pushKV("threads", nThreads);
         if (sWarning.compare(""))
             result.pushKV("message", strprintf("Warning: %s", sWarning.c_str()));
