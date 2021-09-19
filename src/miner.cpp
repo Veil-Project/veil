@@ -38,6 +38,7 @@
 #include <algorithm>
 #include <queue>
 #include <utility>
+#include <vector>
 #include <boost/thread.hpp>
 #include "veil/zerocoin/accumulators.h"
 
@@ -845,19 +846,57 @@ double GetHashSpeed() {
     return arith_uint256(nHashes/nTimeDuration).getdouble();
 }
 
+class ThreadHashSpeed {
+  public:
+    ThreadHashSpeed() {}
+    ThreadHashSpeed(ThreadHashSpeed&& ths) {
+        LOCK(ths.cs);
+        nHashes = ths.nHashes;
+        nTimeDuration = ths.nTimeDuration;
+    }
+    CCriticalSection cs;
+    arith_uint256 nHashes = 0;
+    int32_t nTimeDuration = 0;
+};
+
+CCriticalSection cs_hashspeeds;
+std::vector<ThreadHashSpeed> vHashSpeeds;
+
 void ClearHashSpeed() {
-    LOCK(cs_nonce);
-    nHashes = 0;
-    nTimeStart = 0;
-    nTimeDuration = 0;
+    {
+        LOCK(cs_nonce);
+        nHashes = 0;
+        nTimeStart = 0;
+        nTimeDuration = 0;
+    }
+    {
+        LOCK(cs_hashspeeds);
+        for (auto& ths : vHashSpeeds) {
+            LOCK(ths.cs);
+            ths.nHashes = 0;
+            ths.nTimeDuration = 0;
+        }
+    }
 }
 
-void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false, bool fProofOfFullNode = false) {
+double GetRecentHashSpeed() {
+    LOCK(cs_hashspeeds);
+    double nTotalHashSpeed = 0.0;
+    for (auto& hs : vHashSpeeds) {
+        LOCK(hs.cs);
+        if (hs.nTimeDuration > 0)
+            nTotalHashSpeed += hs.nHashes.getdouble() / hs.nTimeDuration;
+    }
+    return nTotalHashSpeed;
+}
+
+void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false, bool fProofOfFullNode = false, ThreadHashSpeed* pThreadHashSpeed = nullptr) {
     LogPrintf("Veil Miner started\n");
 
     unsigned int nExtraNonce = 0;
     static const int nInnerLoopCount = 0x010000;
     static uint32_t nStakeHashesLast = 0;
+    int32_t nLocalStartTime = 0;
     bool enablewallet = false;
 #ifdef ENABLE_WALLET
     enablewallet = !gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET);
@@ -964,8 +1003,9 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             {
                 LOCK(cs_nonce);
                 nExtraNonce = nNonce_base++;
+                nLocalStartTime = GetTime();
                 if (!nTimeStart)
-                    nTimeStart = GetTime();
+                    nTimeStart = nLocalStartTime;
             }
 
             pblock->nNonce = 0;
@@ -1031,8 +1071,19 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 if (!nTimeDuration) nTimeDuration = 1;
                 nHashSpeed = arith_uint256(nHashes/1000/nTimeDuration).getdouble();
             }
+            if (pThreadHashSpeed != nullptr) {
+                double nRecentHashSpeed = 0;
+                {
+                    LOCK(pThreadHashSpeed->cs);
+                    pThreadHashSpeed->nHashes = nTries + (nMidTries * nInnerLoopCount);
+                    pThreadHashSpeed->nTimeDuration = std::max<int32_t>(GetTime() - nLocalStartTime, 1);
+                    nRecentHashSpeed = pThreadHashSpeed->nHashes.getdouble() / 1000 / pThreadHashSpeed->nTimeDuration;
+                }
+                LogPrint(BCLog::MINING, "%s: PoW Hashspeed %d kh/s (this thread this round: %.03f khs)\n", __func__,  nHashSpeed, nRecentHashSpeed);
+            } else {
+                LogPrint(BCLog::MINING, "%s: PoW Hashspeed %d kh/s\n", __func__,  nHashSpeed);
+            }
 
-            LogPrint(BCLog::MINING, "%s: PoW Hashspeed %d kh/s\n", __func__,  nHashSpeed);
             if (!success) {
                 continue;
             }
@@ -1050,11 +1101,12 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
     }
 }
 
-void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_index, uint32_t startNonce) {
+void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_index, uint32_t startNonce, ThreadHashSpeed* pThreadHashSpeed) {
     LogPrintf("Veil RandomX Miner started\n");
 
     unsigned int nExtraNonce = 0;
     static const int nInnerLoopCount = RANDOMX_INNER_LOOP_COUNT;
+    int32_t nLocalStartTime = 0;
     bool fBlockFoundAlready = false;
 
     while (GenerateActive())
@@ -1086,8 +1138,9 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
         {
             LOCK(cs_nonce);
             nExtraNonce = nNonce_base++;
+            nLocalStartTime = GetTime();
             if (!nTimeStart)
-                nTimeStart = GetTime();
+                nTimeStart = nLocalStartTime;
         }
 
         pblock->nNonce = startNonce;
@@ -1146,8 +1199,19 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
                 nHashSpeed = arith_uint256(nHashes/nTimeDuration).getdouble();
             }
         }
+        if (pThreadHashSpeed != nullptr) {
+            double nRecentHashSpeed = 0;
+            {
+                LOCK(pThreadHashSpeed->cs);
+                pThreadHashSpeed->nHashes = nTries;
+                pThreadHashSpeed->nTimeDuration = std::max<int32_t>(GetTime() - nLocalStartTime, 1);
+                nRecentHashSpeed = pThreadHashSpeed->nHashes.getdouble() / pThreadHashSpeed->nTimeDuration;
+            }
+            LogPrint(BCLog::MINING, "%s: RandomX PoW Hashspeed %d hashes/s (this thread this round: %.03f hashes/s\n", __func__, nHashSpeed, nRecentHashSpeed);
+        } else {
+            LogPrint(BCLog::MINING, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__, nHashSpeed);
+        }
 
-        LogPrint(BCLog::MINING, "%s: RandomX PoW Hashspeed %d hashes/s\n", __func__, nHashSpeed);
         if (nTries == nInnerLoopCount) {
             continue;
         }
@@ -1167,12 +1231,12 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
     }
 }
 
-void static ThreadBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript)
+void static ThreadBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, ThreadHashSpeed* pThreadHashSpeed)
 {
     LogPrintf("%s: starting\n", __func__);
     boost::this_thread::interruption_point();
     try {
-        BitcoinMiner(coinbaseScript);
+        BitcoinMiner(coinbaseScript, false, false, pThreadHashSpeed);
         boost::this_thread::interruption_point();
     } catch (std::exception& e) {
         LogPrintf("%s: exception\n", __func__);
@@ -1188,7 +1252,13 @@ void ThreadRandomXBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, c
     LogPrintf("%s: starting\n", __func__);
     boost::this_thread::interruption_point();
     try {
-        BitcoinRandomXMiner(coinbaseScript, vm_index, startNonce);
+        ThreadHashSpeed* pThreadHashSpeed = nullptr;
+        {
+            LOCK(cs_hashspeeds);
+            if (0 <= vm_index && vm_index < vHashSpeeds.size())
+                pThreadHashSpeed = &vHashSpeeds[vm_index];
+        }
+        BitcoinRandomXMiner(coinbaseScript, vm_index, startNonce, pThreadHashSpeed);
         boost::this_thread::interruption_point();
     } catch (std::exception& e) {
         LogPrintf("%s: exception\n", __func__);
@@ -1268,13 +1338,16 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
     if (nThreads == 0 || !fGenerate)
         return;
 
+    LOCK(cs_hashspeeds);
+    vHashSpeeds.resize(nThreads);
+
     // XXX - Todo - find a way to clean out the old threads or reuse the threads already created
     if (GetMiningAlgorithm() == MINE_RANDOMX && GetTime() >= Params().PowUpdateTimestamp()) {
         pthreadGroupRandomX->create_thread(boost::bind(&StartRandomXMining, pthreadGroupPoW,
                                            nThreads, coinbaseScript));
     } else {
         for (int i = 0; i < nThreads; i++)
-            pthreadGroupPoW->create_thread(boost::bind(&ThreadBitcoinMiner, coinbaseScript));
+            pthreadGroupPoW->create_thread(boost::bind(&ThreadBitcoinMiner, coinbaseScript, &vHashSpeeds[i]));
     }
 }
 
