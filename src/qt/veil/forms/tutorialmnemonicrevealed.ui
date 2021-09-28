@@ -86,9 +86,6 @@
           <height>40</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">color:#105aef;</string>
-        </property>
         <property name="text">
          <string>Enter your 24-word recovery seed phrase in the correct 
 order to confirm your backup is accurate</string>
@@ -206,10 +203,6 @@ order to confirm your backup is accurate</string>
           <width>16777215</width>
           <height>50</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color:#bababa;
-padding-top:3px;</string>
         </property>
         <property name="text">
          <string>Ensure your screen is not being watched 

@@ -31,11 +31,6 @@
    </property>
    <item>
     <widget class="QFrame" name="container">
-     <property name="styleSheet">
-      <string notr="true">background-color:white;
-border:none;
-</string>
-     </property>
      <layout class="QVBoxLayout" name="verticalLayout_2" stretch="0,0,1,1,1">
       <property name="spacing">
        <number>0</number>
@@ -62,11 +57,6 @@ border:none;
         </property>
         <item>
          <widget class="QGroupBox" name="groupBox">
-          <property name="styleSheet">
-           <string notr="true">#groupBox {
-	border:0;
-}</string>
-          </property>
           <property name="title">
            <string/>
           </property>
@@ -75,35 +65,6 @@ border:none;
             <widget class="QPushButton" name="btnMyAddresses">
              <property name="focusPolicy">
               <enum>Qt::NoFocus</enum>
-             </property>
-             <property name="styleSheet">
-              <string notr="true">QPushButton {
-    color: #bababa;
-    font-size:20px;
-    font-weight:light;
-    background-color:transparent;
-    border:0;
-    padding:10px 0px 10px 0px;
-    background-image: none ;
-    background-repeat:no-repeat;
-    background-position: center bottom;
-}
-
-QPushButton:checked {
-    background-image: url(&quot;:/icons/ic-title&quot;) ;
-    background-repeat:no-repeat;
-    background-position: center bottom;
-    color: #105aef;
-}
-
-QPushButton:hover {
-    color: #707070;
-}
-
-QPushButton:unchecked {
-    background-image: none ;
-    color: #bababa;
-}</string>
              </property>
              <property name="text">
               <string>My addresses</string>
@@ -146,35 +107,6 @@ QPushButton:unchecked {
              <property name="focusPolicy">
               <enum>Qt::NoFocus</enum>
              </property>
-             <property name="styleSheet">
-              <string notr="true">QPushButton {
-    color: #bababa;
-    font-size:20px;
-    font-weight:light;
-    background-color:transparent;
-    border:0;
-    padding:10 0 10 0;
-    background-image: none ;
-    background-repeat:no-repeat;
-    background-position: center bottom;
-}
-
-QPushButton:checked {
-    background-image: url(&quot;:/icons/ic-title&quot;) ;
-    background-repeat:no-repeat;
-    background-position: center bottom;
-    color: #105aef;
-}
-
-QPushButton:hover {
-    color: #707070;
-}
-
-QPushButton:unchecked {
-    background-image: none ;
-    color: #bababa;
-}</string>
-             </property>
              <property name="text">
               <string>Contacts</string>
              </property>
@@ -207,14 +139,6 @@ QPushButton:unchecked {
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
           </property>
-          <property name="styleSheet">
-           <string notr="true">color: #707070;
-font-size:18px;
-font-weight:light;	
-background-color:transparent;
-border:none;
-padding:4px 0px 4px 4px;</string>
-          </property>
           <property name="text">
            <string>New mining address</string>
           </property>
@@ -224,10 +148,6 @@ padding:4px 0px 4px 4px;</string>
          <widget class="QPushButton" name="btnMiningAddress2">
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">background-color:transparent;
-border:none;</string>
           </property>
           <property name="text">
            <string/>
@@ -258,11 +178,6 @@ border:none;</string>
             <height>16777215</height>
            </size>
           </property>
-          <property name="styleSheet">
-           <string notr="true">background-color:#bababa;
-margin-top:12px;
-margin-bottom:12px;</string>
-          </property>
           <property name="text">
            <string/>
           </property>
@@ -273,14 +188,6 @@ margin-bottom:12px;</string>
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
           </property>
-          <property name="styleSheet">
-           <string notr="true">color: #707070;
-font-size:18px;
-font-weight:light;	
-background-color:transparent;
-border:none;
-padding:4px 0px 4px 6px;</string>
-          </property>
           <property name="text">
            <string>Add contact</string>
           </property>
@@ -288,10 +195,6 @@ padding:4px 0px 4px 6px;</string>
         </item>
         <item>
          <widget class="QPushButton" name="btnAddIcon">
-          <property name="styleSheet">
-           <string notr="true">background-color:transparent;
-border:none;</string>
-          </property>
           <property name="text">
            <string/>
           </property>
@@ -367,9 +270,6 @@ border:none;</string>
              <height>0</height>
             </size>
            </property>
-           <property name="styleSheet">
-            <string notr="true">border:none;</string>
-           </property>
            <property name="frameShape">
             <enum>QFrame::StyledPanel</enum>
            </property>
@@ -424,30 +324,6 @@ border:none;</string>
         <property name="mouseTracking">
          <bool>true</bool>
         </property>
-        <property name="styleSheet">
-         <string notr="true">QListView { 
-background: transparent;
- }
-
-/* Works for both QListView and QListWidget */
-QListView::item {
-    /* Won't work without borders set */
-    border: 0px;
-
-    padding: 10px;
-}
-
-/* For icon only */
-QListView::icon {
-    left: 10px;
-}
-
-/* For text only */
-QListView::text {
-    left: 10px;
-    font-size:13px;
-}</string>
-        </property>
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
         </property>
@@ -490,30 +366,6 @@ QListView::text {
         </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QListView { 
-background: transparent;
- }
-
-/* Works for both QListView and QListWidget */
-QListView::item {
-    /* Won't work without borders set */
-    border: 0px;
-
-    padding: 10px;
-}
-
-/* For icon only */
-QListView::icon {
-    left: 10px;
-}
-
-/* For text only */
-QListView::text {
-    left: 10px;
-    font-size:13px;
-}</string>
         </property>
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>

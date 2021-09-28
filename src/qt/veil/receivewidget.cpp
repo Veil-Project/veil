@@ -90,7 +90,7 @@ bool ReceiveWidget::generateNewAddress(bool isOnDemand){
     interfaces::Wallet& wallet = walletModel->wallet();
 
     std::string strAddress;
-    std::string addressName = " ";
+    std::string addressName = "";
     isminetype isMine = ISMINE_NO;
     std::string purpose = " ";
 
@@ -123,7 +123,13 @@ bool ReceiveWidget::generateNewAddress(bool isOnDemand){
 
     // set address
     ui->labelAddress->setText(qAddress.left(16) + "..." + qAddress.right(16));
-    ui->labelAddressName->setText(QString::fromStdString(addressName));
+    if("" != addressName){
+        ui->labelAddressName->setText(QString::fromStdString(addressName));
+        ui->labelAddressName->show();
+    }
+    else{
+    	ui->labelAddressName->hide();
+    }
 
     SendCoinsRecipient info;
     info.address = qAddress;

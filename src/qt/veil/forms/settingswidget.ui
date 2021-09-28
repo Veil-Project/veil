@@ -13,10 +13,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">background-color:white;
-</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="10">
    <property name="spacing">
     <number>0</number>
@@ -41,10 +37,6 @@
        <height>32</height>
       </size>
      </property>
-     <property name="styleSheet">
-      <string notr="true">border:none;
-background-color:white;</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -58,9 +50,6 @@ background-color:white;</string>
          <widget class="QPushButton" name="title">
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">    padding:10 0 10 0;</string>
           </property>
           <property name="text">
            <string>Settings</string>
@@ -103,10 +92,6 @@ background-color:white;</string>
       </item>
       <item>
        <widget class="QScrollArea" name="scrollArea">
-        <property name="styleSheet">
-         <string notr="true">border:none;
-background-color:white;</string>
-        </property>
         <property name="sizeAdjustPolicy">
          <enum>QAbstractScrollArea::AdjustToContents</enum>
         </property>
@@ -140,9 +125,6 @@ background-color:white;</string>
               <height>1</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:#bababa;</string>
-            </property>
             <property name="text">
              <string/>
             </property>
@@ -165,12 +147,6 @@ background-color:white;</string>
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
             </property>
-            <property name="styleSheet">
-             <string notr="true"> text-align: left;
-  color: #575756;
-background-color:transparent;
-border:0;</string>
-            </property>
             <property name="text">
              <string>Backup Wallet</string>
             </property>
@@ -189,9 +165,6 @@ border:0;</string>
               <width>16777215</width>
               <height>1</height>
              </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:#bababa;</string>
             </property>
             <property name="text">
              <string/>
@@ -215,12 +188,6 @@ border:0;</string>
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
             </property>
-            <property name="styleSheet">
-             <string notr="true"> text-align: left;
-  color: #575756;
-background-color:transparent;
-border:0;</string>
-            </property>
             <property name="text">
              <string>Change Password</string>
             </property>
@@ -239,9 +206,6 @@ border:0;</string>
               <width>16777215</width>
               <height>1</height>
              </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:#bababa;</string>
             </property>
             <property name="text">
              <string/>
@@ -264,12 +228,6 @@ border:0;</string>
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
-              <property name="styleSheet">
-               <string notr="true"> text-align: left;
-  color: #575756;
-background-color:transparent;
-border:0;</string>
-              </property>
               <property name="text">
                <string>Unlock Wallet For Staking</string>
               </property>
@@ -285,24 +243,6 @@ border:0;</string>
               </property>
               <property name="focusPolicy">
                <enum>Qt::NoFocus</enum>
-              </property>
-              <property name="styleSheet">
-               <string notr="true">
-#checkBoxStaking::indicator {
-    border: 0;
-    background: none;
-}
-
-#checkBoxStaking {
-background-image: url(&quot;:/icons/ic-switch-off-png&quot;) ;
-background-repeat:no-repeat;
-background-position:left center;
-padding:4 4 8 30px;
-}
-
-#checkBoxStaking:checked {
-background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
-}</string>
               </property>
               <property name="text">
                <string>Staking</string>
@@ -324,9 +264,6 @@ background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
               <width>16777215</width>
               <height>1</height>
              </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:#bababa;</string>
             </property>
             <property name="text">
              <string/>
@@ -357,9 +294,6 @@ background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
-            <property name="styleSheet">
-             <string notr="true">    padding:10 0 10 0;</string>
-            </property>
             <property name="text">
              <string>Options </string>
             </property>
@@ -382,12 +316,6 @@ background-image: url(&quot;:/icons/ic-switch-on-png&quot;) ;
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
             </property>
-            <property name="styleSheet">
-             <string notr="true"> text-align: left;
-  color: #575756;
-background-color:transparent;
-border:0;</string>
-            </property>
             <property name="text">
              <string>Preferences</string>
             </property>
@@ -406,9 +334,6 @@ border:0;</string>
               <width>16777215</width>
               <height>1</height>
              </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:#bababa;</string>
             </property>
             <property name="text">
              <string/>
@@ -432,12 +357,6 @@ border:0;</string>
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
             </property>
-            <property name="styleSheet">
-             <string notr="true"> text-align: left;
-  color: #575756;
-background-color:transparent;
-border:0;</string>
-            </property>
             <property name="text">
              <string>Zerocoin Minting</string>
             </property>
@@ -456,9 +375,6 @@ border:0;</string>
               <width>16777215</width>
               <height>1</height>
              </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:#bababa;</string>
             </property>
             <property name="text">
              <string/>
@@ -482,12 +398,6 @@ border:0;</string>
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
             </property>
-            <property name="styleSheet">
-             <string notr="true"> text-align: left;
-  color: #575756;
-background-color:transparent;
-border:0;</string>
-            </property>
             <property name="text">
              <string>Frequently Asked Questions</string>
             </property>
@@ -506,9 +416,6 @@ border:0;</string>
               <width>16777215</width>
               <height>1</height>
              </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:#bababa;</string>
             </property>
             <property name="text">
              <string/>
@@ -532,12 +439,6 @@ border:0;</string>
             <property name="focusPolicy">
              <enum>Qt::NoFocus</enum>
             </property>
-            <property name="styleSheet">
-             <string notr="true"> text-align: left;
-  color: #575756;
-background-color:transparent;
-border:0;</string>
-            </property>
             <property name="text">
              <string>Advanced Options</string>
             </property>
@@ -556,9 +457,6 @@ border:0;</string>
               <width>16777215</width>
               <height>1</height>
              </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color:#bababa;</string>
             </property>
             <property name="text">
              <string/>

@@ -16,9 +16,6 @@
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
     <widget class="QFrame" name="frame">
-     <property name="styleSheet">
-      <string notr="true">border:0;</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -33,9 +30,6 @@
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">border:1px solid #707070;</string>
         </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
@@ -68,10 +62,6 @@
         </item>
         <item>
          <widget class="QLabel" name="sliderSize">
-          <property name="styleSheet">
-           <string notr="true">font-size:18px;
-color:#707070;</string>
-          </property>
           <property name="text">
            <string>30 m</string>
           </property>
@@ -103,9 +93,6 @@ color:#707070;</string>
        <height>16777215</height>
       </size>
      </property>
-     <property name="styleSheet">
-      <string notr="true">border:0;</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -115,10 +102,6 @@ color:#707070;</string>
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
        <widget class="QLabel" name="label">
-        <property name="styleSheet">
-         <string notr="true">font-size:18px;
-color:#707070;</string>
-        </property>
         <property name="text">
          <string>Totals</string>
         </property>
@@ -140,9 +123,6 @@ color:#707070;</string>
             <height>5</height>
            </size>
           </property>
-          <property name="styleSheet">
-           <string notr="true">background-color:#105aef;</string>
-          </property>
           <property name="text">
            <string/>
           </property>
@@ -150,10 +130,6 @@ color:#707070;</string>
         </item>
         <item>
          <widget class="QLabel" name="label_3">
-          <property name="styleSheet">
-           <string notr="true">font-size:18px;
-color:#707070;</string>
-          </property>
           <property name="text">
            <string>Received </string>
           </property>
@@ -163,10 +139,6 @@ color:#707070;</string>
          <widget class="QLabel" name="amountReceived">
           <property name="layoutDirection">
            <enum>Qt::RightToLeft</enum>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">font-size:18px;
-color:#707070;</string>
           </property>
           <property name="text">
            <string>39 MB</string>
@@ -191,9 +163,6 @@ color:#707070;</string>
             <height>5</height>
            </size>
           </property>
-          <property name="styleSheet">
-           <string notr="true">background-color:rgba(16,90,239, 0.4);</string>
-          </property>
           <property name="text">
            <string/>
           </property>
@@ -201,10 +170,6 @@ color:#707070;</string>
         </item>
         <item>
          <widget class="QLabel" name="label_5">
-          <property name="styleSheet">
-           <string notr="true">font-size:18px;
-color:#707070;</string>
-          </property>
           <property name="text">
            <string>Sent </string>
           </property>
@@ -214,10 +179,6 @@ color:#707070;</string>
          <widget class="QLabel" name="amountSent">
           <property name="layoutDirection">
            <enum>Qt::RightToLeft</enum>
-          </property>
-          <property name="styleSheet">
-           <string notr="true">font-size:18px;
-color:#707070;</string>
           </property>
           <property name="text">
            <string>78 KB</string>

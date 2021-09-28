@@ -42,12 +42,6 @@
      </property>
      <item>
       <widget class="QWidget" name="containerBalance" native="true">
-       <property name="styleSheet">
-        <string notr="true">#containerBalance{
-  border: none;
-  background-color: qlineargradient(y1:0, y2: 1, stop: 0 #ffffff, stop: 1 #e7eefd);
-}</string>
-       </property>
        <layout class="QVBoxLayout" name="verticalLayout">
         <property name="leftMargin">
          <number>0</number>
@@ -98,10 +92,6 @@
               <height>120</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">background-color: transparent;
-margin:0 0 0 10;</string>
-            </property>
             <property name="frameShape">
              <enum>QFrame::NoFrame</enum>
             </property>
@@ -126,9 +116,6 @@ margin:0 0 0 10;</string>
               <property name="toolTip">
                <string/>
               </property>
-              <property name="styleSheet">
-               <string notr="true">background-color:transparent;</string>
-              </property>
               <property name="text">
                <string>Total Balance</string>
               </property>
@@ -143,13 +130,6 @@ margin:0 0 0 10;</string>
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
-                </property>
-                <property name="styleSheet">
-                 <string notr="true">#labelBalance{
-background-color: transparent;
-color: #707070;
-font-size: 24px;
-}</string>
                 </property>
                 <property name="text">
                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:medium; font-weight:600;&quot;&gt;100000.00 Veil&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -167,9 +147,6 @@ font-size: 24px;
                   <height>1</height>
                  </size>
                 </property>
-                <property name="styleSheet">
-                 <string notr="true">background-color:#bababa;</string>
-                </property>
                 <property name="text">
                  <string/>
                 </property>
@@ -177,10 +154,6 @@ font-size: 24px;
               </item>
               <item>
                <widget class="QLabel" name="label_2">
-                <property name="styleSheet">
-                 <string notr="true">background-color: transparent;
-   color: #707070;</string>
-                </property>
                 <property name="text">
                  <string>Unconfirmed</string>
                 </property>
@@ -191,10 +164,6 @@ font-size: 24px;
               </item>
               <item>
                <widget class="QLabel" name="labelUnspendable">
-                <property name="styleSheet">
-                 <string notr="true">background-color: transparent;
-   color: #707070;</string>
-                </property>
                 <property name="text">
                  <string>50.738 VEIL</string>
                 </property>
@@ -221,10 +190,6 @@ font-size: 24px;
               </item>
               <item>
                <widget class="QLabel" name="label_5">
-                <property name="styleSheet">
-                 <string notr="true">background-color: transparent;
-   color: #707070;</string>
-                </property>
                 <property name="text">
                  <string>Immature</string>
                 </property>
@@ -235,10 +200,6 @@ font-size: 24px;
               </item>
               <item>
                <widget class="QLabel" name="labelInmature">
-                <property name="styleSheet">
-                 <string notr="true">background-color: transparent;
-   color: #707070;</string>
-                </property>
                 <property name="text">
                  <string>50.738 VEIL</string>
                 </property>
@@ -280,10 +241,6 @@ font-size: 24px;
                 <property name="whatsThis">
                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;background-color: transparent;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                 </property>
-                <property name="styleSheet">
-                 <string notr="true">background-color: transparent;
-margin:0 0 20 10;</string>
-                </property>
                 <property name="text">
                  <string/>
                 </property>
@@ -295,10 +252,6 @@ margin:0 0 20 10;</string>
                  <widget class="QLabel" name="labelReceive">
                   <property name="enabled">
                    <bool>true</bool>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true">   background-color: transparent;
-   color: #004377;</string>
                   </property>
                   <property name="text">
                    <string>Receiving address</string>
@@ -312,9 +265,6 @@ margin:0 0 20 10;</string>
                     <width>20</width>
                     <height>20</height>
                    </size>
-                  </property>
-                  <property name="styleSheet">
-                   <string notr="true">   background-color: transparent;</string>
                   </property>
                   <property name="text">
                    <string/>
@@ -339,9 +289,6 @@ margin:0 0 20 10;</string>
                 <verstretch>0</verstretch>
                </sizepolicy>
               </property>
-              <property name="styleSheet">
-               <string notr="true">background-color: transparent;</string>
-              </property>
               <property name="text">
                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt;1N6i46dytMPVhV1JMGZFuQBh7BZZ6nNLox&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
@@ -359,11 +306,6 @@ margin:0 0 20 10;</string>
      </item>
      <item>
       <widget class="QStackedWidget" name="stackedWidget">
-       <property name="styleSheet">
-        <string notr="true">border: none;
-padding: 0em 0em;
-background-color: #fff;</string>
-       </property>
        <widget class="QWidget" name="stackFirst">
         <layout class="QVBoxLayout" name="verticalLayout_3">
          <property name="bottomMargin">
@@ -375,9 +317,6 @@ background-color: #fff;</string>
             <layout class="QHBoxLayout" name="horizontalLayout_3">
              <item>
               <widget class="QLabel" name="title">
-               <property name="styleSheet">
-                <string notr="true">padding:10 0 10 0;</string>
-               </property>
                <property name="text">
                 <string>Transactions</string>
                </property>
@@ -413,9 +352,6 @@ background-color: #fff;</string>
                <property name="layoutDirection">
                 <enum>Qt::LeftToRight</enum>
                </property>
-               <property name="styleSheet">
-                <string notr="true"/>
-               </property>
               </widget>
              </item>
             </layout>
@@ -428,9 +364,6 @@ background-color: #fff;</string>
                <height>1</height>
               </size>
              </property>
-             <property name="styleSheet">
-              <string notr="true">background-color:#bababa;</string>
-             </property>
              <property name="text">
               <string/>
              </property>
@@ -440,24 +373,6 @@ background-color: #fff;</string>
             <layout class="QHBoxLayout" name="horizontalLayout_4">
              <item>
               <widget class="QCheckBox" name="checkStacking">
-               <property name="styleSheet">
-                <string notr="true">
-#checkStacking::indicator {
-    border: 0;
-    background: none;
-}
-
-#checkStacking {
-background-image: url(&quot;:/icons/ic-switch-off&quot;) ;
-background-repeat:no-repeat;
-background-position:left center;
-padding:8 4 8 30px;
-}
-
-#checkStacking:checked {
-background-image: url(&quot;:/icons/ic-switch-on&quot;) ;
-}</string>
-               </property>
                <property name="text">
                 <string>Staking</string>
                </property>
@@ -474,9 +389,6 @@ background-image: url(&quot;:/icons/ic-switch-on&quot;) ;
                <property name="autoFillBackground">
                 <bool>false</bool>
                </property>
-               <property name="styleSheet">
-                <string notr="true"/>
-               </property>
                <property name="value">
                 <number>24</number>
                </property>
@@ -490,24 +402,6 @@ background-image: url(&quot;:/icons/ic-switch-on&quot;) ;
              </item>
              <item>
               <widget class="QCheckBox" name="checkWatch">
-               <property name="styleSheet">
-                <string notr="true">
-#checkWatch::indicator {
-    border: 0;
-    background: none;
-}
-
-#checkWatch {
-background-image: url(&quot;:/icons/ic-watch-off&quot;) ;
-background-repeat:no-repeat;
-background-position:center;
-padding:4 8 4 8;
-}
-
-#checkWatch:checked {
-background-image: url(&quot;:/icons/ic-watch-on&quot;) ;
-}</string>
-               </property>
                <property name="text">
                 <string/>
                </property>

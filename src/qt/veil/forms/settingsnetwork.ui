@@ -31,13 +31,6 @@
      <property name="autoFillBackground">
       <bool>false</bool>
      </property>
-     <property name="styleSheet">
-      <string notr="true">#frame{
-  background-color: white;
-  padding: 10px 10px 10px 10px;
-  border-radius:20px;
-}</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -55,9 +48,6 @@
           <width>16777215</width>
           <height>40</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true"/>
         </property>
         <property name="text">
          <string>Network</string>
@@ -97,10 +87,6 @@
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">color:#707070;
-font-size:16px;</string>
-        </property>
         <property name="text">
          <string>Map port using UPnP</string>
         </property>
@@ -135,10 +121,6 @@ font-size:16px;</string>
           <width>300</width>
           <height>16777215</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color:#707070;
-font-size:16px;</string>
         </property>
         <property name="text">
          <string>Allow incoming connections</string>
@@ -175,10 +157,6 @@ font-size:16px;</string>
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">color:#707070;
-font-size:16px;</string>
-        </property>
         <property name="text">
          <string>Connect through SOCKS5 proxy</string>
         </property>
@@ -214,10 +192,6 @@ font-size:16px;</string>
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">border:none;
-padding:0px;</string>
-        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
@@ -242,10 +216,6 @@ padding:0px;</string>
          </property>
          <item>
           <widget class="QLabel" name="label">
-           <property name="styleSheet">
-            <string notr="true">color:#707070;
-font-size:16px;</string>
-           </property>
            <property name="text">
             <string>Proxy IP:</string>
            </property>
@@ -253,17 +223,6 @@ font-size:16px;</string>
          </item>
          <item>
           <widget class="QLineEdit" name="editProxy">
-           <property name="styleSheet">
-            <string notr="true">#editProxy  { 
-    padding:8;
-    border:0;
-    border-bottom:1px solid #bababa;
-}
-
-#editProxy:focus { 
- border-bottom:1px solid #105aef;
-}</string>
-           </property>
           </widget>
          </item>
         </layout>
@@ -299,10 +258,6 @@ font-size:16px;</string>
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">border:none;
-padding:0px;</string>
-        </property>
         <property name="frameShape">
          <enum>QFrame::StyledPanel</enum>
         </property>
@@ -324,10 +279,6 @@ padding:0px;</string>
          </property>
          <item>
           <widget class="QLabel" name="label_2">
-           <property name="styleSheet">
-            <string notr="true">color:#707070;
-font-size:16px;</string>
-           </property>
            <property name="text">
             <string>Port:</string>
            </property>
@@ -337,17 +288,6 @@ font-size:16px;</string>
           <widget class="QLineEdit" name="editPort">
            <property name="autoFillBackground">
             <bool>false</bool>
-           </property>
-           <property name="styleSheet">
-            <string notr="true">#editPort { 
-    padding:8;
-    border:0;
-    border-bottom:1px solid #bababa;
-}
-
-#editPort:focus { 
- border-bottom:1px solid #105aef;
-}</string>
            </property>
           </widget>
          </item>
@@ -384,9 +324,6 @@ font-size:16px;</string>
         </item>
         <item>
          <widget class="QPushButton" name="btnEsc">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>CANCEL</string>
           </property>
@@ -407,9 +344,6 @@ font-size:16px;</string>
         </item>
         <item>
          <widget class="QPushButton" name="btnSave">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>SAVE</string>
           </property>
