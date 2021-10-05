@@ -140,6 +140,13 @@ enum ZerocoinSpendStatus {
     ZSPEND_PREPARED = 17                        // No error thus far, but spending not yet fully finished
 };
 
+// Possible states for MultiTx send
+// TODO: Merge with ZerocoinSpendStatus
+enum MultiTxStatus {
+    SEND_OKAY = 0,                              // No error
+    SEND_ERROR = 1,                             // Unspecified class of errors, more details are (hopefully) in the returning text
+};
+
 //! Default for -addresstype
 constexpr OutputType DEFAULT_ADDRESS_TYPE{OutputType::BECH32};
 

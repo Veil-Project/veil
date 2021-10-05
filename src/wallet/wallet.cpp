@@ -6366,12 +6366,12 @@ bool CWallet::CreateZerocoinMintTransaction(const CAmount nValue, CMutableTransa
 
     if (inputtype == OUTPUT_RINGCT)  {
         // default parameters for ring sig
-        if (!pAnonWalletMain->AddAnonInputs(wtx, rtx, vecSend, true, Params().DefaultRingSize(), /**nInputsPerSig**/ 32, nFeeRet, &cControl, sError)) {
+        if (!pAnonWalletMain->AddAnonInputs(wtx, rtx, vecSend, true, Params().DefaultRingSize(), /**nInputsPerSig**/ 32, 0, nFeeRet, &cControl, sError)) {
             strFailReason = strprintf("Failed to add ringctinputs: %s", sError);
             return false;
         }
     } else if (inputtype == OUTPUT_CT) {
-        if (0 != pAnonWalletMain->AddBlindedInputs(wtx, rtx, vecSend, true, nFeeRet, &cControl, sError)) {
+        if (0 != pAnonWalletMain->AddBlindedInputs(wtx, rtx, vecSend, true, 0, nFeeRet, &cControl, sError)) {
             strFailReason = strprintf("Failed to add ringctinputs: %s", sError);
             return false;
         }
