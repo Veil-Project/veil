@@ -207,6 +207,7 @@ BITCOIN_CORE_H = \
   veil/ringct/keyutil.h \
   veil/ringct/outputrecord.h \
   veil/ringct/rctindex.h \
+  veil/ringct/receipt.h \
   veil/ringct/rpcanonwallet.h \
   veil/ringct/stealth.h \
   veil/ringct/temprecipient.h \
@@ -350,11 +351,12 @@ libbitcoin_wallet_a_SOURCES = \
   veil/zerocoin/spendreceipt.cpp \
   veil/zerocoin/ztracker.cpp \
   veil/zerocoin/zwallet.cpp \
-  veil/ringct/temprecipient.cpp \
   veil/ringct/anonwalletdb.cpp \
   veil/ringct/anonwallet.cpp \
   veil/ringct/outputrecord.cpp \
+  veil/ringct/receipt.cpp \
   veil/ringct/rpcanonwallet.cpp \
+  veil/ringct/temprecipient.cpp \
   $(BITCOIN_CORE_H)
 
 if TARGET_ARM64
