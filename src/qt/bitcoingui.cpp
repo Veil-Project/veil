@@ -328,8 +328,16 @@ void BitcoinGUI::createActions()
     addressesAction->setStatusTip(tr("Addresses overview"));
     addressesAction->setToolTip(addressesAction->statusTip());
     addressesAction->setCheckable(true);
-    receiveCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));
+    addressesAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
     tabGroup->addAction(addressesAction);
+
+    QIcon iconMining(":/icons/ic-mined-white-png");
+    miningAction = new QAction(iconMining,tr("&Mining"), this);
+    miningAction->setStatusTip(tr("Mining"));
+    miningAction->setToolTip(miningAction->statusTip());
+    miningAction->setCheckable(true);
+    miningAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));
+    tabGroup->addAction(miningAction);
 
     QIcon icon(":/icons/ic-settings-png2");
     //icon.addFile(":/icons/ic-settings-png2", QSize(iconsSize,iconsSize));
@@ -337,7 +345,8 @@ void BitcoinGUI::createActions()
     settingsAction->setStatusTip(tr("Settings"));
     settingsAction->setToolTip(settingsAction->statusTip());
     settingsAction->setCheckable(true);
-    receiveCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
+    settingsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_6));
+
     tabGroup->addAction(settingsAction);
 
     sendCoinsMenuAction = new QAction(platformStyle->TextColorIcon(":/icons/send"), sendCoinsAction->text(), this);
@@ -364,6 +373,8 @@ void BitcoinGUI::createActions()
         connect(receiveCoinsMenuAction, SIGNAL(triggered()), this, SLOT(gotoReceiveCoinsPage()));
         connect(addressesAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
         connect(addressesAction, SIGNAL(triggered()), this, SLOT(gotoAddressesPage()));
+        connect(miningAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+        connect(miningAction, SIGNAL(triggered()), this, SLOT(gotoMiningPage()));
         connect(settingsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
         connect(settingsAction, SIGNAL(triggered()), this, SLOT(gotoSettingsPage()));
     }
@@ -481,6 +492,7 @@ void BitcoinGUI::createToolBars()
         toolbar->addAction(overviewAction);
         toolbar->addAction(sendCoinsAction);
         toolbar->addAction(receiveCoinsAction);
+        toolbar->addAction(miningAction);
         toolbar->addAction(addressesAction);
         toolbar->addAction(settingsAction);
         overviewAction->setChecked(true);
@@ -798,6 +810,15 @@ void BitcoinGUI::gotoSendCoinsPage(QString addr)
 
     sendCoinsAction->setChecked(true);
     if (walletFrame) walletFrame->gotoSendCoinsPage(addr);
+}
+
+void BitcoinGUI::gotoMiningPage()
+{
+    if(!enableWallet)
+        return;
+
+    miningAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoMiningPage();
 }
 
 void BitcoinGUI::gotoAddressesPage(){

@@ -45,6 +45,7 @@ WalletModel::WalletModel(std::unique_ptr<interfaces::Wallet> wallet, interfaces:
     // This timer will be fired repeatedly to update the balance
     pollTimer = new QTimer(this);
     connect(pollTimer, SIGNAL(timeout()), this, SLOT(pollBalanceChanged()));
+    connect(pollTimer, SIGNAL(timeout()), this, SLOT(pollMiningActivity()));
     pollTimer->start(MODEL_UPDATE_DELAY);
 
     subscribeToCoreSignals();
@@ -87,6 +88,11 @@ void WalletModel::pollBalanceChanged()
         if(transactionTableModel)
             transactionTableModel->updateConfirmations();
     }
+}
+
+void WalletModel::pollMiningActivity()
+{
+    Q_EMIT updateMiningFields();
 }
 
 void WalletModel::checkBalanceChanged(const interfaces::WalletBalances& new_balances)
