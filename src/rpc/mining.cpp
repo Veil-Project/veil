@@ -378,6 +378,7 @@ static UniValue getmininginfo(const JSONRPCRequest& request)
     obj.pushKV("difficulty",       (double)nDiff);
     obj.pushKV("networkhashps",    getnetworkhashps(request));
     obj.pushKV("hashspeed",        GetHashSpeed());
+    obj.pushKV("hashspeed_recent", GetRecentHashSpeed());
     obj.pushKV("pooledtx",         (uint64_t)mempool.size());
     obj.pushKV("chain",            Params().NetworkIDString());
     obj.pushKV("warnings",         GetWarnings("statusbar"));
