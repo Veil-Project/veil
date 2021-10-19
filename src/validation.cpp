@@ -900,7 +900,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             return state.DoS(0, false, REJECT_NONSTANDARD, "non-BIP68-final");
 
         CAmount nFees, nValueIn, nValueOut;
-        if (!Consensus::CheckTxInputs(tx, state, view, GetSpendHeight(view), nFees, nValueIn, nValueOut)) {
+        if (!Consensus::CheckTxInputs(tx, state, view, GetSpendHeight(view), nFees, nValueIn, nValueOut, test_accept)) {
             return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
         }
 

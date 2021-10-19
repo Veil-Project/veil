@@ -1254,9 +1254,9 @@ void AnonWallet::ParseAddressForMetaData(const CTxDestination &addr, COutputReco
     return;
 }
 
-void AnonWallet::MarkInputsAsPendingSpend(CTransactionRecord &rtx)
+void AnonWallet::MarkInputsAsPendingSpend(const std::vector<COutPoint>& vin)
 {
-    for (const COutPoint& outpointIn : rtx.vin) {
+    for (const COutPoint& outpointIn : vin) {
         auto it = mapRecords.find(outpointIn.hash);
         if (it == mapRecords.end())
             continue;
@@ -2295,7 +2295,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
         rtx.nFlags |= ORF_FROM; //Set from me
         rtx.nFlags |= ORF_BASECOIN_IN;
         AddOutputRecordMetaData(rtx, vecSend);
-        MarkInputsAsPendingSpend(rtx);
+        MarkInputsAsPendingSpend(rtx.vin);
 
         uint256 txid = txNew.GetHash();
         if (fZerocoinInputs)
@@ -2845,7 +2845,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
         AddOutputRecordMetaData(rtx, vecSend);
         for (auto txin : txNew.vin)
             rtx.vin.emplace_back(txin.prevout);
-        MarkInputsAsPendingSpend(rtx);
+        MarkInputsAsPendingSpend(rtx.vin);
 
         uint256 txid = txNew.GetHash();
         if (nValueOutZerocoin)
@@ -3723,7 +3723,13 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
 
         for (auto txin : txNew.vin)
             rtx.vin.emplace_back(txin.prevout);
-        MarkInputsAsPendingSpend(rtx);
+
+        // Convert the real inputs (setCoins) into COutPoints that we can mark as pending spends
+        std::vector<COutPoint> spends;
+        spends.reserve(setCoins.size());
+        std::transform(setCoins.begin(), setCoins.end(), std::back_inserter(spends),
+                [](std::pair<MapRecords_t::const_iterator, unsigned int> coin) -> COutPoint { return COutPoint(coin.first->first, coin.second); });
+        MarkInputsAsPendingSpend(spends);
 
         uint256 txid = txNew.GetHash();
         if (nValueOutZerocoin)
