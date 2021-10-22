@@ -43,7 +43,7 @@ MiningWidget::MiningWidget(QWidget *parent, WalletView* walletView) :
     connect(ui->btnUpdateAlgo, SIGNAL(clicked()), this, SLOT(onUpdateAlgorithm()));
     connect(ui->btnAllThreads, SIGNAL(clicked()), this, SLOT(onUseMaxThreads()));
     connect(ui->btnActiveMine, SIGNAL(clicked()), this, SLOT(onToggleMiningActive()));
-
+    connect(ui->numThreads, SIGNAL(valueChanged(int)), this, SLOT(onChangeNumberOfThreads(int)));
 }
 
 void MiningWidget::setMineActiveTxt(bool mineActive) {
@@ -108,6 +108,18 @@ void MiningWidget::onToggleMiningActive() {
             // Note this changes the nThreads input, for accuracy of the result
             // message, So this check needs to be below the threads check above
             nThreads = 4;
+
+        }
+
+        if (RECMAX < nThreads) { 
+            QMessageBox threadWarningBox;
+            threadWarningBox.setText("You have selected more threads than is recommended.");
+            threadWarningBox.setInformativeText("Do you want to proceed?");
+            threadWarningBox.setStandardButtons(QMessageBox::Yes| QMessageBox::Cancel);
+            threadWarningBox.setIcon(QMessageBox::Warning);
+
+            if (threadWarningBox.exec() != QMessageBox::Yes) 
+                return;
         }
 
     }
@@ -124,26 +136,41 @@ void MiningWidget::updateMiningFields() {
 
     setMineActiveTxt(mineOn);
 
-    ui->lblHashRate->setText(QString("Mining at %1 H/s").arg(QString::number(GetHashSpeed())));
+    ui->lblHashRate->setText(QString("Mining at %1 H/s").arg(QString::number(GetRecentHashSpeed()))); 
 
     setThreadSelectionValues(currentMiningAlgo);
 }
 
 void MiningWidget::setThreadSelectionValues(int algo) {
-    int minThreads = 1;
+    minThreads = 1;
     if (MINE_RANDOMX == algo)
-        minThreads = 4;
+       minThreads = 4;
     if (MINE_SHA256D == algo) {
        maxThreads = (GetNumCores () - 1);
     } else { 
-       maxThreads = GetNumCores();
+       maxThreads = INT_MAX; 
     }
 
     ui->lblMaxThreadsAvailable->setText(QString::number(maxThreads));
     ui->numThreads->setRange(minThreads, maxThreads);
     ui->lblCurrentAlgo->setText(QString::fromStdString(GetMiningType(algo, false, false)));
+
+    onChangeNumberOfThreads(ui->numThreads->text().toInt());
 }
 
 void MiningWidget::onUseMaxThreads() {
     ui->numThreads->setValue(maxThreads);
+}
+
+void MiningWidget::onChangeNumberOfThreads(int newNumThr) {
+    if (RECMAX < ui->numThreads->value()) {
+        if ((MINE_RANDOMX == currentMiningAlgo) && ((RECMAX + 1) == minThreads) && (RECMAX + 1 == ui->numThreads->value())) {
+            // don't show the exceeding warning
+            ui->lblExceedThr->setVisible(false);
+        } else {
+            ui->lblExceedThr->setVisible(true);
+        }
+    } else {
+        ui->lblExceedThr->setVisible(false);
+    }
 }

@@ -33,9 +33,13 @@ private:
     WalletModel *walletModel;
     WalletView *mainWindow;
     bool mineOn;
+    int minThreads;
     int maxThreads;
     int nThreads;
     int currentMiningAlgo;
+
+    // Recommended number of threads
+    const int RECMAX = GetNumCores() - 1;
 
     CPubKey newKey;
     QString qAddress;
@@ -50,6 +54,7 @@ private Q_SLOTS:
     void onUpdateAlgorithm();
     void onToggleMiningActive();
     void onUseMaxThreads();
+    void onChangeNumberOfThreads(int newNumThr);
 };
 
 #endif // MININGWIDGET_H

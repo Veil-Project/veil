@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>850</width>
-    <height>485</height>
+    <width>900</width>
+    <height>640</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -59,8 +59,8 @@ background-color:white;</string>
        <rect>
         <x>10</x>
         <y>70</y>
-        <width>644</width>
-        <height>440</height>
+        <width>849</width>
+        <height>468</height>
        </rect>
       </property>
       <property name="styleSheet">
@@ -89,22 +89,6 @@ font-weight:bold;</string>
         </widget>
        </item>
        <item>
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>10</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
         <widget class="QLabel" name="label_2">
          <property name="minimumSize">
           <size>
@@ -117,7 +101,7 @@ font-weight:bold;</string>
 font-size:16px;</string>
          </property>
          <property name="text">
-          <string>Use your compter resources to create hashes  looking for block solutions.</string>
+          <string>Use your computer resources to create hashes looking for block solutions.</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -126,22 +110,6 @@ font-size:16px;</string>
           <bool>true</bool>
          </property>
         </widget>
-       </item>
-       <item>
-        <spacer name="verticalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeType">
-          <enum>QSizePolicy::Fixed</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>13</height>
-          </size>
-         </property>
-        </spacer>
        </item>
        <item>
         <widget class="QLabel" name="label_3">
@@ -156,7 +124,7 @@ font-size:16px;</string>
 font-size:16px;</string>
          </property>
          <property name="text">
-          <string>! Mining can be processing intensive and may reduce the performance of other running applications.</string>
+          <string>Mining can be processing intensive and may reduce the performance of other running applications.</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
@@ -192,7 +160,7 @@ font-size:16px;</string>
             <property name="frameShadow">
              <enum>QFrame::Raised</enum>
             </property>
-            <layout class="QHBoxLayout" name="horizontalLayout">
+            <layout class="QHBoxLayout" name="horizontalLayout_5">
              <item>
               <widget class="QLabel" name="label_4">
                <property name="sizePolicy">
@@ -239,7 +207,7 @@ color:#105AEF;</string>
               <widget class="QSpinBox" name="numThreads">
                <property name="minimumSize">
                 <size>
-                 <width>50</width>
+                 <width>150</width>
                  <height>50</height>
                 </size>
                </property>
@@ -267,43 +235,58 @@ QSpinBox::down-button { width: 24px; height: 24px;}</string>
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="btnAllThreads">
-               <property name="font">
-                <font>
-                 <pointsize>12</pointsize>
-                </font>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">#btnAllThreads {
-    border-radius: 6px;
-    border:  1px solid #105aef;
-    color: #105aef;
-    padding:10 50 10 50;
-}
-
-#btnAllThreads:hover {
-    color: #FFFFFF;
-    background-color:#4070d3;
-    border:  1px solid #4070d3;
-}</string>
-               </property>
-               <property name="text">
-                <string>Use Max Threads</string>
-               </property>
-              </widget>
-             </item>
-             <item>
               <spacer name="horizontalSpacer_6">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
                </property>
                <property name="sizeHint" stdset="0">
                 <size>
-                 <width>141</width>
+                 <width>319</width>
                  <height>20</height>
                 </size>
                </property>
               </spacer>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="frame_8">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>40</height>
+             </size>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::StyledPanel</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Raised</enum>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_8">
+             <item>
+              <widget class="QLabel" name="lblExceedThr">
+               <property name="minimumSize">
+                <size>
+                 <width>300</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">color:red;
+font-size:16px;</string>
+               </property>
+               <property name="text">
+                <string>Exceeds recommended number of threads</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+               <property name="wordWrap">
+                <bool>true</bool>
+               </property>
+              </widget>
              </item>
             </layout>
            </widget>
@@ -316,7 +299,7 @@ QSpinBox::down-button { width: 24px; height: 24px;}</string>
             <property name="frameShadow">
              <enum>QFrame::Raised</enum>
             </property>
-            <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <layout class="QHBoxLayout" name="horizontalLayout">
              <item>
               <widget class="QLabel" name="label_5">
                <property name="minimumSize">
@@ -344,7 +327,7 @@ font-size:16px;</string>
               <widget class="QLabel" name="lblMaxThreadsAvailable">
                <property name="minimumSize">
                 <size>
-                 <width>30</width>
+                 <width>150</width>
                  <height>0</height>
                 </size>
                </property>
@@ -375,6 +358,32 @@ font-size:16px;</string>
                 </size>
                </property>
               </spacer>
+             </item>
+             <item>
+              <widget class="QPushButton" name="btnAllThreads">
+               <property name="font">
+                <font>
+                 <pointsize>12</pointsize>
+                </font>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">#btnAllThreads {
+    border-radius: 6px;
+    border:  1px solid #105aef;
+    color: #105aef;
+    padding:10 50 10 50;
+}
+
+#btnAllThreads:hover {
+    color: #FFFFFF;
+    background-color:#4070d3;
+    border:  1px solid #4070d3;
+}</string>
+               </property>
+               <property name="text">
+                <string>Use Max Threads</string>
+               </property>
+              </widget>
              </item>
             </layout>
            </widget>
