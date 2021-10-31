@@ -28,7 +28,7 @@
 #include <shutdown.h>
 #include <timedata.h>
 #include <txmempool.h>
-#include <utilmoneystr.h>
+#include <util/moneystr.h>
 #include <wallet/fees.h>
 #include <wallet/walletutil.h>
 #include <veil/zerocoin/accumulators.h>
@@ -49,7 +49,7 @@
 #include <boost/algorithm/string/join.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
-#include <util.h>
+#include <util/system.h>
 
 #include <boost/thread.hpp>
 
@@ -2678,9 +2678,9 @@ std::set<CMintMeta> CWallet::ListMints(bool fUnusedOnly, bool fMatureOnly, bool 
     return zTracker->ListMints(fUnusedOnly, fMatureOnly, fUpdateStatus);
 }
 
-string CWallet::GetUniqueWalletBackupName(bool fzAuto) const
+std::string CWallet::GetUniqueWalletBackupName(bool fzAuto) const
 {
-    stringstream ssDateTime;
+    std::stringstream ssDateTime;
     std::string strWalletBackupName = strprintf("%s", FormatISO8601DateTime(GetTime()));
     ssDateTime << strWalletBackupName;
 
@@ -3250,7 +3250,7 @@ bool CWallet::SelectCoins(const std::vector<COutput>& vAvailableCoins, const CAm
         // Cases where we have 11+ outputs all pointing to the same destination may result in
         // privacy leaks as they will potentially be deterministically sorted. We solve that by
         // explicitly shuffling the outputs before processing
-        std::shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
+        Shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
     }
     std::vector<OutputGroup> groups = GroupOutputs(vCoins, !coin_control.m_avoid_partial_spends);
 
@@ -3782,7 +3782,7 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
         // Shuffle selected coins and fill in final vin
         txNew.vin.clear();
         std::vector<CInputCoin> selected_coins(setCoins.begin(), setCoins.end());
-        std::shuffle(selected_coins.begin(), selected_coins.end(), FastRandomContext());
+        Shuffle(selected_coins.begin(), selected_coins.end(), FastRandomContext());
 
         // Note how the sequence number is set to non-maxint so that
         // the nLockTime set above actually works.
@@ -3882,7 +3882,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
 
     //Small sleep if too far back on timing
     if (GetAdjustedTime() - chainActive.Tip()->GetBlockTime() < 1)
-        MilliSleep(2500);
+        UninterruptibleSleep(std::chrono::milliseconds{2500});
 
     CAmount nCredit = 0;
     CScript scriptPubKeyKernel;
@@ -3941,7 +3941,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             nCredit += nNetworkReward;
 
             // Create the output transaction(s)
-            vector<CTxOut> vout;
+            std::vector<CTxOut> vout;
             if (!stakeInput->CreateTxOuts(this, vout, nBlockReward)) {
                 LogPrintf("%s : failed to get scriptPubKey\n", __func__);
                 continue;
@@ -5071,7 +5071,7 @@ void CWallet::AutoZeromint()
         CWalletTx wtx(NULL, NULL);
         std::vector<CDeterministicMint> vDMints;
 
-        string strError = GetMainWallet()->MintZerocoin(nMintAmount*COIN, wtx, vDMints, OutputTypes(inputtype), nullptr);
+        std::string strError = GetMainWallet()->MintZerocoin(nMintAmount*COIN, wtx, vDMints, OutputTypes(inputtype), nullptr);
 
         // Return if something went wrong during minting
         if (strError != ""){
@@ -5726,7 +5726,7 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
     }
 
     // 3. Compute Accumulator and Witness
-    string strFailReason = "";
+    std::string strFailReason = "";
     AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
     libzerocoin::Accumulator accumulator = mapAccumulators.GetAccumulator(denomination);
     libzerocoin::AccumulatorWitness accumulatorWitness(Params().Zerocoin_Params(), accumulator, pubCoinSelected);
@@ -5865,7 +5865,7 @@ bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, con
     return true;
 }
 
-string CWallet::MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
+std::string CWallet::MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
         const std::vector<COutPoint> vOutpts)
 {
     CCoinControl* coinControl = new CCoinControl();
@@ -5874,17 +5874,17 @@ string CWallet::MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std:
     }
 
     if (!coinControl->HasSelected()) {
-        string strError = _("Error: No valid utxo!");
+        std::string strError = _("Error: No valid utxo!");
         LogPrintf("%s: %s\n", __func__, strError.c_str());
         return strError;
     }
 
-    string strError = MintZerocoin(nValue, wtxNew, vDMints, /*inputtype*/OUTPUT_STANDARD, coinControl);
+    std::string strError = MintZerocoin(nValue, wtxNew, vDMints, /*inputtype*/OUTPUT_STANDARD, coinControl);
     delete coinControl;
     return strError;
 }
 
-string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDeterministicMint>& vDMints, OutputTypes inputtype, const CCoinControl* coinControl)
+std::string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints, OutputTypes inputtype, const CCoinControl* coinControl)
 {
     // Check amount
     if (nValue < libzerocoin::ZerocoinDenominationToAmount(libzerocoin::CoinDenomination::ZQ_TEN))
@@ -5916,12 +5916,12 @@ string CWallet::MintZerocoin(CAmount nValue, CWalletTx& wtxNew, vector<CDetermin
     int64_t nFeeRequired;
 
     if (IsLocked() || IsUnlockedForStakingOnly()) {
-        string strError = _("Error: Wallet locked, unable to create transaction!");
+        std::string strError = _("Error: Wallet locked, unable to create transaction!");
         LogPrintf("%s: %s\n", __func__, strError.c_str());
         return strError;
     }
 
-    string strError;
+    std::string strError;
     CMutableTransaction txNew;
     std::vector<CTempRecipient> vecSend;
     if (!CreateZerocoinMintTransaction(nValue, txNew, vDMints, nFeeRequired, strError, vecSend, inputtype,
@@ -6161,8 +6161,8 @@ bool IsMintInChain(const uint256& hashPubcoin, uint256& txid, int& nHeight)
 void CWallet::ReconsiderZerocoins(std::list<CZerocoinMint>& listMintsRestored, std::list<CDeterministicMint>& listDMintsRestored)
 {
     WalletBatch walletdb(*database);
-    list<CZerocoinMint> listMints = walletdb.ListArchivedZerocoins();
-    list<CDeterministicMint> listDMints = walletdb.ListArchivedDeterministicMints();
+    std::list<CZerocoinMint> listMints = walletdb.ListArchivedZerocoins();
+    std::list<CDeterministicMint> listDMints = walletdb.ListArchivedDeterministicMints();
 
     if (listMints.empty() && listDMints.empty())
         return;
@@ -6210,7 +6210,7 @@ void CWallet::ZBackupWallet()
 {
     fs::path backupDir = GetDataDir() / "backups";
     fs::path backupPath;
-    string strNewBackupName;
+    std::string strNewBackupName;
 
     for (int i = 0; i < 10; i++) {
         strNewBackupName = strprintf("wallet-autozbackup-%d.dat", i);
@@ -6813,7 +6813,7 @@ void AutoSpendZeroCoin()
             if (count < 100) {
                 count++;
                 boost::this_thread::interruption_point();
-                MilliSleep(nMilliSeconds);
+                UninterruptibleSleep(std::chrono::milliseconds{nMilliSeconds});
                 boost::this_thread::interruption_point();
                 continue;
             }

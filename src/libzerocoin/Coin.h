@@ -17,7 +17,7 @@
 #include "Params.h"
 #include "amount.h"
 #include "bignum.h"
-#include "util.h"
+#include "util/system.h"
 #include "key.h"
 
 namespace libzerocoin

@@ -13,7 +13,7 @@
 #include "policy/policy.h"
 #include "script/interpreter.h"
 #include "timedata.h"
-#include "util.h"
+#include "util/system.h"
 #include "stakeinput.h"
 #include "veil/zerocoin/zchain.h"
 #include "libzerocoin/bignum.h"

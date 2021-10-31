@@ -7,7 +7,7 @@
 #define VEIL_TRANSACTIONRECORD_H
 
 #include <veil/ringct/outputrecord.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 
 extern const uint256 ABANDON_HASH;
 

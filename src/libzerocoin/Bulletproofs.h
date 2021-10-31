@@ -14,8 +14,6 @@
 #include "Coin.h"
 #include "zkplib.h"
 
-using namespace std;
-
 namespace libzerocoin {
 
 class Bulletproofs {
@@ -36,9 +34,9 @@ public:
 private:
     const ZerocoinParams* params;
     CBN_matrix splitIntoSets(const CBN_matrix ck_inner_g, const int s);
-    pair<CBigNum, CBigNum> findcLcR(const CBN_matrix a_sets, const CBN_matrix b_sets);
-    pair<CBigNum, CBigNum> firstPreChallengeShifts(const CBN_matrix g_sets, const CBigNum u_inner, const CBN_matrix a_sets, const CBN_matrix b_sets, CBigNum cL, CBigNum cR, const CBN_vector ymPowers);
-    pair<CBigNum, CBigNum> preChallengeShifts(const CBN_matrix g_sets, const CBN_matrix h_sets, const CBigNum u_inner, const CBN_matrix a_sets, const CBN_matrix b_sets, CBigNum cL, CBigNum cR);
+    std::pair<CBigNum, CBigNum> findcLcR(const CBN_matrix a_sets, const CBN_matrix b_sets);
+    std::pair<CBigNum, CBigNum> firstPreChallengeShifts(const CBN_matrix g_sets, const CBigNum u_inner, const CBN_matrix a_sets, const CBN_matrix b_sets, CBigNum cL, CBigNum cR, const CBN_vector ymPowers);
+    std::pair<CBigNum, CBigNum> preChallengeShifts(const CBN_matrix g_sets, const CBN_matrix h_sets, const CBigNum u_inner, const CBN_matrix a_sets, const CBN_matrix b_sets, CBigNum cL, CBigNum cR);
     CBN_matrix first_get_new_hs(const CBN_matrix g_sets, const CBigNum x, const int m2, const CBN_vector ymPowers);
     CBN_matrix get_new_gs_hs(const CBN_matrix g_sets, const int sign, const CBigNum x, const int m2);
     CBN_matrix get_new_as_bs(const CBN_matrix a_sets, const int sign, const CBigNum x, const int m2);

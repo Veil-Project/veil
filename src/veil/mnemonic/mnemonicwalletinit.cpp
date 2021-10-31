@@ -6,7 +6,7 @@
 
 #include <init.h>
 #include <ui_interface.h>
-#include <util.h>
+#include <util/system.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 #include <veil/ringct/anonwallet.h>

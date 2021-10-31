@@ -8,7 +8,7 @@
 #include <addrman.h>
 #include <hash.h>
 #include <protocol.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <wallet/walletutil.h>
 
 #include <stdint.h>
@@ -656,7 +656,7 @@ bool BerkeleyBatch::Rewrite(BerkeleyDatabase& database, const char* pszSkip)
                 return fSuccess;
             }
         }
-        MilliSleep(100);
+        UninterruptibleSleep(std::chrono::milliseconds{100});
     }
 }
 
@@ -788,7 +788,7 @@ bool BerkeleyDatabase::Backup(const std::string& strDest)
                 }
             }
         }
-        MilliSleep(100);
+        UninterruptibleSleep(std::chrono::milliseconds{100});
     }
 }
 

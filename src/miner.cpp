@@ -22,8 +22,8 @@
 #include <primitives/transaction.h>
 #include <script/standard.h>
 #include <timedata.h>
-#include <util.h>
-#include <utilmoneystr.h>
+#include <util/system.h>
+#include <util/moneystr.h>
 #include <validationinterface.h>
 #include <key_io.h>
 #ifdef ENABLE_WALLET
@@ -869,7 +869,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
 #ifdef ENABLE_WALLET
         if (enablewallet && fProofOfStake) {
             if (IsInitialBlockDownload()) {
-                MilliSleep(60000);
+                UninterruptibleSleep(std::chrono::milliseconds{60000});
                 continue;
             }
 
@@ -887,12 +887,12 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             }
 
             if (!gArgs.GetBoolArg("-genoverride", false) && (GetAdjustedTime() - nTimeLastBlock > 60*60 || IsInitialBlockDownload() || !g_connman->GetNodeCount(CConnman::NumConnections::CONNECTIONS_ALL) || nHeight < Params().HeightPoSStart())) {
-                MilliSleep(5000);
+                UninterruptibleSleep(std::chrono::milliseconds{5000});
                 continue;
             }
 
             if (!pwallet || !pwallet->IsStakingEnabled() || (pwallet->IsLocked() && !pwallet->IsUnlockedForStakingOnly())) {
-                MilliSleep(5000);
+                UninterruptibleSleep(std::chrono::milliseconds{5000});
                 continue;
             }
 
@@ -915,7 +915,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     if (!fMintableCoins)
                         fNextIter = true;
                 }
-                MilliSleep(2500);
+                UninterruptibleSleep(std::chrono::milliseconds{2500});
                 break;
             }
             if (fNextIter)
@@ -931,7 +931,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                 // wait half of the nHashDrift with max wait of 3 minutes
                 int rand = GetRandInt(20); // add small randomness to prevent all nodes from being on too similar of timing
                 if (GetAdjustedTime() + MAX_FUTURE_BLOCK_TIME - mapHashedBlocks[hashBestBlock] < (60+rand)) {
-                    MilliSleep(GetRandInt(10)*1000);
+                    UninterruptibleSleep(std::chrono::milliseconds{GetRandInt(10)*1000});
                     continue;
                 }
             }
@@ -942,7 +942,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             // If the miner was turned on and we are in IsInitialBlockDownload(),
             // sleep 60 seconds, before trying again
             if (IsInitialBlockDownload() && !gArgs.GetBoolArg("-genoverride", false)) {
-                MilliSleep(60000);
+                UninterruptibleSleep(std::chrono::milliseconds{60000});
                 continue;
             }
         }
@@ -1063,7 +1063,7 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
 
         if (GenerateActive()) { // If the miner was turned on and we are in IsInitialBlockDownload(), sleep 60 seconds, before trying again
             if (IsInitialBlockDownload() && !gArgs.GetBoolArg("-genoverride", false)) {
-                MilliSleep(60000);
+                UninterruptibleSleep(std::chrono::milliseconds{60000});
                 continue;
             }
         }

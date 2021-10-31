@@ -14,7 +14,7 @@
 #include <scheduler.h>
 #include <txdb.h>
 #include <txmempool.h>
-#include <utiltime.h>
+#include <util/time.h>
 #include <validation.h>
 #include <validationinterface.h>
 

@@ -159,7 +159,7 @@ bool EraseCheckpoints(int nStartHeight, int nEndHeight)
     if (chainActive.Height() < nStartHeight)
         return false;
 
-    nEndHeight = min(chainActive.Height(), nEndHeight);
+    nEndHeight = std::min(chainActive.Height(), nEndHeight);
 
     CBlockIndex* pindex = chainActive[nStartHeight];
 
@@ -334,7 +334,7 @@ int AddBlockMintsToAccumulator(const libzerocoin::PublicCoin& coin, const int nH
 
     int nMintsAdded = 0;
     int nHeight = pindex->nHeight;
-    list<PublicCoin> listPubcoins;
+    std::list<PublicCoin> listPubcoins;
     //Do not keep cs_main locked during modular exponentiation (unless this is already locked from the validation)
     {
         //grab mints from this block
@@ -372,7 +372,7 @@ bool GetAccumulatorValue(int& nHeight, const libzerocoin::CoinDenomination denom
 }
 
 bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator, AccumulatorWitness& witness,
-        int nSecurityLevel, int& nMintsAdded, string& strError, CBlockIndex* pindexCheckpoint)
+        int nSecurityLevel, int& nMintsAdded, std::string& strError, CBlockIndex* pindexCheckpoint)
 {
     LogPrintf("%s: generating\n", __func__);
     CBlockIndex* pindex = nullptr;
@@ -470,11 +470,11 @@ bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator
     return true;
 }
 
-map<CoinDenomination, int> GetMintMaturityHeight()
+std::map<CoinDenomination, int> GetMintMaturityHeight()
 {
-    map<CoinDenomination, pair<int, int > > mapDenomMaturity;
+    std::map<CoinDenomination, std::pair<int, int > > mapDenomMaturity;
     for (auto denom : libzerocoin::zerocoinDenomList)
-        mapDenomMaturity.insert(make_pair(denom, make_pair(0, 0)));
+        mapDenomMaturity.insert(std::make_pair(denom, std::make_pair(0, 0)));
 
     int nConfirmedHeight = chainActive.Height() - Params().Zerocoin_MintRequiredConfirmations();
 
@@ -505,9 +505,9 @@ map<CoinDenomination, int> GetMintMaturityHeight()
     }
 
     //Generate final map
-    map<CoinDenomination, int> mapRet;
+    std::map<CoinDenomination, int> mapRet;
     for (auto denom : libzerocoin::zerocoinDenomList)
-        mapRet.insert(make_pair(denom, mapDenomMaturity.at(denom).second));
+        mapRet.insert(std::make_pair(denom, mapDenomMaturity.at(denom).second));
 
     return mapRet;
 }
