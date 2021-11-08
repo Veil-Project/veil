@@ -709,6 +709,64 @@ static UniValue sendstealthtobasecoin(const JSONRPCRequest& request)
     return SendToInner(request, OUTPUT_CT, OUTPUT_STANDARD);
 };
 
+static UniValue getkeyimagetransaction(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    std::vector<uint8_t> vKeyImage = ParseHex(request.params[0].get_str());
+
+    const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImage[0]);
+
+    uint256 txhashKI;
+
+    if(pblocktree->ReadRCTKeyImage(ki, txhashKI)){
+    	LogPrintf("%s: key image transaction found! %s\n", __func__, txhashKI.ToString());
+    }
+
+    LogPrintf("%s: key_image string %s hex string keyimage %s txhash %s.\n",  __func__, request.params[0].get_str(), HexStr(vKeyImage), txhashKI.ToString());
+
+	UniValue obj(UniValue::VOBJ);
+	obj.pushKV("txhash", txhashKI.ToString());
+
+	return obj;
+}
+
+static UniValue getanonouttransaction(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    pk = request.params[0].get_str();
+
+    int64_t index;
+	if (!pblocktree->ReadRCTOutputLink(pk, index)) {
+		LogPrintf("%s: RingCT public key not found in database: %s", __func__, pk);
+	}
+
+	CAnonOutput ao;
+	if (!pblocktree->ReadRCTOutput(index, ao)) {
+		LogPrintf("%s: RingCT output not found in database: %s", __func__, index);
+	}
+
+	//CAnonOutput ao(txout->pk, txout->commitment, op, pindex->nHeight, 0);
+	//ao.nBlockHeight
+	//ao.commitment
+	//ao.pk or ao.pubkey.begin()
+	//CKeyID idk = ao.pubkey.GetID();
+	//HexStr(ao.pubkey)
+	//ao.outpoint.hash
+	//ao.outpoint.n
+	UniValue obj(UniValue::VOBJ);
+	obj.pushKV("anonOutput", ao.ToString());
+
+	return obj;
+}
+
 static UniValue sendstealthtostealth(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1942,6 +2000,7 @@ static const CRPCCommand commands[] =
                 { "rawtransactions",    "fundrawtransactionfrom",           &fundrawtransactionfrom,        {"input_type","hexstring","input_amounts","output_amounts","options"} },
                 { "rawtransactions",    "verifycommitment",                 &verifycommitment,              {"commitment","blind","amount"} },
                 { "rawtransactions",    "verifyrawtransaction",             &verifyrawtransaction,          {"hexstring","prevtxs","returndecoded"} },
+				{ "rawtransactions",    "getkeyimagetransaction",             &getkeyimagetransaction,          {"keyimage"} },
         };
 
 void RegisterHDWalletRPCCommands(CRPCTable &t)

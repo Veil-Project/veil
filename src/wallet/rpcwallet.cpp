@@ -4557,13 +4557,14 @@ UniValue rescanblockchain(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() > 2) {
+    if (request.fHelp || request.params.size() > 3) {
         throw std::runtime_error(
             "rescanblockchain (\"start_height\") (\"stop_height\")\n"
             "\nRescan the local blockchain for wallet related transactions.\n"
             "\nArguments:\n"
             "1. \"start_height\"    (numeric, optional) block height where the rescan should start\n"
             "2. \"stop_height\"     (numeric, optional) the last block height that should be scanned\n"
+        	"3. \"ringctOnly\"     (numeric, optional) ringct only\n"
             "\nResult:\n"
             "{\n"
             "  \"start_height\"     (numeric) The block height where the rescan has started. If omitted, rescan started from the genesis block.\n"
@@ -4583,6 +4584,7 @@ UniValue rescanblockchain(const JSONRPCRequest& request)
     CBlockIndex *pindexStart = nullptr;
     CBlockIndex *pindexStop = nullptr;
     CBlockIndex *pChainTip = nullptr;
+    bool fRingCtOnly = false;
     {
         LOCK(cs_main);
         pindexStart = chainActive.Genesis();
@@ -4604,6 +4606,10 @@ UniValue rescanblockchain(const JSONRPCRequest& request)
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "stop_height must be greater than start_height");
             }
         }
+
+        if (!request.params[2].isNull()) {
+			fRingCtOnly = true;
+		}
     }
 
     // We can't rescan beyond non-pruned blocks, stop and throw an error
@@ -4618,7 +4624,7 @@ UniValue rescanblockchain(const JSONRPCRequest& request)
         }
     }
 
-    CBlockIndex *stopBlock = pwallet->ScanForWalletTransactions(pindexStart, pindexStop, reserver, true);
+    CBlockIndex *stopBlock = pwallet->ScanForWalletTransactions(pindexStart, pindexStop, reserver, true, fRingCtOnly);
     if (!stopBlock) {
         if (pwallet->IsAbortingRescan()) {
             throw JSONRPCError(RPC_MISC_ERROR, "Rescan aborted.");

@@ -152,7 +152,8 @@ public:
     bool HaveTransaction(const uint256 &txhash) const;
 
     bool GetKey(const CKeyID &address, CKey &keyOut) const;
-
+	bool GetKeyBeta(const CKeyID &address, CKey &keyOut, const CTxOutRingCT *ctout) const;
+	
     bool GetPubKey(const CKeyID &address, CPubKey &pkOut) const;
 
     isminetype HaveStealthAddress(const CStealthAddress &sxAddr) const;
@@ -164,6 +165,8 @@ public:
 
     bool ImportStealthAddress(const CStealthAddress &sxAddr, const CKey &skSpend);
     bool RestoreAddresses(int nCount);
+
+    std::string hexify(std::vector<unsigned char> const & v);
 
     std::map<CTxDestination, CAmount> GetAddressBalances() EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
@@ -300,6 +303,7 @@ public:
 
     bool ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr);
     bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);
+    bool AddToElectrumDB(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);
     void MarkOutputSpent(const COutPoint& outpoint, bool isSpent);
     void RescanWallet();
 
@@ -309,6 +313,7 @@ public:
     bool GetCTBlinds(CKeyID idKey, std::vector<uint8_t>& vData, secp256k1_pedersen_commitment* commitment, std::vector<uint8_t>& vRangeproof, uint256 &blind, int64_t& nValue) const;
     bool OwnBlindOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxOutCT *pout, COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated);
     int OwnAnonOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxOutRingCT *pout, COutputRecord &rout, CStoredTransaction &stx, bool &fUpdated);
+    int OwnAnonOutBeta(AnonWalletDB *pwdb, const uint256 &txhash, const CTxOutRingCT *pout, COutputRecord &rout);
 
     bool AddTxinToSpends(const CTxIn &txin, const uint256 &txhash);
 

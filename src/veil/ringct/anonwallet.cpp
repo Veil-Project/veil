@@ -4155,12 +4155,32 @@ bool AnonWallet::NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefix
 
     // Make a stealth address
     stealthAddress.SetNull();
+
     stealthAddress.prefix.number_bits = nPrefixBits;
+    LogPrintf("%s: stealthAddress.prefix.number_bits: %s \n",__func__, nPrefixBits);
+
     stealthAddress.prefix.bitfield = nPrefix;
+    LogPrintf("%s: stealthAddress.prefix.bitfield: %s \n",__func__, nPrefix);
+
     stealthAddress.scan_pubkey = keyScan.GetPubKey().Raw();
+    LogPrintf("%s: stealthAddress.scan_pubkey: %s \n",__func__, HexStr(keyScan.GetPubKey()));
+
     stealthAddress.spend_pubkey = pkSpend.Raw();
+    LogPrintf("%s: stealthAddress.spend_pubkey: %s \n",__func__, HexStr(pkSpend));
+
     stealthAddress.scan_secret.Set(keyScan.begin(), true);
+    LogPrintf("%s: stealthAddress.scan_secret: %s \n",__func__, HexStr(keyScan));
+
     stealthAddress.spend_secret_id = pkSpend.GetID();
+    LogPrintf("%s: stealthAddress.spend_secret_id: %s \n\n",__func__, pkSpend.GetID().ToString());
+
+    //experimental thought below this line
+    //private key into a
+    // CKey key = DecodeSecret(strPrivkey);
+    //if (!key.IsValid()) {
+    //    throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid private key");
+    //}
+    //can then do -> key.GetPubKey(); possibly?
 
     //Record stealth address to db
     if (!AnonWalletDB(*walletDatabase).WriteStealthAddress(stealthAddress))
@@ -4168,6 +4188,19 @@ bool AnonWallet::NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefix
     mapStealthAddresses.emplace(stealthAddress.GetID(), stealthAddress);
 
     return true;
+}
+
+std::string AnonWallet::hexify(std::vector<unsigned char> const & v) {
+
+	std::string str(2 * v.size(), 'x');
+	auto k = str.begin();
+
+	for(auto i{v.begin()}; i < v.end(); ++i) {
+		*k++ = "0123456789ABCDEF"[*i >> 4];
+		*k++ = "0123456789ABCDEF"[*i & 0x0F];
+	}
+	return str;
+
 }
 
 bool AnonWallet::RestoreAddresses(int nCount)
@@ -4535,7 +4568,7 @@ bool AnonWallet::AddKeyToParent(const CKey& keySharedSecret)
     return fSuccess;
 }
 
-bool AnonWallet::ProcessStealthOutput(const CTxDestination &address, std::vector<uint8_t> &vchEphemPK, uint32_t prefix,
+bool AnonWallet::ProcessStealthOutput(const CTxDestination &addressHAVE, std::vector<uint8_t> &vchEphemPK, uint32_t prefixHAVE,
         bool fHavePrefix, CKey &sShared, bool fNeedShared)
 {
     LOCK(pwalletParent->cs_wallet);
@@ -4568,11 +4601,13 @@ bool AnonWallet::ProcessStealthOutput(const CTxDestination &address, std::vector
             continue; // stealth address is not owned
         }
 
+        //from stealth address, we have SCAN_SECRET and SPEND_PUBKEY
         if (StealthSecret(addr->scan_secret, vchEphemPK, addr->spend_pubkey, sShared, pkExtracted) != 0) {
             LogPrintf("%s: StealthSecret failed.\n", __func__);
             continue;
         }
 
+        //pubKeyStealthSecret == stealth address
         CPubKey pubKeyStealthSecret(pkExtracted);
         if (!pubKeyStealthSecret.IsValid()) {
             continue;
@@ -5104,6 +5139,134 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
     return false;
 }
 
+bool AnonWallet::AddToElectrumDB(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate)
+{
+    const CTransaction& tx = *ptx;
+
+    //testing out toString print out of all the good stuff
+    CStealthAddress stealthAddress;
+    NewStealthKey(stealthAddress, 0, nullptr);
+
+    auto idStealth = stealthAddress.GetID();
+
+    // Make a stealth address
+    LogPrintf("%s: stealthAddress: %s \n",__func__,stealthAddress.ToString(true));
+
+    {
+        AssertLockHeld(pwalletParent->cs_wallet);
+
+        uint256 txhash = tx.GetHash();
+        //AnonWalletDB wdb(*walletDatabase, "r");
+		for (size_t i = 0; i < tx.vpout.size(); ++i) {
+			const auto &txout = tx.vpout[i];
+
+			COutputRecord rout;
+			COutputRecord *pout = &rout;
+
+			switch (txout->nVersion) {
+				case OUTPUT_RINGCT:
+					LogPrintf("%s: block: %s posInBlock: %s txout number: %s This Is a RingCt Output\n",__func__, pIndex->nHeight, posInBlock, i);
+					/*bool ownsAnonOut = OwnAnonOutBeta(&wdb, txhash, (CTxOutRingCT*)txout.get(), *pout);
+					LogPrintf("%s: this wallet owns this ringCt transaction output: %s \n",__func__,ownsAnonOut);*/
+
+					const CTxOutRingCT *poutRingCt = (CTxOutRingCT*)txout.get();
+
+					CKeyID idStealthDestination = poutRingCt->pk.GetID();
+					LogPrintf("%s: idStealthDestination %s \n",__func__, idStealthDestination.GetHex());
+
+					COutPoint op(txhash, i);
+
+					//add the address if it's ours....
+					mapStealthAddresses.emplace(idStealth, stealthAddress);
+
+					//addr.spend_pubkey
+					//addr.scan_pubkey
+
+
+					// Veil
+					/*CKeyID CStealthAddress::GetID() const
+					{
+					    return CKeyID(Hash160(scan_pubkey.begin(), scan_pubkey.end()));
+					}*/
+
+					/*uint256 CStealthAddress::GetHash() const
+					{
+					    return Hash(scan_pubkey.begin(), scan_pubkey.end(), spend_pubkey.begin(), spend_pubkey.end());
+					}*/
+
+
+
+					/*CKey sShared;
+					ec_point pkExtracted;
+					if (StealthSecret(addr.scan_secret, vchEphemPK, addr.spend_pubkey, sShared, pkExtracted) != 0)
+						return error("%s: failed to generate stealth secret", __func__);
+
+					return CalculateStealthDestinationKey(addr.GetSpendKeyID(), address, sShared, keyOut);
+
+					 if (!GetKey(idStealthDestination, key))
+						return 0;
+
+					if (pout->vData.size() < 33)
+						return werrorN(0, "%s: vData.size() < 33.", __func__);
+
+					CPubKey pkEphem;
+					pkEphem.Set(poutRingCt->vData.begin(), poutRingCt->vData.begin() + 33);
+					LogPrintf("%s: pkEphem.GetPubKey(): %s\n",__func__, HexStr(pkEphem));
+
+
+					// Regenerate nonce
+					uint256 nonce = key.ECDH(pkEphem);
+					CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
+
+					uint64_t min_value, max_value;
+					uint8_t blindOut[32];
+					unsigned char msg[256]; // Currently narration is capped at 32 bytes
+					size_t mlen = sizeof(msg);
+					memset(msg, 0, mlen);
+					uint64_t amountOut;
+					if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
+						blindOut, &amountOut, msg, &mlen, nonce.begin(),
+						&min_value, &max_value,
+						&poutRingCt->commitment, poutRingCt->vRangeproof.data(), poutRingCt->vRangeproof.size(),
+						nullptr, 0,
+						secp256k1_generator_h)) {
+						return werrorN(0, "%s: secp256k1_rangeproof_rewind failed.", __func__);
+					}
+
+					msg[mlen-1] = '\0';
+					size_t nNarr = strlen((const char*)msg);
+					if (nNarr > 0) {
+						rout.sNarration.assign((const char*)msg, nNarr);
+					}
+
+					rout.nFlags |= ORF_OWNED;
+					rout.SetValue(amountOut);
+
+					CStealthAddress stealthAddress;
+					if (GetStealthLinked(idStealthDestination, stealthAddress)) {
+						auto idStealth = stealthAddress.GetID();
+						rout.AddStealthAddress(idStealth);
+						rout.scriptPubKey = GetScriptForDestination(idStealth);
+					}
+
+					LogPrintf("%s: txhash: %s\n",__func__, txhash.ToString().c_str());
+					LogPrintf("%s: pout->n: %s\n",__func__, pout->n);
+					LogPrintf("%s: outpoint: %s\n",__func__, op.ToString());
+
+					CCmpPubKey ki;
+
+					if (0 != secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), poutRingCt->pk.begin(), key.begin())) {
+						LogPrintf("Error: %s - secp256k1_get_keyimage failed.\n", __func__);
+					}*/
+
+					break;
+			}
+		}
+
+    }
+    return false;
+}
+
 int AnonWallet::InsertTempTxn(const uint256 &txid, const CTransactionRecord *rtx) const
 {
     LOCK(pwalletParent->cs_wallet);
@@ -5364,6 +5527,89 @@ int AnonWallet::OwnAnonOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxO
     rout.nFlags &= ~ORF_LOCKED;
     stx.InsertBlind(rout.n, blindOut);
     fUpdated = true;
+
+    return 1;
+}
+
+int AnonWallet::OwnAnonOutBeta(AnonWalletDB *pwdb, const uint256 &txhash, const CTxOutRingCT *pout, COutputRecord &rout)
+{
+    rout.nType = OUTPUT_RINGCT;
+    CKeyID idStealthDestination = pout->pk.GetID();
+    CKey key;
+
+    //for now, wallet must be unlocked for this process to work
+    /*if (IsLocked()) {
+        if (!HaveKeyID(idStealthDestination))
+            return 0;
+
+        rout.nFlags |= ORF_OWNED;
+
+        return 1;
+    }*/
+
+    LogPrintf("%s: checkpoint 2: idStealthDestination %s \n",__func__, idStealthDestination.GetHex());
+    /*if (!GetKeyBeta(idStealthDestination, key, pout))
+        return 0;*/
+    //at this step, should have CKey key which is CKey keySpend to check against.
+    //GenerateStealthAddressFromIndex 1st time calculates keyScan, 2nd time calculates keySpend
+    //sxAddr.scan_pubkey = pkScan;
+
+    if (pout->vData.size() < 33)
+        return werrorN(0, "%s: vData.size() < 33.", __func__);
+
+    CPubKey pkEphem;
+    pkEphem.Set(pout->vData.begin(), pout->vData.begin() + 33);
+
+    // Regenerate nonce
+    uint256 nonce = key.ECDH(pkEphem);
+    CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
+
+    uint64_t min_value, max_value;
+    uint8_t blindOut[32];
+    unsigned char msg[256]; // Currently narration is capped at 32 bytes
+    size_t mlen = sizeof(msg);
+    memset(msg, 0, mlen);
+    uint64_t amountOut;
+    if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
+        blindOut, &amountOut, msg, &mlen, nonce.begin(),
+        &min_value, &max_value,
+        &pout->commitment, pout->vRangeproof.data(), pout->vRangeproof.size(),
+        nullptr, 0,
+        secp256k1_generator_h)) {
+        return werrorN(0, "%s: secp256k1_rangeproof_rewind failed.", __func__);
+    }
+
+    LogPrintf("%s: amountOut: %s \n",__func__, amountOut);
+
+    msg[mlen-1] = '\0';
+    size_t nNarr = strlen((const char*)msg);
+    if (nNarr > 0) {
+        rout.sNarration.assign((const char*)msg, nNarr);
+    }
+
+    rout.nFlags |= ORF_OWNED;
+    rout.SetValue(amountOut);
+
+    CStealthAddress stealthAddress;
+    if (GetStealthLinked(idStealthDestination, stealthAddress)) {
+        auto idStealth = stealthAddress.GetID();
+        rout.AddStealthAddress(idStealth);
+        rout.scriptPubKey = GetScriptForDestination(idStealth);
+    }
+    LogPrintf("%s: checkpoint 3: stealthAddress %s \n",__func__, stealthAddress.ToString());
+
+    COutPoint op(txhash, rout.n);
+    CCmpPubKey ki;
+
+    if (0 != secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), pout->pk.begin(), key.begin())) {
+        LogPrintf("Error: %s - secp256k1_get_keyimage failed.\n", __func__);
+    } /*else if (!pwdb->WriteAnonKeyImage(ki, op)) {
+        LogPrintf("Error: %s - WriteAnonKeyImage failed.\n", __func__);
+    }*/
+
+    LogPrintf("%s: Success! THIS IS OUR RINGCT ANON KEY IMAGE!!!\n",__func__);
+
+    rout.nFlags &= ~ORF_LOCKED;
 
     return 1;
 }

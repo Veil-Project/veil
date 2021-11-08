@@ -387,6 +387,7 @@ bool CBlockTreeDB::EraseRCTOutputLink(const CCmpPubKey &pk)
 
 bool CBlockTreeDB::ReadRCTKeyImage(const CCmpPubKey &ki, uint256 &txhash)
 {
+	LogPrintf("Reading from the db for rct key image!...\n");
     return Read(std::make_pair(DB_RCTKEYIMAGE, ki), txhash);
 };
 

@@ -3087,6 +3087,10 @@ bool FlushView(CCoinsViewCache *view, CValidationState& state, bool fDisconnecti
     } else {
         CDBBatch batch(*pblocktree);
 
+        for (auto &it : view->keyImages){
+        	LogPrintf("%s: BATCH Writing key image to DB! keyimage: %s txhash: %s\n", __func__, HexStr(it.first), HexStr(it.second));
+        }
+
         for (auto &it : view->keyImages)
             batch.Write(std::make_pair(DB_RCTKEYIMAGE, it.first), it.second);
 
@@ -3098,6 +3102,13 @@ bool FlushView(CCoinsViewCache *view, CValidationState& state, bool fDisconnecti
 
         if (!pblocktree->WriteBatch(batch))
             return error("%s: Write RCT outputs failed.", __func__);
+
+        for (const auto &it : view->keyImages) {
+			LogPrintf("TEST - KI %s\n", HexStr(it.first));
+			uint256 txhash_read;
+			assert(pblocktree->ReadRCTKeyImage(it.first, txhash_read));
+			LogPrintf("TEST - Recovered txid matches %d, %s\n", txhash_read == it.second, txhash_read.ToString());
+		}
     }
 
     view->nLastRCTOutput = 0;

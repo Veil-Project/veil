@@ -1124,7 +1124,7 @@ void CWallet::LoadToWallet(const CWalletTx& wtxIn)
         setAnonTx.emplace(hash);
 }
 
-bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate)
+bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate, bool fRingCtOnly)
 {
     const CTransaction& tx = *ptx;
     uint256 txid = tx.GetHash();
@@ -1145,7 +1145,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
         }
 
         // Check for spent zerocoins
-        if (tx.IsZerocoinSpend()) {
+        if (!fRingCtOnly && tx.IsZerocoinSpend()) {
             std::set<uint256> setSerials;
             TxToSerialHashSet(&tx, setSerials);
 
@@ -1165,7 +1165,7 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                     continue;
 
                 //Anon wallet tx already added above
-                if (txin.IsAnonInput())
+                if (fRingCtOnly || txin.IsAnonInput())
                     continue;
 
                 std::pair<TxSpends::const_iterator, TxSpends::const_iterator> range = mapTxSpends.equal_range(txin.prevout);
@@ -1222,6 +1222,22 @@ bool CWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockI
                 wtx.SetMerkleBranch(pIndex, posInBlock);
 
             return AddToWallet(wtx, false);
+        }
+    }
+    return false;
+}
+
+bool CWallet::AddToElectrumDB(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate, bool fRingCtOnly)
+{
+    const CTransaction& tx = *ptx;
+    uint256 txid = tx.GetHash();
+    bool fMyZerocoinSpend = false;
+    {
+        AssertLockHeld(cs_wallet);
+
+        if (tx.HasBlindedValues()) {
+            pAnonWalletMain->AddToElectrumDB(ptx, pIndex, posInBlock, fUpdate);
+            return true;
         }
     }
     return false;
@@ -1353,7 +1369,11 @@ void CWallet::MarkConflicted(const uint256& hashBlock, const uint256& hashTx)
     }
 }
 
-void CWallet::SyncTransaction(const CTransactionRef& ptx, const CBlockIndex *pindex, int posInBlock, bool update_tx) {
+void CWallet::SyncTransaction(const CTransactionRef& ptx, const CBlockIndex *pindex, int posInBlock, bool update_tx, bool fRingCtOnly) {
+    if(fRingCtOnly){
+    	AddToElectrumDB(ptx, pindex, posInBlock, update_tx);
+    }
+
     if (!AddToWalletIfInvolvingMe(ptx, pindex, posInBlock, update_tx)) {
         return; // Not one of ours
     }
@@ -2109,7 +2129,7 @@ int64_t CWallet::RescanFromTime(int64_t startTime, const WalletRescanReserver& r
  * the main chain after to the addition of any new keys you want to detect
  * transactions for.
  */
-CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlockIndex* pindexStop, const WalletRescanReserver &reserver, bool fUpdate)
+CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlockIndex* pindexStop, const WalletRescanReserver &reserver, bool fUpdate, bool fRingCtOnly)
 {
     int64_t nNow = GetTime();
     const CChainParams& chainParams = Params();
@@ -2164,7 +2184,7 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
                     break;
                 }
                 for (size_t posInBlock = 0; posInBlock < block.vtx.size(); ++posInBlock) {
-                    if (block.vtx[posInBlock]->IsZerocoinSpend()) {
+                    if (!fRingCtOnly && block.vtx[posInBlock]->IsZerocoinSpend()) {
                         uint256 txid = block.vtx[posInBlock]->GetHash();
                         std::map<libzerocoin::CoinSpend, uint256> spendInfo;
                         for (auto& in : block.vtx[posInBlock]->vin) {
@@ -2179,7 +2199,7 @@ CBlockIndex* CWallet::ScanForWalletTransactions(CBlockIndex* pindexStart, CBlock
                         }
                         pzerocoinDB->WriteCoinSpendBatch(spendInfo);
                     }
-                    SyncTransaction(block.vtx[posInBlock], pindex, posInBlock, fUpdate);
+                    SyncTransaction(block.vtx[posInBlock], pindex, posInBlock, fUpdate, fRingCtOnly);
                 }
             } else {
                 ret = pindex;
