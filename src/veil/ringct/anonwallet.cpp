@@ -3122,6 +3122,174 @@ bool AnonWallet::IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint)
     return false;
 }
 
+bool AnonWallet::ArrangeBlinds(
+        std::vector<CTxIn>& vin,
+        std::vector<ec_point>& vInputBlinds,
+        std::vector<std::vector<std::vector<int64_t>>>& vMI,
+        std::vector<size_t>& vSecretColumns,
+        std::vector<std::pair<MapRecords_t::const_iterator, unsigned int>>& setCoins,
+        bool dummySigs,
+        std::string& sError)
+{
+    std::set<int64_t> setHave; // Anon prev-outputs can only be used once per transaction.
+    size_t nTotalInputs = 0;
+    for (size_t l = 0; l < vin.size(); ++l) { // Must add real outputs to setHave before picking decoys
+        auto &txin = vin[l];
+        uint32_t nSigInputs, nSigRingSize;
+        txin.GetAnonInfo(nSigInputs, nSigRingSize);
+
+        vInputBlinds[l].resize(32 * nSigInputs);
+        std::vector<std::pair<MapRecords_t::const_iterator, unsigned int> >
+                vCoins(setCoins.begin() + nTotalInputs, setCoins.begin() + nTotalInputs + nSigInputs);
+        nTotalInputs += nSigInputs;
+
+        if (!PlaceRealOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, vCoins, vInputBlinds[l], sError)) {
+            return false;
+        }
+    }
+
+    // Fill in dummy signatures for fee calculation.
+    for (size_t l = 0; l < vin.size(); ++l) {
+        auto &txin = vin[l];
+        uint32_t nSigInputs, nSigRingSize;
+        txin.GetAnonInfo(nSigInputs, nSigRingSize);
+
+        if (!PickHidingOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, sError))
+            return false;
+
+        std::vector<uint8_t> vPubkeyMatrixIndices;
+
+        for (size_t k = 0; k < nSigInputs; ++k)
+            for (size_t i = 0; i < nSigRingSize; ++i) {
+                PutVarInt(vPubkeyMatrixIndices, vMI[l][k][i]);
+            }
+
+        txin.scriptWitness.stack.emplace_back(vPubkeyMatrixIndices);
+
+        if (dummySigs) {
+            std::vector<uint8_t> vKeyImages(33 * nSigInputs);
+            txin.scriptData.stack.emplace_back(vKeyImages);
+
+            std::vector<uint8_t> vDL(
+                (1 + (nSigInputs + 1) * nSigRingSize) *
+                    32 // extra element for C, extra row for commitment row
+                    + (vin.size() > 1 ? 33 : 0)); // extra commitment for split value if multiple sigs
+            txin.scriptWitness.stack.emplace_back(vDL);
+        }
+    }
+    return true;
+}
+
+bool AnonWallet::GetKeyImage(
+        CTxIn& txin,
+        std::vector<std::vector<int64_t>>& vMI,
+        size_t& secretColumn,
+        std::string& sError)
+{
+    int rv;
+
+    uint32_t nSigInputs, nSigRingSize;
+    txin.GetAnonInfo(nSigInputs, nSigRingSize);
+
+    std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
+    vKeyImages.resize(33 * nSigInputs);
+
+    for (size_t k = 0; k < nSigInputs; ++k) {
+        int64_t nIndex = vMI[k][secretColumn];
+
+        CAnonOutput anonOutput;
+        if (!pblocktree->ReadRCTOutput(nIndex, anonOutput)) {
+            sError = strprintf("Output %d not found in database.", nIndex);
+            return error("%s: %s", __func__, sError);
+        }
+
+        CKeyID idk = anonOutput.pubkey.GetID();
+        CKey key;
+        if (!GetKey(idk, key)) {
+            sError = strprintf("No key for output: %s", HexStr(anonOutput.pubkey.begin(), anonOutput.pubkey.end()));
+            return error("%s: %s", __func__, sError);
+        }
+
+        // Keyimage is required for the tx hash
+        rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], anonOutput.pubkey.begin(), key.begin());
+        if (0 != rv) {
+            sError = strprintf("Failed to get keyimage.");
+            return error("%s: %s", __func__, sError);
+        }
+
+        // Double check key image is not used... todo, this should not be done here and is result of bad state
+        uint256 txhashKI;
+        auto ki = *((CCmpPubKey*)&vKeyImages[k*33]);
+        if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
+            AnonWalletDB wdb(*walletDatabase);
+            COutPoint out;
+            bool fErased = false;
+            if (wdb.ReadAnonKeyImage(ki, out)) {
+                MarkOutputSpent(out, true);
+                fErased = true;
+            }
+            sError = strprintf("Bad wallet state trying to spend already spent input, outpoint=%s erased=%s.",
+                                out.ToString(), fErased ? "true" : "false");
+            return error("%s: %s", __func__, sError);
+        }
+    }
+    return true;
+}
+
+bool AnonWallet::SetBlinds(
+        size_t nSigRingSize,
+        size_t nSigInputs,
+        std::vector<std::vector<int64_t>>& vMI,
+        std::vector<CKey>& vsk,
+        std::vector<const uint8_t*>& vpsk,
+        std::vector<uint8_t>& vm,
+        std::vector<secp256k1_pedersen_commitment>& vCommitments,
+        std::vector<const uint8_t*>& vpInCommits,
+        std::vector<const uint8_t*>& vpBlinds,
+        ec_point& vInputBlinds,
+        size_t& secretColumn,
+        std::string& sError)
+{
+    size_t nCols = nSigRingSize;
+    size_t nRows = nSigInputs + 1;
+
+    for (size_t k = 0; k < nSigInputs; ++k) {
+        for (size_t i = 0; i < nCols; ++i) {
+            int64_t nIndex = vMI[k][i];
+
+            CAnonOutput ao;
+            if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
+                sError = strprintf("Output %d not found in database.", nIndex);
+                return error("%s: %s", __func__, sError);
+            }
+
+            memcpy(&vm[(i + k * nCols) * 33], ao.pubkey.begin(), 33);
+            vCommitments.push_back(ao.commitment);
+            vpInCommits[i + k * nCols] = vCommitments.back().data;
+
+            if (i == secretColumn) {
+                CKeyID idk = ao.pubkey.GetID();
+                if (!GetKey(idk, vsk[k])) {
+                    sError = strprintf("No key for output: %s", HexStr(ao.pubkey.begin(), ao.pubkey.end()));
+                    return error("%s: %s", __func__, sError);
+                }
+                vpsk[k] = vsk[k].begin();
+
+                vpBlinds.push_back(&vInputBlinds[k * 32]);
+                /*
+                // Keyimage is required for the tx hash
+                rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], &vm[(i+k*nCols)*33], vpsk[k]);
+                if (0 != rv) {
+                    sError = strprintf("Failed to get keyimage.");
+                    return error("%s: %s", __func__, sError);
+                }
+                */
+            }
+        }
+    }
+    return true;
+}
+
 // Returns bool
 bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
         bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet, const CCoinControl *coinControl,
@@ -3331,50 +3499,8 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             }
 
             if (!fAlreadyHaveInputs) {
-                std::set<int64_t> setHave; // Anon prev-outputs can only be used once per transaction.
-                size_t nTotalInputs = 0;
-                for (size_t l = 0; l < txNew.vin.size(); ++l) { // Must add real outputs to setHave before picking decoys
-                    auto &txin = txNew.vin[l];
-                    uint32_t nSigInputs, nSigRingSize;
-                    txin.GetAnonInfo(nSigInputs, nSigRingSize);
-
-                    vInputBlinds[l].resize(32 * nSigInputs);
-                    std::vector<std::pair<MapRecords_t::const_iterator, unsigned int> >
-                            vCoins(setCoins.begin() + nTotalInputs, setCoins.begin() + nTotalInputs + nSigInputs);
-                    nTotalInputs += nSigInputs;
-
-                    if (!PlaceRealOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, vCoins, vInputBlinds[l], sError)) {
-                        return false;
-                    }
-                }
-
-                // Fill in dummy signatures for fee calculation.
-                for (size_t l = 0; l < txNew.vin.size(); ++l) {
-                    auto &txin = txNew.vin[l];
-                    uint32_t nSigInputs, nSigRingSize;
-                    txin.GetAnonInfo(nSigInputs, nSigRingSize);
-
-                    if (!PickHidingOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, sError))
-                        return false;
-
-                    std::vector<uint8_t> vPubkeyMatrixIndices;
-
-                    for (size_t k = 0; k < nSigInputs; ++k)
-                        for (size_t i = 0; i < nSigRingSize; ++i) {
-                            PutVarInt(vPubkeyMatrixIndices, vMI[l][k][i]);
-                        }
-
-                    std::vector<uint8_t> vKeyImages(33 * nSigInputs);
-                    txin.scriptData.stack.emplace_back(vKeyImages);
-
-                    txin.scriptWitness.stack.emplace_back(vPubkeyMatrixIndices);
-
-                    std::vector<uint8_t> vDL((1 + (nSigInputs + 1) * nSigRingSize) *
-                                             32 // extra element for C, extra row for commitment row
-                                             + (txNew.vin.size() > 1 ? 33
-                                                                     : 0)); // extra commitment for split value if multiple sigs
-                    txin.scriptWitness.stack.emplace_back(vDL);
-                }
+                if (!ArrangeBlinds(txNew.vin, vInputBlinds, vMI, vSecretColumns, setCoins, true, sError))
+                    return false;
             }
 
             if (fSkipFee) {
@@ -3522,57 +3648,9 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             std::vector<CKey> vSplitCommitBlindingKeys(txNew.vin.size()); // input amount commitment when > 1 mlsag
             int rv;
             size_t nTotalInputs = 0;
-
-            for (size_t l = 0; l < txNew.vin.size(); ++l) {
-                auto &txin = txNew.vin[l];
-
-                uint32_t nSigInputs, nSigRingSize;
-                txin.GetAnonInfo(nSigInputs, nSigRingSize);
-
-                std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
-                vKeyImages.resize(33 * nSigInputs);
-
-                for (size_t k = 0; k < nSigInputs; ++k) {
-                    size_t i = vSecretColumns[l];
-                    int64_t nIndex = vMI[l][k][i];
-
-                    CAnonOutput anonOutput;
-                    if (!pblocktree->ReadRCTOutput(nIndex, anonOutput)) {
-                        sError = strprintf("Output %d not found in database.", nIndex);
-                        return error("%s: %s", __func__, sError);
-                    }
-
-                    CKeyID idk = anonOutput.pubkey.GetID();
-                    CKey key;
-                    if (!GetKey(idk, key)) {
-                        sError = strprintf("No key for output: %s", HexStr(anonOutput.pubkey.begin(), anonOutput.pubkey.end()));
-                        return error("%s: %s", __func__, sError);
-                    }
-
-                    // Keyimage is required for the tx hash
-                    rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], anonOutput.pubkey.begin(), key.begin());
-                    if (0 != rv) {
-                        sError = strprintf("Failed to get keyimage.");
-                        return error("%s: %s", __func__, sError);
-                    }
-
-                    // Double check key image is not used... todo, this should not be done here and is result of bad state
-                    uint256 txhashKI;
-                    auto ki = *((CCmpPubKey*)&vKeyImages[k*33]);
-                    if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
-                        AnonWalletDB wdb(*walletDatabase);
-                        COutPoint out;
-                        bool fErased = false;
-                        if (wdb.ReadAnonKeyImage(ki, out)) {
-                            MarkOutputSpent(out, true);
-                            fErased = true;
-                        }
-                        sError = strprintf("Bad wallet state trying to spend already spent input, outpoint=%s erased=%s.",
-                                            out.ToString(), fErased ? "true" : "false");
-                        return error("%s: %s", __func__, sError);
-                    }
-                }
-            }
+            for (size_t l = 0; l < txNew.vin.size(); ++l)
+                if (!GetKeyImage(txNew.vin[l], vMI[l], vSecretColumns[l], sError))
+                    return false;
 
             for (size_t l = 0; l < txNew.vin.size(); ++l) {
                 auto &txin = txNew.vin[l];
@@ -3583,9 +3661,6 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                 size_t nCols = nSigRingSize;
                 size_t nRows = nSigInputs + 1;
 
-                uint8_t randSeed[32];
-                GetStrongRandBytes(randSeed, 32);
-
                 std::vector<CKey> vsk(nSigInputs);
                 std::vector<const uint8_t*> vpsk(nRows);
 
@@ -3595,42 +3670,12 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                 std::vector<const uint8_t*> vpInCommits(nCols * nSigInputs);
                 std::vector<const uint8_t*> vpBlinds;
 
+                if (!SetBlinds(nSigRingSize, nSigInputs, vMI[l], vsk, vpsk, vm, vCommitments,
+                               vpInCommits, vpBlinds, vInputBlinds[l],
+                               vSecretColumns[l], sError))
+                    return false;
+
                 std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
-
-                for (size_t k = 0; k < nSigInputs; ++k) {
-                    for (size_t i = 0; i < nCols; ++i) {
-                        int64_t nIndex = vMI[l][k][i];
-
-                        CAnonOutput ao;
-                        if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
-                            sError = strprintf("Output %d not found in database.", nIndex);
-                            return error("%s: %s", __func__, sError);
-                        }
-
-                        memcpy(&vm[(i + k * nCols) * 33], ao.pubkey.begin(), 33);
-                        vCommitments.push_back(ao.commitment);
-                        vpInCommits[i + k * nCols] = vCommitments.back().data;
-
-                        if (i == vSecretColumns[l]) {
-                            CKeyID idk = ao.pubkey.GetID();
-                            if (!GetKey(idk, vsk[k])) {
-                                sError = strprintf("No key for output: %s", HexStr(ao.pubkey.begin(), ao.pubkey.end()));
-                                return error("%s: %s", __func__, sError);
-                            }
-                            vpsk[k] = vsk[k].begin();
-
-                            vpBlinds.push_back(&vInputBlinds[l][k * 32]);
-                            /*
-                            // Keyimage is required for the tx hash
-                            rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], &vm[(i+k*nCols)*33], vpsk[k]);
-                            if (0 != rv) {
-                                sError = strprintf("Failed to get keyimage.");
-                                return error("%s: %s", __func__, sError);
-                            }
-                            */
-                        }
-                    }
-                }
 
                 uint8_t blindSum[32];
                 memset(blindSum, 0, 32);
@@ -3701,6 +3746,9 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                 };
 
                 uint256 hashOutputs = txNew.GetOutputsHash();
+
+                uint8_t randSeed[32];
+                GetStrongRandBytes(randSeed, 32);
                 if (0 != (rv = secp256k1_generate_mlsag(secp256k1_ctx_blind, &vKeyImages[0], &vDL[0], &vDL[32],
                                                         randSeed, hashOutputs.begin(), nCols, nRows, vSecretColumns[l],
                                                         &vpsk[0], &vm[0]))) {

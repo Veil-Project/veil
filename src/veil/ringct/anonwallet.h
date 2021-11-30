@@ -366,6 +366,33 @@ private:
     std::string GetDisplayName() const { return "ringctwallet"; }
     void ParseAddressForMetaData(const CTxDestination &addr, COutputRecord &rec);
 
+    bool ArrangeBlinds(
+        std::vector<CTxIn>& vin,
+        std::vector<ec_point>& vInputBlinds,
+        std::vector<std::vector<std::vector<int64_t>>>& vMI,
+        std::vector<size_t>& vSecretColumns,
+        std::vector<std::pair<MapRecords_t::const_iterator, unsigned int>>& setCoins,
+        bool dummySigs,
+        std::string& sError);
+    bool GetKeyImage(
+        CTxIn& txin,
+        std::vector<std::vector<int64_t>>& vMI,
+        size_t& secretColumn,
+        std::string& sError);
+    bool SetBlinds(
+        size_t nSigRingSize,
+        size_t nSigInputs,
+        std::vector<std::vector<int64_t>>& vMI,
+        std::vector<CKey>& vsk,
+        std::vector<const uint8_t*>& vpsk,
+        std::vector<uint8_t>& vm,
+        std::vector<secp256k1_pedersen_commitment>& vCommitments,
+        std::vector<const uint8_t*>& vpInCommits,
+        std::vector<const uint8_t*>& vpBlinds,
+        ec_point& vInputBlinds,
+        size_t& secretColumn,
+        std::string& sError);
+
     template<typename... Params>
     bool werror(std::string fmt, Params... parameters) const {
         return error(("%s " + fmt).c_str(), GetDisplayName(), parameters...);
