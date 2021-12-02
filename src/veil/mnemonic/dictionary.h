@@ -7,7 +7,7 @@
 /**
  * A valid mnemonic dictionary has exactly this many words.
  */
-static constexpr size_t dictionary_size = 2048;
+static constexpr std::size_t dictionary_size = 2048;
 
 /**
  * Dictionary definitions for creating mnemonics.
