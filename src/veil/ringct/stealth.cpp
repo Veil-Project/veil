@@ -157,6 +157,13 @@ int CStealthAddress::SetScanPubKey(CPubKey pk)
     return 0;
 };
 
+int SetPublicKey(const CPubKey &pk, ec_point &out)
+{
+    out.resize(EC_COMPRESSED_SIZE);
+    memcpy(&out[0], pk.begin(), EC_COMPRESSED_SIZE);
+    return 0;
+};
+
 CKeyID CStealthAddress::GetSpendKeyID() const
 {
     return CKeyID(Hash160(spend_pubkey.begin(), spend_pubkey.end()));
@@ -191,20 +198,29 @@ int SecretToPublicKey(const CKey &secret, ec_point &out)
 
 int StealthShared(const CKey &secret, const ec_point &pubkey, CKey &sharedSOut)
 {
-    if (pubkey.size() != EC_COMPRESSED_SIZE)
+    LogPrintf("%s: %d\n", __func__, __LINE__);
+    if (pubkey.size() != EC_COMPRESSED_SIZE) {
+        LogPrintf("%s: sanity checks failed.\n", __func__);
         return errorN(1, "%s: sanity checks failed.", __func__);
-
+    }
+    LogPrintf("%s: %d\n", __func__, __LINE__);
     secp256k1_pubkey Q;
-    if (!secp256k1_ec_pubkey_parse(secp256k1_ctx_stealth, &Q, &pubkey[0], EC_COMPRESSED_SIZE))
+    if (!secp256k1_ec_pubkey_parse(secp256k1_ctx_stealth, &Q, &pubkey[0], EC_COMPRESSED_SIZE)) {
+        LogPrintf("%s: secp256k1_ec_pubkey_parse Q failed.\n", __func__);
         return errorN(1, "%s: secp256k1_ec_pubkey_parse Q failed.", __func__);
-    if (!secp256k1_ec_pubkey_tweak_mul(secp256k1_ctx_stealth, &Q, secret.begin())) // eQ
+    }
+    LogPrintf("%s: %d\n", __func__, __LINE__);
+    if (!secp256k1_ec_pubkey_tweak_mul(secp256k1_ctx_stealth, &Q, secret.begin())) { // eQ
+        LogPrintf("%s: secp256k1_ec_pubkey_tweak_mul failed.\n", __func__);
         return errorN(1, "%s: secp256k1_ec_pubkey_tweak_mul failed.", __func__);
-
+    }
+    LogPrintf("%s: %d\n", __func__, __LINE__);
     size_t len = 33;
     uint8_t tmp33[33];
     secp256k1_ec_pubkey_serialize(secp256k1_ctx_stealth, tmp33, &len, &Q, SECP256K1_EC_COMPRESSED); // Returns: 1 always.
-
+    LogPrintf("%s: %d\n", __func__, __LINE__);
     CSHA256().Write(tmp33, 33).Finalize(sharedSOut.begin_nc());
+    LogPrintf("%s: %d\n", __func__, __LINE__);
     return 0;
 };
 
@@ -286,6 +302,54 @@ int StealthSecret(const CKey &secret, const ec_point &pubkey, const ec_point &pk
     return 0;
 };
 
+bool IsMyTx(const CTransaction &tx, const CKey& myScanKey)
+{
+    bool fIsMine = false;
+    for (const auto &txout : tx.vpout) {
+        if (txout->IsType(OUTPUT_RINGCT)) {
+            const CTxOutRingCT *rctout = (CTxOutRingCT*) txout.get();
+            CKeyID idk = rctout->pk.GetID();
+
+            // Uncover stealth
+            uint32_t prefix = 0;
+            bool fHavePrefix = false;
+            if (rctout->vData.size() != 33) {
+                if (rctout->vData.size() == 38 // Have prefix
+                    && rctout->vData[33] == DO_STEALTH_PREFIX) {
+                    fHavePrefix = true;
+                    memcpy(&prefix, &rctout->vData[34], 4);
+                } else {
+                    continue;
+                }
+            }
+
+//            auto pwallet = GetMainWallet();
+//            auto pAnonWallet = pwallet->GetAnonWallet();
+
+            CKeyID idStealthDestination = rctout->pk.GetID();
+
+//            if (wallet->IsMyPubKey(idStealthDestination)) {
+//                LogPrintf("%s: Found a transaction belonging to my scan_secret.\n", __func__);
+//                return true;
+//            }
+
+
+//            CKey sShared;
+//            std::vector<uint8_t> vchEphemPK;
+//            vchEphemPK.resize(33);
+//            memcpy(&vchEphemPK[0], &rctout->vData[0], 33);
+//
+//            if (StealthShared(myScanKey, vchEphemPK, sShared) == 0) {
+//                LogPrintf("%s: Found a transaction belonging to my scan_secret.\n", __func__);
+//                return true;
+//            }
+        }
+    }
+
+    LogPrintf("%s: %d\n", __func__, __LINE__);
+
+    return false;
+}
 
 int StealthSecretSpend(const CKey &scanSecret, const ec_point &ephemPubkey, const CKey &spendSecret, CKey &secretOut)
 {

@@ -46,6 +46,7 @@
 #include <util/moneystr.h>
 #include <util/strencodings.h>
 #include <validationinterface.h>
+#include <veil/ringct/watchonlydb.h>
 #include <warnings.h>
 
 #include <veil/proofoffullnode/proofoffullnode.h>
@@ -4153,6 +4154,10 @@ static bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, 
 
 static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, bool fCheckProofOfFullNode = false)
 {
+
+    if (Params().NetworkIDString() == "regtest")
+        return true;
+
     //Prevent Proof of full node and proof of work existing together
     if (fCheckPOW && fCheckProofOfFullNode)
         return state.DoS(50, false, REJECT_INVALID, "PoW and PoFN conflict", false, "Block attempted to use both PoW and PoFN");

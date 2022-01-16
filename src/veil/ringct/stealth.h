@@ -19,9 +19,13 @@
 #include <veil/ringct/types.h>
 
 class CScript;
+class CTransaction;
 
 const uint32_t MAX_STEALTH_NARRATION_SIZE = 48;
 const uint32_t MIN_STEALTH_RAW_SIZE = 1 + 33 + 1 + 33 + 1 + 1; // without checksum (4bytes) or version (1byte)
+const size_t MAX_STEALTH_PREFIX_BYTES = 4;
+const size_t MAX_STEALTH_SPEND_KEYS = 255;
+const size_t MAX_STEALTH_RAW_SIZE = MIN_STEALTH_RAW_SIZE + EC_COMPRESSED_SIZE * (MAX_STEALTH_SPEND_KEYS-1) + MAX_STEALTH_PREFIX_BYTES;
 
 
 typedef uint32_t stealth_bitfield;
@@ -132,6 +136,8 @@ public:
 };
 
 int SecretToPublicKey(const CKey &secret, ec_point &out);
+int SetPublicKey(const CPubKey &pk, ec_point &out);
+
 
 int StealthShared(const CKey &secret, const ec_point &pubkey, CKey &sharedSOut);
 int StealthSecret(const CKey &secret, const ec_point &pubkey, const ec_point &pkSpend, CKey &sharedSOut, ec_point &pkOut);
@@ -159,5 +165,8 @@ int PrepareStealthOutput(const CStealthAddress &sx, const std::string &sNarratio
 
 void ECC_Start_Stealth();
 void ECC_Stop_Stealth();
+
+
+bool IsMyTx(const CTransaction &tx, const CKey& myScanKey);
 
 #endif //VEIL_STEALTH_H

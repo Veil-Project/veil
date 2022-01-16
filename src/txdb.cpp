@@ -20,6 +20,7 @@
 #include <boost/thread.hpp>
 #include <primitives/zerocoin.h>
 #include <veil/invalid.h>
+#include <key_io.h>
 
 static const char DB_COIN = 'C';
 static const char DB_ADDRESSINDEX = 'a';

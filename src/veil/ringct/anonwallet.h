@@ -28,6 +28,7 @@ typedef std::map<uint256, CTransactionRecord> MapRecords_t;
 typedef std::multimap<int64_t, std::map<uint256, CTransactionRecord>::iterator> RtxOrdered_t;
 
 class UniValue;
+class CWatchOnlyTx;
 
 const uint16_t OR_PLACEHOLDER_N = 0xFFFF; // index of a fake output to contain reconstructed amounts for txns with undecodeable outputs
 
@@ -247,6 +248,9 @@ public:
          const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs = false,
          CAmount nInputValue = 0);
 
+    void GetAllScanKeys(std::vector<CStealthAddress>& vStealthAddresses);
+    bool IsMyPubKey(const CKeyID& keyId);
+
 
     void LoadToWallet(const uint256 &hash, const CTransactionRecord &rtx);
     bool LoadTxRecords();
@@ -293,12 +297,12 @@ public:
     bool ProcessLockedStealthOutputs();
     bool ProcessLockedBlindedOutputs();
     bool ProcessStealthOutput(const CTxDestination &address,
-        std::vector<uint8_t> &vchEphemPK, uint32_t prefix, bool fHavePrefix, CKey &sShared, bool fNeedShared=false);
+        std::vector<uint8_t> &vchEphemPK, uint32_t prefix, bool fHavePrefix, CKey &sShared, CWatchOnlyTx& watchOnlyOutput, bool fNeedShared=false);
 
     int CheckForStealthAndNarration(const CTxOutBase *pb, const CTxOutData *pdata, std::string &sNarr);
     bool FindStealthTransactions(const CTransaction &tx, mapValue_t &mapNarr);
 
-    bool ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr);
+    bool ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr, std::vector<CWatchOnlyTx>& vecWatchOnlyTx);
     bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);
     void MarkOutputSpent(const COutPoint& outpoint, bool isSpent);
     void RescanWallet();

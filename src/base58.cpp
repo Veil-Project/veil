@@ -9,6 +9,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include "utilstrencodings.h"
 
 /** All alphanumeric characters except for "0", "I", "O", and "l" */
 static const char* pszBase58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
@@ -78,6 +79,63 @@ bool DecodeBase58(const char* psz, std::vector<unsigned char>& vch)
     while (it != b256.end())
         vch.push_back(*(it++));
     return true;
+}
+
+bool DecodeBase58(const char* psz, std::vector<unsigned char>& vch, int max_ret_len)
+{
+    // Skip leading spaces.
+    while (*psz && IsSpace(*psz))
+        psz++;
+    // Skip and count leading '1's.
+    int zeroes = 0;
+    int length = 0;
+    while (*psz == '1') {
+        zeroes++;
+        if (zeroes > max_ret_len) return false;
+        psz++;
+    }
+    // Allocate enough space in big-endian base256 representation.
+    int size = strlen(psz) * 733 /1000 + 1; // log(58) / log(256), rounded up.
+    std::vector<unsigned char> b256(size);
+    // Process the characters.
+    static_assert(sizeof(mapBase58)/sizeof(mapBase58[0]) == 256, "mapBase58.size() should be 256"); // guarantee not out of range
+    while (*psz && !IsSpace(*psz)) {
+        // Decode base58 character
+        int carry = mapBase58[(uint8_t)*psz];
+        if (carry == -1)  // Invalid b58 character
+            return false;
+        int i = 0;
+        for (std::vector<unsigned char>::reverse_iterator it = b256.rbegin(); (carry != 0 || i < length) && (it != b256.rend()); ++it, ++i) {
+            carry += 58 * (*it);
+            *it = carry % 256;
+            carry /= 256;
+        }
+        assert(carry == 0);
+        length = i;
+        if (length + zeroes > max_ret_len) return false;
+        psz++;
+    }
+    // Skip trailing spaces.
+    while (IsSpace(*psz))
+        psz++;
+    if (*psz != 0)
+        return false;
+    // Skip leading zeroes in b256.
+    std::vector<unsigned char>::iterator it = b256.begin() + (size - length);
+    // Copy result into output vector.
+    vch.reserve(zeroes + (b256.end() - it));
+    vch.assign(zeroes, 0x00);
+    while (it != b256.end())
+        vch.push_back(*(it++));
+    return true;
+}
+
+bool DecodeBase58(const std::string& str, std::vector<unsigned char>& vchRet, int max_ret_len)
+{
+    if (!ValidAsCString(str)) {
+        return false;
+    }
+    return DecodeBase58(str.c_str(), vchRet, max_ret_len);
 }
 
 std::string EncodeBase58(const unsigned char* pbegin, const unsigned char* pend)

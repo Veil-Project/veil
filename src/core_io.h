@@ -18,6 +18,8 @@ struct CMutableTransaction;
 struct PartiallySignedTransaction;
 class uint256;
 class UniValue;
+class CTxOutBase;
+class CTxOutRingCT;
 
 // core_read.cpp
 CScript ParseScript(const std::string& s);
@@ -37,5 +39,9 @@ std::string SighashToStr(unsigned char sighash_type);
 void ScriptPubKeyToUniv(const CScript& scriptPubKey, UniValue& out, bool fIncludeHex);
 void ScriptToUniv(const CScript& script, UniValue& out, bool include_address);
 void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vector<std::vector<COutPoint>>& vTxRingCtInputs, UniValue& entry, bool include_hex = true, int serialize_flags = 0);
+
+void OutputToJSON(uint256 &txid, int i,const CTxOutBase *baseOut, UniValue &entry, bool isCoinBase = false);
+
+void RingCTOutputToJSON(uint256& txid, int i, const CTxOutRingCT& ringctOut, UniValue &entry);
 
 #endif // BITCOIN_CORE_IO_H

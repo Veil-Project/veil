@@ -25,6 +25,7 @@
 #include <veil/invalid.h>
 #include <veil/ringct/blind.h>
 #include <veil/ringct/anon.h>
+#include <veil/ringct/watchonly.h>
 #include <veil/zerocoin/denomination_functions.h>
 #include <veil/zerocoin/zchain.h>
 #include <wallet/deterministicmint.h>
@@ -37,6 +38,7 @@
 #include <walletinitinterface.h>
 #include <wallet/walletutil.h>
 #include <wallet/fees.h>
+#include <core_io.h>
 
 #include <univalue.h>
 
@@ -362,14 +364,11 @@ isminetype AnonWallet::HaveStealthAddress(const CStealthAddress &sxAddr) const
 
     auto si = mapStealthAddresses.find(sxAddr.GetID());
     if (si != mapStealthAddresses.end()) {
-        return ISMINE_SPENDABLE;
-
-        //todo, do not currently have a good way of knowing whether address is sendto
-//        isminetype imSpend = IsMine(si->second.spend_secret_id);
-//        if (imSpend & ISMINE_SPENDABLE) {
-//            return imSpend; // Retain ISMINE_HARDWARE_DEVICE flag if present
-//        }
-//        return ISMINE_WATCH_ONLY;
+        isminetype imSpend = pwalletParent->IsMine(si->second.spend_secret_id);
+        if (imSpend & ISMINE_SPENDABLE) {
+            return imSpend; // Retain ISMINE_HARDWARE_DEVICE flag if present
+        }
+        return ISMINE_WATCH_ONLY;
     }
 
     return ISMINE_NO;
@@ -380,6 +379,7 @@ bool AnonWallet::GetStealthAddressScanKey(CStealthAddress &sxAddr) const
     auto si = mapStealthAddresses.find(sxAddr.GetID());
     if (si != mapStealthAddresses.end()) {
         sxAddr.scan_secret = si->second.scan_secret;
+        sxAddr.spend_pubkey = si->second.spend_pubkey;
         return true;
     }
 
@@ -636,14 +636,27 @@ isminetype AnonWallet::IsMine(const CTxOutBase *txout) const
         case OUTPUT_RINGCT:
         {
             CKeyID keyID = ((CTxOutRingCT*) txout)->pk.GetID();
-            if (mapKeyPaths.count(keyID))
+            if (mapKeyPaths.count(keyID)) {
+                CKeyID keyID = ((CTxOutRingCT*) txout)->pk.GetID();
+                LogPrintf("IsMine true: %d\n", __LINE__);
+                LogPrintf("IsMine true: %s\n", CBitcoinAddress(keyID).ToString());
                 return ISMINE_SPENDABLE;
-            if (pwalletParent->HaveKey(keyID))
+            }
+            if (pwalletParent->HaveKey(keyID)) {
+                LogPrintf("IsMine true: %d\n", __LINE__);
+                LogPrintf("IsMine true: %s\n", CBitcoinAddress(keyID).ToString());
                 return ISMINE_SPENDABLE;
-            if (HaveAddress(keyID))
+            }
+            if (HaveAddress(keyID)) {
+                LogPrintf("IsMine true: %d\n", __LINE__);
+                LogPrintf("IsMine true: %s\n", CBitcoinAddress(keyID).ToString());
                 return ISMINE_SPENDABLE;
-            if (pwalletParent->IsMine(keyID))
+            }
+            if (pwalletParent->IsMine(keyID)) {
+                LogPrintf("IsMine true: %d\n", __LINE__);
+                LogPrintf("IsMine true: %s\n", CBitcoinAddress(keyID).ToString());
                 return ISMINE_SPENDABLE;
+            }
         }
         default:
             return ISMINE_NO;
@@ -1420,7 +1433,13 @@ bool AnonWallet::ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std:
 
             if (r.address.type() == typeid(CStealthAddress)) {
                 CStealthAddress sx = boost::get<CStealthAddress>(r.address);
+
                 r.isMine = mapStealthAddresses.count(sx.GetID());
+                if (r.isMine) {
+                    if (!pwalletParent->HaveKey(mapStealthAddresses.at(sx.GetID()).spend_secret_id)) {
+                        r.isMine = false;
+                    }
+                }
                 CKey sShared;
                 ec_point pkSendTo;
                 int k, nTries = 24;
@@ -4085,6 +4104,7 @@ bool AnonWallet::LoadKeys()
         if (!mapAccountCounter.count(pLocation.first) && pLocation.first != idMaster)
             return error("%s: account %s has no counter", __func__, pLocation.first.GetHex());
         mapKeyPaths.emplace(idAccount, pLocation);
+        LogPrintf("MapKeypathID: %s\n", CBitcoinAddress(idAccount).ToString());
     }
 
     pcursor->close();
@@ -4684,8 +4704,40 @@ bool AnonWallet::AddKeyToParent(const CKey& keySharedSecret)
     return fSuccess;
 }
 
+void AnonWallet::GetAllScanKeys(std::vector<CStealthAddress>& vStealthAddresses) {
+    LOCK(pwalletParent->cs_wallet);
+    int i = 0;
+    std::set<std::string> seenAddresses;
+
+    for (auto stealth: mapStealthDestinations) {
+        // The address, scan secret, and spend pubkey are all we care about,
+        // So if we see duplicates for the address, skip them
+        if (!seenAddresses.insert(CBitcoinAddress(stealth.second).ToString()).second) {
+            continue;
+        }
+
+        CStealthAddress sx;
+        if (GetStealthLinked(stealth.first, sx) && GetStealthAddressScanKey(sx)) {
+            vStealthAddresses.push_back(sx);
+            LogPrintf("stealth_address: %s\n", sx.ToString(true));
+            LogPrintf("stealth addr hash: %s\n", CBitcoinAddress(sx.GetID()).ToString());
+            LogPrintf("scan_secret: %s\n", CBitcoinSecret(sx.scan_secret).ToString());
+        }
+            LogPrintf("stealth second: %s\n", CBitcoinAddress(stealth.second).ToString());
+            LogPrintf("keyID: %s\n\n", CBitcoinAddress(stealth.first).ToString());
+    }
+}
+
+bool AnonWallet::IsMyPubKey(const CKeyID& keyId) {
+    LOCK(pwalletParent->cs_wallet);
+    if (mapStealthDestinations.count(keyId))
+        return true;
+
+    return false;
+}
+
 bool AnonWallet::ProcessStealthOutput(const CTxDestination &address, std::vector<uint8_t> &vchEphemPK, uint32_t prefix,
-        bool fHavePrefix, CKey &sShared, bool fNeedShared)
+        bool fHavePrefix, CKey &sShared, CWatchOnlyTx& watchOnlyOutput, bool fNeedShared)
 {
     LOCK(pwalletParent->cs_wallet);
     ec_point pkExtracted;
@@ -4734,6 +4786,24 @@ bool AnonWallet::ProcessStealthOutput(const CTxDestination &address, std::vector
 
         // Found a matching stealth address that is owned by this wallet, record a link to the stealth destination
         assert(AddStealthDestination(addr->GetID(), idStealthDestination));
+
+        if (!pwalletParent->HaveKey(addr->spend_secret_id)) {
+            LogPrintf("%s: Found a watchonly address transaction\n", __func__);
+            watchOnlyOutput.scan_secret.Set(addr->scan_secret.begin(), addr->scan_secret.end(), true);
+            LogPrintf("%s: Is secret valid: %d -- %d\n", __func__, watchOnlyOutput.scan_secret.IsValid(), __LINE__);
+
+//            const auto script = GetScriptForDestination(address);
+//            const auto pk_script = GetScriptForRawPubKey(pkE);  // LegacyScriptrPubKeyMan::AddWatchOnlyInMem needs a pubkey to affect mapWatchKeys
+//            auto spk_man = GetLegacyScriptPubKeyMan();
+//            if (spk_man) {
+//                LOCK(spk_man->cs_KeyStore);
+//                spk_man->AddWatchOnly(script, 0 /* nCreateTime */);
+//                spk_man->AddWatchOnly(pk_script, 0 /* nCreateTime */);
+//            }
+            nFoundStealth++;
+            return true;
+        }
+
 
         if (IsLocked()) {
             // Save ephemeral pubkey
@@ -4827,7 +4897,8 @@ int AnonWallet::CheckForStealthAndNarration(const CTxOutBase *pb, const CTxOutDa
             return -1;
         }
 
-        if (!ProcessStealthOutput(address, vchEphemPK, prefix, fHavePrefix, sShared, true)) {
+        CWatchOnlyTx watchonlyTx;
+        if (!ProcessStealthOutput(address, vchEphemPK, prefix, fHavePrefix, sShared, watchonlyTx, true)) {
             // TODO: check all other outputs?
             return 0;
         }
@@ -4873,7 +4944,7 @@ bool AnonWallet::FindStealthTransactions(const CTransaction &tx, mapValue_t &map
     return true;
 }
 
-bool AnonWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr)
+bool AnonWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr, std::vector<CWatchOnlyTx>& vecWatchOnlyTx)
 {
     AssertLockHeld(pwalletParent->cs_wallet);
 
@@ -4908,11 +4979,12 @@ bool AnonWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t
             }
 
             CKey sShared;
+            CWatchOnlyTx watchonlyTx;
             std::vector<uint8_t> vchEphemPK;
             vchEphemPK.resize(33);
             memcpy(&vchEphemPK[0], &ctout->vData[0], 33);
 
-            if (ProcessStealthOutput(address, vchEphemPK, prefix, fHavePrefix, sShared)) {
+            if (ProcessStealthOutput(address, vchEphemPK, prefix, fHavePrefix, sShared, watchonlyTx)) {
                 fIsMine = true;
             }
 
@@ -4937,12 +5009,26 @@ bool AnonWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t
             }
 
             CKey sShared;
+            CWatchOnlyTx watchonlyTx;
             std::vector<uint8_t> vchEphemPK;
             vchEphemPK.resize(33);
             memcpy(&vchEphemPK[0], &rctout->vData[0], 33);
 
-            if (ProcessStealthOutput(idk, vchEphemPK, prefix, fHavePrefix, sShared)) {
-                fIsMine = true;
+            if (ProcessStealthOutput(idk, vchEphemPK, prefix, fHavePrefix, sShared, watchonlyTx)) {
+                if (!watchonlyTx.scan_secret.IsValid()) {
+                    fIsMine = true;
+                    LogPrintf("%s - %d\n", __func__, __LINE__);
+                } else {
+                    watchonlyTx.tx_hash = tx.GetHash();
+                    watchonlyTx.tx_index = nOutputId;
+                    watchonlyTx.ringctout = *rctout;
+                    vecWatchOnlyTx.push_back(watchonlyTx);
+                    LogPrintf("%s - %d\n", __func__, __LINE__);
+
+                    UniValue out(UniValue::VOBJ);
+                    RingCTOutputToJSON(watchonlyTx.tx_hash, watchonlyTx.tx_index, watchonlyTx.ringctout, out);
+                    std::cout << out.write(1,1) << std::endl;
+                }
             }
             continue;
         } else
@@ -5187,8 +5273,10 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
         AssertLockHeld(pwalletParent->cs_wallet);
 
         mapValue_t mapNarr;
+        std::vector<CWatchOnlyTx> vecWatchOnlyTx;
         size_t nCT = 0, nRingCT = 0;
-        bool fIsMine = ScanForOwnedOutputs(tx, nCT, nRingCT, mapNarr);
+        bool fIsMine = ScanForOwnedOutputs(tx, nCT, nRingCT, mapNarr, vecWatchOnlyTx);
+        LogPrintf("%s ISMINE=%d sizeofwatchonlyvec=%d - %d\n", __func__, fIsMine ? 1 : 0, vecWatchOnlyTx.size(), __LINE__);
         bool fIsFromMe = false;
         MapRecords_t::const_iterator mir;
         for (const auto &txin : tx.vin) {
@@ -5236,6 +5324,10 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
                 if (pwalletParent->IsMine(txin, /*fCheckZerocoin*/true, /*fCheckAnon*/false))
                     fIsFromMe = true;
             }
+        }
+
+        for (const auto watchonly: vecWatchOnlyTx) {
+            AddWatchOnlyTransaction(watchonly.scan_secret, watchonly);
         }
 
         if (fIsFromMe || fIsMine) {

@@ -157,7 +157,7 @@ void AddRangeproof(const std::vector<uint8_t> &vRangeproof, UniValue &entry)
 }
 
 void OutputToJSON(uint256 &txid, int i,
-                  const CTxOutBase *baseOut, UniValue &entry, bool isCoinBase = false)
+                  const CTxOutBase *baseOut, UniValue &entry, bool isCoinBase)
 {
     switch (baseOut->GetType())
     {
@@ -205,10 +205,11 @@ void OutputToJSON(uint256 &txid, int i,
         case OUTPUT_RINGCT:
         {
             CTxOutRingCT *s = (CTxOutRingCT*) baseOut;
+
             entry.pushKV("type", "ringct");
             entry.pushKV("vout.n", i);
             entry.pushKV("pubkey", HexStr(s->pk.begin(), s->pk.end()));
-
+            entry.pushKV("pubkey_hash", CBitcoinAddress(s->pk.GetID()).ToString());
             std::vector<uint8_t> objKeyImage;
             objKeyImage.resize(33);
             memcpy(&objKeyImage[0], &s->pk[0], 33);
@@ -217,6 +218,7 @@ void OutputToJSON(uint256 &txid, int i,
             entry.pushKV("valueCommitment", HexStr(&s->commitment.data[0], &s->commitment.data[0]+33));
             entry.pushKV("data_hex", HexStr(s->vData.begin(), s->vData.end()));
 
+
             AddRangeproof(s->vRangeproof, entry);
         }
             break;
@@ -224,6 +226,24 @@ void OutputToJSON(uint256 &txid, int i,
             entry.pushKV("type", "unknown");
             break;
     }
+}
+
+void RingCTOutputToJSON(uint256& txid, int i, const CTxOutRingCT& ringctOut, UniValue &entry)
+{
+    entry.pushKV("type", "ringct");
+    entry.pushKV("tx_hash", txid.GetHex());
+    entry.pushKV("vout.n", i);
+    entry.pushKV("pubkey", HexStr(ringctOut.pk.begin(), ringctOut.pk.end()));
+    entry.pushKV("pubkey_hash", CBitcoinAddress(ringctOut.pk.GetID()).ToString());
+    std::vector<uint8_t> objKeyImage;
+    objKeyImage.resize(33);
+    memcpy(&objKeyImage[0], &ringctOut.pk[0], 33);
+    entry.pushKV("key_image", HexStr(objKeyImage));
+
+    entry.pushKV("valueCommitment", HexStr(&ringctOut.commitment.data[0], &ringctOut.commitment.data[0]+33));
+    entry.pushKV("data_hex", HexStr(ringctOut.vData.begin(), ringctOut.vData.end()));
+
+    AddRangeproof(ringctOut.vRangeproof, entry);
 }
 
 void ScriptToUniv(const CScript& script, UniValue& out, bool include_address)

@@ -1180,6 +1180,9 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
 
                 uint256 nHash = RandomXHashToUint256(hash);
                 // Check proof of work matches claimed amount
+                if (Params().NetworkIDString() == "regtest") {
+                    break;
+                }
                 if (UintToArith256(nHash) < bnTarget) {
                     break;
                 }

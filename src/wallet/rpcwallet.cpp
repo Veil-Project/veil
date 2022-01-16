@@ -41,6 +41,8 @@
 #include <veil/zerocoin/zchain.h>
 #include <veil/ringct/anonwallet.h>
 #include <veil/ringct/anon.h>
+#include <veil/ringct/stealth.h>
+#include <veil/ringct/watchonly.h>
 
 #include <stdint.h>
 
@@ -1019,6 +1021,358 @@ static UniValue signmessage(const JSONRPCRequest& request)
 
     return EncodeBase64(vchSig.data(), vchSig.size());
 }
+
+static UniValue getallscankeys(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+                "getallscankeys \"address\" \n"
+                "\nFetch scan key of an address if given - All scan keys if blank"
+                + HelpRequiringPassphrase(pwallet) + "\n"
+                                                     "\nArguments:\n"
+                                                     "1. \"address\"         (string, optional) The veil address if only want keys for this address.\n"
+                                                     "\nResult:\n"
+                                                     "\"scan_key\"          (string) The scan key\n"
+        );
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    std::string strAddress = "";
+    if (request.params.size() > 0) {
+        strAddress = request.params[0].get_str();
+
+        CTxDestination dest = DecodeDestination(strAddress);
+        if (!IsValidDestination(dest)) {
+            throw JSONRPCError(RPC_TYPE_ERROR, "Invalid address");
+        }
+
+        CStealthAddress *stealthID = nullptr;
+
+        if (dest.type() != typeid(CStealthAddress))
+            throw JSONRPCError(RPC_TYPE_ERROR, "Address is not a stealth address");
+
+        stealthID = boost::get<CStealthAddress>(&dest);
+        if (!stealthID) {
+            throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to key");
+        }
+
+        CKey key;
+        if (pwallet->GetAnonWallet()->GetStealthAddressScanKey(*stealthID)) {
+            key = stealthID->scan_secret;
+            UniValue entry(UniValue::VOBJ);
+            entry.pushKV("address", stealthID->ToString(true));
+            entry.pushKV("scan_secret", CBitcoinSecret(key).ToString());
+            entry.pushKV("spend_public", HexStr(stealthID->spend_pubkey.begin(), stealthID->spend_pubkey.end()));
+            return entry;
+        } else {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Private key not available");
+        }
+    } else {
+
+        LOCK(pwallet->cs_wallet);
+
+        std::vector <CStealthAddress> myStealthAddresses;
+        auto pAnonWallet = pwallet->GetAnonWallet();
+        pAnonWallet->GetAllScanKeys(myStealthAddresses);
+
+        UniValue entry(UniValue::VOBJ);
+        int count = 0;
+        for (auto item : myStealthAddresses) {
+            UniValue i(UniValue::VOBJ);
+            i.pushKV("address", item.ToString(true));
+            i.pushKV("scan_secret", CBitcoinSecret(item.scan_secret).ToString());
+            i.pushKV("spend_public", HexStr(item.spend_pubkey.begin(), item.spend_pubkey.end()));
+            entry.pushKV(std::to_string(++count), i);
+        }
+
+        return entry;
+    }
+
+    return NullUniValue;
+}
+
+static UniValue getwatchonlytxes(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "getwatchonlytxes \"scan_secret\""
+                "\nFetch txes belonging to watchonly address with a certain scan key"
+                + HelpRequiringPassphrase(pwallet) + "\n"
+                                                     "\nArguments:\n"
+                                                     "1. \"scan_secret\"         (string, required) The private scan key for the address\n"
+                                                     "\nResult:\n"
+                                                     "\"[\n"
+                                                     "txhash,       (string) The txhash\n"
+                                                     "...\n"
+                                                     "]\"\n"
+        );
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    std::string sScanSecret = request.params[0].get_str();
+    std::vector<uint8_t> vchScanSecret;
+    CBitcoinSecret wifScanSecret;
+    CKey scan_secret;
+
+    if (IsHex(sScanSecret)) {
+        vchScanSecret = ParseHex(sScanSecret);
+    } else {
+        if (wifScanSecret.SetString(sScanSecret)) {
+            scan_secret = wifScanSecret.GetKey();
+        } else {
+            if (!DecodeBase58(sScanSecret, vchScanSecret, MAX_STEALTH_RAW_SIZE)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode scan secret as WIF, hex or base58.");
+            }
+        }
+    }
+
+    if (vchScanSecret.size() > 0) {
+        if (vchScanSecret.size() != 32) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Scan secret is not 32 bytes.");
+        }
+        scan_secret.Set(&vchScanSecret[0], true);
+    }
+
+    int current_count = 0;
+    UniValue txes(UniValue::VOBJ);
+    if (GetWatchOnlyKeyCount(scan_secret, current_count)) {
+        for (int i = 0; i <= current_count; i++) {
+            CWatchOnlyTx watchonlytx;
+            if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
+                std::vector<uint8_t> objKeyImage;
+                objKeyImage.resize(33);
+                memcpy(&objKeyImage[0], &watchonlytx.ringctout.pk[0], 33);
+                const CCmpPubKey &ki = *((CCmpPubKey *) &objKeyImage[0 * 33]);
+                uint256 txhash;
+                bool spent = pblocktree->ReadRCTKeyImage(ki, txhash);
+                txes.pushKV(std::to_string(i), watchonlytx.GetUniValue(spent, txhash));
+            }
+        }
+    }
+
+    return txes;
+}
+
+static UniValue scantx(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "scantx \"raw_tx_hex\" \n"
+                "\nScan a tx and see if it belongs to a watchonly address"
+                + HelpRequiringPassphrase(pwallet) + "\n"
+                                                     "\nArguments:\n"
+                                                     "1. \"raw tx\"         (string, required) Raw tx hex.\n"
+                                                     "\nResult:\n"
+                                                     "\"result\"          (boolean) If the tx belongs to the scankey\n"
+        );
+
+    UniValue result(UniValue::VOBJ);
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    CMutableTransaction mtx;
+    if (!DecodeHexTx(mtx, request.params[0].get_str(), true)) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
+    }
+
+    CTransaction tx(mtx);
+
+    bool fIsMine = false;
+    for (const auto &txout : tx.vpout) {
+        if (txout->IsType(OUTPUT_RINGCT)) {
+            const CTxOutRingCT *rctout = (CTxOutRingCT*) txout.get();
+            CKeyID idk = rctout->pk.GetID();
+
+            // Uncover stealth
+            uint32_t prefix = 0;
+            bool fHavePrefix = false;
+            if (rctout->vData.size() != 33) {
+                if (rctout->vData.size() == 38 // Have prefix
+                    && rctout->vData[33] == DO_STEALTH_PREFIX) {
+                    fHavePrefix = true;
+                    memcpy(&prefix, &rctout->vData[34], 4);
+                } else {
+                    continue;
+                }
+            }
+
+            CKeyID idStealthDestination = rctout->pk.GetID();
+
+//            if (wallet->GetAnonWallet()->IsMyPubKey(idStealthDestination)) {
+//                LogPrintf("%s: Found a transaction belonging to my scan_secret.\n", __func__);
+//                return true;
+//            }
+
+
+
+            std::vector<uint8_t> vchEphemPK;
+            vchEphemPK.resize(33);
+            memcpy(&vchEphemPK[0], &rctout->vData[0], 33);
+
+            for (auto addressInfo: mapWatchOnlyAddresses) {
+                CKey sShared;
+                ec_point pkExtracted;
+
+                ec_point sPubKey;
+                SetPublicKey(addressInfo.second.spend_pubkey, sPubKey);
+                if (StealthSecret(addressInfo.second.scan_secret, vchEphemPK, sPubKey, sShared, pkExtracted) != 0) {
+                    LogPrintf("%s: StealthSecret failed.\n", __func__);
+                    continue;
+                }
+
+                CPubKey pubKeyStealthSecret(pkExtracted);
+                if (!pubKeyStealthSecret.IsValid()) {
+                    continue;
+                }
+
+                CKeyID idExtracted = pubKeyStealthSecret.GetID();
+                if (idStealthDestination != idExtracted) {
+                    continue;
+                }
+
+                LogPrintf("%s: Found tx belonging to watchonly address: %s\n", __func__, addressInfo.first);
+            }
+        }
+    }
+
+    return false;
+//
+//    UniValue entry(UniValue::VOBJ);
+//    entry.pushKV("tx_hash", tx.GetHash().GetHex());
+//    entry.pushKV("scan_secret", CBitcoinSecret(scan_secret).ToString());
+//    if (IsMyTx(tx, scan_secret, pwallet->GetAnonWallet())) {
+//        entry.pushKV("is_mine", true);
+//    } else {
+//        entry.pushKV("is_mine", false);
+//    }
+//
+//    return entry;
+}
+
+static UniValue addwatchkeys(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    if (request.fHelp || request.params.size() != 3)
+        throw std::runtime_error(
+                "addwatchkeys \"address\" \"scan_secret\" \"spend_pubkey\" \n"
+                "\nTakes in the stealth address, along with its scan secret key and spend public key"
+                "\nStores these keys in a database and start keeping track of transactions belonging to the address"
+                + HelpRequiringPassphrase(pwallet) + "\n"
+                                                     "\nArguments:\n"
+                                                     "1. \"address\"         (string, required) Stealth address\n"
+                                                     "2. \"scan_secret\"         (string, required) Scan private key.\n"
+                                                     "3. \"spend_pubkey\"         (string, required) Spend Public Key.\n"
+                                                     "\nResult:\n"
+                                                     "\"result\"          (boolean) If the keys were added to the database\n"
+        );
+
+    LOCK2(cs_main, pwallet->cs_wallet);
+    EnsureWalletIsUnlocked(pwallet);
+
+    /** Get the address from the request */
+    std::string sAddress = request.params[0].get_str();
+    CBitcoinAddress address(sAddress);
+
+    if (!address.IsValidStealthAddress()) {
+        throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid stealth address");
+    }
+
+    /** Get the scan_secret from the request */
+    std::string sScanSecret = request.params[1].get_str();
+    std::vector<uint8_t> vchScanSecret;
+    CBitcoinSecret wifScanSecret;
+    CKey scan_secret;
+
+    if (IsHex(sScanSecret)) {
+        vchScanSecret = ParseHex(sScanSecret);
+    } else {
+        if (wifScanSecret.SetString(sScanSecret)) {
+            scan_secret = wifScanSecret.GetKey();
+        } else {
+            if (!DecodeBase58(sScanSecret, vchScanSecret, MAX_STEALTH_RAW_SIZE)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode scan secret as WIF, hex or base58.");
+            }
+        }
+    }
+
+    if (vchScanSecret.size() > 0) {
+        if (vchScanSecret.size() != 32) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Scan secret is not 32 bytes.");
+        }
+        scan_secret.Set(&vchScanSecret[0], true);
+    }
+
+    /** Get the spend public key from request */
+    std::string sSpendPublic = request.params[2].get_str();
+    CPubKey pubkeySpend;
+    std::vector<uint8_t> vchSpendPublic;
+
+    if (IsHex(sSpendPublic)) {
+        vchSpendPublic = ParseHex(sSpendPublic);
+    } else {
+        if (!DecodeBase58(sSpendPublic, vchSpendPublic, MAX_STEALTH_RAW_SIZE)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode spend public as hex or base58.");
+        }
+    }
+
+    if (vchSpendPublic.size() > 0) {
+        if (vchSpendPublic.size() == 33) {
+            pubkeySpend = CPubKey(vchSpendPublic.begin(), vchSpendPublic.end());
+        } else {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend Pub is not 33 bytes.");
+        }
+    }
+
+    if (!pubkeySpend.IsValid()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Must provide valid spend public key.");
+    }
+
+    if (!AddWatchOnlyAddress(address, scan_secret, pubkeySpend)) {
+        throw JSONRPCError(RPC_DATABASE_ERROR, "Failed to write address keys to database");
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("address", address.ToString());
+    result.pushKV("scan_private", CBitcoinSecret(scan_secret).ToString());
+    result.pushKV("spend_public", HexStr(pubkeySpend.begin(), pubkeySpend.end()));
+
+    return result;
+}
+
+
 
 static UniValue getreceivedbyaddress(const JSONRPCRequest& request)
 {
@@ -6081,6 +6435,11 @@ static const CRPCCommand commands[] =
     { "wallet",             "listlabels",                       &listlabels,                    {"purpose"} },
     { "wallet",             "listreceivedbylabel",              &listreceivedbylabel,           {"minconf","include_empty","include_watchonly"} },
     { "wallet",             "setlabel",                         &setlabel,                      {"address","label"} },
+    { "wallet",             "getallscankeys",                   &getallscankeys,                {"address"} },
+    { "wallet",             "scantx",                           &scantx,                        {"raw_tx_hex"} },
+    { "wallet",             "addwatchkeys",                     &addwatchkeys,                  {"address", "scan_secret", "spend_public"} },
+    { "wallet",             "getwatchonlytxes",                 &getwatchonlytxes,              {"scan_secret"} },
+
 
     { "generating",         "generate",                         &generate,                      {"nblocks","maxtries"} },
     { "generating",         "generatecontinuous",               &generatecontinuous,            {"fGenerate"} },

@@ -55,6 +55,8 @@
 #include <stdio.h>
 #include <veil/invalid.h>
 #include <veil/ringct/anon.h>
+#include <veil/ringct/watchonlydb.h>
+#include <veil/ringct/watchonly.h>
 #include <veil/zerocoin/zchain.h>
 
 #ifndef WIN32
@@ -311,6 +313,7 @@ void Shutdown()
         pcoinsdbview.reset();
         pblocktree.reset();
         pzerocoinDB.reset();
+        pwatchonlyDB.reset();
     }
 
     DeallocateRandomXLightCache();
@@ -1595,6 +1598,10 @@ bool AppInitMain()
                 //zerocoinDB
                 pzerocoinDB.reset();
                 pzerocoinDB.reset(new CZerocoinDB(0, false, fReindex));
+
+                //watchonlyDB - don't wipe...
+                pwatchonlyDB.reset();
+                pwatchonlyDB.reset(new CWatchOnlyDB(0, false, false));
 
                 if (fReset) {
                     pblocktree->WriteReindexing(true);

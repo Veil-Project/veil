@@ -252,6 +252,8 @@ UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGen
                 uint256 uint256Hash = RandomXHashToUint256(hash);
 
                 // Check proof of work matches claimed amount
+                if (Params().NetworkIDString() == "regtest")
+                    break;
                 if (UintToArith256(uint256Hash) < bnTarget)
                     break;
 

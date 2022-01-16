@@ -224,6 +224,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "setprecomputeblockpercycle", 0, "nBlockPerCycle"},
     { "startautospend", 1, "nNumberToSpend"},
     { "startautospend", 2, "nDenomination"},
+    { "importstealthaddress", 3, "num_prefix_bits"},
+    { "importstealthaddress", 5, "bech32"},
+
 };
 
 class CRPCConvertTable
