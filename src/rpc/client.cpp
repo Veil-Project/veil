@@ -226,6 +226,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "startautospend", 2, "nDenomination"},
     { "importstealthaddress", 3, "num_prefix_bits"},
     { "importstealthaddress", 5, "bech32"},
+    { "getanonoutputs", 0, "inputsize"},
+    { "getanonoutputs", 1, "ringsize"},
 
 };
 

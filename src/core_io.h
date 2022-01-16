@@ -20,6 +20,7 @@ class uint256;
 class UniValue;
 class CTxOutBase;
 class CTxOutRingCT;
+class CAnonOutput;
 
 // core_read.cpp
 CScript ParseScript(const std::string& s);
@@ -40,8 +41,8 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey, UniValue& out, bool fInclud
 void ScriptToUniv(const CScript& script, UniValue& out, bool include_address);
 void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vector<std::vector<COutPoint>>& vTxRingCtInputs, UniValue& entry, bool include_hex = true, int serialize_flags = 0);
 
-void OutputToJSON(uint256 &txid, int i,const CTxOutBase *baseOut, UniValue &entry, bool isCoinBase = false);
-
-void RingCTOutputToJSON(uint256& txid, int i, const CTxOutRingCT& ringctOut, UniValue &entry);
+void OutputToJSON(const uint256 &txid, const int& i,const CTxOutBase *baseOut, UniValue &entry, bool isCoinBase = false);
+void RingCTOutputToJSON(const uint256& txid, const int& i, const CTxOutRingCT& ringctOut, UniValue &entry);
+void AnonOutputToJSON(const CAnonOutput& output, const int& ringctindex, UniValue &entry);
 
 #endif // BITCOIN_CORE_IO_H

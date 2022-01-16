@@ -3155,6 +3155,97 @@ bool AnonWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size
     return true;
 }
 
+
+bool AnonWallet::GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std::set<int64_t> &setHave, std::vector<std::pair<int, CAnonOutput> >& randomoutputs, std::string &sError)
+{
+    if (nRingSize < MIN_RINGSIZE || nRingSize > MAX_RINGSIZE) {
+        sError = strprintf("Ring size out of range [%d, %d].", MIN_RINGSIZE, MAX_RINGSIZE);
+        return error("%s: %s", __func__, sError);
+    }
+
+    int nBestHeight = chainActive.Tip()->nHeight;
+    const Consensus::Params& consensusParams = Params().GetConsensus();
+    size_t nInputs = nInputSize;
+
+    int64_t nLastRCTOutIndex = 0;
+    {
+        AssertLockHeld(cs_main);
+        nLastRCTOutIndex = chainActive.Tip()->nAnonOutputs;
+    }
+
+    if (nLastRCTOutIndex < (int64_t)(nInputs * nRingSize)) {
+        sError = strprintf("Not enough anonymous outputs exist, last: %d, required: %d.",
+                           nLastRCTOutIndex, nInputs * nRingSize);
+        return error("%s: %s", __func__, sError);
+    }
+
+    int nExtraDepth = gArgs.GetBoolArg("-regtest", false) ? -1 : 2; // if not on regtest pick outputs deeper than consensus checks to prevent banning
+
+    for (size_t k = 0; k < nInputs; ++k) {
+        for (size_t i = 0; i < nRingSize; ++i) {
+
+            int64_t nMinIndex = 1;
+            if (GetRandInt(100) < 50) { // 50% chance of selecting from the last 2400
+                nMinIndex = std::max((int64_t) 1, nLastRCTOutIndex - nRCTOutSelectionGroup1);
+            } else if (GetRandInt(100) < 70) { // further 70% chance of selecting from the last 24000
+                nMinIndex = std::max((int64_t) 1, nLastRCTOutIndex - nRCTOutSelectionGroup2);
+            }
+
+            int64_t nLastDepthCheckPassed = 0;
+            size_t j = 0;
+            const static size_t nMaxTries = 1000;
+            for (j = 0; j < nMaxTries; ++j) {
+                if (nLastRCTOutIndex <= nMinIndex) {
+                    sError = strprintf("Not enough anonymous outputs exist, min: last: %d, required: %d.",
+                                       nMinIndex, nLastRCTOutIndex, nInputs * nRingSize);
+                    return error("%s: %s", __func__, sError);
+                }
+
+                int64_t nDecoy = nMinIndex + GetRand((nLastRCTOutIndex - nMinIndex) + 1);
+
+                if (setHave.count(nDecoy) > 0) {
+                    if (nDecoy == nLastRCTOutIndex) {
+                        nLastRCTOutIndex--;
+                    }
+                    continue;
+                }
+
+                CAnonOutput ao;
+                if (!pblocktree->ReadRCTOutput(nDecoy, ao)) {
+                    sError = strprintf("Anonymous output not found in database: %s.", nDecoy);
+                    return error("%s: %s", __func__, sError);
+                }
+
+                //Don't mix in blacklisted decoys
+                if (blacklist::ContainsRingCtOutPoint(ao.outpoint))
+                    continue;
+
+                if (nDecoy > nLastDepthCheckPassed) {
+                    if (ao.nBlockHeight > nBestHeight - (consensusParams.nMinRCTOutputDepth + nExtraDepth)) {
+                        if (nLastRCTOutIndex > nDecoy) {
+                            nLastRCTOutIndex = nDecoy - 1;
+                        }
+                        continue;
+                    }
+
+                    nLastDepthCheckPassed = nDecoy;
+                }
+
+                randomoutputs.emplace_back(make_pair(nDecoy, ao));
+                setHave.insert(nDecoy);
+                break;
+            }
+
+            if (j >= nMaxTries) {
+                sError = strprintf("Exceeded maximum tries for picking hiding outputs (%d, %d).", k, i);
+                return error("%s: %s", __func__, sError);
+            }
+        }
+    }
+
+    return true;
+}
+
 /**Compute whether an anon input's key images belongs to us**/
 bool AnonWallet::IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint)
 {

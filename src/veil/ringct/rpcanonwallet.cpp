@@ -41,6 +41,7 @@
 #endif
 #include <univalue.h>
 #include <stdint.h>
+#include <core_io.h>
 
 
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
@@ -2151,6 +2152,53 @@ static UniValue importstealthaddress(const JSONRPCRequest &request)
 };
 
 
+static UniValue getanonoutputs(const JSONRPCRequest &request)
+{
+    if (request.fHelp || request.params.size() != 2)
+        throw std::runtime_error(
+                "getanonoutputs \"inputsize\" \"ringsize\" \n"
+                "\nGet random valid ringct outputs based on inputsize and ringsize given\n"
+                "\nArguments:\n"
+                "1. \"inputsize\"                      (number, required) The number of inputs being spent in the transaction\n"
+                "2. \"ringsize\"                       (number, required) The number of ring signatures per input in the transaction \n"
+                + HelpExampleCli("getanonoutputs", "5 5")
+                + HelpExampleRpc("getanonoutputs", "5 5")
+        );
+
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    if (!wallet) return NullUniValue;
+
+    CWallet* const pwallet = wallet.get();
+    auto anonwallet = pwallet->GetAnonWallet();
+
+    if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: Private keys are disabled for this wallet");
+    }
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    const int nInputSize = request.params[0].get_int();
+    const int nRingSize = request.params[1].get_int();
+
+    UniValue result(UniValue::VARR);
+
+    std::set<int64_t> setIndexSelected;
+    std::vector< std::pair<int,CAnonOutput> > vecSelectedOutputs;
+    std::string sError;
+    if (anonwallet->GetRandomHidingOutputs(nInputSize, nRingSize, setIndexSelected, vecSelectedOutputs, sError)) {
+        for (const auto& out : vecSelectedOutputs) {
+            UniValue entry(UniValue::VOBJ);
+            AnonOutputToJSON(out.second, out.first, entry);
+            result.push_back(entry);
+        }
+    } else {
+        throw JSONRPCError(RPC_WALLET_ERROR, sError);
+    }
+
+    return result;
+};
+
+
 
 static const CRPCCommand commands[] =
         { //  category              name                                actor (function)                argNames
@@ -2178,7 +2226,7 @@ static const CRPCCommand commands[] =
 
 
                 { "wallet",             "importstealthaddress",          &importstealthaddress,          {"scan_secret", "spend_secret", "label", "num_prefix_bits", "prefix_num", "bech32"} },
-
+                { "wallet",             "getanonoutputs",                &getanonoutputs,                {"inputsize", "ringsize"} },
         };
 
 void RegisterHDWalletRPCCommands(CRPCTable &t)
