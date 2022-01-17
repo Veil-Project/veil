@@ -13,7 +13,7 @@
 #include "net_processing.h"
 #include "primitives/block.h"
 #include "script/standard.h"
-#include "utilstrencodings.h"
+#include "util/strencodings.h"
 #include "validation.h"
 #include "veil/zerocoin/zchain.h"
 

@@ -5,8 +5,8 @@
 #include <index/txindex.h>
 #include <script/standard.h>
 #include <test/test_veil.h>
-#include <util.h>
-#include <utiltime.h>
+#include <util/system.h>
+#include <util/time.h>
 #include <validation.h>
 #include <veil/ringct/stealth.h>
 #include <veil/ringct/extkey.h>
@@ -38,7 +38,7 @@ BOOST_FIXTURE_TEST_CASE(txindex_initial_sync, TestChain100Setup)
     int64_t time_start = GetTimeMillis();
     while (!txindex.BlockUntilSyncedToCurrentChain()) {
         BOOST_REQUIRE(time_start + timeout_ms > GetTimeMillis());
-        MilliSleep(100);
+        UninterruptibleSleep(std::chrono::milliseconds{100});
     }
 
     // Check that txindex has all txs that were in the chain before it started.

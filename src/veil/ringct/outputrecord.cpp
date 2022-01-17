@@ -5,8 +5,8 @@
 #include "outputrecord.h"
 #include <boost/variant.hpp>
 #include <tinyformat.h>
-#include <utilmoneystr.h>
-#include <utilstrencodings.h>
+#include <util/moneystr.h>
+#include <util/strencodings.h>
 
 void COutputRecord::AddStealthAddress(const CKeyID& idStealth)
 {

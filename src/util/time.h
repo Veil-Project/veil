@@ -3,11 +3,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_UTILTIME_H
-#define BITCOIN_UTILTIME_H
+#ifndef BITCOIN_UTIL_TIME_H
+#define BITCOIN_UTIL_TIME_H
 
+#include <chrono>
 #include <stdint.h>
 #include <string>
+
+void UninterruptibleSleep(const std::chrono::microseconds& n);
 
 /**
  * GetTimeMicros() and GetTimeMillis() both return the system time, but in
@@ -25,7 +28,10 @@ int64_t GetTimeMicros();
 int64_t GetSystemTimeInSeconds(); // Like GetTime(), but not mockable
 void SetMockTime(int64_t nMockTimeIn);
 int64_t GetMockTime();
-void MilliSleep(int64_t n);
+
+/** Return system time (or mocked time, if set) */
+template <typename T>
+T GetTime();
 
 /**
  * ISO 8601 formatting is preferred. Use the FormatISO8601{DateTime,Date,Time}
@@ -37,4 +43,4 @@ std::string FormatISO8601Time(int64_t nTime);
 uint64_t ISO8601Date_Now();
 uint64_t ISO8601Date_FromString(const std::string& dateString);
 bool ISO8601Date_Validate(const std::string& dateString);
-#endif // BITCOIN_UTILTIME_H
+#endif // BITCOIN_UTIL_TIME_H

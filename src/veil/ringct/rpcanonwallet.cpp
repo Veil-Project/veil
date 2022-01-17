@@ -20,11 +20,11 @@
 #include <rpc/util.h>
 #include <script/sign.h>
 #include <timedata.h>
-#include <util.h>
+#include <util/system.h>
 #include <txdb.h>
 #include <veil/ringct/blind.h>
 #include <veil/ringct/anon.h>
-#include <utilmoneystr.h>
+#include <util/moneystr.h>
 #include <veil/ringct/anonwallet.h>
 #include <veil/ringct/anonwalletdb.h>
 #include <wallet/coincontrol.h>

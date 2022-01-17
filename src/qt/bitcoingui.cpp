@@ -39,7 +39,7 @@
 #include <interfaces/node.h>
 #include <key_io.h>
 #include <ui_interface.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <iostream>
 
@@ -1082,7 +1082,7 @@ void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool&
             tutorial->exec();
 
             while (tutorial->isVisible()) {
-                MilliSleep(500);
+                UninterruptibleSleep(std::chrono::milliseconds{500});
             }
 
             ret = !tutorial->ShutdownRequested();
@@ -1098,7 +1098,7 @@ void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool&
             mDiag->exec();
 
             while (mDiag->isVisible()) {
-                MilliSleep(500);
+                UninterruptibleSleep(std::chrono::milliseconds{500});
             }
 
             ret = !mDiag->ShutdownRequested();
@@ -1112,7 +1112,7 @@ void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool&
             mDisp->exec();
 
             while (mDisp->isVisible())
-                MilliSleep(500);
+                UninterruptibleSleep(std::chrono::milliseconds{500});
 
             ret = !mDisp->ShutdownRequested();
             delete mDisp;
@@ -1124,7 +1124,7 @@ void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool&
             mDisp->exec();
 
             while (mDisp->isVisible())
-                MilliSleep(500);
+                UninterruptibleSleep(std::chrono::milliseconds{500});
 
             ret = !mDisp->ShutdownRequested();
             mnemonic = mDisp->GetImportSeed().toStdString();
@@ -1138,7 +1138,7 @@ void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool&
             mDisp->exec();
 
             while (mDisp->isVisible())
-                MilliSleep(500);
+                UninterruptibleSleep(std::chrono::milliseconds{500});
 
             ret = !mDisp->ShutdownRequested();
             mnemonic = mDisp->GetImportSeed().toStdString();

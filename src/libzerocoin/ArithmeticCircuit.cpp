@@ -76,7 +76,7 @@ void ArithmeticCircuit::setWireValues(const PrivateCoin& coin)
 }
 
 void ArithmeticCircuit::setPreConstraints(const ZerocoinParams* params,
-        vector<CBN_matrix>& wA, vector<CBN_matrix>& wB, vector<CBN_matrix>& wC, CBN_vector& K)
+        std::vector<CBN_matrix>& wA, std::vector<CBN_matrix>& wB, std::vector<CBN_matrix>& wC, CBN_vector& K)
 {
     const CBigNum a = params->coinCommitmentGroup.g;
     const CBigNum b = params->coinCommitmentGroup.h;

@@ -35,7 +35,7 @@
 #include <rpc/server.h>
 #include <ui_interface.h>
 #include <uint256.h>
-#include <util.h>
+#include <util/system.h>
 #include <key_io.h>
 #include <warnings.h>
 

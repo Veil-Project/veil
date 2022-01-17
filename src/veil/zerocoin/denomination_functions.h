@@ -5,7 +5,7 @@
 #ifndef VEIL_DENOMINATION_FUNCTIONS_H
 #define VEIL_DENOMINATION_FUNCTIONS_H
 
-#include "util.h"
+#include "util/system.h"
 #include "libzerocoin/Denominations.h"
 #include "primitives/zerocoin.h"
 #include <list>

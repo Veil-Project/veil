@@ -181,7 +181,7 @@ void CzWallet::SyncWithChain(bool fGenerateMintPool)
     if (!pwalletmain || !pwalletmain->zTracker)
         return;
 
-    set<uint256> setAddedTx;
+    std::set<uint256> setAddedTx;
     while (found) {
         found = false;
         if (fGenerateMintPool)
@@ -189,8 +189,8 @@ void CzWallet::SyncWithChain(bool fGenerateMintPool)
         LogPrintf("%s: Mintpool size=%d\n", __func__, mintPool.size());
 
         std::set<uint256> setChecked;
-        std::list<pair<uint256,uint32_t> > listMints = mintPool.List();
-        for (pair<uint256, uint32_t> pMint : listMints) {
+        std::list<std::pair<uint256,uint32_t> > listMints = mintPool.List();
+        for (std::pair<uint256, uint32_t> pMint : listMints) {
             LOCK(cs_main);
             if (setChecked.count(pMint.first))
                 return;
@@ -378,7 +378,7 @@ bool CzWallet::DeterministicSearch(int nCountStart, int nCountEnd, int* nThreade
             SeedToZerocoin(zerocoinSeed, bnValue, bnSerial, bnRandomness, key);
 
             uint256 hashPubcoin = GetPubCoinHash(bnValue);
-            AddToMintPool(make_pair(hashPubcoin, i), true);
+            AddToMintPool(std::make_pair(hashPubcoin, i), true);
             walletdb.WriteMintPoolPair(hashSeed, hashPubcoin, i);
 
             if (nThreadedProgress == nullptr) {

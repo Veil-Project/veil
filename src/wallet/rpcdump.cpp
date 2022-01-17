@@ -10,8 +10,8 @@
 #include <script/script.h>
 #include <script/standard.h>
 #include <sync.h>
-#include <util.h>
-#include <utiltime.h>
+#include <util/system.h>
+#include <util/time.h>
 #include <wallet/wallet.h>
 #include <merkleblock.h>
 #include <core_io.h>
@@ -804,7 +804,7 @@ UniValue dumpwallet(const JSONRPCRequest& request)
             create_time = FormatISO8601DateTime(it->second.nCreateTime);
         }
         if(pwallet->GetCScript(scriptid, script)) {
-            file << strprintf("%s %s script=1", HexStr(script.begin(), script.end()), create_time);
+            file << strprintf("%s %s script=1", HexStr(script), create_time);
             file << strprintf(" # addr=%s\n", address);
         }
     }
