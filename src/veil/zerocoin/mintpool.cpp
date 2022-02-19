@@ -3,7 +3,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #include <logging.h>
 #include "mintpool.h"
-#include "util.h"
+#include "util/system.h"
 
 using namespace std;
 

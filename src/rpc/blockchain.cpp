@@ -28,9 +28,10 @@
 #include <sync.h>
 #include <txdb.h>
 #include <txmempool.h>
-#include <util.h>
-#include <utilstrencodings.h>
-#include <utilmoneystr.h>
+#include <util/system.h>
+#include <util/strencodings.h>
+
+#include <util/moneystr.h>
 #include <hash.h>
 #include <validationinterface.h>
 #include <warnings.h>
@@ -401,7 +402,7 @@ static UniValue getzerocoinsupply(const JSONRPCRequest& request)
     UniValue resArr(UniValue::VARR);
     for (auto denom : libzerocoin::zerocoinDenomList) {
         UniValue denomObj(UniValue::VOBJ);
-        denomObj.push_back(Pair("denom", to_string(denom)));
+        denomObj.push_back(Pair("denom", std::to_string(denom)));
         int64_t denomSupply = pblockindex->mapZerocoinSupply.at(denom) * (denom*COIN);
         denomObj.push_back(Pair("amount", denomSupply));
         denomObj.push_back(Pair("amount_formatted", FormatMoney(denomSupply)));
@@ -976,7 +977,7 @@ static UniValue getblockheader(const JSONRPCRequest& request)
     {
         CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION);
         ssBlock << pblockindex->GetBlockHeader();
-        std::string strHex = HexStr(ssBlock.begin(), ssBlock.end());
+        std::string strHex = HexStr(ssBlock);
         return strHex;
     }
 
@@ -1077,7 +1078,7 @@ static UniValue getblock(const JSONRPCRequest& request)
     {
         CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION | RPCSerializationFlags());
         ssBlock << block;
-        std::string strHex = HexStr(ssBlock.begin(), ssBlock.end());
+        std::string strHex = HexStr(ssBlock);
         return strHex;
     }
 
@@ -2438,7 +2439,7 @@ UniValue scantxoutset(const JSONRPCRequest& request)
             UniValue unspent(UniValue::VOBJ);
             unspent.pushKV("txid", outpoint.hash.GetHex());
             unspent.pushKV("vout", (int32_t)outpoint.n);
-            unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey.begin(), txo.scriptPubKey.end()));
+            unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey));
             unspent.pushKV("amount", ValueFromAmount(txo.nValue));
             unspent.pushKV("height", (int32_t)coin.nHeight);
 
@@ -2455,7 +2456,7 @@ UniValue scantxoutset(const JSONRPCRequest& request)
 UniValue findserial(const JSONRPCRequest& request)
 {
     if(request.fHelp || request.params.size() != 1)
-        throw runtime_error(
+        throw std::runtime_error(
                 "findserial \"serial\"\n"
                 "\nSearches the zerocoin database for a zerocoin spend transaction that contains the specified serial\n"
 

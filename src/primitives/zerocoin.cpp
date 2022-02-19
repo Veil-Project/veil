@@ -6,8 +6,8 @@
 #include <veil/zerocoin/mintmeta.h>
 #include "primitives/zerocoin.h"
 #include "hash.h"
-#include "util.h"
-#include "utilstrencodings.h"
+#include "util/system.h"
+#include "util/strencodings.h"
 
 bool CMintMeta::operator <(const CMintMeta& a) const
 {

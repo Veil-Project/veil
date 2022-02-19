@@ -7,7 +7,7 @@
 #include <rpc/protocol.h>
 #include <rpc/util.h>
 #include <tinyformat.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 
 // Converts a hex string to a public key if possible
 CPubKey HexToPubKey(const std::string& hex_in)
@@ -98,7 +98,7 @@ public:
         obj.pushKV("isscript", false);
         obj.pushKV("iswitness", true);
         obj.pushKV("witness_version", 0);
-        obj.pushKV("witness_program", HexStr(id.begin(), id.end()));
+        obj.pushKV("witness_program", HexStr(id));
         return obj;
     }
 
@@ -108,7 +108,7 @@ public:
         obj.pushKV("isscript", true);
         obj.pushKV("iswitness", true);
         obj.pushKV("witness_version", 0);
-        obj.pushKV("witness_program", HexStr(id.begin(), id.end()));
+        obj.pushKV("witness_program", HexStr(id));
         return obj;
     }
 

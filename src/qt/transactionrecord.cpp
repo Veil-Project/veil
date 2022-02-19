@@ -291,7 +291,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             }
 
             CScript scriptPubKey;
-            string strAddress = "";
+            std::string strAddress = "";
             CTxDestination address;
             if (pOut->GetScriptPubKey(scriptPubKey)) {
                 if (ExtractDestination(scriptPubKey, address))

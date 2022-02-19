@@ -26,8 +26,6 @@
 #include "Bulletproofs.h"
 #include <streams.h>
 
-using namespace std;
-
 namespace libzerocoin {
 
 /**A Signature of knowledge on the hash of metadata attesting that the signer knows the values

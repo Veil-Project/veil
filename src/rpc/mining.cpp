@@ -22,8 +22,8 @@
 #include <rpc/server.h>
 #include <shutdown.h>
 #include <txmempool.h>
-#include <util.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/strencodings.h>
 #include <validationinterface.h>
 #include <warnings.h>
 
@@ -894,7 +894,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
     result.pushKV("height", (int64_t)(pindexPrev->nHeight+1));
 
     if (!pblocktemplate->vchCoinbaseCommitment.empty() && fSupportsSegwit) {
-        result.pushKV("default_witness_commitment", HexStr(pblocktemplate->vchCoinbaseCommitment.begin(), pblocktemplate->vchCoinbaseCommitment.end()));
+        result.pushKV("default_witness_commitment", HexStr(pblocktemplate->vchCoinbaseCommitment));
     }
 
     result.pushKV("accumulatorhashes", mapaccumulatorhashes);

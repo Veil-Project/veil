@@ -4,14 +4,14 @@
 
 #include <bench/bench.h>
 #include <validation.h>
-#include <utiltime.h>
+#include <util/time.h>
 
 // Sanity test: this should loop ten times, and
 // min/max/average should be close to 100ms.
 static void Sleep100ms(benchmark::State& state)
 {
     while (state.KeepRunning()) {
-        MilliSleep(100);
+        UninterruptibleSleep(std::chrono::milliseconds{100});
     }
 }
 

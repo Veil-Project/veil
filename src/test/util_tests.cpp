@@ -2,14 +2,16 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <util.h>
+#include <util/system.h>
 
 #include <clientversion.h>
 #include <primitives/transaction.h>
 #include <sync.h>
-#include <utilstrencodings.h>
-#include <utilmoneystr.h>
 #include <test/test_veil.h>
+#include <util/moneystr.h>
+#include <util/strencodings.h>
+#include <util/string.h>
+#include <util/time.h>
 
 #include <stdint.h>
 #include <vector>
@@ -158,6 +160,19 @@ BOOST_AUTO_TEST_CASE(util_HexStr)
     );
 }
 
+BOOST_AUTO_TEST_CASE(util_Join)
+{
+    // Normal version
+    BOOST_CHECK_EQUAL(Join({}, ", "), "");
+    BOOST_CHECK_EQUAL(Join({"foo"}, ", "), "foo");
+    BOOST_CHECK_EQUAL(Join({"foo", "bar"}, ", "), "foo, bar");
+
+    // Version with unary operator
+    const auto op_upper = [](const std::string& s) { return ToUpper(s); };
+    BOOST_CHECK_EQUAL(Join<std::string>({}, ", ", op_upper), "");
+    BOOST_CHECK_EQUAL(Join<std::string>({"foo"}, ", ", op_upper), "FOO");
+    BOOST_CHECK_EQUAL(Join<std::string>({"foo", "bar"}, ", ", op_upper), "FOO, BAR");
+}
 
 BOOST_AUTO_TEST_CASE(util_FormatISO8601DateTime)
 {
@@ -806,6 +821,27 @@ BOOST_AUTO_TEST_CASE(gettime)
     BOOST_CHECK((GetTime() & ~0xFFFFFFFFLL) == 0);
 }
 
+BOOST_AUTO_TEST_CASE(util_time_GetTime)
+{
+    SetMockTime(111);
+    // Check that mock time does not change after a sleep
+    for (const auto& num_sleep : {0, 1}) {
+        UninterruptibleSleep(std::chrono::milliseconds{num_sleep});
+        BOOST_CHECK_EQUAL(111, GetTime()); // Deprecated time getter
+        BOOST_CHECK_EQUAL(111, GetTime<std::chrono::seconds>().count());
+        BOOST_CHECK_EQUAL(111000, GetTime<std::chrono::milliseconds>().count());
+        BOOST_CHECK_EQUAL(111000000, GetTime<std::chrono::microseconds>().count());
+    }
+
+    SetMockTime(0);
+    // Check that system time changes after a sleep
+    const auto ms_0 = GetTime<std::chrono::milliseconds>();
+    const auto us_0 = GetTime<std::chrono::microseconds>();
+    UninterruptibleSleep(std::chrono::milliseconds{1});
+    BOOST_CHECK(ms_0 < GetTime<std::chrono::milliseconds>());
+    BOOST_CHECK(us_0 < GetTime<std::chrono::microseconds>());
+}
+
 BOOST_AUTO_TEST_CASE(test_IsDigit)
 {
     BOOST_CHECK_EQUAL(IsDigit('0'), true);
@@ -1215,6 +1251,41 @@ BOOST_AUTO_TEST_CASE(test_DirIsWritable)
     // Should be able to write to it now.
     BOOST_CHECK_EQUAL(DirIsWritable(tmpdirname), true);
     fs::remove(tmpdirname);
+}
+
+BOOST_AUTO_TEST_CASE(test_ToLower)
+{
+    BOOST_CHECK_EQUAL(ToLower('@'), '@');
+    BOOST_CHECK_EQUAL(ToLower('A'), 'a');
+    BOOST_CHECK_EQUAL(ToLower('Z'), 'z');
+    BOOST_CHECK_EQUAL(ToLower('['), '[');
+    BOOST_CHECK_EQUAL(ToLower(0), 0);
+    BOOST_CHECK_EQUAL(ToLower('\xff'), '\xff');
+
+    BOOST_CHECK_EQUAL(ToLower(""), "");
+    BOOST_CHECK_EQUAL(ToLower("#HODL"), "#hodl");
+    BOOST_CHECK_EQUAL(ToLower("\x00\xfe\xff"), "\x00\xfe\xff");
+}
+
+BOOST_AUTO_TEST_CASE(test_ToUpper)
+{
+    BOOST_CHECK_EQUAL(ToUpper('`'), '`');
+    BOOST_CHECK_EQUAL(ToUpper('a'), 'A');
+    BOOST_CHECK_EQUAL(ToUpper('z'), 'Z');
+    BOOST_CHECK_EQUAL(ToUpper('{'), '{');
+    BOOST_CHECK_EQUAL(ToUpper(0), 0);
+    BOOST_CHECK_EQUAL(ToUpper('\xff'), '\xff');
+
+    BOOST_CHECK_EQUAL(ToUpper(""), "");
+    BOOST_CHECK_EQUAL(ToUpper("#hodl"), "#HODL");
+    BOOST_CHECK_EQUAL(ToUpper("\x00\xfe\xff"), "\x00\xfe\xff");
+}
+
+BOOST_AUTO_TEST_CASE(test_Capitalize)
+{
+    BOOST_CHECK_EQUAL(Capitalize(""), "");
+    BOOST_CHECK_EQUAL(Capitalize("bitcoin"), "Bitcoin");
+    BOOST_CHECK_EQUAL(Capitalize("\x00\xfe\xff"), "\x00\xfe\xff");
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -14,8 +14,6 @@
 #include "Coin.h"
 #include "zkplib.h"
 
-using namespace std;
-
 namespace libzerocoin {
 
 class ArithmeticCircuit {
@@ -31,7 +29,7 @@ public:
     CBigNum Kconst;
     CBN_vector y_vec_neg;
     void setWireValues(const PrivateCoin& coin);
-    static void setPreConstraints(const ZerocoinParams* params, vector<CBN_matrix>& wA, vector<CBN_matrix>& wB, vector<CBN_matrix>& wC, CBN_vector& K);
+    static void setPreConstraints(const ZerocoinParams* params, std::vector<CBN_matrix>& wA, std::vector<CBN_matrix>& wB, std::vector<CBN_matrix>& wC, CBN_vector& K);
     static void set_s_poly(const ZerocoinParams* params,
             std::vector< std::vector< std::pair<int, CBigNum> > >& s_a1, std::vector< std::vector< std::pair<int, CBigNum> > >& s_a2,
             std::vector< std::vector< std::pair<int, CBigNum> > >& s_b1, std::vector< std::vector< std::pair<int, CBigNum> > >& s_b2,
@@ -47,7 +45,7 @@ private:
     const ZerocoinParams* params;
     CBigNum serialNumber;       // coin serial number S
     CBigNum randomness;         // coin randomness v
-    vector<int> r_bits;               // randomness binary decomposition
+    std::vector<int> r_bits;               // randomness binary decomposition
     CBigNum y;                        // indeterminate of the polynomial equation
     std::vector< std::vector< std::pair<int, CBigNum> > > s_poly_a1, s_poly_a2;
     std::vector< std::vector< std::pair<int, CBigNum> > > s_poly_b1, s_poly_b2;

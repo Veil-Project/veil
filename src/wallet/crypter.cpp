@@ -8,7 +8,7 @@
 #include <crypto/sha512.h>
 #include <script/script.h>
 #include <script/standard.h>
-#include <util.h>
+#include <util/system.h>
 #include <wallet/walletdb.h>
 #include <wallet/wallet.h>
 
