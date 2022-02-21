@@ -4878,21 +4878,17 @@ bool AnonWallet::ProcessStealthOutput(const CTxDestination &address, std::vector
         // Found a matching stealth address that is owned by this wallet, record a link to the stealth destination
         assert(AddStealthDestination(addr->GetID(), idStealthDestination));
 
-        if (!pwalletParent->HaveKey(addr->spend_secret_id)) {
-            LogPrintf("%s: Found a watchonly address transaction\n", __func__);
-            watchOnlyOutput.scan_secret.Set(addr->scan_secret.begin(), addr->scan_secret.end(), true);
-            LogPrintf("%s: Is secret valid: %d -- %d\n", __func__, watchOnlyOutput.scan_secret.IsValid(), __LINE__);
+        if (gArgs.GetBoolArg("-watchonly", false)) {
+            if (!pwalletParent->HaveKey(addr->spend_secret_id)) {
+                LogPrintf("%s: Found a watchonly address transaction\n", __func__);
+                watchOnlyOutput.scan_secret.Set(addr->scan_secret.begin(), addr->scan_secret.end(), true);
+                LogPrintf("%s: Is secret valid: %d -- %d\n", __func__, watchOnlyOutput.scan_secret.IsValid(), __LINE__);
 
-//            const auto script = GetScriptForDestination(address);
-//            const auto pk_script = GetScriptForRawPubKey(pkE);  // LegacyScriptrPubKeyMan::AddWatchOnlyInMem needs a pubkey to affect mapWatchKeys
-//            auto spk_man = GetLegacyScriptPubKeyMan();
-//            if (spk_man) {
-//                LOCK(spk_man->cs_KeyStore);
-//                spk_man->AddWatchOnly(script, 0 /* nCreateTime */);
-//                spk_man->AddWatchOnly(pk_script, 0 /* nCreateTime */);
-//            }
-            nFoundStealth++;
-            return true;
+                // TODO, watchonly wallets should ever hold any veil. They should only be watchonly wallets
+                // if you try to access your funds on a watchonly wallet, it will not work because we return here
+                nFoundStealth++;
+                return true;
+            }
         }
 
 

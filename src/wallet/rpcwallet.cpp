@@ -50,6 +50,8 @@
 
 #include <functional>
 #include <boost/assign.hpp>
+#include <veil/ringct/blind.h>
+#include <secp256k1_mlsag.h>
 
 // This enumeration determines the order of the CSV file header columns
 typedef enum
@@ -1072,6 +1074,10 @@ static UniValue getallscankeys(const JSONRPCRequest& request)
             entry.pushKV("address", stealthID->ToString(true));
             entry.pushKV("scan_secret", CBitcoinSecret(key).ToString());
             entry.pushKV("spend_public", HexStr(stealthID->spend_pubkey.begin(), stealthID->spend_pubkey.end()));
+            CKey spendkey;
+            if (pwallet->GetAnonWallet()->GetStealthAddressSpendKey(*stealthID, spendkey)) {
+                entry.pushKV("spend_private", CBitcoinSecret(spendkey).ToString());
+            }
             return entry;
         } else {
             throw JSONRPCError(RPC_WALLET_ERROR, "Private key not available");
@@ -1109,13 +1115,15 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() != 1)
+    if (request.fHelp || request.params.size() > 3)
         throw std::runtime_error(
-                "getwatchonlytxes \"scan_secret\""
+                "getwatchonlytxes \"scan_secret\" \"(scan_public_key)\" \"(spend_secret)\""
                 "\nFetch txes belonging to watchonly address with a certain scan key"
                 + HelpRequiringPassphrase(pwallet) + "\n"
                                                      "\nArguments:\n"
                                                      "1. \"scan_secret\"         (string, required) The private scan key for the address\n"
+                                                     "2. \"scan_public_key\"         (string, optional) The public spend secret\n"
+                                                     "3. \"spend_secret\"         (string, optional) The private spend secret\n"
                                                      "\nResult:\n"
                                                      "\"[\n"
                                                      "txhash,       (string) The txhash\n"
@@ -1151,24 +1159,162 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         scan_secret.Set(&vchScanSecret[0], true);
     }
 
+
+    CPubKey pkSpend;
+    std::string sSpendPublic = "";
+    if (request.params.size() > 1) {
+        std::vector<uint8_t> vchSpendPublic;
+        sSpendPublic = request.params[1].get_str();
+        if (IsHex(sSpendPublic)) {
+            vchSpendPublic = ParseHex(sSpendPublic);
+        }
+
+        if (vchSpendPublic.size() != 33) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend public is not 33 bytes.");
+        }
+
+        pkSpend = CPubKey(vchSpendPublic.begin(), vchSpendPublic.end());
+    }
+
+    std::string sSpendSecret = "";
+    CKey spend_secret;
+    if(request.params.size() > 2) {
+        std::vector<uint8_t> vchSpendSecret;
+        CBitcoinSecret wifSpendSecret;
+        sSpendSecret = request.params[2].get_str();
+        if (IsHex(sSpendSecret)) {
+            vchSpendSecret = ParseHex(sSpendSecret);
+        } else {
+            if (wifSpendSecret.SetString(sSpendSecret)) {
+                spend_secret = wifSpendSecret.GetKey();
+            } else {
+                if (!DecodeBase58(sSpendSecret, vchSpendSecret, MAX_STEALTH_RAW_SIZE)) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode spend secret as WIF, hex or base58.");
+                }
+            }
+        }
+
+        if (vchSpendSecret.size() > 0) {
+            if (vchSpendSecret.size() != 32) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend secret is not 32 bytes.");
+            }
+            spend_secret.Set(&vchScanSecret[0], true);
+        }
+    }
+
     int current_count = 0;
     UniValue txes(UniValue::VOBJ);
     if (GetWatchOnlyKeyCount(scan_secret, current_count)) {
         for (int i = 0; i <= current_count; i++) {
             CWatchOnlyTx watchonlytx;
             if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
-                std::vector<uint8_t> objKeyImage;
-                objKeyImage.resize(33);
-                memcpy(&objKeyImage[0], &watchonlytx.ringctout.pk[0], 33);
-                const CCmpPubKey &ki = *((CCmpPubKey *) &objKeyImage[0 * 33]);
-                uint256 txhash;
-                bool spent = pblocktree->ReadRCTKeyImage(ki, txhash);
-                txes.pushKV(std::to_string(i), watchonlytx.GetUniValue(spent, txhash));
+
+                if (!spend_secret.IsValid()) {
+                    txes.pushKV(std::to_string(i), watchonlytx.GetUniValue());
+                } else {
+                    auto txout = watchonlytx.ringctout;
+
+                    CKeyID idk = txout.pk.GetID();
+                    std::vector<uint8_t> vchEphemPK;
+                    vchEphemPK.resize(33);
+                    memcpy(&vchEphemPK[0], &watchonlytx.ringctout.vData[0], 33);
+
+
+                    CKey sShared;
+                    ec_point pkExtracted;
+                    ec_point ecPubKey;
+                    SetPublicKey(pkSpend, ecPubKey);
+
+                    if (StealthSecret(scan_secret, vchEphemPK, ecPubKey, sShared, pkExtracted) != 0)
+                        error("%s: failed to generate stealth secret", __func__);
+
+                    CKey keyDestination;
+                    if (StealthSharedToSecretSpend(sShared, spend_secret, keyDestination) != 0)
+                        error("%s: StealthSharedToSecretSpend() failed.\n", __func__);
+
+                    if (keyDestination.GetPubKey().GetID() != idk)
+                        error("%s: failed to generate correct shared secret", __func__);
+
+                    // Regenerate nonce
+                    CPubKey pkEphem;
+                    pkEphem.Set(vchEphemPK.begin(), vchEphemPK.begin() + 33);
+                    uint256 nonce = keyDestination.ECDH(pkEphem);
+                    CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
+
+                    uint64_t min_value, max_value;
+                    uint8_t blindOut[32];
+                    unsigned char msg[256]; // Currently narration is capped at 32 bytes
+                    size_t mlen = sizeof(msg);
+                    memset(msg, 0, mlen);
+                    uint64_t amountOut;
+                    if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
+                                                         blindOut, &amountOut, msg, &mlen, nonce.begin(),
+                                                         &min_value, &max_value,
+                                                         &watchonlytx.ringctout.commitment, watchonlytx.ringctout.vRangeproof.data(), watchonlytx.ringctout.vRangeproof.size(),
+                                                         nullptr, 0,
+                                                         secp256k1_generator_h)) {
+                        error("%s: failed to get the amount", __func__);
+                    }
+
+                    CAmount actualAmount = amountOut;
+
+                    // Keyimage is required for the tx hash
+                    CCmpPubKey ki;
+                    if (secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), watchonlytx.ringctout.pk.begin(),
+                                               keyDestination.begin()) == 0) {
+                        // Check if keyimage is used
+                        uint256 txhashKI;
+                        if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
+                            txes.pushKV(std::to_string(i), watchonlytx.GetUniValue(true, txhashKI, false, amountOut));
+                        } else {
+                            txes.pushKV(std::to_string(i), watchonlytx.GetUniValue(false, txhashKI, false, amountOut));
+                        }
+                    }
+                }
             }
         }
     }
 
     return txes;
+}
+
+
+static UniValue checkkeyimage(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "checkkeyimage \"key_image\""
+                "\nCheck if keyimage is spent in the chain."
+                     "\n"
+                     "\nArguments:\n"
+                     "1. \"key_image\"         (string, required) The key image to check\n"
+                     "\nResult:\n"
+                     "\"[\n"
+                     "txhash,       (string) The txhash\n"
+                     "...\n"
+                     "]\"\n"
+        );
+
+    LOCK(cs_main);
+
+    std::string sKeyImage = request.params[0].get_str();
+    if (!IsHex(sKeyImage) || !(sKeyImage.size() == 66)) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Keyimage must be 33 bytes and hex encoded.");
+    }
+
+    std::vector<uint8_t> v = ParseHex(sKeyImage);
+    CCmpPubKey ki(v.begin(), v.end());
+
+    uint256 tx_hash;
+    bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, tx_hash);
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("spent", spent_in_chain);
+    if (spent_in_chain) {
+        result.pushKV("txid", tx_hash.GetHex());
+    }
+
+    return result;
 }
 
 static UniValue scantx(const JSONRPCRequest& request)
@@ -6439,6 +6585,8 @@ static const CRPCCommand commands[] =
     { "wallet",             "scantx",                           &scantx,                        {"raw_tx_hex"} },
     { "wallet",             "addwatchkeys",                     &addwatchkeys,                  {"address", "scan_secret", "spend_public"} },
     { "wallet",             "getwatchonlytxes",                 &getwatchonlytxes,              {"scan_secret"} },
+
+    { "info",             "checkkeyimage",                 &checkkeyimage,              {"key_image"} },
 
 
     { "generating",         "generate",                         &generate,                      {"nblocks","maxtries"} },

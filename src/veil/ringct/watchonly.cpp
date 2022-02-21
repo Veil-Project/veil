@@ -31,13 +31,18 @@ CWatchOnlyTx::CWatchOnlyTx() {
     tx_hash.SetNull();
 }
 
-UniValue CWatchOnlyTx::GetUniValue(bool spent, uint256 txhash)
+UniValue CWatchOnlyTx::GetUniValue(bool spent, uint256 txhash, bool fSkip, CAmount amount)
 {
     UniValue out(UniValue::VOBJ);
-    out.pushKV("spent", spent);
-    if (spent) {
-        out.pushKV("spent_in", txhash.GetHex());
+
+    if (!fSkip) {
+        out.pushKV("amount", ValueFromAmount(amount));
+        out.pushKV("spent", spent);
+        if (spent) {
+            out.pushKV("spent_in", txhash.GetHex());
+        }
     }
+
     RingCTOutputToJSON(this->tx_hash, this->tx_index, this->ringctout, out);
     return out;
 }

@@ -235,11 +235,6 @@ void RingCTOutputToJSON(const uint256& txid, const int& i, const CTxOutRingCT& r
     entry.pushKV("vout.n", i);
     entry.pushKV("pubkey", HexStr(ringctOut.pk.begin(), ringctOut.pk.end()));
     entry.pushKV("pubkey_hash", CBitcoinAddress(ringctOut.pk.GetID()).ToString());
-    std::vector<uint8_t> objKeyImage;
-    objKeyImage.resize(33);
-    memcpy(&objKeyImage[0], &ringctOut.pk[0], 33);
-    entry.pushKV("key_image", HexStr(objKeyImage));
-
     entry.pushKV("valueCommitment", HexStr(&ringctOut.commitment.data[0], &ringctOut.commitment.data[0]+33));
     entry.pushKV("data_hex", HexStr(ringctOut.vData.begin(), ringctOut.vData.end()));
 
