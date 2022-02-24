@@ -228,11 +228,12 @@ void OutputToJSON(const uint256 &txid, const int& i,
     }
 }
 
-void RingCTOutputToJSON(const uint256& txid, const int& i, const CTxOutRingCT& ringctOut, UniValue &entry)
+void RingCTOutputToJSON(const uint256& txid, const int& i, const int64_t& ringctIndex, const CTxOutRingCT& ringctOut, UniValue &entry)
 {
     entry.pushKV("type", "ringct");
     entry.pushKV("tx_hash", txid.GetHex());
     entry.pushKV("vout.n", i);
+    entry.pushKV("ringct_index", ringctIndex);
     entry.pushKV("pubkey", HexStr(ringctOut.pk.begin(), ringctOut.pk.end()));
     entry.pushKV("pubkey_hash", CBitcoinAddress(ringctOut.pk.GetID()).ToString());
     entry.pushKV("valueCommitment", HexStr(&ringctOut.commitment.data[0], &ringctOut.commitment.data[0]+33));

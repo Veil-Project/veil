@@ -42,6 +42,8 @@
 #include <univalue.h>
 #include <stdint.h>
 #include <core_io.h>
+#include <veil/ringct/watchonly.h>
+#include <secp256k1_mlsag.h>
 
 
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
@@ -666,6 +668,1012 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     receipt.SetStatus("Transactions successful.", SEND_OKAY);
 
     return results;
+}
+
+
+static UniValue testbuildlightwallettransaction(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() != 5)
+        throw std::runtime_error(
+                "testbuildlightwallettransaction \"scan_secret\", \"spend_secret\", \"spend_pubkey\", \"destination\", \"amount\""
+                "\nTest RPC call to build the ringct transaction."
+                "\n"
+                "\nArguments:\n"
+                "1. \"scan_secret\"         (string, required) The scan secret\n"
+                "2. \"spend_secret\"         (string, required) The spend secret (Used to decrypt txes and find out if it is spent and the amount\n"
+                "3. \"spend_pubkey\"         (string, required) The spend pubkey\n"
+                "4. \"destination\"         (string, required) The destination for the funds\n"
+                "5. \"amount\"         (number, required) The amount to send\n"
+                "\nResult:\n"
+                "\"[\n"
+                "Total,       (number) The total amount of veil\n"
+                "...\n"
+                "]\"\n"
+        );
+
+    int64_t nComputeTimeStart = GetTimeMillis();
+
+    CAmount nTotal = 0;
+    size_t nRingSizeOfs = 6;
+    size_t nTestFeeOfs = 99;
+    size_t nCoinControlOfs = 99;
+    std::vector<CTempRecipient> vecSend;
+    std::string sError;
+
+    // Decode params 0
+    CKey scan_secret;
+    GetSecretFromString(request.params[0].get_str(), scan_secret);
+
+    // Decode params 1
+    CKey spend_secret;
+    GetSecretFromString(request.params[1].get_str(), spend_secret);
+
+    // Decode params 2
+    CPubKey spend_pubkey;
+    GetPubkeyFromString(request.params[2].get_str(), spend_pubkey);
+
+
+    std::string sAddress = request.params[3].get_str();
+    CBitcoinAddress address(sAddress);
+
+    OutputTypes typeOut;
+    OutputTypes typeIn = OUTPUT_RINGCT;
+    CTxDestination dest;
+
+    if (address.IsValidStealthAddress()) {
+        typeOut = OUTPUT_RINGCT;
+        if (!address.IsValid())
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid stealth address");
+        dest = address.Get();
+    } else {
+        typeOut = OUTPUT_STANDARD;
+        dest = DecodeDestination(sAddress);
+        if (!IsValidDestination(dest)) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid basecoin address");
+        }
+    }
+
+    CAmount nAmount = AmountFromValue(request.params[4]);
+    if (nAmount <= 0) {
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid amount");
+    }
+
+
+    nTotal += nAmount;
+
+    bool fSubtractFeeFromAmount = false;
+//    if (request.params.size() > 4) {
+//        fSubtractFeeFromAmount = request.params[4].get_bool();
+//    }
+
+    if (0 != AddOutput(typeOut, vecSend, dest, nAmount, fSubtractFeeFromAmount, sError)) {
+        throw JSONRPCError(RPC_MISC_ERROR, strprintf("AddOutput failed: %s.", sError));
+    }
+
+    /** Get our total that we can spend */
+    // Fetch watchonly transactions
+    // This check will be happening via api
+    std::vector<std::pair<int, CWatchOnlyTx>> vTxes;
+    FetchWatchOnlyTransactions(scan_secret, vTxes);
+
+    // Store totals
+    CAmount nTotalAmountAvailable = 0;
+    int nTotalAvailableTxes = 0;
+
+    std::vector<CWatchOnlyTx> vAvailableWatchOnly;
+
+    // Loop through all txes, gathering a balance.
+    // Check to make sure they aren't spent by query the fullnode
+    if (vTxes.size()) {
+        for (int i = 0; i < vTxes.size(); i++) {
+            CAmount nAmount;
+            uint256 blind;
+            CCmpPubKey keyImage;
+            if (GetAmountFromWatchonly(vTxes[i].second, scan_secret, spend_secret, spend_pubkey, nAmount, blind,
+                                       keyImage)) {
+
+                // Check if key image is spent
+                // This check will happening via api
+                uint256 tx_hash;
+                bool spent_in_chain = pblocktree->ReadRCTKeyImage(keyImage, tx_hash);
+                if (!spent_in_chain) {
+                    nTotalAmountAvailable += nAmount;
+                    nTotalAvailableTxes += 1;
+                    CWatchOnlyTx temp = vTxes[i].second;
+                    temp.nAmount = nAmount;
+                    temp.blind = blind;
+                    vAvailableWatchOnly.emplace_back(temp);
+                }
+            }
+        }
+    }
+
+    if (nTotalAmountAvailable < nTotal) {
+        throw JSONRPCError(RPC_WALLET_INSUFFICIENT_FUNDS, "Insufficient anon funds");
+    }
+
+    // Assign rign size and inputs per sig
+    size_t nRingSize = Params().DefaultRingSize();
+    size_t nInputsPerSig = nRingSize;
+
+    // Get change address
+    CStealthAddress sxAddr;
+    sxAddr.label = "";
+    sxAddr.scan_secret = scan_secret;
+    sxAddr.spend_secret_id = spend_pubkey.GetID();
+    sxAddr.prefix.number_bits = 0;
+
+    if (0 != SecretToPublicKey(sxAddr.scan_secret, sxAddr.scan_pubkey)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not get scan public key.");
+    }
+
+    if (spend_secret.IsValid() && 0 != SecretToPublicKey(spend_secret, sxAddr.spend_pubkey)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not get spend public key.");
+    } else {
+        SetPublicKey(spend_pubkey, sxAddr.spend_pubkey);
+    }
+
+    CBitcoinAddress addrChange;
+    addrChange.Set(sxAddr, true);
+
+    // Set the change address in coincontrol
+    CCoinControl coincontrol;
+    coincontrol.destChange = addrChange.Get();
+
+    if (vecSend.size() < 1) {
+        sError = strprintf("Transaction must have at least one recipient.");
+        throw JSONRPCError(RPC_TRANSACTION_ERROR, "Transaction must have at least one recipient.");
+    }
+
+    CAmount nValue = 0;
+    for (const auto &r : vecSend) {
+        nValue += r.nAmount;
+        if (nValue < 0 || r.nAmount < 0) {
+            sError = strprintf("Transaction amounts must not be negative.");
+            throw JSONRPCError(RPC_TRANSACTION_ERROR, "Transaction amounts must not be negative.");
+        }
+    }
+
+    if (nRingSize < MIN_RINGSIZE || nRingSize > MAX_RINGSIZE) {
+        sError = strprintf("Ring size out of range.");
+        return error("%s: %s", __func__, sError);
+    }
+
+    if (nInputsPerSig < 1 || nInputsPerSig > MAX_ANON_INPUTS) {
+        sError = strprintf("Num inputs per signature out of range.");
+        return error("%s: %s", __func__, sError);
+    }
+
+    for (CTempRecipient &r: vecSend) {
+        if (r.nType == OUTPUT_STANDARD) {
+            if (r.address.type() == typeid(CExtKeyPair)) {
+                throw std::runtime_error(strprintf("%s: sending to extkeypair", __func__));
+            } else if (r.address.type() == typeid(CKeyID)) {
+                r.scriptPubKey = GetScriptForDestination(r.address);
+            } else {
+                if (!r.fScriptSet) {
+                    r.scriptPubKey = GetScriptForDestination(r.address);
+                    if (r.scriptPubKey.empty()) {
+                        sError = strprintf("Unknown address type and no script set.");
+                        return error("%s: %s", __func__, sError);
+                    }
+                }
+            }
+        } else if (r.nType == OUTPUT_RINGCT) {
+            CKey sEphem = r.sEphem;
+            if (!sEphem.IsValid()) {
+                sEphem.MakeNewKey(true);
+            }
+
+            if (r.address.type() == typeid(CStealthAddress)) {
+                CStealthAddress sx = boost::get<CStealthAddress>(r.address);
+
+                CKey sShared;
+                ec_point pkSendTo;
+                int k, nTries = 24;
+                for (k = 0; k < nTries; ++k) {
+                    if (StealthSecret(sEphem, sx.scan_pubkey, sx.spend_pubkey, sShared, pkSendTo) == 0) {
+                        break;
+                    }
+                    sEphem.MakeNewKey(true);
+                }
+                if (k >= nTries) {
+                    sError = strprintf("Could not generate receiving public key.");
+                    return error("%s: %s", __func__, sError);
+                }
+
+                r.pkTo = CPubKey(pkSendTo);
+                CKeyID idTo = r.pkTo.GetID();
+
+                if (sx.prefix.number_bits > 0) {
+                    r.nStealthPrefix = FillStealthPrefix(sx.prefix.number_bits, sx.prefix.bitfield);
+                }
+            } else {
+                throw JSONRPCError(RPC_TRANSACTION_ERROR,
+                                   "RINGCT Outputs - Only able to send to stealth address for now.");
+            }
+
+            r.sEphem = sEphem;
+        }
+    }
+
+    CMutableTransaction txNew;
+    txNew.nLockTime = 0;
+
+    FeeCalculation feeCalc;
+    CAmount nFeeNeeded;
+    unsigned int nBytes;
+
+    // Get inputs = vAvailableWatchOnly
+    CAmount nValueOutPlain = 0;
+    int nChangePosInOut = -1;
+
+    std::vector<std::vector<std::vector<int64_t> > > vMI;
+    std::vector<std::vector<uint8_t> > vInputBlinds;
+    std::vector<size_t> vSecretColumns;
+
+    size_t nSubFeeTries = 100;
+    bool pick_new_inputs = true;
+    CAmount nValueIn = 0;
+
+    CAmount nFeeRet = 0;
+
+    size_t nSubtractFeeFromAmount = 0;
+
+    std::vector<CWatchOnlyTx> vSelectedWatchOnly;
+
+    txNew.vin.clear();
+    txNew.vpout.clear();
+    vSelectedWatchOnly.clear();
+
+    CAmount nValueToSelect = nValue;
+    if (nSubtractFeeFromAmount == 0) {
+        nValueToSelect += nFeeRet;
+    }
+
+    nValueIn = 0;
+    std::vector<CWatchOnlyTx> vSelectedTxes;
+
+    CAmount currentMinimumChange = 0;
+    CAmount tempsingleamountchange = 0;
+    CAmount tempmultipleamountchange = 0;
+
+    bool fSingleInput = false;
+    bool fMultipleInput = false;
+
+    for (const CWatchOnlyTx &tx : vAvailableWatchOnly) {
+        if (tx.nAmount > nAmount) {
+            tempsingleamountchange = tx.nAmount - nAmount;
+            if (tempsingleamountchange < currentMinimumChange || currentMinimumChange == 0) {
+                vSelectedTxes.clear();
+                fSingleInput = true;
+                vSelectedTxes.emplace_back(tx);
+                currentMinimumChange = tempsingleamountchange;
+            }
+        }
+    }
+
+    if (!fSingleInput) {
+        vSelectedTxes.clear();
+        // We can use a single input for this transaction
+        CAmount currentSelected = 0;
+        for (const CWatchOnlyTx &tx : vAvailableWatchOnly) {
+            currentSelected += tx.nAmount;
+            vSelectedTxes.emplace_back(tx);
+            if (currentSelected > nAmount) {
+                tempmultipleamountchange = currentSelected - nAmount;
+                fMultipleInput = true;
+                break;
+            }
+        }
+    }
+
+    CAmount nTempChange = 0;
+    if (fSingleInput) {
+        nTempChange = tempsingleamountchange;
+    } else if (fMultipleInput) {
+        nTempChange = tempmultipleamountchange;
+    } else {
+        throw JSONRPCError(RPC_TRANSACTION_ERROR,
+                           "RINGCT Outputs - Couldn't find enough ringct inputs for selected amount");
+    }
+
+    const CAmount nChange = nTempChange;
+
+    // Insert a sender-owned 0 value output that becomes the change output if needed
+    {
+        // Fill an output to ourself
+        CTempRecipient recipient;
+        recipient.nType = OUTPUT_RINGCT;
+        recipient.fChange = true;
+        recipient.sEphem.MakeNewKey(true);
+
+        recipient.address = coincontrol.destChange;
+
+        if (recipient.address.type() == typeid(CStealthAddress)) {
+            CStealthAddress sx = boost::get<CStealthAddress>(recipient.address);
+            CKey keyShared;
+            ec_point pkSendTo;
+
+            int k, nTries = 24;
+            for (k = 0; k < nTries; ++k) {
+                if (StealthSecret(recipient.sEphem, sx.scan_pubkey, sx.spend_pubkey, keyShared, pkSendTo) == 0)
+                    break;
+                recipient.sEphem.MakeNewKey(true);
+            }
+            if (k >= nTries)
+                return error("%s: Could not generate receiving public key.", __func__);
+
+            CPubKey pkEphem = recipient.sEphem.GetPubKey();
+            if (!pkEphem.IsValid())
+                return error("%s: Ephemeral pubkey is not valid\n", __func__);
+            recipient.pkTo = CPubKey(pkSendTo);
+            CKeyID idTo = recipient.pkTo.GetID();
+            recipient.scriptPubKey = GetScriptForDestination(idTo);
+        } else {
+            throw JSONRPCError(RPC_TRANSACTION_ERROR, "Change address wasn't of CStealthAddress Type");
+        }
+
+        if (nChange > ::minRelayTxFee.GetFee(2048)) {
+            recipient.SetAmount(nChange);
+        } else {
+            recipient.SetAmount(0);
+            nFeeRet += nChange;
+        }
+
+        if (nChangePosInOut < 0) {
+            nChangePosInOut = GetRandInt(vecSend.size() + 1);
+        } else {
+            nChangePosInOut = std::min(nChangePosInOut, (int) vecSend.size());
+        }
+
+        if (nChangePosInOut < (int) vecSend.size() && vecSend[nChangePosInOut].nType == OUTPUT_DATA) {
+            nChangePosInOut++;
+        }
+
+        vecSend.insert(vecSend.begin() + nChangePosInOut, recipient);
+
+        // TODO - commenting out this section, because i don't think it is needed.
+//            // Insert data output for stealth address if required
+//            if (recipient.vData.size() > 0) {
+//                CTempRecipient rd;
+//                rd.nType = OUTPUT_DATA;
+//                rd.fChange = true;
+//                rd.vData = recipient.vData;
+//                recipient.vData.clear();
+//                //vecSend.insert(vecSend.begin()+nChangePosInOut+1, rd);
+//            }
+    }
+
+    int nRemainder = vSelectedTxes.size() % nInputsPerSig;
+    int nTxRingSigs = vSelectedTxes.size() / nInputsPerSig + (nRemainder == 0 ? 0 : 1);
+
+
+    size_t nRemainingInputs = vSelectedTxes.size();
+
+    //Add blank anon inputs as anon inputs
+    for (int k = 0; k < nTxRingSigs; ++k) {
+        size_t nInputs = (k == nTxRingSigs - 1 ? nRemainingInputs : nInputsPerSig);
+        CTxIn txin;
+        txin.nSequence = CTxIn::SEQUENCE_FINAL;
+        txin.prevout.n = COutPoint::ANON_MARKER;
+        txin.SetAnonInfo(nInputs, nRingSize);
+        txNew.vin.emplace_back(txin);
+
+        nRemainingInputs -= nInputs;
+    }
+
+    vMI.clear();
+    vInputBlinds.clear();
+    vSecretColumns.clear();
+    vMI.resize(nTxRingSigs);
+    vInputBlinds.resize(nTxRingSigs);
+    vSecretColumns.resize(nTxRingSigs);
+    nValueOutPlain = 0;
+    nChangePosInOut = -1;
+
+    OUTPUT_PTR<CTxOutData> outFee = MAKE_OUTPUT<CTxOutData>();
+    outFee->vData.push_back(DO_FEE);
+    outFee->vData.resize(9); // More bytes than varint fee could use
+    txNew.vpout.push_back(outFee);
+
+    bool fFirst = true;
+    for (size_t i = 0; i < vecSend.size(); ++i) {
+        auto &recipient = vecSend[i];
+
+        recipient.ApplySubFee(nFeeRet, nSubtractFeeFromAmount, fFirst);
+
+        OUTPUT_PTR<CTxOutBase> txbout;
+        CreateOutput(txbout, recipient, sError);
+
+        if (recipient.nType == OUTPUT_STANDARD) {
+            nValueOutPlain += recipient.nAmount;
+        }
+
+        if (recipient.fChange && recipient.nType == OUTPUT_RINGCT) {
+            nChangePosInOut = i;
+        }
+
+        recipient.n = txNew.vpout.size();
+        txNew.vpout.push_back(txbout);
+        if (recipient.nType == OUTPUT_RINGCT) {
+            if (recipient.vBlind.size() != 32) {
+                recipient.vBlind.resize(32);
+                GetStrongRandBytes(&recipient.vBlind[0], 32);
+            }
+
+            //ADD CT DATA
+            {
+                secp256k1_pedersen_commitment *pCommitment = txbout->GetPCommitment();
+                std::vector<uint8_t> *pvRangeproof = txbout->GetPRangeproof();
+
+                if (!pCommitment || !pvRangeproof) {
+                    sError = strprintf("Unable to get CT pointers for output type %d.", txbout->GetType());
+                    return error("%s: %s", __func__, sError);
+                }
+
+                uint64_t nValue = recipient.nAmount;
+                if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, pCommitment, (uint8_t *) &recipient.vBlind[0],
+                                               nValue, secp256k1_generator_h)) {
+                    sError = strprintf("Pedersen commit failed.");
+                    return error("%s: %s", __func__, sError);
+                }
+
+                uint256 nonce;
+                if (recipient.fNonceSet) {
+                    nonce = recipient.nonce;
+                } else {
+                    if (!recipient.sEphem.IsValid()) {
+                        sError = strprintf("Invalid ephemeral key.");
+                        return error("%s: %s", __func__, sError);
+                    }
+                    if (!recipient.pkTo.IsValid()) {
+                        sError = strprintf("Invalid recipient public key.");
+                        return error("%s: %s", __func__, sError);
+                    }
+                    nonce = recipient.sEphem.ECDH(recipient.pkTo);
+                    CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
+                    recipient.nonce = nonce;
+                }
+
+                const char *message = recipient.sNarration.c_str();
+                size_t mlen = strlen(message);
+
+                size_t nRangeProofLen = 5134;
+                pvRangeproof->resize(nRangeProofLen);
+
+                uint64_t min_value = 0;
+                int ct_exponent = 2;
+                int ct_bits = 32;
+
+                if (0 != SelectRangeProofParameters(nValue, min_value, ct_exponent, ct_bits)) {
+                    sError = strprintf("Failed to select range proof parameters.");
+                    return error("%s: %s", __func__, sError);
+                }
+
+                if (recipient.fOverwriteRangeProofParams == true) {
+                    min_value = recipient.min_value;
+                    ct_exponent = recipient.ct_exponent;
+                    ct_bits = recipient.ct_bits;
+                }
+
+                if (1 != secp256k1_rangeproof_sign(secp256k1_ctx_blind,
+                                                   &(*pvRangeproof)[0], &nRangeProofLen,
+                                                   min_value, pCommitment,
+                                                   &recipient.vBlind[0], nonce.begin(),
+                                                   ct_exponent, ct_bits, nValue,
+                                                   (const unsigned char *) message, mlen,
+                                                   nullptr, 0, secp256k1_generator_h)) {
+                    sError = strprintf("Failed to sign range proof.");
+                    return error("%s: %s", __func__, sError);
+                }
+
+                pvRangeproof->resize(nRangeProofLen);
+            }
+        }
+    }
+
+    vInputBlinds.resize(32 * vSelectedWatchOnly.size());
+
+    std::set<int64_t> setHave; // Anon prev-outputs can only be used once per transaction.
+    size_t nTotalInputs = 0;
+    for (size_t l = 0; l < txNew.vin.size(); ++l) { // Must add real outputs to setHave before picking decoys
+        auto &txin = txNew.vin[l];
+        uint32_t nSigInputs, nSigRingSize;
+        txin.GetAnonInfo(nSigInputs, nSigRingSize);
+
+        vInputBlinds[l].resize(32 * nSigInputs);
+
+        size_t currentSize = nTotalInputs + nSigInputs;
+        nTotalInputs += nSigInputs;
+
+        // Placing real inputs
+        {
+            if (nSigRingSize < MIN_RINGSIZE || nSigRingSize > MAX_RINGSIZE) {
+                sError = strprintf("Ring size out of range [%d, %d].", MIN_RINGSIZE, MAX_RINGSIZE);
+                return error("%s: %s", __func__, sError);
+            }
+
+            //GetStrongRandBytes((unsigned char*)&nSecretColumn, sizeof(nSecretColumn));
+            //nSecretColumn %= nRingSize;
+            vSecretColumns[l] = GetRandInt(nSigRingSize);
+
+            //TODO, what size is this supposed to be?
+            vMI[l].resize(currentSize);
+
+            for (size_t k = 0; k < vSelectedTxes.size(); ++k) {
+                vMI[l][k].resize(nSigRingSize);
+                for (size_t i = 0; i < nSigRingSize; ++i) {
+                    if (i == vSecretColumns[l]) {
+                        // TODO: Store pubkey on COutputRecord - in scriptPubKey?
+                        const auto &coin = vSelectedTxes[k];
+                        const uint256 &txhash = vSelectedTxes[k].tx_hash;
+
+                        CCmpPubKey pk = vSelectedTxes[k].ringctout.pk;
+                        memcpy(&vInputBlinds[l][k * 32], &vSelectedTxes[k].blind, 32);
+
+                        int64_t index = vSelectedTxes[k].ringctIndex;
+
+                        if (setHave.count(index)) {
+                            sError = strprintf("Duplicate index found: %d.", index);
+                            return error("%s: %s", __func__, sError);
+                        }
+
+                        vMI[l][k][i] = index;
+                        setHave.insert(index);
+                    }
+                }
+            }
+        }
+    }
+
+    // Fill in dummy signatures for fee calculation.
+    for (size_t l = 0; l < txNew.vin.size(); ++l) {
+        auto &txin = txNew.vin[l];
+        uint32_t nSigInputs, nSigRingSize;
+        txin.GetAnonInfo(nSigInputs, nSigRingSize);
+
+        // Place Hiding Outputs
+        {
+            std::set<int64_t> setIndexSelected;
+            std::vector<std::pair<int64_t, CAnonOutput> > vecSelectedOutputs;
+            std::string sError;
+
+            // TODO - verify the nsiginputs and nringsize are set correctly
+            if (!GetMainWallet()->GetAnonWallet()->GetRandomHidingOutputs(vMI[l].size(), nSigRingSize, setIndexSelected,
+                                                                          vecSelectedOutputs, sError)) {
+                throw JSONRPCError(RPC_WALLET_ERROR, sError);
+            }
+
+            int nCurrentLocation = 0;
+            for (size_t k = 0; k < vMI[l].size(); ++k) {
+                for (size_t i = 0; i < nSigRingSize; ++i) {
+                    if (i == vSecretColumns[l]) {
+                        continue;
+                    }
+
+                    vMI[l][k][i] = vecSelectedOutputs[nCurrentLocation].first;
+                    nCurrentLocation++;
+                }
+            }
+        }
+
+        std::vector<uint8_t> vPubkeyMatrixIndices;
+
+        for (size_t k = 0; k < nSigInputs; ++k)
+            for (size_t i = 0; i < nSigRingSize; ++i) {
+                PutVarInt(vPubkeyMatrixIndices, vMI[l][k][i]);
+            }
+
+        std::vector<uint8_t> vKeyImages(33 * nSigInputs);
+        txin.scriptData.stack.emplace_back(vKeyImages);
+
+        txin.scriptWitness.stack.emplace_back(vPubkeyMatrixIndices);
+
+        std::vector<uint8_t> vDL((1 + (nSigInputs + 1) * nSigRingSize) *
+                                 32 // extra element for C, extra row for commitment row
+                                 + (txNew.vin.size() > 1 ? 33
+                                                         : 0)); // extra commitment for split value if multiple sigs
+        txin.scriptWitness.stack.emplace_back(vDL);
+    }
+
+    nBytes = GetVirtualTransactionSize(txNew);
+
+    // TODO, have the server give us the feerate per Byte, when asking for txes
+    // TODO, for now set to CENT
+    nFeeNeeded = CENT;
+
+    if (nFeeRet >= nFeeNeeded) {
+        // Reduce fee to only the needed amount if possible. This
+        // prevents potential overpayment in fees if the coins
+        // selected to meet nFeeNeeded result in a transaction that
+        // requires less fee than the prior iteration.
+        if (nFeeRet > nFeeNeeded && nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
+            auto &r = vecSend[nChangePosInOut];
+
+            CAmount extraFeePaid = nFeeRet - nFeeNeeded;
+
+            r.nAmount += extraFeePaid;
+            nFeeRet -= extraFeePaid;
+        }
+    } else if (!pick_new_inputs) {
+        // This shouldn't happen, we should have had enough excess
+        // fee to pay for the new output and still meet nFeeNeeded
+        // Or we should have just subtracted fee from recipients and
+        // nFeeNeeded should not have changed
+
+        if (!nSubtractFeeFromAmount || !(--nSubFeeTries)) {
+            sError = strprintf("Transaction fee and change calculation failed.");
+            return error("%s: %s", __func__, sError);
+        }
+    }
+
+    // Try to reduce change to include necessary fee
+    if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
+        auto &r = vecSend[nChangePosInOut];
+        CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
+        if (r.nAmount >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
+            r.nAmount -= additionalFeeNeeded;
+            nFeeRet += additionalFeeNeeded;
+        }
+    }
+
+    // If subtracting fee from recipients, we now know what fee we
+    // need to subtract, we have no reason to reselect inputs
+    if (nSubtractFeeFromAmount > 0) {
+        pick_new_inputs = false;
+    }
+
+    // Include more fee and try again.
+    nFeeRet = nFeeNeeded;
+
+    vSelectedWatchOnly = vSelectedTxes;
+
+    coincontrol.nChangePos = nChangePosInOut;
+    nValueOutPlain += nFeeRet;
+
+    // Remove scriptSigs to eliminate the fee calculation dummy signatures
+    for (auto &txin : txNew.vin) {
+        txin.scriptData.stack[0].resize(0);
+        txin.scriptWitness.stack[1].resize(0);
+    }
+
+    std::vector<const uint8_t *> vpOutCommits;
+    std::vector<const uint8_t *> vpOutBlinds;
+    std::vector<uint8_t> vBlindPlain;
+    secp256k1_pedersen_commitment plainCommitment;
+    vBlindPlain.resize(32);
+    memset(&vBlindPlain[0], 0, 32);
+
+    if (nValueOutPlain > 0) {
+        LogPrintf("nValueOutPlain is greater than 0. DOing some stuff to the commits, and blinds - %d\n", FormatMoney(nValueOutPlain));
+        if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainCommitment, &vBlindPlain[0],
+                                       (uint64_t) nValueOutPlain, secp256k1_generator_h)) {
+            sError = strprintf("Pedersen Commit failed for plain out.");
+            return error("%s: %s", __func__, sError);
+        }
+
+        vpOutCommits.push_back(plainCommitment.data);
+        vpOutBlinds.push_back(&vBlindPlain[0]);
+    }
+
+    // Update the change output commitment
+    for (size_t i = 0; i < vecSend.size(); ++i) {
+        auto &r = vecSend[i];
+
+        if ((int) i == nChangePosInOut) {
+            // Change amount may have changed
+
+            if (r.nType != OUTPUT_RINGCT) {
+                sError = strprintf("Change output is not RingCT type.");
+                return error("%s: %s", __func__, sError);
+            }
+
+            if (r.vBlind.size() != 32) {
+                r.vBlind.resize(32);
+                GetStrongRandBytes(&r.vBlind[0], 32);
+            }
+
+
+            {
+                CTxOutBase* txout = txNew.vpout[r.n].get();
+
+                secp256k1_pedersen_commitment *pCommitment = txout->GetPCommitment();
+                std::vector<uint8_t> *pvRangeproof = txout->GetPRangeproof();
+
+                if (!pCommitment || !pvRangeproof) {
+                    sError = strprintf("Unable to get CT pointers for output type %d.", txout->GetType());
+                    return error("%s: %s", __func__, sError);
+                }
+
+                uint64_t nValue = r.nAmount;
+                if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, pCommitment, (uint8_t *) &r.vBlind[0], nValue,
+                                               secp256k1_generator_h)) {
+                    sError = strprintf("Pedersen commit failed.");
+                    return error("%s: %s", __func__, sError);
+                }
+
+                uint256 nonce;
+                if (r.fNonceSet) {
+                    nonce = r.nonce;
+                } else {
+                    if (!r.sEphem.IsValid()) {
+                        sError = strprintf("Invalid ephemeral key.");
+                        return error("%s: %s", __func__, sError);
+                    }
+                    if (!r.pkTo.IsValid()) {
+                        sError = strprintf("Invalid recipient public key.");
+                        return error("%s: %s", __func__, sError);
+                    }
+                    nonce = r.sEphem.ECDH(r.pkTo);
+                    CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
+                    r.nonce = nonce;
+                }
+
+                const char *message = r.sNarration.c_str();
+                size_t mlen = strlen(message);
+
+                size_t nRangeProofLen = 5134;
+                pvRangeproof->resize(nRangeProofLen);
+
+                uint64_t min_value = 0;
+                int ct_exponent = 2;
+                int ct_bits = 32;
+
+                if (0 != SelectRangeProofParameters(nValue, min_value, ct_exponent, ct_bits)) {
+                    sError = strprintf("Failed to select range proof parameters.");
+                    return error("%s: %s", __func__, sError);
+                }
+
+                if (r.fOverwriteRangeProofParams == true) {
+                    min_value = r.min_value;
+                    ct_exponent = r.ct_exponent;
+                    ct_bits = r.ct_bits;
+                }
+
+                if (1 != secp256k1_rangeproof_sign(secp256k1_ctx_blind,
+                                                   &(*pvRangeproof)[0], &nRangeProofLen,
+                                                   min_value, pCommitment,
+                                                   &r.vBlind[0], nonce.begin(),
+                                                   ct_exponent, ct_bits, nValue,
+                                                   (const unsigned char *) message, mlen,
+                                                   nullptr, 0, secp256k1_generator_h)) {
+                    sError = strprintf("Failed to sign range proof.");
+                    return error("%s: %s", __func__, sError);
+                }
+
+                pvRangeproof->resize(nRangeProofLen);
+            }
+        }
+
+        if (r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT) {
+            vpOutCommits.push_back(txNew.vpout[r.n]->GetPCommitment()->data);
+            vpOutBlinds.push_back(&r.vBlind[0]);
+        }
+    }
+
+    std::vector<std::pair<COutPoint, CKey>> vKeysForSigningInputs(vSelectedWatchOnly.size());
+
+    //Add actual fee to CT Fee output
+    std::vector<uint8_t> &vData = ((CTxOutData *) txNew.vpout[0].get())->vData;
+    vData.resize(1);
+    if (0 != PutVarInt(vData, nFeeRet)) {
+        sError = strprintf("Failed to add fee to transaction.");
+        return error("%s: %s", __func__, sError);
+    }
+
+    std::vector<CKey> vSplitCommitBlindingKeys(txNew.vin.size()); // input amount commitment when > 1 mlsag
+    int rv;
+    nTotalInputs = 0;
+
+    for (size_t l = 0; l < txNew.vin.size(); ++l) {
+        auto &txin = txNew.vin[l];
+
+        uint32_t nSigInputs, nSigRingSize;
+        txin.GetAnonInfo(nSigInputs, nSigRingSize);
+
+        std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
+        vKeyImages.resize(33 * nSigInputs);
+
+        for (size_t k = 0; k < nSigInputs; ++k) {
+            size_t i = vSecretColumns[l];
+            int64_t nIndex = vMI[l][k][i];
+
+            CAnonOutput anonOutput;
+            if (!pblocktree->ReadRCTOutput(nIndex, anonOutput)) {
+                sError = strprintf("Output %d not found in database.", nIndex);
+                return error("%s: %s", __func__, sError);
+            }
+
+            std::vector<uint8_t> vchEphemPK;
+
+            for (auto tx : vSelectedWatchOnly) {
+                if (COutPoint(tx.tx_hash, tx.tx_index) == anonOutput.outpoint) {
+                    vchEphemPK.resize(33);
+                    memcpy(&vchEphemPK[0], &tx.ringctout.vData[0], 33);
+                    LogPrintf("Found the correct outpoint to generate vchEphemPK\n");
+                    break;
+                }
+            }
+
+            CKey sShared;
+            ec_point pkExtracted;
+            ec_point ecPubKey;
+            SetPublicKey(spend_pubkey, ecPubKey);
+
+            CKey keyDestination;
+            CKeyID idk = anonOutput.pubkey.GetID();
+
+            if (StealthSecret(scan_secret, vchEphemPK, ecPubKey, sShared, pkExtracted) != 0)
+                error("%s: failed to generate stealth secret", __func__);
+
+            if (StealthSharedToSecretSpend(sShared, spend_secret, keyDestination) != 0)
+                error("%s: StealthSharedToSecretSpend() failed.\n", __func__);
+
+            if (keyDestination.GetPubKey().GetID() != idk)
+                error("%s: failed to generate correct shared secret", __func__);
+
+            vKeysForSigningInputs.emplace_back(anonOutput.outpoint, keyDestination);
+
+            // Keyimage is required for the tx hash
+            rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], anonOutput.pubkey.begin(), keyDestination.begin());
+            if (0 != rv) {
+                sError = strprintf("Failed to get keyimage.");
+                return error("%s: %s", __func__, sError);
+            }
+        }
+    }
+
+    for (size_t l = 0; l < txNew.vin.size(); ++l) {
+        auto &txin = txNew.vin[l];
+
+        uint32_t nSigInputs, nSigRingSize;
+        txin.GetAnonInfo(nSigInputs, nSigRingSize);
+
+        size_t nCols = nSigRingSize;
+        size_t nRows = nSigInputs + 1;
+
+        uint8_t randSeed[32];
+        GetStrongRandBytes(randSeed, 32);
+
+        std::vector<CKey> vsk(nSigInputs);
+        std::vector<const uint8_t *> vpsk(nRows);
+
+        std::vector<uint8_t> vm(nCols * nRows * 33);
+        std::vector<secp256k1_pedersen_commitment> vCommitments;
+        vCommitments.reserve(nCols * nSigInputs);
+        std::vector<const uint8_t *> vpInCommits(nCols * nSigInputs);
+        std::vector<const uint8_t *> vpBlinds;
+
+
+        std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
+
+        for (size_t k = 0; k < nSigInputs; ++k) {
+            for (size_t i = 0; i < nCols; ++i) {
+                int64_t nIndex = vMI[l][k][i];
+
+                CAnonOutput ao;
+                if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
+                    sError = strprintf("Output %d not found in database.", nIndex);
+                    return error("%s: %s", __func__, sError);
+                }
+
+                memcpy(&vm[(i + k * nCols) * 33], ao.pubkey.begin(), 33);
+                vCommitments.push_back(ao.commitment);
+                vpInCommits[i + k * nCols] = vCommitments.back().data;
+
+                if (i == vSecretColumns[l]) {
+                    CKeyID idk = ao.pubkey.GetID();
+                    bool fFoundKey = false;
+                    for (const auto &pair: vKeysForSigningInputs) {
+                        if (pair.first == ao.outpoint) {
+                            vsk[k] = pair.second;
+                            fFoundKey = true;
+                            break;
+                        }
+                    }
+
+                    if (!fFoundKey) {
+                        sError = strprintf("No key for output: %s", HexStr(ao.pubkey.begin(), ao.pubkey.end()));
+                        return error("%s: %s", __func__, sError);
+                    }
+
+                    vpsk[k] = vsk[k].begin();
+
+                    vpBlinds.push_back(&vInputBlinds[l][k * 32]);
+                }
+            }
+        }
+
+        uint8_t blindSum[32];
+        memset(blindSum, 0, 32);
+        vpsk[nRows - 1] = blindSum;
+
+        std::vector<uint8_t> &vDL = txin.scriptWitness.stack[1];
+
+        if (txNew.vin.size() == 1) {
+            vDL.resize((1 + (nSigInputs + 1) * nSigRingSize) * 32); // extra element for C, extra row for commitment row
+            vpBlinds.insert(vpBlinds.end(), vpOutBlinds.begin(), vpOutBlinds.end());
+
+            if (0 != (rv = secp256k1_prepare_mlsag(&vm[0], blindSum,
+                                                   vpOutCommits.size(), vpOutCommits.size(), nCols, nRows,
+                                                   &vpInCommits[0], &vpOutCommits[0], &vpBlinds[0]))) {
+                sError = strprintf("Failed to prepare mlsag with %d.", rv);
+                return error("%s: %s", __func__, sError);
+            }
+        } else {
+            // extra element for C extra, extra row for commitment row, split input commitment
+            vDL.resize((1 + (nSigInputs + 1) * nSigRingSize) * 32 + 33);
+
+            if (l == txNew.vin.size() - 1) {
+                std::vector<const uint8_t *> vpAllBlinds = vpOutBlinds;
+
+                for (size_t k = 0; k < l; ++k) {
+                    vpAllBlinds.push_back(vSplitCommitBlindingKeys[k].begin());
+                }
+
+                if (!secp256k1_pedersen_blind_sum(secp256k1_ctx_blind,
+                                                  vSplitCommitBlindingKeys[l].begin_nc(),
+                                                  &vpAllBlinds[0], vpAllBlinds.size(),
+                                                  vpOutBlinds.size())) {
+                    sError = strprintf("Pedersen blind sum failed.");
+                    return error("%s: %s", __func__, sError);
+                }
+            } else {
+                vSplitCommitBlindingKeys[l].MakeNewKey(true);
+            }
+
+            CAmount nCommitValue = 0;
+            for (size_t k = 0; k < vSelectedWatchOnly.size(); k++) {
+                nCommitValue += vSelectedWatchOnly[k].nAmount;
+            }
+
+            nTotalInputs += nSigInputs;
+
+            secp256k1_pedersen_commitment splitInputCommit;
+            if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &splitInputCommit,
+                                           (uint8_t *) vSplitCommitBlindingKeys[l].begin(),
+                                           nCommitValue, secp256k1_generator_h)) {
+                sError = strprintf("Pedersen commit failed.");
+                return error("%s: %s", __func__, sError);
+            }
+
+            memcpy(&vDL[(1 + (nSigInputs + 1) * nSigRingSize) * 32], splitInputCommit.data, 33);
+            vpBlinds.emplace_back(vSplitCommitBlindingKeys[l].begin());
+
+            const uint8_t *pSplitCommit = splitInputCommit.data;
+            if (0 != (rv = secp256k1_prepare_mlsag(&vm[0], blindSum, 1, 1, nCols, nRows,
+                                                   &vpInCommits[0], &pSplitCommit, &vpBlinds[0]))) {
+                sError = strprintf("Failed to prepare mlsag with %d.", rv);
+                return error("%s: %s", __func__, sError);
+            }
+
+            vpBlinds.pop_back();
+        };
+
+        uint256 hashOutputs = txNew.GetOutputsHash();
+        if (0 != (rv = secp256k1_generate_mlsag(secp256k1_ctx_blind, &vKeyImages[0], &vDL[0], &vDL[32],
+                                                randSeed, hashOutputs.begin(), nCols, nRows, vSecretColumns[l],
+                                                &vpsk[0], &vm[0]))) {
+            sError = strprintf("Failed to generate mlsag with %d.", rv);
+            return error("%s: %s", __func__, sError);
+        }
+
+        // Validate the mlsag
+        if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind, hashOutputs.begin(), nCols,
+                                              nRows, &vm[0], &vKeyImages[0], &vDL[0], &vDL[32]))) {
+            sError = strprintf("Failed to generate mlsag on initial generation %d.", rv);
+            return error("%s: %s", __func__, sError);
+        }
+    }
+
+    CValidationState state;
+    CTransactionRef txRef = MakeTransactionRef(std::move(txNew));
+    if (AcceptToMemoryPool(mempool, state, txRef, nullptr /* pfMissingInputs */,
+                       nullptr /* plTxnReplaced */, true /* bypass_limits */, 0 /* nAbsurdFee */)) {
+        return txRef->GetHash().GetHex();
+    } else {
+        return strprintf("Failed to submit to mempool %s\n", state.GetRejectReason());
+    }
 }
 
 static const char *TypeToWord(OutputTypes type)
@@ -2183,7 +3191,7 @@ static UniValue getanonoutputs(const JSONRPCRequest &request)
     UniValue result(UniValue::VARR);
 
     std::set<int64_t> setIndexSelected;
-    std::vector< std::pair<int,CAnonOutput> > vecSelectedOutputs;
+    std::vector< std::pair<int64_t,CAnonOutput> > vecSelectedOutputs;
     std::string sError;
     if (anonwallet->GetRandomHidingOutputs(nInputSize, nRingSize, setIndexSelected, vecSelectedOutputs, sError)) {
         for (const auto& out : vecSelectedOutputs) {
@@ -2227,6 +3235,8 @@ static const CRPCCommand commands[] =
 
                 { "wallet",             "importstealthaddress",          &importstealthaddress,          {"scan_secret", "spend_secret", "label", "num_prefix_bits", "prefix_num", "bech32"} },
                 { "wallet",             "getanonoutputs",                &getanonoutputs,                {"inputsize", "ringsize"} },
+                { "wallet",             "testbuildlightwallettransaction",                &testbuildlightwallettransaction,                {"scan_secret", "spend_secret", "spend_pubkey", "destination", "amount"} },
+
         };
 
 void RegisterHDWalletRPCCommands(CRPCTable &t)

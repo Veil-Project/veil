@@ -65,6 +65,11 @@ public:
     int tx_index;
     CTxOutRingCT ringctout;
 
+    //Memory only - Amount (For testing only)
+    CAmount nAmount;
+    uint256 blind;
+    int64_t ringctIndex;
+
     ADD_SERIALIZE_METHODS;
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream &s, Operation ser_action)
@@ -88,11 +93,17 @@ bool LoadWatchOnlyAddresses();
 bool GetWatchOnlyAddressTransactions(const CBitcoinAddress& address, std::vector<uint256>& txhashses);
 bool AddWatchOnlyTransaction(const CKey& key,const CWatchOnlyTx& watchonlytx);
 bool ReadWatchOnlyTransaction(const CKey& key, const int& count, CWatchOnlyTx& watchonlytx);
+void FetchWatchOnlyTransactions(const CKey& scan_secret, std::vector<std::pair<int, CWatchOnlyTx>>& vTxes, int nStartFromIndex = -1, int nStopIndex = -1);
 
 
 /* Watchonly adddress transaction count */
 bool IncrementWatchOnlyKeyCount(const CKey& key);
 bool GetWatchOnlyKeyCount(const CKey& key, int& current_count);
+
+
+bool GetSecretFromString(const std::string& strSecret, CKey& secret);
+bool GetPubkeyFromString(const std::string& strPubkey, CPubKey& pubkey);
+bool GetAmountFromWatchonly(const CWatchOnlyTx& watchonlytx, const CKey& scan_secret, const CKey& spend_secret, const CPubKey& spend_pubkey, CAmount& nAmount, uint256& blindOut, CCmpPubKey& keyImage);
 
 
 

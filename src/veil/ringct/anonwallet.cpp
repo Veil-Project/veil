@@ -3156,7 +3156,7 @@ bool AnonWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size
 }
 
 
-bool AnonWallet::GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std::set<int64_t> &setHave, std::vector<std::pair<int, CAnonOutput> >& randomoutputs, std::string &sError)
+bool AnonWallet::GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std::set<int64_t> &setHave, std::vector<std::pair<int64_t, CAnonOutput> >& randomoutputs, std::string &sError)
 {
     if (nRingSize < MIN_RINGSIZE || nRingSize > MAX_RINGSIZE) {
         sError = strprintf("Ring size out of range [%d, %d].", MIN_RINGSIZE, MAX_RINGSIZE);
@@ -5113,7 +5113,7 @@ bool AnonWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t
                     LogPrintf("%s - %d\n", __func__, __LINE__);
 
                     UniValue out(UniValue::VOBJ);
-                    RingCTOutputToJSON(watchonlyTx.tx_hash, watchonlyTx.tx_index, watchonlyTx.ringctout, out);
+                    RingCTOutputToJSON(watchonlyTx.tx_hash, watchonlyTx.tx_index, watchonlyTx.ringctIndex, watchonlyTx.ringctout, out);
                     std::cout << out.write(1,1) << std::endl;
                 }
             }

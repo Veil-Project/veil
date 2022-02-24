@@ -1202,6 +1202,11 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         }
     }
 
+
+    std::vector<std::pair<int,CWatchOnlyTx>> vTxes;
+
+    FetchWatchOnlyTransactions(scan_secret, vTxes);
+
     int current_count = 0;
     UniValue txes(UniValue::VOBJ);
     if (GetWatchOnlyKeyCount(scan_secret, current_count)) {
@@ -1218,7 +1223,6 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
                     std::vector<uint8_t> vchEphemPK;
                     vchEphemPK.resize(33);
                     memcpy(&vchEphemPK[0], &watchonlytx.ringctout.vData[0], 33);
-
 
                     CKey sShared;
                     ec_point pkExtracted;
@@ -1278,6 +1282,72 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
     return txes;
 }
 
+static UniValue testgetlightwalletbalance(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 3)
+        throw std::runtime_error(
+                "testlightwallettransaction \"scan_secret\", \"spend_secret\", \"spend_pubkey\""
+                "\nTest RPC call to get the ringct balance of a wallet address that has been imported as a watchonly address."
+                "\n"
+                "\nArguments:\n"
+                "1. \"scan_secret\"         (string, required) The scan secret\n"
+                "2. \"spend_secret\"         (string, required) The spend secret (Used to decrypt txes and find out if it is spent and the amount\n"
+                "3. \"spend_pubkey\"         (string, required) The spend pubkey\n"
+                "\nResult:\n"
+                "\"[\n"
+                "Total,       (number) The total amount of veil\n"
+                "...\n"
+                "]\"\n"
+        );
+
+
+    // Decode params 0
+    CKey scan_secret;
+    GetSecretFromString(request.params[0].get_str(), scan_secret);
+
+    // Decode params 1
+    CKey spend_secret;
+    GetSecretFromString(request.params[1].get_str(), spend_secret);
+
+    // Decode params 2
+    CPubKey spend_pubkey;
+    GetPubkeyFromString(request.params[2].get_str(), spend_pubkey);
+
+    // Fetch watchonly transactions
+    // This check will be happening via api
+    std::vector<std::pair<int,CWatchOnlyTx>> vTxes;
+    FetchWatchOnlyTransactions(scan_secret, vTxes);
+
+    // Store totals
+    CAmount nTotalAmountAvailable = 0;
+    int nTotalAvailableTxes = 0;
+
+    // Loop through all txes, gathering a balance.
+    // Check to make sure they aren't spent by query the fullnode
+    if (vTxes.size()) {
+        for (int i =0; i < vTxes.size(); i++) {
+            CAmount nAmount;
+            uint256 blind;
+            CCmpPubKey keyImage;
+            if (GetAmountFromWatchonly(vTxes[i].second, scan_secret, spend_secret, spend_pubkey, nAmount, blind, keyImage)) {
+                // Check if key image is spent
+                // This check will happening via api
+                uint256 tx_hash;
+                bool spent_in_chain = pblocktree->ReadRCTKeyImage(keyImage, tx_hash);
+                if (!spent_in_chain) {
+                    nTotalAmountAvailable += nAmount;
+                    nTotalAvailableTxes += 1;
+                }
+            }
+        }
+    }
+
+    UniValue ret(UniValue::VOBJ);
+    ret.pushKV("Amount", ValueFromAmount(nTotalAmountAvailable));
+    ret.pushKV("Inputs", nTotalAvailableTxes);
+
+    return ret;
+}
 
 static UniValue checkkeyimage(const JSONRPCRequest& request)
 {
@@ -6587,7 +6657,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "getwatchonlytxes",                 &getwatchonlytxes,              {"scan_secret"} },
 
     { "info",             "checkkeyimage",                 &checkkeyimage,              {"key_image"} },
-
+    { "info",             "testgetlightwalletbalance",                 &testgetlightwalletbalance,              {"scan_secret", "spend_secret"} },
 
     { "generating",         "generate",                         &generate,                      {"nblocks","maxtries"} },
     { "generating",         "generatecontinuous",               &generatecontinuous,            {"fGenerate"} },

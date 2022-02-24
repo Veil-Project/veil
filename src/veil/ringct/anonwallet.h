@@ -238,7 +238,7 @@ public:
     bool PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size_t nSecretColumn, size_t nRingSize, std::set<int64_t> &setHave,
          std::string &sError);
 
-    bool GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std::set<int64_t> &setHave, std::vector<std::pair<int,CAnonOutput> >& randomoutputs, std::string &sError);
+    bool GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std::set<int64_t> &setHave, std::vector<std::pair<int64_t,CAnonOutput>>& randomoutputs, std::string &sError);
 
 
     bool IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint);

@@ -228,6 +228,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "importstealthaddress", 5, "bech32"},
     { "getanonoutputs", 0, "inputsize"},
     { "getanonoutputs", 1, "ringsize"},
+    { "testbuildlightwallettransaction", 4, "amount"},
 
 };
 
