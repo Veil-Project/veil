@@ -198,29 +198,28 @@ int SecretToPublicKey(const CKey &secret, ec_point &out)
 
 int StealthShared(const CKey &secret, const ec_point &pubkey, CKey &sharedSOut)
 {
-    LogPrintf("%s: %d\n", __func__, __LINE__);
     if (pubkey.size() != EC_COMPRESSED_SIZE) {
         LogPrintf("%s: sanity checks failed.\n", __func__);
         return errorN(1, "%s: sanity checks failed.", __func__);
     }
-    LogPrintf("%s: %d\n", __func__, __LINE__);
+
     secp256k1_pubkey Q;
     if (!secp256k1_ec_pubkey_parse(secp256k1_ctx_stealth, &Q, &pubkey[0], EC_COMPRESSED_SIZE)) {
         LogPrintf("%s: secp256k1_ec_pubkey_parse Q failed.\n", __func__);
         return errorN(1, "%s: secp256k1_ec_pubkey_parse Q failed.", __func__);
     }
-    LogPrintf("%s: %d\n", __func__, __LINE__);
+
     if (!secp256k1_ec_pubkey_tweak_mul(secp256k1_ctx_stealth, &Q, secret.begin())) { // eQ
         LogPrintf("%s: secp256k1_ec_pubkey_tweak_mul failed.\n", __func__);
         return errorN(1, "%s: secp256k1_ec_pubkey_tweak_mul failed.", __func__);
     }
-    LogPrintf("%s: %d\n", __func__, __LINE__);
+
     size_t len = 33;
     uint8_t tmp33[33];
     secp256k1_ec_pubkey_serialize(secp256k1_ctx_stealth, tmp33, &len, &Q, SECP256K1_EC_COMPRESSED); // Returns: 1 always.
-    LogPrintf("%s: %d\n", __func__, __LINE__);
+
     CSHA256().Write(tmp33, 33).Finalize(sharedSOut.begin_nc());
-    LogPrintf("%s: %d\n", __func__, __LINE__);
+
     return 0;
 };
 
@@ -254,7 +253,6 @@ int StealthSecret(const CKey &secret, const ec_point &pubkey, const ec_point &pk
 
     test 0 and infinity?
     */
-
     if (pubkey.size() != EC_COMPRESSED_SIZE || pkSpend.size() != EC_COMPRESSED_SIZE)
         return errorN(1, "%s: sanity checks failed.", __func__);
 

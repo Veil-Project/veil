@@ -45,7 +45,6 @@
 #include <veil/ringct/watchonly.h>
 #include <secp256k1_mlsag.h>
 
-
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 
 static UniValue getnewaddress(const JSONRPCRequest &request)
@@ -670,6 +669,28 @@ static UniValue SendToInner(const JSONRPCRequest &request, OutputTypes typeIn, O
     return results;
 }
 
+#include <veil/ringct/lightwallet.h>
+static UniValue runtest(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+                "runtest \"scan_secret\", \"spend_secret\", \"spend_pubkey\", \"destination\", \"amount\""
+                "\nTest RPC call to build the ringct transaction."
+                "\n"
+                "\nArguments:\n"
+                "\nResult:\n"
+                "\"[\n"
+                "Total,       (number) The total amount of veil\n"
+                "...\n"
+                "]\"\n"
+        );
+
+
+    std::string txHex = TestBuildWalletTransaction();
+
+    UniValue ret(UniValue::VOBJ);
+    ret.pushKV("data", txHex);
+    return ret;
+}
 
 static UniValue testbuildlightwallettransaction(const JSONRPCRequest& request) {
     if (request.fHelp || request.params.size() != 5)
@@ -1171,8 +1192,6 @@ static UniValue testbuildlightwallettransaction(const JSONRPCRequest& request) {
             }
         }
     }
-
-    vInputBlinds.resize(32 * vSelectedWatchOnly.size());
 
     std::set<int64_t> setHave; // Anon prev-outputs can only be used once per transaction.
     size_t nTotalInputs = 0;
@@ -3236,6 +3255,7 @@ static const CRPCCommand commands[] =
                 { "wallet",             "importstealthaddress",          &importstealthaddress,          {"scan_secret", "spend_secret", "label", "num_prefix_bits", "prefix_num", "bech32"} },
                 { "wallet",             "getanonoutputs",                &getanonoutputs,                {"inputsize", "ringsize"} },
                 { "wallet",             "testbuildlightwallettransaction",                &testbuildlightwallettransaction,                {"scan_secret", "spend_secret", "spend_pubkey", "destination", "amount"} },
+                { "wallet",             "runtest",                &runtest,                {} },
 
         };
 
