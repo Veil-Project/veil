@@ -36,11 +36,12 @@ CWatchOnlyTx::CWatchOnlyTx() {
     tx_hash.SetNull();
 }
 
-UniValue CWatchOnlyTx::GetUniValue(bool spent, uint256 txhash, bool fSkip, CAmount amount)
+UniValue CWatchOnlyTx::GetUniValue(bool spent, std::string keyimage, uint256 txhash, bool fSkip, CAmount amount)
 {
     UniValue out(UniValue::VOBJ);
 
     if (!fSkip) {
+        out.pushKV("keyimage", keyimage);
         out.pushKV("amount", ValueFromAmount(amount));
         out.pushKV("spent", spent);
         if (spent) {

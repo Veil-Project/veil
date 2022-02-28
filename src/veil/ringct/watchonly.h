@@ -80,7 +80,7 @@ public:
         READWRITE(ringctout);
     };
 
-    UniValue GetUniValue(bool spent = false, uint256 txhash = uint256(), bool fSkip = true, CAmount amount = 0);
+    UniValue GetUniValue(bool spent = false, std::string keyimage = "", uint256 txhash = uint256(), bool fSkip = true, CAmount amount = 0);
 };
 
 /** Watchonly address methods */

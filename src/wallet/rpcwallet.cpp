@@ -1269,9 +1269,9 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
                         // Check if keyimage is used
                         uint256 txhashKI;
                         if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
-                            txes.pushKV(std::to_string(i), watchonlytx.GetUniValue(true, txhashKI, false, amountOut));
+                            txes.pushKV(std::to_string(i), watchonlytx.GetUniValue(true, HexStr(ki),  txhashKI, false, amountOut));
                         } else {
-                            txes.pushKV(std::to_string(i), watchonlytx.GetUniValue(false, txhashKI, false, amountOut));
+                            txes.pushKV(std::to_string(i), watchonlytx.GetUniValue(false, HexStr(ki), txhashKI, false, amountOut));
                         }
                     }
                 }
