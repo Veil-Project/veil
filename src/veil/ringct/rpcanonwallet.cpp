@@ -3179,6 +3179,198 @@ static UniValue importstealthaddress(const JSONRPCRequest &request)
 };
 
 
+static UniValue importlightwalletaddress(const JSONRPCRequest &request)
+{
+    if (request.fHelp || request.params.size() < 3)
+        throw std::runtime_error(
+                "importlightwalletaddress \"scan_secret\" \"spend_secret\" \"created_height\" \"label\" num_prefix_bits \"prefix_num\" \"bech32\" \n"
+                "\nImport a stealth addresses. If spend_secret is valid privatekey it will be fully imported. If spend_secret is the spend pubkey it will be added as a watchonly address\n"
+                "\nArguments:\n"
+                "1. \"scan_secret\"                      (string, required) Scan secret key\n"
+                "2. \"spend_secret\"                     (string, required) Spend secret key or Spend Public Key (watchonly)\n"
+                "3. \"created_height\"                   (string, required) The block height, this address was created at. Can be a timestamp also\n"
+                "4. \"label\"                            (string, optional default=\"\") Label for address in addressbook\n"
+                "5. \"num_prefix_bits\"                  (number, optional default=0) Number of prefix bits\n"
+                "6. \"prefix_num\"                       (string, optional default=\"\") prefix_num\n"
+                "7. bech32                               (bool, optional default=true) Is address bech32\n"
+                + HelpExampleCli("importlightwalletaddress", "\"cQS2VU6R4CjsnrXn6jJWSvtzvrcjKHBB4mVSe17o4toJPPBqkbRm\" \"0362ae0f399a0a9f32c71f91ad75e009440c773ae663029acc486c4fb855c287a4\" 1000")
+                + HelpExampleRpc("importlightwalletaddress", "\"cQS2VU6R4CjsnrXn6jJWSvtzvrcjKHBB4mVSe17o4toJPPBqkbRm\" \"0362ae0f399a0a9f32c71f91ad75e009440c773ae663029acc486c4fb855c287a4\" 1000")
+        );
+
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    if (!wallet) return NullUniValue;
+
+    CWallet* const pwallet = wallet.get();
+    auto anonwallet = pwallet->GetAnonWallet();
+
+    if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: Private keys are disabled for this wallet");
+    }
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    const int64_t nImported = chainActive.Height();
+
+    std::string sScanSecret  = request.params[0].get_str();
+    std::string sLabel, sSpendSecret;
+
+    if (request.params.size() > 1) {
+        sSpendSecret = request.params[1].get_str();
+    }
+
+    int64_t nCreated = request.params.size() > 2 ? request.params[2].get_int64() : 0;
+
+    // Check is created is a timestamp or height
+    if (nCreated > 1000000000) {
+        // We got a timestamp. Conver to block height
+        CBlockIndex* index = chainActive.FindEarliestAtLeast(nCreated);
+        if (index) {
+            nCreated = index->nHeight;
+        } else {
+            nCreated = 0;
+        }
+    } else {
+        if (nCreated < 0) {
+            nCreated = 0;
+        } else if (nCreated > nImported) {
+            nCreated = nImported;
+        }
+    }
+
+    if (request.params.size() > 3) {
+        sLabel = request.params[3].get_str();
+    }
+
+    uint32_t num_prefix_bits = request.params.size() > 4 ? request.params[4].get_int() : 0;
+    if (num_prefix_bits > 32) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "num_prefix_bits must be <= 32.");
+    }
+
+    uint32_t nPrefix = 0;
+    std::string sPrefix_num;
+    if (request.params.size() > 5) {
+        sPrefix_num = request.params[5].get_str();
+        if (!ExtractStealthPrefix(sPrefix_num.c_str(), nPrefix)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not convert prefix to number.");
+        }
+    }
+
+    bool fBech32 = request.params.size() > 6 ? request.params[6].get_bool() : true;
+
+    std::vector<uint8_t> vchScanSecret, vchSpendSecret;
+    CBitcoinSecret wifScanSecret, wifSpendSecret;
+    CKey skScan, skSpend;
+    CPubKey pkSpend;
+    if (IsHex(sScanSecret)) {
+        vchScanSecret = ParseHex(sScanSecret);
+    } else
+    if (wifScanSecret.SetString(sScanSecret)) {
+        skScan = wifScanSecret.GetKey();
+    } else {
+        if (!DecodeBase58(sScanSecret, vchScanSecret, MAX_STEALTH_RAW_SIZE)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode scan secret as WIF, hex or base58.");
+        }
+    }
+    if (vchScanSecret.size() > 0) {
+        if (vchScanSecret.size() != 32) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Scan secret is not 32 bytes.");
+        }
+        skScan.Set(&vchScanSecret[0], true);
+    }
+
+    if (IsHex(sSpendSecret)) {
+        vchSpendSecret = ParseHex(sSpendSecret);
+    } else
+    if (wifSpendSecret.SetString(sSpendSecret)) {
+        skSpend = wifSpendSecret.GetKey();
+    } else {
+        if (!DecodeBase58(sSpendSecret, vchSpendSecret, MAX_STEALTH_RAW_SIZE)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode spend secret as hex or base58.");
+        }
+    }
+    if (vchSpendSecret.size() > 0) {
+        if (vchSpendSecret.size() == 32) {
+            skSpend.Set(&vchSpendSecret[0], true);
+        } else
+        if (vchSpendSecret.size() == 33) {
+            // watchonly
+            pkSpend = CPubKey(vchSpendSecret.begin(), vchSpendSecret.end());
+        } else {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend secret is not 32 or 33 bytes.");
+        }
+    }
+
+    if (!pkSpend.IsValid() && !skSpend.IsValid()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Must provide the spend key or pubkey.");
+    }
+
+    if (skSpend == skScan) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend secret must be different to scan secret.");
+    }
+
+    CStealthAddress sxAddr;
+    sxAddr.label = sLabel;
+    sxAddr.scan_secret = skScan;
+    if (skSpend.IsValid()) {
+        pkSpend = skSpend.GetPubKey();
+        sxAddr.spend_secret_id = pkSpend.GetID();
+    } else {
+        sxAddr.spend_secret_id = pkSpend.GetID();
+    }
+
+    sxAddr.prefix.number_bits = num_prefix_bits;
+    if (sxAddr.prefix.number_bits > 0) {
+        if (sPrefix_num.empty()) {
+            // if pPrefix is null, set nPrefix from the hash of kSpend
+            uint8_t tmp32[32];
+            CSHA256().Write(skSpend.begin(), 32).Finalize(tmp32);
+            memcpy(&nPrefix, tmp32, 4);
+            nPrefix = le32toh(nPrefix);
+        }
+
+        uint32_t nMask = SetStealthMask(num_prefix_bits);
+        nPrefix = nPrefix & nMask;
+        sxAddr.prefix.bitfield = nPrefix;
+    }
+
+    if (0 != SecretToPublicKey(sxAddr.scan_secret, sxAddr.scan_pubkey)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not get scan public key.");
+    }
+    if (skSpend.IsValid() && 0 != SecretToPublicKey(skSpend, sxAddr.spend_pubkey)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not get spend public key.");
+    } else {
+        SetPublicKey(pkSpend, sxAddr.spend_pubkey);
+    }
+
+    UniValue result(UniValue::VOBJ);
+    if (anonwallet->HaveStealthAddress(sxAddr)) { // check for extkeys, no update possible
+        throw JSONRPCError(RPC_WALLET_ERROR, "Import failed - stealth address exists.");
+    }
+
+//      pwallet->SetAddressBook(sxAddr, sLabel, "", fBech32);
+
+    if (!anonwallet->ImportStealthAddress(sxAddr, skSpend)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Could not save to wallet.");
+    }
+
+
+    if (!AddWatchOnlyAddress(sxAddr.ToString(fBech32), skScan, pkSpend, nCreated, nImported)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Could not save light wallet address.");
+    }
+
+    result.pushKV("result", "Success");
+    result.pushKV("stealth_address", sxAddr.ToString(fBech32));
+    result.pushKV("imported_on", nImported);
+    result.pushKV("created_on", nCreated);
+
+    if (!skSpend.IsValid()) {
+        result.pushKV("watchonly", true);
+    }
+
+    return result;
+};
+
+
 static UniValue getanonoutputs(const JSONRPCRequest &request)
 {
     if (request.fHelp || request.params.size() != 2)
@@ -3253,6 +3445,8 @@ static const CRPCCommand commands[] =
 
 
                 { "wallet",             "importstealthaddress",          &importstealthaddress,          {"scan_secret", "spend_secret", "label", "num_prefix_bits", "prefix_num", "bech32"} },
+                { "wallet",             "importlightwalletaddress",          &importlightwalletaddress,          {"scan_secret", "spend_secret", "created_height", "label", "num_prefix_bits", "prefix_num", "bech32"} },
+
                 { "wallet",             "getanonoutputs",                &getanonoutputs,                {"inputsize", "ringsize"} },
                 { "wallet",             "testbuildlightwallettransaction",                &testbuildlightwallettransaction,                {"scan_secret", "spend_secret", "spend_pubkey", "destination", "amount"} },
                 { "wallet",             "runtest",                &runtest,                {} },

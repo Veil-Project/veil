@@ -27,25 +27,26 @@ static const char DB_WATCHONLY_KEY = 'K';
 static const char DB_WATCHONLY_TXS = 'T';
 static const char DB_WATCHONLY_KEY_COUNT = 'C';
 
+static const char DB_WATCHONLY_BLOCK_TX = 'B';
+
 CWatchOnlyDB::CWatchOnlyDB(size_t nCacheSize, bool fMemory, bool fWipe) : CDBWrapper(GetDataDir() / "watchonly", nCacheSize, fMemory, fWipe)
 {
 }
 
-bool CWatchOnlyDB::WriteAddressKey(const CBitcoinAddress& address, const CKey& scan_secret, const CPubKey& scan_pubkey)
+// TODO - do we want to use address as the key. we could also use data.scan_secret.GetPubKey().GetID();
+bool CWatchOnlyDB::WriteWatchOnlyAddress(const std::string& address, const CWatchOnlyAddress& data)
 {
     CDBBatch batch(*this);
-    batch.Write(std::make_pair(DB_WATCHONLY_KEY, address.ToString()), std::make_pair(scan_secret, scan_pubkey));
-    LogPrint(BCLog::WATCHONLYDB, "Writing stealth address %s to db.\n", address.ToString());
+    batch.Write(std::make_pair(DB_WATCHONLY_KEY, address), data);
+    LogPrint(BCLog::WATCHONLYDB, "Writing watchonly address data %s to db.\n", address);
     return WriteBatch(batch);
 }
 
-bool CWatchOnlyDB::ReadAddressKey(const CBitcoinAddress& address, CKey& scan_secret, CPubKey& scan_pubkey)
+// TODO - do we want to use address as the key. we could also use data.scan_secret.GetPubKey().GetID();
+bool CWatchOnlyDB::ReadWatchOnlyAddress(const std::string& address, CWatchOnlyAddress& data)
 {
-    std::pair<CKey, CPubKey> pairKeys;
-    bool fSuccess = Read(std::make_pair(DB_WATCHONLY_KEY, address.ToString()), pairKeys);
-    scan_secret = pairKeys.first;
-    scan_pubkey = pairKeys.second;
-    LogPrint(BCLog::WATCHONLYDB, "Reading stealth address %s from db.\n", address.ToString());
+    bool fSuccess = Read(std::make_pair(DB_WATCHONLY_KEY, address), data);
+    LogPrint(BCLog::WATCHONLYDB, "Reading watchonly address %s from db.\n", address);
     return fSuccess;
 }
 
@@ -59,10 +60,11 @@ bool CWatchOnlyDB::LoadWatchOnlyAddresses()
         std::pair<char, std::string> key;
 
         if (pcursor->GetKey(key) && key.first == DB_WATCHONLY_KEY) {
-            std::pair<CKey, CPubKey> value;
+            CWatchOnlyAddress value;
 
+            std::string keyString = key.second;
             if (pcursor->GetValue(value)) {
-                mapWatchOnlyAddresses.insert(std::make_pair(key.second, CWatchOnlyAddress(value.first, value.second)));
+                mapWatchOnlyAddresses.insert(std::make_pair(keyString, value));
             } else {
                 return error("failed to read watchonly addresses");
             }
@@ -75,7 +77,6 @@ bool CWatchOnlyDB::LoadWatchOnlyAddresses()
     LogPrint(BCLog::WATCHONLYDB, "Loaded %d watchonly addresses from database\n", mapWatchOnlyAddresses.size());
     return true;
 }
-
 
 bool CWatchOnlyDB::WriteWatchOnlyTx(const CKey& key, const int& current_count, const CWatchOnlyTx& watchonlytx)
 {
@@ -107,5 +108,20 @@ bool CWatchOnlyDB::ReadKeyCount(const CKey& key, int& current_count)
 {
     bool fSuccess = Read(std::make_pair(DB_WATCHONLY_KEY_COUNT, key), current_count);
     LogPrint(BCLog::WATCHONLYDB, "Reading keycount %d from db.\n", current_count);
+    return fSuccess;
+}
+
+bool CWatchOnlyDB::WriteBlockTransactions(const int64_t& nBlockHeight, const std::vector<CMutableTransaction>& vTransactions)
+{
+    CDBBatch batch(*this);
+    batch.Write(std::make_pair(DB_WATCHONLY_BLOCK_TX, nBlockHeight), vTransactions);
+    LogPrint(BCLog::WATCHONLYDB, "Writing block txes for height %d to db.\n", nBlockHeight);
+    return WriteBatch(batch);
+}
+
+bool CWatchOnlyDB::ReadBlockTransactions(const int64_t& nBlockHeight, std::vector<CMutableTransaction>& vTransactions)
+{
+    bool fSuccess = Read(std::make_pair(DB_WATCHONLY_BLOCK_TX, nBlockHeight), vTransactions);
+    LogPrint(BCLog::WATCHONLYDB, "Reading block txes for height %d from db.\n", nBlockHeight);
     return fSuccess;
 }

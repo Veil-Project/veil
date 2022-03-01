@@ -276,6 +276,18 @@ void Shutdown()
         DumpMempool();
     }
 
+    if (gArgs.GetBoolArg("-watchonly", false)) {
+        if (!FlushWatchOnlyAddresses()) {
+            error("Fail to write watchonly addresses to database.");
+        }
+
+        {
+            LOCK(cs_watchonly);
+            // Ran into memory problems if this map wasn't cleared before shutdown.
+            mapWatchOnlyAddresses.clear();
+        }
+    }
+
     if (fFeeEstimatesInitialized)
     {
         ::feeEstimator.FlushUnconfirmed();
@@ -1785,6 +1797,11 @@ bool AppInitMain()
         	LogPrintf("Invalid -nautomintdenom value set: %d. Defaulting to : %d\n", nPreferredDenom, DEFAULT_AUTOMINT_DENOM);
             nPreferredDenom = DEFAULT_AUTOMINT_DENOM;
         }
+    }
+
+    // Load watchonly addresses
+    if (gArgs.GetBoolArg("-watchonly", false)) {
+        LoadWatchOnlyAddresses();
     }
 
 

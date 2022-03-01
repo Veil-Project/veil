@@ -40,10 +40,17 @@ extern std::unique_ptr<CWatchOnlyDB> pwatchonlyDB;
 class CWatchOnlyAddress
 {
 public:
-    CWatchOnlyAddress(const CKey& scan, const CPubKey& spend);
+    CWatchOnlyAddress();
+    CWatchOnlyAddress(const CKey& scan, const CPubKey& spend, const int64_t& nStartScanning, const int64_t& nImported, const int64_t& nScannedHeight);
 
     CKey scan_secret;
     CPubKey spend_pubkey;
+    int64_t nScanStartHeight;
+    int64_t nImportedHeight;
+    int64_t nCurrentScannedHeight;
+
+    //Memory only -
+    bool fDirty = false;
 
     ADD_SERIALIZE_METHODS;
     template <typename Stream, typename Operation>
@@ -51,6 +58,9 @@ public:
     {
         READWRITE(scan_secret);
         READWRITE(spend_pubkey);
+        READWRITE(nScanStartHeight);
+        READWRITE(nImportedHeight);
+        READWRITE(nCurrentScannedHeight);
     };
 };
 
@@ -84,9 +94,10 @@ public:
 };
 
 /** Watchonly address methods */
-bool AddWatchOnlyAddress(const CBitcoinAddress& address, const CKey& scan_secret, const CPubKey& spend_pubkey);
-bool RemoveWatchOnlyAddress(const CBitcoinAddress& address, const CKey& scan_secret, const CPubKey& spend_pubkey);
+bool AddWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey, const int64_t& nStart, const int64_t& nImported);
+bool RemoveWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey);
 bool LoadWatchOnlyAddresses();
+bool FlushWatchOnlyAddresses();
 
 
 /** Watchonly address transaction methods */
@@ -100,12 +111,11 @@ void FetchWatchOnlyTransactions(const CKey& scan_secret, std::vector<std::pair<i
 bool IncrementWatchOnlyKeyCount(const CKey& key);
 bool GetWatchOnlyKeyCount(const CKey& key, int& current_count);
 
-
 bool GetSecretFromString(const std::string& strSecret, CKey& secret);
 bool GetPubkeyFromString(const std::string& strPubkey, CPubKey& pubkey);
 bool GetAmountFromWatchonly(const CWatchOnlyTx& watchonlytx, const CKey& scan_secret, const CKey& spend_secret, const CPubKey& spend_pubkey, CAmount& nAmount, uint256& blindOut, CCmpPubKey& keyImage);
 
 
-
+bool CheckBlockForWatchOnlyTx();
 
 #endif //VEIL_WATCHONLY_H

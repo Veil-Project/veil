@@ -19,12 +19,18 @@
 /** Map of watchonly keys */
 std::map<std::string, CWatchOnlyAddress> mapWatchOnlyAddresses;
 
-
-CWatchOnlyAddress::CWatchOnlyAddress(const CKey& scan, const CPubKey& spend) {
-    scan_secret = scan;
-    spend_pubkey = spend;
+CWatchOnlyAddress::CWatchOnlyAddress()
+{
+//    SetNull();
 }
 
+CWatchOnlyAddress::CWatchOnlyAddress(const CKey& scan, const CPubKey& spend, const int64_t& nStartScanning, const int64_t& nImported, const int64_t& nScannedHeight) {
+    scan_secret = scan;
+    spend_pubkey = spend;
+    nScanStartHeight = nStartScanning;
+    nImportedHeight = nImported;
+    nCurrentScannedHeight = nScannedHeight;
+}
 
 CWatchOnlyTx::CWatchOnlyTx(const CKey& key, const uint256& txhash) {
     scan_secret = key;
@@ -53,37 +59,56 @@ UniValue CWatchOnlyTx::GetUniValue(bool spent, std::string keyimage, uint256 txh
     return out;
 }
 
-bool AddWatchOnlyAddress(const CBitcoinAddress& address, const CKey& scan_secret, const CPubKey& spend_pubkey)
+bool AddWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey, const int64_t& nStart, const int64_t& nImported)
 {
-    if (mapWatchOnlyAddresses.count(address.ToString())) {
-        auto watchOnlyInfo = mapWatchOnlyAddresses.at(address.ToString());
+    if (mapWatchOnlyAddresses.count(address)) {
+        auto watchOnlyInfo = mapWatchOnlyAddresses.at(address);
         if (scan_secret == watchOnlyInfo.scan_secret && spend_pubkey == watchOnlyInfo.spend_pubkey) {
-            LogPrint(BCLog::WATCHONLYDB, "Trying to add a watchonly address that already exists: %s\n", address.ToString());
+            LogPrint(BCLog::WATCHONLYDB, "Trying to add a watchonly address that already exists: %s\n", address);
             return true;
         } else {
-            LogPrint(BCLog::WATCHONLYDB, "Trying to add a watchonly address with different scan key and pubkey then what already exists: %s\n", address.ToString());
+            LogPrint(BCLog::WATCHONLYDB, "Trying to add a watchonly address with different scan key and pubkey then what already exists: %s\n", address);
             return false;
         }
     } else {
-        if (!pwatchonlyDB->WriteAddressKey(address, scan_secret, spend_pubkey)) {
-            LogPrint(BCLog::WATCHONLYDB, "Failed to WriteAddressKey: %s\n", address.ToString());
+        CWatchOnlyAddress newAddress(scan_secret, spend_pubkey, nStart, nImported, nStart);
+
+        if (!pwatchonlyDB->WriteWatchOnlyAddress(address, newAddress)) {
+            LogPrint(BCLog::WATCHONLYDB, "Failed to WriteWatchOnlyAddress: %s\n", address);
             return false;
         }
-
-        CWatchOnlyAddress watchonly(scan_secret,spend_pubkey);
-        mapWatchOnlyAddresses.insert(std::make_pair(address.ToString(), watchonly));
+        LOCK(cs_watchonly);
+        mapWatchOnlyAddresses.insert(std::make_pair(address, newAddress));
     }
     return true;
 }
 
-bool RemoveWatchOnlyAddress(const CBitcoinAddress& address, const CKey& scan_secret, const CPubKey& spend_pubkey)
+bool RemoveWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey)
 {
     return true;
 }
 
 bool LoadWatchOnlyAddresses()
 {
+    LOCK(cs_watchonly);
     return pwatchonlyDB->LoadWatchOnlyAddresses();
+}
+
+bool FlushWatchOnlyAddresses()
+{
+    {
+        LOCK(cs_watchonly);
+        for (auto &pair : mapWatchOnlyAddresses) {
+            if (pair.second.fDirty) {
+                if (!pwatchonlyDB->WriteWatchOnlyAddress(pair.first, pair.second)) {
+                    return error("Failed to flush watchonly addresses on - %s", pair.first);
+                }
+                pair.second.fDirty = false;
+            }
+        }
+    }
+    LogPrintf("Returning flushed watchonly\n");
+    return true;
 }
 
 void PrintWatchOnlyAddressInfo() {

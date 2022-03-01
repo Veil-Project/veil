@@ -47,6 +47,7 @@
 #include <util/strencodings.h>
 #include <validationinterface.h>
 #include <veil/ringct/watchonlydb.h>
+#include <veil/ringct/watchonly.h>
 #include <warnings.h>
 
 #include <veil/proofoffullnode/proofoffullnode.h>
@@ -68,6 +69,7 @@
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/thread.hpp>
+
 #include "veil/zerocoin/accumulators.h"
 #include "miner.h"
 
@@ -241,6 +243,7 @@ private:
 
 
 CCriticalSection cs_main;
+CCriticalSection cs_watchonly;
 CCriticalSection& cs_mapblockindex = g_chainstate.cs_mapblockindex;
 BlockMap& mapBlockIndex = g_chainstate.mapBlockIndex;
 CChain& chainActive = g_chainstate.chainActive;
@@ -2980,6 +2983,7 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
         if (nLastFlush == 0) {
             nLastFlush = nNow;
         }
+
         int64_t nMempoolSizeMax = gArgs.GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000;
         int64_t cacheSize = pcoinsTip->DynamicMemoryUsage();
         int64_t nTotalSpace = nCoinCacheUsage + std::max<int64_t>(nMempoolSizeMax - nMempoolUsage, 0);
@@ -3018,9 +3022,17 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
                     return AbortNode(state, "Failed to write to block index database");
                 }
             }
+
+            if (gArgs.GetBoolArg("-watchonly", false)) {
+                if (!FlushWatchOnlyAddresses()) {
+                    return AbortNode(state, "Fail to write watchonly addresses to database.");
+                }
+            }
+
             // Finally remove any pruned files
             if (fFlushForPrune)
                 UnlinkPrunedFiles(setFilesToPrune);
+
             nLastWrite = nNow;
         }
         // Flush best chain related state. This can only be done if the blocks / block index write was also done.

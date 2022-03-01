@@ -27,6 +27,7 @@ class uint256;
 class CBitcoinAddress;
 class CKeyID;
 class CWatchOnlyTx;
+class CWatchOnlyAddress;
 
 /** A database (watchonly/) */
 class CWatchOnlyDB : public CDBWrapper
@@ -40,13 +41,18 @@ private:
 
 public:
     /** Write Keys to list of keys to scan */
-    bool WriteAddressKey(const CBitcoinAddress& address, const CKey& scan_secret, const CPubKey& scan_pubkey);
-    bool ReadAddressKey(const CBitcoinAddress& address, CKey& scan_secret, CPubKey& scan_pubkey);
+    bool WriteWatchOnlyAddress(const std::string& address, const CWatchOnlyAddress& data);
+    bool ReadWatchOnlyAddress(const std::string& address, CWatchOnlyAddress& data);
     bool LoadWatchOnlyAddresses();
+
     bool WriteWatchOnlyTx(const CKey& key, const int& current_count, const CWatchOnlyTx& watchonlytx);
     bool ReadWatchOnlyTx(const CKey& key, const int& count, CWatchOnlyTx& watchonlytx);
+
     bool ReadKeyCount(const CKey& key, int& current_count);
     bool WriteKeyCount(const CKey& key, const int& new_count);
+
+    bool ReadBlockTransactions(const int64_t& nBlockHeight, std::vector<CMutableTransaction>& vTransactions);
+    bool WriteBlockTransactions(const int64_t& blockheight, const std::vector<CMutableTransaction>& vTransactions);
 };
 
 #endif //VEIL_WATCHONLYDB_H
