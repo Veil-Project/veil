@@ -3231,7 +3231,7 @@ bool AnonWallet::GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std
                     nLastDepthCheckPassed = nDecoy;
                 }
 
-                randomoutputs.emplace_back(make_pair(nDecoy, ao));
+                randomoutputs.emplace_back(std::make_pair(nDecoy, ao));
                 setHave.insert(nDecoy);
                 break;
             }

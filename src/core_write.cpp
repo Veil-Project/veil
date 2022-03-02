@@ -18,6 +18,7 @@
 #include <util/system.h>
 #include <util/moneystr.h>
 #include <util/strencodings.h>
+#include <veil/ringct/rctindex.h>
 
 UniValue ValueFromAmount(const CAmount& amount)
 {
@@ -248,7 +249,7 @@ void AnonOutputToJSON(const CAnonOutput& output, const int& ringctindex, UniValu
     entry.pushKV("pubkey", HexStr(output.pubkey.begin(), output.pubkey.end()));
     entry.pushKV("commitment", HexStr(&output.commitment.data[0], &output.commitment.data[0]+33));
     entry.pushKV("tx_hash", output.outpoint.hash.GetHex());
-    entry.pushKV("tx_index", to_string(output.outpoint.n));
+    entry.pushKV("tx_index", std::to_string(output.outpoint.n));
     entry.pushKV("blockheight", output.nBlockHeight);
     entry.pushKV("compromised", output.nCompromised);
 }

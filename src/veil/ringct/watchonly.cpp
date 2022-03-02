@@ -6,7 +6,7 @@
 #include "veil/ringct/watchonly.h"
 #include "veil/ringct/watchonlydb.h"
 
-#include <util.h>
+#include <rpc/util.h>
 #include <key_io.h>
 #include <core_io.h>
 #include <univalue.h>
@@ -460,7 +460,7 @@ void FetchWatchOnlyTransactions(const CKey& scan_secret, std::vector<std::pair<i
         CWatchOnlyTx watchonlytx;
         if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
             pblocktree->ReadRCTOutputLink(watchonlytx.ringctout.pk, watchonlytx.ringctIndex);
-            vTxes.emplace_back(make_pair(i, watchonlytx));
+            vTxes.emplace_back(std::make_pair(i, watchonlytx));
         }
     }
 }

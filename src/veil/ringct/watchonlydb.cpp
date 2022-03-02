@@ -10,7 +10,7 @@
 #include <pow.h>
 #include <shutdown.h>
 #include <uint256.h>
-#include <util.h>
+#include <rpc/util.h>
 #include <ui_interface.h>
 
 #include <stdint.h>

@@ -6,7 +6,7 @@
 #include <key.h>
 #include <key_io.h>
 #include <amount.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <veil/ringct/watchonly.h>
 #include <veil/ringct/temprecipient.h>
 #include <secp256k1_mlsag.h>
