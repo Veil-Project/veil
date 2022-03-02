@@ -17,14 +17,23 @@
 #include <core_io.h>
 
 
-std::string TestBuildWalletTransaction() {
+std::string TestBuildWalletTransaction(int nRandomInt) {
 
     std::string sSpendSecret = "cR6XNDL7dwDqAfBUNQqcoYkDbCy3xQwsFLh6tfw4EjBTUPaDaNdX";
     std::string sScanSecret = "cU72zZjUGEwp3uUdr1diuWmLbTUiv9zeThsNE5cVYFqZuySE8Gry";
     std::string sSpendPublic = "039cfeaef8697b6bb4e5a7af6b5b6bb0884c41d687cd71410e233447571e1dfeea";
 
-    std::string toaddress = "tps1qqpre9kkw83hdnnessdrx883gmhc4etnedpdet0dye004qzd57xm9ugpq250wfhh63rekdkldl4vtqrxzkkzzhnkggpm0hwk946pv3whqk49sqqqpxazhx";
-    std::string sAmount = "5.34";
+    std::string toaddress = "";
+    std::string sAmount = "1.26518";
+
+    // Not even number = stealth
+    if (nRandomInt % 2) {
+        toaddress = "tps1qqpre9kkw83hdnnessdrx883gmhc4etnedpdet0dye004qzd57xm9ugpq250wfhh63rekdkldl4vtqrxzkkzzhnkggpm0hwk946pv3whqk49sqqqpxazhx";
+        sAmount = "2.26518";
+    } else {
+        toaddress = "tv1qstjesjs08nys4u9gugkfx4u2qyhqx7k4yz74ax";
+        sAmount = "1.26518";
+    }
 
     std::vector<std::string> args;
     args.push_back(sSpendSecret);
@@ -130,7 +139,7 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
     OutputTypes outputType;
     CTxDestination destination;
 
-    if (!GetTypeOut(address, outputType, destination, errorMsg)){
+    if (!GetTypeOut(address, args[3], outputType, destination, errorMsg)){
         LogPrintf("Failed - %s\n", errorMsg);
         return false;
     }
@@ -143,6 +152,10 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
         r.SetAmount(nValueOut);
         r.fSubtractFeeFromAmount = false;
         r.address = destination;
+        if (r.nType == OUTPUT_STANDARD) {
+            r.fScriptSet = true;
+            r.scriptPubKey = GetScriptForDestination(r.address);
+        }
 
         vecSend.push_back(r);
     }
@@ -312,7 +325,7 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
     }
 
     // Add in real outputs
-    if (!LightWalletAddRealOutputs(txNew,vSelectedTxes, vInputBlinds, vSecretColumns, vMI, errorMsg)) {
+    if (!LightWalletAddRealOutputs(txNew, vSelectedTxes, vInputBlinds, vSecretColumns, vMI, errorMsg)) {
         LogPrintf("Failed LightWalletAddCTData - %s\n", errorMsg);
         return false;
     }
@@ -427,7 +440,7 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
 }
 
 
-bool GetTypeOut(const CBitcoinAddress& address, OutputTypes& outputType, CTxDestination& destination, std::string& errorMsg)
+bool GetTypeOut(const CBitcoinAddress& address, const std::string& strAddress, OutputTypes& outputType, CTxDestination& destination, std::string& errorMsg)
 {
     if (address.IsValidStealthAddress()) {
         outputType = OUTPUT_RINGCT;
@@ -438,7 +451,7 @@ bool GetTypeOut(const CBitcoinAddress& address, OutputTypes& outputType, CTxDest
         destination = address.Get();
     } else {
         outputType = OUTPUT_STANDARD;
-        destination = address.Get();
+        destination = DecodeDestination(strAddress);
         if (!IsValidDestination(destination)) {
             errorMsg = "Invalid basecoin address";
             return false;
@@ -580,7 +593,8 @@ bool CheckAmounts(const CAmount& nValueOut, const std::vector<CWatchOnlyTx>& vSp
             return true;
         }
     }
-    return true;
+
+    return false;
 }
 
 bool BuildRecipientData(std::vector<CTempRecipient>& vecSend, std::string& errorMsg)

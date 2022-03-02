@@ -18,7 +18,7 @@ class CTempRecipient;
 class CAnonOutput;
 
 // For testing purposes only
-std::string TestBuildWalletTransaction();
+std::string TestBuildWalletTransaction(int nRandomInt);
 // TEST ONLY ^^
 
 // Args include, the following
@@ -30,7 +30,7 @@ std::string TestBuildWalletTransaction();
 bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std::vector<CWatchOnlyTx>& vSpendableTx, const std::vector<std::pair<int64_t, CAnonOutput>>& vDummyOutputs, std::string& txHex);
 bool ParseArgs(const std::vector<std::string>& args, CKey& spend_secret, CKey& scan_secret, CPubKey& spend_pubkey, CBitcoinAddress& address, CAmount& nValue, std::string& errorMsg);
 
-bool GetTypeOut(const CBitcoinAddress& address, OutputTypes& outputType, CTxDestination& destination, std::string& errorMsg);
+bool GetTypeOut(const CBitcoinAddress& address, const std::string& strAddress, OutputTypes& outputType, CTxDestination& destination, std::string& errorMsg);
 
 bool GetDestinationKeyForOutput(CKey& destinationKey, const CWatchOnlyTx& tx, const CKey& spend_secret, const CKey& scan_secret, const CPubKey& spend_pubkey, std::string& errorMsg);
 

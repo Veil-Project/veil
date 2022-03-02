@@ -685,9 +685,11 @@ static UniValue runtest(const JSONRPCRequest& request) {
         );
 
 
-    std::string txHex = TestBuildWalletTransaction();
+    int randomInt = GetRandInt(10);
+    std::string txHex = TestBuildWalletTransaction(randomInt);
 
     UniValue ret(UniValue::VOBJ);
+    ret.pushKV("type", randomInt % 2 ? "stealth" : "basecoin");
     ret.pushKV("data", txHex);
     return ret;
 }
