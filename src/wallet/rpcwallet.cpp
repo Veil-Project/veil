@@ -1387,112 +1387,6 @@ static UniValue checkkeyimage(const JSONRPCRequest& request)
     return result;
 }
 
-// TODO - remove this Rpc call
-static UniValue scantx(const JSONRPCRequest& request)
-{
-    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
-    CWallet* const pwallet = wallet.get();
-
-    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
-        return NullUniValue;
-    }
-
-    if (request.fHelp || request.params.size() != 1)
-        throw std::runtime_error(
-                "scantx \"raw_tx_hex\" \n"
-                "\nScan a tx and see if it belongs to a watchonly address"
-                + HelpRequiringPassphrase(pwallet) + "\n"
-                                                     "\nArguments:\n"
-                                                     "1. \"raw tx\"         (string, required) Raw tx hex.\n"
-                                                     "\nResult:\n"
-                                                     "\"result\"          (boolean) If the tx belongs to the scankey\n"
-        );
-
-    UniValue result(UniValue::VOBJ);
-
-    LOCK2(cs_main, pwallet->cs_wallet);
-
-    EnsureWalletIsUnlocked(pwallet);
-
-    CMutableTransaction mtx;
-    if (!DecodeHexTx(mtx, request.params[0].get_str(), true)) {
-        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed");
-    }
-
-    CTransaction tx(mtx);
-
-    bool fIsMine = false;
-    for (const auto &txout : tx.vpout) {
-        if (txout->IsType(OUTPUT_RINGCT)) {
-            const CTxOutRingCT *rctout = (CTxOutRingCT*) txout.get();
-            CKeyID idk = rctout->pk.GetID();
-
-            // Uncover stealth
-            uint32_t prefix = 0;
-            bool fHavePrefix = false;
-            if (rctout->vData.size() != 33) {
-                if (rctout->vData.size() == 38 // Have prefix
-                    && rctout->vData[33] == DO_STEALTH_PREFIX) {
-                    fHavePrefix = true;
-                    memcpy(&prefix, &rctout->vData[34], 4);
-                } else {
-                    continue;
-                }
-            }
-
-            CKeyID idStealthDestination = rctout->pk.GetID();
-
-//            if (wallet->GetAnonWallet()->IsMyPubKey(idStealthDestination)) {
-//                LogPrintf("%s: Found a transaction belonging to my scan_secret.\n", __func__);
-//                return true;
-//            }
-
-
-
-            std::vector<uint8_t> vchEphemPK;
-            vchEphemPK.resize(33);
-            memcpy(&vchEphemPK[0], &rctout->vData[0], 33);
-
-            for (auto addressInfo: mapWatchOnlyAddresses) {
-                CKey sShared;
-                ec_point pkExtracted;
-
-                ec_point sPubKey;
-                SetPublicKey(addressInfo.second.spend_pubkey, sPubKey);
-                if (StealthSecret(addressInfo.second.scan_secret, vchEphemPK, sPubKey, sShared, pkExtracted) != 0) {
-                    LogPrintf("%s: StealthSecret failed.\n", __func__);
-                    continue;
-                }
-
-                CPubKey pubKeyStealthSecret(pkExtracted);
-                if (!pubKeyStealthSecret.IsValid()) {
-                    continue;
-                }
-
-                CKeyID idExtracted = pubKeyStealthSecret.GetID();
-                if (idStealthDestination != idExtracted) {
-                    continue;
-                }
-
-                LogPrintf("%s: Found tx belonging to watchonly address: %s\n", __func__, addressInfo.first);
-            }
-        }
-    }
-
-    return false;
-//
-//    UniValue entry(UniValue::VOBJ);
-//    entry.pushKV("tx_hash", tx.GetHash().GetHex());
-//    entry.pushKV("scan_secret", CBitcoinSecret(scan_secret).ToString());
-//    if (IsMyTx(tx, scan_secret, pwallet->GetAnonWallet())) {
-//        entry.pushKV("is_mine", true);
-//    } else {
-//        entry.pushKV("is_mine", false);
-//    }
-//
-//    return entry;
-}
-
 static UniValue getwatchonlyaddresses(const JSONRPCRequest& request)
 {
 
@@ -6580,12 +6474,11 @@ static const CRPCCommand commands[] =
     { "wallet",             "listreceivedbylabel",              &listreceivedbylabel,           {"minconf","include_empty","include_watchonly"} },
     { "wallet",             "setlabel",                         &setlabel,                      {"address","label"} },
     { "wallet",             "getallscankeys",                   &getallscankeys,                {"address"} },
-    { "wallet",             "scantx",                           &scantx,                        {"raw_tx_hex"} },
     { "wallet",             "getwatchonlyaddresses",            &getwatchonlyaddresses,         {} },
     { "wallet",             "getwatchonlytxes",                 &getwatchonlytxes,              {"scan_secret"} },
 
-    { "info",             "checkkeyimage",                 &checkkeyimage,              {"key_image"} },
-    { "info",             "testgetlightwalletbalance",                 &testgetlightwalletbalance,              {"scan_secret", "spend_secret"} },
+    { "info",             "checkkeyimage",                      &checkkeyimage,                 {"key_image"} },
+    { "info",             "testgetlightwalletbalance",          &testgetlightwalletbalance,     {"scan_secret", "spend_secret", "spend_pubkey"} },
 
     { "generating",         "generate",                         &generate,                      {"nblocks","maxtries"} },
     { "generating",         "generatecontinuous",               &generatecontinuous,            {"fGenerate"} },
