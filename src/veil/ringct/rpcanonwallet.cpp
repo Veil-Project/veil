@@ -3016,7 +3016,7 @@ static UniValue verifyrawtransaction(const JSONRPCRequest &request)
     return result;
 };
 
-// T
+// TODO do we need this anymore?
 static UniValue importstealthaddress(const JSONRPCRequest &request)
 {
     if (request.fHelp || request.params.size() < 2)
