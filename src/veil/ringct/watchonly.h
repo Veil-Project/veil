@@ -37,6 +37,12 @@ extern std::unique_ptr<CWatchOnlyDB> pwatchonlyDB;
 //    CPubKey spend_pubkey;
 //};
 
+void LinkWatchOnlyThreadGroup(void* pthreadgroup);
+void StopWatchonlyScanningThread();
+bool StartWatchonlyScanningThread();
+bool StartWatchonlyScanningIfNotStarted();
+void ScanWatchOnlyAddresses();
+
 class CWatchOnlyAddress
 {
 public:

@@ -189,6 +189,7 @@ static boost::thread_group threadGroup;
 static boost::thread_group threadGroupStaking;
 static boost::thread_group threadGroupPrecompute;
 static boost::thread_group threadGroupAutoSpend;
+static boost::thread_group threadGroupWatchonlyScanning;
 #endif
 static boost::thread_group threadGroupPoWMining;
 static boost::thread_group threadGroupRandomX;
@@ -259,6 +260,9 @@ void Shutdown()
         threadGroupPrecompute.join_all();
         threadGroupAutoSpend.interrupt_all();
         threadGroupAutoSpend.join_all();
+
+        threadGroupWatchonlyScanning.interrupt_all();
+        threadGroupWatchonlyScanning.join_all();
     }
 #endif
     threadGroupStaging.interrupt_all();
@@ -1970,6 +1974,7 @@ bool AppInitMain()
 
         // Link thread groups
         LinkAutoSpendThreadGroup(&threadGroupAutoSpend);
+        LinkWatchOnlyThreadGroup(&threadGroupWatchonlyScanning);
 
         // Validate wallet mining address.
         std::string sAddress = gArgs.GetArg("-miningaddress", "");
@@ -2025,6 +2030,10 @@ bool AppInitMain()
 
             SetAutoSpendParameters(nNumberToSpend, nDenomToSpend, strAutoSpendAddress);
             StartAutoSpend();
+        }
+
+        if (gArgs.GetBoolArg("-watchonly", false)) {
+            StartWatchonlyScanningThread();
         }
     }
 #endif // ENABLE_WALLET

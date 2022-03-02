@@ -51,8 +51,8 @@ public:
     bool ReadKeyCount(const CKey& key, int& current_count);
     bool WriteKeyCount(const CKey& key, const int& new_count);
 
-    bool ReadBlockTransactions(const int64_t& nBlockHeight, std::vector<CMutableTransaction>& vTransactions);
-    bool WriteBlockTransactions(const int64_t& blockheight, const std::vector<CMutableTransaction>& vTransactions);
+    bool ReadBlockTransactions(const int64_t& nBlockHeight, std::vector<CTxOutRingCTWatchOnly>& vTransactions);
+    bool WriteBlockTransactions(const int64_t& blockheight, const std::vector<CTxOutRingCTWatchOnly>& vTransactions);
 };
 
 #endif //VEIL_WATCHONLYDB_H

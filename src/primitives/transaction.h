@@ -512,6 +512,8 @@ public:
     secp256k1_pedersen_commitment commitment;
     std::vector<uint8_t> vRangeproof;
 
+
+
     template<typename Stream>
     void Serialize(Stream &s) const
     {
@@ -556,6 +558,36 @@ public:
     }
 
     bool SetScriptPubKey(const CScript& scriptPubKey) override { return false; }
+};
+
+class CTxOutRingCTWatchOnly : public CTxOutRingCT
+{
+public:
+    CTxOutRingCTWatchOnly() : CTxOutRingCT() {};
+    uint256 tx_hash;
+    int nIndex;
+
+    template<typename Stream>
+    void Serialize(Stream &s) const
+    {
+        s.write((char*)pk.begin(), 33);
+        s.write((char*)&commitment.data[0], 33);
+        s << vData;
+        s << vRangeproof;
+        s << tx_hash;
+        s << nIndex;
+    }
+
+    template<typename Stream>
+    void Unserialize(Stream &s)
+    {
+        s.read((char*)pk.ncbegin(), 33);
+        s.read((char*)&commitment.data[0], 33);
+        s >> vData;
+        s >> vRangeproof;
+        s >> tx_hash;
+        s >> nIndex;
+    }
 };
 
 class CTxOutData : public CTxOutBase

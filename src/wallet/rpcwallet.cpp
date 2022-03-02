@@ -1518,8 +1518,6 @@ static UniValue getwatchonlyaddresses(const JSONRPCRequest& request)
 
 }
 
-
-
 static UniValue getreceivedbyaddress(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
