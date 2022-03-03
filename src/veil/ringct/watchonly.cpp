@@ -254,6 +254,10 @@ void ScanWatchOnlyAddresses()
                         watchonlyTx.tx_index = rctout.nIndex;
                         watchonlyTx.ringctout = txring;
 
+                        // TODO. Instead of writing to database everytime we find a new tx.
+                        // TODO Maybe could put it into a cache, and only database once cache hits a certain number
+                        // TODO Also make sure we database the cache on shutdowns and anyother time we database the
+                        // TODO watchonly stuff.
                         AddWatchOnlyTransaction(watchonlyTx.scan_secret, watchonlyTx);
                     }
                 }
