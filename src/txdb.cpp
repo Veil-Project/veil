@@ -286,8 +286,6 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
                 // ignore any duplicates and mark them to be erased
                 uint256 hashBlock = diskindex.GetBlockHash();
                 if (hashBlock != key.second) {
-                    LogPrintf("%s: Skipping Block %d (status=%d): %s - Block Hash does not match Index Key\n",
-                               __func__, diskindex.nHeight, diskindex.nStatus, hashBlock.GetHex());
                     pcursor->Next();
                     continue;
                 }

@@ -96,6 +96,7 @@ void ScanWatchOnlyAddresses()
                 LOCK(cs_watchonly);
                 bool fSet = false;
                 for (const auto &items : mapWatchOnlyAddresses) {
+                    boost::this_thread::interruption_point();
                     if (items.second.nCurrentScannedHeight != items.second.nImportedHeight) {
                         if (!fSet) {
                             nStartBlockHeight = items.second.nCurrentScannedHeight;
@@ -172,12 +173,12 @@ void ScanWatchOnlyAddresses()
                             index++;
                         }
                     }
-                    boost::this_thread::interruption_point();
                 }
             }
 
             // Write new txes to database
             for (int i = 0; i < nNumberOfBlockPerScan; i++) {
+                boost::this_thread::interruption_point();
                 int nIndexHeight = nStartBlockHeight + i;
                 if (vecNewRingCTTransactions[i].size()) {
                     pwatchonlyDB->WriteBlockTransactions(nIndexHeight, vecNewRingCTTransactions[i]);
@@ -186,6 +187,7 @@ void ScanWatchOnlyAddresses()
             }
 
             for (int i = 0; i < nNumberOfBlockPerScan; i++) {
+                boost::this_thread::interruption_point();
                 // Get a list of CWatchOnlyAddress to scan with
                 std::vector<std::pair<std::string,CWatchOnlyAddress>> scanThese;
                 for (const auto &addr : mapWatchOnlyAddresses) {
@@ -198,7 +200,6 @@ void ScanWatchOnlyAddresses()
                 }
 
                 for (const auto& rctout : vecRingCTTranasctionToScan[i]) {
-
                     /// Scan through transactions for txes that are owned.
                     CKeyID idk = rctout.pk.GetID();
 
@@ -268,25 +269,6 @@ void ScanWatchOnlyAddresses()
                 }
             }
         }
-
-
-            // Get Watchonly address from mapWatchonlyAddress.
-
-            // Check the scanned height with the created height vs the imported height
-            // We need to scan all txes from this height to the imported height to make sure all txes are found.
-
-            // For each item in the map to scan.
-            // Check to see if we have the block txes in our watchonly database
-
-            //If they are in our database. Load that block and the next 1000 blocks worth of txes from db to memory.
-
-            // Search those txes for owned outputs.
-
-            // If they aren't in our database
-            // Load 1 block at a time into memory. Scanning for ringct transaction. Keep the txes in memory, and then store those txes to our database after if we done scanning them.
-
-
-            // Sleep 5 minutes between spends, but actively check to see if the thread has been interrupted every 3 seconds
     } catch (std::exception& e) {
         LogPrintf("ScanWatchOnlyAddresses() exception\n");
     } catch (boost::thread_interrupted) {

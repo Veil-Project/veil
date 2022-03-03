@@ -908,7 +908,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
 #ifdef ENABLE_WALLET
         if (enablewallet && fProofOfStake) {
             if (IsInitialBlockDownload()) {
-                UninterruptibleSleep(std::chrono::milliseconds{60000});
+                UninterruptibleSleep(std::chrono::milliseconds{5000});
                 continue;
             }
 
@@ -944,6 +944,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
 
             bool fNextIter = false;
             while (!fMintableCoins || GetAdjustedTime() < nTimeLastBlock - MAX_PAST_BLOCK_TIME) {
+                boost::this_thread::interruption_point();
                 // Do a separate 1 minute check here to ensure fMintableCoins is updated
                 if (!fMintableCoins) {
                     if (GetTime() - nMintableLastCheck > 1 * 60) // 1 minute check time
@@ -981,7 +982,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             // If the miner was turned on and we are in IsInitialBlockDownload(),
             // sleep 60 seconds, before trying again
             if (IsInitialBlockDownload() && !gArgs.GetBoolArg("-genoverride", false)) {
-                UninterruptibleSleep(std::chrono::milliseconds{60000});
+                UninterruptibleSleep(std::chrono::milliseconds{5000});
                 continue;
             }
         }
