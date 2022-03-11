@@ -4,6 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <veil/zerocoin/spendreceipt.h>
+#include <veil/ringct/receipt.h>
 #include <veil/ringct/transactionrecord.h>
 
 void CZerocoinSpendReceipt::AddSpend(const CZerocoinSpend& spend)
@@ -31,26 +32,6 @@ std::vector<CZerocoinSpend> CZerocoinSpendReceipt::GetSpends_back()
 
 void CZerocoinSpendReceipt::SetStatus(std::string strStatus, int nStatus, int nNeededSpends)
 {
-    strStatusMessage = strStatus;
-    this->nStatus = nStatus;
+    CMultiTxReceipt::SetStatus(strStatus, nStatus);
     this->nNeededSpends = nNeededSpends;
-}
-
-CTransactionRecord CZerocoinSpendReceipt::GetTransactionRecord(const int n) const
-{
-    if (!mapRecords.count(n))
-        return CTransactionRecord();
-    return mapRecords.at(n);
-}
-
-void CZerocoinSpendReceipt::AddTransaction(CTransactionRef& txRef, const CTransactionRecord& rtx)
-{
-    auto n = vtx.size();
-    mapRecords.emplace(n, rtx);
-    vtx.emplace_back(txRef);
-}
-
-std::string CZerocoinSpendReceipt::GetStatusMessage()
-{
-    return strStatusMessage;
 }
