@@ -213,7 +213,7 @@ public:
 
     void AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend);
     bool ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::string &sError);
-    void MarkInputsAsPendingSpend(CTransactionRecord &rtx);
+    void MarkInputsAsPendingSpend(const std::vector<COutPoint>& rtxvin);
 
     bool AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sError);
 
