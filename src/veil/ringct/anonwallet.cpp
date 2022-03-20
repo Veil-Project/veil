@@ -3015,7 +3015,7 @@ bool AnonWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size
         const static size_t nMaxTries = 1000;
         for (j = 0; j < nMaxTries; ++j) {
             if (nLastRCTOutIndex <= nMinIndex) {
-                sError = strprintf("Not enough anonymous outputs exist, min: last: %d, required: %d.",
+                sError = strprintf("Not enough anonymous outputs exist, min: %d, last: %d, required: %d.",
                                    nMinIndex, nLastRCTOutIndex, nInputs * nRingSize);
                 return error("%s: %s", __func__, sError);
             }
