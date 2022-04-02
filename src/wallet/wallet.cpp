@@ -3884,10 +3884,10 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     if (GetAdjustedTime() - chainActive.Tip()->GetBlockTime() < 1)
         UninterruptibleSleep(std::chrono::milliseconds{2500});
 
-    CAmount nCredit = 0;
     CScript scriptPubKeyKernel;
     bool fKernelFound = false;
     for (std::unique_ptr<ZerocoinStake>& stakeInput : listInputs) {
+        CAmount nCredit = 0;
         // Make sure the wallet is unlocked and shutdown hasn't been requested
         if (IsLocked() || ShutdownRequested())
             return false;
@@ -3964,16 +3964,14 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
                     LogPrintf("%s : failed to create TxIn\n", __func__);
                     txNew.vin.clear();
                     txNew.vpout.clear();
-                    nCredit = 0;
                     continue;
                 }
             }
             txNew.vin.emplace_back(in);
 
             //Mark mints as spent
-            auto* z = (ZerocoinStake*)stakeInput.get();
-            if (!z->MarkSpent(this, txNew.GetHash()))
-                return error("%s: failed to mark mint as used\n", __func__);
+            if (!stakeInput->CompleteTx(this, txNew))
+                return false;
 
             fKernelFound = true;
             break;

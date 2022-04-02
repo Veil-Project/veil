@@ -166,6 +166,21 @@ CAmount ZerocoinStake::GetValue()
     return denom * COIN;
 }
 
+CAmount ZerocoinStake::GetWeight()
+{
+    if (denom == libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED) {
+        //10% reduction
+        return (denom * COIN * 9) / 10;
+    } else if (denom == libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND) {
+        //20% reduction
+        return (denom * COIN * 8) / 10;
+    } else if (denom == libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND) {
+        //30% reduction
+        return (denom * COIN * 7) / 10;
+    }
+    return denom * COIN;
+}
+
 int ZerocoinStake::HeightToModifierHeight(int nHeight)
 {
     //Nearest multiple of KernelModulus that is over KernelModulus bocks deep in the chain
@@ -275,6 +290,13 @@ bool ZerocoinStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CA
 
     return true;
 #endif
+}
+
+bool ZerocoinStake::CompleteTx(CWallet* pwallet, CMutableTransaction& txNew)
+{
+    if (!MarkSpent(pwallet, txNew.GetHash()))
+        return error("%s: failed to mark mint as used\n", __func__);
+    return true;
 }
 
 bool ZerocoinStake::GetTxFrom(CTransaction& tx)
