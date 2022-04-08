@@ -2200,11 +2200,8 @@ static void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, const
                     entry.pushKV("account", account);
                 if (IsValidDestination(r.destination))
                 {
-                    auto item = pwallet->mapAddressBook.find(r.destination);
-                    if (item->first.type() == typeid(CKeyID))
-                        entry.pushKV("address", EncodeDestination(r.destination, false));
-                    else
-                        entry.pushKV("address", EncodeDestination(r.destination));
+                    entry.pushKV("address", EncodeDestination(
+                        r.destination, r.destination.type() != typeid(CKeyID)));
                 }
                 if (wtx.IsCoinBase())
                 {
@@ -2517,11 +2514,8 @@ static void ExportTransactions(CWallet* const pwallet, const CWalletTx& wtx, con
                     csvRecord[TRANSACTION_CSV_FIELD_ACCOUNT] = account;
                 if ( IsValidDestination(r->destination) )
                 {
-                    auto item = pwallet->mapAddressBook.find(r->destination);
-                    if (item->first.type() == typeid(CKeyID))
-                        csvRecord[TRANSACTION_CSV_FIELD_ADDRESS] = EncodeDestination(r->destination, false);
-                    else
-                        csvRecord[TRANSACTION_CSV_FIELD_ADDRESS] = EncodeDestination(r->destination);
+                    csvRecord[TRANSACTION_CSV_FIELD_ADDRESS] = EncodeDestination(
+                        r->destination, r->destination.type() != typeid(CKeyID));
                 }
                 if (wtx.IsCoinBase())
                 {
