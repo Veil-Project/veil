@@ -392,7 +392,9 @@ bool CzWallet::DeterministicSearch(int nCountStart, int nCountEnd, int* nThreade
                 }
             }
 
-            int percentageDone = std::max(1, std::min(99, (int)((progress_current - progress_begin) / (progress_end - progress_begin) * 100)));
+            // items complete = progress_current
+            // items total = progress_end - progress_begin
+            int percentageDone = std::max(1, std::min(99, (int)(progress_current / (progress_end - progress_begin) * 100)));
             uiInterface.ShowProgress(_("Searching..."), percentageDone, 0);
         }
         if (nThreadedProgress == nullptr) {
