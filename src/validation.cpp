@@ -2137,7 +2137,7 @@ void ThreadScriptCheck() {
 // Protected by cs_main
 VersionBitsCache versionbitscache;
 
-int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params, const uint32_t& blockTime, const bool& fProofOfWork)
+int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params, const uint32_t& blockTime, const bool& fProofOfWork, int nPoWType)
 {
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_OLD_POW_VERSION;
@@ -2146,7 +2146,11 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
         nVersion = VERSIONBITS_NEW_POW_VERSION;
 
         if (fProofOfWork) {
-            if (GetMiningAlgorithm() == MINE_PROGPOW) {
+            if (nPoWType == CBlockHeader::PROGPOW_BLOCK ||
+                nPoWType == CBlockHeader::RANDOMX_BLOCK ||
+                nPoWType == CBlockHeader::SHA256D_BLOCK) {
+                nVersion |= nPoWType;
+            } else if (GetMiningAlgorithm() == MINE_PROGPOW) {
                 nVersion |= CBlockHeader::PROGPOW_BLOCK;
             } else if (GetMiningAlgorithm() == MINE_SHA256D) {
                 nVersion |= CBlockHeader::SHA256D_BLOCK;
