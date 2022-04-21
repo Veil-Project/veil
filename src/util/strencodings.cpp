@@ -304,7 +304,7 @@ bool ParseInt64(const std::string& str, int64_t *out)
         n <= std::numeric_limits<int64_t>::max();
 }
 
-bool ParseUInt32(const std::string& str, uint32_t *out)
+bool ParseUInt32(const std::string& str, uint32_t *out, int base)
 {
     if (!ParsePrechecks(str))
         return false;
@@ -312,7 +312,7 @@ bool ParseUInt32(const std::string& str, uint32_t *out)
         return false;
     char *endp = nullptr;
     errno = 0; // strtoul will not set errno if valid
-    unsigned long int n = strtoul(str.c_str(), &endp, 10);
+    unsigned long int n = strtoul(str.c_str(), &endp, base);
     if(out) *out = (uint32_t)n;
     // Note that strtoul returns a *unsigned long int*, so even if it doesn't report an over/underflow
     // we still have to check that the returned value is within the range of an *uint32_t*. On 64-bit

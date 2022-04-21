@@ -128,7 +128,7 @@ void BlockAssembler::resetBlock()
     nFees = 0;
 }
 
-std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, bool fProofOfStake, bool fProofOfFullNode)
+std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx, bool fProofOfStake, bool fProofOfFullNode, int nPoWType)
 {
     int64_t nTimeStart = GetTimeMicros();
     int64_t nComputeTimeStart = GetTimeMillis();
@@ -207,7 +207,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         }
     }
 
-    pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus(), pblock->nTime, !fProofOfStake);
+    pblock->nVersion = ComputeBlockVersion(pindexPrev, chainparams.GetConsensus(), pblock->nTime, !fProofOfStake, nPoWType);
     // -regtest only: allow overriding block.nVersion with
     // -blockversion=N to test forking scenarios
     if (chainparams.MineBlocksOnDemand())
