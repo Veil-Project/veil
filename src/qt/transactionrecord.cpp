@@ -411,11 +411,14 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             if (wtx.txout_address_is_mine[i]) {
                 // Received by Bitcoin Address
                 sub.type = TransactionRecord::RecvWithAddress;
-                bool fBech32 = false;    
-                if (boost::get<CScriptID>(&wtx.txout_address[i])){
-                    fBech32 = true;
-                }            
-                sub.address = EncodeDestination(wtx.txout_address[i], fBech32);
+             
+                if(IsValidDestination(wtx.txout_address[i])){
+                    bool fBech32 = false;    
+                    if (boost::get<CScriptID>(&wtx.txout_address[i])){
+                        fBech32 = true;
+                    }            
+                    sub.address = EncodeDestination(wtx.txout_address[i], fBech32);
+                }                
             } else {
                 // Received by IP connection (deprecated features), or a multisignature or other non-simple transaction
                 sub.type = TransactionRecord::RecvFromOther;
@@ -500,17 +503,32 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     continue;
                 }
 
+                bool sendToOther = false;
                 if (txout.IsZerocoinMint()) {
                     sub.type = TransactionRecord::ZeroCoinMint;
                     sub.address = mapValue["zerocoinmint"];
                     sub.credit += txout.nValue;
-                } else if (!boost::get<CNoDestination>(&wtx.txout_address[nOut])) {
-                    if (wtx.tx->IsZerocoinMint())
-                        continue;
-                    // Sent to Bitcoin Address
-                    sub.type = TransactionRecord::SendToAddress;
-                    sub.address = EncodeDestination(wtx.txout_address[nOut]);
+                } else if (IsValidDestination(wtx.txout_address[nOut])){
+                    if(!boost::get<CNoDestination>(&wtx.txout_address[nOut])) {
+                        if (wtx.tx->IsZerocoinMint())
+                            continue;
+
+                        bool fBech32 = false;    
+                        if (boost::get<CScriptID>(&wtx.txout_address[nOut])){
+                            fBech32 = true;
+                        }   
+
+                        // Sent to Bitcoin Address
+                        sub.type = TransactionRecord::SendToAddress;
+                        sub.address = EncodeDestination(wtx.txout_address[nOut], fBech32);
+                    } else {
+                        sendToOther = true;
+                    } 
                 } else {
+                     sendToOther = true;
+                }  
+
+                if(sendToOther) {
                     // Sent to IP, or other non-address transaction like OP_EVAL
                     sub.type = TransactionRecord::SendToOther;
                     sub.address = mapValue["to"];
