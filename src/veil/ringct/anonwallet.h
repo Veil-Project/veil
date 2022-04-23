@@ -227,9 +227,9 @@ public:
             CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs, CAmount nInputValue);
 
     int AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
-            CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError);
+            size_t nMaximumInputs, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError);
     int AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
-            CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError);
+            size_t nMaximumInputs, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError);
 
 
     bool PlaceRealOutputs(std::vector<std::vector<int64_t> > &vMI, size_t &nSecretColumn, size_t nRingSize, std::set<int64_t> &setHave,
@@ -240,10 +240,10 @@ public:
 
     bool IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint);
     bool AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
-         bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet,
+         bool sign, size_t nRingSize, size_t nInputsPerSig, size_t nMaximumInputs, CAmount &nFeeRet,
          const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs, CAmount nInputValue);
     bool AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
-         bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet,
+         bool sign, size_t nRingSize, size_t nInputsPerSig, size_t nMaximumInputs, CAmount &nFeeRet,
          const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs = false,
          CAmount nInputValue = 0);
 
@@ -322,7 +322,10 @@ public:
      * populate vCoins with vector of available COutputs.
      */
     void AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnlySafe=true, const CCoinControl *coinControl = nullptr, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t& nMaximumCount = 0, const int& nMinDepth = 0, const int& nMaxDepth = 0x7FFFFFFF, bool fIncludeImmature=false) const;
-    bool SelectBlindedCoins(const std::vector<COutputR>& vAvailableCoins, const CAmount& nTargetValue, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &setCoinsRet, CAmount &nValueRet, const CCoinControl *coinControl = nullptr) const;
+    /**
+     * Returns a list of coins for a single transaction based on the target value and allowed number of inputs.
+     */
+    bool SelectBlindedCoins(const std::vector<COutputR>& vAvailableCoins, const CAmount& nTargetValue, size_t nMaximumCount, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &setCoinsRet, CAmount &nValueRet, const CCoinControl *coinControl = nullptr) const;
 
     void AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySafe=true, const CCoinControl *coinControl = nullptr, const CAmount& nMinimumAmount = 1, const CAmount& nMaximumAmount = MAX_MONEY, const CAmount& nMinimumSumAmount = MAX_MONEY, const uint64_t& nMaximumCount = 0, const int& nMinDepth = 0, const int& nMaxDepth = 0x7FFFFFFF, bool fIncludeImmature=false) const;
 
@@ -330,7 +333,12 @@ public:
      * Return list of available coins and locked coins grouped by non-change output address.
      */
 
-    bool SelectCoinsMinConf(const CAmount& nTargetValue, const CoinEligibilityFilter& eligibility_filter, std::vector<COutputR> vCoins, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &setCoinsRet, CAmount &nValueRet) const;
+    bool SelectCoinsMinConf(const CAmount& nTargetValue, const CoinEligibilityFilter& eligibility_filter, std::vector<COutputR> &vCoins, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &setCoinsRet, CAmount &nValueRet) const;
+    /**
+     * Like SelectCoinsMinConf, but always selects at most nMaximumCount coins,
+     * with the intention of being put in a single tx that partially accomplishes the target to be sent.
+     */
+    bool SelectCoinsForOneTx(const CAmount& nTargetValue, const CoinEligibilityFilter& eligibility_filter, std::vector<COutputR> &vCoins, size_t nMaximumCount, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &setCoinsRet, CAmount &nValueRet) const;
 
     bool IsSpent(const uint256& hash, unsigned int n) const EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
