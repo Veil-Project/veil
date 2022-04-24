@@ -25,7 +25,7 @@ class TransactionStatus
 public:
     TransactionStatus():
         countsForBalance(false), sortKey(""),
-        matures_in(0), status(Unconfirmed), depth(0), open_for(0), cur_num_blocks(-1)
+        matures_in(0), status(Unconfirmed), depth(0), open_for(0), cur_num_blocks(-1), needsUpdate(false), isLocked(false)
     { }
 
     enum Status {
@@ -65,6 +65,8 @@ public:
     int cur_num_blocks;
 
     bool needsUpdate;
+
+    bool isLocked;
 };
 
 /** UI model for a transaction. A core transaction can be represented by multiple UI transactions if it has

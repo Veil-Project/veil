@@ -89,7 +89,8 @@ public:
        
         // Format the amount.
         qint64 amount = index.data(TransactionTableModel::AmountRole).toLongLong();
-        QString amountText = BitcoinUnits::formatWithUnit(unit, amount, true, BitcoinUnits::separatorAlways);
+        bool amountLocked = index.data(TransactionTableModel::AmountLockedRole).toBool();
+        QString amountText = !amountLocked ? BitcoinUnits::formatWithUnit(unit, amount, true, BitcoinUnits::separatorAlways) : tr("Hidden");
 
         // Get the width of the amount string
         QFontMetrics fm(painter->fontMetrics());
@@ -163,7 +164,10 @@ public:
         }
 
         // TODO: Change this balance calculation
-        if(amount < 0) {
+        if(amountLocked) {
+            foreground = COLOR_UNCONFIRMED;
+        }
+        else if(amount < 0) {
             foreground = COLOR_NEGATIVE;
         }
         else if(!confirmed) {

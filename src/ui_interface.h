@@ -23,6 +23,7 @@ enum ChangeType
 {
     CT_NEW,
     CT_UPDATED,
+    CT_UPDATED_FULL,
     CT_DELETED
 };
 

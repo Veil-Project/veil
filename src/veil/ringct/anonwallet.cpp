@@ -4025,6 +4025,7 @@ bool AnonWallet::UnlockWallet(const CExtKey& keyMasterIn)
     if (!SetMasterKey(keyMasterIn))
         return false;
 
+    {
     // Create stealth change account if it does not exist
     AnonWalletDB wdb(*walletDatabase);
     if (!wdb.ReadNamedExtKeyId("stealthchange", idChangeAccount)) {
@@ -4032,6 +4033,10 @@ bool AnonWallet::UnlockWallet(const CExtKey& keyMasterIn)
         if (!CreateStealthChangeAccount(&wdb))
             return error("%s: failed to create stealth change account ", __func__);
     }
+    }
+
+    LOCK2(cs_main, pwalletParent->cs_wallet);
+    RescanWallet();
 
     return true;
 }
@@ -5048,6 +5053,7 @@ void AnonWallet::RescanWallet()
             if (!GetTransaction(txid, txRef, Params().GetConsensus(), hashBlock, true))
                 continue;
 
+            bool transactionUpdated = false;
             for (auto it = txrecord->vout.begin(); it != txrecord->vout.end(); it++) {
                 bool fUpdated = false;
                 if (txRef->vpout.size() < static_cast<unsigned int>(it->n + 1))
@@ -5168,7 +5174,12 @@ void AnonWallet::RescanWallet()
 
                 if (fUpdated) {
                     wdb.WriteTxRecord(txid, *txrecord);
+                    transactionUpdated = true;
                 }
+            }
+
+            if (transactionUpdated) {
+                pwalletParent->NotifyTransactionChanged(pwalletParent.get(), txid, CT_UPDATED_FULL);
             }
         }
     }
@@ -5176,6 +5187,7 @@ void AnonWallet::RescanWallet()
     for (const uint256& txid : setErase) {
         mapRecords.erase(txid);
         wdb.EraseTxRecord(txid);
+        pwalletParent->NotifyTransactionChanged(pwalletParent.get(), txid, CT_DELETED);
     }
 }
 
@@ -5718,7 +5730,10 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
             fHave = true;
         } else {
             pout = &rout;
-            //pout->nFlags |= ORF_LOCKED; // mark new output as locked
+            if (IsMine(txout.get()) & ISMINE_ALL) {
+                pout->nFlags |= ORF_LOCKED; // mark new output as locked
+                pout->SetValue(0);
+            }
         }
 
         //If there were any spending flags, remove
