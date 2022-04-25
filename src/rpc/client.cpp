@@ -231,6 +231,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "importlightwalletaddress", 6, "bech32"},
     { "getanonoutputs", 0, "inputsize"},
     { "getanonoutputs", 1, "ringsize"},
+    { "getkeyimages", 0, "txdata"},
+    { "buildlightwallettx", 5, "txdata"},
+    { "buildlightwallettx", 6, "dummydata"},
     { "testbuildlightwallettransaction", 4, "amount"},
 
 };

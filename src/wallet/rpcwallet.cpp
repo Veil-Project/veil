@@ -1215,6 +1215,7 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
             if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
 
                 if (!spend_secret.IsValid()) {
+                    pblocktree->ReadRCTOutputLink(watchonlytx.ringctout.pk, watchonlytx.ringctIndex);
                     txes.pushKV(std::to_string(i), watchonlytx.GetUniValue());
                 } else {
                     auto txout = watchonlytx.ringctout;

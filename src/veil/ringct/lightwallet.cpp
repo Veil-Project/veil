@@ -92,12 +92,13 @@ std::string TestBuildWalletTransaction(int nRandomInt) {
 
     // Get Random outputs
     std::set<int64_t> setIndexSelected;
-    std::vector< std::pair<int64_t,CAnonOutput> > vecSelectedOutputs;
+    std::vector<CLightWalletAnonOutputData> vecSelectedOutputs;
     std::string sError;
     GetMainWallet()->GetAnonWallet()->GetRandomHidingOutputs(11, 11, setIndexSelected,vecSelectedOutputs, errorMsg);
 
     std::string txHex = "";
-    if (!BuildLightWalletTransaction(args, vFinalTx, vecSelectedOutputs, txHex)) {
+
+    if (!BuildLightWalletTransaction(args, vFinalTx, vecSelectedOutputs, txHex, errorMsg)) {
         LogPrintf("Failed testing transaction");
     }
 
@@ -120,10 +121,8 @@ std::string TestBuildWalletTransaction(int nRandomInt) {
 // Spend Public Key
 // Address to spend to
 // Amount to spend
-bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std::vector<CWatchOnlyTx>& vSpendableTx, const std::vector<std::pair<int64_t, CAnonOutput>>& vDummyOutputs, std::string& txHex)
+bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std::vector<CWatchOnlyTx>& vSpendableTx, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, std::string& txHex, std::string& errorMsg)
 {
-    std::string errorMsg;
-
     // Parse the arguments
     CKey spend_secret;
     CKey scan_secret;
@@ -160,13 +159,21 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
         vecSend.push_back(r);
     }
 
-    if (!CheckAmounts(nValueOut, vSpendableTx)) {
+    std::vector<CWatchOnlyTx> vectorTxesWithAmountSet;
+    if (!GetAmountAndBlindForUnspentTx(vectorTxesWithAmountSet, vSpendableTx, spend_secret, scan_secret, spend_pubkey, errorMsg)) {
+        LogPrintf("Failed - GetAmountAndBlindForUnspentTx");
+        return false;
+    }
+
+
+    if (!CheckAmounts(nValueOut, vectorTxesWithAmountSet)) {
         LogPrintf("Failed - amount is over the balance of this address");
+        errorMsg = "Amount is over the balance of this address";
         return false;
     }
 
     // Default ringsize is 11
-    int nRingSize = 11;
+    int nRingSize = 5;
     int nInputsPerSig = nRingSize;
 
     // Get change address - this is the same address we are sending from
@@ -178,11 +185,13 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
 
     if (0 != SecretToPublicKey(sxAddr.scan_secret, sxAddr.scan_pubkey)) {
         LogPrintf("Failed - Could not get scan public key.");
+        errorMsg = "Could not get scan public key.";
         return false;
     }
 
     if (spend_secret.IsValid() && 0 != SecretToPublicKey(spend_secret, sxAddr.spend_pubkey)) {
         LogPrintf("Failed - Could not get spend public key.");
+        errorMsg = "Could not get spend public key.";
         return false;
     } else {
         SetPublicKey(spend_pubkey, sxAddr.spend_pubkey);
@@ -193,6 +202,7 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
 
     if (!addrChange.IsValidStealthAddress()) {
         LogPrintf("Invalid change address %s\n", addrChange.ToString());
+        errorMsg = "Invalid change address";
         return false;
     }
 
@@ -204,6 +214,7 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
     // Check we are sending to atleast one address
     if (vecSend.size() < 1) {
         LogPrintf("Failed - Transaction must have at least one recipient.");
+        errorMsg = "Transaction must have at least one recipient.";
         return false;
     }
 
@@ -213,6 +224,7 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
         nValue += r.nAmount;
         if (nValue < 0 || r.nAmount < 0) {
             LogPrintf("Transaction amounts must not be negative");
+            errorMsg = "Transaction amounts must not be negative";
             return false;
         }
     }
@@ -220,12 +232,14 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
     // Check ringsize
     if (nRingSize < 3 || nRingSize > 32) {
         LogPrintf("Ring size out of range.");
+        errorMsg = "Ring size out of range.";
         return false;
     }
 
     // Check inputspersig
     if (nInputsPerSig < 1 || nInputsPerSig > 32) {
         LogPrintf("Num inputs per signature out of range.");
+        errorMsg = "Num inputs per signature out of range.";
         return false;
     }
 
@@ -275,8 +289,9 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
 
     // Select tx to spend
     CAmount nTempChange;
-    if (!SelectSpendableTxForValue(vSelectedTxes, nTempChange, nValueOut, vSpendableTx)) {
+    if (!SelectSpendableTxForValue(vSelectedTxes, nTempChange, nValueOut, vectorTxesWithAmountSet)) {
         LogPrintf("Failed - SelectSpendableTxForValue\n");
+        errorMsg = "SelectSpendableTxForValue failure";
         return false;
     }
 
@@ -361,6 +376,7 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
 
         if (!nSubtractFeeFromAmount || !(--nSubFeeTries)) {
             LogPrintf("Failed Transaction fee and change calculation failed\n");
+            errorMsg = "Failed Transaction fee and change calculation failed";
             return false;
         }
     }
@@ -399,6 +415,7 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
         if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainCommitment, &vBlindPlain[0],
                                        (uint64_t) nValueOutPlain, secp256k1_generator_h)) {
             LogPrintf("Pedersen Commit failed for plain out.");
+            errorMsg = "Pedersen Commit failed for plain out.";
             return false;
         }
 
@@ -416,6 +433,7 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
     vData.resize(1);
     if (0 != PutVarInt(vData, nFeeRet)) {
         LogPrintf("Failed to add fee to transaction.\n");
+        errorMsg = "Failed to add fee to transaction.";
         return false;
     }
 
@@ -516,7 +534,6 @@ bool GetDestinationKeyForOutput(CKey& destinationKey, const CWatchOnlyTx& tx, co
 bool GetKeyImagesFromAPITransactions(std::vector<std::pair<CCmpPubKey, CWatchOnlyTx>>& keyimages, const std::vector<CWatchOnlyTx>& vectorWatchOnlyTxFromAPI, const CKey& spend_secret, const CKey& scan_secret, const CPubKey& spend_pubkey, std::string& errorMsg)
 {
     for (int i = 0; i < vectorWatchOnlyTxFromAPI.size(); i++) {
-
         CWatchOnlyTx tx = vectorWatchOnlyTxFromAPI[i];
 
         CKey destinationKey;
@@ -587,6 +604,7 @@ bool CheckAmounts(const CAmount& nValueOut, const std::vector<CWatchOnlyTx>& vSp
 {
     CAmount nSum;
     for (const auto& tx : vSpendableTx) {
+        LogPrintf("Getting amounts from inputs: %d\n", tx.nAmount);
         nSum += tx.nAmount;
 
         if ((nValueOut + CENT) < nSum ) {
@@ -731,8 +749,11 @@ bool SelectSpendableTxForValue(std::vector<CWatchOnlyTx>& vSpendTheseTx, CAmount
     bool fSingleInput = false;
     bool fMultipleInput = false;
 
+
+
     // TODO - this can be improved, but works for now
     for (const CWatchOnlyTx &tx : vSpendableTx) {
+        LogPrintf("tx amounts %d, ", tx.nAmount);
         if (tx.nAmount > nValueOut) {
             tempsingleamountchange = tx.nAmount - nValueOut;
             if (tempsingleamountchange < currentMinimumChange || currentMinimumChange == 0) {
@@ -758,6 +779,8 @@ bool SelectSpendableTxForValue(std::vector<CWatchOnlyTx>& vSpendTheseTx, CAmount
             }
         }
     }
+
+    LogPrintf("nValueOut %d, ", nValueOut);
 
     if (fSingleInput) {
         nChange = tempsingleamountchange;
@@ -931,7 +954,7 @@ bool LightWalletAddRealOutputs(CMutableTransaction& txNew, std::vector<CWatchOnl
 }
 
 
-void LightWalletFillInDummyOutputs(CMutableTransaction& txNew, const std::vector<std::pair<int64_t, CAnonOutput>>& vDummyOutputs, std::vector<size_t>& vSecretColumns, std::vector<std::vector<std::vector<int64_t>>>& vMI)
+void LightWalletFillInDummyOutputs(CMutableTransaction& txNew, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, std::vector<size_t>& vSecretColumns, std::vector<std::vector<std::vector<int64_t>>>& vMI)
 {
     // Fill in dummy signatures for fee calculation.
     for (size_t l = 0; l < txNew.vin.size(); ++l) {
@@ -948,7 +971,8 @@ void LightWalletFillInDummyOutputs(CMutableTransaction& txNew, const std::vector
                         continue;
                     }
 
-                    vMI[l][k][i] = vDummyOutputs[nCurrentLocation].first;
+                    LogPrintf("looking at vector index :%d, setting index for dummy: %d\n",nCurrentLocation, vDummyOutputs[nCurrentLocation].index);
+                    vMI[l][k][i] = vDummyOutputs[nCurrentLocation].index;
                     nCurrentLocation++;
                 }
             }
@@ -1099,7 +1123,7 @@ bool LightWalletInsertKeyImages(CMutableTransaction& txNew, std::vector<std::pai
                 if (tx.ringctIndex == nIndex) {
                     vchEphemPK.resize(33);
                     memcpy(&vchEphemPK[0], &tx.ringctout.vData[0], 33);
-                    LogPrintf("Found the correct outpoint to generate vchEphemPK\n");
+                    LogPrintf("Found the correct outpoint to generate vchEphemPK for index %d\n", nIndex);
                     foundTx = tx;
                     break;
                 }
@@ -1131,7 +1155,7 @@ bool LightWalletInsertKeyImages(CMutableTransaction& txNew, std::vector<std::pai
 }
 
 
-bool LightWalletSignAndVerifyTx(CMutableTransaction& txNew, std::vector<std::vector<uint8_t>>& vInputBlinds, std::vector<const uint8_t *>& vpOutCommits, std::vector<const uint8_t *>& vpOutBlinds, std::vector<CKey>& vSplitCommitBlindingKeys, const std::vector<std::pair<int64_t, CKey>>& vSigningKeys, const std::vector<std::pair<int64_t, CAnonOutput>>& vDummyOutputs, const std::vector<CWatchOnlyTx>& vSelectedTx, const std::vector<size_t>& vSecretColumns, const std::vector<std::vector<std::vector<int64_t>>>& vMI, std::string& errorMsg)
+bool LightWalletSignAndVerifyTx(CMutableTransaction& txNew, std::vector<std::vector<uint8_t>>& vInputBlinds, std::vector<const uint8_t *>& vpOutCommits, std::vector<const uint8_t *>& vpOutBlinds, std::vector<CKey>& vSplitCommitBlindingKeys, const std::vector<std::pair<int64_t, CKey>>& vSigningKeys, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, const std::vector<CWatchOnlyTx>& vSelectedTx, const std::vector<size_t>& vSecretColumns, const std::vector<std::vector<std::vector<int64_t>>>& vMI, std::string& errorMsg)
 {
     size_t nTotalInputs = 0;
     int rv;
@@ -1160,6 +1184,7 @@ bool LightWalletSignAndVerifyTx(CMutableTransaction& txNew, std::vector<std::vec
 
         std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
 
+        LogPrintf("nSigInputs %d , nCols %d\n",nSigInputs, nCols);
         for (size_t k = 0; k < nSigInputs; ++k) {
             for (size_t i = 0; i < nCols; ++i) {
                 int64_t nIndex = vMI[l][k][i];
@@ -1201,22 +1226,21 @@ bool LightWalletSignAndVerifyTx(CMutableTransaction& txNew, std::vector<std::vec
                     }
                 } else {
                     bool fFound = false;
-                    for (const auto& pair : vDummyOutputs) {
-                        if (pair.first == nIndex) {
+                    for (const auto& item : vDummyOutputs) {
+                        if (item.index == nIndex) {
                             fFound = true;
-                            memcpy(&vm[(i + k * nCols) * 33], pair.second.pubkey.begin(), 33);
-                            vCommitments.push_back(pair.second.commitment);
+                            memcpy(&vm[(i + k * nCols) * 33], item.output.pubkey.begin(), 33);
+                            vCommitments.push_back(item.output.commitment);
                             vpInCommits[i + k * nCols] = vCommitments.back().data;
                             break;
                         }
                     }
 
                     if (!fFound) {
+                        LogPrintf("Couldn't find dummy index for nIndex=%d\n", nIndex);
                         errorMsg = "No pubkey found for dummy output";
                         return false;
                     }
-
-
                 }
             }
         }

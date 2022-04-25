@@ -1239,6 +1239,7 @@ static UniValue testbuildlightwallettransaction(const JSONRPCRequest& request) {
                             return error("%s: %s", __func__, sError);
                         }
 
+                        LogPrintf("setting index for realinput: %d\n", index);
                         vMI[l][k][i] = index;
                         setHave.insert(index);
                     }
@@ -1256,7 +1257,7 @@ static UniValue testbuildlightwallettransaction(const JSONRPCRequest& request) {
         // Place Hiding Outputs
         {
             std::set<int64_t> setIndexSelected;
-            std::vector<std::pair<int64_t, CAnonOutput> > vecSelectedOutputs;
+            std::vector<CLightWalletAnonOutputData> vecSelectedOutputs;
             std::string sError;
 
             // TODO - verify the nsiginputs and nringsize are set correctly
@@ -1272,7 +1273,7 @@ static UniValue testbuildlightwallettransaction(const JSONRPCRequest& request) {
                         continue;
                     }
 
-                    vMI[l][k][i] = vecSelectedOutputs[nCurrentLocation].first;
+                    vMI[l][k][i] = vecSelectedOutputs[nCurrentLocation].index;
                     nCurrentLocation++;
                 }
             }
@@ -3404,12 +3405,16 @@ static UniValue getanonoutputs(const JSONRPCRequest &request)
     UniValue result(UniValue::VARR);
 
     std::set<int64_t> setIndexSelected;
-    std::vector< std::pair<int64_t,CAnonOutput> > vecSelectedOutputs;
+    std::vector<CLightWalletAnonOutputData> vecSelectedOutputs;
     std::string sError;
     if (anonwallet->GetRandomHidingOutputs(nInputSize, nRingSize, setIndexSelected, vecSelectedOutputs, sError)) {
         for (const auto& out : vecSelectedOutputs) {
             UniValue entry(UniValue::VOBJ);
-            AnonOutputToJSON(out.second, out.first, entry);
+            AnonOutputToJSON(out.output, out.index, entry);
+
+            CDataStream ssOutputData(SER_NETWORK, PROTOCOL_VERSION);
+            ssOutputData << out;
+            entry.pushKV("raw", HexStr(ssOutputData));
             result.push_back(entry);
         }
     } else {
@@ -3417,6 +3422,196 @@ static UniValue getanonoutputs(const JSONRPCRequest &request)
     }
 
     return result;
+};
+
+static UniValue getkeyimages(const JSONRPCRequest &request)
+{
+    if (request.fHelp || request.params.size() != 4)
+        throw std::runtime_error(
+                "getkeyimages \"[txdata]\" \"spend_secret\" \"scan_secret\" \"spend_public\" \n"
+                "\nGet the keyimages of transactions\n"
+                "\nArguments:\n"
+                "1. \"[txdata]\"                   (array, required) The transaction info\n"
+                "2. \"spend_secret\"                      (string, required) The spend secret \n"
+                "3. \"scan_secret\"                       (string, required) The scan secret \n"
+                "4. \"spend_public\"                      (string, required) The spend public \n"
+                + HelpExampleCli("getkeyimages", "")
+                + HelpExampleRpc("getkeyimages", "")
+        );
+
+    RPCTypeCheck(request.params, {
+                         UniValue::VARR,
+                         UniValue::VSTR,
+                         UniValue::VSTR,
+                         UniValue::VSTR
+                 }, false
+    );
+
+
+    UniValue txinfo = request.params[0].get_array();
+    std::string spend_secret = request.params[1].get_str();
+    std::string scan_secret = request.params[2].get_str();
+    std::string spend_public = request.params[3].get_str();
+
+    std::vector<CWatchOnlyTx> vecTx;
+
+    for (unsigned int idx = 0; idx < txinfo.size(); idx++) {
+        CWatchOnlyTxWithIndex tx;
+        const std::string hex_tx = txinfo[idx].get_str();
+
+
+        if (!IsHex(hex_tx)) {
+            return false;
+        }
+
+        std::vector<unsigned char> txData(ParseHex(hex_tx));
+
+        CDataStream ssData(txData, SER_NETWORK, PROTOCOL_VERSION);
+        try {
+            ssData >> tx;
+            tx.watchonlytx.ringctIndex = tx.ringctindex;
+            vecTx.emplace_back(tx.watchonlytx);
+        } catch (const std::exception&) {
+            // Fall through.
+        }
+    }
+
+    CKey key_spend_secret;
+    CKey key_scan_secret;
+    CPubKey pub_spend_key;
+    // Decode params 0
+    GetSecretFromString(spend_secret, key_spend_secret);
+
+    // Decode params 1
+    GetSecretFromString(scan_secret, key_scan_secret);
+
+    // Decode params 2
+    GetPubkeyFromString(spend_public, pub_spend_key);
+    std::string errorMsg;
+    std::vector<std::pair<CCmpPubKey, CWatchOnlyTx>> keyimages;
+
+    if(GetKeyImagesFromAPITransactions(keyimages, vecTx, key_spend_secret, key_scan_secret, pub_spend_key, errorMsg)) {
+
+        // Lets get the amounts at the same time
+        std::vector<CWatchOnlyTx> amounts;
+        if (GetAmountAndBlindForUnspentTx(amounts, vecTx, key_spend_secret, key_scan_secret, pub_spend_key, errorMsg)) {
+            UniValue ret(UniValue::VARR);
+            int i = 0;
+            for (const auto item: keyimages) {
+                UniValue entry(UniValue::VOBJ);
+                entry.pushKV("keyimage", HexStr(item.first.begin(), item.first.end()));
+                entry.pushKV("tx_hash", item.second.tx_hash.GetHex());
+                entry.pushKV("tx_index", item.second.tx_index);
+                entry.pushKV("amount", ValueFromAmount(amounts[i++].nAmount));
+                ret.push_back(entry);
+            }
+            return ret;
+        } else {
+            throw JSONRPCError(RPC_FAILED_TO_GET_AMOUNTS, errorMsg);
+        }
+    } else {
+        throw JSONRPCError(RPC_FAILED_TO_GET_KEYIMAGES, errorMsg);
+    }
+
+    return NullUniValue;
+};
+
+static UniValue buildlightwallettx(const JSONRPCRequest &request)
+{
+    if (request.fHelp || request.params.size() != 7)
+        throw std::runtime_error(
+                "getkeyimages \"to_address\" \"amount\" \"spend_secret\" \"scan_secret\" \"spend_public\" \"txdata\" \"dummydata\" \n"
+                "\nGet the keyimages of transactions\n"
+                "\nArguments:\n"
+                "1. \"to_address\"                   (string, required) The address to send funds to\n"
+                "2. \"amount\"                       (string, required) the amount to send\n"
+                "3. \"spend_secret\"                 (string, required) The spend secret \n"
+                "4. \"scan_secret\"                  (string, required) The scan secret \n"
+                "5. \"spend_public\"                 (string, required) The spend public \n"
+                "6. \"[txdata]\"                     (array, required) The transaction info\n"
+                "7. \"[dummydata]\"                  (array, required) The dummy transaction info\n"
+                + HelpExampleCli("buildlightwallettx", "")
+                + HelpExampleRpc("buildlightwallettx", "")
+        );
+
+    RPCTypeCheck(request.params, {
+                         UniValue::VSTR,
+                         UniValue::VSTR,
+                         UniValue::VSTR,
+                         UniValue::VSTR,
+                         UniValue::VSTR,
+                         UniValue::VARR,
+                         UniValue::VARR
+                 }, false
+    );
+
+
+    std::vector<std::string> args;
+    args.push_back(request.params[2].get_str());
+    args.push_back(request.params[3].get_str());
+    args.push_back(request.params[4].get_str());
+    args.push_back(request.params[0].get_str());
+    args.push_back(request.params[1].get_str());
+
+    UniValue txinfo = request.params[5].get_array();
+
+    std::vector<CWatchOnlyTx> vecTx;
+
+    for (unsigned int idx = 0; idx < txinfo.size(); idx++) {
+        CWatchOnlyTxWithIndex tx;
+        CWatchOnlyTx watchonlytx;
+        const std::string hex_tx = txinfo[idx].get_str();
+
+
+        if (!IsHex(hex_tx)) {
+            return false;
+        }
+
+        std::vector<unsigned char> txData(ParseHex(hex_tx));
+
+        CDataStream ssData(txData, SER_NETWORK, PROTOCOL_VERSION);
+        try {
+            ssData >> tx;
+            watchonlytx = tx.watchonlytx;
+            watchonlytx.ringctIndex = tx.ringctindex;
+            vecTx.emplace_back(watchonlytx);
+        } catch (const std::exception&) {
+            // Fall through.
+        }
+    }
+
+    UniValue dummyinfo = request.params[6].get_array();
+
+    std::vector<CLightWalletAnonOutputData> vecDummyTxData;
+
+    for (unsigned int idx = 0; idx < dummyinfo.size(); idx++) {
+        CLightWalletAnonOutputData dummydata;
+        const std::string hex_tx = dummyinfo[idx].get_str();
+
+
+        if (!IsHex(hex_tx)) {
+            return false;
+        }
+
+        std::vector<unsigned char> txData(ParseHex(hex_tx));
+
+        CDataStream ssData(txData, SER_NETWORK, PROTOCOL_VERSION);
+        try {
+            ssData >> dummydata;
+            LogPrintf("Reading dummy data -> getting index %d\n", dummydata.index);
+            vecDummyTxData.emplace_back(dummydata);
+        } catch (const std::exception&) {
+            // Fall through.
+        }
+    }
+
+    std::string finalHex;
+    std::string errorMsg;
+    if (BuildLightWalletTransaction(args, vecTx, vecDummyTxData, finalHex, errorMsg)) {
+        return finalHex;
+    } else {
+        throw JSONRPCError(RPC_FAILED_TO_BUILD_TX, errorMsg);
+    }
 };
 
 
@@ -3452,6 +3647,10 @@ static const CRPCCommand commands[] =
                 { "wallet",             "getanonoutputs",                &getanonoutputs,                {"inputsize", "ringsize"} },
                 { "wallet",             "testbuildlightwallettransaction",                &testbuildlightwallettransaction,                {"scan_secret", "spend_secret", "spend_pubkey", "destination", "amount"} },
                 { "wallet",             "runtest",                &runtest,                {} },
+
+                { "wallet",             "getkeyimages",                &getkeyimages,                {"txdata", "spend_secret", "scan_secret", "spend_public"} },
+                { "wallet",             "buildlightwallettx",                &buildlightwallettx,                {"to_address", "amount", "spend_secret", "scan_secret", "spend_public", "txdata", "dummydata"} },
+
 
         };
 

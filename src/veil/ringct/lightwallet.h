@@ -16,6 +16,7 @@ class CPubKey;
 class CWatchOnlyTx;
 class CTempRecipient;
 class CAnonOutput;
+class CLightWalletAnonOutputData;
 
 // For testing purposes only
 std::string TestBuildWalletTransaction(int nRandomInt);
@@ -27,7 +28,7 @@ std::string TestBuildWalletTransaction(int nRandomInt);
 // Spend Public Key
 // Address to spend to
 // Amount to spend
-bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std::vector<CWatchOnlyTx>& vSpendableTx, const std::vector<std::pair<int64_t, CAnonOutput>>& vDummyOutputs, std::string& txHex);
+bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std::vector<CWatchOnlyTx>& vSpendableTx, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, std::string& txHex, std::string& errorMsg);
 bool ParseArgs(const std::vector<std::string>& args, CKey& spend_secret, CKey& scan_secret, CPubKey& spend_pubkey, CBitcoinAddress& address, CAmount& nValue, std::string& errorMsg);
 
 bool GetTypeOut(const CBitcoinAddress& address, const std::string& strAddress, OutputTypes& outputType, CTxDestination& destination, std::string& errorMsg);
@@ -48,13 +49,13 @@ bool LightWalletAddCTData(CMutableTransaction& txNew, std::vector<CTempRecipient
 
 bool LightWalletAddRealOutputs(CMutableTransaction& txNew, std::vector<CWatchOnlyTx>& vSelectedTxes, std::vector<std::vector<uint8_t>>& vInputBlinds, std::vector<size_t>& vSecretColumns, std::vector<std::vector<std::vector<int64_t>>>& vMI, std::string& errorMsg);
 
-void LightWalletFillInDummyOutputs(CMutableTransaction& txNew, const std::vector<std::pair<int64_t, CAnonOutput>>& vDummyOutputs, std::vector<size_t>& vSecretColumns, std::vector<std::vector<std::vector<int64_t>>>& vMI);
+void LightWalletFillInDummyOutputs(CMutableTransaction& txNew, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, std::vector<size_t>& vSecretColumns, std::vector<std::vector<std::vector<int64_t>>>& vMI);
 
 bool LightWalletUpdateChangeOutputCommitment(CMutableTransaction& txNew, std::vector<CTempRecipient>& vecSend, int& nChangePositionOut, std::vector<const uint8_t *>& vpOutCommits, std::vector<const uint8_t *>& vpOutBlinds, std::string& errorMsg);
 
 bool LightWalletInsertKeyImages(CMutableTransaction& txNew, std::vector<std::pair<int64_t, CKey>>& vSigningKeys, const std::vector<CWatchOnlyTx>& vSelectedTxes, const std::vector<size_t>& vSecretColumns, const std::vector<std::vector<std::vector<int64_t>>>& vMI, const CPubKey& spend_pubkey, const CKey& scan_secret, const CKey& spend_secret, std::string& errorMsg);
 
 
-bool LightWalletSignAndVerifyTx(CMutableTransaction& txNew, std::vector<std::vector<uint8_t>>& vInputBlinds, std::vector<const uint8_t *>& vpOutCommits, std::vector<const uint8_t *>& vpOutBlinds, std::vector<CKey>& vSplitCommitBlindingKeys, const std::vector<std::pair<int64_t, CKey>>& vSigningKeys, const std::vector<std::pair<int64_t, CAnonOutput>>& vDummyOutputs, const std::vector<CWatchOnlyTx>& vSelectedTx, const std::vector<size_t>& vSecretColumns, const std::vector<std::vector<std::vector<int64_t>>>& vMI, std::string& errorMsg);
+bool LightWalletSignAndVerifyTx(CMutableTransaction& txNew, std::vector<std::vector<uint8_t>>& vInputBlinds, std::vector<const uint8_t *>& vpOutCommits, std::vector<const uint8_t *>& vpOutBlinds, std::vector<CKey>& vSplitCommitBlindingKeys, const std::vector<std::pair<int64_t, CKey>>& vSigningKeys, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, const std::vector<CWatchOnlyTx>& vSelectedTx, const std::vector<size_t>& vSecretColumns, const std::vector<std::vector<std::vector<int64_t>>>& vMI, std::string& errorMsg);
 
 #endif //VEIL_LIGHTWALLET_H

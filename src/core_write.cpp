@@ -240,7 +240,7 @@ void RingCTOutputToJSON(const uint256& txid, const int& i, const int64_t& ringct
     entry.pushKV("valueCommitment", HexStr(&ringctOut.commitment.data[0], &ringctOut.commitment.data[0]+33));
     entry.pushKV("data_hex", HexStr(ringctOut.vData.begin(), ringctOut.vData.end()));
 
-    AddRangeproof(ringctOut.vRangeproof, entry);
+//    AddRangeproof(ringctOut.vRangeproof, entry);
 }
 
 void AnonOutputToJSON(const CAnonOutput& output, const int& ringctindex, UniValue &entry)

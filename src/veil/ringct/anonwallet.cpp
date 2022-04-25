@@ -3156,7 +3156,7 @@ bool AnonWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size
 }
 
 
-bool AnonWallet::GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std::set<int64_t> &setHave, std::vector<std::pair<int64_t, CAnonOutput> >& randomoutputs, std::string &sError)
+bool AnonWallet::GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std::set<int64_t> &setHave, std::vector<CLightWalletAnonOutputData>& randomoutputs, std::string &sError)
 {
     if (nRingSize < MIN_RINGSIZE || nRingSize > MAX_RINGSIZE) {
         sError = strprintf("Ring size out of range [%d, %d].", MIN_RINGSIZE, MAX_RINGSIZE);
@@ -3230,8 +3230,10 @@ bool AnonWallet::GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std
 
                     nLastDepthCheckPassed = nDecoy;
                 }
-
-                randomoutputs.emplace_back(std::make_pair(nDecoy, ao));
+                CLightWalletAnonOutputData tempData;
+                tempData.index = nDecoy,
+                tempData.output = ao;
+                randomoutputs.emplace_back(tempData);
                 setHave.insert(nDecoy);
                 break;
             }

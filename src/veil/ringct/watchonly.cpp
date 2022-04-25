@@ -321,6 +321,14 @@ UniValue CWatchOnlyTx::GetUniValue(bool spent, std::string keyimage, uint256 txh
     }
 
     RingCTOutputToJSON(this->tx_hash, this->tx_index, this->ringctIndex, this->ringctout, out);
+
+    CWatchOnlyTxWithIndex watchonlywithindex;
+    watchonlywithindex.watchonlytx = *this;
+    watchonlywithindex.ringctindex = this->ringctIndex;
+
+    CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
+    ssTx << watchonlywithindex;
+    out.pushKV("raw", HexStr(ssTx));
     return out;
 }
 

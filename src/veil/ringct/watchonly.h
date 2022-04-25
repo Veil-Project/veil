@@ -99,6 +99,24 @@ public:
     UniValue GetUniValue(bool spent = false, std::string keyimage = "", uint256 txhash = uint256(), bool fSkip = true, CAmount amount = 0);
 };
 
+class CWatchOnlyTxWithIndex
+{
+public:
+    CWatchOnlyTxWithIndex(){}
+
+    int64_t ringctindex;
+    CWatchOnlyTx watchonlytx;
+
+
+    ADD_SERIALIZE_METHODS;
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream &s, Operation ser_action)
+    {
+        READWRITE(ringctindex);
+        READWRITE(watchonlytx);
+    };
+};
+
 /** Watchonly address methods */
 bool AddWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey, const int64_t& nStart, const int64_t& nImported);
 bool RemoveWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey);
