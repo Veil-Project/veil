@@ -3373,6 +3373,110 @@ static UniValue importlightwalletaddress(const JSONRPCRequest &request)
     return result;
 };
 
+static UniValue getwatchonlystatus(const JSONRPCRequest &request)
+{
+    if (request.fHelp || request.params.size() != 2)
+        throw std::runtime_error(
+                "getwatchonlystatus \"scan_secret\" \"spend_public\" \n"
+                "\nView the imported status of a watchonly address\n"
+                "\nArguments:\n"
+                "1. \"scan_secret\"                      (string, required) Scan secret key\n"
+                "2. \"spend_public\"                     (string, required) Spend Public Key (watchonly)\n"
+                + HelpExampleCli("getwatchonlystatus", "\"cQS2VU6R4CjsnrXn6jJWSvtzvrcjKHBB4mVSe17o4toJPPBqkbRm\" \"0362ae0f399a0a9f32c71f91ad75e009440c773ae663029acc486c4fb855c287a4\"")
+                + HelpExampleRpc("getwatchonlystatus", "\"cQS2VU6R4CjsnrXn6jJWSvtzvrcjKHBB4mVSe17o4toJPPBqkbRm\" \"0362ae0f399a0a9f32c71f91ad75e009440c773ae663029acc486c4fb855c287a4\"")
+        );
+
+    std::string sScanSecret  = request.params[0].get_str();
+    std::string sSpendPublic = request.params[1].get_str();
+
+    uint32_t num_prefix_bits = 0;
+    uint32_t nPrefix = 0;
+    bool fBech32 = true;
+
+    std::vector<uint8_t> vchScanSecret, vchSpendPublic;
+    CBitcoinSecret wifScanSecret;
+    CKey skScan;
+    CPubKey pkSpend;
+    if (IsHex(sScanSecret)) {
+        vchScanSecret = ParseHex(sScanSecret);
+    } else
+    if (wifScanSecret.SetString(sScanSecret)) {
+        skScan = wifScanSecret.GetKey();
+    } else {
+        if (!DecodeBase58(sScanSecret, vchScanSecret, MAX_STEALTH_RAW_SIZE)) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode scan secret as WIF, hex or base58.");
+        }
+    }
+
+    if (vchScanSecret.size() > 0) {
+        if (vchScanSecret.size() != 32) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Scan secret is not 32 bytes.");
+        }
+        skScan.Set(&vchScanSecret[0], true);
+    }
+
+    if (IsHex(sSpendPublic)) {
+        vchSpendPublic = ParseHex(sSpendPublic);
+    } else {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend Public wasn't hex");
+    }
+
+    if (vchSpendPublic.size() > 0) {
+        if (vchSpendPublic.size() == 32) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend Public wasn't the right size. Please make sure you are sending the publickey, not the private");
+        } else
+        if (vchSpendPublic.size() == 33) {
+            // watchonly
+            pkSpend = CPubKey(vchSpendPublic.begin(), vchSpendPublic.end());
+        } else {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend public key is not 32 or 33 bytes.");
+        }
+    }
+
+    if (!pkSpend.IsValid()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Must provide a valid spend pubkey.");
+    }
+
+    CStealthAddress sxAddr;
+    sxAddr.scan_secret = skScan;
+    sxAddr.spend_secret_id = pkSpend.GetID();
+
+    sxAddr.prefix.number_bits = num_prefix_bits;
+
+    if (0 != SecretToPublicKey(sxAddr.scan_secret, sxAddr.scan_pubkey)) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not get scan public key.");
+    }
+    SetPublicKey(pkSpend, sxAddr.spend_pubkey);
+
+    UniValue result(UniValue::VOBJ);
+
+    int64_t scanFromHeight = 0;
+    int64_t heightWhenImported = 0;
+    int64_t scannedToHeight = 0;
+
+
+    if (mapWatchOnlyAddresses.count(sxAddr.ToString(fBech32))) {
+        auto watchOnlyInfo = mapWatchOnlyAddresses.at(sxAddr.ToString(fBech32));
+        heightWhenImported = watchOnlyInfo.nImportedHeight;
+        scanFromHeight = watchOnlyInfo.nScanStartHeight;
+        scannedToHeight = watchOnlyInfo.nCurrentScannedHeight;
+    } else {
+        result.pushKV("status", "failed");
+        result.pushKV("stealth_address", sxAddr.ToString(fBech32));
+        return result;
+    }
+
+    if (scannedToHeight >= scanFromHeight) {
+        result.pushKV("status", "synced");
+        result.pushKV("stealth_address", sxAddr.ToString(fBech32));
+        return result;
+    }
+
+    result.pushKV("status", "scanning");
+    result.pushKV("stealth_address", sxAddr.ToString(fBech32));
+    return result;
+};
+
 
 static UniValue getanonoutputs(const JSONRPCRequest &request)
 {
@@ -3520,8 +3624,8 @@ static UniValue buildlightwallettx(const JSONRPCRequest &request)
 {
     if (request.fHelp || request.params.size() != 7)
         throw std::runtime_error(
-                "getkeyimages \"to_address\" \"amount\" \"spend_secret\" \"scan_secret\" \"spend_public\" \"txdata\" \"dummydata\" \n"
-                "\nGet the keyimages of transactions\n"
+                "buildlightwallettx \"to_address\" \"amount\" \"spend_secret\" \"scan_secret\" \"spend_public\" \"txdata\" \"dummydata\" \n"
+                "\nBuild a light wallet transaction\n"
                 "\nArguments:\n"
                 "1. \"to_address\"                   (string, required) The address to send funds to\n"
                 "2. \"amount\"                       (string, required) the amount to send\n"
@@ -3530,6 +3634,8 @@ static UniValue buildlightwallettx(const JSONRPCRequest &request)
                 "5. \"spend_public\"                 (string, required) The spend public \n"
                 "6. \"[txdata]\"                     (array, required) The transaction info\n"
                 "7. \"[dummydata]\"                  (array, required) The dummy transaction info\n"
+                "Result\n"
+                "1. \"hexstring\"                    (string) The signed raw hex of the transaction\n"
                 + HelpExampleCli("buildlightwallettx", "")
                 + HelpExampleRpc("buildlightwallettx", "")
         );
@@ -3644,6 +3750,8 @@ static const CRPCCommand commands[] =
                 { "wallet",             "importstealthaddress",          &importstealthaddress,          {"scan_secret", "spend_secret", "label", "num_prefix_bits", "prefix_num", "bech32"} },
                 { "wallet",             "importlightwalletaddress",          &importlightwalletaddress,          {"scan_secret", "spend_secret", "created_height", "label", "num_prefix_bits", "prefix_num", "bech32"} },
 
+                { "wallet",             "getwatchonlystatus",                &getwatchonlystatus,                {"scan_secret", "spend_public"} },
+
                 { "wallet",             "getanonoutputs",                &getanonoutputs,                {"inputsize", "ringsize"} },
                 { "wallet",             "testbuildlightwallettransaction",                &testbuildlightwallettransaction,                {"scan_secret", "spend_secret", "spend_pubkey", "destination", "amount"} },
                 { "wallet",             "runtest",                &runtest,                {} },
@@ -3653,6 +3761,8 @@ static const CRPCCommand commands[] =
 
 
         };
+
+
 
 void RegisterHDWalletRPCCommands(CRPCTable &t)
 {
