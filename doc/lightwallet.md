@@ -163,7 +163,7 @@ To create a ringct transaction you must provide the lightwallet daemon with utxo
 4. Using the lightwallet rpc 
    1. "buildlightwallettx \"to_address\" \"amount\" \"spend_secret\" \"scan_secret\" \"spend_public\" \"txdata\" \"dummydata\" \n"
    ### Parameters
-   ```json
+   ```yaml
                    1. "to_address"                   (string, required) The address to send funds to
                    2. "amount"                       (string, required) the amount to send
                    3. "spend_secret"                 (string, required) The spend secret
