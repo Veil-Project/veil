@@ -3362,7 +3362,8 @@ static UniValue importlightwalletaddress(const JSONRPCRequest &request)
     }
 
     result.pushKV("result", "Success");
-    result.pushKV("stealth_address", sxAddr.ToString(fBech32));
+    result.pushKV("stealth_address_bech", sxAddr.ToString(fBech32));
+    result.pushKV("stealth_address_normal", sxAddr.ToString(false));
     result.pushKV("imported_on", nImported);
     result.pushKV("created_on", nCreated);
 

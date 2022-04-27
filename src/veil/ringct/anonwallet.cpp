@@ -5365,7 +5365,6 @@ bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlo
         std::vector<CWatchOnlyTx> vecWatchOnlyTx;
         size_t nCT = 0, nRingCT = 0;
         bool fIsMine = ScanForOwnedOutputs(tx, nCT, nRingCT, mapNarr, vecWatchOnlyTx);
-        LogPrintf("%s ISMINE=%d sizeofwatchonlyvec=%d - %d\n", __func__, fIsMine ? 1 : 0, vecWatchOnlyTx.size(), __LINE__);
         bool fIsFromMe = false;
         MapRecords_t::const_iterator mir;
         for (const auto &txin : tx.vin) {

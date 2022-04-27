@@ -235,6 +235,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "buildlightwallettx", 5, "txdata"},
     { "buildlightwallettx", 6, "dummydata"},
     { "testbuildlightwallettransaction", 4, "amount"},
+    { "getnewaddress", 3, "bech32"},
+    { "getnewaddress", 4, "makeV2"},
+
 
 };
 
