@@ -1420,7 +1420,8 @@ static UniValue checkkeyimages(const JSONRPCRequest& request)
         if (!IsHex(hex_str) || hex_str.size() != 66) {
             keyimage.pushKV("status", "invalid");
             keyimage.pushKV("msg", "Not hex, or length was 66");
-            return keyimage;
+            result.push_back(keyimage);
+            continue;
         }
 
         std::vector<uint8_t> v = ParseHex(hex_str);
