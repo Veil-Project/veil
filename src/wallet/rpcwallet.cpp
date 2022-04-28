@@ -1417,7 +1417,7 @@ static UniValue checkkeyimages(const JSONRPCRequest& request)
         UniValue keyimage(UniValue::VOBJ);
         const std::string hex_str = keyimageinfo[idx].get_str();
 
-        if (!IsHex(hex_str) || hex_str.size() == 66) {
+        if (!IsHex(hex_str) || hex_str.size() != 66) {
             keyimage.pushKV("status", "invalid");
             keyimage.pushKV("msg", "Not hex, or length was 66");
             return keyimage;
