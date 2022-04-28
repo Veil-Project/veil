@@ -1,6 +1,6 @@
 // Copyright (c) 2014 The ShadowCoin developers
 // Copyright (c) 2017-2019 The Particl developers
-// Copyright (c) 2018-2019 The Veil developers
+// Copyright (c) 2018-2022 The Veil developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
