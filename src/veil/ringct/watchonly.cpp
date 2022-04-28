@@ -307,7 +307,7 @@ CWatchOnlyTx::CWatchOnlyTx() {
     tx_hash.SetNull();
 }
 
-UniValue CWatchOnlyTx::GetUniValue(bool spent, std::string keyimage, uint256 txhash, bool fSkip, CAmount amount)
+UniValue CWatchOnlyTx::GetUniValue(int& index, bool spent, std::string keyimage, uint256 txhash, bool fSkip, CAmount amount)
 {
     UniValue out(UniValue::VOBJ);
 
@@ -320,6 +320,7 @@ UniValue CWatchOnlyTx::GetUniValue(bool spent, std::string keyimage, uint256 txh
         }
     }
 
+    out.pushKV("dbindex", index);
     RingCTOutputToJSON(this->tx_hash, this->tx_index, this->ringctIndex, this->ringctout, out);
 
     CWatchOnlyTxWithIndex watchonlywithindex;

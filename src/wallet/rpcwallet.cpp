@@ -1211,13 +1211,11 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
     UniValue txes(UniValue::VARR);
     if (GetWatchOnlyKeyCount(scan_secret, current_count)) {
         for (int i = 0; i <= current_count; i++) {
-            UniValue object(UniValue::VOBJ);
             CWatchOnlyTx watchonlytx;
             if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
                 if (!spend_secret.IsValid()) {
                     pblocktree->ReadRCTOutputLink(watchonlytx.ringctout.pk, watchonlytx.ringctIndex);
-                    object.pushKV(std::to_string(i), watchonlytx.GetUniValue());
-                    txes.push_back(object);
+                    txes.push_back(watchonlytx.GetUniValue(i));
                 } else {
                     auto txout = watchonlytx.ringctout;
 
@@ -1271,11 +1269,10 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
                         // Check if keyimage is used
                         uint256 txhashKI;
                         if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
-                            object.pushKV(std::to_string(i), watchonlytx.GetUniValue(true, HexStr(ki),  txhashKI, false, amountOut));
+                            txes.push_back(watchonlytx.GetUniValue(i, true, HexStr(ki),  txhashKI, false, amountOut));
                         } else {
-                            object.pushKV(std::to_string(i), watchonlytx.GetUniValue(false, HexStr(ki), txhashKI, false, amountOut));
+                            txes.push_back(watchonlytx.GetUniValue(i, false, HexStr(ki), txhashKI, false, amountOut));
                         }
-                        txes.push_back(object);
                     }
                 }
             }

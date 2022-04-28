@@ -96,7 +96,7 @@ public:
         READWRITE(ringctout);
     };
 
-    UniValue GetUniValue(bool spent = false, std::string keyimage = "", uint256 txhash = uint256(), bool fSkip = true, CAmount amount = 0);
+    UniValue GetUniValue(int& index, bool spent = false, std::string keyimage = "", uint256 txhash = uint256(), bool fSkip = true, CAmount amount = 0);
 };
 
 class CWatchOnlyTxWithIndex
