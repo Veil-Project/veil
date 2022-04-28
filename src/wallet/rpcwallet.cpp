@@ -1387,6 +1387,58 @@ static UniValue checkkeyimage(const JSONRPCRequest& request)
     return result;
 }
 
+static UniValue checkkeyimages(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+                "checkkeyimages \"key_images\""
+                "\nCheck if keyimage is spent in the chain."
+                "\n"
+                "\nArguments:\n"
+                "1. \"key_images\"         (array, required) The key images to check\n"
+                "\nResult:\n"
+                "\"[\n"
+                "txhash,       (string) The txhash\n"
+                "...\n"
+                "]\"\n"
+        );
+
+    LOCK(cs_main);
+
+    RPCTypeCheck(request.params, {
+        UniValue::VARR }, false
+    );
+
+    UniValue keyimageinfo = request.params[0].get_array();
+
+    UniValue result(UniValue::VARR);
+
+    for (unsigned int idx = 0; idx < keyimageinfo.size(); idx++) {
+        UniValue keyimage(UniValue::VOBJ);
+        const std::string hex_str = keyimageinfo[idx].get_str();
+
+        if (!IsHex(hex_str) || hex_str.size() == 66) {
+            keyimage.pushKV("status", "invalid");
+            keyimage.pushKV("msg", "Not hex, or length was 66");
+            return keyimage;
+        }
+
+        std::vector<uint8_t> v = ParseHex(hex_str);
+        CCmpPubKey ki(v.begin(), v.end());
+
+        uint256 tx_hash;
+        bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, tx_hash);
+        keyimage.pushKV("status", "valid");
+        keyimage.pushKV("spent", spent_in_chain);
+        if (spent_in_chain) {
+            keyimage.pushKV("txid", tx_hash.GetHex());
+        }
+        result.push_back(keyimage);
+    }
+
+    return result;
+}
+
 static UniValue getwatchonlyaddresses(const JSONRPCRequest& request)
 {
 
@@ -6478,6 +6530,8 @@ static const CRPCCommand commands[] =
     { "wallet",             "getwatchonlytxes",                 &getwatchonlytxes,              {"scan_secret"} },
 
     { "info",             "checkkeyimage",                      &checkkeyimage,                 {"key_image"} },
+    { "info",             "checkkeyimages",                      &checkkeyimages,                 {"key_images"} },
+
     { "info",             "testgetlightwalletbalance",          &testgetlightwalletbalance,     {"scan_secret", "spend_secret", "spend_pubkey"} },
 
     { "generating",         "generate",                         &generate,                      {"nblocks","maxtries"} },

@@ -232,6 +232,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getanonoutputs", 0, "inputsize"},
     { "getanonoutputs", 1, "ringsize"},
     { "getkeyimages", 0, "txdata"},
+    { "checkkeyimages", 0, "keyimages"},
     { "buildlightwallettx", 5, "txdata"},
     { "buildlightwallettx", 6, "dummydata"},
     { "testbuildlightwallettransaction", 4, "amount"},
