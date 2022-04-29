@@ -1376,25 +1376,22 @@ static UniValue checkkeyimage(const JSONRPCRequest& request)
     CCmpPubKey ki(v.begin(), v.end());
 
     uint256 tx_hash;
-    uint256 txidMempoolKeyImage;
-    bool spent_in_chain = false;
     bool spent_in_mempool = false;
-    LOCK(mempool.cs);
-    if (mempool.HaveKeyImage(ki, txidMempoolKeyImage)) {
-        spent_in_mempool = true;
-    }
 
-    spent_in_chain = pblocktree->ReadRCTKeyImage(ki, tx_hash);
+
+    bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, tx_hash);
+    {
+        LOCK(mempool.cs);
+        if (!spent_in_chain && mempool.HaveKeyImage(ki, tx_hash)) {
+            spent_in_mempool = true;
+        }
+    }
 
     UniValue result(UniValue::VOBJ);
     result.pushKV("spent", spent_in_chain);
     result.pushKV("spentinmempool", spent_in_mempool);
-    if (spent_in_chain) {
+    if (spent_in_chain || spent_in_mempool) {
         result.pushKV("txid", tx_hash.GetHex());
-    }
-
-    if (spent_in_mempool) {
-        result.pushKV("txidmempool", txidMempoolKeyImage.GetHex());
     }
 
     return result;
@@ -1417,6 +1414,7 @@ static UniValue checkkeyimages(const JSONRPCRequest& request)
         );
 
     LOCK(cs_main);
+    LOCK(mempool.cs);
 
     RPCTypeCheck(request.params, {
         UniValue::VARR }, false
@@ -1441,10 +1439,16 @@ static UniValue checkkeyimages(const JSONRPCRequest& request)
         CCmpPubKey ki(v.begin(), v.end());
 
         uint256 tx_hash;
+        bool spent_in_mempool = false;
         bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, tx_hash);
+
+        if (!spent_in_chain && mempool.HaveKeyImage(ki, tx_hash)) {
+            spent_in_mempool = true;
+        }
         keyimage.pushKV("status", "valid");
         keyimage.pushKV("spent", spent_in_chain);
-        if (spent_in_chain) {
+        keyimage.pushKV("spentinmempool", spent_in_mempool);
+        if (spent_in_chain || spent_in_mempool) {
             keyimage.pushKV("txid", tx_hash.GetHex());
         }
         result.push_back(keyimage);
