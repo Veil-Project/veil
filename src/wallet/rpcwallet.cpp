@@ -1376,12 +1376,25 @@ static UniValue checkkeyimage(const JSONRPCRequest& request)
     CCmpPubKey ki(v.begin(), v.end());
 
     uint256 tx_hash;
-    bool spent_in_chain = pblocktree->ReadRCTKeyImage(ki, tx_hash);
+    uint256 txidMempoolKeyImage;
+    bool spent_in_chain = false;
+    bool spent_in_mempool = false;
+    LOCK(mempool.cs);
+    if (mempool.HaveKeyImage(ki, txidMempoolKeyImage)) {
+        spent_in_mempool = true;
+    }
+
+    spent_in_chain = pblocktree->ReadRCTKeyImage(ki, tx_hash);
 
     UniValue result(UniValue::VOBJ);
     result.pushKV("spent", spent_in_chain);
+    result.pushKV("spentinmempool", spent_in_mempool);
     if (spent_in_chain) {
         result.pushKV("txid", tx_hash.GetHex());
+    }
+
+    if (spent_in_mempool) {
+        result.pushKV("txidmempool", txidMempoolKeyImage.GetHex());
     }
 
     return result;
@@ -1419,7 +1432,7 @@ static UniValue checkkeyimages(const JSONRPCRequest& request)
 
         if (!IsHex(hex_str) || hex_str.size() != 66) {
             keyimage.pushKV("status", "invalid");
-            keyimage.pushKV("msg", "Not hex, or length was 66");
+            keyimage.pushKV("msg", "Not hex, or length wasn't 66");
             result.push_back(keyimage);
             continue;
         }
