@@ -269,7 +269,7 @@ public Q_SLOTS:
     void optionsClicked();
 
     /** Show incoming transaction notification for new transactions. */
-    void incomingTransaction(const QString& date, int unit, const CAmount& amount, const QString& type, const QString& address, const QString& label, const QString& walletName);
+    void incomingTransaction(const QString& date, int unit, const CAmount& amount, bool amountLocked, const QString& type, const QString& address, const QString& label, const QString& walletName);
 
     /** Encrypt every wallet **/
     bool encryptWallet(bool encrypt);
