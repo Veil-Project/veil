@@ -5459,7 +5459,7 @@ int AnonWallet::OwnAnonOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxO
     CKeyID idStealthDestination = pout->pk.GetID();
     CKey key;
     if (IsLocked()) {
-        if (!HaveKeyID(idStealthDestination))
+        if (!HaveKeyID(idStealthDestination) && !HaveAddress(idStealthDestination))
             return 0;
 
         rout.nFlags |= ORF_OWNED;
