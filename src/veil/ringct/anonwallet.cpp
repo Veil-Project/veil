@@ -4036,7 +4036,7 @@ bool AnonWallet::UnlockWallet(const CExtKey& keyMasterIn)
     }
 
     LOCK2(cs_main, pwalletParent->cs_wallet);
-    RescanWallet();
+    RescanWallet<RESCAN_WALLET_LOCKED_ONLY>();
 
     return true;
 }
@@ -5002,6 +5002,7 @@ bool KeyIdFromScriptPubKey(const CScript& script, CKeyID& id)
     return true;
 }
 
+template<AnonWallet::RescanWalletType ScanType>
 void AnonWallet::RescanWallet()
 {
     AssertLockHeld(pwalletParent->cs_wallet);
@@ -5016,7 +5017,8 @@ void AnonWallet::RescanWallet()
     view.SetBackend(viewMemPool);
 
     std::set<uint256> setErase;
-    for (auto mi = mapRecords.begin(); mi != mapRecords.end(); mi++) {
+
+    auto scanTransaction = [&](auto && mi) {
         uint256 txid = mi->first;
         CTransactionRecord* txrecord = &mi->second;
 
@@ -5046,7 +5048,7 @@ void AnonWallet::RescanWallet()
                     }
                 }
                 setErase.emplace(txid);
-                continue;
+                return;
             }
         }
 
@@ -5054,7 +5056,7 @@ void AnonWallet::RescanWallet()
         CTransactionRef txRef;
         uint256 hashBlock;
         if (!GetTransaction(txid, txRef, Params().GetConsensus(), hashBlock, true))
-            continue;
+            return;
 
         bool transactionUpdated = false;
         for (auto it = txrecord->vout.begin(); it != txrecord->vout.end(); it++) {
@@ -5181,17 +5183,50 @@ void AnonWallet::RescanWallet()
             }
         }
 
+        // Check whether transaction is still locked (should in theory not happen, but just in case).
+        // If it is unlocked, ensure it is not tracked anymore.
+        bool isLocked = false;
+        for (auto it = txrecord->vout.begin(); it != txrecord->vout.end(); it++) {
+            if (it->nFlags & ORF_LOCKED) {
+                isLocked = true;
+                break;
+            }
+        }
+        if (!isLocked) {
+            mapLockedRecords.erase(txid);
+        }
+
         if (transactionUpdated) {
             pwalletParent->NotifyTransactionChanged(pwalletParent.get(), txid, CT_UPDATED_FULL);
+        }
+    };
+
+    if constexpr (ScanType == RESCAN_WALLET_LOCKED_ONLY) {
+        std::set<uint256> lockedTransactions(mapLockedRecords);
+        for (uint256 txhash : lockedTransactions) {
+            auto mi = mapRecords.find(txhash);
+            if (mi == mapRecords.end()) {
+                LogPrintf("ERROR: %s: inconsistency of tracked locked transactions detected.\n", __func__);
+                continue;
+            }
+            scanTransaction(mi);
+        }
+    } else {
+        for (auto mi = mapRecords.begin(); mi != mapRecords.end(); mi++) {
+            scanTransaction(mi);
         }
     }
 
     for (const uint256& txid : setErase) {
         mapRecords.erase(txid);
+        mapLockedRecords.erase(txid);
         wdb.EraseTxRecord(txid);
         pwalletParent->NotifyTransactionChanged(pwalletParent.get(), txid, CT_DELETED);
     }
 }
+
+template void AnonWallet::RescanWallet<AnonWallet::RESCAN_WALLET_FULL>();
+template void AnonWallet::RescanWallet<AnonWallet::RESCAN_WALLET_LOCKED_ONLY>();
 
 bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate)
 {
@@ -5721,6 +5756,7 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
         stx.vBlinds.clear();
     }
 
+    bool isLocked = false;
     for (size_t i = 0; i < tx.vpout.size(); ++i) {
         const auto &txout = tx.vpout[i];
 
@@ -5783,9 +5819,18 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                 break;
         }
         fUpdated = true;
+
+        if (pout->nFlags & ORF_LOCKED)
+            isLocked = true;
     }
 
     if (fInsertedNew || fUpdated) {
+        // Keep track of locked transactions for faster unlocking
+        if (isLocked)
+            mapLockedRecords.insert(txhash);
+        else
+            mapLockedRecords.erase(txhash);
+
         // Plain to plain will always be a wtx, revisit if adding p2p to rtx
         if (!tx.GetCTFee(rtx.nFee))
             LogPrintf("%s: ERROR - GetCTFee failed %s.\n", __func__, txhash.ToString());
