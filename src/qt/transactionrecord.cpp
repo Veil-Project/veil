@@ -325,8 +325,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     sub.address = strAddress;
 
                     // Value is blinded so must come from outputrecord
-                    if (precord)
+                    if (precord) {
                         sub.credit = precord->GetAmount();
+                        sub.status.isLocked = precord->nFlags & ORF_LOCKED;
+                    }
                 }
 
                 if (strAddress.empty())
