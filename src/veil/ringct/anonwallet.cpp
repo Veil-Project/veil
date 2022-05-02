@@ -4020,7 +4020,7 @@ bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
     return true;
 }
 
-bool AnonWallet::UnlockWallet(const CExtKey& keyMasterIn)
+bool AnonWallet::UnlockWallet(const CExtKey& keyMasterIn, bool fRescan)
 {
     if (!SetMasterKey(keyMasterIn))
         return false;
@@ -4035,8 +4035,10 @@ bool AnonWallet::UnlockWallet(const CExtKey& keyMasterIn)
     }
     }
 
-    LOCK2(cs_main, pwalletParent->cs_wallet);
-    RescanWallet<RESCAN_WALLET_LOCKED_ONLY>();
+    if (fRescan) {
+        LOCK2(cs_main, pwalletParent->cs_wallet);
+        RescanWallet<RESCAN_WALLET_LOCKED_ONLY>();
+    }
 
     return true;
 }

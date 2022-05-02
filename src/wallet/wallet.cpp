@@ -537,7 +537,7 @@ bool CWallet::UnlockZerocoinWallet()
     return true;
 }
 
-bool CWallet::UnlockAnonWallet()
+bool CWallet::UnlockAnonWallet(bool fAnonRescan)
 {
     CExtKey keyAnonMaster;
     if (!GetAnonWalletSeed(keyAnonMaster))
@@ -548,11 +548,11 @@ bool CWallet::UnlockAnonWallet()
     if (idDerived != idSeedDB)
         return error("%s: derived anon wallet key %s does not match expected key %s", __func__, idDerived.GetHex(), idSeedDB.GetHex());
 
-    pAnonWalletMain->UnlockWallet(keyAnonMaster);
+    pAnonWalletMain->UnlockWallet(keyAnonMaster, fAnonRescan);
     return true;
 }
 
-bool CWallet::Unlock(const SecureString& strWalletPassphrase, bool fUnlockForStakingOnly)
+bool CWallet::Unlock(const SecureString& strWalletPassphrase, bool fUnlockForStakingOnly, bool fAnonRescan)
 {
     CCrypter crypter;
     CKeyingMaterial _vMasterKey;
@@ -581,7 +581,7 @@ bool CWallet::Unlock(const SecureString& strWalletPassphrase, bool fUnlockForSta
             return error("%s: failed to load hd chain from database", __func__);
         if (!UnlockZerocoinWallet())
             return error("%s: failed to unlock zerocoin wallet", __func__);
-        if (!UnlockAnonWallet())
+        if (!UnlockAnonWallet(fAnonRescan))
             return error("%s: failed to unlock anon wallet", __func__);
     }
 
@@ -875,7 +875,7 @@ bool CWallet::EncryptWallet(const SecureString& strWalletPassphrase)
         encrypted_batch = nullptr;
 
         CCryptoKeyStore::Lock();
-        CWallet::Unlock(strWalletPassphrase, false);
+        CWallet::Unlock(strWalletPassphrase, false, false);
 
         // if we are using HD, replace the HD seed with a new one
 //        if (CWallet::IsHDEnabled()) {

@@ -258,7 +258,7 @@ public:
     bool MakeDefaultAccount(const CExtKey& extKeyMaster);
     bool CreateStealthChangeAccount(AnonWalletDB* wdb);
     bool SetMasterKey(const CExtKey& keyMasterIn);
-    bool UnlockWallet(const CExtKey& keyMasterIn);
+    bool UnlockWallet(const CExtKey& keyMasterIn, bool fRescan = true);
     bool LoadAccountCounters();
     bool LoadKeys();
     CKeyID GetSeedHash() const;
