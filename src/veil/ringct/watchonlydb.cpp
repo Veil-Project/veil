@@ -111,7 +111,7 @@ bool CWatchOnlyDB::ReadKeyCount(const CKey& key, int& current_count)
     return fSuccess;
 }
 
-bool CWatchOnlyDB::WriteBlockTransactions(const int64_t& nBlockHeight, const std::vector<CTxOutRingCTWatchOnly>& vTransactions)
+bool CWatchOnlyDB::WriteBlockTransactions(const int64_t& nBlockHeight, const std::vector<CTxOutWatchonly>& vTransactions)
 {
     CDBBatch batch(*this);
     batch.Write(std::make_pair(DB_WATCHONLY_BLOCK_TX, nBlockHeight), vTransactions);
@@ -119,7 +119,7 @@ bool CWatchOnlyDB::WriteBlockTransactions(const int64_t& nBlockHeight, const std
     return WriteBatch(batch);
 }
 
-bool CWatchOnlyDB::ReadBlockTransactions(const int64_t& nBlockHeight, std::vector<CTxOutRingCTWatchOnly>& vTransactions)
+bool CWatchOnlyDB::ReadBlockTransactions(const int64_t& nBlockHeight, std::vector<CTxOutWatchonly>& vTransactions)
 {
     bool fSuccess = Read(std::make_pair(DB_WATCHONLY_BLOCK_TX, nBlockHeight), vTransactions);
     LogPrint(BCLog::WATCHONLYDB, "Reading block txes for height %d from db.\n", nBlockHeight);

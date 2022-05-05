@@ -560,33 +560,48 @@ public:
     bool SetScriptPubKey(const CScript& scriptPubKey) override { return false; }
 };
 
-class CTxOutRingCTWatchOnly : public CTxOutRingCT
+class CTxOutWatchonly
 {
 public:
-    CTxOutRingCTWatchOnly() : CTxOutRingCT() {};
+    CTxOutWatchonly() {};
+
+    enum {
+        NOTSET = -1,
+        STEALTH = 0,
+        ANON = 1
+    };
+
+    int type;
+    CTxOutRingCT ringctOut;
+    CTxOutCT ctOut;
     uint256 tx_hash;
     int nIndex;
+
 
     template<typename Stream>
     void Serialize(Stream &s) const
     {
-        s.write((char*)pk.begin(), 33);
-        s.write((char*)&commitment.data[0], 33);
-        s << vData;
-        s << vRangeproof;
+        s << type;
         s << tx_hash;
         s << nIndex;
+        if(type == STEALTH) {
+            s << ctOut;
+        } else if (type == ANON) {
+            s << ringctOut;
+        }
     }
 
     template<typename Stream>
     void Unserialize(Stream &s)
     {
-        s.read((char*)pk.ncbegin(), 33);
-        s.read((char*)&commitment.data[0], 33);
-        s >> vData;
-        s >> vRangeproof;
+        s >> type;
         s >> tx_hash;
         s >> nIndex;
+        if (type == STEALTH) {
+            s >> ctOut;
+        } else if (type == ANON) {
+            s >> ringctOut;
+        }
     }
 };
 

@@ -127,13 +127,13 @@ void ScanWatchOnlyAddresses()
                 LogPrintf("Changing blocks per scan to %d\n", nNumberOfBlockPerScan);
             }
 
-            std::vector<std::vector<CTxOutRingCTWatchOnly>> vecNewRingCTTransactions(nNumberOfBlockPerScan, std::vector<CTxOutRingCTWatchOnly>());
-            std::vector<std::vector<CTxOutRingCTWatchOnly>> vecRingCTTranasctionToScan(nNumberOfBlockPerScan, std::vector<CTxOutRingCTWatchOnly>());
+            std::vector<std::vector<CTxOutWatchonly>> vecNewRingCTTransactions(nNumberOfBlockPerScan, std::vector<CTxOutWatchonly>());
+            std::vector<std::vector<CTxOutWatchonly>> vecRingCTTranasctionToScan(nNumberOfBlockPerScan, std::vector<CTxOutWatchonly>());
             for (int i = 0; i < nNumberOfBlockPerScan; i++) {
                 boost::this_thread::interruption_point();
                 int nIndexHeight = nStartBlockHeight + i;
 
-                std::vector<CTxOutRingCTWatchOnly> vTransactions;
+                std::vector<CTxOutWatchonly> vTransactions;
 
                 if (pwatchonlyDB->ReadBlockTransactions(nIndexHeight, vTransactions)) {
                     vecRingCTTranasctionToScan[i] = vTransactions;
@@ -161,14 +161,19 @@ void ScanWatchOnlyAddresses()
                         for (const auto &txout : tx->vpout) {
                             if (txout->IsType(OUTPUT_RINGCT)) {
                                 const CTxOutRingCT *rctout = (CTxOutRingCT *) txout.get();
-                                CTxOutRingCTWatchOnly out;
-                                out.nVersion = rctout->nVersion;
+                                CTxOutWatchonly out;
+                                out.type = CTxOutWatchonly::ANON;
                                 out.tx_hash = tx->GetHash();
                                 out.nIndex = index;
-                                out.pk = rctout->pk;
-                                out.commitment = rctout->commitment;
-                                out.vData = rctout->vData;
-                                out.vRangeproof = rctout->vRangeproof;
+                                out.ringctOut = *rctout;
+                                vecNewRingCTTransactions[i].push_back(out);
+                            } else if (txout->IsType(OUTPUT_CT)) {
+                                const CTxOutCT *ctout = (CTxOutCT *) txout.get();
+                                CTxOutWatchonly out;
+                                out.type = CTxOutWatchonly::STEALTH;
+                                out.tx_hash = tx->GetHash();
+                                out.nIndex = index;
+                                out.ctOut = *ctout;
                                 vecNewRingCTTransactions[i].push_back(out);
                             }
                             index++;
@@ -200,29 +205,50 @@ void ScanWatchOnlyAddresses()
                     }
                 }
 
-                for (const auto& rctout : vecRingCTTranasctionToScan[i]) {
-                    /// Scan through transactions for txes that are owned.
-                    CKeyID idk = rctout.pk.GetID();
-
-                    // Uncover stealth
-                    uint32_t prefix = 0;
-                    bool fHavePrefix = false;
-                    if (rctout.vData.size() != 33) {
-                        if (rctout.vData.size() == 38 // Have prefix
-                            && rctout.vData[33] == DO_STEALTH_PREFIX) {
-                            fHavePrefix = true;
-                            memcpy(&prefix, &rctout.vData[34], 4);
-                        } else {
-                            continue;
-                        }
-                    }
+                for (const auto& watchonlyout : vecRingCTTranasctionToScan[i]) {
 
                     CKey sShared;
                     CWatchOnlyTx watchonlyTx;
                     std::vector<uint8_t> vchEphemPK;
-                    vchEphemPK.resize(33);
-                    memcpy(&vchEphemPK[0], &rctout.vData[0], 33);
+                    CKeyID idk;
 
+                    if (watchonlyout.type == CTxOutWatchonly::ANON) {
+                        auto rctout = watchonlyout.ringctOut;
+                        /// Scan through transactions for txes that are owned.
+                        idk = rctout.pk.GetID();
+
+                        // Uncover stealth
+                        uint32_t prefix = 0;
+                        bool fHavePrefix = false;
+                        if (rctout.vData.size() != 33) {
+                            if (rctout.vData.size() == 38 // Have prefix
+                                && rctout.vData[33] == DO_STEALTH_PREFIX) {
+                                fHavePrefix = true;
+                                memcpy(&prefix, &rctout.vData[34], 4);
+                            } else {
+                                continue;
+                            }
+                        }
+
+                        vchEphemPK.resize(33);
+                        memcpy(&vchEphemPK[0], &rctout.vData[0], 33);
+                    } else if (watchonlyout.type == CTxOutWatchonly::STEALTH) {
+                        auto ctout = watchonlyout.ctOut;
+
+                        if(!KeyIdFromScriptPubKey(ctout.scriptPubKey, idk)) {
+                            LogPrintf("ScanWatchOnlyAddresses() Failed to get KeyId from script.\n");
+                        }
+
+                        CPubKey pkEphem;
+                        pkEphem.Set(ctout.vData.begin(), ctout.vData.begin() + 33);
+
+                        std::vector<uint8_t> vchEphemPK;
+                        vchEphemPK.resize(33);
+                        memcpy(&vchEphemPK[0], &ctout.vData[0], 33);
+                    } else {
+                        continue;
+                    }
+                        /// Scan through transactions for txes that are owned.
                     for (const auto addr : scanThese) {
                         ec_point pkExtracted;
                         ec_point ecPubKey;
@@ -242,18 +268,32 @@ void ScanWatchOnlyAddresses()
                             continue;
                         }
 
-                        CTxOutRingCT txring;
-                        txring.vRangeproof = rctout.vRangeproof;
-                        txring.vData = rctout.vData;
-                        txring.commitment = rctout.commitment;
-                        txring.pk = rctout.pk;
-                        txring.nVersion = rctout.nVersion;
+                        CTxOutRingCT txringCT;
+                        CTxOutCT txCT;
+                        if (watchonlyout.type == CTxOutWatchonly::ANON) {
+                            txringCT.vRangeproof = watchonlyout.ringctOut.vRangeproof;
+                            txringCT.vData = watchonlyout.ringctOut.vData;
+                            txringCT.commitment = watchonlyout.ringctOut.commitment;
+                            txringCT.pk = watchonlyout.ringctOut.pk;
+                            txringCT.nVersion = watchonlyout.ringctOut.nVersion;
+                        } else if (watchonlyout.type == CTxOutWatchonly::STEALTH) {
+                            txCT.vRangeproof = watchonlyout.ctOut.vRangeproof;
+                            txCT.vData = watchonlyout.ctOut.vData;
+                            txCT.commitment = watchonlyout.ctOut.commitment;
+                            txCT.scriptPubKey = watchonlyout.ctOut.scriptPubKey;
+                            txCT.nVersion = watchonlyout.ctOut.nVersion;
+                        }
 
                         CWatchOnlyTx watchOnlyTx;
+                        watchonlyTx.type = watchonlyout.type;
                         watchonlyTx.scan_secret = addr.second.scan_secret;
-                        watchonlyTx.tx_hash = rctout.tx_hash;
-                        watchonlyTx.tx_index = rctout.nIndex;
-                        watchonlyTx.ringctout = txring;
+                        watchonlyTx.tx_hash = watchonlyout.tx_hash;
+                        watchonlyTx.tx_index = watchonlyout.nIndex;
+                        if (watchonlyout.type == CTxOutWatchonly::ANON) {
+                            watchonlyTx.ringctout = txringCT;
+                        } else if (watchonlyout.type == CTxOutWatchonly::STEALTH) {
+                            watchonlyTx.ctout = txCT;
+                        }
 
                         // TODO. Instead of writing to database everytime we find a new tx.
                         // TODO Maybe could put it into a cache, and only database once cache hits a certain number
