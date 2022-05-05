@@ -794,17 +794,35 @@ static UniValue testbuildlightwallettransaction(const JSONRPCRequest& request) {
             if (GetAmountFromWatchonly(vTxes[i].second, scan_secret, spend_secret, spend_pubkey, nAmount, blind,
                                        keyImage)) {
 
-                // Check if key image is spent
-                // This check will happening via api
-                uint256 tx_hash;
-                bool spent_in_chain = pblocktree->ReadRCTKeyImage(keyImage, tx_hash);
-                if (!spent_in_chain) {
-                    nTotalAmountAvailable += nAmount;
-                    nTotalAvailableTxes += 1;
-                    CWatchOnlyTx temp = vTxes[i].second;
-                    temp.nAmount = nAmount;
-                    temp.blind = blind;
-                    vAvailableWatchOnly.emplace_back(temp);
+                if (vTxes[i].second.type == CWatchOnlyTx::ANON) {
+                    // Check if key image is spent
+                    // This check will happening via api
+                    uint256 tx_hash;
+                    bool spent_in_chain = pblocktree->ReadRCTKeyImage(keyImage, tx_hash);
+                    if (!spent_in_chain) {
+                        nTotalAmountAvailable += nAmount;
+                        nTotalAvailableTxes += 1;
+                        CWatchOnlyTx temp = vTxes[i].second;
+                        temp.nAmount = nAmount;
+                        temp.blind = blind;
+                        vAvailableWatchOnly.emplace_back(temp);
+                    }
+                } else if (vTxes[i].second.type == CWatchOnlyTx::STEALTH) {
+                    LOCK(mempool.cs);
+                    CCoinsView dummy;
+                    CCoinsViewCache view(&dummy);
+                    CCoinsViewMemPool viewMemPool(pcoinsTip.get(), mempool);
+                    view.SetBackend(viewMemPool);
+
+                    bool spent_in_chain = view.HaveCoin(COutPoint(vTxes[i].second.tx_hash, vTxes[i].second.tx_index));
+                    if (!spent_in_chain) {
+                        nTotalAmountAvailable += nAmount;
+                        nTotalAvailableTxes += 1;
+                        CWatchOnlyTx temp = vTxes[i].second;
+                        temp.nAmount = nAmount;
+                        temp.blind = blind;
+                        vAvailableWatchOnly.emplace_back(temp);
+                    }
                 }
             }
         }

@@ -1319,8 +1319,11 @@ static UniValue testgetlightwalletbalance(const JSONRPCRequest& request)
     FetchWatchOnlyTransactions(scan_secret, vTxes);
 
     // Store totals
-    CAmount nTotalAmountAvailable = 0;
-    int nTotalAvailableTxes = 0;
+    CAmount nTotalAnonAmountAvailable = 0;
+    int nTotalAnonAvailableTxes = 0;
+
+    CAmount nTotalStealthAmountAvailable = 0;
+    int nTotalStealthAvailableTxes = 0;
 
     // Loop through all txes, gathering a balance.
     // Check to make sure they aren't spent by query the fullnode
@@ -1330,21 +1333,38 @@ static UniValue testgetlightwalletbalance(const JSONRPCRequest& request)
             uint256 blind;
             CCmpPubKey keyImage;
             if (GetAmountFromWatchonly(vTxes[i].second, scan_secret, spend_secret, spend_pubkey, nAmount, blind, keyImage)) {
-                // Check if key image is spent
-                // This check will happening via api
-                uint256 tx_hash;
-                bool spent_in_chain = pblocktree->ReadRCTKeyImage(keyImage, tx_hash);
-                if (!spent_in_chain) {
-                    nTotalAmountAvailable += nAmount;
-                    nTotalAvailableTxes += 1;
+
+                if (vTxes[i].second.type == CWatchOnlyTx::ANON) {
+                    // Check if key image is spent
+                    // This check will happening via api
+                    uint256 tx_hash;
+                    bool spent_in_chain = pblocktree->ReadRCTKeyImage(keyImage, tx_hash);
+                    if (!spent_in_chain) {
+                        nTotalAnonAmountAvailable += nAmount;
+                        nTotalAnonAvailableTxes += 1;
+                    }
+                } else if (vTxes[i].second.type == CWatchOnlyTx::STEALTH) {
+                    LOCK(mempool.cs);
+                    CCoinsView dummy;
+                    CCoinsViewCache view(&dummy);
+                    CCoinsViewMemPool viewMemPool(pcoinsTip.get(), mempool);
+                    view.SetBackend(viewMemPool);
+
+                    bool spent_in_chain = view.HaveCoin(COutPoint(vTxes[i].second.tx_hash, vTxes[i].second.tx_index));
+                    if (!spent_in_chain) {
+                        nTotalStealthAmountAvailable += nAmount;
+                        nTotalStealthAvailableTxes += 1;
+                    }
                 }
             }
         }
     }
 
     UniValue ret(UniValue::VOBJ);
-    ret.pushKV("Amount", ValueFromAmount(nTotalAmountAvailable));
-    ret.pushKV("Inputs", nTotalAvailableTxes);
+    ret.pushKV("Anon Amount", ValueFromAmount(nTotalAnonAmountAvailable));
+    ret.pushKV("Anon Inputs", nTotalAnonAvailableTxes);
+    ret.pushKV("Stealth Amount", ValueFromAmount(nTotalStealthAmountAvailable));
+    ret.pushKV("Stealth Inputs", nTotalStealthAvailableTxes);
 
     return ret;
 }

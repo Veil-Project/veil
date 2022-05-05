@@ -231,7 +231,7 @@ void OutputToJSON(const uint256 &txid, const int& i,
 
 void RingCTOutputToJSON(const uint256& txid, const int& i, const int64_t& ringctIndex, const CTxOutRingCT& ringctOut, UniValue &entry)
 {
-    entry.pushKV("type", "ringct");
+    entry.pushKV("type", "anon");
     entry.pushKV("tx_hash", txid.GetHex());
     entry.pushKV("vout.n", i);
     entry.pushKV("ringct_index", ringctIndex);
@@ -242,6 +242,23 @@ void RingCTOutputToJSON(const uint256& txid, const int& i, const int64_t& ringct
 
 //    AddRangeproof(ringctOut.vRangeproof, entry);
 }
+void CTOutputToJSON(const uint256& txid, const int& i, const CTxOutCT& ctOut, UniValue &entry)
+{
+    entry.pushKV("type", "stealth");
+    entry.pushKV("tx_hash", txid.GetHex());
+    entry.pushKV("vout.n", i);
+    entry.pushKV("scriptPubKey", HexStr(ctOut.scriptPubKey.begin(), ctOut.scriptPubKey.end()));
+    CTxDestination dest;
+    if (ExtractDestination(ctOut.scriptPubKey, dest)) {
+        entry.pushKV("destination_bech32", EncodeDestination(dest, true));
+        entry.pushKV("destination", EncodeDestination(dest, false));
+    }
+    entry.pushKV("valueCommitment", HexStr(&ctOut.commitment.data[0], &ctOut.commitment.data[0]+33));
+    entry.pushKV("data_hex", HexStr(ctOut.vData.begin(), ctOut.vData.end()));
+
+//    AddRangeproof(ctOut.vRangeproof, entry);
+}
+
 
 void AnonOutputToJSON(const CAnonOutput& output, const int& ringctindex, UniValue &entry)
 {

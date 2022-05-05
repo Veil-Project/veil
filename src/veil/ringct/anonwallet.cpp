@@ -5074,9 +5074,22 @@ bool AnonWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t
             memcpy(&vchEphemPK[0], &ctout->vData[0], 33);
 
             if (ProcessStealthOutput(address, vchEphemPK, prefix, fHavePrefix, sShared, watchonlyTx)) {
-                fIsMine = true;
-            }
+                if (!watchonlyTx.scan_secret.IsValid()) {
+                    fIsMine = true;
+                    LogPrintf("%s - %d\n", __func__, __LINE__);
+                } else {
+                    watchonlyTx.type = CWatchOnlyTx::STEALTH;
+                    watchonlyTx.tx_hash = tx.GetHash();
+                    watchonlyTx.tx_index = nOutputId;
+                    watchonlyTx.ctout = *ctout;
+                    vecWatchOnlyTx.push_back(watchonlyTx);
+                    LogPrintf("%s - %d\n", __func__, __LINE__);
 
+                    UniValue out(UniValue::VOBJ);
+                    CTOutputToJSON(watchonlyTx.tx_hash, watchonlyTx.tx_index, watchonlyTx.ctout, out);
+                    std::cout << out.write(1,1) << std::endl;
+                }
+            }
             continue;
         } else if (txout->IsType(OUTPUT_RINGCT)) {
             nRingCT++;
@@ -5108,6 +5121,7 @@ bool AnonWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t
                     fIsMine = true;
                     LogPrintf("%s - %d\n", __func__, __LINE__);
                 } else {
+                    watchonlyTx.type = CWatchOnlyTx::ANON;
                     watchonlyTx.tx_hash = tx.GetHash();
                     watchonlyTx.tx_index = nOutputId;
                     watchonlyTx.ringctout = *rctout;

@@ -76,10 +76,18 @@ public:
     CWatchOnlyTx(const CKey& key, const uint256& txhash);
     CWatchOnlyTx();
 
+    enum {
+        NOTSET = -1,
+        STEALTH = 0,
+        ANON = 1
+    };
+
+    int type;
     CKey scan_secret;
     uint256 tx_hash;
     int tx_index;
     CTxOutRingCT ringctout;
+    CTxOutCT ctout;
 
     //Memory only - Amount (For testing only)
     CAmount nAmount;
@@ -90,10 +98,15 @@ public:
     template <typename Stream, typename Operation>
     inline void SerializationOp(Stream &s, Operation ser_action)
     {
+        READWRITE(type);
         READWRITE(scan_secret);
         READWRITE(tx_hash);
         READWRITE(tx_index);
-        READWRITE(ringctout);
+        if (type == STEALTH) {
+            READWRITE(ctout);
+        } else if (type == ANON) {
+            READWRITE(ringctout);
+        }
     };
 
     UniValue GetUniValue(int& index, bool spent = false, std::string keyimage = "", uint256 txhash = uint256(), bool fSkip = true, CAmount amount = 0);

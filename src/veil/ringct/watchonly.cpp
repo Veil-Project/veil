@@ -10,6 +10,7 @@
 #include <key_io.h>
 #include <core_io.h>
 #include <univalue.h>
+#include <veil/ringct/anonwallet.h>
 
 #include <veil/ringct/blind.h>
 #include <secp256k1_mlsag.h>
@@ -298,11 +299,13 @@ CWatchOnlyAddress::CWatchOnlyAddress(const CKey& scan, const CPubKey& spend, con
 }
 
 CWatchOnlyTx::CWatchOnlyTx(const CKey& key, const uint256& txhash) {
+    type = NOTSET;
     scan_secret = key;
     tx_hash = txhash;
 }
 
 CWatchOnlyTx::CWatchOnlyTx() {
+    type = NOTSET;
     scan_secret.Clear();
     tx_hash.SetNull();
 }
@@ -311,6 +314,7 @@ UniValue CWatchOnlyTx::GetUniValue(int& index, bool spent, std::string keyimage,
 {
     UniValue out(UniValue::VOBJ);
 
+    out.pushKV("type", this->type ? "anon" : "stealth");
     if (!fSkip) {
         out.pushKV("keyimage", keyimage);
         out.pushKV("amount", ValueFromAmount(amount));
@@ -321,11 +325,19 @@ UniValue CWatchOnlyTx::GetUniValue(int& index, bool spent, std::string keyimage,
     }
 
     out.pushKV("dbindex", index);
-    RingCTOutputToJSON(this->tx_hash, this->tx_index, this->ringctIndex, this->ringctout, out);
+    if (this->type == ANON) {
+        RingCTOutputToJSON(this->tx_hash, this->tx_index, this->ringctIndex, this->ringctout, out);
+    } else if (this->type == STEALTH) {
+        CTOutputToJSON(this->tx_hash, this->tx_index, this->ctout, out);
+    }
 
     CWatchOnlyTxWithIndex watchonlywithindex;
     watchonlywithindex.watchonlytx = *this;
-    watchonlywithindex.ringctindex = this->ringctIndex;
+    if (this->type == ANON) {
+        watchonlywithindex.ringctindex = this->ringctIndex;
+    } else {
+        watchonlywithindex.ringctindex = -1;
+    }
 
     CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
     ssTx << watchonlywithindex;
@@ -454,7 +466,9 @@ void FetchWatchOnlyTransactions(const CKey& scan_secret, std::vector<std::pair<i
     for (int i = nStartFromIndex; i <= nStoppingPoint; i++) {
         CWatchOnlyTx watchonlytx;
         if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
-            pblocktree->ReadRCTOutputLink(watchonlytx.ringctout.pk, watchonlytx.ringctIndex);
+            if (watchonlytx.type == CWatchOnlyTx::ANON) {
+                pblocktree->ReadRCTOutputLink(watchonlytx.ringctout.pk, watchonlytx.ringctIndex);
+            }
             vTxes.emplace_back(std::make_pair(i, watchonlytx));
         }
     }
@@ -492,62 +506,125 @@ bool GetSecretFromString(const std::string& strSecret, CKey& secret)
 
 bool GetAmountFromWatchonly(const CWatchOnlyTx& watchonlytx, const CKey& scan_secret, const CKey& spend_secret, const CPubKey& spend_pubkey, CAmount& nAmount, uint256& blind, CCmpPubKey& keyImage)
 {
-    auto txout = watchonlytx.ringctout;
+    if (watchonlytx.type == CWatchOnlyTx::ANON) {
+        auto txout = watchonlytx.ringctout;
 
-    CKeyID idk = txout.pk.GetID();
-    std::vector<uint8_t> vchEphemPK;
-    vchEphemPK.resize(33);
-    memcpy(&vchEphemPK[0], &watchonlytx.ringctout.vData[0], 33);
+        CKeyID idk = txout.pk.GetID();
+        std::vector<uint8_t> vchEphemPK;
+        vchEphemPK.resize(33);
+        memcpy(&vchEphemPK[0], &watchonlytx.ringctout.vData[0], 33);
 
-    CKey sShared;
-    ec_point pkExtracted;
-    ec_point ecPubKey;
-    SetPublicKey(spend_pubkey, ecPubKey);
+        CKey sShared;
+        ec_point pkExtracted;
+        ec_point ecPubKey;
+        SetPublicKey(spend_pubkey, ecPubKey);
 
-    if (StealthSecret(scan_secret, vchEphemPK, ecPubKey, sShared, pkExtracted) != 0)
-        return error("%s: failed to generate stealth secret", __func__);
+        if (StealthSecret(scan_secret, vchEphemPK, ecPubKey, sShared, pkExtracted) != 0)
+            return error("%s: failed to generate stealth secret", __func__);
 
-    CKey keyDestination;
-    if (StealthSharedToSecretSpend(sShared, spend_secret, keyDestination) != 0)
-        return error("%s: StealthSharedToSecretSpend() failed.\n", __func__);
+        CKey keyDestination;
+        if (StealthSharedToSecretSpend(sShared, spend_secret, keyDestination) != 0)
+            return error("%s: StealthSharedToSecretSpend() failed.\n", __func__);
 
-    if (keyDestination.GetPubKey().GetID() != idk)
-        return error("%s: failed to generate correct shared secret", __func__);
+        if (keyDestination.GetPubKey().GetID() != idk)
+            return error("%s: failed to generate correct shared secret", __func__);
 
-    // Regenerate nonce
-    CPubKey pkEphem;
-    pkEphem.Set(vchEphemPK.begin(), vchEphemPK.begin() + 33);
-    uint256 nonce = keyDestination.ECDH(pkEphem);
-    CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
+        // Regenerate nonce
+        CPubKey pkEphem;
+        pkEphem.Set(vchEphemPK.begin(), vchEphemPK.begin() + 33);
+        uint256 nonce = keyDestination.ECDH(pkEphem);
+        CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
 
-    uint64_t min_value, max_value;
-    uint8_t blindOut[32];
-    unsigned char msg[256]; // Currently narration is capped at 32 bytes
-    size_t mlen = sizeof(msg);
-    memset(msg, 0, mlen);
-    uint64_t amountOut;
-    if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
-                                         blindOut, &amountOut, msg, &mlen, nonce.begin(),
-                                         &min_value, &max_value,
-                                         &watchonlytx.ringctout.commitment, watchonlytx.ringctout.vRangeproof.data(), watchonlytx.ringctout.vRangeproof.size(),
-                                         nullptr, 0,
-                                         secp256k1_generator_h)) {
-        return error("%s: failed to get the amount", __func__);
-    }
+        uint64_t min_value, max_value;
+        uint8_t blindOut[32];
+        unsigned char msg[256]; // Currently narration is capped at 32 bytes
+        size_t mlen = sizeof(msg);
+        memset(msg, 0, mlen);
+        uint64_t amountOut;
+        if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
+                                             blindOut, &amountOut, msg, &mlen, nonce.begin(),
+                                             &min_value, &max_value,
+                                             &watchonlytx.ringctout.commitment,
+                                             watchonlytx.ringctout.vRangeproof.data(),
+                                             watchonlytx.ringctout.vRangeproof.size(),
+                                             nullptr, 0,
+                                             secp256k1_generator_h)) {
+            return error("%s: failed to get the amount", __func__);
+        }
 
-    blind = uint256();
-    memcpy(blind.begin(), blindOut, 32);
-    nAmount = amountOut;
+        blind = uint256();
+        memcpy(blind.begin(), blindOut, 32);
+        nAmount = amountOut;
 
-    // Keyimage is required for the tx hash
-    CCmpPubKey ki;
-    if (secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), watchonlytx.ringctout.pk.begin(),
-                               keyDestination.begin()) == 0) {
-        keyImage = ki;
+        // Keyimage is required for the tx hash
+        CCmpPubKey ki;
+        if (secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), watchonlytx.ringctout.pk.begin(),
+                                   keyDestination.begin()) == 0) {
+            keyImage = ki;
+            return true;
+        }
+
+        return error("%s: failed to get keyimage", __func__);
+
+    } else if (watchonlytx.type == CWatchOnlyTx::STEALTH) {
+
+        auto txout = watchonlytx.ctout;
+        CKeyID id;
+        if (!KeyIdFromScriptPubKey(txout.scriptPubKey, id))
+            return error(" Stealth - Failed to get ID Key from Script.");
+
+        if (txout.vData.size() < 33)
+            return error("%s: Stealth - vData.size() < 33.", __func__);
+
+        CPubKey pkEphem;
+        pkEphem.Set(txout.vData.begin(), txout.vData.begin() + 33);
+
+        std::vector<uint8_t> vchEphemPK;
+        vchEphemPK.resize(33);
+        memcpy(&vchEphemPK[0], &watchonlytx.ringctout.vData[0], 33);
+
+        CKey sShared;
+        ec_point pkExtracted;
+        ec_point ecPubKey;
+        SetPublicKey(spend_pubkey, ecPubKey);
+
+        if (StealthSecret(scan_secret, vchEphemPK, ecPubKey, sShared, pkExtracted) != 0)
+            return error("%s: Stealth - failed to generate stealth secret", __func__);
+
+        CKey keyDestination;
+        if (StealthSharedToSecretSpend(sShared, spend_secret, keyDestination) != 0)
+            return error("%s: Stealth - StealthSharedToSecretSpend() failed.\n", __func__);
+
+        if (keyDestination.GetPubKey().GetID() != id)
+            return error("%s: Stealth - failed to generate correct shared secret", __func__);
+
+        // Regenerate nonce
+        uint256 nonce = keyDestination.ECDH(pkEphem);
+        CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
+
+        uint64_t min_value, max_value;
+        uint8_t blindOut[32];
+        unsigned char msg[256]; // Currently narration is capped at 32 bytes
+        size_t mlen = sizeof(msg);
+        memset(msg, 0, mlen);
+        uint64_t amountOut;
+        if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
+                                             blindOut, &amountOut, msg, &mlen, nonce.begin(),
+                                             &min_value, &max_value,
+                                             &txout.commitment, txout.vRangeproof.data(), txout.vRangeproof.size(),
+                                             nullptr, 0,
+                                             secp256k1_generator_h)) {
+            return error("%s: secp256k1_rangeproof_rewind failed.", __func__);
+        }
+
+        blind = uint256();
+        memcpy(blind.begin(), blindOut, 32);
+        nAmount = amountOut;
+
         return true;
     }
 
-    return error("%s: failed to get keyimage", __func__);
+    return error("%s: Failed because type wasn't ANON or STEALTH", __func__);
 }
 
 bool GetPubkeyFromString(const std::string& strPubkey, CPubKey& pubkey)

@@ -20,6 +20,7 @@ class uint256;
 class UniValue;
 class CTxOutBase;
 class CTxOutRingCT;
+class CTxOutCT;
 class CAnonOutput;
 
 // core_read.cpp
@@ -43,6 +44,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
 
 void OutputToJSON(const uint256 &txid, const int& i,const CTxOutBase *baseOut, UniValue &entry, bool isCoinBase = false);
 void RingCTOutputToJSON(const uint256& txid, const int& i, const int64_t& ringctIndex, const CTxOutRingCT& ringctOut, UniValue &entry);
+void CTOutputToJSON(const uint256& txid, const int& i, const CTxOutCT& ctOut, UniValue &entry);
 void AnonOutputToJSON(const CAnonOutput& output, const int& ringctindex, UniValue &entry);
 
 #endif // BITCOIN_CORE_IO_H
