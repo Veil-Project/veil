@@ -581,7 +581,7 @@ bool GetAmountFromWatchonly(const CWatchOnlyTx& watchonlytx, const CKey& scan_se
 
         std::vector<uint8_t> vchEphemPK;
         vchEphemPK.resize(33);
-        memcpy(&vchEphemPK[0], &watchonlytx.ringctout.vData[0], 33);
+        memcpy(&vchEphemPK[0], &txout.vData[0], 33);
 
         CKey sShared;
         ec_point pkExtracted;

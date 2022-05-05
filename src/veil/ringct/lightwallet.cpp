@@ -501,33 +501,72 @@ bool ParseArgs(const std::vector<std::string>& args, CKey& spend_secret, CKey& s
 
 bool GetDestinationKeyForOutput(CKey& destinationKey, const CWatchOnlyTx& tx, const CKey& spend_secret, const CKey& scan_secret, const CPubKey& spend_pubkey, std::string& errorMsg)
 {
-    CKeyID idk = tx.ringctout.pk.GetID();
+    if (tx.type == CWatchOnlyTx::ANON) {
+        CKeyID idk = tx.ringctout.pk.GetID();
 
-    std::vector<uint8_t> vchEphemPK;
-    vchEphemPK.resize(33);
-    memcpy(&vchEphemPK[0], &tx.ringctout.vData[0], 33);
+        std::vector<uint8_t> vchEphemPK;
+        vchEphemPK.resize(33);
+        memcpy(&vchEphemPK[0], &tx.ringctout.vData[0], 33);
 
-    CKey sShared;
-    ec_point pkExtracted;
-    ec_point ecPubKey;
-    SetPublicKey(spend_pubkey, ecPubKey);
+        CKey sShared;
+        ec_point pkExtracted;
+        ec_point ecPubKey;
+        SetPublicKey(spend_pubkey, ecPubKey);
 
-    if (StealthSecret(scan_secret, vchEphemPK, ecPubKey, sShared, pkExtracted) != 0) {
-        errorMsg = "StealthSecret failed to generate stealth secret";
-        return false;
+        if (StealthSecret(scan_secret, vchEphemPK, ecPubKey, sShared, pkExtracted) != 0) {
+            errorMsg = "StealthSecret failed to generate stealth secret";
+            return false;
+        }
+
+        if (StealthSharedToSecretSpend(sShared, spend_secret, destinationKey) != 0) {
+            errorMsg = "StealthSharedToSecretSpend failed";
+            return false;
+        }
+
+        if (destinationKey.GetPubKey().GetID() != idk) {
+            errorMsg = "GetDestinationKeyForOutput failed to generate correct shared secret";
+            return false;
+        }
+
+        return true;
+    } else if (tx.type == CWatchOnlyTx::STEALTH) {
+        CKeyID id;
+        if (!KeyIdFromScriptPubKey(tx.ctout.scriptPubKey, id))
+            return error(" Stealth - Failed to get ID Key from Script.");
+
+        CPubKey pkEphem;
+        pkEphem.Set(tx.ctout.vData.begin(), tx.ctout.vData.begin() + 33);
+
+        std::vector<uint8_t> vchEphemPK;
+        vchEphemPK.resize(33);
+        memcpy(&vchEphemPK[0], &tx.ctout.vData[0], 33);
+
+        CKey sShared;
+        ec_point pkExtracted;
+        ec_point ecPubKey;
+        SetPublicKey(spend_pubkey, ecPubKey);
+
+        if (StealthSecret(scan_secret, vchEphemPK, ecPubKey, sShared, pkExtracted) != 0) {
+            errorMsg = "Stealth - StealthSecret failed to generate stealth secret";
+            return false;
+        }
+
+        CKey keyDestination;
+        if (StealthSharedToSecretSpend(sShared, spend_secret, keyDestination) != 0) {
+            errorMsg = "Stealth -  StealthSharedToSecretSpend failed";
+            return false;
+        }
+
+        if (keyDestination.GetPubKey().GetID() != id) {
+            errorMsg = "Stealth - GetDestinationKeyForOutput failed to generate correct shared secret";
+            return false;
+        }
+
+        return true;
     }
 
-    if (StealthSharedToSecretSpend(sShared, spend_secret, destinationKey) != 0) {
-        errorMsg = "StealthSharedToSecretSpend failed";
-        return false;
-    }
-
-    if (destinationKey.GetPubKey().GetID() != idk) {
-        errorMsg = "GetDestinationKeyForOutput failed to generate correct shared secret";
-        return false;
-    }
-
-    return true;
+    errorMsg = "WatchonlyTx Type not set to ANON or STEALTH";
+    return false;
 }
 
 
