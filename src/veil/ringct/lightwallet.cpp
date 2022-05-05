@@ -534,9 +534,6 @@ bool GetDestinationKeyForOutput(CKey& destinationKey, const CWatchOnlyTx& tx, co
         if (!KeyIdFromScriptPubKey(tx.ctout.scriptPubKey, id))
             return error(" Stealth - Failed to get ID Key from Script.");
 
-//        CPubKey pkEphem;
-//        pkEphem.Set(tx.ctout.vData.begin(), tx.ctout.vData.begin() + 33);
-
         std::vector<uint8_t> vchEphemPK;
         vchEphemPK.resize(33);
         memcpy(&vchEphemPK[0], &tx.ctout.vData[0], 33);
@@ -575,6 +572,12 @@ bool GetKeyImagesFromAPITransactions(std::vector<std::pair<CCmpPubKey, CWatchOnl
     for (int i = 0; i < vectorWatchOnlyTxFromAPI.size(); i++) {
         CWatchOnlyTx tx = vectorWatchOnlyTxFromAPI[i];
 
+        if (tx.type == CWatchOnlyTx::STEALTH){
+            CCmpPubKey kizero;
+            keyimages.push_back(std::make_pair(kizero, tx));
+            continue;
+        }
+
         CKey destinationKey;
         if (!GetDestinationKeyForOutput(destinationKey, tx, spend_secret, scan_secret, spend_pubkey, errorMsg)) {
             return false;
@@ -607,7 +610,12 @@ bool GetAmountAndBlindForUnspentTx(std::vector<CWatchOnlyTx>& vTxes, const std::
 
         std::vector<uint8_t> vchEphemPK;
         vchEphemPK.resize(33);
-        memcpy(&vchEphemPK[0], &currenttx.ringctout.vData[0], 33);
+
+        if (currenttx.type == CWatchOnlyTx::ANON) {
+            memcpy(&vchEphemPK[0], &currenttx.ringctout.vData[0], 33);
+        } else if (currenttx.type == CWatchOnlyTx::STEALTH) {
+            memcpy(&vchEphemPK[0], &currenttx.ctout.vData[0], 33);
+        }
 
         // Regenerate nonce
         CPubKey pkEphem;
@@ -621,13 +629,32 @@ bool GetAmountAndBlindForUnspentTx(std::vector<CWatchOnlyTx>& vTxes, const std::
         size_t mlen = sizeof(msg);
         memset(msg, 0, mlen);
         uint64_t amountOut;
-        if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
-                                             blindOut, &amountOut, msg, &mlen, nonce.begin(),
-                                             &min_value, &max_value,
-                                             &currenttx.ringctout.commitment, currenttx.ringctout.vRangeproof.data(), currenttx.ringctout.vRangeproof.size(),
-                                             nullptr, 0,
-                                             secp256k1_generator_h)) {
-            errorMsg = "failed to get the amount";
+        if (currenttx.type == CWatchOnlyTx::ANON) {
+            if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
+                                                 blindOut, &amountOut, msg, &mlen, nonce.begin(),
+                                                 &min_value, &max_value,
+                                                 &currenttx.ringctout.commitment,
+                                                 currenttx.ringctout.vRangeproof.data(),
+                                                 currenttx.ringctout.vRangeproof.size(),
+                                                 nullptr, 0,
+                                                 secp256k1_generator_h)) {
+                errorMsg = "failed to get the amount";
+                return false;
+            }
+        } else if (currenttx.type == CWatchOnlyTx::STEALTH) {
+            if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
+                                                 blindOut, &amountOut, msg, &mlen, nonce.begin(),
+                                                 &min_value, &max_value,
+                                                 &currenttx.ctout.commitment,
+                                                 currenttx.ctout.vRangeproof.data(),
+                                                 currenttx.ctout.vRangeproof.size(),
+                                                 nullptr, 0,
+                                                 secp256k1_generator_h)) {
+                errorMsg = "failed to get the amount";
+                return false;
+            }
+        } else {
+            errorMsg = "GetAmountAndBlindForUnspentTx - not ANON or STEALTH";
             return false;
         }
 

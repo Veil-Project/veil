@@ -3622,6 +3622,7 @@ static UniValue getkeyimages(const JSONRPCRequest &request)
             int i = 0;
             for (const auto item: keyimages) {
                 UniValue entry(UniValue::VOBJ);
+                entry.pushKV("tx_type", vecTx[i].type == CWatchOnlyTx::ANON ? "anon" : "stealth");
                 entry.pushKV("keyimage", HexStr(item.first.begin(), item.first.end()));
                 entry.pushKV("tx_hash", item.second.tx_hash.GetHex());
                 entry.pushKV("tx_index", item.second.tx_index);
