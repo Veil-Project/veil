@@ -1217,61 +1217,67 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
                     pblocktree->ReadRCTOutputLink(watchonlytx.ringctout.pk, watchonlytx.ringctIndex);
                     txes.push_back(watchonlytx.GetUniValue(i));
                 } else {
-                    auto txout = watchonlytx.ringctout;
+                    if (watchonlytx.type == CWatchOnlyTx::ANON) {
+                        auto txout = watchonlytx.ringctout;
 
-                    CKeyID idk = txout.pk.GetID();
-                    std::vector<uint8_t> vchEphemPK;
-                    vchEphemPK.resize(33);
-                    memcpy(&vchEphemPK[0], &watchonlytx.ringctout.vData[0], 33);
+                        CKeyID idk = txout.pk.GetID();
+                        std::vector<uint8_t> vchEphemPK;
+                        vchEphemPK.resize(33);
+                        memcpy(&vchEphemPK[0], &watchonlytx.ringctout.vData[0], 33);
 
-                    CKey sShared;
-                    ec_point pkExtracted;
-                    ec_point ecPubKey;
-                    SetPublicKey(pkSpend, ecPubKey);
+                        CKey sShared;
+                        ec_point pkExtracted;
+                        ec_point ecPubKey;
+                        SetPublicKey(pkSpend, ecPubKey);
 
-                    if (StealthSecret(scan_secret, vchEphemPK, ecPubKey, sShared, pkExtracted) != 0)
-                        error("%s: failed to generate stealth secret", __func__);
+                        if (StealthSecret(scan_secret, vchEphemPK, ecPubKey, sShared, pkExtracted) != 0)
+                            error("%s: failed to generate stealth secret", __func__);
 
-                    CKey keyDestination;
-                    if (StealthSharedToSecretSpend(sShared, spend_secret, keyDestination) != 0)
-                        error("%s: StealthSharedToSecretSpend() failed.\n", __func__);
+                        CKey keyDestination;
+                        if (StealthSharedToSecretSpend(sShared, spend_secret, keyDestination) != 0)
+                            error("%s: StealthSharedToSecretSpend() failed.\n", __func__);
 
-                    if (keyDestination.GetPubKey().GetID() != idk)
-                        error("%s: failed to generate correct shared secret", __func__);
+                        if (keyDestination.GetPubKey().GetID() != idk)
+                            error("%s: failed to generate correct shared secret", __func__);
 
-                    // Regenerate nonce
-                    CPubKey pkEphem;
-                    pkEphem.Set(vchEphemPK.begin(), vchEphemPK.begin() + 33);
-                    uint256 nonce = keyDestination.ECDH(pkEphem);
-                    CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
+                        // Regenerate nonce
+                        CPubKey pkEphem;
+                        pkEphem.Set(vchEphemPK.begin(), vchEphemPK.begin() + 33);
+                        uint256 nonce = keyDestination.ECDH(pkEphem);
+                        CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
 
-                    uint64_t min_value, max_value;
-                    uint8_t blindOut[32];
-                    unsigned char msg[256]; // Currently narration is capped at 32 bytes
-                    size_t mlen = sizeof(msg);
-                    memset(msg, 0, mlen);
-                    uint64_t amountOut;
-                    if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
-                                                         blindOut, &amountOut, msg, &mlen, nonce.begin(),
-                                                         &min_value, &max_value,
-                                                         &watchonlytx.ringctout.commitment, watchonlytx.ringctout.vRangeproof.data(), watchonlytx.ringctout.vRangeproof.size(),
-                                                         nullptr, 0,
-                                                         secp256k1_generator_h)) {
-                        error("%s: failed to get the amount", __func__);
-                    }
+                        uint64_t min_value, max_value;
+                        uint8_t blindOut[32];
+                        unsigned char msg[256]; // Currently narration is capped at 32 bytes
+                        size_t mlen = sizeof(msg);
+                        memset(msg, 0, mlen);
+                        uint64_t amountOut;
+                        if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
+                                                             blindOut, &amountOut, msg, &mlen, nonce.begin(),
+                                                             &min_value, &max_value,
+                                                             &watchonlytx.ringctout.commitment,
+                                                             watchonlytx.ringctout.vRangeproof.data(),
+                                                             watchonlytx.ringctout.vRangeproof.size(),
+                                                             nullptr, 0,
+                                                             secp256k1_generator_h)) {
+                            error("%s: failed to get the amount", __func__);
+                        }
 
-                    CAmount actualAmount = amountOut;
+                        CAmount actualAmount = amountOut;
 
-                    // Keyimage is required for the tx hash
-                    CCmpPubKey ki;
-                    if (secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), watchonlytx.ringctout.pk.begin(),
-                                               keyDestination.begin()) == 0) {
-                        // Check if keyimage is used
-                        uint256 txhashKI;
-                        if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
-                            txes.push_back(watchonlytx.GetUniValue(i, true, HexStr(ki),  txhashKI, false, amountOut));
-                        } else {
-                            txes.push_back(watchonlytx.GetUniValue(i, false, HexStr(ki), txhashKI, false, amountOut));
+                        // Keyimage is required for the tx hash
+                        CCmpPubKey ki;
+                        if (secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), watchonlytx.ringctout.pk.begin(),
+                                                   keyDestination.begin()) == 0) {
+                            // Check if keyimage is used
+                            uint256 txhashKI;
+                            if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
+                                txes.push_back(
+                                        watchonlytx.GetUniValue(i, true, HexStr(ki), txhashKI, false, amountOut));
+                            } else {
+                                txes.push_back(
+                                        watchonlytx.GetUniValue(i, false, HexStr(ki), txhashKI, false, amountOut));
+                            }
                         }
                     }
                 }

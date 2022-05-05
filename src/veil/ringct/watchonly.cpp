@@ -239,7 +239,6 @@ void ScanWatchOnlyAddresses()
                             LogPrintf("ScanWatchOnlyAddresses() Failed to get KeyId from script.\n");
                         }
 
-                        std::vector<uint8_t> vchEphemPK;
                         vchEphemPK.resize(33);
                         memcpy(&vchEphemPK[0], &ctout.vData[0], 33);
                     } else {
