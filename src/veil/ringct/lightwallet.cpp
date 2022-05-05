@@ -518,6 +518,10 @@ bool GetDestinationKeyForOutput(CKey& destinationKey, const CWatchOnlyTx& tx, co
             return false;
         }
 
+        if (!sShared.IsValid()) {
+            LogPrintf("sShared wasn't valid: tx type %s", tx.type == CWatchOnlyTx::ANON ? "anon" : "stealth");
+        }
+
         if (StealthSharedToSecretSpend(sShared, spend_secret, destinationKey) != 0) {
             errorMsg = "StealthSharedToSecretSpend failed";
             return false;
@@ -531,8 +535,9 @@ bool GetDestinationKeyForOutput(CKey& destinationKey, const CWatchOnlyTx& tx, co
         return true;
     } else if (tx.type == CWatchOnlyTx::STEALTH) {
         CKeyID id;
-        if (!KeyIdFromScriptPubKey(tx.ctout.scriptPubKey, id))
+        if (!KeyIdFromScriptPubKey(tx.ctout.scriptPubKey, id)) {
             return error(" Stealth - Failed to get ID Key from Script.");
+        }
 
         std::vector<uint8_t> vchEphemPK;
         vchEphemPK.resize(33);
@@ -548,13 +553,12 @@ bool GetDestinationKeyForOutput(CKey& destinationKey, const CWatchOnlyTx& tx, co
             return false;
         }
 
-        CKey keyDestination;
-        if (StealthSharedToSecretSpend(sShared, spend_secret, keyDestination) != 0) {
+        if (StealthSharedToSecretSpend(sShared, spend_secret, destinationKey) != 0) {
             errorMsg = "Stealth -  StealthSharedToSecretSpend failed";
             return false;
         }
 
-        if (keyDestination.GetPubKey().GetID() != id) {
+        if (destinationKey.GetPubKey().GetID() != id) {
             errorMsg = "Stealth - GetDestinationKeyForOutput failed to generate correct shared secret";
             return false;
         }

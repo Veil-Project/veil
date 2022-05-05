@@ -1208,15 +1208,21 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
     FetchWatchOnlyTransactions(scan_secret, vTxes);
 
     int current_count = 0;
-    UniValue txes(UniValue::VARR);
+    UniValue anonTxes(UniValue::VARR);
+    UniValue stealthTxes(UniValue::VARR);
     if (GetWatchOnlyKeyCount(scan_secret, current_count)) {
         for (int i = 0; i <= current_count; i++) {
             CWatchOnlyTx watchonlytx;
             if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
                 if (!spend_secret.IsValid()) {
                     pblocktree->ReadRCTOutputLink(watchonlytx.ringctout.pk, watchonlytx.ringctIndex);
-                    txes.push_back(watchonlytx.GetUniValue(i));
+                    if (watchonlytx.type == CWatchOnlyTx::ANON) {
+                        anonTxes.push_back(watchonlytx.GetUniValue(i));
+                    } else if (watchonlytx.type == CWatchOnlyTx::STEALTH) {
+                        stealthTxes.push_back(watchonlytx.GetUniValue(i));
+                    }
                 } else {
+                    // TODO - Get rid of this code, the watchonly server should never have or be spent the spend private key
                     if (watchonlytx.type == CWatchOnlyTx::ANON) {
                         auto txout = watchonlytx.ringctout;
 
@@ -1272,10 +1278,10 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
                             // Check if keyimage is used
                             uint256 txhashKI;
                             if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
-                                txes.push_back(
+                                anonTxes.push_back(
                                         watchonlytx.GetUniValue(i, true, HexStr(ki), txhashKI, false, amountOut));
                             } else {
-                                txes.push_back(
+                                anonTxes.push_back(
                                         watchonlytx.GetUniValue(i, false, HexStr(ki), txhashKI, false, amountOut));
                             }
                         }
@@ -1285,7 +1291,10 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         }
     }
 
-    return txes;
+    UniValue ret(UniValue::VOBJ);
+    ret.pushKV("anon", anonTxes);
+    ret.pushKV("stealth", stealthTxes);
+    return ret;
 }
 
 static UniValue testgetlightwalletbalance(const JSONRPCRequest& request)

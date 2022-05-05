@@ -233,7 +233,7 @@ void RingCTOutputToJSON(const uint256& txid, const int& i, const int64_t& ringct
 {
     entry.pushKV("type", "anon");
     entry.pushKV("tx_hash", txid.GetHex());
-    entry.pushKV("vout.n", i);
+    entry.pushKV("n", i);
     entry.pushKV("ringct_index", ringctIndex);
     entry.pushKV("pubkey", HexStr(ringctOut.pk.begin(), ringctOut.pk.end()));
     entry.pushKV("pubkey_hash", CBitcoinAddress(ringctOut.pk.GetID()).ToString());
@@ -246,7 +246,7 @@ void CTOutputToJSON(const uint256& txid, const int& i, const CTxOutCT& ctOut, Un
 {
     entry.pushKV("type", "stealth");
     entry.pushKV("tx_hash", txid.GetHex());
-    entry.pushKV("vout.n", i);
+    entry.pushKV("n", i);
     entry.pushKV("scriptPubKey", HexStr(ctOut.scriptPubKey.begin(), ctOut.scriptPubKey.end()));
     CTxDestination dest;
     if (ExtractDestination(ctOut.scriptPubKey, dest)) {
