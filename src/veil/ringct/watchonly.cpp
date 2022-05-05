@@ -239,9 +239,6 @@ void ScanWatchOnlyAddresses()
                             LogPrintf("ScanWatchOnlyAddresses() Failed to get KeyId from script.\n");
                         }
 
-                        CPubKey pkEphem;
-                        pkEphem.Set(ctout.vData.begin(), ctout.vData.begin() + 33);
-
                         std::vector<uint8_t> vchEphemPK;
                         vchEphemPK.resize(33);
                         memcpy(&vchEphemPK[0], &ctout.vData[0], 33);
@@ -616,9 +613,6 @@ bool GetAmountFromWatchonly(const CWatchOnlyTx& watchonlytx, const CKey& scan_se
         if (txout.vData.size() < 33)
             return error("%s: Stealth - vData.size() < 33.", __func__);
 
-        CPubKey pkEphem;
-        pkEphem.Set(txout.vData.begin(), txout.vData.begin() + 33);
-
         std::vector<uint8_t> vchEphemPK;
         vchEphemPK.resize(33);
         memcpy(&vchEphemPK[0], &txout.vData[0], 33);
@@ -639,6 +633,8 @@ bool GetAmountFromWatchonly(const CWatchOnlyTx& watchonlytx, const CKey& scan_se
             return error("%s: Stealth - failed to generate correct shared secret", __func__);
 
         // Regenerate nonce
+        CPubKey pkEphem;
+        pkEphem.Set(vchEphemPK.begin(), vchEphemPK.begin() + 33);
         uint256 nonce = keyDestination.ECDH(pkEphem);
         CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
 

@@ -534,8 +534,8 @@ bool GetDestinationKeyForOutput(CKey& destinationKey, const CWatchOnlyTx& tx, co
         if (!KeyIdFromScriptPubKey(tx.ctout.scriptPubKey, id))
             return error(" Stealth - Failed to get ID Key from Script.");
 
-        CPubKey pkEphem;
-        pkEphem.Set(tx.ctout.vData.begin(), tx.ctout.vData.begin() + 33);
+//        CPubKey pkEphem;
+//        pkEphem.Set(tx.ctout.vData.begin(), tx.ctout.vData.begin() + 33);
 
         std::vector<uint8_t> vchEphemPK;
         vchEphemPK.resize(33);
