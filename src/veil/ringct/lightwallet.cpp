@@ -106,6 +106,45 @@ std::string TestBuildWalletTransaction(int nRandomInt) {
 }
 
 
+bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std::vector<CWatchOnlyTx>& vSpendableTx, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, std::string& txHex, std::string& errorMsg)
+{
+
+    // We need to direct this to spend the correct outputs.
+    // If the vSpendableTx has Anon and Stealth outputs we will use Anon
+
+    int nAnonTxes = 0;
+    int nStealthTxes = 0;
+
+    std::vector<CWatchOnlyTx> vAnonTxes;
+    std::vector<CWatchOnlyTx> vStealthTxes;
+
+
+    for (const auto& tx : vSpendableTx) {
+        if (tx.type == CWatchOnlyTx::ANON) {
+            vAnonTxes.push_back(tx);
+            nAnonTxes++;
+        }
+
+        if (tx.type == CWatchOnlyTx::STEALTH) {
+            vStealthTxes.push_back(tx);
+            nStealthTxes++;
+        }
+    }
+
+
+    if (nAnonTxes > 0) {
+        // We use Anon / RingCT
+        return BuildLightWalletRingCTTransaction(args, vAnonTxes, vDummyOutputs, txHex, errorMsg);
+    } else if (nStealthTxes > 0) {
+        return BuildLightWalletStealthTransaction(args, vStealthTxes, txHex, errorMsg);
+    } else {
+        errorMsg = "No Anon or Stealth txes given to build transaction";
+        return false;
+    }
+
+
+}
+
 
 /** Before you build the transaction, you must of already called
  * API - Get Transaction for the scan_secret
@@ -121,7 +160,7 @@ std::string TestBuildWalletTransaction(int nRandomInt) {
 // Spend Public Key
 // Address to spend to
 // Amount to spend
-bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std::vector<CWatchOnlyTx>& vSpendableTx, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, std::string& txHex, std::string& errorMsg)
+bool BuildLightWalletRingCTTransaction(const std::vector<std::string>& args, const std::vector<CWatchOnlyTx>& vSpendableTx, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, std::string& txHex, std::string& errorMsg)
 {
     // Parse the arguments
     CKey spend_secret;
@@ -453,6 +492,447 @@ bool BuildLightWalletTransaction(const std::vector<std::string>& args, const std
 
     CTransactionRef txRef = MakeTransactionRef(std::move(txNew));
 
+    txHex = EncodeHexTx(*txRef);
+    return true;
+}
+
+bool BuildLightWalletStealthTransaction(const std::vector<std::string>& args, const std::vector<CWatchOnlyTx>& vSpendableTx, std::string& txHex, std::string& errorMsg)
+{
+    // Parse the arguments
+    CKey spend_secret;
+    CKey scan_secret;
+    CPubKey spend_pubkey;
+    CBitcoinAddress address;
+    CAmount nValueOut;
+    if (!ParseArgs(args, spend_secret, scan_secret, spend_pubkey, address, nValueOut, errorMsg)) {
+        LogPrintf("Failed - %s\n", errorMsg);
+        return false;
+    }
+
+    // Get the output types
+    OutputTypes outputType;
+    CTxDestination destination;
+
+    if (!GetTypeOut(address, args[3], outputType, destination, errorMsg)){
+        LogPrintf("Failed - %s\n", errorMsg);
+        return false;
+    }
+
+    // Build the Output
+    std::vector<CTempRecipient> vecSend;
+    {
+        CTempRecipient r;
+        r.nType = outputType;
+        r.SetAmount(nValueOut);
+        r.fSubtractFeeFromAmount = false;
+        r.address = destination;
+        if (r.nType == OUTPUT_STANDARD) {
+            r.fScriptSet = true;
+            r.scriptPubKey = GetScriptForDestination(r.address);
+        }
+
+        vecSend.push_back(r);
+    }
+
+    std::vector<CWatchOnlyTx> vectorTxesWithAmountSet;
+    if (!GetAmountAndBlindForUnspentTx(vectorTxesWithAmountSet, vSpendableTx, spend_secret, scan_secret, spend_pubkey, errorMsg)) {
+        LogPrintf("Failed - GetAmountAndBlindForUnspentTx");
+        return false;
+    }
+
+
+    if (!CheckAmounts(nValueOut, vectorTxesWithAmountSet)) {
+        LogPrintf("Failed - amount is over the balance of this address");
+        errorMsg = "Amount is over the balance of this address";
+        return false;
+    }
+
+    // Default ringsize is 11
+    int nRingSize = 5;
+    int nInputsPerSig = nRingSize;
+
+    // Get change address - this is the same address we are sending from
+    CStealthAddress sxAddr;
+    sxAddr.label = "";
+    sxAddr.scan_secret = scan_secret;
+    sxAddr.spend_secret_id = spend_pubkey.GetID();
+    sxAddr.prefix.number_bits = 0;
+
+    if (0 != SecretToPublicKey(sxAddr.scan_secret, sxAddr.scan_pubkey)) {
+        LogPrintf("Failed - Could not get scan public key.");
+        errorMsg = "Could not get scan public key.";
+        return false;
+    }
+
+    if (spend_secret.IsValid() && 0 != SecretToPublicKey(spend_secret, sxAddr.spend_pubkey)) {
+        LogPrintf("Failed - Could not get spend public key.");
+        errorMsg = "Could not get spend public key.";
+        return false;
+    } else {
+        SetPublicKey(spend_pubkey, sxAddr.spend_pubkey);
+    }
+
+    CBitcoinAddress addrChange;
+    addrChange.Set(sxAddr, true);
+
+    if (!addrChange.IsValidStealthAddress()) {
+        LogPrintf("Invalid change address %s\n", addrChange.ToString());
+        errorMsg = "Invalid change address";
+        return false;
+    }
+
+    // TODO - if we can, remove coincontrol if we don't need to use it. bypass if we can
+    // Set the change address in coincontrol
+    CCoinControl coincontrol;
+    coincontrol.destChange = addrChange.Get();
+
+    // Check we are sending to atleast one address
+    if (vecSend.size() < 1) {
+        LogPrintf("Failed - Transaction must have at least one recipient.");
+        errorMsg = "Transaction must have at least one recipient.";
+        return false;
+    }
+
+    // Get total value we are sending in vecSend
+    CAmount nValue = 0;
+    for (const auto &r : vecSend) {
+        nValue += r.nAmount;
+        if (nValue < 0 || r.nAmount < 0) {
+            LogPrintf("Transaction amounts must not be negative");
+            errorMsg = "Transaction amounts must not be negative";
+            return false;
+        }
+    }
+
+    // Check ringsize
+    if (nRingSize < 3 || nRingSize > 32) {
+        LogPrintf("Ring size out of range.");
+        errorMsg = "Ring size out of range.";
+        return false;
+    }
+
+    // Check inputspersig
+    if (nInputsPerSig < 1 || nInputsPerSig > 32) {
+        LogPrintf("Num inputs per signature out of range.");
+        errorMsg = "Num inputs per signature out of range.";
+        return false;
+    }
+
+    // Build the recipient data
+    if (!BuildRecipientData(vecSend, errorMsg)) {
+        LogPrintf("Failed - %s\n", errorMsg);
+        return false;
+    }
+
+    // Create tx object
+    CMutableTransaction txNew;
+    txNew.nLockTime = 0;
+
+    FeeCalculation feeCalc;
+    CAmount nFeeNeeded;
+    unsigned int nBytes;
+
+    // Get inputs = vAvailableWatchOnly
+    CAmount nValueOutPlain = 0;
+    int nChangePosInOut = -1;
+
+    size_t nSubFeeTries = 100;
+    bool pick_new_inputs = true;
+    CAmount nValueIn = 0;
+
+    CAmount nFeeRet = 0;
+
+    int nSubtractFeeFromAmount = 0;
+
+    std::vector<CWatchOnlyTx> vSelectedWatchOnly;
+
+    txNew.vin.clear();
+    txNew.vpout.clear();
+    vSelectedWatchOnly.clear();
+
+    CAmount nValueToSelect = nValue;
+    if (nSubtractFeeFromAmount == 0) {
+        nValueToSelect += nFeeRet;
+    }
+
+    nValueIn = 0;
+    std::vector<CWatchOnlyTx> vSelectedTxes;
+
+    // Select tx to spend
+    CAmount nTempChange;
+    if (!SelectSpendableTxForValue(vSelectedTxes, nTempChange, nValueOut, vectorTxesWithAmountSet)) {
+        LogPrintf("Failed - SelectSpendableTxForValue\n");
+        errorMsg = "SelectSpendableTxForValue failure";
+        return false;
+    }
+
+    // Build the change recipient
+    const CAmount nChange = nTempChange;
+    if (!BuildChangeData(vecSend, nChangePosInOut, nFeeRet, nChange, coincontrol.destChange, errorMsg)) {
+        LogPrintf("Failed BuildChangeData - %s\n", errorMsg);
+        return false;
+    }
+
+    // Fill vin
+    //
+    // Note how the sequence number is set to non-maxint so that
+    // the nLockTime set above actually works.
+    //
+    // BIP125 defines opt-in RBF as any nSequence < maxint-1, so
+    // we use the highest possible value in that range (maxint-2)
+    // to avoid conflicting with other possible uses of nSequence,
+    // and in the spirit of "smallest possible change from prior
+    // behavior."
+    for (const auto &coin : vSelectedTxes) {
+        const uint256 &txhash = coin.tx_hash;
+        const uint32_t nSequence = CTxIn::SEQUENCE_FINAL - 1;
+        txNew.vin.push_back(CTxIn(txhash, coin.tx_index, CScript(), nSequence));
+    }
+
+    nValueOutPlain = 0;
+    nChangePosInOut = -1;
+
+    OUTPUT_PTR<CTxOutData> outFee = MAKE_OUTPUT<CTxOutData>();
+    outFee->vData.push_back(DO_FEE);
+    outFee->vData.resize(9); // More bytes than varint fee could use
+    txNew.vpout.push_back(outFee);
+
+    // Add CT DATA to txNew
+    if (!LightWalletAddCTData(txNew, vecSend, nFeeRet, nValueOutPlain, nChangePosInOut, nSubtractFeeFromAmount, errorMsg)) {
+        LogPrintf("Failed LightWalletAddCTData - %s\n", errorMsg);
+        return false;
+    }
+
+    // Skipping filling in signatures - See if this works still
+
+    // Get the amout of bytes
+    nBytes = GetVirtualTransactionSize(txNew);
+
+    // TODO, have the server give us the feerate per Byte, when asking for txes
+    // TODO, for now set to CENT, we will need to fill in the fake singatures above to get an
+    // TODO, accurate result.
+    nFeeNeeded = CENT;
+
+    if (nFeeRet >= nFeeNeeded) {
+        // Reduce fee to only the needed amount if possible. This
+        // prevents potential overpayment in fees if the coins
+        // selected to meet nFeeNeeded result in a transaction that
+        // requires less fee than the prior iteration.
+        if (nFeeRet > nFeeNeeded && nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
+            auto &r = vecSend[nChangePosInOut];
+
+            CAmount extraFeePaid = nFeeRet - nFeeNeeded;
+
+            r.nAmount += extraFeePaid;
+            nFeeRet -= extraFeePaid;
+        }
+    } else if (!pick_new_inputs) {
+        // This shouldn't happen, we should have had enough excess
+        // fee to pay for the new output and still meet nFeeNeeded
+        // Or we should have just subtracted fee from recipients and
+        // nFeeNeeded should not have changed
+
+        if (!nSubtractFeeFromAmount || !(--nSubFeeTries)) {
+            LogPrintf("Failed Transaction fee and change calculation failed\n");
+            errorMsg = "Failed Transaction fee and change calculation failed";
+            return false;
+        }
+    }
+
+    // Try to reduce change to include necessary fee
+    if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
+        auto &r = vecSend[nChangePosInOut];
+        CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
+        if (r.nAmount >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
+            r.nAmount -= additionalFeeNeeded;
+            nFeeRet += additionalFeeNeeded;
+        }
+    }
+
+    // Include more fee and try again.
+    nFeeRet = nFeeNeeded;
+
+    vSelectedWatchOnly = vSelectedTxes;
+
+    nValueOutPlain += nFeeRet;
+    coincontrol.nChangePos = nChangePosInOut;
+
+    std::vector<uint8_t> vInputBlinds(32 * vSelectedWatchOnly.size());
+    std::vector<uint8_t*> vpBlinds;
+
+    int nIn = 0;
+    for (const auto &coin : vSelectedWatchOnly) {
+        auto &txin = txNew.vin[nIn];
+        const uint256 &txhash = coin.tx_hash;
+
+        COutPoint prevout(txhash, coin.tx_index);
+        memcpy(&vInputBlinds[nIn * 32], &vSelectedTxes[nIn].blind, 32);
+        vpBlinds.push_back(&vInputBlinds[nIn * 32]);
+
+        // Remove scriptSigs to eliminate the fee calculation dummy signatures
+        txin.scriptSig = CScript();
+        txin.scriptWitness.SetNull();
+        nIn++;
+    }
+
+    size_t nBlindedInputs = vpBlinds.size();
+    std::vector<uint8_t> vBlindPlain;
+    vBlindPlain.resize(32);
+    memset(&vBlindPlain[0], 0, 32);
+
+
+    //secp256k1_pedersen_commitment plainCommitment;
+    if (nValueOutPlain > 0) {
+        vpBlinds.push_back(&vBlindPlain[0]);
+        //if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainCommitment, &vBlindPlain[0], (uint64_t) nValueOutPlain, secp256k1_generator_h))
+        //    return errorN(1, sError, __func__, "secp256k1_pedersen_commit failed for plain out.");
+    }
+
+    // Update the change output commitment if it exists, else last blinded
+    int nLastBlinded = -1;
+    for (size_t i = 0; i < vecSend.size(); ++i) {
+        auto &r = vecSend[i];
+
+        if (r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT) {
+            if ((int)i != nChangePosInOut) {
+                vpBlinds.push_back(&r.vBlind[0]);
+            }
+
+            nLastBlinded = i;
+        }
+    }
+
+    if (nChangePosInOut != -1) {
+        nLastBlinded = nChangePosInOut; // Use the change output
+    } else if (nLastBlinded != -1) {
+        vpBlinds.pop_back();
+    }
+
+    if (nLastBlinded != -1) {
+        auto &recipient = vecSend[nLastBlinded];
+
+        if (recipient.nType != OUTPUT_CT && recipient.nType != OUTPUT_RINGCT) {
+            errorMsg = "nLastBlinded not blind.";
+            return false;
+        }
+
+        // Last to-be-blinded value: compute from all other blinding factors.
+        // sum of output blinding values must equal sum of input blinding values
+        if (!secp256k1_pedersen_blind_sum(secp256k1_ctx_blind, &recipient.vBlind[0], &vpBlinds[0], vpBlinds.size(), nBlindedInputs)) {
+            errorMsg = "secp256k1_pedersen_blind_sum failed.";
+            return false;
+        }
+
+        CTxOutBase *pout = (CTxOutBase*)txNew.vpout[recipient.n].get();
+        //ADD CT DATA
+        {
+            secp256k1_pedersen_commitment *pCommitment = pout->GetPCommitment();
+            std::vector<uint8_t> *pvRangeproof = pout->GetPRangeproof();
+
+            if (!pCommitment || !pvRangeproof) {
+                errorMsg = "Unable to get CT pointers for output type";
+                return false;
+            }
+
+            uint64_t nValue = recipient.nAmount;
+            if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, pCommitment, (uint8_t *) &recipient.vBlind[0],
+                                           nValue, secp256k1_generator_h)) {
+                errorMsg = "Pedersen commit failed";
+                return false;
+            }
+
+            uint256 nonce;
+            if (recipient.fNonceSet) {
+                nonce = recipient.nonce;
+            } else {
+                if (!recipient.sEphem.IsValid()) {
+                    errorMsg = "Invalid ephemeral key.";
+                    return false;
+                }
+                if (!recipient.pkTo.IsValid()) {
+                    errorMsg = "Invalid recipient public key.";
+                    return false;
+                }
+                nonce = recipient.sEphem.ECDH(recipient.pkTo);
+                CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
+                recipient.nonce = nonce;
+            }
+
+            const char *message = recipient.sNarration.c_str();
+            size_t mlen = strlen(message);
+
+            size_t nRangeProofLen = 5134;
+            pvRangeproof->resize(nRangeProofLen);
+
+            uint64_t min_value = 0;
+            int ct_exponent = 2;
+            int ct_bits = 32;
+
+            if (0 != SelectRangeProofParameters(nValue, min_value, ct_exponent, ct_bits)) {
+                errorMsg = "Failed to select range proof parameters.";
+                return false;
+            }
+
+            if (recipient.fOverwriteRangeProofParams == true) {
+                min_value = recipient.min_value;
+                ct_exponent = recipient.ct_exponent;
+                ct_bits = recipient.ct_bits;
+            }
+
+            if (1 != secp256k1_rangeproof_sign(secp256k1_ctx_blind,
+                                               &(*pvRangeproof)[0], &nRangeProofLen,
+                                               min_value, pCommitment,
+                                               &recipient.vBlind[0], nonce.begin(),
+                                               ct_exponent, ct_bits, nValue,
+                                               (const unsigned char *) message, mlen,
+                                               nullptr, 0, secp256k1_generator_h)) {
+                errorMsg = "Failed to sign range proof.";
+                return false;
+            }
+
+            pvRangeproof->resize(nRangeProofLen);
+        }
+
+    }
+
+    //Add actual fee to CT Fee output
+    std::vector<uint8_t> &vData = ((CTxOutData *) txNew.vpout[0].get())->vData;
+    vData.resize(1);
+    if (0 != PutVarInt(vData, nFeeRet)) {
+        LogPrintf("Failed to add fee to transaction.\n");
+        errorMsg = "Failed to add fee to transaction.";
+        return false;
+    }
+
+    // Reset nIn
+    nIn = 0;
+
+    for (const auto &coin : vSelectedWatchOnly) {
+        const uint256 &txhash = coin.tx_hash;
+
+        CScript scriptPubKey = coin.ctout.scriptPubKey;
+
+        CBasicKeyStore keystore;
+        CKey signingKey;
+        if (!GetDestinationKeyForOutput(signingKey, coin, spend_secret, scan_secret, spend_pubkey, errorMsg)) {
+            return false;
+        }
+
+        keystore.AddKey(signingKey);
+
+        std::vector<uint8_t> vchAmount;
+        coin.ctout.PutValue(vchAmount);
+
+        SignatureData sigdata;
+        if (!ProduceSignature(keystore, MutableTransactionSignatureCreator(&txNew, nIn, vchAmount, SIGHASH_ALL), scriptPubKey, sigdata)) {
+            errorMsg = "Signing transaction failed";
+            return false;
+        }
+        UpdateInput(txNew.vin[nIn], sigdata);
+        nIn++;
+    }
+
+    CTransactionRef txRef = MakeTransactionRef(std::move(txNew));
     txHex = EncodeHexTx(*txRef);
     return true;
 }
@@ -896,6 +1376,7 @@ bool LightWalletAddCTData(CMutableTransaction& txNew, std::vector<CTempRecipient
                 GetStrongRandBytes(&recipient.vBlind[0], 32);
             }
 
+            //TODO  Can we take advantage of the AddCTData function? It looks like it is the exact same code, copy pasted
             //ADD CT DATA
             {
                 secp256k1_pedersen_commitment *pCommitment = txbout->GetPCommitment();
