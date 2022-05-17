@@ -1223,9 +1223,6 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         }
     }
 
-    std::vector<std::pair<int,CWatchOnlyTx>> vTxes;
-    FetchWatchOnlyTransactions(scan_secret, vTxes);
-
     int current_count = 0;
     int dbIndex = nStartingIndex - 1;
     UniValue anonTxes(UniValue::VARR);
