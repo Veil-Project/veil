@@ -638,23 +638,15 @@ isminetype AnonWallet::IsMine(const CTxOutBase *txout) const
             CKeyID keyID = ((CTxOutRingCT*) txout)->pk.GetID();
             if (mapKeyPaths.count(keyID)) {
                 CKeyID keyID = ((CTxOutRingCT*) txout)->pk.GetID();
-                LogPrintf("IsMine true: %d\n", __LINE__);
-                LogPrintf("IsMine true: %s\n", CBitcoinAddress(keyID).ToString());
                 return ISMINE_SPENDABLE;
             }
             if (pwalletParent->HaveKey(keyID)) {
-                LogPrintf("IsMine true: %d\n", __LINE__);
-                LogPrintf("IsMine true: %s\n", CBitcoinAddress(keyID).ToString());
                 return ISMINE_SPENDABLE;
             }
             if (HaveAddress(keyID)) {
-                LogPrintf("IsMine true: %d\n", __LINE__);
-                LogPrintf("IsMine true: %s\n", CBitcoinAddress(keyID).ToString());
                 return ISMINE_SPENDABLE;
             }
             if (pwalletParent->IsMine(keyID)) {
-                LogPrintf("IsMine true: %d\n", __LINE__);
-                LogPrintf("IsMine true: %s\n", CBitcoinAddress(keyID).ToString());
                 return ISMINE_SPENDABLE;
             }
         }
@@ -4197,7 +4189,6 @@ bool AnonWallet::LoadKeys()
         if (!mapAccountCounter.count(pLocation.first) && pLocation.first != idMaster)
             return error("%s: account %s has no counter", __func__, pLocation.first.GetHex());
         mapKeyPaths.emplace(idAccount, pLocation);
-        LogPrintf("MapKeypathID: %s\n", CBitcoinAddress(idAccount).ToString());
     }
 
     pcursor->close();
@@ -4812,12 +4803,7 @@ void AnonWallet::GetAllScanKeys(std::vector<CStealthAddress>& vStealthAddresses)
         CStealthAddress sx;
         if (GetStealthLinked(stealth.first, sx) && GetStealthAddressScanKey(sx)) {
             vStealthAddresses.push_back(sx);
-            LogPrintf("stealth_address: %s\n", sx.ToString(true));
-            LogPrintf("stealth addr hash: %s\n", CBitcoinAddress(sx.GetID()).ToString());
-            LogPrintf("scan_secret: %s\n", CBitcoinSecret(sx.scan_secret).ToString());
         }
-            LogPrintf("stealth second: %s\n", CBitcoinAddress(stealth.second).ToString());
-            LogPrintf("keyID: %s\n\n", CBitcoinAddress(stealth.first).ToString());
     }
 }
 
@@ -4884,7 +4870,6 @@ bool AnonWallet::ProcessStealthOutput(const CTxDestination &address, std::vector
             if (!pwalletParent->HaveKey(addr->spend_secret_id)) {
                 LogPrintf("%s: Found a watchonly address transaction\n", __func__);
                 watchOnlyOutput.scan_secret.Set(addr->scan_secret.begin(), addr->scan_secret.end(), true);
-                LogPrintf("%s: Is secret valid: %d -- %d\n", __func__, watchOnlyOutput.scan_secret.IsValid(), __LINE__);
 
                 // TODO, watchonly wallets should ever hold any veil. They should only be watchonly wallets
                 // if you try to access your funds on a watchonly wallet, it will not work because we return here
@@ -5076,18 +5061,15 @@ bool AnonWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t
             if (ProcessStealthOutput(address, vchEphemPK, prefix, fHavePrefix, sShared, watchonlyTx)) {
                 if (!watchonlyTx.scan_secret.IsValid()) {
                     fIsMine = true;
-                    LogPrintf("%s - %d\n", __func__, __LINE__);
                 } else {
                     watchonlyTx.type = CWatchOnlyTx::STEALTH;
                     watchonlyTx.tx_hash = tx.GetHash();
                     watchonlyTx.tx_index = nOutputId;
                     watchonlyTx.ctout = *ctout;
                     vecWatchOnlyTx.push_back(watchonlyTx);
-                    LogPrintf("%s - %d\n", __func__, __LINE__);
 
                     UniValue out(UniValue::VOBJ);
                     CTOutputToJSON(watchonlyTx.tx_hash, watchonlyTx.tx_index, watchonlyTx.ctout, out);
-                    std::cout << out.write(1,1) << std::endl;
                 }
             }
             continue;
@@ -5119,18 +5101,15 @@ bool AnonWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t
             if (ProcessStealthOutput(idk, vchEphemPK, prefix, fHavePrefix, sShared, watchonlyTx)) {
                 if (!watchonlyTx.scan_secret.IsValid()) {
                     fIsMine = true;
-                    LogPrintf("%s - %d\n", __func__, __LINE__);
                 } else {
                     watchonlyTx.type = CWatchOnlyTx::ANON;
                     watchonlyTx.tx_hash = tx.GetHash();
                     watchonlyTx.tx_index = nOutputId;
                     watchonlyTx.ringctout = *rctout;
                     vecWatchOnlyTx.push_back(watchonlyTx);
-                    LogPrintf("%s - %d\n", __func__, __LINE__);
 
                     UniValue out(UniValue::VOBJ);
                     RingCTOutputToJSON(watchonlyTx.tx_hash, watchonlyTx.tx_index, watchonlyTx.ringctIndex, watchonlyTx.ringctout, out);
-                    std::cout << out.write(1,1) << std::endl;
                 }
             }
             continue;

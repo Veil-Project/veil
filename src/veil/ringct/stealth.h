@@ -166,7 +166,4 @@ int PrepareStealthOutput(const CStealthAddress &sx, const std::string &sNarratio
 void ECC_Start_Stealth();
 void ECC_Stop_Stealth();
 
-
-bool IsMyTx(const CTransaction &tx, const CKey& myScanKey);
-
 #endif //VEIL_STEALTH_H

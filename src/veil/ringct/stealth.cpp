@@ -300,55 +300,6 @@ int StealthSecret(const CKey &secret, const ec_point &pubkey, const ec_point &pk
     return 0;
 };
 
-bool IsMyTx(const CTransaction &tx, const CKey& myScanKey)
-{
-    bool fIsMine = false;
-    for (const auto &txout : tx.vpout) {
-        if (txout->IsType(OUTPUT_RINGCT)) {
-            const CTxOutRingCT *rctout = (CTxOutRingCT*) txout.get();
-            CKeyID idk = rctout->pk.GetID();
-
-            // Uncover stealth
-            uint32_t prefix = 0;
-            bool fHavePrefix = false;
-            if (rctout->vData.size() != 33) {
-                if (rctout->vData.size() == 38 // Have prefix
-                    && rctout->vData[33] == DO_STEALTH_PREFIX) {
-                    fHavePrefix = true;
-                    memcpy(&prefix, &rctout->vData[34], 4);
-                } else {
-                    continue;
-                }
-            }
-
-//            auto pwallet = GetMainWallet();
-//            auto pAnonWallet = pwallet->GetAnonWallet();
-
-            CKeyID idStealthDestination = rctout->pk.GetID();
-
-//            if (wallet->IsMyPubKey(idStealthDestination)) {
-//                LogPrintf("%s: Found a transaction belonging to my scan_secret.\n", __func__);
-//                return true;
-//            }
-
-
-//            CKey sShared;
-//            std::vector<uint8_t> vchEphemPK;
-//            vchEphemPK.resize(33);
-//            memcpy(&vchEphemPK[0], &rctout->vData[0], 33);
-//
-//            if (StealthShared(myScanKey, vchEphemPK, sShared) == 0) {
-//                LogPrintf("%s: Found a transaction belonging to my scan_secret.\n", __func__);
-//                return true;
-//            }
-        }
-    }
-
-    LogPrintf("%s: %d\n", __func__, __LINE__);
-
-    return false;
-}
-
 int StealthSecretSpend(const CKey &scanSecret, const ec_point &ephemPubkey, const CKey &spendSecret, CKey &secretOut)
 {
     /*

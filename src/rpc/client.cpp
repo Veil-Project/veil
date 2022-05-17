@@ -224,8 +224,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "setprecomputeblockpercycle", 0, "nBlockPerCycle"},
     { "startautospend", 1, "nNumberToSpend"},
     { "startautospend", 2, "nDenomination"},
-    { "importstealthaddress", 3, "num_prefix_bits"},
-    { "importstealthaddress", 5, "bech32"},
     { "importlightwalletaddress", 2, "created_height"},
     { "importlightwalletaddress", 4, "num_prefix_bits"},
     { "importlightwalletaddress", 6, "bech32"},
@@ -235,7 +233,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "checkkeyimages", 0, "keyimages"},
     { "buildlightwallettx", 5, "txdata"},
     { "buildlightwallettx", 6, "dummydata"},
-    { "testbuildlightwallettransaction", 4, "amount"},
     { "getnewaddress", 3, "bech32"},
     { "getnewaddress", 4, "makeV2"},
 

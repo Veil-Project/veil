@@ -1180,10 +1180,13 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
                 randomx_calculate_hash(vecRandomXVM[vm_index], &nHeaderHash, sizeof uint256(), hash);
 
                 uint256 nHash = RandomXHashToUint256(hash);
-                // Check proof of work matches claimed amount
+
+                // Bypass regtest check, actually allows us to generate blocks in regtest mode instantly
                 if (Params().NetworkIDString() == "regtest") {
                     break;
                 }
+
+                // Check proof of work matches claimed amount
                 if (UintToArith256(nHash) < bnTarget) {
                     break;
                 }

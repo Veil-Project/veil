@@ -4167,6 +4167,7 @@ static bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, 
 static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, bool fCheckProofOfFullNode = false)
 {
 
+    // Bypass regtest check, actually allows us to generate blocks in regtest mode instantly
     if (Params().NetworkIDString() == "regtest")
         return true;
 
