@@ -2221,6 +2221,8 @@ static int64_t nTimeForks = 0;
 static int64_t nTimeVerify = 0;
 static int64_t nTimeConnect = 0;
 static int64_t nTimeIndex = 0;
+static int64_t nTimeComputeVeilHash = 0;
+static int64_t nTimeDatabaseZerocoin = 0;
 static int64_t nTimeCallbacks = 0;
 static int64_t nTimeTotal = 0;
 static int64_t nBlocksTotal = 0;
@@ -2896,8 +2898,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
     }
 
-    int64_t nTime5 = GetTimeMicros(); nTimeIndex += nTime5 - nTime4;
-    LogPrint(BCLog::BENCH, "    - Calculating Veil data hash: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime5 - nTime4), nTimeIndex * MICRO, nTimeIndex * MILLI / nBlocksTotal);
+    int64_t nTime5 = GetTimeMicros(); nTimeComputeVeilHash += nTime5 - nTime4;
+    LogPrint(BCLog::BENCH, "    - Calculating Veil data hash: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime5 - nTime4), nTimeComputeVeilHash * MICRO, nTimeComputeVeilHash * MILLI / nBlocksTotal);
 
 
     if (fJustCheck)
@@ -2916,8 +2918,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             return state.Error(("Failed to record new pubcoinspends to database"));
     }
 
-    int64_t nTime6 = GetTimeMicros(); nTimeIndex += nTime6 - nTime5;
-    LogPrint(BCLog::BENCH, "    - Writing zerocoin to database : %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime6 - nTime5), nTimeIndex * MICRO, nTimeIndex * MILLI / nBlocksTotal);
+    int64_t nTime6 = GetTimeMicros(); nTimeDatabaseZerocoin += nTime6 - nTime5;
+    LogPrint(BCLog::BENCH, "    - Writing zerocoin to database : %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime6 - nTime5), nTimeDatabaseZerocoin * MICRO, nTimeDatabaseZerocoin * MILLI / nBlocksTotal);
 
     //Record accumulator checksums - if they have been updated, which happens every ten blocks
     if (pindex->nHeight > 10 && pindex->nHeight % 10 == 0)
@@ -3834,7 +3836,7 @@ bool CChainState::ActivateBestChain(CValidationState &state, const CChainParams&
     }
 
     PruneStaleBlockIndexes();
-    
+
     return true;
 }
 
