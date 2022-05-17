@@ -235,6 +235,9 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "buildlightwallettx", 6, "dummydata"},
     { "getnewaddress", 3, "bech32"},
     { "getnewaddress", 4, "makeV2"},
+    { "getwatchonlytxes", 1, "starting_index"},
+    { "getwatchonlytxes", 4, "testing"},
+
 
 
 };

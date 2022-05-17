@@ -2278,6 +2278,12 @@ static UniValue getwatchonlystatus(const JSONRPCRequest &request)
     if (scannedToHeight >= scanFromHeight) {
         result.pushKV("status", "synced");
         result.pushKV("stealth_address", sxAddr.ToString(fBech32));
+
+        int current_count = 0;
+        if (GetWatchOnlyKeyCount(sxAddr.scan_secret, current_count)) {
+            result.pushKV("transactions_found", current_count);
+        }
+
         return result;
     }
 

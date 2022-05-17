@@ -1115,15 +1115,19 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() > 3)
+    if (request.fHelp || request.params.size() > 5)
         throw std::runtime_error(
-                "getwatchonlytxes \"scan_secret\" \"(scan_public_key)\" \"(spend_secret)\""
+                "getwatchonlytxes \"scan_secret\" \"starting_index\" \"(scan_public_key)\" \"(spend_secret)\" \"testing\""
                 "\nFetch txes belonging to watchonly address with a certain scan key"
+                "\nThis rpccall will give transactions in batches of 1000 at a time. "
+
                 + HelpRequiringPassphrase(pwallet) + "\n"
                                                      "\nArguments:\n"
                                                      "1. \"scan_secret\"         (string, required) The private scan key for the address\n"
-                                                     "2. \"scan_public_key\"         (string, optional) The public spend secret\n"
-                                                     "3. \"spend_secret\"         (string, optional) The private spend secret\n"
+                                                     "2. \"starting_index\"         (number, optional) The database index to start from\n"
+                                                     "3. \"scan_public_key\"         (string, optional) For testing only - The public spend secret\n"
+                                                     "4. \"spend_secret\"         (string, optional)  For testing only - s The private spend secret\n"
+                                                     "5. \"testing\"         (boolean, optional default=false)  For testing only\n"
                                                      "\nResult:\n"
                                                      "\"[\n"
                                                      "txhash,       (string) The txhash\n"
@@ -1139,6 +1143,11 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
     std::vector<uint8_t> vchScanSecret;
     CBitcoinSecret wifScanSecret;
     CKey scan_secret;
+
+    int nStartingIndex = 0;
+    if (request.params.size() > 1) {
+        nStartingIndex = request.params[1].get_int();
+    }
 
     if (IsHex(sScanSecret)) {
         vchScanSecret = ParseHex(sScanSecret);
@@ -1162,9 +1171,9 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
 
     CPubKey pkSpend;
     std::string sSpendPublic = "";
-    if (request.params.size() > 1) {
+    if (request.params.size() > 2) {
         std::vector<uint8_t> vchSpendPublic;
-        sSpendPublic = request.params[1].get_str();
+        sSpendPublic = request.params[2].get_str();
         if (IsHex(sSpendPublic)) {
             vchSpendPublic = ParseHex(sSpendPublic);
         }
@@ -1178,10 +1187,10 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
 
     std::string sSpendSecret = "";
     CKey spend_secret;
-    if(request.params.size() > 2) {
+    if(request.params.size() > 3) {
         std::vector<uint8_t> vchSpendSecret;
         CBitcoinSecret wifSpendSecret;
-        sSpendSecret = request.params[2].get_str();
+        sSpendSecret = request.params[3].get_str();
         if (IsHex(sSpendSecret)) {
             vchSpendSecret = ParseHex(sSpendSecret);
         } else {
@@ -1202,16 +1211,36 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         }
     }
 
+    if (request.params.size() > 2) {
+        if (request.params.size() <= 4) {
+            throw JSONRPCError(RPC_INVALID_REQUEST, "You can only use params 3-4 when testing is set to true. Do this when testing only, never on production");
+        }
+
+        if (request.params.size() > 4) {
+            if (!request.params[4].get_bool()) {
+                throw JSONRPCError(RPC_INVALID_REQUEST, "Trying to use testing only parameters when testing isn't true");
+            }
+        }
+    }
 
     std::vector<std::pair<int,CWatchOnlyTx>> vTxes;
-
     FetchWatchOnlyTransactions(scan_secret, vTxes);
 
     int current_count = 0;
+    int dbIndex = nStartingIndex - 1;
     UniValue anonTxes(UniValue::VARR);
     UniValue stealthTxes(UniValue::VARR);
     if (GetWatchOnlyKeyCount(scan_secret, current_count)) {
-        for (int i = 0; i <= current_count; i++) {
+        if (nStartingIndex > current_count) {
+            dbIndex = 0;
+        }
+
+        // Only do 1000 txes at a time.
+        if (current_count > dbIndex + 1000) {
+            current_count = dbIndex + 1000;
+        }
+
+        for (int i = dbIndex; i <= current_count; i++) {
             CWatchOnlyTx watchonlytx;
             if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
                 if (!spend_secret.IsValid()) {
@@ -1222,7 +1251,7 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
                         stealthTxes.push_back(watchonlytx.GetUniValue(i));
                     }
                 } else {
-                    // TODO - Get rid of this code, the watchonly server should never have or be spent the spend private key
+                    // TESTING ONLY - Param 5 must be true
                     if (watchonlytx.type == CWatchOnlyTx::ANON) {
                         auto txout = watchonlytx.ringctout;
 
@@ -6580,7 +6609,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "setlabel",                         &setlabel,                      {"address","label"} },
     { "wallet",             "getallscankeys",                   &getallscankeys,                {"address"} },
     { "wallet",             "getwatchonlyaddresses",            &getwatchonlyaddresses,         {} },
-    { "wallet",             "getwatchonlytxes",                 &getwatchonlytxes,              {"scan_secret"} },
+    { "wallet",             "getwatchonlytxes",                 &getwatchonlytxes,              {"scan_secret", "starting_index", "scan_public_key", "spend_secret", "testing"}},
 
     { "info",             "checkkeyimage",                      &checkkeyimage,                 {"key_image"} },
     { "info",             "checkkeyimages",                      &checkkeyimages,                 {"key_images"} },
