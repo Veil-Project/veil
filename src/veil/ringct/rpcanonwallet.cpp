@@ -30,6 +30,7 @@
 #include <veil/ringct/anonwallet.h>
 #include <veil/ringct/anonwalletdb.h>
 #include <veil/ringct/receipt.h>
+#include <veil/ringct/lightwallet.h>
 #include <wallet/coincontrol.h>
 #include <wallet/rpcwallet.h>
 #include <chainparams.h>
