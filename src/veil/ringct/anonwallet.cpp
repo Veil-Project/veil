@@ -3471,6 +3471,114 @@ bool AnonWallet::SetBlinds(
     return true;
 }
 
+bool AnonWallet::SetOutputs(
+        std::vector<CTxOutBaseRef>& vpout,
+        std::vector<CTempRecipient>& vecSend,
+        CAmount& nFeeRet,
+        CAmount& nFeeNeeded,
+        size_t nSubtractFeeFromAmount,
+        CAmount& nValueOutPlain,
+        int& nChangePosInOut,
+        bool fSkipFee,
+        bool fFeesFromChange,
+        std::string& sError)
+{
+    OUTPUT_PTR<CTxOutData> outFee = MAKE_OUTPUT<CTxOutData>();
+    outFee->vData.push_back(DO_FEE);
+    outFee->vData.resize(9); // More bytes than varint fee could use
+    vpout.push_back(outFee);
+
+    bool fFirst = true;
+    for (size_t i = 0; i < vecSend.size(); ++i) {
+        auto &recipient = vecSend[i];
+
+        // Don't take out the fee if a) skip fee, or
+        // b) we're in multi-tx mode and nChange is sufficient to cover the fee
+        if (!fSkipFee && !fFeesFromChange)
+            recipient.ApplySubFee(nFeeRet, nSubtractFeeFromAmount, fFirst);
+
+        OUTPUT_PTR<CTxOutBase> txbout;
+        CreateOutput(txbout, recipient, sError);
+
+        if (recipient.nType == OUTPUT_STANDARD) {
+            nValueOutPlain += recipient.nAmount;
+        }
+
+        if (recipient.fChange) {
+            nChangePosInOut = i;
+            // Remove the fee from the change for multitx
+            if (fFeesFromChange) {
+                recipient.SetAmount(recipient.nAmount - nFeeRet);
+            }
+        }
+
+        recipient.n = vpout.size();
+        vpout.push_back(txbout);
+        if (recipient.nType == OUTPUT_CT || recipient.nType == OUTPUT_RINGCT) {
+            if (recipient.vBlind.size() != 32) {
+                recipient.vBlind.resize(32);
+                GetStrongRandBytes(&recipient.vBlind[0], 32);
+            }
+
+            if (!AddCTData(txbout.get(), recipient, sError))
+                return false;
+        }
+    }
+    return true;
+}
+
+bool AnonWallet::ArrangeOutBlinds(
+        std::vector<CTxOutBaseRef>& vpout,
+        std::vector<CTempRecipient>& vecSend,
+        std::vector<const uint8_t*>& vpOutCommits,
+        std::vector<const uint8_t*>& vpOutBlinds,
+        std::vector<uint8_t>& vBlindPlain,
+        secp256k1_pedersen_commitment* plainCommitment,
+        CAmount nValueOutPlain,
+        int nChangePosInOut,
+        bool fCTOut,
+        std::string& sError)
+{
+    if (nValueOutPlain > 0) {
+        if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, plainCommitment, &vBlindPlain[0],
+                                        (uint64_t) nValueOutPlain, secp256k1_generator_h)) {
+            sError = strprintf("Pedersen Commit failed for plain out.");
+            return error("%s: %s", __func__, sError);
+        }
+
+        vpOutCommits.push_back(plainCommitment->data);
+        vpOutBlinds.push_back(&vBlindPlain[0]);
+    }
+
+    // Update the change output commitment
+    for (int i = 0; i < vecSend.size(); ++i) {
+        auto &r = vecSend[i];
+
+        if (i == nChangePosInOut) {
+            // Change amount may have changed
+
+            if (r.nType != (fCTOut ? OUTPUT_CT : OUTPUT_RINGCT)) {
+                sError = strprintf("Change output is not %s type.", fCTOut ? "CT" : "RingCT");
+                return error("%s: %s", __func__, sError);
+            }
+
+            if (r.vBlind.size() != 32) {
+                r.vBlind.resize(32);
+                GetStrongRandBytes(&r.vBlind[0], 32);
+            }
+
+            if (!AddCTData(vpout[r.n].get(), r, sError))
+                return false;
+        }
+
+        if (r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT) {
+            vpOutCommits.push_back(vpout[r.n]->GetPCommitment()->data);
+            vpOutBlinds.push_back(&r.vBlind[0]);
+        }
+    }
+    return true;
+}
+
 // Returns bool
 bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
         bool sign, size_t nRingSize, size_t nInputsPerSig, size_t nMaximumInputs, CAmount &nFeeRet, const CCoinControl *coinControl,
@@ -3662,47 +3770,10 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             nValueOutPlain = 0;
             nChangePosInOut = -1;
 
-            OUTPUT_PTR<CTxOutData> outFee = MAKE_OUTPUT<CTxOutData>();
-            outFee->vData.push_back(DO_FEE);
-            outFee->vData.resize(9); // More bytes than varint fee could use
-            txNew.vpout.push_back(outFee);
-
-            bool fFirst = true;
             bool fFeesFromChange = nMaximumInputs > 0 && nChange >= MIN_FINAL_CHANGE + nFeeRet;
-            for (size_t i = 0; i < vecSend.size(); ++i) {
-                auto &recipient = vecSend[i];
-
-                // Don't take out the fee if a) skip fee, or
-                // b) we're in multi-tx mode and nChange is sufficient to cover the fee
-                if (!fSkipFee && !fFeesFromChange)
-                    recipient.ApplySubFee(nFeeRet, nSubtractFeeFromAmount, fFirst);
-
-                OUTPUT_PTR<CTxOutBase> txbout;
-                CreateOutput(txbout, recipient, sError);
-
-                if (recipient.nType == OUTPUT_STANDARD) {
-                    nValueOutPlain += recipient.nAmount;
-                }
-
-                if (recipient.fChange) {
-                    nChangePosInOut = i;
-                    // Remove the fee from the change for multitx
-                    if (fFeesFromChange) {
-                        recipient.SetAmount(recipient.nAmount - nFeeRet);
-                    }
-                }
-
-                recipient.n = txNew.vpout.size();
-                txNew.vpout.push_back(txbout);
-                if (recipient.nType == OUTPUT_CT || recipient.nType == OUTPUT_RINGCT) {
-                    if (recipient.vBlind.size() != 32) {
-                        recipient.vBlind.resize(32);
-                        GetStrongRandBytes(&recipient.vBlind[0], 32);
-                    }
-
-                    if (!AddCTData(txbout.get(), recipient, sError))
-                        return false;
-                }
+            if (!SetOutputs(txNew.vpout, vecSend, nFeeRet, nFeeNeeded, nSubtractFeeFromAmount,
+                            nValueOutPlain, nChangePosInOut, fSkipFee, fFeesFromChange, sError)) {
+                return false;
             }
 
             if (!fAlreadyHaveInputs) {
@@ -3713,14 +3784,9 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             if (fSkipFee) {
                 nFeeNeeded = 0;
                 nFeeRet = 0;
-                std::vector<uint8_t> &vData = ((CTxOutData*)txNew.vpout[0].get())->vData;
-                vData.resize(1);
-                if (0 != PutVarInt(vData, 0)) {
-                    sError = strprintf("Failed to add skipped fee to transaction.");
-                    return error("%s: %s", __func__, sError);
-                }
                 break;
             }
+            // Fee required beyond this point
 
             nBytes = GetVirtualTransactionSize(txNew);
 
@@ -3730,58 +3796,57 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
 
             // If we made it here and we aren't even able to meet the relay fee on the next pass, give up
             // because we must be at the maximum allowed fee.
-            if (!fSkipFee && nFeeNeeded < ::minRelayTxFee.GetFee(nBytes)) {
+            if (nFeeNeeded < ::minRelayTxFee.GetFee(nBytes)) {
                 sError = strprintf("Transaction too large for fee policy.");
                 return error("%s: %s", __func__, sError);
             }
-            if (!fSkipFee) {
-                if (nFeeRet >= nFeeNeeded) {
-                    // Reduce fee to only the needed amount if possible. This
-                    // prevents potential overpayment in fees if the coins
-                    // selected to meet nFeeNeeded result in a transaction that
-                    // requires less fee than the prior iteration.
-                    if (nFeeRet > nFeeNeeded && nChangePosInOut != -1
-                        && (!fSubtractFeeFromOutputs || fFeesFromChange)) {
-                        auto &r = vecSend[nChangePosInOut];
 
-                        CAmount extraFeePaid = nFeeRet - nFeeNeeded;
-
-                        r.nAmount += extraFeePaid;
-                        nFeeRet -= extraFeePaid;
-                    }
-                    break; // Done, enough fee included.
-                } else if (!pick_new_inputs) {
-                    // This shouldn't happen, we should have had enough excess
-                    // fee to pay for the new output and still meet nFeeNeeded
-                    // Or we should have just subtracted fee from recipients and
-                    // nFeeNeeded should not have changed
-
-                    if (!fSubtractFeeFromOutputs || !(--nSubFeeTries)) {
-                        sError = strprintf("Transaction fee and change calculation failed.");
-                        return error("%s: %s", __func__, sError);
-                    }
-                }
-
-                // Try to reduce change to include necessary fee
-                if (nChangePosInOut != -1 && (!fSubtractFeeFromOutputs || nMaximumInputs > 0)) {
+            if (nFeeRet >= nFeeNeeded) {
+                // Reduce fee to only the needed amount if possible. This
+                // prevents potential overpayment in fees if the coins
+                // selected to meet nFeeNeeded result in a transaction that
+                // requires less fee than the prior iteration.
+                if (nFeeRet > nFeeNeeded && nChangePosInOut != -1
+                    && (!fSubtractFeeFromOutputs || fFeesFromChange)) {
                     auto &r = vecSend[nChangePosInOut];
-                    CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
-                    if (r.nAmount >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
-                        r.nAmount -= additionalFeeNeeded;
-                        nFeeRet += additionalFeeNeeded;
-                        break; // Done, able to increase fee from change
-                    }
-                }
+                    CAmount extraFeePaid = nFeeRet - nFeeNeeded;
 
-                // If subtracting fee from recipients, we now know what fee we
-                // need to subtract, we have no reason to reselect inputs
-                if (fSubtractFeeFromOutputs) {
-                    pick_new_inputs = false;
+                    r.nAmount += extraFeePaid;
+                    nFeeRet -= extraFeePaid;
                 }
+                break; // Done, enough fee included.
+            } else if (!pick_new_inputs) {
+                // This shouldn't happen, we should have had enough excess
+                // fee to pay for the new output and still meet nFeeNeeded
+                // Or we should have just subtracted fee from recipients and
+                // nFeeNeeded should not have changed
 
-                // Include more fee and try again.
-                nFeeRet = nFeeNeeded;
+                if (!fSubtractFeeFromOutputs || !(--nSubFeeTries)) {
+                    sError = strprintf("Transaction fee and change calculation failed.");
+                    return error("%s: %s", __func__, sError);
+                }
             }
+
+            // Try to reduce change to include necessary fee
+            if (nChangePosInOut != -1 && (!fSubtractFeeFromOutputs || nMaximumInputs > 0)) {
+                auto &r = vecSend[nChangePosInOut];
+                CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
+                if (r.nAmount >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
+                    r.nAmount -= additionalFeeNeeded;
+                    nFeeRet += additionalFeeNeeded;
+                    break; // Done, able to increase fee from change
+                }
+            }
+
+            // If subtracting fee from recipients, we now know what fee we
+            // need to subtract, we have no reason to reselect inputs
+            if (fSubtractFeeFromOutputs) {
+                pick_new_inputs = false;
+            }
+
+            // Include more fee and try again.
+            nFeeRet = nFeeNeeded;
+
             if (fZerocoinInputs) {
                 sError = strprintf("Not able to calculate fee.");
                 return error("%s: %s", __func__, sError);
@@ -3806,42 +3871,9 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
         vBlindPlain.resize(32);
         memset(&vBlindPlain[0], 0, 32);
 
-        if (nValueOutPlain > 0) {
-            if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainCommitment, &vBlindPlain[0],
-                                          (uint64_t) nValueOutPlain, secp256k1_generator_h)) {
-                sError = strprintf("Pedersen Commit failed for plain out.");
-                return error("%s: %s", __func__, sError);
-            }
-
-            vpOutCommits.push_back(plainCommitment.data);
-            vpOutBlinds.push_back(&vBlindPlain[0]);
-        }
-
-        // Update the change output commitment
-        for (size_t i = 0; i < vecSend.size(); ++i) {
-            auto &r = vecSend[i];
-
-            if ((int)i == nChangePosInOut) {
-                // Change amount may have changed
-
-                if (r.nType != (fCTOut ? OUTPUT_CT : OUTPUT_RINGCT)) {
-                    sError = strprintf("Change output is not %s type.", fCTOut ? "CT" : "RingCT");
-                    return error("%s: %s", __func__, sError);
-                }
-
-                if (r.vBlind.size() != 32) {
-                    r.vBlind.resize(32);
-                    GetStrongRandBytes(&r.vBlind[0], 32);
-                }
-
-                if (!AddCTData(txNew.vpout[r.n].get(), r, sError))
-                    return false;
-            }
-
-            if (r.nType == OUTPUT_CT || r.nType == OUTPUT_RINGCT) {
-                vpOutCommits.push_back(txNew.vpout[r.n]->GetPCommitment()->data);
-                vpOutBlinds.push_back(&r.vBlind[0]);
-            }
+        if (!ArrangeOutBlinds(txNew.vpout, vecSend, vpOutCommits, vpOutBlinds, vBlindPlain,
+                              &plainCommitment, nValueOutPlain, nChangePosInOut, fCTOut, sError)) {
+            return false;
         }
 
         //Add actual fee to CT Fee output
@@ -3882,6 +3914,9 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                                vpInCommits, vpBlinds, vInputBlinds[l],
                                vSecretColumns[l], sError))
                     return false;
+
+                // Do a bunch of math on both inputs and outputs.
+                // TODO: Refactor into Complete
 
                 std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
 

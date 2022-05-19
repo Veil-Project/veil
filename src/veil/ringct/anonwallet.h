@@ -413,6 +413,28 @@ private:
         ec_point& vInputBlinds,
         size_t& secretColumn,
         std::string& sError);
+    bool SetOutputs(
+        std::vector<CTxOutBaseRef>& vpout,
+        std::vector<CTempRecipient>& vecSend,
+        CAmount& nFeeRet,
+        CAmount& nFeeNeeded,
+        size_t nSubtractFeeFromAmount,
+        CAmount& nValueOutPlain,
+        int& nChangePosInOut,
+        bool fSkipFee,
+        bool fFeesFromChange,
+        std::string& sError);
+    bool ArrangeOutBlinds(
+        std::vector<CTxOutBaseRef>& vpout,
+        std::vector<CTempRecipient>& vecSend,
+        std::vector<const uint8_t*>& vpOutCommits,
+        std::vector<const uint8_t*>& vpOutBlinds,
+        std::vector<uint8_t>& vBlindPlain,
+        secp256k1_pedersen_commitment* plainCommitment,
+        CAmount nValueOutPlain,
+        int nChangePosInOut,
+        bool fCTOut,
+        std::string& sError);
 
     template<typename... Params>
     bool werror(std::string fmt, Params... parameters) const {
