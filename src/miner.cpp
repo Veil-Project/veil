@@ -186,7 +186,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
         uint32_t nTxNewTime = 0;
 #ifdef ENABLE_WALLET
-        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) && pwalletMain->CreateCoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime, nComputeTimeStart)) {
+        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) && pwalletMain->CreateZerocoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime, nComputeTimeStart)) {
             pblock->nTime = nTxNewTime;
         } else {
             return nullptr;

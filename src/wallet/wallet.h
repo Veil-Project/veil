@@ -1094,7 +1094,14 @@ public:
     CAmount GetZerocoinBalance(bool fMatureOnly, const int min_depth=0) const;
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
+
+private:
+    template <typename TStake>
     bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
+
+public:
+    bool CreateZerocoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
+
     bool SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs);
 
     // sub wallet seeds
@@ -1379,7 +1386,6 @@ public:
         LogPrintf(("%s " + fmt).c_str(), GetDisplayName(), parameters...);
     };
 };
-
 
 
 /** A key allocated from the key pool. */

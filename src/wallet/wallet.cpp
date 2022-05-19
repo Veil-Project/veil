@@ -3859,8 +3859,10 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
     return true;
 }
 
+template <typename TStake>
 bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart)
 {
+    static_assert(std::is_base_of<CStakeInput, TStake>::value, "TStake must derive from CStakeInput");
     // The following split & combine thresholds are important to security
     // Should not be adjusted if you don't understand the consequences
     //int64_t nCombineThreshold = 0;
@@ -3873,7 +3875,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
 
     // Get the list of stakable inputs
-    std::list<std::unique_ptr<ZerocoinStake> > listInputs;
+    std::list<std::unique_ptr<TStake>> listInputs;
     if (!SelectStakeCoins(listInputs))
         return false;
 
@@ -3886,7 +3888,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
 
     CScript scriptPubKeyKernel;
     bool fKernelFound = false;
-    for (std::unique_ptr<ZerocoinStake>& stakeInput : listInputs) {
+    for (std::unique_ptr<TStake>& stakeInput : listInputs) {
         CAmount nCredit = 0;
         // Make sure the wallet is unlocked and shutdown hasn't been requested
         if (IsLocked() || ShutdownRequested())
@@ -3941,15 +3943,13 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             nCredit += nNetworkReward;
 
             // Create the output transaction(s)
-            std::vector<CTxOut> vout;
-            if (!stakeInput->CreateTxOuts(this, vout, nBlockReward)) {
+            txNew.vpout.clear();
+            txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
+
+            if (!stakeInput->CreateTxOuts(this, txNew.vpout, nBlockReward)) {
                 LogPrintf("%s : failed to get scriptPubKey\n", __func__);
                 continue;
             }
-            txNew.vpout.clear();
-            txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
-            for (auto& txOut : vout)
-                txNew.vpout.emplace_back(txOut.GetSharedPtr());
 
             // Limit size
             unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR;
@@ -3981,6 +3981,12 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     }
     return fKernelFound;
 }
+
+bool CWallet::CreateZerocoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart)
+{
+    return CreateCoinStake<ZerocoinStake>(pindexBest, nBits, txNew, nTxNewTime, nComputeTimeStart);
+}
+
 bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs)
 {
     LOCK(cs_main);

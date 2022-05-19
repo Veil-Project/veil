@@ -34,7 +34,7 @@ public:
     libzerocoin::CoinDenomination GetDenomination() {return denom;};
 
     virtual bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) = 0;
-    virtual bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) = 0;
+    virtual bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) = 0;
     virtual bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) = 0;
 };
 
@@ -67,7 +67,7 @@ public:
     bool GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev) override;
     CDataStream GetUniqueness() override;
     bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) override;
-    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal) override;
+    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) override;
     bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) override;
     bool IsZerocoins() override { return true; }
 

@@ -253,7 +253,7 @@ bool ZerocoinStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
 #endif
 }
 
-bool ZerocoinStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CAmount nTotal)
+bool ZerocoinStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal)
 {
 #ifdef ENABLE_WALLET
     if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
@@ -268,7 +268,7 @@ bool ZerocoinStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CA
     CDeterministicMint dMint;
     if (!pwallet->CreateZOutPut(denomStaked, outReward, dMint))
         return error("%s: failed to create zerocoin output", __func__);
-    vout.emplace_back(outReward);
+    vpout.emplace_back(outReward.GetSharedPtr());
 
     //Add new staked denom to our wallet
     if (!pwallet->DatabaseMint(dMint))
@@ -281,7 +281,7 @@ bool ZerocoinStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOut>& vout, CA
         auto denomReward = libzerocoin::CoinDenomination::ZQ_TEN;
         if (!pwallet->CreateZOutPut(denomReward, out, dMintReward))
             return error("%s: failed to create Zerocoin output", __func__);
-        vout.emplace_back(out);
+        vpout.emplace_back(out.GetSharedPtr());
 
         if (!pwallet->DatabaseMint(dMintReward))
             return error("%s: failed to database mint reward", __func__);
