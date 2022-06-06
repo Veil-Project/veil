@@ -33,6 +33,13 @@
 #define DECORATION_SIZE 54
 #define NUM_ITEMS 3
 
+enum class PowTypeFilter {
+    ProgPow,
+    RandomX,
+    Sha256d,
+};
+Q_DECLARE_METATYPE(PowTypeFilter);
+
 Q_DECLARE_METATYPE(interfaces::WalletBalances)
 
 class TxViewDelegate : public QAbstractItemDelegate
@@ -285,6 +292,10 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
         TransactionFilterProxy::TYPE(TransactionRecord::Generated)
     );
 
+    ui->comboFilter->addItem(tr("Mined (ProgPow)"), QVariant::fromValue(PowTypeFilter::ProgPow));
+    ui->comboFilter->addItem(tr("Mined (RandomX)"), QVariant::fromValue(PowTypeFilter::RandomX));
+    ui->comboFilter->addItem(tr("Mined (Sha256d)"), QVariant::fromValue(PowTypeFilter::Sha256d));
+
     ui->comboFilter->addItem(tr("Minted"),
         TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinMint) |
         TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinSpendRemint) |
@@ -404,8 +415,30 @@ void OverviewPage::sortTxes(const QString& selectedStr){
     }
 }
 
-void OverviewPage::filterTxes(int type){
-    filter->setTypeFilter(ui->comboFilter->itemData(type).toInt());
+void OverviewPage::filterTxes(int idx){
+    QVariant typeFilter = ui->comboFilter->itemData(idx);
+    int type;
+
+    // Apply PoW type filter if needed
+    if (typeFilter.userType() == qMetaTypeId<PowTypeFilter>()) {
+        switch (typeFilter.value<PowTypeFilter>()) {
+        case PowTypeFilter::ProgPow:
+            filter->setPowTypeFilter(CBlockHeader::PROGPOW_BLOCK);
+            break;
+        case PowTypeFilter::RandomX:
+            filter->setPowTypeFilter(CBlockHeader::RANDOMX_BLOCK);
+            break;
+        case PowTypeFilter::Sha256d:
+            filter->setPowTypeFilter(CBlockHeader::SHA256D_BLOCK);
+            break;
+        }
+        type = TransactionFilterProxy::TYPE(TransactionRecord::Generated);
+    } else {
+        filter->setPowTypeFilter(0);
+        type = typeFilter.toInt();
+    }
+
+    filter->setTypeFilter(type);
 }
 
 void OverviewPage::handleOutOfSyncWarningClicks()
