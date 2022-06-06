@@ -417,6 +417,7 @@ struct WalletTx
     CAmount change = 0;
     int64_t time;
     std::map<std::string, std::string> value_map;
+    int32_t nPowType = 0;
     bool is_coinbase = false;
     bool is_coinstake = false;
     bool is_my_zerocoin_mint = false;

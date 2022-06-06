@@ -427,6 +427,7 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
             if (wtx.is_coinbase) {
                 // Generated
                 sub.type = TransactionRecord::Generated;
+                sub.nPowType = wtx.nPowType;
             }
 
             parts.append(sub);

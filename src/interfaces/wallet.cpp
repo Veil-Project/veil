@@ -214,6 +214,14 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
 
     result.computetime = wtx.nComputeTime;
 
+    if (result.is_coinbase) {
+        // Find out PoW type
+        CBlockIndex* pindex = LookupBlockIndex(wtx.hashBlock);
+        if (pindex) {
+            result.nPowType = pindex->nVersion & (CBlockHeader::PROGPOW_BLOCK | CBlockHeader::RANDOMX_BLOCK | CBlockHeader::SHA256D_BLOCK);
+        }
+    }
+
     return result;
 }
 /*
