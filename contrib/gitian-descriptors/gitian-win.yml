@@ -1,5 +1,5 @@
 ---
-name: "veil-win-1.2.5.99"
+name: "veil-win-1.2.4.1"
 enable_cache: true
 suites:
 - "bionic"
@@ -137,7 +137,7 @@ script: |
   make -C src obj/build.h
 
   ORIGPATH="$PATH"
-  # Extract the release tarball into a dir for each host and build
+  # Extract the release tarbal99l into a dir for each host and build
   for i in ${HOSTS}; do
     export PATH=${BASEPREFIX}/${i}/native/bin:${ORIGPATH}
     mkdir -p distsrc-${i}
