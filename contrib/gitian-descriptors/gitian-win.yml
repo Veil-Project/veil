@@ -1,5 +1,5 @@
 ---
-name: "veil-win-1.2.3.99"
+name: "veil-win-1.2.5.99"
 enable_cache: true
 suites:
 - "bionic"
@@ -19,10 +19,7 @@ packages:
 - "g++-mingw-w64"
 - "nsis"
 - "zip"
-- "ca-certificates"
-- "python"
-- "rename"
-remotes:
+- "ca-certificates"3
 - "url": "https://github.com/Veil-Project/veil.git"
   "dir": "veil"
 files: []
