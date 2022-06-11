@@ -22,24 +22,24 @@ import os
 # - libc version 2.11.3 (https://packages.debian.org/search?suite=default&section=all&arch=any&searchon=names&keywords=libc6)
 # - libstdc++ version 4.4.5 (https://packages.debian.org/search?suite=default&section=all&arch=any&searchon=names&keywords=libstdc%2B%2B6)
 #
-# Ubuntu 10.04.4 (Lucid Lynx) has:
+# Ubuntu 16.04 (Xenial) EOL: 2024
 #
-# - g++ version 4.4.3 (http://packages.ubuntu.com/search?keywords=g%2B%2B&searchon=names&suite=lucid&section=all)
-# - libc version 2.11.1 (http://packages.ubuntu.com/search?keywords=libc6&searchon=names&suite=lucid&section=all)
+# - g++ version 5.3.1 (http://packages.ubuntu.com/search?keywords=g%2B%2B&searchon=names&suite=lucid&section=all)
+# - libc version 2.23.0 (http://packages.ubuntu.com/search?keywords=libc6&searchon=names&suite=lucid&section=all)
 # - libstdc++ version 4.4.3 (http://packages.ubuntu.com/search?suite=lucid&section=all&arch=any&keywords=libstdc%2B%2B&searchon=names)
 #
 # Taking the minimum of these as our target.
 #
 # According to GNU ABI document (http://gcc.gnu.org/onlinedocs/libstdc++/manual/abi.html) this corresponds to:
-#   GCC 4.4.0: GCC_4.4.0
+#   GCC 4.8.5: GCC_4.8.0
 #   GCC 4.4.2: GLIBCXX_3.4.13, CXXABI_1.3.3
 #   (glibc)    GLIBC_2_11
 #
 MAX_VERSIONS = {
-'GCC':     (4,4,0),
+'GCC':     (4,8,0),
 'CXXABI':  (1,3,3),
 'GLIBCXX': (3,4,13),
-'GLIBC':   (2,11)
+'GLIBC':   (2,17)
 }
 # See here for a description of _IO_stdin_used:
 # https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=634261#109
