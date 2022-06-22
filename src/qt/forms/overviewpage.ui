@@ -457,6 +457,10 @@ QListView::icon {
 QListView::text {
     left: 13px;
 }
+
+QScrollBar::handle {
+    min-height: 20px;
+}
 </string>
               </property>
               <property name="frameShape">
