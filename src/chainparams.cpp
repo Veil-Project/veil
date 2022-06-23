@@ -545,7 +545,7 @@ public:
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
         nProofOfFullNodeRounds = 4;
-        nLastPOWBlock = 2000000;
+        nLastPOWBlock = 9816000; // Continue POW until supply creation ends
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
 
@@ -716,7 +716,7 @@ public:
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
         nProofOfFullNodeRounds = 4;
-        nLastPOWBlock = 2000000;
+        nLastPOWBlock = 9816000; // Continue POW until supply creation ends
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
 
@@ -789,7 +789,7 @@ public:
 
         nPruneAfterHeight = 1000;
         nConsecutivePoWHeight = 1000000;
-        nLastPOWBlock = 2000000;
+        nLastPOWBlock = 9816000; // Continue POW until supply creation ends
         nHeightSupplyCreationStop = 9816000;
 
         // These need to be set before the genesis block is checked
@@ -868,7 +868,7 @@ public:
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
         nProofOfFullNodeRounds = 4;
-        nLastPOWBlock = 2000000;
+        nLastPOWBlock = 9816000; // Continue POW until supply creation ends
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
         nTimeEnforceWeightReduction = 1548849600; //Stake weight must be reduced for higher denominations (GMT): Wednesday, January 30, 2019 12:00:00 PM
 
