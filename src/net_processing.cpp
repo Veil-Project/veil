@@ -27,9 +27,9 @@
 #include <tinyformat.h>
 #include <txmempool.h>
 #include <ui_interface.h>
-#include <util.h>
-#include <utilmoneystr.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/moneystr.h>
+#include <util/strencodings.h>
 
 #include <veil/dandelioninventory.h>
 
@@ -815,10 +815,11 @@ unsigned int LimitOrphanTxSize(unsigned int nMaxOrphans)
         nNextSweep = nMinExpTime + ORPHAN_TX_EXPIRE_INTERVAL;
         if (nErased > 0) LogPrint(BCLog::MEMPOOL, "Erased %d orphan tx due to expiration\n", nErased);
     }
+    FastRandomContext rng;
     while (mapOrphanTransactions.size() > nMaxOrphans)
     {
         // Evict a random orphan:
-        uint256 randomhash = GetRandHash();
+        uint256 randomhash = rng.rand256();
         std::map<uint256, COrphanTx>::iterator it = mapOrphanTransactions.lower_bound(randomhash);
         if (it == mapOrphanTransactions.end())
             it = mapOrphanTransactions.begin();
@@ -1464,7 +1465,7 @@ void ProcessStagingBatchVerify()
                 mapStagedBlocksCopy = mapStagedBlocks;
         }
         if (fNextIter) {
-            MilliSleep(500);
+            UninterruptibleSleep(std::chrono::milliseconds{500});
             continue;
         }
 
@@ -1572,7 +1573,7 @@ void ProcessStaging()
             }
         }
         if (!fProcessNext) {
-            MilliSleep(100);
+            UninterruptibleSleep(std::chrono::milliseconds{100});
             continue;
         }
 
@@ -1582,7 +1583,7 @@ void ProcessStaging()
         }
 
         if (!fProcessNext) {
-            MilliSleep(100);
+            UninterruptibleSleep(std::chrono::milliseconds{100});
             continue;
         }
 

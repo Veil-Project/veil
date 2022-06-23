@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
-// Copyright (c) 2019-2020 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -1039,15 +1039,15 @@ void CoinControlDialog::updateView(int nCoinType)
     // Zerocoin
     if (CoinControlDialog::fSpendingZerocoin) {
         ui->treeWidget->model()->setHeaderData(COLUMN_ADDRESS, Qt::Horizontal, tr("Serial Hash"));
-        map<libzerocoin::CoinDenomination, CCoinControlWidgetItem *> mapTreeWidgetItems;
-        map<libzerocoin::CoinDenomination, int> mapDenomAmount;
+        std::map<libzerocoin::CoinDenomination, CCoinControlWidgetItem *> mapTreeWidgetItems;
+        std::map<libzerocoin::CoinDenomination, int> mapDenomAmount;
         std::set<CMintMeta> setZerocoins;
         model->wallet().getWalletPointer()->AvailableZerocoins(setZerocoins);
 
-        mapDenomAmount.insert(make_pair(libzerocoin::CoinDenomination::ZQ_TEN, 0));
-        mapDenomAmount.insert(make_pair(libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED, 0));
-        mapDenomAmount.insert(make_pair(libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND, 0));
-        mapDenomAmount.insert(make_pair(libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND, 0));
+        mapDenomAmount.insert(std::make_pair(libzerocoin::CoinDenomination::ZQ_TEN, 0));
+        mapDenomAmount.insert(std::make_pair(libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED, 0));
+        mapDenomAmount.insert(std::make_pair(libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND, 0));
+        mapDenomAmount.insert(std::make_pair(libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND, 0));
 
         for (auto mint : setZerocoins) {
             const CWalletTx *pwtx = model->wallet().getWalletPointer()->GetWalletTx(mint.txid);
@@ -1084,7 +1084,7 @@ void CoinControlDialog::updateView(int nCoinType)
             if (!mapTreeWidgetItems.count(mint.denom)) {
                 CCoinControlWidgetItem *itemZerocoinInput = new CCoinControlWidgetItem();
                 itemZerocoinInput->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
-                mapTreeWidgetItems.insert(make_pair(mint.denom, itemZerocoinInput));
+                mapTreeWidgetItems.insert(std::make_pair(mint.denom, itemZerocoinInput));
             }
 
             CCoinControlWidgetItem *itemOutput;

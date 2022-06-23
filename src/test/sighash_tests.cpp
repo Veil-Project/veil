@@ -11,8 +11,8 @@
 #include <serialize.h>
 #include <streams.h>
 #include <test/test_veil.h>
-#include <util.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/strencodings.h>
 #include <version.h>
 
 #include <iostream>
@@ -149,7 +149,7 @@ BOOST_AUTO_TEST_CASE(sighash_test)
         ss << txTo;
 
         std::cout << "\t[\"" ;
-        std::cout << HexStr(ss.begin(), ss.end()) << "\", \"";
+        std::cout << HexStr(ss) << "\", \"";
         std::cout << HexStr(scriptCode) << "\", ";
         std::cout << nIn << ", ";
         std::cout << nHashType << ", \"";

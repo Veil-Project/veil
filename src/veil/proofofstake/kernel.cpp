@@ -1,6 +1,6 @@
 // Copyright (c) 2012-2013 The PPCoin developers
 // Copyright (c) 2015-2019 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT/X11 software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,7 +13,7 @@
 #include "policy/policy.h"
 #include "script/interpreter.h"
 #include "timedata.h"
-#include "util.h"
+#include "util/system.h"
 #include "stakeinput.h"
 #include "veil/zerocoin/zchain.h"
 #include "libzerocoin/bignum.h"

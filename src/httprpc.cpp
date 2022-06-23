@@ -11,8 +11,8 @@
 #include <rpc/server.h>
 #include <random.h>
 #include <sync.h>
-#include <util.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/strencodings.h>
 #include <ui_interface.h>
 #include <crypto/hmac_sha256.h>
 #include <stdio.h>
@@ -170,7 +170,7 @@ static bool HTTPReq_JSONRPC(HTTPRequest* req, const std::string &)
         /* Deter brute-forcing
            If this results in a DoS the user really
            shouldn't have their RPC port exposed. */
-        MilliSleep(250);
+        UninterruptibleSleep(std::chrono::milliseconds{250});
 
         req->WriteHeader("WWW-Authenticate", WWW_AUTH_HEADER_DATA);
         req->WriteReply(HTTP_UNAUTHORIZED);

@@ -4,10 +4,11 @@
 
 DIST_SUBDIRS = secp256k1 univalue
 
-AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS)
+AM_LDFLAGS = $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS)
 AM_CXXFLAGS = $(DEBUG_CXXFLAGS) $(HARDENED_CXXFLAGS) $(WARN_CXXFLAGS) $(NOWARN_CXXFLAGS) $(ERROR_CXXFLAGS) $(GPROF_CXXFLAGS) $(SANITIZER_CXXFLAGS)
 AM_CPPFLAGS = $(DEBUG_CPPFLAGS) $(HARDENED_CPPFLAGS)
 AM_LIBTOOLFLAGS = --preserve-dup-deps
+PTHREAD_FLAGS = $(PTHREAD_CFLAGS) $(PTHREAD_LIBS)
 EXTRA_LIBRARIES =
 
 if EMBEDDED_UNIVALUE
@@ -143,6 +144,7 @@ BITCOIN_CORE_H = \
   netbase.h \
   netmessagemaker.h \
   noui.h \
+  optional.h \
   outputtype.h \
   policy/feerate.h \
   policy/fees.h \
@@ -183,10 +185,11 @@ BITCOIN_CORE_H = \
   txmempool.h \
   ui_interface.h \
   undo.h \
-  util.h \
-  utilmemory.h \
-  utilmoneystr.h \
-  utiltime.h \
+  util/system.h \
+  util/memory.h \
+  util/moneystr.h \
+  util/string.h \
+  util/time.h \
   validation.h \
   validationinterface.h \
   versionbits.h \
@@ -207,6 +210,7 @@ BITCOIN_CORE_H = \
   veil/ringct/keyutil.h \
   veil/ringct/outputrecord.h \
   veil/ringct/rctindex.h \
+  veil/ringct/receipt.h \
   veil/ringct/rpcanonwallet.h \
   veil/ringct/stealth.h \
   veil/ringct/temprecipient.h \
@@ -350,11 +354,12 @@ libbitcoin_wallet_a_SOURCES = \
   veil/zerocoin/spendreceipt.cpp \
   veil/zerocoin/ztracker.cpp \
   veil/zerocoin/zwallet.cpp \
-  veil/ringct/temprecipient.cpp \
   veil/ringct/anonwalletdb.cpp \
   veil/ringct/anonwallet.cpp \
   veil/ringct/outputrecord.cpp \
+  veil/ringct/receipt.cpp \
   veil/ringct/rpcanonwallet.cpp \
+  veil/ringct/temprecipient.cpp \
   $(BITCOIN_CORE_H)
 
 if TARGET_ARM64
@@ -639,8 +644,8 @@ libbitcoin_consensus_a_SOURCES = \
   tinyformat.h \
   uint256.cpp \
   uint256.h \
-  utilstrencodings.cpp \
-  utilstrencodings.h \
+  util/strencodings.cpp \
+  util/strencodings.h \
   version.h
 
 # common: shared between veild, and veil-qt and non-server tools
@@ -706,10 +711,11 @@ libbitcoin_util_a_SOURCES = \
   support/cleanse.cpp \
   sync.cpp \
   threadinterrupt.cpp \
-  util.cpp \
-  utilmoneystr.cpp \
-  utilstrencodings.cpp \
-  utiltime.cpp \
+  util/system.cpp \
+  util/moneystr.cpp \
+  util/strencodings.cpp \
+  util/string.cpp \
+  util/time.cpp \
   $(BITCOIN_CORE_H)
 
 if GLIBC_BACK_COMPAT
@@ -733,7 +739,7 @@ nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
 veild_SOURCES = veild.cpp
 veild_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 veild_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-veild_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+veild_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
 veild_SOURCES += veild-res.rc
@@ -760,7 +766,7 @@ veild_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_
 veil_cli_SOURCES = veil-cli.cpp
 veil_cli_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(EVENT_CFLAGS)
 veil_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-veil_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+veil_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
 veil_cli_SOURCES += veil-cli-res.rc
@@ -779,7 +785,7 @@ veil_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
 veil_tx_SOURCES = veil-tx.cpp
 veil_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 veil_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-veil_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+veil_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
 veil_tx_SOURCES += veil-tx-res.rc

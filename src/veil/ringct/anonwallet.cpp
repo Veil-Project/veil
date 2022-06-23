@@ -1,5 +1,5 @@
 // Copyright (c) 2017-2019 The Particl Core developers
-// Copyright (c) 2018-2020 The Veil developers
+// Copyright (c) 2018-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,7 +14,7 @@
 #include <validation.h>
 #include <consensus/validation.h>
 #include <consensus/merkle.h>
-#include <utilmoneystr.h>
+#include <util/moneystr.h>
 #include <script/script.h>
 #include <script/standard.h>
 #include <script/sign.h>
@@ -1254,9 +1254,9 @@ void AnonWallet::ParseAddressForMetaData(const CTxDestination &addr, COutputReco
     return;
 }
 
-void AnonWallet::MarkInputsAsPendingSpend(CTransactionRecord &rtx)
+void AnonWallet::MarkInputsAsPendingSpend(const std::vector<COutPoint>& vin)
 {
-    for (const COutPoint& outpointIn : rtx.vin) {
+    for (const COutPoint& outpointIn : vin) {
         auto it = mapRecords.find(outpointIn.hash);
         if (it == mapRecords.end())
             continue;
@@ -1929,7 +1929,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
         LOCK2(cs_main, pwalletParent->cs_wallet);
 
         std::set<CInputCoin> setCoins;
-        vector<COutput> vAvailableCoins;
+        std::vector<COutput> vAvailableCoins;
         if (!fZerocoinInputs)
             pwalletParent->AvailableCoins(vAvailableCoins, true, coinControl);
         CoinSelectionParams coin_selection_params; // Parameters for coin selection, init with dummy
@@ -2060,6 +2060,9 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
                 if (this->HaveAddress(r.address))
                     r.isMine = true;
 
+                // Likely unnecessary.
+                if (r.nType != OUTPUT_DATA)
+                    r.nAmount = r.nAmountSelected;
                 r.ApplySubFee(nFeeRet, nSubtractFeeFromAmount, fFirst);
 
                 OUTPUT_PTR<CTxOutBase> txbout;
@@ -2295,7 +2298,7 @@ int AnonWallet::AddStandardInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx,
         rtx.nFlags |= ORF_FROM; //Set from me
         rtx.nFlags |= ORF_BASECOIN_IN;
         AddOutputRecordMetaData(rtx, vecSend);
-        MarkInputsAsPendingSpend(rtx);
+        MarkInputsAsPendingSpend(rtx.vin);
 
         uint256 txid = txNew.GetHash();
         if (fZerocoinInputs)
@@ -2394,15 +2397,65 @@ bool AnonWallet::MakeSigningKeystore(CBasicKeyStore& keystore, const CScript& sc
     return true;
 }
 
+bool AdjustOutputsForShortfall(std::vector<CTempRecipient> &vecSend, CAmount& nChange,
+    const CAmount nValueExpected, const CAmount nValueSelected, std::string& sError)
+{
+    if (vecSend.size() == 1) {
+        if (vecSend[0].nAmount < -nChange) {
+            sError = strprintf("Multi-tx cannot adjust single output: requested %d got %d needed %d short by %d.",
+                               nValueExpected, nValueSelected, nValueExpected - nValueSelected, vecSend[0].nAmount + nChange);
+            return error("%s: %s", __func__, sError);
+        }
+        vecSend[0].nAmount += nChange;
+        nChange = 0;
+    } else {
+        // Split the shortfall randomly
+        // We're effectively reaching into a bag of n marbles and pulling out nC (-nChange) of them.
+        // This is a hypergeometric distribution... let's do something faster but still pretty random.
+        // Shuffle the outputs and take a random amount from each.
+        std::vector<size_t> indexes(vecSend.size());
+        std::iota(indexes.begin(), indexes.end(), 0);  // [0, ..., n-1]
+        Shuffle(indexes.begin(), indexes.end(), FastRandomContext());
+        CAmount sub;
+        size_t i = 0;
+        for (; i < indexes.size() - 1; ++i) {
+            sub = GetRandInt(std::min(vecSend[indexes[i]].nAmount, -nChange));
+            vecSend[indexes[i]].nAmount -= sub;
+            nChange += sub;
+        }
+        // Apply the remainder to the last one, unless it doesn't have enough,
+        // in which case try on another one, etc.
+        for (; nChange < 0 && i >= 0; --i) {
+            sub = std::min(vecSend[indexes[i]].nAmount, -nChange);
+            vecSend[indexes[i]].nAmount -= sub;
+            nChange += sub;
+        }
+        // nChange should be 0 at this point, but it's survivable if we overcorrected
+        if (nChange < 0) {
+            sError = strprintf("Multi-tx undercorrected outputs: requested %d got %d needed %d short by %d.",
+                               nValueExpected, nValueSelected, nValueExpected - nValueSelected, -nChange);
+            return error("%s: %s", __func__, sError);
+        }
+    }
+    return true;
+}
+
 int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
-    bool sign, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
+    bool sign, size_t nMaximumInputs, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
 {
     assert(coinControl);
+
+    if (nMaximumInputs < 0 || nMaximumInputs > MAX_ANON_INPUTS) {
+        return wserrorN(1, sError, __func__, "Num inputs per transaction out of range: %d.", nMaximumInputs);
+    }
+
     nFeeRet = 0;
     CAmount nValueOutBlind;
     size_t nSubtractFeeFromAmount;
     bool fOnlyStandardOutputs, fSkipFee, fSendingOnlyBaseCoin;
     InspectOutputs(vecSend, false, nValueOutBlind, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee, fSendingOnlyBaseCoin);
+
+    bool fSubtractFeeFromOutputs = nSubtractFeeFromAmount > 0;
 
     //Need count of zerocoin mint outputs in order to calculate fee correctly
     int nZerocoinMintOuts = 0;
@@ -2466,9 +2519,13 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             txNew.vin.clear();
             txNew.vpout.clear();
             wtx.fFromMe = true;
+            // Reset adjustments
+            for (CTempRecipient& r : vecSend) {
+                r.nAmount = r.nAmountSelected;
+            }
 
             CAmount nValueToSelect = nValueOutBlind + nValueOutZerocoin;
-            if (nSubtractFeeFromAmount == 0) {
+            if (!fSubtractFeeFromOutputs) {
                 nValueToSelect += nFeeRet;
             }
 
@@ -2476,12 +2533,12 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             if (pick_new_inputs) {
                 nValueIn = 0;
                 setCoins.clear();
-                if (!SelectBlindedCoins(vAvailableCoins, nValueToSelect, setCoins, nValueIn, coinControl)) {
+                if (!SelectBlindedCoins(vAvailableCoins, nValueToSelect, nMaximumInputs, setCoins, nValueIn, coinControl)) {
                     return wserrorN(1, sError, __func__, _("Insufficient funds."));
                 }
             }
 
-            const CAmount nChange = nValueIn - nValueToSelect;
+            CAmount nChange = nValueIn - nValueToSelect;
 
             // Remove fee outputs from last round
             for (size_t i = 0; i < vecSend.size(); ++i) {
@@ -2489,6 +2546,14 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                     vecSend.erase(vecSend.begin() + i);
                     i--;
                 }
+            }
+
+            // adjust outputs if we aren't sending enough
+            // we can reset by setting them back to nAmountSelected if necessary.
+            if (nChange < 0) {
+                // Should set nChange to 0, but a positive number is usable, too.
+                if (!AdjustOutputsForShortfall(vecSend, nChange, nValueToSelect, nValueIn, sError))
+                    return 1;  // sError is set
             }
 
             if (!coinControl->m_addChangeOutput) {
@@ -2549,10 +2614,13 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
             txNew.vpout.push_back(outFee);
 
             bool fFirst = true;
+            bool fFeesFromChange = nMaximumInputs > 0 && nChange >= MIN_FINAL_CHANGE + nFeeRet;
             for (size_t i = 0; i < vecSend.size(); ++i) {
                 auto &r = vecSend[i];
 
-                r.ApplySubFee(nFeeRet, nSubtractFeeFromAmount, fFirst);
+                // Don't take out the fee if we're in multi-tx mode and nChange is sufficient to cover the fee
+                if (!fFeesFromChange)
+                    r.ApplySubFee(nFeeRet, nSubtractFeeFromAmount, fFirst);
 
                 OUTPUT_PTR<CTxOutBase> txbout;
                 if (0 != CreateOutput(txbout, r, sError)) {
@@ -2567,8 +2635,12 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                     nValueOutPlain += r.nAmount;
                 }
 
-                if (r.fChange && r.nType == OUTPUT_CT) {
+                if (r.fChange) {
                     nChangePosInOut = i;
+                    // Remove the fee from the change for multitx
+                    if (fFeesFromChange) {
+                        r.SetAmount(r.nAmount - nFeeRet);
+                    }
                 }
 
                 r.n = txNew.vpout.size();
@@ -2634,7 +2706,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                 // selected to meet nFeeNeeded result in a transaction that
                 // requires less fee than the prior iteration.
                 if (nFeeRet > nFeeNeeded && nChangePosInOut != -1
-                    && nSubtractFeeFromAmount == 0) {
+                    && (!fSubtractFeeFromOutputs || fFeesFromChange)) {
                     auto &r = vecSend[nChangePosInOut];
 
                     CAmount extraFeePaid = nFeeRet - nFeeNeeded;
@@ -2643,7 +2715,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                     nFeeRet -= extraFeePaid;
                 }
 
-                if (nSubtractFeeFromAmount) {
+                if (fSubtractFeeFromOutputs && !fFeesFromChange) {
                     if (nValueOutPlain + nFeeRet == nValueIn) {
                         // blinded input value == plain output value
                         // blinding factor will be 0 for change
@@ -2678,13 +2750,13 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
                 // Or we should have just subtracted fee from recipients and
                 // nFeeNeeded should not have changed
 
-                if (!nSubtractFeeFromAmount || !(--nSubFeeTries)) { // rangeproofs can change size per iteration
+                if (!fSubtractFeeFromOutputs || !(--nSubFeeTries)) { // rangeproofs can change size per iteration
                     return wserrorN(1, sError, __func__, _("Transaction fee and change calculation failed."));
                 }
             }
 
             // Try to reduce change to include necessary fee
-            if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
+            if (nChangePosInOut != -1 && (!fSubtractFeeFromOutputs || nMaximumInputs > 0)) {
                 auto &r = vecSend[nChangePosInOut];
 
                 CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
@@ -2698,7 +2770,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
 
             // If subtracting fee from recipients, we now know what fee we
             // need to subtract, we have no reason to reselect inputs
-            if (nSubtractFeeFromAmount > 0) {
+            if (fSubtractFeeFromOutputs) {
                 pick_new_inputs = false;
             }
 
@@ -2845,7 +2917,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
         AddOutputRecordMetaData(rtx, vecSend);
         for (auto txin : txNew.vin)
             rtx.vin.emplace_back(txin.prevout);
-        MarkInputsAsPendingSpend(rtx);
+        MarkInputsAsPendingSpend(rtx.vin);
 
         uint256 txid = txNew.GetHash();
         if (nValueOutZerocoin)
@@ -2874,7 +2946,7 @@ int AnonWallet::AddBlindedInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, 
 }
 
 int AnonWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
-        CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
+        size_t nMaximumInputs, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError)
 {
     if (vecSend.size() < 1) {
         return wserrorN(1, sError, __func__, _("Transaction must have at least one recipient."));
@@ -2888,7 +2960,7 @@ int AnonWallet::AddBlindedInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::v
         }
     }
 
-    if (0 != AddBlindedInputs_Inner(wtx, rtx, vecSend, sign, nFeeRet, coinControl, sError)) {
+    if (0 != AddBlindedInputs_Inner(wtx, rtx, vecSend, sign, nMaximumInputs, nFeeRet, coinControl, sError)) {
         return 1;
     }
 
@@ -3015,7 +3087,7 @@ bool AnonWallet::PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size
         const static size_t nMaxTries = 1000;
         for (j = 0; j < nMaxTries; ++j) {
             if (nLastRCTOutIndex <= nMinIndex) {
-                sError = strprintf("Not enough anonymous outputs exist, min: last: %d, required: %d.",
+                sError = strprintf("Not enough anonymous outputs exist, min: %d, last: %d, required: %d.",
                                    nMinIndex, nLastRCTOutIndex, nInputs * nRingSize);
                 return error("%s: %s", __func__, sError);
             }
@@ -3122,9 +3194,177 @@ bool AnonWallet::IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint)
     return false;
 }
 
+bool AnonWallet::ArrangeBlinds(
+        std::vector<CTxIn>& vin,
+        std::vector<ec_point>& vInputBlinds,
+        std::vector<std::vector<std::vector<int64_t>>>& vMI,
+        std::vector<size_t>& vSecretColumns,
+        std::vector<std::pair<MapRecords_t::const_iterator, unsigned int>>& setCoins,
+        bool dummySigs,
+        std::string& sError)
+{
+    std::set<int64_t> setHave; // Anon prev-outputs can only be used once per transaction.
+    size_t nTotalInputs = 0;
+    for (size_t l = 0; l < vin.size(); ++l) { // Must add real outputs to setHave before picking decoys
+        auto &txin = vin[l];
+        uint32_t nSigInputs, nSigRingSize;
+        txin.GetAnonInfo(nSigInputs, nSigRingSize);
+
+        vInputBlinds[l].resize(32 * nSigInputs);
+        std::vector<std::pair<MapRecords_t::const_iterator, unsigned int> >
+                vCoins(setCoins.begin() + nTotalInputs, setCoins.begin() + nTotalInputs + nSigInputs);
+        nTotalInputs += nSigInputs;
+
+        if (!PlaceRealOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, vCoins, vInputBlinds[l], sError)) {
+            return false;
+        }
+    }
+
+    // Fill in dummy signatures for fee calculation.
+    for (size_t l = 0; l < vin.size(); ++l) {
+        auto &txin = vin[l];
+        uint32_t nSigInputs, nSigRingSize;
+        txin.GetAnonInfo(nSigInputs, nSigRingSize);
+
+        if (!PickHidingOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, sError))
+            return false;
+
+        std::vector<uint8_t> vPubkeyMatrixIndices;
+
+        for (size_t k = 0; k < nSigInputs; ++k)
+            for (size_t i = 0; i < nSigRingSize; ++i) {
+                PutVarInt(vPubkeyMatrixIndices, vMI[l][k][i]);
+            }
+
+        txin.scriptWitness.stack.emplace_back(vPubkeyMatrixIndices);
+
+        if (dummySigs) {
+            std::vector<uint8_t> vKeyImages(33 * nSigInputs);
+            txin.scriptData.stack.emplace_back(vKeyImages);
+
+            std::vector<uint8_t> vDL(
+                (1 + (nSigInputs + 1) * nSigRingSize) *
+                    32 // extra element for C, extra row for commitment row
+                    + (vin.size() > 1 ? 33 : 0)); // extra commitment for split value if multiple sigs
+            txin.scriptWitness.stack.emplace_back(vDL);
+        }
+    }
+    return true;
+}
+
+bool AnonWallet::GetKeyImage(
+        CTxIn& txin,
+        std::vector<std::vector<int64_t>>& vMI,
+        size_t& secretColumn,
+        std::string& sError)
+{
+    int rv;
+
+    uint32_t nSigInputs, nSigRingSize;
+    txin.GetAnonInfo(nSigInputs, nSigRingSize);
+
+    std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
+    vKeyImages.resize(33 * nSigInputs);
+
+    for (size_t k = 0; k < nSigInputs; ++k) {
+        int64_t nIndex = vMI[k][secretColumn];
+
+        CAnonOutput anonOutput;
+        if (!pblocktree->ReadRCTOutput(nIndex, anonOutput)) {
+            sError = strprintf("Output %d not found in database.", nIndex);
+            return error("%s: %s", __func__, sError);
+        }
+
+        CKeyID idk = anonOutput.pubkey.GetID();
+        CKey key;
+        if (!GetKey(idk, key)) {
+            sError = strprintf("No key for output: %s", HexStr(anonOutput.pubkey.begin(), anonOutput.pubkey.end()));
+            return error("%s: %s", __func__, sError);
+        }
+
+        // Keyimage is required for the tx hash
+        rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], anonOutput.pubkey.begin(), key.begin());
+        if (0 != rv) {
+            sError = strprintf("Failed to get keyimage.");
+            return error("%s: %s", __func__, sError);
+        }
+
+        // Double check key image is not used... todo, this should not be done here and is result of bad state
+        uint256 txhashKI;
+        auto ki = *((CCmpPubKey*)&vKeyImages[k*33]);
+        if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
+            AnonWalletDB wdb(*walletDatabase);
+            COutPoint out;
+            bool fErased = false;
+            if (wdb.ReadAnonKeyImage(ki, out)) {
+                MarkOutputSpent(out, true);
+                fErased = true;
+            }
+            sError = strprintf("Bad wallet state trying to spend already spent input, outpoint=%s erased=%s.",
+                                out.ToString(), fErased ? "true" : "false");
+            return error("%s: %s", __func__, sError);
+        }
+    }
+    return true;
+}
+
+bool AnonWallet::SetBlinds(
+        size_t nSigRingSize,
+        size_t nSigInputs,
+        std::vector<std::vector<int64_t>>& vMI,
+        std::vector<CKey>& vsk,
+        std::vector<const uint8_t*>& vpsk,
+        std::vector<uint8_t>& vm,
+        std::vector<secp256k1_pedersen_commitment>& vCommitments,
+        std::vector<const uint8_t*>& vpInCommits,
+        std::vector<const uint8_t*>& vpBlinds,
+        ec_point& vInputBlinds,
+        size_t& secretColumn,
+        std::string& sError)
+{
+    size_t nCols = nSigRingSize;
+    size_t nRows = nSigInputs + 1;
+
+    for (size_t k = 0; k < nSigInputs; ++k) {
+        for (size_t i = 0; i < nCols; ++i) {
+            int64_t nIndex = vMI[k][i];
+
+            CAnonOutput ao;
+            if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
+                sError = strprintf("Output %d not found in database.", nIndex);
+                return error("%s: %s", __func__, sError);
+            }
+
+            memcpy(&vm[(i + k * nCols) * 33], ao.pubkey.begin(), 33);
+            vCommitments.push_back(ao.commitment);
+            vpInCommits[i + k * nCols] = vCommitments.back().data;
+
+            if (i == secretColumn) {
+                CKeyID idk = ao.pubkey.GetID();
+                if (!GetKey(idk, vsk[k])) {
+                    sError = strprintf("No key for output: %s", HexStr(ao.pubkey.begin(), ao.pubkey.end()));
+                    return error("%s: %s", __func__, sError);
+                }
+                vpsk[k] = vsk[k].begin();
+
+                vpBlinds.push_back(&vInputBlinds[k * 32]);
+                /*
+                // Keyimage is required for the tx hash
+                rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], &vm[(i+k*nCols)*33], vpsk[k]);
+                if (0 != rv) {
+                    sError = strprintf("Failed to get keyimage.");
+                    return error("%s: %s", __func__, sError);
+                }
+                */
+            }
+        }
+    }
+    return true;
+}
+
 // Returns bool
 bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
-        bool sign, size_t nRingSize, size_t nInputsPerSig, CAmount &nFeeRet, const CCoinControl *coinControl,
+        bool sign, size_t nRingSize, size_t nInputsPerSig, size_t nMaximumInputs, CAmount &nFeeRet, const CCoinControl *coinControl,
         std::string &sError, bool fZerocoinInputs, CAmount nInputValue)
 {
     assert(coinControl);
@@ -3138,11 +3378,18 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
         return error("%s: %s", __func__, sError);
     }
 
+    if (nMaximumInputs < 0 || nMaximumInputs > MAX_ANON_INPUTS) {
+        sError = strprintf("Num inputs per transaction out of range: %d.", nMaximumInputs);
+        return error("%s: %s", __func__, sError);
+    }
+
     nFeeRet = 0;
     CAmount nValueOutAnon;
     size_t nSubtractFeeFromAmount;
     bool fOnlyStandardOutputs, fSkipFee, fSendingOnlyBaseCoin;
     InspectOutputs(vecSend, fZerocoinInputs, nValueOutAnon, nSubtractFeeFromAmount, fOnlyStandardOutputs, fSkipFee, fSendingOnlyBaseCoin);
+
+    bool fSubtractFeeFromOutputs = nSubtractFeeFromAmount > 0;
 
     //Need count of zerocoin mint outputs in order to calculate fee correctly
     int nZerocoinMintOuts = 0;
@@ -3208,6 +3455,10 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                 return error("%s: %s", __func__, sError);
             }
             nIterations++;
+            // Reset adjustments
+            for (CTempRecipient& r : vecSend) {
+                r.nAmount = r.nAmountSelected;
+            }
 
             if (!fAlreadyHaveInputs)
                 txNew.vin.clear();
@@ -3215,7 +3466,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             wtx.fFromMe = true;
 
             CAmount nValueToSelect = nValueOutAnon + nValueOutZerocoin;
-            if (nSubtractFeeFromAmount == 0) {
+            if (!fSubtractFeeFromOutputs) {
                 nValueToSelect += nFeeRet;
             }
 
@@ -3223,13 +3474,13 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             if (!fAlreadyHaveInputs && pick_new_inputs) {
                 nValueIn = 0;
                 setCoins.clear();
-                if (!SelectBlindedCoins(vAvailableCoins, nValueToSelect, setCoins, nValueIn, coinControl)) {
+                if (!SelectBlindedCoins(vAvailableCoins, nValueToSelect, nMaximumInputs, setCoins, nValueIn, coinControl)) {
                     sError = strprintf("Insufficient funds.");
                     return error("%s: %s", __func__, sError);
                 }
             }
 
-            const CAmount nChange = nValueIn - nValueToSelect;
+            CAmount nChange = nValueIn - nValueToSelect;
 
             // Remove fee outputs from last round
             for (size_t i = 0; i < vecSend.size(); ++i) {
@@ -3237,6 +3488,14 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                     vecSend.erase(vecSend.begin() + i);
                     i--;
                 }
+            }
+
+            // adjust outputs if we aren't sending enough
+            // we can reset by setting them back to nAmountSelected if necessary.
+            if (nChange < 0) {
+                // Should set nChange to 0, but a positive number is usable, too.
+                if (!AdjustOutputsForShortfall(vecSend, nChange, nValueToSelect, nValueIn, sError))
+                    return false;  // sError is set
             }
 
             // Insert a sender-owned 0 value output that becomes the change output if needed
@@ -3300,10 +3559,13 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             txNew.vpout.push_back(outFee);
 
             bool fFirst = true;
+            bool fFeesFromChange = nMaximumInputs > 0 && nChange >= MIN_FINAL_CHANGE + nFeeRet;
             for (size_t i = 0; i < vecSend.size(); ++i) {
                 auto &recipient = vecSend[i];
 
-                if (!fSkipFee)
+                // Don't take out the fee if a) skip fee, or
+                // b) we're in multi-tx mode and nChange is sufficient to cover the fee
+                if (!fSkipFee && !fFeesFromChange)
                     recipient.ApplySubFee(nFeeRet, nSubtractFeeFromAmount, fFirst);
 
                 OUTPUT_PTR<CTxOutBase> txbout;
@@ -3313,8 +3575,12 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                     nValueOutPlain += recipient.nAmount;
                 }
 
-                if (recipient.fChange && recipient.nType == OUTPUT_RINGCT) {
+                if (recipient.fChange) {
                     nChangePosInOut = i;
+                    // Remove the fee from the change for multitx
+                    if (fFeesFromChange) {
+                        recipient.SetAmount(recipient.nAmount - nFeeRet);
+                    }
                 }
 
                 recipient.n = txNew.vpout.size();
@@ -3331,50 +3597,8 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             }
 
             if (!fAlreadyHaveInputs) {
-                std::set<int64_t> setHave; // Anon prev-outputs can only be used once per transaction.
-                size_t nTotalInputs = 0;
-                for (size_t l = 0; l < txNew.vin.size(); ++l) { // Must add real outputs to setHave before picking decoys
-                    auto &txin = txNew.vin[l];
-                    uint32_t nSigInputs, nSigRingSize;
-                    txin.GetAnonInfo(nSigInputs, nSigRingSize);
-
-                    vInputBlinds[l].resize(32 * nSigInputs);
-                    std::vector<std::pair<MapRecords_t::const_iterator, unsigned int> >
-                            vCoins(setCoins.begin() + nTotalInputs, setCoins.begin() + nTotalInputs + nSigInputs);
-                    nTotalInputs += nSigInputs;
-
-                    if (!PlaceRealOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, vCoins, vInputBlinds[l], sError)) {
-                        return false;
-                    }
-                }
-
-                // Fill in dummy signatures for fee calculation.
-                for (size_t l = 0; l < txNew.vin.size(); ++l) {
-                    auto &txin = txNew.vin[l];
-                    uint32_t nSigInputs, nSigRingSize;
-                    txin.GetAnonInfo(nSigInputs, nSigRingSize);
-
-                    if (!PickHidingOutputs(vMI[l], vSecretColumns[l], nSigRingSize, setHave, sError))
-                        return false;
-
-                    std::vector<uint8_t> vPubkeyMatrixIndices;
-
-                    for (size_t k = 0; k < nSigInputs; ++k)
-                        for (size_t i = 0; i < nSigRingSize; ++i) {
-                            PutVarInt(vPubkeyMatrixIndices, vMI[l][k][i]);
-                        }
-
-                    std::vector<uint8_t> vKeyImages(33 * nSigInputs);
-                    txin.scriptData.stack.emplace_back(vKeyImages);
-
-                    txin.scriptWitness.stack.emplace_back(vPubkeyMatrixIndices);
-
-                    std::vector<uint8_t> vDL((1 + (nSigInputs + 1) * nSigRingSize) *
-                                             32 // extra element for C, extra row for commitment row
-                                             + (txNew.vin.size() > 1 ? 33
-                                                                     : 0)); // extra commitment for split value if multiple sigs
-                    txin.scriptWitness.stack.emplace_back(vDL);
-                }
+                if (!ArrangeBlinds(txNew.vin, vInputBlinds, vMI, vSecretColumns, setCoins, true, sError))
+                    return false;
             }
 
             if (fSkipFee) {
@@ -3407,7 +3631,8 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                     // prevents potential overpayment in fees if the coins
                     // selected to meet nFeeNeeded result in a transaction that
                     // requires less fee than the prior iteration.
-                    if (nFeeRet > nFeeNeeded && nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
+                    if (nFeeRet > nFeeNeeded && nChangePosInOut != -1
+                        && (!fSubtractFeeFromOutputs || fFeesFromChange)) {
                         auto &r = vecSend[nChangePosInOut];
 
                         CAmount extraFeePaid = nFeeRet - nFeeNeeded;
@@ -3422,14 +3647,14 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                     // Or we should have just subtracted fee from recipients and
                     // nFeeNeeded should not have changed
 
-                    if (!nSubtractFeeFromAmount || !(--nSubFeeTries)) {
+                    if (!fSubtractFeeFromOutputs || !(--nSubFeeTries)) {
                         sError = strprintf("Transaction fee and change calculation failed.");
                         return error("%s: %s", __func__, sError);
                     }
                 }
 
                 // Try to reduce change to include necessary fee
-                if (nChangePosInOut != -1 && nSubtractFeeFromAmount == 0) {
+                if (nChangePosInOut != -1 && (!fSubtractFeeFromOutputs || nMaximumInputs > 0)) {
                     auto &r = vecSend[nChangePosInOut];
                     CAmount additionalFeeNeeded = nFeeNeeded - nFeeRet;
                     if (r.nAmount >= MIN_FINAL_CHANGE + additionalFeeNeeded) {
@@ -3441,7 +3666,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
 
                 // If subtracting fee from recipients, we now know what fee we
                 // need to subtract, we have no reason to reselect inputs
-                if (nSubtractFeeFromAmount > 0) {
+                if (fSubtractFeeFromOutputs) {
                     pick_new_inputs = false;
                 }
 
@@ -3490,8 +3715,8 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             if ((int)i == nChangePosInOut) {
                 // Change amount may have changed
 
-                if (r.nType != OUTPUT_RINGCT) {
-                    sError = strprintf("Change output is not RingCT type.");
+                if (r.nType != (fCTOut ? OUTPUT_CT : OUTPUT_RINGCT)) {
+                    sError = strprintf("Change output is not %s type.", fCTOut ? "CT" : "RingCT");
                     return error("%s: %s", __func__, sError);
                 }
 
@@ -3522,57 +3747,9 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             std::vector<CKey> vSplitCommitBlindingKeys(txNew.vin.size()); // input amount commitment when > 1 mlsag
             int rv;
             size_t nTotalInputs = 0;
-
-            for (size_t l = 0; l < txNew.vin.size(); ++l) {
-                auto &txin = txNew.vin[l];
-
-                uint32_t nSigInputs, nSigRingSize;
-                txin.GetAnonInfo(nSigInputs, nSigRingSize);
-
-                std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
-                vKeyImages.resize(33 * nSigInputs);
-
-                for (size_t k = 0; k < nSigInputs; ++k) {
-                    size_t i = vSecretColumns[l];
-                    int64_t nIndex = vMI[l][k][i];
-
-                    CAnonOutput anonOutput;
-                    if (!pblocktree->ReadRCTOutput(nIndex, anonOutput)) {
-                        sError = strprintf("Output %d not found in database.", nIndex);
-                        return error("%s: %s", __func__, sError);
-                    }
-
-                    CKeyID idk = anonOutput.pubkey.GetID();
-                    CKey key;
-                    if (!GetKey(idk, key)) {
-                        sError = strprintf("No key for output: %s", HexStr(anonOutput.pubkey.begin(), anonOutput.pubkey.end()));
-                        return error("%s: %s", __func__, sError);
-                    }
-
-                    // Keyimage is required for the tx hash
-                    rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], anonOutput.pubkey.begin(), key.begin());
-                    if (0 != rv) {
-                        sError = strprintf("Failed to get keyimage.");
-                        return error("%s: %s", __func__, sError);
-                    }
-
-                    // Double check key image is not used... todo, this should not be done here and is result of bad state
-                    uint256 txhashKI;
-                    auto ki = *((CCmpPubKey*)&vKeyImages[k*33]);
-                    if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
-                        AnonWalletDB wdb(*walletDatabase);
-                        COutPoint out;
-                        bool fErased = false;
-                        if (wdb.ReadAnonKeyImage(ki, out)) {
-                            MarkOutputSpent(out, true);
-                            fErased = true;
-                        }
-                        sError = strprintf("Bad wallet state trying to spend already spent input, outpoint=%s erased=%s.",
-                                            out.ToString(), fErased ? "true" : "false");
-                        return error("%s: %s", __func__, sError);
-                    }
-                }
-            }
+            for (size_t l = 0; l < txNew.vin.size(); ++l)
+                if (!GetKeyImage(txNew.vin[l], vMI[l], vSecretColumns[l], sError))
+                    return false;
 
             for (size_t l = 0; l < txNew.vin.size(); ++l) {
                 auto &txin = txNew.vin[l];
@@ -3583,9 +3760,6 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                 size_t nCols = nSigRingSize;
                 size_t nRows = nSigInputs + 1;
 
-                uint8_t randSeed[32];
-                GetStrongRandBytes(randSeed, 32);
-
                 std::vector<CKey> vsk(nSigInputs);
                 std::vector<const uint8_t*> vpsk(nRows);
 
@@ -3595,42 +3769,12 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                 std::vector<const uint8_t*> vpInCommits(nCols * nSigInputs);
                 std::vector<const uint8_t*> vpBlinds;
 
+                if (!SetBlinds(nSigRingSize, nSigInputs, vMI[l], vsk, vpsk, vm, vCommitments,
+                               vpInCommits, vpBlinds, vInputBlinds[l],
+                               vSecretColumns[l], sError))
+                    return false;
+
                 std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
-
-                for (size_t k = 0; k < nSigInputs; ++k) {
-                    for (size_t i = 0; i < nCols; ++i) {
-                        int64_t nIndex = vMI[l][k][i];
-
-                        CAnonOutput ao;
-                        if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
-                            sError = strprintf("Output %d not found in database.", nIndex);
-                            return error("%s: %s", __func__, sError);
-                        }
-
-                        memcpy(&vm[(i + k * nCols) * 33], ao.pubkey.begin(), 33);
-                        vCommitments.push_back(ao.commitment);
-                        vpInCommits[i + k * nCols] = vCommitments.back().data;
-
-                        if (i == vSecretColumns[l]) {
-                            CKeyID idk = ao.pubkey.GetID();
-                            if (!GetKey(idk, vsk[k])) {
-                                sError = strprintf("No key for output: %s", HexStr(ao.pubkey.begin(), ao.pubkey.end()));
-                                return error("%s: %s", __func__, sError);
-                            }
-                            vpsk[k] = vsk[k].begin();
-
-                            vpBlinds.push_back(&vInputBlinds[l][k * 32]);
-                            /*
-                            // Keyimage is required for the tx hash
-                            rv = secp256k1_get_keyimage(secp256k1_ctx_blind, &vKeyImages[k * 33], &vm[(i+k*nCols)*33], vpsk[k]);
-                            if (0 != rv) {
-                                sError = strprintf("Failed to get keyimage.");
-                                return error("%s: %s", __func__, sError);
-                            }
-                            */
-                        }
-                    }
-                }
 
                 uint8_t blindSum[32];
                 memset(blindSum, 0, 32);
@@ -3701,6 +3845,9 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                 };
 
                 uint256 hashOutputs = txNew.GetOutputsHash();
+
+                uint8_t randSeed[32];
+                GetStrongRandBytes(randSeed, 32);
                 if (0 != (rv = secp256k1_generate_mlsag(secp256k1_ctx_blind, &vKeyImages[0], &vDL[0], &vDL[32],
                                                         randSeed, hashOutputs.begin(), nCols, nRows, vSecretColumns[l],
                                                         &vpsk[0], &vm[0]))) {
@@ -3723,7 +3870,13 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
 
         for (auto txin : txNew.vin)
             rtx.vin.emplace_back(txin.prevout);
-        MarkInputsAsPendingSpend(rtx);
+
+        // Convert the real inputs (setCoins) into COutPoints that we can mark as pending spends
+        std::vector<COutPoint> spends;
+        spends.reserve(setCoins.size());
+        std::transform(setCoins.begin(), setCoins.end(), std::back_inserter(spends),
+                [](std::pair<MapRecords_t::const_iterator, unsigned int> coin) -> COutPoint { return COutPoint(coin.first->first, coin.second); });
+        MarkInputsAsPendingSpend(spends);
 
         uint256 txid = txNew.GetHash();
         if (nValueOutZerocoin)
@@ -3752,7 +3905,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
 }
 
 bool AnonWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend, bool sign,
-        size_t nRingSize, size_t nSigs, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs,
+        size_t nRingSize, size_t nSigs, size_t nMaximumInputs, CAmount &nFeeRet, const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs,
         CAmount nInputValue)
 {
     if (vecSend.size() < 1) {
@@ -3769,7 +3922,7 @@ bool AnonWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vec
         }
     }
 
-    if (!AddAnonInputs_Inner(wtx, rtx, vecSend, sign, nRingSize, nSigs, nFeeRet, coinControl, sError, fZerocoinInputs, nInputValue)) {
+    if (!AddAnonInputs_Inner(wtx, rtx, vecSend, sign, nRingSize, nSigs, nMaximumInputs, nFeeRet, coinControl, sError, fZerocoinInputs, nInputValue)) {
         return false;
     }
 
@@ -5799,7 +5952,7 @@ void AnonWallet::AvailableBlindedCoins(std::vector<COutputR>& vCoins, bool fOnly
     }
 }
 
-bool AnonWallet::SelectBlindedCoins(const std::vector<COutputR> &vAvailableCoins, const CAmount &nTargetValue,
+bool AnonWallet::SelectBlindedCoins(const std::vector<COutputR> &vAvailableCoins, const CAmount &nTargetValue, size_t nMaximumCount,
         std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> > &setCoinsRet, CAmount &nValueRet, const CCoinControl *coinControl) const
 {
     std::vector<COutputR> vCoins(vAvailableCoins);
@@ -5864,13 +6017,13 @@ bool AnonWallet::SelectBlindedCoins(const std::vector<COutputR> &vAvailableCoins
     auto m_spend_zero_conf_change = pwalletParent->m_spend_zero_conf_change;
 
     bool res = nTargetValue <= nValueFromPresetInputs ||
-        SelectCoinsMinConf(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(1, 6, 0), vCoins, setCoinsRet, nValueRet) ||
-        SelectCoinsMinConf(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(1, 1, 0), vCoins, setCoinsRet, nValueRet) ||
-        (m_spend_zero_conf_change && SelectCoinsMinConf(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(0, 1, 2), vCoins, setCoinsRet, nValueRet)) ||
-        (m_spend_zero_conf_change && SelectCoinsMinConf(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(0, 1, std::min((size_t)4, max_ancestors/3), std::min((size_t)4, max_descendants/3)), vCoins, setCoinsRet, nValueRet)) ||
-        (m_spend_zero_conf_change && SelectCoinsMinConf(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(0, 1, max_ancestors/2, max_descendants/2), vCoins, setCoinsRet, nValueRet)) ||
-        (m_spend_zero_conf_change && SelectCoinsMinConf(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(0, 1, max_ancestors-1, max_descendants-1), vCoins, setCoinsRet, nValueRet)) ||
-        (m_spend_zero_conf_change && !fRejectLongChains && SelectCoinsMinConf(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(0, 1, std::numeric_limits<uint64_t>::max()), vCoins, setCoinsRet, nValueRet));
+        SelectCoinsForOneTx(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(1, 6, 0), vCoins, nMaximumCount, setCoinsRet, nValueRet) ||
+        SelectCoinsForOneTx(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(1, 1, 0), vCoins, nMaximumCount, setCoinsRet, nValueRet) ||
+        (m_spend_zero_conf_change && SelectCoinsForOneTx(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(0, 1, 2), vCoins, nMaximumCount, setCoinsRet, nValueRet)) ||
+        (m_spend_zero_conf_change && SelectCoinsForOneTx(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(0, 1, std::min((size_t)4, max_ancestors/3), std::min((size_t)4, max_descendants/3)), vCoins, nMaximumCount, setCoinsRet, nValueRet)) ||
+        (m_spend_zero_conf_change && SelectCoinsForOneTx(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(0, 1, max_ancestors/2, max_descendants/2), vCoins, nMaximumCount, setCoinsRet, nValueRet)) ||
+        (m_spend_zero_conf_change && SelectCoinsForOneTx(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(0, 1, max_ancestors-1, max_descendants-1), vCoins, nMaximumCount, setCoinsRet, nValueRet)) ||
+        (m_spend_zero_conf_change && !fRejectLongChains && SelectCoinsForOneTx(nTargetValue - nValueFromPresetInputs, CoinEligibilityFilter(0, 1, std::numeric_limits<uint64_t>::max()), vCoins, nMaximumCount, setCoinsRet, nValueRet));
 
 
     // because SelectCoinsMinConf clears the setCoinsRet, we now add the possible inputs to the coinset
@@ -5879,7 +6032,7 @@ bool AnonWallet::SelectBlindedCoins(const std::vector<COutputR> &vAvailableCoins
     // add preset inputs to the total value selected
     nValueRet += nValueFromPresetInputs;
 
-    std::random_shuffle(setCoinsRet.begin(), setCoinsRet.end(), GetRandInt);
+    Shuffle(setCoinsRet.begin(), setCoinsRet.end(), FastRandomContext());
 
     return res;
 }
@@ -5968,7 +6121,7 @@ void AnonWallet::AvailableAnonCoins(std::vector<COutputR> &vCoins, bool fOnlySaf
         }
     }
 
-    random_shuffle(vCoins.begin(), vCoins.end(), GetRandInt);
+    Shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
     return;
 }
 
@@ -6046,7 +6199,7 @@ static void ApproximateBestSubset(std::vector<std::pair<CAmount, std::pair<MapRe
 }
 
 bool AnonWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const CoinEligibilityFilter& eligibility_filter,
-    std::vector<COutputR> vCoins, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> >& setCoinsRet, CAmount& nValueRet) const
+    std::vector<COutputR> &vCoins, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> >& setCoinsRet, CAmount& nValueRet) const
 {
     setCoinsRet.clear();
     nValueRet = 0;
@@ -6058,7 +6211,7 @@ bool AnonWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const CoinEligi
     std::vector<std::pair<CAmount, std::pair<MapRecords_t::const_iterator,unsigned int> > > vValue;
     CAmount nTotalLower = 0;
 
-    random_shuffle(vCoins.begin(), vCoins.end(), GetRandInt);
+    Shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
 
     for (const auto &r : vCoins) {
         //if (!r.fSpendable)
@@ -6147,6 +6300,112 @@ bool AnonWallet::SelectCoinsMinConf(const CAmount& nTargetValue, const CoinEligi
 
     return true;
 }
+
+bool AnonWallet::SelectCoinsForOneTx(const CAmount& nTargetValue, const CoinEligibilityFilter& eligibility_filter,
+    std::vector<COutputR> &vCoins, size_t nMaximumCount, std::vector<std::pair<MapRecords_t::const_iterator,unsigned int> >& setCoinsRet, CAmount& nValueRet) const
+{
+    if (vCoins.empty())
+        return false;
+
+    if (nMaximumCount == 0)
+        return SelectCoinsMinConf(nTargetValue, eligibility_filter, vCoins, setCoinsRet, nValueRet);
+
+    setCoinsRet.clear();
+    nValueRet = 0;
+
+    // Save the smallest coin bigger than our need.
+    std::pair<CAmount, std::pair<MapRecords_t::const_iterator,unsigned int> > coinLowestLarger;
+    coinLowestLarger.first = std::numeric_limits<CAmount>::max();
+    coinLowestLarger.second.first = mapRecords.end();
+
+    // List of values less than target, sorted
+    std::multiset<std::pair<CAmount, std::pair<MapRecords_t::const_iterator, unsigned int> >, CompareValueOnly> vSortedValues;
+
+    Shuffle(vCoins.begin(), vCoins.end(), FastRandomContext());
+
+    for (const auto &r : vCoins) {
+        //if (!r.fSpendable)
+        //    continue;
+        MapRecords_t::const_iterator rtxi = r.rtx;
+        const CTransactionRecord *rtx = &rtxi->second;
+
+        const CWalletTx *pcoin = pwalletParent->GetWalletTx(r.txhash);
+        if (!pcoin) {
+            if (0 != InsertTempTxn(r.txhash, rtx)
+                || !(pcoin = pwalletParent->GetWalletTx(r.txhash)))
+                return werror("%s: InsertTempTxn failed.\n", __func__);
+        }
+
+
+        if (r.nDepth < (pcoin->IsFromMe(ISMINE_ALL) ? eligibility_filter.conf_mine : eligibility_filter.conf_theirs))
+            continue;
+
+        size_t ancestors, descendants;
+        mempool.GetTransactionAncestry(r.txhash, ancestors, descendants);
+        if (ancestors > eligibility_filter.max_ancestors || descendants > eligibility_filter.max_descendants) {
+             continue;
+        }
+
+        const COutputRecord *oR = rtx->GetOutput(r.i);
+        if (!oR) {
+            return werror("%s: GetOutput failed, %s, %d.\n", r.txhash.ToString(), r.i);
+        }
+
+        CAmount nV = oR->GetRawValue();
+
+        if (nV < nTargetValue + MIN_CHANGE) {
+            vSortedValues.emplace(std::piecewise_construct, std::make_tuple(nV), std::make_tuple(rtxi, r.i));
+        } else if (nV < coinLowestLarger.first) {
+            std::pair<CAmount,std::pair<MapRecords_t::const_iterator,unsigned int> > coin = std::make_pair(nV, std::make_pair(rtxi, r.i));
+            coinLowestLarger = coin;
+        }
+    }
+    if (coinLowestLarger.second.first != mapRecords.end())
+        vSortedValues.insert(vSortedValues.end(), coinLowestLarger);
+
+    // sliding window sum
+    // Always include the smallest coin, to avoid proliferation of dust
+    auto it = vSortedValues.begin();
+    CAmount nSlidingSum = it->first;
+    size_t nWindow = 1;
+    // first, grow the window
+    for (++it; nWindow < nMaximumCount && nSlidingSum < nTargetValue && it != vSortedValues.end(); ++nWindow, ++it) {
+        nSlidingSum += it->first;
+    }
+    // Some amount of the smallest coins fit in the window and reached the target.
+    if (nSlidingSum >= nTargetValue) {
+        for (auto coin = vSortedValues.begin(); coin != it; ++coin) {
+            setCoinsRet.push_back(coin->second);
+        }
+
+        nValueRet = nSlidingSum;
+        return true;
+    }
+    // We grew the window all the way and didn't have enough.
+    if (it == vSortedValues.end()) {
+        // Technically we might have enough with a larger smallest coin, but we're choosing to
+        // break it into multiple transactions instead, so that we don't make more dust.
+        return false;
+    }
+
+    // At this point we assume: we've selected a non-infinite window size and want to use what we can,
+    // even if it's not sufficient for the target (the caller will need to make another transaction).
+    //
+    // While we're still short, slide the window: remove the lowest coin and add the next coin.
+    auto itStart = vSortedValues.begin();
+    for (++itStart; nSlidingSum < nTargetValue && it != vSortedValues.end(); ++itStart, ++it) {
+        nSlidingSum += it->first - itStart->first;
+    }
+
+    setCoinsRet.push_back(vSortedValues.begin()->second);
+    // itStart has advanced to the first included coin, and it is one past the last included coin.
+    for (auto coin = itStart; coin != it; ++coin) {
+        setCoinsRet.push_back(coin->second);
+    }
+    nValueRet = nSlidingSum;
+    return true;
+}
+
 
 /**
  * Outpoint is spent if any non-conflicted transaction

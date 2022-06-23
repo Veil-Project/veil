@@ -8,7 +8,6 @@
 bool CTempRecipient::ApplySubFee(CAmount nFee, size_t nSubtractFeeFromAmount, bool &fFirst)
 {
     if (nType != OUTPUT_DATA) {
-        nAmount = nAmountSelected;
         if (fSubtractFeeFromAmount && !fExemptFeeSub) {
             nAmount -= nFee / nSubtractFeeFromAmount; // Subtract fee equally from each selected recipient
 

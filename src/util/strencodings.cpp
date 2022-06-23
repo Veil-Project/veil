@@ -3,10 +3,11 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 
 #include <tinyformat.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <errno.h>
@@ -303,7 +304,7 @@ bool ParseInt64(const std::string& str, int64_t *out)
         n <= std::numeric_limits<int64_t>::max();
 }
 
-bool ParseUInt32(const std::string& str, uint32_t *out)
+bool ParseUInt32(const std::string& str, uint32_t *out, int base)
 {
     if (!ParsePrechecks(str))
         return false;
@@ -311,7 +312,7 @@ bool ParseUInt32(const std::string& str, uint32_t *out)
         return false;
     char *endp = nullptr;
     errno = 0; // strtoul will not set errno if valid
-    unsigned long int n = strtoul(str.c_str(), &endp, 10);
+    unsigned long int n = strtoul(str.c_str(), &endp, base);
     if(out) *out = (uint32_t)n;
     // Note that strtoul returns a *unsigned long int*, so even if it doesn't report an over/underflow
     // we still have to check that the returned value is within the range of an *uint32_t*. On 64-bit
@@ -544,3 +545,69 @@ bool ParseFixedPoint(const std::string &val, int decimals, int64_t *amount_out)
     return true;
 }
 
+std::string ToLower(const std::string& str)
+{
+    std::string r;
+    for (auto ch : str) r += ToLower((unsigned char)ch);
+    return r;
+}
+
+std::string ToUpper(const std::string& str)
+{
+    std::string r;
+    for (auto ch : str) r += ToUpper((unsigned char)ch);
+    return r;
+}
+
+bool ParseHDKeypath(const std::string& keypath_str, std::vector<uint32_t>& keypath)
+{
+    std::stringstream ss(keypath_str);
+    std::string item;
+    bool first = true;
+    while (std::getline(ss, item, '/')) {
+        if (item.compare("m") == 0) {
+            if (first) {
+                first = false;
+                continue;
+            }
+            return false;
+        }
+        // Finds whether it is hardened
+        uint32_t path = 0;
+        size_t pos = item.find("'");
+        if (pos != std::string::npos) {
+            // The hardened tick can only be in the last index of the string
+            if (pos != item.size() - 1) {
+                return false;
+            }
+            path |= 0x80000000;
+            item = item.substr(0, item.size() - 1); // Drop the last character which is the hardened tick
+        }
+
+        // Ensure this is only numbers
+        if (item.find_first_not_of( "0123456789" ) != std::string::npos) {
+            return false;
+        }
+        uint32_t number;
+        if (!ParseUInt32(item, &number)) {
+            return false;
+        }
+        path |= number;
+
+        keypath.push_back(path);
+        first = false;
+    }
+    return true;
+}
+
+void Downcase(std::string& str)
+{
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c){return ToLower(c);});
+}
+
+std::string Capitalize(std::string str)
+{
+    if (str.empty()) return str;
+    str[0] = ToUpper(str.front());
+    return str;
+}

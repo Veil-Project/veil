@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2019 The Bitcoin Core developers
-// Copyright (c) 2018-2021 The Veil developers
+// Copyright (c) 2018-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,9 +15,9 @@
 #include <serialize.h>
 #include <streams.h>
 #include <univalue.h>
-#include <util.h>
-#include <utilmoneystr.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/moneystr.h>
+#include <util/strencodings.h>
 
 UniValue ValueFromAmount(const CAmount& amount)
 {
@@ -135,7 +135,7 @@ std::string EncodeHexTx(const CTransaction& tx, const int serializeFlags)
 {
     CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION | serializeFlags);
     ssTx << tx;
-    return HexStr(ssTx.begin(), ssTx.end());
+    return HexStr(ssTx);
 }
 
 void AddRangeproof(const std::vector<uint8_t> &vRangeproof, UniValue &entry)
@@ -229,7 +229,7 @@ void OutputToJSON(uint256 &txid, int i,
 void ScriptToUniv(const CScript& script, UniValue& out, bool include_address)
 {
     out.pushKV("asm", ScriptToAsmStr(script));
-    out.pushKV("hex", HexStr(script.begin(), script.end()));
+    out.pushKV("hex", HexStr(script));
 
     std::vector<std::vector<unsigned char>> solns;
     txnouttype type;
@@ -251,7 +251,7 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
 
     out.pushKV("asm", ScriptToAsmStr(scriptPubKey));
     if (fIncludeHex)
-        out.pushKV("hex", HexStr(scriptPubKey.begin(), scriptPubKey.end()));
+        out.pushKV("hex", HexStr(scriptPubKey));
 
     if (!ExtractDestinations(scriptPubKey, type, addresses, nRequired)) {
         out.pushKV("type", GetTxnOutputType(type));
@@ -283,7 +283,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
         const CTxIn& txin = tx.vin[i];
         UniValue in(UniValue::VOBJ);
         if (tx.IsCoinBase())
-            in.pushKV("coinbase", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
+            in.pushKV("coinbase", HexStr(txin.scriptSig));
         if (txin.IsAnonInput()) {
             in.pushKV("type", "anon");
             uint32_t nSigInputs, nSigRingSize;
@@ -332,7 +332,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
             in.pushKV("vout", (int64_t)txin.prevout.n);
             UniValue o(UniValue::VOBJ);
             o.pushKV("asm", ScriptToAsmStr(txin.scriptSig, true));
-            o.pushKV("hex", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
+            o.pushKV("hex", HexStr(txin.scriptSig));
             in.pushKV("scriptSig", o);
             if (!tx.vin[i].scriptWitness.IsNull()) {
                 UniValue txinwitness(UniValue::VARR);

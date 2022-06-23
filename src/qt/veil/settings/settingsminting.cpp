@@ -1,7 +1,7 @@
 #include <qt/veil/settings/settingsminting.h>
 #include <qt/veil/forms/ui_settingsminting.h>
 
-#include <util.h>
+#include <util/system.h>
 #include <qt/bitcoinunits.h>
 #include <qt/guiconstants.h>
 #include <qt/walletmodel.h>

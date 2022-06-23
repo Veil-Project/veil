@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
-// Copyright (c) 2018-2019 The Veil developers
+// Copyright (c) 2018-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,12 +13,12 @@
 #include <streams.h>
 #include <tinyformat.h>
 #include <ui_interface.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <validation.h>
 #include <validationinterface.h>
 #include <script/ismine.h>
 #include <script/sign.h>
-#include <util.h>
+#include <util/system.h>
 #include <wallet/crypter.h>
 #include <wallet/coinselection.h>
 #include <wallet/walletbalances.h>
@@ -138,6 +138,13 @@ enum ZerocoinSpendStatus {
     ZTX_TOO_LARGE = 15,                         // The transaction is larger than the max tx size
     ZSPEND_V1_SEC_LEVEL = 16,                   // Spend is V1 and security level is not set to 100
     ZSPEND_PREPARED = 17                        // No error thus far, but spending not yet fully finished
+};
+
+// Possible states for MultiTx send
+// TODO: Merge with ZerocoinSpendStatus
+enum MultiTxStatus {
+    SEND_OKAY = 0,                              // No error
+    SEND_ERROR = 1,                             // Unspecified class of errors, more details are (hopefully) in the returning text
 };
 
 //! Default for -addresstype

@@ -1,12 +1,12 @@
 // Copyright (c) 2017-2018 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <wallet/deterministicmint.h>
 #include <logging.h>
 #include "ztracker.h"
-#include "util.h"
+#include "util/system.h"
 #include "sync.h"
 #include "txdb.h"
 #include "wallet/walletdb.h"

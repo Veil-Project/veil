@@ -3,8 +3,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #include <boost/test/unit_test.hpp>
 #include <streams.h>
-#include "util.h"
-#include "utilstrencodings.h"
+#include "util/system.h"
+#include "util/strencodings.h"
 #include "libzerocoin/bignum.h"
 
 using namespace libzerocoin;

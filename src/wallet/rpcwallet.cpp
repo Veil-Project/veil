@@ -1,6 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
-// Copyright (c) 2018-2021 The Veil developers
+// Copyright (c) 2018-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -25,9 +25,9 @@
 #include <script/sign.h>
 #include <shutdown.h>
 #include <timedata.h>
-#include <util.h>
+#include <util/system.h>
 #include <miner.h>
-#include <utilmoneystr.h>
+#include <util/moneystr.h>
 #include <wallet/coincontrol.h>
 #include <wallet/feebumper.h>
 #include <wallet/rpcwallet.h>
@@ -1743,7 +1743,7 @@ static UniValue addmultisigaddress(const JSONRPCRequest& request)
 
     UniValue result(UniValue::VOBJ);
     result.pushKV("address", EncodeDestination(dest));
-    result.pushKV("redeemScript", HexStr(inner.begin(), inner.end()));
+    result.pushKV("redeemScript", HexStr(inner));
     return result;
 }
 
@@ -2200,11 +2200,8 @@ static void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, const
                     entry.pushKV("account", account);
                 if (IsValidDestination(r.destination))
                 {
-                    auto item = pwallet->mapAddressBook.find(r.destination);
-                    if (item->first.type() == typeid(CKeyID))
-                        entry.pushKV("address", EncodeDestination(r.destination, false));
-                    else
-                        entry.pushKV("address", EncodeDestination(r.destination));
+                    entry.pushKV("address", EncodeDestination(
+                        r.destination, r.destination.type() != typeid(CKeyID)));
                 }
                 if (wtx.IsCoinBase())
                 {
@@ -2517,11 +2514,8 @@ static void ExportTransactions(CWallet* const pwallet, const CWalletTx& wtx, con
                     csvRecord[TRANSACTION_CSV_FIELD_ACCOUNT] = account;
                 if ( IsValidDestination(r->destination) )
                 {
-                    auto item = pwallet->mapAddressBook.find(r->destination);
-                    if (item->first.type() == typeid(CKeyID))
-                        csvRecord[TRANSACTION_CSV_FIELD_ADDRESS] = EncodeDestination(r->destination, false);
-                    else
-                        csvRecord[TRANSACTION_CSV_FIELD_ADDRESS] = EncodeDestination(r->destination);
+                    csvRecord[TRANSACTION_CSV_FIELD_ADDRESS] = EncodeDestination(
+                        r->destination, r->destination.type() != typeid(CKeyID));
                 }
                 if (wtx.IsCoinBase())
                 {
@@ -2616,7 +2610,7 @@ static UniValue exporttransactions(const JSONRPCRequest& request)
     std::string help_text {};
     if (!IsDeprecatedRPCEnabled("accounts")) {
         help_text = "exporttransactions (dummy filename start end filter include_watchonly)\n"
-            "\nExports transactions between 'start' date and 'end' date matching 'categories' to a CSV file.\n"
+            "\nExports transactions between 'start' date and 'end' date matching 'filter' to a CSV file.\n"
             "Note: To export from a specified \"account\", restart veild with -deprecatedrpc=accounts and\n"
             "use this RPC with an \"account\" argument\n"
             "\nArguments:\n"
@@ -2643,7 +2637,7 @@ static UniValue exporttransactions(const JSONRPCRequest& request)
             + HelpExampleRpc("exporttransactions", "\"*\", \"\", 2020-01-01, 2020-12-31");
     } else {
         help_text = "exporttransactions ( \"account\" filename start end filter include_watchonly)\n"
-            "\nExports transactions between 'start' date and 'end' date matching 'categories' to a CSV file for 'account'.\n"
+            "\nExports transactions between 'start' date and 'end' date matching 'filter' to a CSV file for 'account'.\n"
             "\nArguments:\n"
             "1. \"dummy\"      (string, optional) If set, should be \"*\" for backwards compatibility.\n"
             "2. \"filename\"   (string, optional) The filename with path (either absolute or relative to veild) [default=<datadir>/export/transactions.csv].\n"
@@ -2715,7 +2709,7 @@ static UniValue exporttransactions(const JSONRPCRequest& request)
 
     // Prepare transaction filter
      std::string transactionFilterString = !request.params[4].isNull() ? request.params[4].get_str() : "";
-     vector<std::string> transactionFilters;
+     std::vector<std::string> transactionFilters;
      String_Tokenize(transactionFilterString, '|', transactionFilters);
 
      // Prepare watchonly filter
@@ -4389,7 +4383,7 @@ static UniValue listunspent(const JSONRPCRequest& request)
             }
         }
 
-        entry.pushKV("scriptPubKey", HexStr(scriptPubKey.begin(), scriptPubKey.end()));
+        entry.pushKV("scriptPubKey", HexStr(scriptPubKey));
 
         // If RingCT, get the ephemeral pubkey
         if (outType == OUTPUT_RINGCT) {
@@ -4968,7 +4962,7 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
 
     int nAlgo = GetMiningAlgorithm();
     std::string sAlgo = GetMiningType(nAlgo, false, false);
-    std:string sWarning = "";
+    std::string sWarning = "";
 
     if (fGenerate) {
         if (GenerateActive())
@@ -5108,7 +5102,7 @@ public:
         std::vector<std::vector<unsigned char>> solutions_data;
         Solver(subscript, which_type, solutions_data);
         obj.pushKV("script", GetTxnOutputType(which_type));
-        obj.pushKV("hex", HexStr(subscript.begin(), subscript.end()));
+        obj.pushKV("hex", HexStr(subscript));
 
         CTxDestination embedded;
         UniValue a(UniValue::VARR);
@@ -5120,7 +5114,7 @@ public:
             UniValue wallet_detail = boost::apply_visitor(*this, embedded);
             subobj.pushKVs(wallet_detail);
             subobj.pushKV("address", EncodeDestination(embedded));
-            subobj.pushKV("scriptPubKey", HexStr(subscript.begin(), subscript.end()));
+            subobj.pushKV("scriptPubKey", HexStr(subscript));
             // Always report the pubkey at the top level, so that `getnewaddress()['pubkey']` always works.
             if (subobj.exists("pubkey")) obj.pushKV("pubkey", subobj["pubkey"]);
             obj.pushKV("embedded", std::move(subobj));
@@ -5133,7 +5127,7 @@ public:
             for (size_t i = 1; i < solutions_data.size() - 1; ++i) {
                 CPubKey key(solutions_data[i].begin(), solutions_data[i].end());
                 if (include_addresses) a.push_back(EncodeDestination(key.GetID()));
-                pubkeys.push_back(HexStr(key.begin(), key.end()));
+                pubkeys.push_back(HexStr(key));
             }
             obj.pushKV("pubkeys", std::move(pubkeys));
         }
@@ -5344,7 +5338,7 @@ UniValue getaddressinfo(const JSONRPCRequest& request)
     ret.pushKV("address", currentAddress);
 
     CScript scriptPubKey = GetScriptForDestination(dest);
-    ret.pushKV("scriptPubKey", HexStr(scriptPubKey.begin(), scriptPubKey.end()));
+    ret.pushKV("scriptPubKey", HexStr(scriptPubKey));
 
     //isminetype mine = IsMine(*pwallet, dest);
     isminetype mine = pwallet->IsMine(dest);

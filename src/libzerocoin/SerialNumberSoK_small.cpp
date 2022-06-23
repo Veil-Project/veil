@@ -268,7 +268,7 @@ SerialNumberSoK_small::SerialNumberSoK_small(const ZerocoinParams* ZCp, const Pr
 
     for(int k=0; k<7*m+3; k++) {
         tcoef = CBigNum(0);
-        for(int i=max(k-5*m-1,-m); i<min(k-m,2*m+1)+1; i++) {
+        for(int i=std::max(k-5*m-1,-m); i<std::min(k-m,2*m+1)+1; i++) {
             int j = k - 3*m - i;
             oper1 = i > 0 ? &rPolyPositive[i] : &rPolyNegative[-i];
             oper2 = j > 0 ? &rDashPolyPositive[j] : &rDashPolyNegative[-j];

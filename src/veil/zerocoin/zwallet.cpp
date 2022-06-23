@@ -1,5 +1,5 @@
 // Copyright (c) 2017-2019 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -181,7 +181,7 @@ void CzWallet::SyncWithChain(bool fGenerateMintPool)
     if (!pwalletmain || !pwalletmain->zTracker)
         return;
 
-    set<uint256> setAddedTx;
+    std::set<uint256> setAddedTx;
     while (found) {
         found = false;
         if (fGenerateMintPool)
@@ -189,8 +189,8 @@ void CzWallet::SyncWithChain(bool fGenerateMintPool)
         LogPrintf("%s: Mintpool size=%d\n", __func__, mintPool.size());
 
         std::set<uint256> setChecked;
-        std::list<pair<uint256,uint32_t> > listMints = mintPool.List();
-        for (pair<uint256, uint32_t> pMint : listMints) {
+        std::list<std::pair<uint256,uint32_t> > listMints = mintPool.List();
+        for (std::pair<uint256, uint32_t> pMint : listMints) {
             LOCK(cs_main);
             if (setChecked.count(pMint.first))
                 return;
@@ -378,7 +378,7 @@ bool CzWallet::DeterministicSearch(int nCountStart, int nCountEnd, int* nThreade
             SeedToZerocoin(zerocoinSeed, bnValue, bnSerial, bnRandomness, key);
 
             uint256 hashPubcoin = GetPubCoinHash(bnValue);
-            AddToMintPool(make_pair(hashPubcoin, i), true);
+            AddToMintPool(std::make_pair(hashPubcoin, i), true);
             walletdb.WriteMintPoolPair(hashSeed, hashPubcoin, i);
 
             if (nThreadedProgress == nullptr) {
@@ -392,7 +392,9 @@ bool CzWallet::DeterministicSearch(int nCountStart, int nCountEnd, int* nThreade
                 }
             }
 
-            int percentageDone = std::max(1, std::min(99, (int)((progress_current - progress_begin) / (progress_end - progress_begin) * 100)));
+            // items complete = progress_current
+            // items total = progress_end - progress_begin
+            int percentageDone = std::max(1, std::min(99, (int)(progress_current / (progress_end - progress_begin) * 100)));
             uiInterface.ShowProgress(_("Searching..."), percentageDone, 0);
         }
         if (nThreadedProgress == nullptr) {

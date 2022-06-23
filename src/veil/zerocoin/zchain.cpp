@@ -1,5 +1,5 @@
 // Copyright (c) 2017-2019 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -22,7 +22,7 @@
 // For Script size (BIGNUM/Uint256 size)
 #define BIGNUM_SIZE   4
 
-bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomination denom, vector<CBigNum>& vValues)
+bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomination denom, std::vector<CBigNum>& vValues)
 {
     CBigNum bnMod;
     bnMod.SetDec(Params().Zerocoin_Modulus());
@@ -440,7 +440,7 @@ bool OutputToPublicCoin(const CTxOutBase* out, libzerocoin::PublicCoin& coin)
         return false;
 
     CBigNum publicZerocoin;
-    vector<unsigned char> vchZeroMint;
+    std::vector<unsigned char> vchZeroMint;
     vchZeroMint.insert(vchZeroMint.end(), out->GetPScriptPubKey()->begin() + SCRIPT_OFFSET,
                        out->GetPScriptPubKey()->begin() + out->GetPScriptPubKey()->size());
     publicZerocoin.setvch(vchZeroMint);
@@ -461,7 +461,7 @@ bool OutputToPublicCoin(const CTxOutBase* out, libzerocoin::PublicCoin& coin)
 bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin)
 {
     CBigNum publicZerocoin;
-    vector<unsigned char> vchZeroMint;
+    std::vector<unsigned char> vchZeroMint;
     vchZeroMint.insert(vchZeroMint.end(), txout.scriptPubKey.begin() + SCRIPT_OFFSET,
                        txout.scriptPubKey.begin() + txout.scriptPubKey.size());
     publicZerocoin.setvch(vchZeroMint);

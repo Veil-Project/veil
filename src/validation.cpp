@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Copyright (c) 2015-2019 The PIVX developers
-// Copyright (c) 2019-2020 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -42,9 +42,9 @@
 #include <txmempool.h>
 #include <ui_interface.h>
 #include <undo.h>
-#include <util.h>
-#include <utilmoneystr.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/moneystr.h>
+#include <util/strencodings.h>
 #include <validationinterface.h>
 #include <warnings.h>
 
@@ -900,7 +900,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             return state.DoS(0, false, REJECT_NONSTANDARD, "non-BIP68-final");
 
         CAmount nFees, nValueIn, nValueOut;
-        if (!Consensus::CheckTxInputs(tx, state, view, GetSpendHeight(view), nFees, nValueIn, nValueOut)) {
+        if (!Consensus::CheckTxInputs(tx, state, view, GetSpendHeight(view), nFees, nValueIn, nValueOut, test_accept)) {
             return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
         }
 
@@ -2137,7 +2137,7 @@ void ThreadScriptCheck() {
 // Protected by cs_main
 VersionBitsCache versionbitscache;
 
-int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params, const uint32_t& blockTime, const bool& fProofOfWork)
+int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params, const uint32_t& blockTime, const bool& fProofOfWork, int nPoWType)
 {
     LOCK(cs_main);
     int32_t nVersion = VERSIONBITS_OLD_POW_VERSION;
@@ -2146,7 +2146,11 @@ int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Para
         nVersion = VERSIONBITS_NEW_POW_VERSION;
 
         if (fProofOfWork) {
-            if (GetMiningAlgorithm() == MINE_PROGPOW) {
+            if (nPoWType == CBlockHeader::PROGPOW_BLOCK ||
+                nPoWType == CBlockHeader::RANDOMX_BLOCK ||
+                nPoWType == CBlockHeader::SHA256D_BLOCK) {
+                nVersion |= nPoWType;
+            } else if (GetMiningAlgorithm() == MINE_PROGPOW) {
                 nVersion |= CBlockHeader::PROGPOW_BLOCK;
             } else if (GetMiningAlgorithm() == MINE_SHA256D) {
                 nVersion |= CBlockHeader::SHA256D_BLOCK;

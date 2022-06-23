@@ -1,7 +1,7 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2018 The Bitcoin Core developers
 // Copyright (c) 2015-2018 The PIVX developers
-// Copyright (c) 2019-2020 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -28,9 +28,10 @@
 #include <sync.h>
 #include <txdb.h>
 #include <txmempool.h>
-#include <util.h>
-#include <utilstrencodings.h>
-#include <utilmoneystr.h>
+#include <util/system.h>
+#include <util/strencodings.h>
+
+#include <util/moneystr.h>
 #include <hash.h>
 #include <validationinterface.h>
 #include <warnings.h>
@@ -401,7 +402,7 @@ static UniValue getzerocoinsupply(const JSONRPCRequest& request)
     UniValue resArr(UniValue::VARR);
     for (auto denom : libzerocoin::zerocoinDenomList) {
         UniValue denomObj(UniValue::VOBJ);
-        denomObj.push_back(Pair("denom", to_string(denom)));
+        denomObj.push_back(Pair("denom", std::to_string(denom)));
         int64_t denomSupply = pblockindex->mapZerocoinSupply.at(denom) * (denom*COIN);
         denomObj.push_back(Pair("amount", denomSupply));
         denomObj.push_back(Pair("amount_formatted", FormatMoney(denomSupply)));
@@ -976,7 +977,7 @@ static UniValue getblockheader(const JSONRPCRequest& request)
     {
         CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION);
         ssBlock << pblockindex->GetBlockHeader();
-        std::string strHex = HexStr(ssBlock.begin(), ssBlock.end());
+        std::string strHex = HexStr(ssBlock);
         return strHex;
     }
 
@@ -1077,7 +1078,7 @@ static UniValue getblock(const JSONRPCRequest& request)
     {
         CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION | RPCSerializationFlags());
         ssBlock << block;
-        std::string strHex = HexStr(ssBlock.begin(), ssBlock.end());
+        std::string strHex = HexStr(ssBlock);
         return strHex;
     }
 
@@ -2076,10 +2077,6 @@ static UniValue getblockstats(const JSONRPCRequest& request)
         if (tx->IsCoinStake()) {
             continue;
         }
-        if (tx->vin[0].IsAnonInput()) {
-            // Can't really do much with a ringCT transaction
-            continue;
-        }
 
         inputs += tx->vin.size(); // Don't count coinbase's fake input
         total_out += tx_total_out; // Don't count coinbase reward
@@ -2110,34 +2107,46 @@ static UniValue getblockstats(const JSONRPCRequest& request)
 
         if (loop_inputs) {
 
-            if (!g_txindex) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "One or more of the selected stats requires -txindex enabled");
-            }
-            CAmount tx_total_in = 0;
-            for (const CTxIn& in : tx->vin) {
-                if (!in.IsZerocoinSpend()) {
-                    CTransactionRef tx_in;
-                    uint256 hashBlock;
-                    if (!GetTransaction(in.prevout.hash, tx_in, Params().GetConsensus(), hashBlock, false)) {
-                        throw JSONRPCError(RPC_INTERNAL_ERROR, std::string("Unexpected internal error (tx index seems corrupt)"));
+            CAmount txfee;
+            if (tx->vin[0].IsAnonInput()) {
+                if (!tx->GetCTFee(txfee)) {
+                    // Can't really do much with a ringCT transaction with no fee
+                    continue;
+                }
+            } else {
+                if (!g_txindex) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "One or more of the selected stats requires -txindex enabled");
+                }
+                // Total up the utxo_size_inc even if we have a ct_fee
+                CAmount tx_total_in = 0;
+                for (const CTxIn& in : tx->vin) {
+                    if (!in.IsZerocoinSpend()) {
+                        CTransactionRef tx_in;
+                        uint256 hashBlock;
+                        if (!GetTransaction(in.prevout.hash, tx_in, Params().GetConsensus(), hashBlock, false)) {
+                            throw JSONRPCError(RPC_INTERNAL_ERROR, std::string("Unexpected internal error (tx index seems corrupt)"));
+                        }
+
+                        auto prevoutput = tx_in->vpout[in.prevout.n];
+
+                        tx_total_in += prevoutput->GetValue();
+                        CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+                        ss << *prevoutput.get();
+                        utxo_size_inc -= ss.size() + PER_UTXO_OVERHEAD;
+                    } else {
+                        tx_total_in += in.GetZerocoinSpent();
                     }
-
-                    auto prevoutput = tx_in->vpout[in.prevout.n];
-
-                    tx_total_in += prevoutput->GetValue();
-                    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-                    ss << *prevoutput.get();
-                    utxo_size_inc -= ss.size() + PER_UTXO_OVERHEAD;
-                } else {
-                    tx_total_in += in.GetZerocoinSpent();
+                }
+                // Prefer the ct_fee over the difference
+                if (!tx->GetCTFee(txfee)) {
+                    txfee = tx_total_in - tx_total_out;
+                    if (tx_total_in < tx_total_out) {
+                        // RingCT with hidden inputs, can't count it
+                        continue;
+                    }
                 }
             }
 
-            CAmount txfee = tx_total_in - tx_total_out;
-            if (tx_total_in < tx_total_out) {
-                // RingCT with hidden inputs, can't count it
-                continue;
-            }
             assert(MoneyRange(txfee));
             if (do_medianfee) {
                 fee_array.push_back(txfee);
@@ -2430,7 +2439,7 @@ UniValue scantxoutset(const JSONRPCRequest& request)
             UniValue unspent(UniValue::VOBJ);
             unspent.pushKV("txid", outpoint.hash.GetHex());
             unspent.pushKV("vout", (int32_t)outpoint.n);
-            unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey.begin(), txo.scriptPubKey.end()));
+            unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey));
             unspent.pushKV("amount", ValueFromAmount(txo.nValue));
             unspent.pushKV("height", (int32_t)coin.nHeight);
 
@@ -2447,7 +2456,7 @@ UniValue scantxoutset(const JSONRPCRequest& request)
 UniValue findserial(const JSONRPCRequest& request)
 {
     if(request.fHelp || request.params.size() != 1)
-        throw runtime_error(
+        throw std::runtime_error(
                 "findserial \"serial\"\n"
                 "\nSearches the zerocoin database for a zerocoin spend transaction that contains the specified serial\n"
 

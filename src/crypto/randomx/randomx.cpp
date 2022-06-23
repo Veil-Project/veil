@@ -37,7 +37,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "crypto/randomx/cpu.hpp"
 #include <cassert>
 #include <limits>
-#include "utiltime.h"
+#include "util/time.h"
 #include "logging.h"
 #include <cfenv>
 extern "C" {
@@ -199,7 +199,7 @@ extern "C" {
             int count = 0;
             while(cache != nullptr && count++ < 60 && !cache->isInitialized()) {
                 LogPrintf("%s : Cache not initialized\n", __func__);
-                MilliSleep(250);
+                UninterruptibleSleep(std::chrono::milliseconds{250});
             }
         }
 

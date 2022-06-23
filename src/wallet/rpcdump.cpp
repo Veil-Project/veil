@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2019 The Bitcoin Core developers
-// Copyright (c) 2019-2020 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,8 +10,8 @@
 #include <script/script.h>
 #include <script/standard.h>
 #include <sync.h>
-#include <util.h>
-#include <utiltime.h>
+#include <util/system.h>
+#include <util/time.h>
 #include <wallet/wallet.h>
 #include <merkleblock.h>
 #include <core_io.h>
@@ -804,7 +804,7 @@ UniValue dumpwallet(const JSONRPCRequest& request)
             create_time = FormatISO8601DateTime(it->second.nCreateTime);
         }
         if(pwallet->GetCScript(scriptid, script)) {
-            file << strprintf("%s %s script=1", HexStr(script.begin(), script.end()), create_time);
+            file << strprintf("%s %s script=1", HexStr(script), create_time);
             file << strprintf(" # addr=%s\n", address);
         }
     }

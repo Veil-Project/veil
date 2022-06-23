@@ -17,8 +17,8 @@
 #include <rpc/server.h>
 #include <rpc/util.h>
 #include <timedata.h>
-#include <util.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/strencodings.h>
 #ifdef ENABLE_WALLET
 #include <wallet/wallet.h>
 #include <wallet/walletdb.h>
@@ -78,8 +78,8 @@ static UniValue validateaddress(const JSONRPCRequest& request)
             ret.pushKV("address", currentAddress);
 
             CScript scriptPubKey = GetScriptForDestination(dest);
-            ret.pushKV("scriptPubKey", HexStr(scriptPubKey.begin(), scriptPubKey.end()));
-
+            ret.pushKV("scriptPubKey", HexStr(scriptPubKey));
+ 
             UniValue detail = DescribeAddress(dest);
             ret.pushKVs(detail);
         }
@@ -150,7 +150,7 @@ static UniValue createmultisig(const JSONRPCRequest& request)
 
     UniValue result(UniValue::VOBJ);
     result.pushKV("address", EncodeDestination(dest));
-    result.pushKV("redeemScript", HexStr(inner.begin(), inner.end()));
+	result.pushKV("redeemScript", HexStr(inner));
 
     return result;
 }

@@ -502,12 +502,12 @@ public:
                 break;
             }
             case OUTPUT_CT:
-                if (0 != pwalletAnon->AddBlindedInputs(wtx, rtx, recipients, !fCheckFeeOnly, nFeeRet, &coin_control, fail_reason))
+                if (0 != pwalletAnon->AddBlindedInputs(wtx, rtx, recipients, !fCheckFeeOnly, 0, nFeeRet, &coin_control, fail_reason))
                     fFailed = true;
                 break;
             case OUTPUT_RINGCT:
                 if (!pwalletAnon->AddAnonInputs(wtx, rtx, recipients, !fCheckFeeOnly, nRingSize,
-                                                nInputsPerSig, nFeeRet, &coin_control, fail_reason))
+                                                nInputsPerSig, 0, nFeeRet, &coin_control, fail_reason))
                     fFailed = true;
                 break;
             default:

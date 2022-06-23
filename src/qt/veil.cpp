@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
-// Copyright (c) 2019-2020 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -35,7 +35,7 @@
 #include <rpc/server.h>
 #include <ui_interface.h>
 #include <uint256.h>
-#include <util.h>
+#include <util/system.h>
 #include <key_io.h>
 #include <warnings.h>
 

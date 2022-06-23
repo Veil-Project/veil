@@ -1,6 +1,6 @@
 // Copyright (c) 2017-2019 The Bitcoin Core developers
 // Copyright (c) 2015-2019 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -15,7 +15,7 @@
 #include <chain.h>
 #include <chainparams.h>
 #include <coins.h>
-#include <utilmoneystr.h>
+#include <util/moneystr.h>
 #include <chainparams.h>
 #include <pubkey.h>
 #include <script/standard.h>
@@ -444,7 +444,7 @@ bool CheckTransaction(const CTransaction& tx, CValidationState &state, bool fSki
 }
 
 bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, const CCoinsViewCache& inputs,
-                              int nSpendHeight, CAmount& txfee, CAmount& nValueIn, CAmount& nValueOut)
+                              int nSpendHeight, CAmount& txfee, CAmount& nValueIn, CAmount& nValueOut, bool test_accept)
 {
     // reset per tx
     state.fHasAnonOutput = false;
@@ -463,6 +463,8 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     std::vector<const secp256k1_pedersen_commitment*> vpCommitsIn, vpCommitsOut;
     size_t nBasecoin = 0, nCt = 0, nRingCT = 0, nZerocoin = 0;
     nValueIn = 0;
+    // keyimages for just this tx, used when test_accept=true
+    std::set<CCmpPubKey> txHaveKI;
     for (unsigned int i = 0; i < tx.vin.size(); ++i) {
 
         uint32_t nInputs, nRingSize;
@@ -473,7 +475,9 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
             for (size_t k = 0; k < nInputs; ++k) {
                 const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
 
-                if (!state.m_setHaveKI.insert(ki).second) {
+                if (test_accept
+                        ? state.m_setHaveKI.find(ki) != state.m_setHaveKI.end() && !txHaveKI.insert(ki).second
+                        : !state.m_setHaveKI.insert(ki).second) {
                     if (::Params().CheckKIenforced(nSpendHeight))
                         return state.DoS(100, false, REJECT_INVALID, "bad-anonin-dup-ki-tx-double");
                     else
