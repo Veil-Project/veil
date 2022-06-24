@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -19,9 +20,50 @@ class CBlockIndex;
 class CChainParams;
 class CScript;
 
+
+// Used for determining which PoW mining algorithm to use
+extern const char * PROGPOW_STRING;
+extern const char * SHA256D_STRING;
+extern const char * RANDOMX_STRING;
+
+extern int nMiningAlgorithm;
+
+enum {
+    MINE_RANDOMX = 0,
+    MINE_PROGPOW = 1,
+    MINE_SHA256D = 2
+};
+
+static std::string GetMiningType(int nPoWType, bool fProofOfStake = false, bool block=true) {
+    if (block) {
+        if (fProofOfStake) return "PoS";
+        if (!nPoWType) return "X16RT";
+        if (nPoWType & CBlockHeader::SHA256D_BLOCK) return "Sha256d";
+        if (nPoWType & CBlockHeader::RANDOMX_BLOCK) return "RandomX";
+        if (nPoWType & CBlockHeader::PROGPOW_BLOCK) return "ProgPow";
+    } else {
+        if (MINE_RANDOMX == nPoWType) return RANDOMX_STRING;
+        if (MINE_PROGPOW == nPoWType) return PROGPOW_STRING;
+        if (MINE_SHA256D == nPoWType) return SHA256D_STRING;
+    }
+    return "Unknown";
+}
+
+double GetHashSpeed();
+void ClearHashSpeed();
+double GetRecentHashSpeed();
+int GetMiningAlgorithm();
+bool SetMiningAlgorithm(const std::string& algo, bool fSet = true);
+
+// End Pow algorithm to use
+
 namespace Consensus { struct Params; };
 
 static const bool DEFAULT_PRINTPRIORITY = false;
+
+// This is used for both the nonce separation and the loop count, so
+// make it a constant used by both to maintain their synchronization
+static const uint32_t RANDOMX_INNER_LOOP_COUNT = 100000;
 
 enum TemplateFlags
 {
@@ -166,7 +208,7 @@ public:
     BlockAssembler(const CChainParams& params, const Options& options);
 
     /** Construct a new block template with coinbase to scriptPubKeyIn */
-    std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx=true, bool fProofOfStake=false, bool fProofOfFullNode = false);
+    std::unique_ptr<CBlockTemplate> CreateNewBlock(const CScript& scriptPubKeyIn, bool fMineWitnessTx=true, bool fProofOfStake=false, bool fProofOfFullNode = false, int nPoWType = 0);
 
 private:
     // utility functions
@@ -202,12 +244,16 @@ private:
     int UpdatePackagesForAdded(const CTxMemPool::setEntries& alreadyAdded, indexed_modified_transaction_set &mapModifiedTx) EXCLUSIVE_LOCKS_REQUIRED(mempool.cs);
 };
 
+bool GenerateActive();
+void setGenerate(bool fGenerate);
+
 /** Modify the extranonce in a block */
-void IncrementExtraNonce(CBlock* pblock, const CBlockIndex* pindexPrev, unsigned int& nExtraNonce);
+void IncrementExtraNonce(CBlock* pblock, unsigned int nHeight, unsigned int& nExtraNonce);
 int64_t UpdateTime(CBlock* pblock, const Consensus::Params& consensusParams, const CBlockIndex* pindexPrev);
 void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScript> coinbaseScript);
 void ThreadStakeMiner();
 void LinkPoWThreadGroup(void* pthreadgroup);
-
+void LinkRandomXThreadGroup(void* pthreadgroup);
+void ThreadRandomXBitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, const int vm_index, const uint32_t startNonce);
 
 #endif // BITCOIN_MINER_H

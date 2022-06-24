@@ -11,6 +11,7 @@
 #include <qt/veil/settings/settingswidget.h>
 #include <qt/bitcoingui.h>
 #include <qt/veil/receivewidget.h>
+#include <qt/veil/miningwidget.h>
 #include <qt/veil/addresseswidget.h>
 
 #include <QLabel>
@@ -85,6 +86,7 @@ private:
     QWidget *transactionsPage;
     ReceiveCoinsDialog *receiveCoinsPage;
     ReceiveWidget *receiveWidget;
+    MiningWidget *miningWidget;
     SendCoinsDialog *sendCoinsPage;
     AddressesWidget *addressesWidget;
     SettingsWidget *settingsWidget;
@@ -106,6 +108,8 @@ public Q_SLOTS:
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
+    /** Switch to mining page */
+    void gotoMiningPage();
     /** Switch to addresses page */
     void gotoAddressesPage();
     /** Switch to settings page */
@@ -144,6 +148,8 @@ public Q_SLOTS:
     /** User has requested more information about the out of sync state */
     void requestedSyncWarningInfo();
 
+    void updatedRcvAddySelection(CTxDestination* selectedRcvAddress);
+
 Q_SIGNALS:
     /** Signal that we want to show the main window */
     void showNormalIfMinimized();
@@ -157,6 +163,9 @@ Q_SIGNALS:
     void incomingTransaction(const QString& date, int unit, const CAmount& amount, const QString& type, const QString& address, const QString& label, const QString& walletName);
     /** Notify that the out of sync warning icon has been pressed */
     void outOfSyncWarningClicked();
+
+    /** Signal that the selected receive address has changed **/
+    void signalChangeSelectedAddress(CTxDestination* selectedRcvAddress);
 };
 
 #endif // BITCOIN_QT_WALLETVIEW_H

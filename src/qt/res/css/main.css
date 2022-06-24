@@ -69,6 +69,10 @@ QLineEdit{
     padding:0px;
 }
 
+QMenu:item:selected {
+    color: #000000;
+    background-color: #6f9bf5;
+}
 
 QToolBar > QToolButton {
 
@@ -710,31 +714,6 @@ QCheckBox#checkStaking:checked {
     background-image: url(":/icons/ic-switch-on-png");
     color:#105aef;
 }
-
-
-#checkPrecompute::indicator {
-    border: 0;
-    background: none;
-    margin: 0;
-    padding: 0;
-    width:40px;
-    height:25px;
-}
-
-#checkPrecompute {
-    background-image: url(":/icons/ic-switch-off-png") ;
-    background-repeat:no-repeat;
-    background-position:left center;
-    color:#bababa;
-    margin-right:5px;
-
-}
-
-#checkPrecompute:checked {
-    background-image: url(":/icons/ic-switch-on-png") ;
-    color:#105aef;
-}
-
 
 QPushButton#btnSync{
     color:#707070;

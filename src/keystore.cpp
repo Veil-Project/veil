@@ -7,7 +7,7 @@
 #include <veil/ringct/stealth.h>
 #include <veil/ringct/extkey.h>
 
-#include <util.h>
+#include <util/system.h>
 
 void CBasicKeyStore::ImplicitlyLearnRelatedKeyScripts(const CPubKey& pubkey)
 {

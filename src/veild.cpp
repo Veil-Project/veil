@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,12 +14,14 @@
 #include <fs.h>
 #include <rpc/server.h>
 #include <init.h>
+#include <miner.h>
 #include <noui.h>
 #include <shutdown.h>
-#include <util.h>
+#include <util/system.h>
+#include <key_io.h>
 #include <httpserver.h>
 #include <httprpc.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <walletinitinterface.h>
 
 #include <stdio.h>
@@ -45,7 +48,7 @@ static void WaitForShutdown()
 {
     while (!ShutdownRequested())
     {
-        MilliSleep(200);
+        UninterruptibleSleep(std::chrono::milliseconds{200});
     }
     Interrupt();
 }
@@ -134,6 +137,30 @@ static bool AppInit(int argc, char* argv[])
             // InitError will have been called with detailed error, which ends up on console
             return false;
         }
+        std::string sAlgo = gArgs.GetArg("-mine", RANDOMX_STRING);
+        if (!SetMiningAlgorithm(sAlgo))
+        {
+            fprintf(stderr, "Error: Invalid mining algorithm: %s\n", sAlgo.c_str());
+            return false;
+        }
+        std::string sAddress = gArgs.GetArg("-miningaddress", "");
+        if (!sAddress.empty())
+        {
+            // Sanity check the mining address
+            CTxDestination dest = DecodeDestination(sAddress);
+
+            if (!IsValidDestination(dest)) {
+                fprintf(stderr, "Error: miningaddress requires a valid basecoin address\n");
+                return false;
+            }
+
+            // Disallow Stealth Addresses for now
+            CBitcoinAddress address(sAddress);
+            if (address.IsValidStealthAddress()) {
+                fprintf(stderr, "Error: miningaddress must be a basecoin address\n");
+                return false;
+            }
+        }
         if (gArgs.GetBoolArg("-daemon", false))
         {
 #if HAVE_DECL_DAEMON
@@ -172,6 +199,7 @@ static bool AppInit(int argc, char* argv[])
 
     if (!fRet)
     {
+        StartShutdown();
         Interrupt();
     } else {
         WaitForShutdown();

@@ -1,6 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
-// Copyright (c) 2018-2019 The Veil developers
+// Copyright (c) 2018-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,6 +8,7 @@
 #include <chain.h>
 #include <consensus/validation.h>
 #include <core_io.h>
+#include <csv/CSV.hpp>
 #include <httpserver.h>
 #include <validation.h>
 #include <key_io.h>
@@ -24,8 +25,9 @@
 #include <script/sign.h>
 #include <shutdown.h>
 #include <timedata.h>
-#include <util.h>
-#include <utilmoneystr.h>
+#include <util/system.h>
+#include <miner.h>
+#include <util/moneystr.h>
 #include <wallet/coincontrol.h>
 #include <wallet/feebumper.h>
 #include <wallet/rpcwallet.h>
@@ -46,6 +48,84 @@
 
 #include <functional>
 #include <boost/assign.hpp>
+
+// This enumeration determines the order of the CSV file header columns
+typedef enum
+{
+    TRANSACTION_CSV_FIELD_DATETIME_HUMAN_READABLE,
+    TRANSACTION_CSV_FIELD_ACCOUNT,
+    TRANSACTION_CSV_FIELD_ADDRESS,
+    TRANSACTION_CSV_FIELD_CATEGORY,
+    TRANSACTION_CSV_FIELD_AMOUNT,
+    TRANSACTION_CSV_FIELD_LABEL,
+    TRANSACTION_CSV_FIELD_VOUT,
+    TRANSACTION_CSV_FIELD_FEE,
+    TRANSACTION_CSV_FIELD_CONFIRMATION,
+    TRANSACTION_CSV_FIELD_GENERATED,
+    TRANSACTION_CSV_FIELD_BLOCKHASH,
+    TRANSACTION_CSV_FIELD_BLOCKINDEX,
+    TRANSACTION_CSV_FIELD_BLOCKTIME,
+    TRANSACTION_CSV_FIELD_TRUSTED,
+    TRANSACTION_CSV_FIELD_WALLETCONFLICTS,
+    TRANSACTION_CSV_FIELD_TXID,
+    TRANSACTION_CSV_FIELD_TIME,
+    TRANSACTION_CSV_FIELD_TIMERECEIVED,
+    TRANSACTION_CSV_FIELD_COMPUTETIME,
+    TRANSACTION_CSV_FIELD_BIP125_REPLACEABLE,
+    TRANSACTION_CSV_FIELD_ABANDONED,
+    TRANSACTION_CSV_FIELD_WATCHONLY,
+    TRANSACTION_CSV_FIELD_COUNT
+} TRANSACTION_CSV_FIELDS;
+
+const std::map<TRANSACTION_CSV_FIELDS, std::string> CSV_HEADERS =
+{
+    {TRANSACTION_CSV_FIELD_DATETIME_HUMAN_READABLE, "date"},
+    {TRANSACTION_CSV_FIELD_ACCOUNT, "account"},
+    {TRANSACTION_CSV_FIELD_ADDRESS, "address"},
+    {TRANSACTION_CSV_FIELD_CATEGORY, "category"},
+    {TRANSACTION_CSV_FIELD_AMOUNT, "amount"},
+    {TRANSACTION_CSV_FIELD_LABEL, "label"},
+    {TRANSACTION_CSV_FIELD_VOUT, "vout"},
+    {TRANSACTION_CSV_FIELD_FEE, "fee"},
+    {TRANSACTION_CSV_FIELD_CONFIRMATION, "confirmation"},
+    {TRANSACTION_CSV_FIELD_GENERATED, "generated"},
+    {TRANSACTION_CSV_FIELD_BLOCKHASH, "blockhash"},
+    {TRANSACTION_CSV_FIELD_BLOCKINDEX, "blockindex"},
+    {TRANSACTION_CSV_FIELD_BLOCKTIME, "blocktime"},
+    {TRANSACTION_CSV_FIELD_TRUSTED, "trusted"},
+    {TRANSACTION_CSV_FIELD_WALLETCONFLICTS, "conflicts"},
+    {TRANSACTION_CSV_FIELD_TXID, "txid"},
+    {TRANSACTION_CSV_FIELD_TIME, "time"},
+    {TRANSACTION_CSV_FIELD_TIMERECEIVED, "timereceived"},
+    {TRANSACTION_CSV_FIELD_COMPUTETIME, "computetime"},
+    {TRANSACTION_CSV_FIELD_BIP125_REPLACEABLE, "bip125-replaceable"},
+    {TRANSACTION_CSV_FIELD_ABANDONED, "abandoned"},
+    {TRANSACTION_CSV_FIELD_WATCHONLY, "watchonly"},
+};
+
+std::string GetDestType(CTxDestination dest) {
+    if (dest.type() == typeid(CNoDestination))
+        return "CNoDestination";
+    if (dest.type() == typeid(CKeyID))
+        return "CKeyID";
+    if (dest.type() == typeid(CScriptID))
+        return "CScriptID";
+    if (dest.type() == typeid(WitnessV0ScriptHash))
+        return "WitnessV0ScriptHash";
+    if (dest.type() == typeid(WitnessV0KeyHash))
+        return "WitnessV0KeyHash";
+    if (dest.type() == typeid(WitnessUnknown))
+        return "WitnessUnknown";
+    if (dest.type() == typeid(CStealthAddress))
+        return "CStealthAddress";
+    if (dest.type() == typeid(CExtKeyPair))
+        return "CExtKeyPair";
+    if (dest.type() == typeid(CKeyID256))
+        return "CKeyID256";
+    if (dest.type() == typeid(CScriptID256))
+        return "CScriptID256";
+    return "unknown";
+}
 
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 
@@ -137,6 +217,53 @@ static void WalletTxToJSON(const CWalletTx& wtx, UniValue& entry)
     for (const std::pair<const std::string, std::string>& item : wtx.mapValue)
         entry.pushKV(item.first, item.second);
 }
+
+static void WalletTxToCsv(std::vector<std::string>& csvRecord, const CWalletTx& wtx)
+{
+    int confirms = wtx.GetDepthInMainChain();
+    csvRecord[TRANSACTION_CSV_FIELD_CONFIRMATION] = std::to_string(confirms);
+    if (wtx.IsCoinBase())
+        csvRecord[TRANSACTION_CSV_FIELD_GENERATED] = "true";
+    if (confirms > 0)
+    {
+        csvRecord[TRANSACTION_CSV_FIELD_BLOCKHASH] = wtx.hashBlock.GetHex();
+        csvRecord[TRANSACTION_CSV_FIELD_BLOCKINDEX] = std::to_string(wtx.nIndex);
+        csvRecord[TRANSACTION_CSV_FIELD_BLOCKTIME] = std::to_string(LookupBlockIndex(wtx.hashBlock)->GetBlockTime());
+    }
+    else
+    {
+        csvRecord[TRANSACTION_CSV_FIELD_TRUSTED] = wtx.IsTrusted() ? "true" : "false";
+    }
+
+    uint256 hash = wtx.GetHash();
+    csvRecord[TRANSACTION_CSV_FIELD_TXID] = hash.GetHex();
+
+    std::string conflicts = "";
+    for (const uint256& conflict : wtx.GetConflicts())
+    {
+        conflicts += conflict.GetHex();
+        conflicts += ",";
+    }
+    csvRecord[TRANSACTION_CSV_FIELD_WALLETCONFLICTS] = conflicts;
+    csvRecord[TRANSACTION_CSV_FIELD_TIME] = std::to_string(wtx.GetTxTime());
+    csvRecord[TRANSACTION_CSV_FIELD_DATETIME_HUMAN_READABLE] = FormatISO8601DateTime(wtx.GetTxTime());
+    csvRecord[TRANSACTION_CSV_FIELD_TIMERECEIVED] = std::to_string(wtx.nTimeReceived);
+    csvRecord[TRANSACTION_CSV_FIELD_COMPUTETIME] = std::to_string(wtx.nComputeTime);
+
+    // Add opt-in RBF status
+    std::string rbfStatus = "no";
+    if (confirms <= 0) {
+        LOCK(mempool.cs);
+        RBFTransactionState rbfState = IsRBFOptIn(*wtx.tx, mempool);
+        if (rbfState == RBFTransactionState::UNKNOWN)
+            rbfStatus = "unknown";
+        else if (rbfState == RBFTransactionState::REPLACEABLE_BIP125)
+            rbfStatus = "yes";
+    }
+    csvRecord[TRANSACTION_CSV_FIELD_BIP125_REPLACEABLE] = rbfStatus;
+}
+
+
 
 static std::string LabelFromValue(const UniValue& value)
 {
@@ -652,6 +779,101 @@ static UniValue sendtoaddress(const JSONRPCRequest& request)
     return tx->GetHash().GetHex();
 }
 
+static UniValue listaddresses(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "listaddresses (type)\n"
+            "\nLists addresses in the wallet Address Book.\n"
+            "\nArguments:\n"
+            "1. \"type\"       (string, optional) receive - all receive addresses (default).\n"
+            "                                   balances - all receive addresses with balances.\n"
+            "\nResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"address\",  (string)  The veil address\n"
+            "    amount,     (numeric) The amount in " + CURRENCY_UNIT + "\n"
+            "    \"label\"     (string)  The label\n"
+            "  }\n"
+            "  ,...\n"
+            "]\n"
+            "\nExamples:\n"
+            + HelpExampleCli("listaddresses", "")
+            + HelpExampleRpc("listaddresses", "")
+        );
+
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    bool fBalanceOnly = false;
+    if (!request.params[0].isNull()) {
+        std::string type = request.params[0].get_str();
+        if ("balances" == type) {
+            fBalanceOnly = true;
+        } else if ("receive" != type) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, type + " is not a valid address type");
+        }
+    }
+    LOCK2(cs_main, pwallet->cs_wallet);
+
+    UniValue results(UniValue::VARR);
+    AnonWallet* pAnonWallet = wallet->GetAnonWallet();
+    std::map<CTxDestination, CAmount> AnonBalances = pAnonWallet->GetAddressBalances();
+    std::map<CTxDestination, CAmount> balances = pwallet->GetAddressBalances();
+
+    for (const auto& item: pwallet->mapAddressBook)
+    {
+        // Only get basecoin and stealth addresses
+        if (!((item.first.type() == typeid(WitnessV0KeyHash)) ||
+              (item.first.type() == typeid(CStealthAddress)) ||
+              (item.first.type() == typeid(CKeyID)))) continue;
+        // Only get mine
+        if (!pwallet->IsMine(item.first)) continue;
+        // If we're balance only, require a balance
+        if (fBalanceOnly && !balances[item.first]) continue;
+
+        UniValue entry(UniValue::VOBJ);
+
+        if (item.first.type() == typeid(CStealthAddress)) {
+            entry.pushKV("address", EncodeDestination(item.first, true));
+            entry.pushKV("amount", ValueFromAmount(AnonBalances[item.first]));
+        } else if (item.first.type() == typeid(WitnessV0KeyHash)) {
+            entry.pushKV("address", EncodeDestination(item.first));
+            entry.pushKV("amount", ValueFromAmount(balances[item.first]));
+        } else {
+        	entry.pushKV("address", EncodeDestination(item.first, false));
+        	entry.pushKV("amount", ValueFromAmount(balances[item.first]));
+        }
+
+        entry.pushKV("label", item.second.name);
+
+        results.push_back(entry);
+    }
+
+    // Get the stealth change address
+    CStealthAddress address = pAnonWallet->GetStealthChangeAddress();
+    if (AnonBalances[address]) {
+        UniValue entry(UniValue::VOBJ);
+
+        entry.pushKV("address", address.ToString(true));
+        entry.pushKV("amount", ValueFromAmount(AnonBalances[address]));
+        entry.pushKV("label", "<stealth change address>");
+
+        results.push_back(entry);
+    }
+
+    return results;
+}
+
 static UniValue listaddressgroupings(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
@@ -1114,7 +1336,7 @@ static UniValue getspendablebalance(const JSONRPCRequest& request){
     if (request.fHelp || (request.params.size() > 0 )){
         throw std::runtime_error(
             std::string(
-                "getspendablebalance ()\n"
+                "getspendablebalance\n"
                 "\nreturns the sum of all spendable balances (base + ringct + ct + zero)\n"
                 "\nResult:\n"
                 "total_spendable    (numeric) The sum of \"basecoin_spendable\", \"ringct_spendable\", \"ct_spendable\" & \"zerocoin_spendable\"\n"
@@ -1521,7 +1743,7 @@ static UniValue addmultisigaddress(const JSONRPCRequest& request)
 
     UniValue result(UniValue::VOBJ);
     result.pushKV("address", EncodeDestination(dest));
-    result.pushKV("redeemScript", HexStr(inner.begin(), inner.end()));
+    result.pushKV("redeemScript", HexStr(inner));
     return result;
 }
 
@@ -1915,13 +2137,6 @@ static UniValue listreceivedbylabel(const JSONRPCRequest& request)
     return ListReceived(pwallet, request.params, true);
 }
 
-static void MaybePushAddress(UniValue & entry, const CTxDestination &dest)
-{
-    if (IsValidDestination(dest)) {
-        entry.pushKV("address", EncodeDestination(dest));
-    }
-}
-
 /**
  * List transactions based on the given criteria.
  *
@@ -1951,15 +2166,14 @@ static void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, const
         for (const COutputEntry& s : listSent)
         {
             UniValue entry(UniValue::VOBJ);
-            if (involvesWatchonly || (::IsMine(*pwallet, s.destination) & ISMINE_WATCH_ONLY)) {
+            if (involvesWatchonly || (::IsMine(*pwallet, s.destination) & ISMINE_WATCH_ONLY))
                 entry.pushKV("involvesWatchonly", true);
-            }
-            MaybePushAddress(entry, s.destination);
+            if (IsValidDestination(s.destination))
+                entry.pushKV("address", EncodeDestination(s.destination));
             entry.pushKV("category", "send");
             entry.pushKV("amount", ValueFromAmount(-s.amount));
-            if (pwallet->mapAddressBook.count(s.destination)) {
+            if (pwallet->mapAddressBook.count(s.destination))
                 entry.pushKV("label", pwallet->mapAddressBook[s.destination].name);
-            }
             entry.pushKV("vout", s.vout);
             entry.pushKV("fee", ValueFromAmount(-nFee));
             if (fLong)
@@ -1975,34 +2189,44 @@ static void ListTransactions(CWallet* const pwallet, const CWalletTx& wtx, const
         for (const COutputEntry& r : listReceived)
         {
             std::string account;
-            if (pwallet->mapAddressBook.count(r.destination)) {
+            if (pwallet->mapAddressBook.count(r.destination))
                 account = pwallet->mapAddressBook[r.destination].name;
-            }
             if (fAllAccounts || (account == strAccount))
             {
                 UniValue entry(UniValue::VOBJ);
-                if (involvesWatchonly || (::IsMine(*pwallet, r.destination) & ISMINE_WATCH_ONLY)) {
+                if (involvesWatchonly || (::IsMine(*pwallet, r.destination) & ISMINE_WATCH_ONLY))
                     entry.pushKV("involvesWatchonly", true);
+                if (IsDeprecatedRPCEnabled("accounts")) 
+                    entry.pushKV("account", account);
+                if (IsValidDestination(r.destination))
+                {
+                    entry.pushKV("address", EncodeDestination(
+                        r.destination, r.destination.type() != typeid(CKeyID)));
                 }
-                if (IsDeprecatedRPCEnabled("accounts")) entry.pushKV("account", account);
-                MaybePushAddress(entry, r.destination);
                 if (wtx.IsCoinBase())
                 {
                     if (wtx.GetDepthInMainChain() < 1)
                         entry.pushKV("category", "orphan");
-                    else if (wtx.GetBlocksToMaturity() > 0)
-                        entry.pushKV("category", "immature");
                     else
-                        entry.pushKV("category", "generate");
+                    {
+                        int nBlocksToMaturity;
+                        {
+                            LOCK(cs_main);
+                            nBlocksToMaturity = wtx.GetBlocksToMaturity();
+                        }
+                        if (nBlocksToMaturity > 0)
+                            entry.pushKV("category", "immature");
+                        else
+                            entry.pushKV("category", "generate");
+                    }
                 }
                 else
                 {
                     entry.pushKV("category", "receive");
                 }
                 entry.pushKV("amount", ValueFromAmount(r.amount));
-                if (pwallet->mapAddressBook.count(r.destination)) {
+                if (pwallet->mapAddressBook.count(r.destination))
                     entry.pushKV("label", account);
-                }
                 entry.pushKV("vout", r.vout);
                 if (fLong)
                     WalletTxToJSON(wtx, entry);
@@ -2168,7 +2392,7 @@ UniValue listtransactions(const JSONRPCRequest& request)
         {
             CWalletTx *const pwtx = (*it).second;
             if (pwtx != nullptr)
-                ListTransactions(pwallet, *pwtx, "", 0, true, retReversed, filter);
+                ListTransactions(pwallet, *pwtx, strAccount, 0, true, retReversed, filter);
 
             if ((int)retReversed.size() >= nCount + nFrom)
                 break;
@@ -2199,6 +2423,335 @@ UniValue listtransactions(const JSONRPCRequest& request)
     retReversed.push_backV(arrTmp);
 
     return retReversed;
+}
+
+static void String_Tokenize(std::string const &str, const char delim, std::vector<std::string> &out)
+{
+    size_t start;
+    size_t end = 0;
+
+    while ((start = str.find_first_not_of(delim, end)) != std::string::npos)
+    {
+        end = str.find(delim, start);
+        out.push_back(str.substr(start, end - start));
+    }
+}
+
+static bool IsExportableTransaction(std::vector<std::string>& record, std::vector<std::string>& transactionFilters)
+{
+    bool exportable = transactionFilters.empty();
+    for (uint16_t i = 0; !exportable && i < transactionFilters.size(); ++i)
+    {
+        exportable = std::find(record.begin(), record.end(), transactionFilters[i]) != record.end();
+    }
+
+    return exportable;
+}
+
+
+/**
+ * Export transactions based on the given criteria.
+ *
+ * @param  pwallet              The wallet.
+ * @param  wtx                  The wallet transaction.
+ * @param  strAccount           The account, if any, or "*" for all.
+ * @param  csvWrite             The minimum confirmation depth.
+ * @param  fLong                Whether to include the details of the transaction.
+ * @param  transactionFilters   List of transaction filters
+ * @param  ismineFilter         The "is mine" filter bool.
+ */
+static void ExportTransactions(CWallet* const pwallet, const CWalletTx& wtx, const std::string& strAccount,
+        jay::util::CSVwrite& csv_write, bool fLong, std::vector<std::string>& transactionFilters, const isminefilter& ismineFilter)
+{
+    CAmount nFee;
+    std::string dummy_account;
+    std::list<COutputEntry> listReceived;
+    std::list<COutputEntry> listSent;
+
+    wtx.GetAmounts(listReceived, listSent, nFee, ismineFilter);
+
+    bool fAllAccounts = (strAccount == std::string("*"));
+    bool involvesWatchonly = wtx.IsFromMe(ISMINE_WATCH_ONLY);
+
+    // Sent
+    if ((!listSent.empty() || nFee != 0))
+    {
+        for (auto s = listSent.rbegin(); s != listSent.rend(); ++s)
+        {
+            std::vector<std::string> csvRecord(TRANSACTION_CSV_FIELD_COUNT);
+            if (involvesWatchonly || (::IsMine(*pwallet, s->destination) & ISMINE_WATCH_ONLY))
+                csvRecord[TRANSACTION_CSV_FIELD_WATCHONLY] = "true";
+            if ( IsValidDestination(s->destination) )
+                csvRecord[TRANSACTION_CSV_FIELD_ADDRESS] = EncodeDestination(s->destination);
+            csvRecord[TRANSACTION_CSV_FIELD_CATEGORY] = "send";
+            csvRecord[TRANSACTION_CSV_FIELD_AMOUNT] = ValueFromAmount(-s->amount).getValStr();
+            if (pwallet->mapAddressBook.count(s->destination))
+                csvRecord[TRANSACTION_CSV_FIELD_LABEL] = pwallet->mapAddressBook[s->destination].name;
+            csvRecord[TRANSACTION_CSV_FIELD_VOUT] = std::to_string(s->vout);
+            csvRecord[TRANSACTION_CSV_FIELD_FEE] = ValueFromAmount(-nFee).getValStr();
+            WalletTxToCsv(csvRecord, wtx);
+            if (wtx.isAbandoned())
+                csvRecord[TRANSACTION_CSV_FIELD_ABANDONED] = true;
+            if (IsExportableTransaction(csvRecord, transactionFilters))
+                csv_write.WriteRecord(csvRecord, true);
+        }
+    }
+
+    // Received
+    if (listReceived.size() > 0 /*&& wtx.GetDepthInMainChain() >= nMinDepth*/)
+    {
+        for (auto r = listReceived.rbegin(); r != listReceived.rend(); ++r)
+        {
+            std::string account;
+            if (pwallet->mapAddressBook.count(r->destination))
+                account = pwallet->mapAddressBook[r->destination].name;
+            if (fAllAccounts || (account == strAccount))
+            {
+                std::vector<std::string> csvRecord(TRANSACTION_CSV_FIELD_COUNT);
+                if (involvesWatchonly || (::IsMine(*pwallet, r->destination) & ISMINE_WATCH_ONLY))
+                    csvRecord[TRANSACTION_CSV_FIELD_WATCHONLY] = "true";
+                if(IsDeprecatedRPCEnabled("accounts"))
+                    csvRecord[TRANSACTION_CSV_FIELD_ACCOUNT] = account;
+                if ( IsValidDestination(r->destination) )
+                {
+                    csvRecord[TRANSACTION_CSV_FIELD_ADDRESS] = EncodeDestination(
+                        r->destination, r->destination.type() != typeid(CKeyID));
+                }
+                if (wtx.IsCoinBase())
+                {
+                    if (wtx.GetDepthInMainChain() < 1)
+                        csvRecord[TRANSACTION_CSV_FIELD_CATEGORY] = "orphan";
+                    else
+                    {
+                        int nBlocksToMaturity;
+                        {
+                            LOCK(cs_main);
+                            nBlocksToMaturity = wtx.GetBlocksToMaturity();
+                        }
+                        if (nBlocksToMaturity > 0)
+                            csvRecord[TRANSACTION_CSV_FIELD_CATEGORY] = "immature";
+                        else
+                            csvRecord[TRANSACTION_CSV_FIELD_CATEGORY] = "generate";
+                    }
+                }
+                else
+                {
+                    csvRecord[TRANSACTION_CSV_FIELD_CATEGORY] = "receive";
+                }
+                csvRecord[TRANSACTION_CSV_FIELD_AMOUNT] = ValueFromAmount(r->amount).getValStr();
+                if (pwallet->mapAddressBook.count(r->destination))
+                    csvRecord[TRANSACTION_CSV_FIELD_LABEL] = account;
+                csvRecord[TRANSACTION_CSV_FIELD_VOUT] = std::to_string(r->vout);
+                WalletTxToCsv(csvRecord, wtx);
+                if (IsExportableTransaction(csvRecord, transactionFilters)) {
+                    csv_write.WriteRecord(csvRecord, true);
+
+                    // Basecoin sent transactions are nested here
+					// This section currently assumes that for the sent transaction:
+                    // 1. The "data" type (transaction fee) is the first record
+                    // 2. Each basecoin record denotes a subtotal of the entire amount sent
+                    // If these assumptions are untrue then te code needs to be reevaluated
+                    std::vector<std::string> csvSubRecord(TRANSACTION_CSV_FIELD_COUNT);
+                    for (unsigned int i = 0; i < wtx.tx->vpout.size(); ++i) {
+                        auto pout = wtx.tx->vpout[i];
+                        bool fIsMyOutput = pwallet->IsMine(pout.get());
+
+                        switch(pout->GetType())
+                        {
+                        case OUTPUT_DATA:
+                        {
+                            // This typically denotes the transaction fee and is the first record
+                            CTxOutData* outData = (CTxOutData*)pout.get();
+                            CAmount nFeeData;
+                            if (outData->GetCTFee(nFeeData)) {
+                                csvSubRecord[TRANSACTION_CSV_FIELD_FEE] = FormatMoney(nFeeData);
+                            }
+                            break;
+                        }
+
+                        case OUTPUT_STANDARD:
+                            if (!fIsMyOutput) {
+                                if (pout->IsZerocoinMint()) {
+                                    // Do nothing
+                                } else { // basecoin
+                                    CTxDestination dest;
+                                    if (ExtractDestination(*pout->GetPScriptPubKey(), dest)) {
+                                        csvSubRecord[TRANSACTION_CSV_FIELD_CATEGORY] = "send";
+                                        csvSubRecord[TRANSACTION_CSV_FIELD_ADDRESS] = EncodeDestination(dest, true);
+                                        csvSubRecord[TRANSACTION_CSV_FIELD_AMOUNT] = FormatMoney(pout->GetValue());
+                                        WalletTxToCsv(csvSubRecord, wtx);
+                                        csv_write.WriteRecord(csvSubRecord, true);
+                                    }
+                                }
+                            }
+                            break;
+
+                        default:
+                            // Do nothing
+                            break;
+                        } // switch
+                    } // for
+                } // if
+            }
+        }
+    }
+}
+
+
+static UniValue exporttransactions(const JSONRPCRequest& request)
+{
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    CWallet* const pwallet = wallet.get();
+
+    if (!EnsureWalletIsAvailable(pwallet, request.fHelp)) {
+        return NullUniValue;
+    }
+
+    std::string help_text {};
+    if (!IsDeprecatedRPCEnabled("accounts")) {
+        help_text = "exporttransactions (dummy filename start end filter include_watchonly)\n"
+            "\nExports transactions between 'start' date and 'end' date matching 'filter' to a CSV file.\n"
+            "Note: To export from a specified \"account\", restart veild with -deprecatedrpc=accounts and\n"
+            "use this RPC with an \"account\" argument\n"
+            "\nArguments:\n"
+            "1. \"dummy\"      (string, optional) If set, should be \"*\" for backwards compatibility.\n"
+            "2. \"filename\"   (string, optional) The filename with path (either absolute or relative to veild) [default=<datadir>/export/transactions.csv].\n"
+            "3. \"start\"      (string, optional) The start date in the format YYYY-MM-DD [default=beginning of ISO8601 time].\n"
+            "4. \"end\"        (string, optional) The end date in the format YYYY-MM-DD\n [default=present time]."
+            "5. \"filter\"     (string, optional) A pipe(|) separated transaction filter [default=no filter]\n"
+            "   Allowable filter words TBD\n"
+            "6. include_watchonly (bool, optional, default=false) Include transactions to watch-only addresses (see 'importaddress')\n"
+            "\nResult:\n"
+            "[\n"
+            "  {\n"
+            "  \"filename\" : {        (string) The output filename with full absolute path\n"
+            "  }\n"
+            "]\n"
+
+            "\nExamples:\n"
+            "\nList all transactions\n"
+            + HelpExampleCli("exporttransactions", "") +
+            "\nList transactions over a date range\n"
+            + HelpExampleCli("exporttransactions", "\"*\" \"\" 2020-01-01 2020-12-31") +
+            "\nAs a json rpc call\n"
+            + HelpExampleRpc("exporttransactions", "\"*\", \"\", 2020-01-01, 2020-12-31");
+    } else {
+        help_text = "exporttransactions ( \"account\" filename start end filter include_watchonly)\n"
+            "\nExports transactions between 'start' date and 'end' date matching 'filter' to a CSV file for 'account'.\n"
+            "\nArguments:\n"
+            "1. \"dummy\"      (string, optional) If set, should be \"*\" for backwards compatibility.\n"
+            "2. \"filename\"   (string, optional) The filename with path (either absolute or relative to veild) [default=<datadir>/export/transactions.csv].\n"
+            "3. \"start\"      (string, optional) The start date in the format YYYY-MM-DD [default=beginning of ISO8601 time].\n"
+            "4. \"end\"        (string, optional) The end date in the format YYYY-MM-DD\n [default=present time]."
+            "5. \"filter\"     (string, optional) A pipe(|) separated transaction filter [default=no filter]\n"
+            "   Allowable filter words TBD\n"
+            "6. include_watchonly (bool, optional, default=false) Include transactions to watch-only addresses (see 'importaddress')\n"
+            "\nResult:\n"
+            "[\n"
+            "  {\n"
+            "    \"filename\" : {        (string) The output filename with full absolute path\n"
+            "  }\n"
+            "]\n"
+
+            "\nExamples:\n"
+            "\nList all transactions\n"
+            + HelpExampleCli("exporttransactions", "") +
+            "\nList transactions over a date range\n"
+            + HelpExampleCli("exporttransactions", "\"*\" \"\" 2020-01-01 2020-12-31") +
+            "\nAs a json rpc call\n"
+            + HelpExampleRpc("exporttransactions", "\"*\", \"\", 2020-01-01, 2020-12-31");
+    }
+    if (request.fHelp || request.params.size() > 6)
+        throw std::runtime_error(help_text);
+
+    // Make sure the results are valid at least up to the most recent block
+    // the user could have gotten from another RPC command prior to now
+    pwallet->BlockUntilSyncedToCurrentChain();
+
+    // Determine export account
+    std::string strAccount = "*";
+    if (!request.params[0].isNull()) {
+        strAccount = request.params[0].get_str();
+        if (!IsDeprecatedRPCEnabled("accounts") && strAccount != "*") {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Dummy value must be set to \"*\"");
+        }
+    }
+
+    // Determine export path
+    const fs::path DEFAULT_EXPORT_DIR = GetDataDir() / "export";
+    const fs::path DEFAULT_EXPORT_PATH = DEFAULT_EXPORT_DIR / "transactions.csv";
+    std::string exportPath =
+                    (!request.params[1].isNull() && !request.params[1].get_str().empty()) ?
+                        request.params[1].get_str() : DEFAULT_EXPORT_PATH.string();
+    fs::path exportDir = fs::path(exportPath).parent_path();
+    if (!exportDir.string().empty() && !fs::exists(exportDir)) {
+        if (!fs::create_directories(exportDir))
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot create export directory " + exportDir.string());
+    }
+
+    // Determine export start and end dates
+    std::string startDateString = !request.params[2].isNull() ? request.params[2].get_str() : "";
+    std::string endDateString = !request.params[3].isNull() ? request.params[3].get_str() : "";
+    if (startDateString != "")
+         startDateString += ":00:00";
+    if (endDateString != "")
+       endDateString += ":00:00";
+    if (startDateString != "" && !ISO8601Date_Validate(startDateString))
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "start date format is invalid:" + startDateString);
+    if (endDateString != "" && !ISO8601Date_Validate(endDateString))
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "end date format is invalid:" + endDateString);
+    uint64_t startDate = 0;
+    uint64_t endDate = ISO8601Date_Now();
+    if (startDateString != "")
+        startDate = ISO8601Date_FromString(startDateString);
+    if (endDateString != "")
+        endDate = ISO8601Date_FromString(endDateString);
+
+    // Prepare transaction filter
+     std::string transactionFilterString = !request.params[4].isNull() ? request.params[4].get_str() : "";
+     std::vector<std::string> transactionFilters;
+     String_Tokenize(transactionFilterString, '|', transactionFilters);
+
+     // Prepare watchonly filter
+    isminefilter ismineFilter = ISMINE_SPENDABLE;
+    if(!request.params[5].isNull())
+        if(request.params[5].get_bool())
+            ismineFilter = ismineFilter | ISMINE_WATCH_ONLY;
+
+    // Create CSV file
+    jay::util::CSVwrite csv_write;
+    if (!csv_write.Open( exportPath, jay::util::CSVwrite::Flags::truncate ))
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot open transactions export file " + exportPath);
+    for (uint8_t field = 0; field < TRANSACTION_CSV_FIELD_COUNT; ++field)
+    {
+        csv_write.WriteField(CSV_HEADERS.at((TRANSACTION_CSV_FIELDS)field), false);
+    }
+    csv_write.WriteTerminator();
+
+    {
+        LOCK2(cs_main, pwallet->cs_wallet);
+        const CWallet::TxItems &txOrdered = pwallet->wtxOrdered;
+
+        for (CWallet::TxItems::const_iterator it = txOrdered.begin(); it != txOrdered.end(); ++it)
+        {
+            CWalletTx *const pwtx = (*it).second;
+            if (pwtx == nullptr)
+                continue;
+            if (pwtx->GetTxTime() < startDate)
+                continue;
+            if (pwtx->GetTxTime() > endDate)
+                break;
+            ExportTransactions(pwallet, *pwtx, strAccount, csv_write, true, transactionFilters, ismineFilter);
+        }
+    }
+
+    if (!csv_write.Close())
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot close transactions export file " + exportPath);
+
+    UniValue reply(UniValue::VOBJ);
+    reply.pushKV("filename", exportPath);
+
+    return reply;
 }
 
 static UniValue listsinceblock(const JSONRPCRequest& request)
@@ -2264,8 +2817,6 @@ static UniValue listsinceblock(const JSONRPCRequest& request)
     // the user could have gotten from another RPC command prior to now
     pwallet->BlockUntilSyncedToCurrentChain();
 
-    LOCK2(cs_main, pwallet->cs_wallet);
-
     const CBlockIndex* pindex = nullptr;    // Block index of the specified block or the common ancestor, if the block provided was in a deactivated chain.
     const CBlockIndex* paltindex = nullptr; // Block index of the specified block, even if it's in a deactivated chain.
     int target_confirms = 1;
@@ -2304,6 +2855,8 @@ static UniValue listsinceblock(const JSONRPCRequest& request)
     int depth = pindex ? (1 + chainActive.Height() - pindex->nHeight) : -1;
 
     UniValue transactions(UniValue::VARR);
+
+    LOCK2(cs_main, pwallet->cs_wallet);
 
     for (const std::pair<const uint256, CWalletTx>& pairWtx : pwallet->mapWallet) {
         CWalletTx tx = pairWtx.second;
@@ -2533,8 +3086,12 @@ static UniValue gettransaction(const JSONRPCRequest& request)
         obj_vin.pushKV("from_me", fIsMyInput);
         if (txin.IsAnonInput()) {
             obj_vin.pushKV("type", "ringct");
+
             COutPoint myOutpoint;
+            uint32_t nSigInputs, nSigRingSize;
+            txin.GetAnonInfo(nSigInputs, nSigRingSize);
             bool isMyInput = pwalletAnon->IsMyAnonInput(txin, myOutpoint);
+
             obj_vin.pushKV("is_mine_ki", isMyInput);
             if (isMyInput) {
                 UniValue obj(UniValue::VOBJ);
@@ -2551,6 +3108,18 @@ static UniValue gettransaction(const JSONRPCRequest& request)
                 arrRing.push_back(obj);
             }
             obj_vin.pushKV("ringct_inputs", arrRing);
+            const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+            uint32_t nInputs, nRingSize;
+            txin.GetAnonInfo(nInputs, nRingSize);
+
+            UniValue arrKeyImages(UniValue::VARR);
+            for (unsigned int k = 0; k < nSigInputs; k++) {
+                const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*nSigInputs]);
+                UniValue objKeyImage(UniValue::VOBJ);
+                objKeyImage.pushKV(std::to_string(k), HexStr(ki));
+                arrKeyImages.push_back(objKeyImage);
+            }
+            obj_vin.pushKV("key_images", arrKeyImages);
         } else if (txin.IsZerocoinSpend()) {
             obj_vin.pushKV("type", "zerocoinspend");
             auto spend = TxInToZerocoinSpend(txin);
@@ -2623,6 +3192,11 @@ static UniValue gettransaction(const JSONRPCRequest& request)
             vchEphemPK.resize(EPHEMERAL_PUBKEY_LENGTH);
             memcpy(&vchEphemPK[0], &outRingCT->vData[0], EPHEMERAL_PUBKEY_LENGTH);
             obj_out.pushKV("ephemeral_pubkey", HexStr(vchEphemPK));
+
+            std::vector<uint8_t> objKeyImage;
+            objKeyImage.resize(33);
+            memcpy(&objKeyImage[0], &outRingCT->pk[0], 33);
+            obj_out.pushKV("key_image", HexStr(objKeyImage));
         } else if (pout->GetType() == OUTPUT_DATA) {
             obj_out.pushKV("type", "data");
             CTxOutData* outData = (CTxOutData*)pout.get();
@@ -2816,7 +3390,8 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
             "\nArguments:\n"
             "1. \"passphrase\"     (string, required) The wallet passphrase\n"
             "2. \"unlockforstakingonly\"     (bool, required) Unlock wallet only for staking transactions\n"
-            "3. timeout            (numeric, required) The time to keep the decryption key in seconds; capped at 100000000 (~3 years).\n"
+            "3. timeout            (numeric, required) The time to keep the decryption key in seconds;\n"
+            "                                          Capped at 100000000 (~3 years). 0 sets max.\n"
             "\nNote:\n"
             "Issuing the walletpassphrase command while the wallet is already unlocked will set a new unlock\n"
             "time that overrides the old one.\n"
@@ -2853,7 +3428,7 @@ static UniValue walletpassphrase(const JSONRPCRequest& request)
     }
     // Clamp timeout
     constexpr int64_t MAX_SLEEP_TIME = 100000000; // larger values trigger a macos/libevent bug?
-    if (nSleepTime > MAX_SLEEP_TIME) {
+    if (!nSleepTime || (nSleepTime > MAX_SLEEP_TIME)) {
         nSleepTime = MAX_SLEEP_TIME;
     }
 
@@ -3272,6 +3847,7 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
             "  \"hdseedid\": \"<hash160>\"            (string, optional) the Hash160 of the HD seed (only present when HD is enabled)\n"
             "  \"hdmasterkeyid\": \"<hash160>\"       (string, optional) alias for hdseedid retained for backwards-compatibility. Will be removed in V0.18.\n"
             "  \"private_keys_enabled\": true|false (boolean) false if privatekeys are disabled for this wallet (enforced watch-only wallet)\n"
+	    "  \"staking_enabled\" : true|false     (boolean) true if staking is enabled\n"
             "  \"staking_active\": true|false       (boolean) true if wallet is actively trying to create new blocks using proof of stake\n"
             "}\n"
             "\nExamples:\n"
@@ -3309,6 +3885,8 @@ static UniValue getwalletinfo(const JSONRPCRequest& request)
         obj.pushKV("hdmasterkeyid", seed_id.GetHex());
     }
     obj.pushKV("private_keys_enabled", !pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS));
+
+    obj.pushKV("staking_enabled", pwallet->IsStakingEnabled());
 
     // Determine if staking is recently active. Note that this is not immediate effect. Staking could be disabled and it could take up to 70 seconds to update state.
     int64_t nTimeLastHashing = 0;
@@ -3805,7 +4383,7 @@ static UniValue listunspent(const JSONRPCRequest& request)
             }
         }
 
-        entry.pushKV("scriptPubKey", HexStr(scriptPubKey.begin(), scriptPubKey.end()));
+        entry.pushKV("scriptPubKey", HexStr(scriptPubKey));
 
         // If RingCT, get the ephemeral pubkey
         if (outType == OUTPUT_RINGCT) {
@@ -4333,12 +4911,24 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() > 2) {
+    if (request.fHelp || request.params.size() > 3) {
         throw std::runtime_error(
-                "generatecontinuous (true|false) (threads)\n"
+                "generatecontinuous <activate> (threads) (override)\n"
                 "\nMine blocks continuously while the request is running.\n"
+                "\nArguments:\n"
+                "1. activate        (boolean, required) Enable or disable mining\n"
+                "2. threads         (int, required) for enabling, number of threads\n"
+                "3. override        (boolean, optional) override thread warnings\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"success\": true|false,   (boolean) Status of the request\n"
+                "  \"algorithm\": \"string\",     (string) Algorithm being mined\n"
+                "  \"threads\": nnn,          (int) Number of threads being used\n"
+                "  \"message\": \"text\",         (string) Informational message\n"
+                "}\n"
                 "\nExamples:\n"
-                + HelpExampleCli("generatecontinuous", "1")
+                + HelpExampleCli("generatecontinuous", "true 4")
+                + HelpExampleRpc("generateoontinuous", "true, 4")
         );
     }
 
@@ -4352,12 +4942,17 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
     if (request.params.size() > 1)
         nThreads = request.params[1].get_int();
 
+    bool fOverride = false;
+    if (request.params.size() > 2)
+        fOverride = request.params[2].get_bool();
+
     std::shared_ptr<CReserveScript> coinbase_script;
     pwallet->GetScriptForMining(coinbase_script);
 
     // If the keypool is exhausted, no script is returned at all.  Catch this.
     if (!coinbase_script) {
-        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT, "Error: Keypool ran out, please call keypoolrefill first");
+        throw JSONRPCError(RPC_WALLET_KEYPOOL_RAN_OUT,
+                           "Error: Keypool ran out, please call keypoolrefill first");
     }
 
     //throw an error if no script was provided
@@ -4365,7 +4960,47 @@ UniValue generatecontinuous(const JSONRPCRequest& request)
         throw JSONRPCError(RPC_INTERNAL_ERROR, "No coinbase script available");
     }
 
-    return generateBlocks(fGenerate, nThreads, coinbase_script);
+    int nAlgo = GetMiningAlgorithm();
+    std::string sAlgo = GetMiningType(nAlgo, false, false);
+    std::string sWarning = "";
+
+    if (fGenerate) {
+        if (GenerateActive())
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Mining already active");
+
+        int nCores = GetNumCores();
+        if ((nAlgo == MINE_SHA256D) && (nThreads > (nCores - 1)))
+            sWarning = strprintf("Available concurrent threads: %d, limit sha256d to max %d threads",
+                                 nCores, nCores-1);
+
+        if ((nAlgo == MINE_RANDOMX) && (nThreads < 4)) {
+            sWarning = "RandomX must be at least 4 threads";
+            // Note this changes the nThreads input, for accuracy of the result
+            // message, So this check needs to be below the threads check above
+            nThreads = 4;
+        }
+
+        if (!fOverride && sWarning.compare(""))
+            throw JSONRPCError(RPC_INVALID_PARAMETER, strprintf("Error: %s", sWarning.c_str()));
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("success", true);
+    result.pushKV("algorithm", sAlgo);
+    if (!fGenerate) {
+        result.pushKV("threads", 0);
+        result.pushKV("message", "Mining stopped");
+    } else {
+        ClearHashSpeed();
+        result.pushKV("threads", nThreads);
+        if (sWarning.compare(""))
+            result.pushKV("message", strprintf("Warning: %s", sWarning.c_str()));
+        else
+            result.pushKV("message", "Mining started");
+    }
+
+    generateBlocks(fGenerate, nThreads, coinbase_script);
+    return result;
 }
 
 UniValue rescanblockchain(const JSONRPCRequest& request)
@@ -4467,7 +5102,7 @@ public:
         std::vector<std::vector<unsigned char>> solutions_data;
         Solver(subscript, which_type, solutions_data);
         obj.pushKV("script", GetTxnOutputType(which_type));
-        obj.pushKV("hex", HexStr(subscript.begin(), subscript.end()));
+        obj.pushKV("hex", HexStr(subscript));
 
         CTxDestination embedded;
         UniValue a(UniValue::VARR);
@@ -4479,7 +5114,7 @@ public:
             UniValue wallet_detail = boost::apply_visitor(*this, embedded);
             subobj.pushKVs(wallet_detail);
             subobj.pushKV("address", EncodeDestination(embedded));
-            subobj.pushKV("scriptPubKey", HexStr(subscript.begin(), subscript.end()));
+            subobj.pushKV("scriptPubKey", HexStr(subscript));
             // Always report the pubkey at the top level, so that `getnewaddress()['pubkey']` always works.
             if (subobj.exists("pubkey")) obj.pushKV("pubkey", subobj["pubkey"]);
             obj.pushKV("embedded", std::move(subobj));
@@ -4492,7 +5127,7 @@ public:
             for (size_t i = 1; i < solutions_data.size() - 1; ++i) {
                 CPubKey key(solutions_data[i].begin(), solutions_data[i].end());
                 if (include_addresses) a.push_back(EncodeDestination(key.GetID()));
-                pubkeys.push_back(HexStr(key.begin(), key.end()));
+                pubkeys.push_back(HexStr(key));
             }
             obj.pushKV("pubkeys", std::move(pubkeys));
         }
@@ -4703,7 +5338,7 @@ UniValue getaddressinfo(const JSONRPCRequest& request)
     ret.pushKV("address", currentAddress);
 
     CScript scriptPubKey = GetScriptForDestination(dest);
-    ret.pushKV("scriptPubKey", HexStr(scriptPubKey.begin(), scriptPubKey.end()));
+    ret.pushKV("scriptPubKey", HexStr(scriptPubKey));
 
     //isminetype mine = IsMine(*pwallet, dest);
     isminetype mine = pwallet->IsMine(dest);
@@ -5036,7 +5671,7 @@ UniValue recoveraddresses(const JSONRPCRequest& request)
 
     EnsureWalletIsUnlocked(pwallet);
 
-    int nCount = 100;
+    uint32_t nCount = 100;
     if (request.params.size() > 0)
         nCount = request.params[0].get_int();
 
@@ -5387,6 +6022,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "dumpprivkey",                      &dumpprivkey,                   {"address"}  },
     { "wallet",             "dumpwallet",                       &dumpwallet,                    {"filename"} },
     { "wallet",             "encryptwallet",                    &encryptwallet,                 {"passphrase"} },
+    { "wallet",             "exporttransactions",               &exporttransactions,            {"account", "filename", "start", "end", "transactions"} },
     { "wallet",             "getaddressinfo",                   &getaddressinfo,                {"address"} },
     { "wallet",             "getbalance",                       &getbalance,                    {"account|dummy","minconf","include_watchonly"} },
     { "wallet",             "getspendablebalance",              &getspendablebalance,           {} },
@@ -5407,6 +6043,7 @@ static const CRPCCommand commands[] =
     { "wallet",             "importprunedfunds",                &importprunedfunds,             {"rawtransaction","txoutproof"} },
     { "wallet",             "importpubkey",                     &importpubkey,                  {"pubkey","label","rescan"} },
     { "wallet",             "keypoolrefill",                    &keypoolrefill,                 {"newsize"} },
+    { "wallet",             "listaddresses",                    &listaddresses,                 {"type"} },
     { "wallet",             "listaddressgroupings",             &listaddressgroupings,          {} },
     { "wallet",             "listlockunspent",                  &listlockunspent,               {} },
     { "wallet",             "listreceivedbyaddress",            &listreceivedbyaddress,         {"minconf","include_empty","include_watchonly","address_filter"} },

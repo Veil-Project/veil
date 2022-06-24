@@ -1,5 +1,5 @@
 // Copyright (c) 2017-2019 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2020 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 #ifndef VEIL_ZTRACKER_H
@@ -8,7 +8,6 @@
 #include "primitives/zerocoin.h"
 #include "wallet/walletdb.h"
 #include <list>
-#include "veil/zerocoin/witness.h"
 
 class CDeterministicMint;
 class CWallet;
@@ -25,7 +24,6 @@ private:
     std::map<SerialHash, CMintMeta> mapSerialHashes;
     std::map<SerialHash, uint256> mapPendingSpends; //serialhash, txid of spend
     std::map<PubCoinHash, SerialHash> mapHashPubCoin;
-    std::map<SerialHash, std::unique_ptr<CoinWitnessData> > mapSpendCache; //serialhash, witness value, height
     bool UpdateStatusInternal(const std::set<uint256>& setMempoolTx, const std::map<uint256, uint256>& mapMempoolSerials, CMintMeta& mint);
 public:
     CzTracker(CWallet* wallet);
@@ -43,7 +41,7 @@ public:
     CMintMeta Get(const SerialHash& hashSerial);
     CMintMeta GetMetaFromPubcoin(const PubCoinHash& hashPubcoin);
     bool GetMetaFromStakeHash(const uint256& hashStake, CMintMeta& meta) const;
-    CAmount GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly) const;
+    CAmount GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly, const int min_depth=0) const;
     std::vector<SerialHash> GetSerialHashes();
     std::vector<CMintMeta> GetMints(bool fConfirmedOnly) const;
     CAmount GetUnconfirmedBalance() const;
@@ -55,14 +53,7 @@ public:
     bool UpdateZerocoinMint(const CZerocoinMint& mint);
     bool UpdateState(const CMintMeta& meta);
     void Clear();
-    mutable CCriticalSection cs_modify_lock;
-    mutable CCriticalSection cs_readlock;
     mutable CCriticalSection cs_remove_pending;
-    bool HasSpendCache(const uint256& hashSerial) EXCLUSIVE_LOCKS_REQUIRED(cs_readlock);
-    CoinWitnessData* CreateSpendCache(const uint256& hashSerial) EXCLUSIVE_LOCKS_REQUIRED(cs_modify_lock);
-    CoinWitnessData* GetSpendCache(const uint256& hashSerial) EXCLUSIVE_LOCKS_REQUIRED(cs_readlock);
-    bool GetCoinWitness(const uint256& hashSerial, CoinWitnessData& data) EXCLUSIVE_LOCKS_REQUIRED(cs_readlock);
-    bool ClearSpendCache() EXCLUSIVE_LOCKS_REQUIRED(cs_modify_lock);
 
     static uint8_t GetMintMemFlags(const CMintMeta& mint, int nBestHeight, const std::map<libzerocoin::CoinDenomination, int>& mapMaturity);
 };

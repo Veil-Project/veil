@@ -4,7 +4,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <logging.h>
-#include <utiltime.h>
+#include <util/time.h>
 
 const char * const DEFAULT_DEBUGLOGFILE = "debug.log";
 
@@ -123,7 +123,9 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::BLOCKCREATION, "blockcreation"},
     {BCLog::CHAINSCORE, "chainscore"},
     {BCLog::STAGING, "staging"},
-    {BCLog::PRECOMPUTE, "precompute"},
+    {BCLog::MINING, "mining"},
+    {BCLog::STAKING, "staking"},
+    {BCLog::RINGCT, "ringct"},
     {BCLog::ALL, "1"},
     {BCLog::ALL, "all"},
 };

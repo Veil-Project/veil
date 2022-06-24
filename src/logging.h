@@ -57,7 +57,9 @@ namespace BCLog {
         BLOCKCREATION = (1 << 22),
         CHAINSCORE = (1 << 23),
         STAGING     = (1 << 24),
-        PRECOMPUTE = (1 << 25),
+        MINING      = (1 << 25),
+        STAKING     = (1 << 26),
+        RINGCT      = (1 << 27),
         ALL         = ~(uint32_t)0,
     };
 

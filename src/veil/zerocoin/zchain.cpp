@@ -1,5 +1,5 @@
 // Copyright (c) 2017-2019 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -22,7 +22,7 @@
 // For Script size (BIGNUM/Uint256 size)
 #define BIGNUM_SIZE   4
 
-bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomination denom, vector<CBigNum>& vValues)
+bool BlockToMintValueVector(const CBlock& block, const libzerocoin::CoinDenomination denom, std::vector<CBigNum>& vValues)
 {
     CBigNum bnMod;
     bnMod.SetDec(Params().Zerocoin_Modulus());
@@ -103,12 +103,14 @@ bool ThreadedBatchVerify(const std::vector<libzerocoin::SerialNumberSoKProof>* p
             nThreadSelected = 0;
     }
 
-    boost::thread_group* pthreadgroup = new boost::thread_group();
+    boost::thread_group threadGroup;
     for (unsigned int i = 0; i < vProofGroups.size(); i++) {
-        pthreadgroup->create_thread(boost::bind(&libzerocoin::SerialNumberSoKProof::BatchVerify, vProofGroups[i], &vReturn[i]));
+        threadGroup.create_thread([i, &vProofGroups, &vReturn] {
+            return libzerocoin::SerialNumberSoKProof::BatchVerify(vProofGroups[i], &vReturn[i]);
+        });
     }
 
-    pthreadgroup->join_all();
+    threadGroup.join_all();
 
     for (auto ret : vReturn) {
         if (ret != 1)
@@ -201,9 +203,14 @@ void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMin
             continue;
         }
 
-        if (!mapBlockIndex.count(hashBlock)) {
-            vMissingMints.push_back(meta);
-            continue;
+        int nHeight;
+        {
+            LOCK(cs_mapblockindex);
+            if (!mapBlockIndex.count(hashBlock)) {
+                vMissingMints.push_back(meta);
+                continue;
+            }
+            nHeight = mapBlockIndex[hashBlock]->nHeight;
         }
 
         //see if this mint is spent
@@ -243,12 +250,12 @@ void FindMints(std::vector<CMintMeta> vMintsToFind, std::vector<CMintMeta>& vMin
         }
 
         // if meta data is correct, then no need to update
-        if (meta.txid == txHash && meta.nHeight == mapBlockIndex[hashBlock]->nHeight && meta.isUsed == fSpent)
+        if (meta.txid == txHash && meta.nHeight == nHeight && meta.isUsed == fSpent)
             continue;
 
         //mark this mint for update
         meta.txid = txHash;
-        meta.nHeight = mapBlockIndex[hashBlock]->nHeight;
+        meta.nHeight = nHeight;
         meta.isUsed = fSpent;
         LogPrintf("%s: found updates for pubcoinhash = %s\n", __func__, meta.hashPubcoin.GetHex());
 
@@ -296,7 +303,7 @@ bool IsSerialInBlockchain(const CBigNum& bnSerial, int& nHeightTx, const CBlockI
     return IsSerialInBlockchain(GetSerialHash(bnSerial), nHeightTx, pindex);
 }
 
-bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, const CBlockIndex* pindex)
+bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, const CBlockIndex* pindex, bool log)
 {
     uint256 txHash;
     // if not in zerocoinDB then its not in the blockchain
@@ -304,7 +311,7 @@ bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, const CBloc
         return false;
 
     CTransactionRef txRef;
-    return IsTransactionInChain(txHash, nHeightTx, txRef, Params().GetConsensus(), pindex);
+    return IsTransactionInChain(txHash, nHeightTx, txRef, Params().GetConsensus(), pindex, log);
 }
 
 bool IsSerialInBlockchain(const uint256& hashSerial, int& nHeightTx, uint256& txidSpend)
@@ -433,7 +440,7 @@ bool OutputToPublicCoin(const CTxOutBase* out, libzerocoin::PublicCoin& coin)
         return false;
 
     CBigNum publicZerocoin;
-    vector<unsigned char> vchZeroMint;
+    std::vector<unsigned char> vchZeroMint;
     vchZeroMint.insert(vchZeroMint.end(), out->GetPScriptPubKey()->begin() + SCRIPT_OFFSET,
                        out->GetPScriptPubKey()->begin() + out->GetPScriptPubKey()->size());
     publicZerocoin.setvch(vchZeroMint);
@@ -454,7 +461,7 @@ bool OutputToPublicCoin(const CTxOutBase* out, libzerocoin::PublicCoin& coin)
 bool TxOutToPublicCoin(const CTxOut& txout, libzerocoin::PublicCoin& pubCoin)
 {
     CBigNum publicZerocoin;
-    vector<unsigned char> vchZeroMint;
+    std::vector<unsigned char> vchZeroMint;
     vchZeroMint.insert(vchZeroMint.end(), txout.scriptPubKey.begin() + SCRIPT_OFFSET,
                        txout.scriptPubKey.begin() + txout.scriptPubKey.size());
     publicZerocoin.setvch(vchZeroMint);

@@ -5,7 +5,7 @@
 
 #include <rpc/client.h>
 #include <rpc/protocol.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <set>
 #include <stdint.h>
@@ -31,6 +31,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "generate", 1, "maxtries" },
     { "generatecontinuous", 0, "fGenerate"},
     { "generatecontinuous", 1, "threads"},
+    { "generatecontinuous", 2, "override"},
     { "generatetoaddress", 0, "nblocks" },
     { "generatetoaddress", 2, "maxtries" },
     { "getnetworkhashps", 0, "nblocks" },
@@ -73,6 +74,8 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getbalance", 1, "minconf" },
     { "getbalance", 2, "include_watchonly" },
     { "getblockhash", 0, "height" },
+    { "getchainalgostats", 0, "blocks" },
+    { "getchainalgostats", 1, "height" },
     { "getzerocoinsupply", 0, "height" },
     { "waitforblockheight", 0, "height" },
     { "waitforblockheight", 1, "timeout" },

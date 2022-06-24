@@ -4,8 +4,12 @@
 
 #include <sync.h>
 
+#ifdef HAVE_CONFIG_H
+#include <config/veil-config.h>
+#endif
+
 #include <logging.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 
 #include <stdio.h>
 
@@ -148,7 +152,7 @@ std::string LocksHeld()
     return result;
 }
 
-void AssertLockHeldInternal(const char* pszName, const char* pszFile, int nLine, void* cs)
+void _AssertLockHeld(const char* pszName, const char* pszFile, int nLine, void* cs)
 {
     for (const std::pair<void*, CLockLocation>& i : g_lockstack)
         if (i.first == cs)

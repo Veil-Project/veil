@@ -7,7 +7,7 @@
 #include <shutdown.h>
 #include <tinyformat.h>
 #include <ui_interface.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 #include <warnings.h>
 
@@ -194,11 +194,7 @@ void BaseIndex::ChainStateFlushed(const CBlockLocator& locator)
     }
 
     const uint256& locator_tip_hash = locator.vHave.front();
-    const CBlockIndex* locator_tip_index;
-    {
-        LOCK(cs_main);
-        locator_tip_index = LookupBlockIndex(locator_tip_hash);
-    }
+    const CBlockIndex* locator_tip_index = LookupBlockIndex(locator_tip_hash);
 
     if (!locator_tip_index) {
         FatalError("%s: First block (hash=%s) in locator was not found",

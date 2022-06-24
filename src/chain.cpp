@@ -1,17 +1,22 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2021 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chain.h>
 #include <validation.h>
-#include "hash.h"
+#include <hash.h>
 #include <libzerocoin/Denominations.h>
+
+#include <crypto/randomx/randomx.h>
+#include <pow.h>
 
 /**
  * CChain implementation
  */
 void CChain::SetTip(CBlockIndex *pindex) {
+    LOCK(cs_vchain);
     if (pindex == nullptr) {
         vChain.clear();
         return;
@@ -64,6 +69,7 @@ const CBlockIndex *CChain::FindFork(const CBlockIndex *pindex) const {
 
 CBlockIndex* CChain::FindEarliestAtLeast(int64_t nTime) const
 {
+    LOCK(cs_vchain);
     std::vector<CBlockIndex*>::const_iterator lower = std::lower_bound(vChain.begin(), vChain.end(), nTime,
         [](CBlockIndex* pBlock, const int64_t& time) -> bool { return pBlock->GetBlockTimeMax() < time; });
     return (lower == vChain.end() ? nullptr : *lower);
@@ -102,6 +108,10 @@ const CBlockIndex* CBlockIndex::GetAncestor(int height) const
             pindexWalk = pindexWalk->pskip;
             heightWalk = heightSkip;
         } else {
+            if (!pindexWalk->pprev) {
+                LogPrintf("%s: pindexWalk:  Hash: %s, Looking for Height: %d, Current Height: %d, Working Height: %d, pindexWalk height: %d\n",
+                          __func__, pindexWalk->phashBlock->GetHex(), height, heightWalk, nHeight, pindexWalk->nHeight);
+            }
             assert(pindexWalk->pprev);
             pindexWalk = pindexWalk->pprev;
             heightWalk--;
@@ -244,12 +254,70 @@ const CBlockIndex* LastCommonAncestor(const CBlockIndex* pa, const CBlockIndex* 
 void CBlockIndex::AddAccumulator(libzerocoin::CoinDenomination denom, CBigNum bnAccumulator)
 {
     mapAccumulatorHashes[denom] = SerializeHash(bnAccumulator);
+    hashAccumulators = SerializeHash(mapAccumulatorHashes);
 }
 
 void CBlockIndex::AddAccumulator(AccumulatorMap mapAccumulator)
 {
     for(libzerocoin::CoinDenomination denom : libzerocoin::zerocoinDenomList) {
         CBigNum bnAccumulator = mapAccumulator.GetValue(denom);
-        AddAccumulator(denom, bnAccumulator);
+        mapAccumulatorHashes[denom] = SerializeHash(bnAccumulator);
+    }
+    hashAccumulators = SerializeHash(mapAccumulatorHashes);
+}
+
+uint256 CBlockIndex::GetRandomXPoWHash() const
+{
+    return GetRandomXBlockHash(GetBlockHeader().nHeight, GetBlockHeader().GetRandomXHeaderHash());
+}
+
+uint256 CBlockIndex::GetProgPowHash(uint256& mix_hash) const
+{
+    CBlockHeader header = GetBlockHeader();
+    return ProgPowHash(header, mix_hash);
+}
+
+void CBlockIndex::CopyBlockHashIntoIndex()
+{
+    if (phashBlock) {
+        _phashBlock.reset(new uint256(*phashBlock));
+        phashBlock = _phashBlock.get();
     }
 }
+
+// We are going to be performing a block hash for RandomX. To see if we need to spin up a new
+// cache, we can first check to see if we can use the current validation cache
+uint256 GetRandomXBlockHash(const int32_t& height, const uint256& hash_blob ) {
+
+    char hash[RANDOMX_HASH_SIZE];
+
+    // Get the keyblock for the height
+    auto temp_keyblock = GetKeyBlock(height);
+
+    // The hash we are calculating is in the same realm at the current validation caches
+    // We don't need to spin up a new cache, as we can use the one already allocated
+    if (temp_keyblock == GetCurrentKeyBlock()) {
+        if (!IsRandomXLightInit()) {
+            InitRandomXLightCache(height);
+        }
+
+        randomx_calculate_hash(GetMyMachineValidating(), &hash_blob, sizeof uint256(), hash);
+        return RandomXHashToUint256(hash);
+    } else {
+        // Create a new temp cache, and machine
+        auto temp_cache = randomx_alloc_cache((randomx_flags)global_randomx_flags);
+        randomx_init_cache(temp_cache, &temp_keyblock, sizeof uint256());
+        auto tempMachine = randomx_create_vm((randomx_flags)global_randomx_flags, temp_cache, NULL);
+
+        // calculate the hash
+        randomx_calculate_hash(tempMachine, &hash_blob, sizeof uint256(), hash);
+
+        // Destroy the vm and cache
+        randomx_destroy_vm(tempMachine);
+        randomx_release_cache(temp_cache);
+
+        // Return the hash
+        return RandomXHashToUint256(hash);
+    }
+}
+

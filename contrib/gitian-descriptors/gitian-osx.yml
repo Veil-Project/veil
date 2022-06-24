@@ -1,5 +1,5 @@
 ---
-name: "veil-osx-0.0.0.99"
+name: "veil-osx-1.2.5.99"
 enable_cache: true
 suites:
 - "bionic"
@@ -31,11 +31,11 @@ remotes:
 - "url": "https://github.com/Veil-Project/veil.git"
   "dir": "veil"
 files:
-- "MacOSX10.11.sdk.tar.gz"
+- "Xcode-11.3.1-11C505-extracted-SDK-with-libcxx-headers.tar.gz"
 script: |
   WRAP_DIR=$HOME/wrapped
-  HOSTS="x86_64-apple-darwin14"
-  CONFIGFLAGS="--enable-reduce-exports --disable-bench --disable-gui-tests GENISOIMAGE=$WRAP_DIR/genisoimage"
+  HOSTS="x86_64-apple-darwin18"
+  CONFIGFLAGS="--enable-c++17 --enable-reduce-exports --disable-bench --disable-gui-tests GENISOIMAGE=$WRAP_DIR/genisoimage"
   FAKETIME_HOST_PROGS=""
   FAKETIME_PROGS="ar ranlib date dmg genisoimage"
 
@@ -88,7 +88,7 @@ script: |
   BASEPREFIX=`pwd`/depends
 
   mkdir -p ${BASEPREFIX}/SDKs
-  tar -C ${BASEPREFIX}/SDKs -xf ${BUILD_DIR}/MacOSX10.11.sdk.tar.gz
+  tar -C ${BASEPREFIX}/SDKs -xf ${BUILD_DIR}/Xcode-11.3.1-11C505-extracted-SDK-with-libcxx-headers.tar.gz
 
   # Build dependencies for each host
   for i in $HOSTS; do

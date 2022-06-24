@@ -4,10 +4,11 @@
 
 DIST_SUBDIRS = secp256k1 univalue
 
-AM_LDFLAGS = $(PTHREAD_CFLAGS) $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS)
+AM_LDFLAGS = $(LIBTOOL_LDFLAGS) $(HARDENED_LDFLAGS) $(GPROF_LDFLAGS) $(SANITIZER_LDFLAGS)
 AM_CXXFLAGS = $(DEBUG_CXXFLAGS) $(HARDENED_CXXFLAGS) $(WARN_CXXFLAGS) $(NOWARN_CXXFLAGS) $(ERROR_CXXFLAGS) $(GPROF_CXXFLAGS) $(SANITIZER_CXXFLAGS)
 AM_CPPFLAGS = $(DEBUG_CPPFLAGS) $(HARDENED_CPPFLAGS)
 AM_LIBTOOLFLAGS = --preserve-dup-deps
+PTHREAD_FLAGS = $(PTHREAD_CFLAGS) $(PTHREAD_LIBS)
 EXTRA_LIBRARIES =
 
 if EMBEDDED_UNIVALUE
@@ -115,6 +116,8 @@ BITCOIN_CORE_H = \
   consensus/tx_verify.h \
   core_io.h \
   core_memusage.h \
+  csv/csv.h \
+  csv/CSV.hpp \
   cuckoocache.h \
   fs.h \
   httprpc.h \
@@ -141,6 +144,7 @@ BITCOIN_CORE_H = \
   netbase.h \
   netmessagemaker.h \
   noui.h \
+  optional.h \
   outputtype.h \
   policy/feerate.h \
   policy/fees.h \
@@ -181,10 +185,11 @@ BITCOIN_CORE_H = \
   txmempool.h \
   ui_interface.h \
   undo.h \
-  util.h \
-  utilmemory.h \
-  utilmoneystr.h \
-  utiltime.h \
+  util/system.h \
+  util/memory.h \
+  util/moneystr.h \
+  util/string.h \
+  util/time.h \
   validation.h \
   validationinterface.h \
   versionbits.h \
@@ -192,6 +197,7 @@ BITCOIN_CORE_H = \
   veil/dandelioninventory.h \
   veil/invalid.h \
   veil/invalid_list.h \
+  veil/lru_cache.h \
   veil/proofoffullnode/proofoffullnode.h \
   veil/proofofstake/kernel.h \
   veil/proofofstake/blockvalidation.h \
@@ -204,6 +210,7 @@ BITCOIN_CORE_H = \
   veil/ringct/keyutil.h \
   veil/ringct/outputrecord.h \
   veil/ringct/rctindex.h \
+  veil/ringct/receipt.h \
   veil/ringct/rpcanonwallet.h \
   veil/ringct/stealth.h \
   veil/ringct/temprecipient.h \
@@ -212,12 +219,9 @@ BITCOIN_CORE_H = \
   veil/zerocoin/accumulators.h \
   veil/zerocoin/accumulatormap.h \
   veil/zerocoin/denomination_functions.h \
-  veil/zerocoin/lrucache.h \
-  veil/zerocoin/precompute.h \
   veil/zerocoin/spendreceipt.h \
   veil/zerocoin/mintpool.h \
   veil/zerocoin/mintmeta.h \
-  veil/zerocoin/witness.h \
   veil/mnemonic/arrayslice.h \
   veil/mnemonic/dictionary.h \
   veil/mnemonic/generateseed.h \
@@ -346,20 +350,35 @@ libbitcoin_wallet_a_SOURCES = \
   wallet/deterministicmint.cpp \
   primitives/zerocoin.cpp \
   veil/zerocoin/denomination_functions.cpp \
-  veil/zerocoin/lrucache.cpp \
   veil/zerocoin/mintpool.cpp \
-  veil/zerocoin/precompute.cpp \
   veil/zerocoin/spendreceipt.cpp \
-	veil/zerocoin/witness.cpp \
   veil/zerocoin/ztracker.cpp \
   veil/zerocoin/zwallet.cpp \
-  veil/ringct/temprecipient.cpp \
   veil/ringct/anonwalletdb.cpp \
   veil/ringct/anonwallet.cpp \
   veil/ringct/outputrecord.cpp \
+  veil/ringct/receipt.cpp \
   veil/ringct/rpcanonwallet.cpp \
+  veil/ringct/temprecipient.cpp \
   $(BITCOIN_CORE_H)
 
+if TARGET_ARM64
+  randomx_jit_base_SOURCES = \
+    crypto/randomx/jit_compiler_a64.cpp \
+    crypto/randomx/jit_compiler_a64.hpp \
+    crypto/randomx/jit_compiler_a64_static.hpp \
+    crypto/randomx/jit_compiler_a64_static.S
+endif
+if TARGET_X86_64
+  randomx_jit_base_SOURCES = \
+    crypto/randomx/jit_compiler_x86.cpp \
+    crypto/randomx/jit_compiler_x86.hpp \
+    crypto/randomx/jit_compiler_x86_static.asm \
+    crypto/randomx/jit_compiler_x86_static.hpp \
+    crypto/randomx/jit_compiler_x86_static.S
+endif
+
+# libzerocoin library
 # crypto primitives library
 crypto_libbitcoin_crypto_base_a_CPPFLAGS = $(AM_CPPFLAGS)
 crypto_libbitcoin_crypto_base_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
@@ -428,9 +447,107 @@ crypto_libbitcoin_crypto_base_a_SOURCES = \
   crypto/external/sha512.c \
   crypto/external/sha512.h \
   crypto/external/zeroize.c \
-  crypto/external/zeroize.h
+  crypto/external/zeroize.h \
+  crypto/ethash/include/ethash/ethash.h \
+  crypto/ethash/include/ethash/ethash.hpp \
+  crypto/ethash/include/ethash/hash_types.h \
+  crypto/ethash/include/ethash/hash_types.hpp \
+  crypto/ethash/include/ethash/keccak.h \
+  crypto/ethash/include/ethash/keccak.hpp \
+  crypto/ethash/include/ethash/progpow.hpp \
+  crypto/ethash/include/ethash/version.h \
+  crypto/ethash/lib/ethash/bit_manipulation.h \
+  crypto/ethash/lib/ethash/builtins.h \
+  crypto/ethash/lib/ethash/endianness.hpp \
+  crypto/ethash/lib/ethash/ethash.cpp \
+  crypto/ethash/lib/ethash/ethash-internal.hpp \
+  crypto/ethash/lib/ethash/kiss99.hpp \
+  crypto/ethash/lib/ethash/managed.cpp \
+  crypto/ethash/lib/ethash/primes.c \
+  crypto/ethash/lib/ethash/primes.h \
+  crypto/ethash/lib/ethash/progpow.cpp \
+  crypto/ethash/lib/keccak/keccak.c \
+  crypto/ethash/lib/keccak/keccakf1600.c \
+  crypto/ethash/lib/keccak/keccakf800.c \
+  crypto/ethash/lib/support/attributes.h \
+  crypto/ethash/helpers.hpp \
+  crypto/ethash/progpow_test_vectors.hpp \
+  crypto/randomx/aes_hash.cpp \
+  crypto/randomx/aes_hash.hpp \
+  crypto/randomx/allocator.cpp \
+  crypto/randomx/allocator.hpp \
+  crypto/randomx/argon2.h \
+  crypto/randomx/argon2_core.c \
+  crypto/randomx/argon2_core.h \
+  crypto/randomx/argon2_ref.c \
+  crypto/randomx/argon2_ssse3.c \
+  crypto/randomx/assembly_generator_x86.cpp \
+  crypto/randomx/assembly_generator_x86.hpp \
+  crypto/randomx/blake2_generator.cpp \
+  crypto/randomx/blake2_generator.hpp\
+  crypto/randomx/bytecode_machine.cpp \
+  crypto/randomx/bytecode_machine.hpp \
+  crypto/randomx/common.hpp \
+  crypto/randomx/configuration.h \
+  crypto/randomx/cpu.cpp \
+  crypto/randomx/cpu.hpp \
+  crypto/randomx/dataset.cpp \
+  crypto/randomx/dataset.hpp \
+  crypto/randomx/instruction.cpp \
+  crypto/randomx/instruction.hpp \
+  crypto/randomx/instruction_weights.hpp \
+  crypto/randomx/instructions_portable.cpp \
+  crypto/randomx/intrin_portable.h \
+  crypto/randomx/jit_compiler.hpp \
+  crypto/randomx/jit_compiler_fallback.hpp \
+  $(randomx_jit_base_SOURCES) \
+  crypto/randomx/program.hpp \
+  crypto/randomx/randomx.cpp \
+  crypto/randomx/randomx.h \
+  crypto/randomx/reciprocal.c \
+  crypto/randomx/reciprocal.h \
+  crypto/randomx/soft_aes.cpp \
+  crypto/randomx/soft_aes.h \
+  crypto/randomx/superscalar.cpp \
+  crypto/randomx/superscalar.hpp \
+  crypto/randomx/superscalar_program.hpp \
+  crypto/randomx/utility.hpp \
+  crypto/randomx/virtual_machine.cpp \
+  crypto/randomx/virtual_machine.hpp \
+  crypto/randomx/virtual_memory.cpp \
+  crypto/randomx/virtual_memory.hpp \
+  crypto/randomx/vm_compiled.cpp \
+  crypto/randomx/vm_compiled.hpp \
+  crypto/randomx/vm_compiled_light.cpp \
+  crypto/randomx/vm_compiled_light.hpp \
+  crypto/randomx/vm_interpreted.cpp \
+  crypto/randomx/vm_interpreted.hpp \
+  crypto/randomx/vm_interpreted_light.cpp \
+  crypto/randomx/vm_interpreted_light.hpp \
+  crypto/randomx/blake2/blake2.h \
+  crypto/randomx/blake2/blake2-impl.h \
+  crypto/randomx/blake2/blake2b.c \
+  crypto/randomx/blake2/blamka-round-ref.h \
+  crypto/randomx/blake2/blamka-round-ssse3.h \
+  crypto/randomx/blake2/endian.h \
+  crypto/randomx/asm/configuration.asm \
+  crypto/randomx/asm/program_prologue_linux.inc \
+  crypto/randomx/asm/program_xmm_constants.inc \
+  crypto/randomx/asm/program_loop_load.inc \
+  crypto/randomx/asm/program_read_dataset.inc \
+  crypto/randomx/asm/program_read_dataset_sshash_init.inc \
+  crypto/randomx/asm/program_read_dataset_sshash_fin.inc \
+  crypto/randomx/asm/program_loop_store.inc \
+  crypto/randomx/asm/program_epilogue_store.inc \
+  crypto/randomx/asm/program_epilogue_linux.inc \
+  crypto/randomx/asm/program_sshash_load.inc \
+  crypto/randomx/asm/program_sshash_prefetch.inc \
+  crypto/randomx/asm/program_sshash_constants.inc \
+  crypto/randomx/asm/randomx_reciprocal.inc \
+  crypto/c_threads.h \
+  crypto/hash-ops.h \
+  crypto/rx-slow-hash.c
 
-# libzerocoin library
 libzerocoin_libbitcoin_zerocoin_a_CPPFLAGS = $(AM_CPPFLAGS) $(BOOST_CPPFLAGS)
 libzerocoin_libbitcoin_zerocoin_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libzerocoin_libbitcoin_zerocoin_a_SOURCES = \
@@ -481,7 +598,11 @@ crypto_libbitcoin_crypto_avx2_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 crypto_libbitcoin_crypto_avx2_a_CPPFLAGS = $(AM_CPPFLAGS)
 crypto_libbitcoin_crypto_avx2_a_CXXFLAGS += $(AVX2_CXXFLAGS)
 crypto_libbitcoin_crypto_avx2_a_CPPFLAGS += -DENABLE_AVX2
-crypto_libbitcoin_crypto_avx2_a_SOURCES = crypto/sha256_avx2.cpp
+crypto_libbitcoin_crypto_avx2_a_SOURCES = \
+  crypto/sha256_avx2.cpp \
+  crypto/randomx/blake2/blamka-round-avx2.h \
+  crypto/randomx/argon2_avx2.c
+
 
 crypto_libbitcoin_crypto_shani_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 crypto_libbitcoin_crypto_shani_a_CPPFLAGS = $(AM_CPPFLAGS)
@@ -523,8 +644,8 @@ libbitcoin_consensus_a_SOURCES = \
   tinyformat.h \
   uint256.cpp \
   uint256.h \
-  utilstrencodings.cpp \
-  utilstrencodings.h \
+  util/strencodings.cpp \
+  util/strencodings.h \
   version.h
 
 # common: shared between veild, and veil-qt and non-server tools
@@ -576,6 +697,11 @@ libbitcoin_util_a_SOURCES = \
   compat/glibc_sanity.cpp \
   compat/glibcxx_sanity.cpp \
   compat/strnlen.cpp \
+  csv/CSVread.cpp \
+  csv/CSVwrite.cpp \
+  csv/libcsv.c \
+  csv/strerror.cpp \
+  csv/strerror.hpp \
   fs.cpp \
   interfaces/handler.cpp \
   interfaces/node.cpp \
@@ -585,10 +711,11 @@ libbitcoin_util_a_SOURCES = \
   support/cleanse.cpp \
   sync.cpp \
   threadinterrupt.cpp \
-  util.cpp \
-  utilmoneystr.cpp \
-  utilstrencodings.cpp \
-  utiltime.cpp \
+  util/system.cpp \
+  util/moneystr.cpp \
+  util/strencodings.cpp \
+  util/string.cpp \
+  util/time.cpp \
   $(BITCOIN_CORE_H)
 
 if GLIBC_BACK_COMPAT
@@ -600,6 +727,8 @@ endif
 libbitcoin_cli_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 libbitcoin_cli_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_cli_a_SOURCES = \
+  compat/stdin.h \
+  compat/stdin.cpp \
   rpc/client.cpp \
   $(BITCOIN_CORE_H)
 
@@ -610,7 +739,7 @@ nodist_libbitcoin_util_a_SOURCES = $(srcdir)/obj/build.h
 veild_SOURCES = veild.cpp
 veild_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 veild_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-veild_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+veild_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
 veild_SOURCES += veild-res.rc
@@ -637,7 +766,7 @@ veild_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_
 veil_cli_SOURCES = veil-cli.cpp
 veil_cli_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(EVENT_CFLAGS)
 veil_cli_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-veil_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+veil_cli_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
 veil_cli_SOURCES += veil-cli-res.rc
@@ -656,7 +785,7 @@ veil_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
 veil_tx_SOURCES = veil-tx.cpp
 veil_tx_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES)
 veil_tx_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
-veil_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+veil_tx_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 
 if TARGET_WINDOWS
 veil_tx_SOURCES += veil-tx-res.rc
@@ -703,6 +832,9 @@ CLEANFILES += *.gcda *.gcno
 CLEANFILES += compat/*.gcda compat/*.gcno
 CLEANFILES += consensus/*.gcda consensus/*.gcno
 CLEANFILES += crypto/*.gcda crypto/*.gcno
+CLEANFILES += crypto/randomx/*.gcda crypto/randomx/*.gcno
+CLEANFILES += crypto/randomx/blake2/*.gcda crypto/randomx/blake2/*.gcno
+CLEANFILES += csv/*.gcda csv/*.gcno
 CLEANFILES += policy/*.gcda policy/*.gcno
 CLEANFILES += primitives/*.gcda primitives/*.gcno
 CLEANFILES += script/*.gcda script/*.gcno

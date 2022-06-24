@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -13,7 +13,7 @@
 #include "net_processing.h"
 #include "primitives/block.h"
 #include "script/standard.h"
-#include "utilstrencodings.h"
+#include "util/strencodings.h"
 #include "validation.h"
 #include "veil/zerocoin/zchain.h"
 

@@ -102,7 +102,6 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
         auto txout = wtx.tx->vpout[i];
         auto ismine = wallet.IsMine(txout.get());
         result.txout_is_mine.emplace_back(ismine);
-        result.txout_address.emplace_back();
         CScript scriptPubKey;
         auto fAddressIsMine = ismine;
         if (txout->GetScriptPubKey(scriptPubKey)) {
@@ -236,9 +235,9 @@ WalletTx MakeWalletTx(CHDWallet& wallet, MapRecords_t::const_iterator irtx)
 //! Construct wallet tx status struct.
 WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
 {
+    LOCK(cs_main);
     WalletTxStatus result;
-    auto mi = ::mapBlockIndex.find(wtx.hashBlock);
-    CBlockIndex* block = mi != ::mapBlockIndex.end() ? mi->second : nullptr;
+    CBlockIndex* block = LookupBlockIndex(wtx.hashBlock);
     result.block_height = (block ? block->nHeight : std::numeric_limits<int>::max());
     result.blocks_to_maturity = wtx.GetBlocksToMaturity();
     result.depth_in_main_chain = wtx.GetDepthInMainChain();
@@ -252,12 +251,12 @@ WalletTxStatus MakeWalletTxStatus(const CWalletTx& wtx)
     return result;
 }
 
+/*
 WalletTxStatus MakeWalletTxStatus(AnonWallet* pAnonWallet, const uint256 &hash, const CTransactionRecord &rtx)
 {
     WalletTxStatus result;
-    auto mi = ::mapBlockIndex.find(rtx.blockHash);
 
-    CBlockIndex* block = mi != ::mapBlockIndex.end() ? mi->second : nullptr;
+    CBlockIndex* block = LookupBlockIndex(rtx.blockHash);
     result.block_height = (block ? block->nHeight : std::numeric_limits<int>::max()),
 
             result.blocks_to_maturity = 0;
@@ -271,6 +270,7 @@ WalletTxStatus MakeWalletTxStatus(AnonWallet* pAnonWallet, const uint256 &hash, 
     result.is_in_main_chain = result.depth_in_main_chain > 0;
     return result;
 }
+*/
 
 //! Construct wallet TxOut struct.
 WalletTxOut MakeWalletTxOut(CWallet& wallet, const CWalletTx& wtx, int n, int depth)
@@ -306,10 +306,6 @@ public:
     }
     void setStakingEnabled(bool fEnableStaking) override { m_wallet.SetStakingEnabled(fEnableStaking); }
     bool isStakingEnabled() override { return m_wallet.IsStakingEnabled(); }
-    bool StartPrecomputing(std::string& strStatus) override { return m_wallet.StartPrecomputing(strStatus); }
-    void StopPrecomputing() override { m_wallet.StopPrecomputing(); }
-    void setPrecomputingEnabled(bool fEnabledPrecomputing) override { m_wallet.SetPrecomputingEnabled(fEnabledPrecomputing); }
-    bool isPrecomputingEnabled() override { return m_wallet.IsPrecomputingEnabled(); }
 
     void abortRescan() override { m_wallet.AbortRescan(); }
     bool backupWallet(const std::string& filename) override { return m_wallet.BackupWallet(filename); }
@@ -506,12 +502,12 @@ public:
                 break;
             }
             case OUTPUT_CT:
-                if (0 != pwalletAnon->AddBlindedInputs(wtx, rtx, recipients, !fCheckFeeOnly, nFeeRet, &coin_control, fail_reason))
+                if (0 != pwalletAnon->AddBlindedInputs(wtx, rtx, recipients, !fCheckFeeOnly, 0, nFeeRet, &coin_control, fail_reason))
                     fFailed = true;
                 break;
             case OUTPUT_RINGCT:
                 if (!pwalletAnon->AddAnonInputs(wtx, rtx, recipients, !fCheckFeeOnly, nRingSize,
-                                                nInputsPerSig, nFeeRet, &coin_control, fail_reason))
+                                                nInputsPerSig, 0, nFeeRet, &coin_control, fail_reason))
                     fFailed = true;
                 break;
             default:

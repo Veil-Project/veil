@@ -106,6 +106,7 @@ public:
     bool fEnforceSmsgFees = false; // per block
     bool fHasAnonOutput = false; // per tx
     bool fHasAnonInput = false; // per tx
+    std::set<CCmpPubKey> m_setHaveKI;
 };
 
 // These implement the weight = (stripped_size * 4) + witness_size formula,

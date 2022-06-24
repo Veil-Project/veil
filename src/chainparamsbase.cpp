@@ -1,3 +1,4 @@
+// Copyright (c) 2019 Veil developers
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -6,8 +7,8 @@
 #include <chainparamsbase.h>
 
 #include <tinyformat.h>
-#include <util.h>
-#include <utilmemory.h>
+#include <util/system.h>
+#include <util/memory.h>
 
 #include <assert.h>
 
@@ -39,7 +40,7 @@ std::unique_ptr<CBaseChainParams> CreateBaseChainParams(const std::string& chain
     else if (chain == CBaseChainParams::TESTNET)
         return MakeUnique<CBaseChainParams>("testnet4", 58813);
     else if (chain == CBaseChainParams::DEVNET)
-        return MakeUnique<CBaseChainParams>("devnet", 58814);
+        return MakeUnique<CBaseChainParams>("devnet3", 58814);
     else if (chain == CBaseChainParams::REGTEST)
         return MakeUnique<CBaseChainParams>("regtest", 58823);
     else

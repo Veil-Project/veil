@@ -14,8 +14,6 @@
 #include "Coin.h"
 #include "zkplib.h"
 
-using namespace std;
-
 namespace libzerocoin {
 
 class PolynomialCommitment {

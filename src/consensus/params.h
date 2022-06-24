@@ -70,14 +70,23 @@ struct Params {
     BIP9Deployment vDeployments[MAX_VERSION_BITS_DEPLOYMENTS];
     /** Proof of work parameters */
     uint256 powLimit;
+    uint256 powLimitRandomX;
+    uint256 powLimitProgPow;
+    uint256 powLimitSha256;
+
     bool fPowAllowMinDifficultyBlocks;
     bool fPowNoRetargeting;
     int64_t nDgwPastBlocks;
+    int64_t nDgwPastBlocks_old;
     int64_t nPowTargetSpacing;
     uint256 nMinimumChainWork;
     uint256 defaultAssumeValid;
 
     int nMinRCTOutputDepth;
+
+    int64_t nProgPowTargetSpacing;
+    int64_t nRandomXTargetSpacing;
+    int64_t nSha256DTargetSpacing;
 };
 } // namespace Consensus
 

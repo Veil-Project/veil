@@ -1,12 +1,12 @@
 // Copyright (c) 2017-2018 The PIVX developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <wallet/deterministicmint.h>
 #include <logging.h>
 #include "ztracker.h"
-#include "util.h"
+#include "util/system.h"
 #include "sync.h"
 #include "txdb.h"
 #include "wallet/walletdb.h"
@@ -128,7 +128,7 @@ std::vector<SerialHash> CzTracker::GetSerialHashes()
     return vHashes;
 }
 
-CAmount CzTracker::GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly) const
+CAmount CzTracker::GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly, const int min_depth) const
 {
     CAmount nTotal = 0;
     //! zerocoin specific fields
@@ -148,6 +148,8 @@ CAmount CzTracker::GetBalance(bool fConfirmedOnly, bool fUnconfirmedOnly) const
             if (fConfirmedOnly && !fConfirmed)
                 continue;
             if (fUnconfirmedOnly && fConfirmed)
+                continue;
+	    if (min_depth > (chainActive.Height() - meta.nHeight))
                 continue;
 
             nTotal += libzerocoin::ZerocoinDenominationToAmount(meta.denom);
@@ -432,7 +434,12 @@ bool CzTracker::UpdateStatusInternal(const std::set<uint256>& setMempool, const 
         }
 
         // An orphan tx if hashblock is in mapBlockIndex but not in chain active
-        if (mapBlockIndex.count(hashBlock) && !chainActive.Contains(mapBlockIndex.at(hashBlock))) {
+        bool orphaned;
+        {
+            LOCK(cs_mapblockindex);
+            orphaned = mapBlockIndex.count(hashBlock) && !chainActive.Contains(mapBlockIndex.at(hashBlock));
+        }
+        if (orphaned) {
             LogPrintf("%s : Found orphaned mint txid=%s\n", __func__, mint.txid.GetHex());
             mint.isUsed = false;
             mint.nHeight = 0;
@@ -532,84 +539,6 @@ std::set<CMintMeta> CzTracker::ListMints(bool fUnusedOnly, bool fMatureOnly, boo
         UpdateState(meta);
 
     return setMints;
-}
-
-bool CzTracker::HasSpendCache(const uint256& hashSerial)
-{
-    AssertLockHeld(cs_readlock);
-    return mapSpendCache.count(hashSerial) > 0;
-}
-
-CoinWitnessData* CzTracker::CreateSpendCache(const uint256& hashSerial)
-{
-    AssertLockHeld(cs_modify_lock);
-    if (!mapSpendCache.count(hashSerial)) {
-        //Create if not exists
-        std::unique_ptr<CoinWitnessData> uptr(new CoinWitnessData());
-        mapSpendCache.insert(std::make_pair(hashSerial, std::move(uptr)));
-    }
-    return mapSpendCache.at(hashSerial).get();
-}
-
-CoinWitnessData* CzTracker::GetSpendCache(const uint256& hashSerial)
-{
-    AssertLockHeld(cs_readlock);
-    if (!mapSpendCache.count(hashSerial)) {
-        //Create if not exists
-        std::unique_ptr<CoinWitnessData> uptr(new CoinWitnessData());
-        mapSpendCache.insert(std::make_pair(hashSerial, std::move(uptr)));
-    }
-
-    return mapSpendCache.at(hashSerial).get();
-}
-
-bool CzTracker::GetCoinWitness(const uint256& hashSerial, CoinWitnessData& data)
-{
-    AssertLockHeld(cs_readlock);
-    data.SetNull();
-
-    if (!mapSpendCache.count(hashSerial))
-        return false;
-
-    auto pwitness = mapSpendCache.at(hashSerial).get();
-
-    if (!pwitness->coin) {
-        return error("%s: Coin pointer was null: returning false", __func__);
-    }
-
-    if (!pwitness->pAccumulator) {
-        return error("%s: Accumulator pointer was null: returning false", __func__);
-    }
-
-    try {
-        data = *pwitness;
-    } catch(...) {
-        return error("%s: Failed to copy pwitness data", __func__);
-    }
-
-//    auto denom = pwitness->denom;
-//    data.denom = denom;
-//    data.coin = std::unique_ptr<libzerocoin::PublicCoin>(new libzerocoin::PublicCoin(Params().Zerocoin_Params(), pwitness->coin->getValue(), denom));
-//    data.pAccumulator = std::unique_ptr<libzerocoin::Accumulator>(new libzerocoin::Accumulator(Params().Zerocoin_Params(), denom, pwitness->pAccumulator->getValue()));
-//    data.pWitness = std::unique_ptr<libzerocoin::AccumulatorWitness>(new libzerocoin::AccumulatorWitness(Params().Zerocoin_Params(), *data.pAccumulator.get(), *data.coin));
-//    data.nHeightCheckpoint = pwitness->nHeightCheckpoint;
-//    data.nHeightMintAdded = pwitness->nHeightMintAdded;
-//    data.nHeightAccStart = pwitness->nHeightAccStart;
-//    data.nHeightPrecomputed = pwitness->nHeightPrecomputed;
-//    data.txid = pwitness->txid;
-
-    return true;
-}
-
-bool CzTracker::ClearSpendCache()
-{
-    AssertLockHeld(cs_modify_lock);
-    if (!mapSpendCache.empty()) {
-        mapSpendCache.clear();
-        return true;
-    }
-
-    return false;
 }
 
 void CzTracker::Clear()

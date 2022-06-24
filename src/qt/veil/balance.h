@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2021 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -34,6 +34,7 @@ public:
     void setWalletModel(WalletModel *walletModel);
     void refreshWalletStatus();
     bool eventFilter(QObject *obj, QEvent *event);
+    void setDisplayRcvAddress(CTxDestination *displayAddress);
 
 public Q_SLOTS:
     void setBalance(const interfaces::WalletBalances& balances);
@@ -58,6 +59,9 @@ private:
     TooltipBalance *tooltip = nullptr;
 
     void onBtnBalanceClicked(int type);
+
+    bool displayAddressSet = false;
+    CTxDestination currentDisplayAddress;
 };
 
 #endif // BALANCE_H

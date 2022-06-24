@@ -1,4 +1,5 @@
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2018-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,9 +15,9 @@
 #include <serialize.h>
 #include <streams.h>
 #include <univalue.h>
-#include <util.h>
-#include <utilmoneystr.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/moneystr.h>
+#include <util/strencodings.h>
 
 UniValue ValueFromAmount(const CAmount& amount)
 {
@@ -134,7 +135,7 @@ std::string EncodeHexTx(const CTransaction& tx, const int serializeFlags)
 {
     CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION | serializeFlags);
     ssTx << tx;
-    return HexStr(ssTx.begin(), ssTx.end());
+    return HexStr(ssTx);
 }
 
 void AddRangeproof(const std::vector<uint8_t> &vRangeproof, UniValue &entry)
@@ -170,6 +171,7 @@ void OutputToJSON(uint256 &txid, int i,
             CTxOutStandard *s = (CTxOutStandard*) baseOut;
             entry.pushKV("value", ValueFromAmount(s->nValue));
             entry.pushKV("valueSat", s->nValue);
+            entry.pushKV("vout.n", i);
             UniValue o(UniValue::VOBJ);
             ScriptPubKeyToUniv(s->scriptPubKey, o, true);
             entry.pushKV("scriptPubKey", o);
@@ -180,6 +182,7 @@ void OutputToJSON(uint256 &txid, int i,
             CTxOutData *s = (CTxOutData*) baseOut;
             entry.pushKV("type", "data");
             entry.pushKV("data_hex", HexStr(s->vData.begin(), s->vData.end()));
+            entry.pushKV("vout.n", i);
             CAmount nValue;
             if (s->GetCTFee(nValue))
                 entry.pushKV("ct_fee", ValueFromAmount(nValue));
@@ -190,6 +193,7 @@ void OutputToJSON(uint256 &txid, int i,
             CTxOutCT *s = (CTxOutCT*) baseOut;
             entry.pushKV("type", "blind");
             entry.pushKV("valueCommitment", HexStr(&s->commitment.data[0], &s->commitment.data[0]+33));
+            entry.pushKV("vout.n", i);
             UniValue o(UniValue::VOBJ);
             ScriptPubKeyToUniv(s->scriptPubKey, o, true);
             entry.pushKV("scriptPubKey", o);
@@ -202,7 +206,14 @@ void OutputToJSON(uint256 &txid, int i,
         {
             CTxOutRingCT *s = (CTxOutRingCT*) baseOut;
             entry.pushKV("type", "ringct");
+            entry.pushKV("vout.n", i);
             entry.pushKV("pubkey", HexStr(s->pk.begin(), s->pk.end()));
+
+            std::vector<uint8_t> objKeyImage;
+            objKeyImage.resize(33);
+            memcpy(&objKeyImage[0], &s->pk[0], 33);
+            entry.pushKV("key_image", HexStr(objKeyImage));
+
             entry.pushKV("valueCommitment", HexStr(&s->commitment.data[0], &s->commitment.data[0]+33));
             entry.pushKV("data_hex", HexStr(s->vData.begin(), s->vData.end()));
 
@@ -218,7 +229,7 @@ void OutputToJSON(uint256 &txid, int i,
 void ScriptToUniv(const CScript& script, UniValue& out, bool include_address)
 {
     out.pushKV("asm", ScriptToAsmStr(script));
-    out.pushKV("hex", HexStr(script.begin(), script.end()));
+    out.pushKV("hex", HexStr(script));
 
     std::vector<std::vector<unsigned char>> solns;
     txnouttype type;
@@ -240,7 +251,7 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
 
     out.pushKV("asm", ScriptToAsmStr(scriptPubKey));
     if (fIncludeHex)
-        out.pushKV("hex", HexStr(scriptPubKey.begin(), scriptPubKey.end()));
+        out.pushKV("hex", HexStr(scriptPubKey));
 
     if (!ExtractDestinations(scriptPubKey, type, addresses, nRequired)) {
         out.pushKV("type", GetTxnOutputType(type));
@@ -272,7 +283,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
         const CTxIn& txin = tx.vin[i];
         UniValue in(UniValue::VOBJ);
         if (tx.IsCoinBase())
-            in.pushKV("coinbase", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
+            in.pushKV("coinbase", HexStr(txin.scriptSig));
         if (txin.IsAnonInput()) {
             in.pushKV("type", "anon");
             uint32_t nSigInputs, nSigRingSize;
@@ -291,6 +302,18 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
                     arrRing.push_back(obj);
                 }
                 in.pushKV("ringct_inputs", arrRing);
+                const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+                uint32_t nInputs, nRingSize;
+                txin.GetAnonInfo(nInputs, nRingSize);
+
+                UniValue arrKeyImages(UniValue::VARR);
+                for (unsigned int k = 0; k < nSigInputs; k++) {
+                    const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*nSigInputs]);
+                    UniValue objKeyImage(UniValue::VOBJ);
+                    objKeyImage.pushKV(std::to_string(k), HexStr(ki));
+                    arrKeyImages.push_back(objKeyImage);
+                }
+                in.pushKV("key_images", arrKeyImages);
             }
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
@@ -309,7 +332,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
             in.pushKV("vout", (int64_t)txin.prevout.n);
             UniValue o(UniValue::VOBJ);
             o.pushKV("asm", ScriptToAsmStr(txin.scriptSig, true));
-            o.pushKV("hex", HexStr(txin.scriptSig.begin(), txin.scriptSig.end()));
+            o.pushKV("hex", HexStr(txin.scriptSig));
             in.pushKV("scriptSig", o);
             if (!tx.vin[i].scriptWitness.IsNull()) {
                 UniValue txinwitness(UniValue::VARR);

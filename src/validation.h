@@ -1,5 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -43,10 +44,9 @@ class CScriptCheck;
 class CBlockPolicyEstimator;
 class CTxMemPool;
 class CValidationState;
-class CPrecomputeDB;
-class Precompute;
 struct ChainTxData;
 
+extern int global_randomx_flags;
 
 struct PrecomputedTransactionData;
 struct LockPoints;
@@ -106,9 +106,9 @@ static const int MAX_BLOCKTXN_DEPTH = 10;
  *  want to make this a per-peer adaptive value at some point. */
 static const unsigned int BLOCK_DOWNLOAD_WINDOW = 1024;
 /** Time to wait (in seconds) between writing blocks/block index to disk. */
-static const unsigned int DATABASE_WRITE_INTERVAL = 60 * 60;
+static const unsigned int DATABASE_WRITE_INTERVAL = 60 * 6;
 /** Time to wait (in seconds) between flushing chainstate to disk. */
-static const unsigned int DATABASE_FLUSH_INTERVAL = 24 * 60 * 60;
+static const unsigned int DATABASE_FLUSH_INTERVAL = 24 * 60 * 6;
 /** Maximum length of reject messages. */
 static const unsigned int MAX_REJECT_MESSAGE_LENGTH = 111;
 /** Block download timeout base, expressed in millionths of the block interval (i.e. 10 min) */
@@ -154,7 +154,9 @@ extern CBlockPolicyEstimator feeEstimator;
 extern CTxMemPool mempool;
 extern std::atomic_bool g_is_mempool_loaded;
 typedef std::unordered_map<uint256, CBlockIndex*, BlockHasher> BlockMap;
-extern BlockMap& mapBlockIndex;
+// Only protects the map, not any attributes of its contents.
+extern CCriticalSection& cs_mapblockindex;
+extern BlockMap& mapBlockIndex GUARDED_BY(cs_mapblockindex);
 extern uint64_t nLastBlockTx;
 extern uint64_t nLastBlockWeight;
 extern const std::string strMessageMagic;
@@ -223,9 +225,6 @@ static const unsigned int DEFAULT_CHECKLEVEL = 4;
 // Setting the target to > than 550MB will make it likely we can respect the target.
 static const uint64_t MIN_DISK_SPACE_FOR_BLOCK_FILES = 550 * 1024 * 1024;
 
-/** Veil zerocoin precomputing variables */
-extern bool fClearSpendCache;
-
 /**
  * Process an incoming block. This only returns after the best known valid
  * block is made active. Note that it does not, however, guarantee that the
@@ -269,7 +268,7 @@ FILE* OpenBlockFile(const CDiskBlockPos &pos, bool fReadOnly = false);
 /** Translation to a filesystem path */
 fs::path GetBlockPosFilename(const CDiskBlockPos &pos, const char *prefix);
 /** Import blocks from an external file */
-bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskBlockPos *dbp = nullptr);
+bool LoadExternalBlockFile(const CChainParams& chainparams, FILE* fileIn, CDiskBlockPos* dbp = nullptr);
 /** Ensures we have a genesis block in the block tree, possibly writing one to disk. */
 bool LoadGenesisBlock(const CChainParams& chainparams);
 /** Load the block tree and coins database from disk,
@@ -286,12 +285,12 @@ bool IsInitialBlockDownload();
 /** Check whether both headers and blocks are synced **/
 bool HeadersAndBlocksSynced();
 /** Retrieve a transaction (from memory pool, or from disk, if possible) */
-bool GetTransaction(const uint256& hash, CTransactionRef& tx, const Consensus::Params& params, uint256& hashBlock, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr);
+bool GetTransaction(const uint256& hash, CTransactionRef& tx, const Consensus::Params& params, uint256& hashBlock, bool fAllowSlow = false, CBlockIndex* blockIndex = nullptr, bool log = true);
 
 bool IsBlockHashInChain(const uint256& hashBlock, int& nHeight, const CBlockIndex* pindex = nullptr);
 
 /** Determine if the provided txid corresponds to a transaction in the blockchain */
-bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params, const CBlockIndex* pindex = nullptr);
+bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& txRef, const Consensus::Params& params, const CBlockIndex* pindex = nullptr, bool log = true);
 bool IsTransactionInChain(const uint256& txId, int& nHeightTx, const Consensus::Params& params, const CBlockIndex* pindex = nullptr);
 
 /**
@@ -312,7 +311,7 @@ uint64_t CalculateCurrentUsage();
 /**
  *  Mark one block file as pruned.
  */
-void PruneOneBlockFile(const int fileNumber);
+void PruneOneBlockFile(const int fileNumber) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
 /**
  *  Actually unlink the specified files
@@ -451,6 +450,8 @@ bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const CBlockIndex* pindex
 
 /** Functions for validating blocks and updating the block tree */
 
+bool CheckConsecutivePoW(const CBlock& block, const CBlockIndex* pindexPrev);
+
 /** Context-independent validity checks */
 bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fSkipComputation = false, bool fCheckPOW = true, bool fCheckMerkleRoot = true);
 
@@ -485,7 +486,7 @@ bool ReplayBlocks(const CChainParams& params, CCoinsView* view);
 
 inline CBlockIndex* LookupBlockIndex(const uint256& hash)
 {
-    AssertLockHeld(cs_main);
+    LOCK(cs_mapblockindex);
     BlockMap::const_iterator it = mapBlockIndex.find(hash);
     return it == mapBlockIndex.end() ? nullptr : it->second;
 }
@@ -521,11 +522,6 @@ extern std::unique_ptr<CBlockTreeDB> pblocktree;
 /** Global variable that points to the active zerocoin database (protected by cs_main) */
 extern std::unique_ptr<CZerocoinDB> pzerocoinDB;
 
-/** Global variable that points to the active percompute database (protected by cs_main) */
-extern std::unique_ptr<CPrecomputeDB> pprecomputeDB;
-
-extern std::unique_ptr<Precompute> pprecompute;
-
 /**
  * Return the spend height, which is one more than the inputs.GetBestBlock().
  * While checking, GetBestBlock() refers to the parent block. (protected by cs_main)
@@ -533,12 +529,14 @@ extern std::unique_ptr<Precompute> pprecompute;
  */
 int GetSpendHeight(const CCoinsViewCache& inputs);
 
+static bool isPowTimeStampActive() { return (chainActive.Tip()->nTime >= nPowTimeStampActive); }
+
 extern VersionBitsCache versionbitscache;
 
 /**
  * Determine what nVersion a new block should use.
  */
-int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params);
+int32_t ComputeBlockVersion(const CBlockIndex* pindexPrev, const Consensus::Params& params, const uint32_t& blockTime, const bool& fProofOfWork, int nPoWType = 0);
 
 /** Reject codes greater or equal to this can be returned by AcceptToMemPool
  * for transactions, to signal internal conditions. They cannot and should not

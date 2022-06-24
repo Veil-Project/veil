@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2021 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -11,6 +11,7 @@
 #endif
 
 #include <amount.h>
+#include <script/standard.h>
 
 #include <QLabel>
 #include <QMainWindow>
@@ -150,6 +151,8 @@ private:
     QAction* overviewAction = nullptr;
     QAction* addressesAction = nullptr;
     QAction* settingsAction = nullptr;
+    QAction* settingsAction2 = nullptr;
+    QAction* miningAction = nullptr;
     //QAction* historyAction = nullptr;
     QAction* quitAction = nullptr;
     QAction* sendCoinsAction = nullptr;
@@ -236,6 +239,8 @@ public Q_SLOTS:
     */
     void message(const QString &title, const QString &message, unsigned int style, bool *ret = nullptr);
 
+    void updatedSelectedRcvAddress(CTxDestination* selectedRcvAddress);
+
 #ifdef ENABLE_WALLET
     void initWalletMenu(std::string& mnemonic, unsigned int& flag, bool& ret);
     bool setCurrentWallet(const QString& name);
@@ -285,6 +290,8 @@ private Q_SLOTS:
     void gotoReceiveCoinsPage();
     /** Switch to send coins page */
     void gotoSendCoinsPage(QString addr = "");
+    /** Switch to mining page */
+    void gotoMiningPage();
     /** Switch to addresses page */
     void gotoAddressesPage();
     /** Switch to settings page */

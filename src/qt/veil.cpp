@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
-// Copyright (c) 2019-2020 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -22,6 +22,7 @@
 #include <qt/platformstyle.h>
 #include <qt/utilitydialog.h>
 #include <qt/winshutdownmonitor.h>
+#include <qt/macdarkmode.h>
 
 #ifdef ENABLE_WALLET
 #include <qt/paymentserver.h>
@@ -34,7 +35,8 @@
 #include <rpc/server.h>
 #include <ui_interface.h>
 #include <uint256.h>
-#include <util.h>
+#include <util/system.h>
+#include <key_io.h>
 #include <warnings.h>
 
 #include <walletinitinterface.h>
@@ -317,6 +319,17 @@ BitcoinApplication::BitcoinApplication(interfaces::Node& node, int &argc, char *
 
 void BitcoinApplication::setupPlatformStyle()
 {
+// This causes compatibility issues with macOS 10.14+
+// Disabling of dark mode may already be handled in info.plist.in section NSRequiresAquaSystemAppearance
+#if 0
+#if defined(Q_OS_MAC)
+    // This is a work around for our not having as yet any "Dark Mode" compatible
+    // stylesheets.  Enforce the use of known-good Aqua style on systems that support
+    // the NSAppearance property.
+    disableDarkMode();
+#endif
+#endif
+
     // UI per-platform customization
     // This must be done inside the BitcoinApplication constructor, or after it, because
     // PlatformStyle::instantiate requires a QApplication
@@ -640,12 +653,15 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    // Preferences check
-    // If the UI settings have a different value than the server args then use the UI settings.
-    QSettings* settings = getSettings();
-    int tempPref = settings->value("nAutomintDenom").toInt();
-    if(tempPref != nPreferredDenom && tempPref != 0){
-        nPreferredDenom = tempPref;
+    // Automint denom
+    // If nautomintdenom is set, use it
+    // Else use saved UI settings
+    if(!gArgs.IsArgSet("-nautomintdenom")){
+    	QSettings* settings = getSettings();
+    	int tempPref = settings->value("nAutomintDenom").toInt();
+		if(tempPref != nPreferredDenom && tempPref != 0){
+			nPreferredDenom = tempPref;
+		}
     }
 
     // Now that the QApplication is setup and we have parsed our parameters, we can set the platform style
@@ -710,6 +726,38 @@ int main(int argc, char *argv[])
         PaymentServer::ipcParseCommandLine(*node, argc, argv);
     }
 #endif
+
+    // Check for mine algo to be valid
+    std::string sAlgo = gArgs.GetArg("-mine", RANDOMX_STRING);
+    if (!SetMiningAlgorithm(sAlgo))
+    {
+        error = "invalid mining algorithm: " + sAlgo;
+        QMessageBox::critical(0, QObject::tr(PACKAGE_NAME),
+            QObject::tr("Error parsing command line arguments: %1.").arg(QString::fromStdString(error)));
+        return EXIT_FAILURE;
+    }
+    // Check for miningaddress (has to be after we setup the parameters
+    std::string sAddress = gArgs.GetArg("-miningaddress", "");
+    if (!sAddress.empty()) {
+        // Sanity check the mining address
+        CTxDestination dest = DecodeDestination(sAddress);
+
+        if (!IsValidDestination(dest)) {
+            error = "miningaddress requires a valid basecoin address";
+            QMessageBox::critical(0, QObject::tr(PACKAGE_NAME),
+                QObject::tr("Error parsing command line arguments: %1.").arg(QString::fromStdString(error)));
+            return EXIT_FAILURE;
+        }
+
+        // Disallow Stealth Addresses for now
+        CBitcoinAddress address(sAddress);
+        if (address.IsValidStealthAddress()) {
+            error = "miningaddress must be a basecoin address";
+            QMessageBox::critical(0, QObject::tr(PACKAGE_NAME),
+                QObject::tr("Error parsing command line arguments: %1.").arg(QString::fromStdString(error)));
+            return EXIT_FAILURE;
+        }
+    }
 
     QScopedPointer<const NetworkStyle> networkStyle(NetworkStyle::instantiate(QString::fromStdString(Params().NetworkIDString())));
     assert(!networkStyle.isNull());

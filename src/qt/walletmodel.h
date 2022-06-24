@@ -211,11 +211,6 @@ public:
     void setStakingEnabled(bool fEnableStaking);
     bool isStakingEnabled();
 
-    bool StartPrecomputing(std::string& strStatus);
-    void StopPrecomputing();
-    void setPrecomputingEnabled(bool fEnablePrecomputing);
-    bool isPrecomputingEnabled();
-
     void loadReceiveRequests(std::vector<std::string>& vReceiveRequests);
     bool saveReceiveRequest(const std::string &sAddress, const int64_t nId, const std::string &sRequest);
 
@@ -291,6 +286,9 @@ Q_SIGNALS:
     // Signal that wallet is about to be removed
     void unload();
 
+    // Signal for periodic updating of Mining Fields
+    void updateMiningFields();
+
 public Q_SLOTS:
     /* Wallet status might have changed */
     void updateStatus();
@@ -302,6 +300,8 @@ public Q_SLOTS:
     void updateWatchOnlyFlag(bool fHaveWatchonly);
     /* Current, immature or unconfirmed balance might have changed - emit 'balanceChanged' if so */
     void pollBalanceChanged();
+    /* Update mining status if changed through different interface */
+    void pollMiningActivity();
 };
 
 #endif // BITCOIN_QT_WALLETMODEL_H

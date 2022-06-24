@@ -30,12 +30,12 @@
 /**
 * A valid mnemonic word count is evenly divisible by this number.
 */
-static size_t mnemonic_word_multiple = 3;
+static const size_t mnemonic_word_multiple = 3;
 
 /**
 * A valid seed byte count is evenly divisible by this number.
 */
-static size_t mnemonic_seed_multiple = 4;
+static const size_t mnemonic_seed_multiple = 4;
 
 template <size_t Size>
 using byte_array = std::array<uint8_t, Size>;

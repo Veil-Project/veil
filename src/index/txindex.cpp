@@ -5,7 +5,7 @@
 #include <index/txindex.h>
 #include <shutdown.h>
 #include <ui_interface.h>
-#include <util.h>
+#include <util/system.h>
 #include <validation.h>
 
 #include <boost/thread.hpp>
@@ -257,7 +257,7 @@ bool TxIndex::WriteBlock(const CBlock& block, const CBlockIndex* pindex)
 
 BaseIndex::DB& TxIndex::GetDB() const { return *m_db; }
 
-bool TxIndex::FindTx(const uint256& tx_hash, uint256& block_hash, CTransactionRef& tx) const
+bool TxIndex::FindTx(const uint256& tx_hash, uint256& block_hash, CTransactionRef& tx, bool log) const
 {
     CDiskTxPos postx;
     if (!m_db->ReadTxPos(tx_hash, postx)) {
@@ -279,7 +279,7 @@ bool TxIndex::FindTx(const uint256& tx_hash, uint256& block_hash, CTransactionRe
         return error("%s: Deserialize or I/O error - %s", __func__, e.what());
     }
     if (tx->GetHash() != tx_hash) {
-        return error("%s: txid mismatch", __func__);
+        return berror(log, "%s: txid mismatch", __func__);
     }
     block_hash = header.GetHash();
     return true;

@@ -66,9 +66,11 @@ BITCOIN_TESTS =\
   test/policyestimator_tests.cpp \
   test/pow_tests.cpp \
   test/prevector_tests.cpp \
+  test/progpow_tests.cpp \
   test/proofofstaketests.cpp \
   test/raii_event_tests.cpp \
   test/random_tests.cpp \
+  test/randomx_tests.cpp \
   test/reverselock_tests.cpp \
   test/rpc_tests.cpp \
   test/sanity_tests.cpp \
@@ -125,7 +127,7 @@ test_test_veil_LDADD += $(LIBBITCOIN_SERVER) $(LIBBITCOIN_CLI) $(LIBBITCOIN_COMM
 test_test_veil_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 
 test_test_veil_LDADD += $(LIBBITCOIN_CONSENSUS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS)
-test_test_veil_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) -static
+test_test_veil_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS) -static
 
 if ENABLE_ZMQ
 test_test_veil_LDADD += $(ZMQ_LIBS)
@@ -151,7 +153,7 @@ test_test_veil_fuzzy_LDADD = \
   $(LIBBITCOIN_CRYPTO_SHANI) \
   $(LIBSECP256K1)
 
-test_test_veil_fuzzy_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
+test_test_veil_fuzzy_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS) $(PTHREAD_FLAGS)
 #
 
 nodist_test_test_veil_SOURCES = $(GENERATED_TEST_FILES)

@@ -1,5 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -37,8 +37,9 @@
 #include <chainparams.h>
 #include <interfaces/handler.h>
 #include <interfaces/node.h>
+#include <key_io.h>
 #include <ui_interface.h>
-#include <util.h>
+#include <util/system.h>
 
 #include <iostream>
 
@@ -256,6 +257,7 @@ BitcoinGUI::BitcoinGUI(interfaces::Node& node, const PlatformStyle *_platformSty
     modalOverlay = new ModalOverlay(this->centralWidget(), this);
 #ifdef ENABLE_WALLET
     if(enableWallet) {
+        connect(walletFrame, SIGNAL(changeSelectedRcvAddress(CTxDestination*)), this, SLOT(updatedSelectedRcvAddress(CTxDestination*)));
         connect(walletFrame, SIGNAL(requestedSyncWarningInfo()), this, SLOT(showModalOverlay()));
         connect(labelBlocksIcon, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
         connect(progressBar, SIGNAL(clicked(QPoint)), this, SLOT(showModalOverlay()));
@@ -322,8 +324,16 @@ void BitcoinGUI::createActions()
     addressesAction->setStatusTip(tr("Addresses overview"));
     addressesAction->setToolTip(addressesAction->statusTip());
     addressesAction->setCheckable(true);
-    receiveCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));
+    addressesAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
     tabGroup->addAction(addressesAction);
+
+    QIcon iconMining(":/icons/ic-mined-white-png");
+    miningAction = new QAction(iconMining,tr("&Mining"), this);
+    miningAction->setStatusTip(tr("Mining"));
+    miningAction->setToolTip(miningAction->statusTip());
+    miningAction->setCheckable(true);
+    miningAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_4));
+    tabGroup->addAction(miningAction);
 
     QIcon icon(":/icons/ic-settings-png2");
     //icon.addFile(":/icons/ic-settings-png2", QSize(iconsSize,iconsSize));
@@ -331,7 +341,8 @@ void BitcoinGUI::createActions()
     settingsAction->setStatusTip(tr("Settings"));
     settingsAction->setToolTip(settingsAction->statusTip());
     settingsAction->setCheckable(true);
-    receiveCoinsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_5));
+    settingsAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_6));
+
     tabGroup->addAction(settingsAction);
 
     sendCoinsMenuAction = new QAction(platformStyle->TextColorIcon(":/icons/send"), sendCoinsAction->text(), this);
@@ -358,6 +369,8 @@ void BitcoinGUI::createActions()
         connect(receiveCoinsMenuAction, SIGNAL(triggered()), this, SLOT(gotoReceiveCoinsPage()));
         connect(addressesAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
         connect(addressesAction, SIGNAL(triggered()), this, SLOT(gotoAddressesPage()));
+        connect(miningAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+        connect(miningAction, SIGNAL(triggered()), this, SLOT(gotoMiningPage()));
         connect(settingsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
         connect(settingsAction, SIGNAL(triggered()), this, SLOT(gotoSettingsPage()));
     }
@@ -475,6 +488,7 @@ void BitcoinGUI::createToolBars()
         toolbar->addAction(overviewAction);
         toolbar->addAction(sendCoinsAction);
         toolbar->addAction(receiveCoinsAction);
+        toolbar->addAction(miningAction);
         toolbar->addAction(addressesAction);
         toolbar->addAction(settingsAction);
         overviewAction->setChecked(true);
@@ -537,6 +551,7 @@ void BitcoinGUI::setClientModel(ClientModel *_clientModel)
         {
             walletFrame->setClientModel(_clientModel);
             balance->setClientModel(_clientModel);
+            veilStatusBar->setClientModel(_clientModel);
         }
 #endif // ENABLE_WALLET
         unitDisplayControl->setOptionsModel(_clientModel->getOptionsModel());
@@ -803,6 +818,15 @@ void BitcoinGUI::gotoSendCoinsPage(QString addr)
     if (walletFrame) walletFrame->gotoSendCoinsPage(addr);
 }
 
+void BitcoinGUI::gotoMiningPage()
+{
+    if(!enableWallet)
+        return;
+
+    miningAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoMiningPage();
+}
+
 void BitcoinGUI::gotoAddressesPage(){
     if(!enableWallet)
         return;
@@ -931,6 +955,7 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
     }
 
     veilStatusBar->updateSyncIndicator(count);
+    veilStatusBar->setNumBlocks(blockDate);
 
     QString tooltip;
 
@@ -991,6 +1016,8 @@ void BitcoinGUI::setNumBlocks(int count, const QDateTime& blockDate, double nVer
         tooltip += QString("<br>");
         tooltip += tr("Transactions after this will not yet be visible.");
     }
+
+    veilStatusBar->updateStakingCheckbox();
 
     // Don't word-wrap this (fixed-width) tooltip
     tooltip = QString("<nobr>") + tooltip + QString("</nobr>");
@@ -1082,7 +1109,7 @@ void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool&
             tutorial->exec();
 
             while (tutorial->isVisible()) {
-                MilliSleep(500);
+                UninterruptibleSleep(std::chrono::milliseconds{500});
             }
 
             ret = !tutorial->ShutdownRequested();
@@ -1098,7 +1125,7 @@ void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool&
             mDiag->exec();
 
             while (mDiag->isVisible()) {
-                MilliSleep(500);
+                UninterruptibleSleep(std::chrono::milliseconds{500});
             }
 
             ret = !mDiag->ShutdownRequested();
@@ -1112,7 +1139,7 @@ void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool&
             mDisp->exec();
 
             while (mDisp->isVisible())
-                MilliSleep(500);
+                UninterruptibleSleep(std::chrono::milliseconds{500});
 
             ret = !mDisp->ShutdownRequested();
             delete mDisp;
@@ -1124,7 +1151,7 @@ void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool&
             mDisp->exec();
 
             while (mDisp->isVisible())
-                MilliSleep(500);
+                UninterruptibleSleep(std::chrono::milliseconds{500});
 
             ret = !mDisp->ShutdownRequested();
             mnemonic = mDisp->GetImportSeed().toStdString();
@@ -1138,7 +1165,7 @@ void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool&
             mDisp->exec();
 
             while (mDisp->isVisible())
-                MilliSleep(500);
+                UninterruptibleSleep(std::chrono::milliseconds{500});
 
             ret = !mDisp->ShutdownRequested();
             mnemonic = mDisp->GetImportSeed().toStdString();
@@ -1494,11 +1521,11 @@ static bool InitNewWallet(BitcoinGUI *gui, std::string& mnemonic, unsigned int& 
 void BitcoinGUI::subscribeToCoreSignals()
 {
     // Connect signals to client
-    m_handler_message_box = m_node.handleMessageBox(boost::bind(ThreadSafeMessageBox, this, _1, _2, _3));
-    m_handler_question = m_node.handleQuestion(boost::bind(ThreadSafeMessageBox, this, _1, _3, _4));
+    m_handler_message_box = m_node.handleMessageBox(std::bind(ThreadSafeMessageBox, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    m_handler_question = m_node.handleQuestion(std::bind(ThreadSafeMessageBox, this, std::placeholders::_1, std::placeholders::_3, std::placeholders::_4));
 #ifdef ENABLE_WALLET
     if(enableWallet)
-        m_handler_init_wallet = m_node.handleInitWallet(boost::bind(InitNewWallet, this, _1, _2));
+        m_handler_init_wallet = m_node.handleInitWallet(std::bind(InitNewWallet, this, std::placeholders::_1, std::placeholders::_2));
 #endif
 }
 
@@ -1517,6 +1544,13 @@ void BitcoinGUI::toggleNetworkActive()
 {
     m_node.setNetworkActive(!m_node.getNetworkActive());
 }
+
+#ifdef ENABLE_WALLET
+void BitcoinGUI::updatedSelectedRcvAddress(CTxDestination* selectedRcvAddress) {
+    balance->setDisplayRcvAddress(selectedRcvAddress);
+    balance->refreshWalletStatus();
+}
+#endif 
 
 UnitDisplayStatusBarControl::UnitDisplayStatusBarControl(const PlatformStyle *platformStyle) :
     optionsModel(0),

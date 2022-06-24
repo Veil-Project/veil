@@ -1,4 +1,5 @@
 // Copyright (c) 2011-2019 The Bitcoin Core developers
+// Copyright (c) 2019-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -436,7 +437,8 @@ void CoinControlDialog::viewItemChanged(QTreeWidgetItem* item, int column)
             coinControl()->nCoinType = CoinControlDialog::nCurrentCoinTypeSelected;
             coinControl()->fZerocoinSelected = CoinControlDialog::fSpendingZerocoin;
 
-            CAmount nValue = AmountFromValue(item->text(COLUMN_AMOUNT).toStdString());
+            CAmount nValue;
+            BitcoinUnits::parse(BitcoinUnits::VEIL, item->text(COLUMN_AMOUNT), &nValue);
 
             if (CoinControlDialog::fSpendingZerocoin)
                 coinControl()->Select(serialHash, nValue);
@@ -563,14 +565,15 @@ void CoinControlDialog::updateLabels(WalletModel *model, QDialog* dialog)
             uint256 hashBlock;
             if (!GetTransaction(txid, txRef, Params().GetConsensus(), hashBlock, true))
                 continue;
-            auto it = mapBlockIndex.find(hashBlock);
-            if (it == mapBlockIndex.end())
+
+            CBlockIndex* block = LookupBlockIndex(hashBlock);
+            if (block == nullptr)
                 continue;
 
-            if (!chainActive.Contains(it->second))
+            if (!chainActive.Contains(block))
                 continue;
 
-            nDepth = chainActive.Height() - it->second->nHeight + 1;
+            nDepth = chainActive.Height() - block->nHeight + 1;
         }
 
         if (nDepth < 1)
@@ -766,8 +769,7 @@ void CoinControlDialog::updateView(int nCoinType)
 
     if (nCoinType == OUTPUT_STANDARD && !CoinControlDialog::fSpendingZerocoin) {
         for (const auto &coins : model->wallet().listCoins()) {
-            CCoinControlWidgetItem *itemWalletAddress = new CCoinControlWidgetItem();
-            itemWalletAddress->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
+            CCoinControlWidgetItem *itemWalletAddress{nullptr};
             QString sWalletAddress = QString::fromStdString(EncodeDestination(coins.first));
             QString sWalletLabel = model->getAddressTableModel()->labelForAddress(sWalletAddress);
             if (sWalletLabel.isEmpty())
@@ -775,7 +777,7 @@ void CoinControlDialog::updateView(int nCoinType)
 
             if (treeMode) {
                 // wallet address
-                ui->treeWidget->addTopLevelItem(itemWalletAddress);
+                itemWalletAddress = new CCoinControlWidgetItem(ui->treeWidget);
 
                 itemWalletAddress->setFlags(flgTristate);
                 itemWalletAddress->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
@@ -887,15 +889,15 @@ void CoinControlDialog::updateView(int nCoinType)
                 if (!GetTransaction(txid, txRef, Params().GetConsensus(), hashBlock, true))
                     continue;
 
-                auto it = mapBlockIndex.find(hashBlock);
-                if (it == mapBlockIndex.end())
+                CBlockIndex* block = LookupBlockIndex(hashBlock);
+                if (block == nullptr)
                     continue;
 
-                if (!chainActive.Contains(it->second))
+                if (!chainActive.Contains(block))
                     continue;
 
-                nDepth = chainActive.Height() - it->second->nHeight + 1;
-                nTimeTx = it->second->GetBlockTime();
+                nDepth = chainActive.Height() - block->nHeight + 1;
+                nTimeTx = block->GetBlockTime();
             }
 
             for (unsigned int i = 0; i < txRecord.vout.size(); i++) {
@@ -909,10 +911,6 @@ void CoinControlDialog::updateView(int nCoinType)
 
                 //Check against the coin type that is selecetd, only show the selected coin type
                 if (out.nType != nCoinType)
-                    continue;
-
-                //Also need to filter out zerocoinmints
-                if (txRef->vpout[i]->IsZerocoinMint())
                     continue;
 
                 //Don't display zero confirmed outputs
@@ -1040,17 +1038,16 @@ void CoinControlDialog::updateView(int nCoinType)
 
     // Zerocoin
     if (CoinControlDialog::fSpendingZerocoin) {
-        ui->treeWidget->model()->setHeaderData(COLUMN_LABEL, Qt::Horizontal, tr("Precomputed %"));
         ui->treeWidget->model()->setHeaderData(COLUMN_ADDRESS, Qt::Horizontal, tr("Serial Hash"));
-        map<libzerocoin::CoinDenomination, CCoinControlWidgetItem *> mapTreeWidgetItems;
-        map<libzerocoin::CoinDenomination, int> mapDenomAmount;
+        std::map<libzerocoin::CoinDenomination, CCoinControlWidgetItem *> mapTreeWidgetItems;
+        std::map<libzerocoin::CoinDenomination, int> mapDenomAmount;
         std::set<CMintMeta> setZerocoins;
         model->wallet().getWalletPointer()->AvailableZerocoins(setZerocoins);
 
-        mapDenomAmount.insert(make_pair(libzerocoin::CoinDenomination::ZQ_TEN, 0));
-        mapDenomAmount.insert(make_pair(libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED, 0));
-        mapDenomAmount.insert(make_pair(libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND, 0));
-        mapDenomAmount.insert(make_pair(libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND, 0));
+        mapDenomAmount.insert(std::make_pair(libzerocoin::CoinDenomination::ZQ_TEN, 0));
+        mapDenomAmount.insert(std::make_pair(libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED, 0));
+        mapDenomAmount.insert(std::make_pair(libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND, 0));
+        mapDenomAmount.insert(std::make_pair(libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND, 0));
 
         for (auto mint : setZerocoins) {
             const CWalletTx *pwtx = model->wallet().getWalletPointer()->GetWalletTx(mint.txid);
@@ -1066,15 +1063,15 @@ void CoinControlDialog::updateView(int nCoinType)
                 if (!GetTransaction(mint.txid, txRef, Params().GetConsensus(), hashBlock, true))
                     continue;
 
-                auto it = mapBlockIndex.find(hashBlock);
-                if (it == mapBlockIndex.end())
+                CBlockIndex* block = LookupBlockIndex(hashBlock);
+                if (block == nullptr)
                     continue;
 
-                if (!chainActive.Contains(it->second))
+                if (!chainActive.Contains(block))
                     continue;
 
-                nDepth = chainActive.Height() - it->second->nHeight + 1;
-                nTimeTx = it->second->GetBlockTime();
+                nDepth = chainActive.Height() - block->nHeight + 1;
+                nTimeTx = block->GetBlockTime();
             }
 
             // increase the count for each denom we see
@@ -1087,7 +1084,7 @@ void CoinControlDialog::updateView(int nCoinType)
             if (!mapTreeWidgetItems.count(mint.denom)) {
                 CCoinControlWidgetItem *itemZerocoinInput = new CCoinControlWidgetItem();
                 itemZerocoinInput->setCheckState(COLUMN_CHECKBOX, Qt::Unchecked);
-                mapTreeWidgetItems.insert(make_pair(mint.denom, itemZerocoinInput));
+                mapTreeWidgetItems.insert(std::make_pair(mint.denom, itemZerocoinInput));
             }
 
             CCoinControlWidgetItem *itemOutput;
@@ -1117,12 +1114,6 @@ void CoinControlDialog::updateView(int nCoinType)
 
             // hash serial
             itemOutput->setText(COLUMN_ADDRESS, QString::fromStdString(mint.hashSerial.GetHex()));
-
-            double nPercent = 0;
-            if (model->wallet().getWalletPointer()->GetZerocoinPrecomputePercentage(mint.hashSerial, nPercent)) {
-                itemOutput->setText(COLUMN_LABEL, QString::number(nPercent, 'f', 2));
-            } else
-                itemOutput->setText(COLUMN_LABEL, "Not available");
 
             // set checkbox
             if (coinControl()->IsSelected(mint.hashSerial)) {

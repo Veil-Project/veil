@@ -16,7 +16,7 @@
 #include <interfaces/node.h>
 #include <key_io.h>
 #include <ui_interface.h>
-#include <util.h> // for GetBoolArg
+#include <util/system.h> // for GetBoolArg
 #include <wallet/coincontrol.h>
 #include <wallet/wallet.h>
 
@@ -45,6 +45,7 @@ WalletModel::WalletModel(std::unique_ptr<interfaces::Wallet> wallet, interfaces:
     // This timer will be fired repeatedly to update the balance
     pollTimer = new QTimer(this);
     connect(pollTimer, SIGNAL(timeout()), this, SLOT(pollBalanceChanged()));
+    connect(pollTimer, SIGNAL(timeout()), this, SLOT(pollMiningActivity()));
     pollTimer->start(MODEL_UPDATE_DELAY);
 
     subscribeToCoreSignals();
@@ -87,6 +88,11 @@ void WalletModel::pollBalanceChanged()
         if(transactionTableModel)
             transactionTableModel->updateConfirmations();
     }
+}
+
+void WalletModel::pollMiningActivity()
+{
+    Q_EMIT updateMiningFields();
 }
 
 void WalletModel::checkBalanceChanged(const interfaces::WalletBalances& new_balances)
@@ -485,26 +491,6 @@ bool WalletModel::isStakingEnabled()
     return m_wallet->isStakingEnabled();
 }
 
-void WalletModel::setPrecomputingEnabled(bool fPrecomputingStaking)
-{
-    m_wallet->setPrecomputingEnabled(fPrecomputingStaking);
-}
-
-bool WalletModel::StartPrecomputing(std::string& strStatus)
-{
-    return m_wallet->StartPrecomputing(strStatus);
-}
-
-void WalletModel::StopPrecomputing()
-{
-    m_wallet->StopPrecomputing();
-}
-
-bool WalletModel::isPrecomputingEnabled()
-{
-    return m_wallet->isPrecomputingEnabled();
-}
-
 // Handlers for core signals
 static void NotifyUnload(WalletModel* walletModel)
 {
@@ -563,12 +549,12 @@ static void NotifyWatchonlyChanged(WalletModel *walletmodel, bool fHaveWatchonly
 void WalletModel::subscribeToCoreSignals()
 {
     // Connect signals to wallet
-    m_handler_unload = m_wallet->handleUnload(boost::bind(&NotifyUnload, this));
-    m_handler_status_changed = m_wallet->handleStatusChanged(boost::bind(&NotifyKeyStoreStatusChanged, this));
-    m_handler_address_book_changed = m_wallet->handleAddressBookChanged(boost::bind(NotifyAddressBookChanged, this, _1, _2, _3, _4, _5));
-    m_handler_transaction_changed = m_wallet->handleTransactionChanged(boost::bind(NotifyTransactionChanged, this, _1, _2));
-    m_handler_show_progress = m_wallet->handleShowProgress(boost::bind(ShowProgress, this, _1, _2));
-    m_handler_watch_only_changed = m_wallet->handleWatchOnlyChanged(boost::bind(NotifyWatchonlyChanged, this, _1));
+    m_handler_unload = m_wallet->handleUnload(std::bind(&NotifyUnload, this));
+    m_handler_status_changed = m_wallet->handleStatusChanged(std::bind(&NotifyKeyStoreStatusChanged, this));
+    m_handler_address_book_changed = m_wallet->handleAddressBookChanged(std::bind(NotifyAddressBookChanged, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5));
+    m_handler_transaction_changed = m_wallet->handleTransactionChanged(std::bind(NotifyTransactionChanged, this, std::placeholders::_1, std::placeholders::_2));
+    m_handler_show_progress = m_wallet->handleShowProgress(std::bind(ShowProgress, this, std::placeholders::_1, std::placeholders::_2));
+    m_handler_watch_only_changed = m_wallet->handleWatchOnlyChanged(std::bind(NotifyWatchonlyChanged, this, std::placeholders::_1));
 }
 
 void WalletModel::unsubscribeFromCoreSignals()

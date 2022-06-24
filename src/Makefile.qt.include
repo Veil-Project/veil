@@ -60,6 +60,7 @@ QT_FORMS_UI = \
   qt/veil/forms/settingsrestoreseed.ui \
   qt/veil/forms/settingswidget.ui \
   qt/veil/forms/receivewidget.ui \
+  qt/veil/forms/miningwidget.ui \
   qt/veil/forms/addresseswidget.ui \
   qt/veil/forms/addressnewcontact.ui \
   qt/veil/forms/addressreceive.ui \
@@ -154,6 +155,7 @@ QT_MOC_CPP = \
   qt/veil/settings/moc_settingsrestoreseed.cpp \
   qt/veil/settings/moc_settingswidget.cpp \
   qt/veil/moc_receivewidget.cpp \
+  qt/veil/moc_miningwidget.cpp \
   qt/veil/moc_addresseswidget.cpp \
   qt/veil/moc_addressnewcontact.cpp \
   qt/veil/moc_addressreceive.cpp \
@@ -171,7 +173,8 @@ QT_MOC_CPP = \
 
 BITCOIN_MM = \
   qt/macdockiconhandler.mm \
-  qt/macnotificationhandler.mm
+  qt/macnotificationhandler.mm \
+  qt/macdarkmode.mm
 
 QT_MOC = \
   qt/veil.moc \
@@ -211,6 +214,7 @@ BITCOIN_QT_H = \
   qt/intro.h \
   qt/macdockiconhandler.h \
   qt/macnotificationhandler.h \
+  qt/macdarkmode.h \
   qt/modaloverlay.h \
   qt/networkstyle.h \
   qt/notificator.h \
@@ -277,6 +281,7 @@ BITCOIN_QT_H = \
   qt/veil/settings/settingsrestoreseed.h \
   qt/veil/settings/settingswidget.h \
   qt/veil/receivewidget.h \
+  qt/veil/miningwidget.h \
   qt/veil/qtutils.h \
   qt/veil/addresseswidget.h \
   qt/veil/addressnewcontact.h \
@@ -554,6 +559,7 @@ RES_ICONS = \
   qt/res/icons/ic-transactions.png \
   qt/res/icons/ic-send.png \
   qt/res/icons/ic-receive.png \
+  qt/res/icons/ic_mined_white.png \
   qt/res/icons/ic-information.png \
   qt/res/icons/logo-splash@3x.png \
   qt/res/icons/logo-splash@2x.png \
@@ -670,6 +676,7 @@ BITCOIN_QT_WALLET_CPP = \
   qt/veil/settings/settingsrestoreseed.cpp \
   qt/veil/settings/settingswidget.cpp \
   qt/veil/receivewidget.cpp \
+  qt/veil/miningwidget.cpp \
   qt/veil/addresseswidget.cpp \
   qt/veil/addressnewcontact.cpp \
   qt/veil/addressreceive.cpp \
@@ -748,7 +755,7 @@ endif
 qt_veil_qt_LDADD += $(LIBBITCOIN_CLI) $(LIBBITCOIN_COMMON) $(LIBBITCOIN_UTIL) $(LIBBITCOIN_CONSENSUS) $(LIBBITCOIN_ZEROCOIN) $(LIBBITCOIN_CRYPTO) $(LIBUNIVALUE) $(LIBLEVELDB) $(LIBLEVELDB_SSE42) $(LIBMEMENV) \
   $(BOOST_LIBS) $(QT_LIBS) $(QT_DBUS_LIBS) $(QR_LIBS) $(PROTOBUF_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(LIBSECP256K1) \
   $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS)
-qt_veil_qt_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(QT_LDFLAGS) $(LIBTOOL_APP_LDFLAGS)
+qt_veil_qt_LDFLAGS = $(RELDFLAGS) $(AM_LDFLAGS) $(QT_LDFLAGS) $(LIBTOOL_APP_LDFLAGS) $(PTHREAD_FLAGS)
 qt_veil_qt_LIBTOOLFLAGS = $(AM_LIBTOOLFLAGS) --tag CXX
 
 #locale/foo.ts -> locale/foo.qm

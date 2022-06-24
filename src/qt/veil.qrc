@@ -257,6 +257,7 @@
         <file alias="ic-settings-png2">res/icons/ic-settings.png</file>
         <file alias="ic-information-png">res/icons/ic-information.png</file>
         <file alias="ic-receive-png2">res/icons/ic-receive.png</file>
+        <file alias="ic-mined-white-png">res/icons/ic_mined_white.png</file>
         <file alias="ic-send-png2">res/icons/ic-send.png</file>
         <file alias="ic-switch-off-png">res/icons/ic-switch-off.png</file>
         <file alias="ic-switch-on-png">res/icons/ic-switch-on.png</file>

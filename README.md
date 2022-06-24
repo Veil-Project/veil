@@ -1,7 +1,6 @@
 Veil integration/staging tree
 =============================
 
-[![Build Status](https://travis-ci.com/Veil-Project/veil.svg?branch=master)](https://travis-ci.com/Veil-Project/veil?branch=master)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/veil-project/veil?color=%23001e58&cacheSeconds=3600)](https://github.com/Veil-Project/veil/releases)
 [![GitHub Release Date](https://img.shields.io/github/release-date/veil-project/veil?color=%23001e58&cacheSeconds=3600)](https://github.com/Veil-Project/veil/releases)
 
@@ -10,11 +9,11 @@ https://veil-project.com
 What is Veil?
 ---------------
 
-Veil is a cryptocurrency intending to set a new standard in the space of privacy-focused networks. Combining the Zerocoin protocol with RingCT, Veil provides always-on anonymity. Dandelion and Bulletproofs provide for enhanced privacy and decreased data size, respectively, for its network transactions. 
+Veil is a cryptocurrency released in 2019 setting a new standard in privacy-focused networks. Combining a lightened version of the Zerocoin protocol with RingCT, Veil provides always-on anonymity. Dandelion and Bulletproofs provide for enhanced privacy and decreased data size, respectively, for Veil's network transactions.
 
-Hybrid Proof-of-Work and Proof-of-Stake consensus during its first year provide for fair coin distribution (i.e. no pre-mines or ICOs), highly distributed security, and the opportunity Veil users to earn yield through staking rewards. An enhanced hashing algorithm evolved from X16R—called X16RT—provides additional support for fair distribution through enhanced protection against FPGAs.
+Hybrid cpu-mineable Proof-of-Work and Proof-of-Stake consensus provided a fair coin distribution  during Veil's first year (no pre-mine or ICO), with three new algorithms in 2020 replacing Veil's original X16RT, which originally gave enhanced protection against FPGAs. Veil's triple Proof-of-Work algorithms, SHA256D, RandomX, and ProgPoW provide highly distributed security, and the opportunity for Veil users to earn yield through staking rewards, while providing for CPU and GPU-based mining.
 
-Finally, network-encoded budgeting for both operations and a dedicated research & development entity, known as Veil Labs, ensures the internal funding necessary for long-term sustainability.
+Finally, network-encoded budgeting ensures the internal funding necessary for long-term sustainability.
 
 More information about the Veil Project—including the project roadmap, news, detailed specifications and team member bios—can be found at the project website:
 

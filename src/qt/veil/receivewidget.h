@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2021 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -27,7 +27,7 @@ public:
     virtual void showEvent(QShowEvent *event) override;
     virtual void hideEvent(QHideEvent *event) override;
     void setWalletModel(WalletModel *model);
-
+    void setDisplayRcvAddress(CTxDestination *displayAddress);
 
     void refreshWalletStatus();
 
@@ -45,6 +45,9 @@ private:
     QString qAddress;
 
     bool generateNewAddress(bool isOnDemand = false);
+
+    bool displayAddressSet = false;
+    CTxDestination currentDisplayAddress;
 };
 
 #endif // RECEIVEWIDGET_H

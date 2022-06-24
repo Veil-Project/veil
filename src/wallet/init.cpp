@@ -1,3 +1,4 @@
+// Copyright (c) 2019 Veil developers
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
@@ -10,15 +11,14 @@
 #include <net.h>
 #include <scheduler.h>
 #include <outputtype.h>
-#include <util.h>
-#include <utilmoneystr.h>
+#include <util/system.h>
+#include <util/moneystr.h>
 #include <validation.h>
 #include <wallet/rpcwallet.h>
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 #include <veil/ringct/anonwallet.h>
 #include <veil/zerocoin/zwallet.h>
-#include <veil/zerocoin/precompute.h>
 
 void WalletInit::AddWalletOptions() const
 {
@@ -65,9 +65,9 @@ void WalletInit::AddWalletOptions() const
 
     gArgs.AddArg("-gen=<n>", strprintf("Enable CPU mining to true on the given number of threads (default: %u)", 0), false, OptionsCategory::WALLET);
     gArgs.AddArg("-genoverride", strprintf("Allows you to override the IsInitialBlockDownload check in BitcoinMiner for PoW mining (default: %u)", false), false, OptionsCategory::HIDDEN);
+    gArgs.AddArg("-mine=<algo>", strprintf("Mine blocks using the selected algorithm. options are randomx|progpow|sha256d (default: %s)", "randomx"), false, OptionsCategory::WALLET);
+    gArgs.AddArg("-miningaddress=<address>", strprintf("When getblocktemplate is called. It will create the coinbase transaction using this address(default: empty string)"), false, OptionsCategory::WALLET);
 
-    gArgs.AddArg("-precompute=<n>", strprintf("Enable the wallet to start solving zerocoin spend proofs inorder to make staking and spending zerocoin faster (default: %u)", false), false, OptionsCategory::WALLET);
-    gArgs.AddArg("-precomputeblockpercycle=<n>", strprintf("Set the number of included blocks to precompute per cycle. (minimum: %d) (maximum: %d) (default: %d)", MIN_PRECOMPUTE_BPC, DEFAULT_PRECOMPUTE_BPC, MIN_PRECOMPUTE_BPC), false, OptionsCategory::WALLET);
     gArgs.AddArg("-autospend", strprintf("Enable to wallet to start trying to auto spend zerocoin to an address this wallet controls (default: %u)", false), false, OptionsCategory::WALLET);
     gArgs.AddArg("-autospendcount=<n>", strprintf("The selected number between 1 - 3 that the wallet will try to auto spend (default: %d)", 1), false, OptionsCategory::WALLET);
     gArgs.AddArg("-autospenddenom=<n>", strprintf("The selected denomination (10, 100, 1000, 10000) to try and auto spend (default: %d)", 10), false, OptionsCategory::WALLET);

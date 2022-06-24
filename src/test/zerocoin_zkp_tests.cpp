@@ -6,7 +6,7 @@
 #include "libzerocoin/SerialNumberSignatureOfKnowledge.h"
 #include <boost/test/unit_test.hpp>
 #include <iostream>
-#include <time.h>
+#include <util/time.h>
 #include <random.h>
 #include <veil/zerocoin/zchain.h>
 

@@ -4,10 +4,10 @@
 
 #include <random.h>
 #include <scheduler.h>
+#include <util/time.h>
 
 #include <test/test_veil.h>
 
-#include <boost/bind.hpp>
 #include <boost/thread.hpp>
 #include <boost/test/unit_test.hpp>
 
@@ -21,21 +21,9 @@ static void microTask(CScheduler& s, boost::mutex& mutex, int& counter, int delt
     }
     boost::chrono::system_clock::time_point noTime = boost::chrono::system_clock::time_point::min();
     if (rescheduleTime != noTime) {
-        CScheduler::Function f = boost::bind(&microTask, boost::ref(s), boost::ref(mutex), boost::ref(counter), -delta + 1, noTime);
+        CScheduler::Function f = std::bind(&microTask, std::ref(s), std::ref(mutex), std::ref(counter), -delta + 1, noTime);
         s.schedule(f, rescheduleTime);
     }
-}
-
-static void MicroSleep(uint64_t n)
-{
-#if defined(HAVE_WORKING_BOOST_SLEEP_FOR)
-    boost::this_thread::sleep_for(boost::chrono::microseconds(n));
-#elif defined(HAVE_WORKING_BOOST_SLEEP)
-    boost::this_thread::sleep(boost::posix_time::microseconds(n));
-#else
-    //should never get here
-    #error missing boost sleep implementation
-#endif
 }
 
 BOOST_AUTO_TEST_CASE(manythreads)
@@ -69,8 +57,8 @@ BOOST_AUTO_TEST_CASE(manythreads)
         boost::chrono::system_clock::time_point t = now + boost::chrono::microseconds(randomMsec(rng));
         boost::chrono::system_clock::time_point tReschedule = now + boost::chrono::microseconds(500 + randomMsec(rng));
         int whichCounter = zeroToNine(rng);
-        CScheduler::Function f = boost::bind(&microTask, boost::ref(microTasks),
-                                             boost::ref(counterMutex[whichCounter]), boost::ref(counter[whichCounter]),
+        CScheduler::Function f = std::bind(&microTask, std::ref(microTasks),
+                                             std::ref(counterMutex[whichCounter]), std::ref(counter[whichCounter]),
                                              randomDelta(rng), tReschedule);
         microTasks.schedule(f, t);
     }
@@ -82,20 +70,20 @@ BOOST_AUTO_TEST_CASE(manythreads)
     // As soon as these are created they will start running and servicing the queue
     boost::thread_group microThreads;
     for (int i = 0; i < 5; i++)
-        microThreads.create_thread(boost::bind(&CScheduler::serviceQueue, &microTasks));
+        microThreads.create_thread(std::bind(&CScheduler::serviceQueue, &microTasks));
 
-    MicroSleep(600);
+    UninterruptibleSleep(std::chrono::microseconds{600});
     now = boost::chrono::system_clock::now();
 
     // More threads and more tasks:
     for (int i = 0; i < 5; i++)
-        microThreads.create_thread(boost::bind(&CScheduler::serviceQueue, &microTasks));
+        microThreads.create_thread(std::bind(&CScheduler::serviceQueue, &microTasks));
     for (int i = 0; i < 100; i++) {
         boost::chrono::system_clock::time_point t = now + boost::chrono::microseconds(randomMsec(rng));
         boost::chrono::system_clock::time_point tReschedule = now + boost::chrono::microseconds(500 + randomMsec(rng));
         int whichCounter = zeroToNine(rng);
-        CScheduler::Function f = boost::bind(&microTask, boost::ref(microTasks),
-                                             boost::ref(counterMutex[whichCounter]), boost::ref(counter[whichCounter]),
+        CScheduler::Function f = std::bind(&microTask, std::ref(microTasks),
+                                             std::ref(counterMutex[whichCounter]), std::ref(counter[whichCounter]),
                                              randomDelta(rng), tReschedule);
         microTasks.schedule(f, t);
     }
@@ -126,7 +114,7 @@ BOOST_AUTO_TEST_CASE(singlethreadedscheduler_ordered)
     // if they don't we'll get out of order behaviour
     boost::thread_group threads;
     for (int i = 0; i < 5; ++i) {
-        threads.create_thread(boost::bind(&CScheduler::serviceQueue, &scheduler));
+        threads.create_thread(std::bind(&CScheduler::serviceQueue, &scheduler));
     }
 
     // these are not atomic, if SinglethreadedSchedulerClient prevents

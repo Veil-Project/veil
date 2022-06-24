@@ -5,7 +5,12 @@
 #include <hash.h>
 #include <crypto/common.h>
 #include <crypto/hmac_sha512.h>
+#include <crypto/ethash/helpers.hpp>
+#include <crypto/ethash/include/ethash/progpow.hpp>
+#include <primitives/block.h>
 
+CCriticalSection cs_context_builder;
+ethash::epoch_context_ptr progpow_context{nullptr, nullptr};
 
 inline uint32_t ROTL32(uint32_t x, int8_t r)
 {
@@ -254,4 +259,32 @@ uint64_t SipHashUint256Extra(uint64_t k0, uint64_t k1, const uint256& val, uint3
     SIPROUND;
     SIPROUND;
     return v0 ^ v1 ^ v2 ^ v3;
+}
+
+uint256 ProgPowHash(const CBlockHeader& blockHeader)
+{
+    uint256 mix_hash;
+    return ProgPowHash(blockHeader, mix_hash);
+}
+
+uint256 ProgPowHash(const CBlockHeader& blockHeader, uint256& mix_hash)
+{
+    {
+        LOCK(cs_context_builder);
+        // Get the context from the block height
+        const auto epoch_number = ethash::get_epoch_number(blockHeader.nHeight);
+        if (!progpow_context || progpow_context->epoch_number != epoch_number)
+            progpow_context = ethash::create_epoch_context(epoch_number);
+    }
+
+    // Build the header_hash
+    uint256 nHeaderHash = blockHeader.GetProgPowHeaderHash();
+    const auto header_hash = to_hash256(nHeaderHash.GetHex());
+
+    // ProgPow hash
+    const auto result = progpow::hash(*progpow_context, blockHeader.nHeight, header_hash, blockHeader.nNonce64);
+
+    mix_hash = uint256S(to_hex(result.mix_hash));
+
+    return uint256S(to_hex(result.final_hash));
 }

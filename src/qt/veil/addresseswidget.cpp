@@ -1,4 +1,4 @@
-// Copyright (c) 2019 The Veil developers
+// Copyright (c) 2019-2021 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -29,6 +29,8 @@
 #include <QSortFilterProxyModel>
 
 #include <iostream>
+
+#include <key_io.h>
 
 #define DECORATION_SIZE 54
 #define NUM_ITEMS 5
@@ -222,6 +224,7 @@ AddressesWidget::AddressesWidget(const PlatformStyle *platformStyle, WalletView 
     ui->lblSplit->setVisible(false);
     //connect(ui->btnMiningAddress,SIGNAL(clicked()),this,SLOT(onNewMinerAddressClicked()));
     //connect(ui->btnMiningAddress2,SIGNAL(clicked()),this,SLOT(onNewMinerAddressClicked()));
+
 }
 
 void AddressesWidget::setWalletModel(WalletModel *model)
@@ -240,6 +243,11 @@ void AddressesWidget::handleAddressClicked(const QModelIndex &index){
         listView = ui->listAddresses;
         type = AddressTableModel::Receive;
         updatedIndex = proxyModel->mapToSource(index);
+        auto address = this->model->index(updatedIndex.row(), AddressTableModel::Address, updatedIndex);
+        QString addressStr = this->model->data(address, Qt::DisplayRole).toString();
+        CTxDestination selectedAddress = DecodeDestination(addressStr.toStdString());
+
+        Q_EMIT rcvAddressSelected(&selectedAddress);
     }else{
         listView = ui->listContacts;
         type = AddressTableModel::Send;
@@ -248,17 +256,25 @@ void AddressesWidget::handleAddressClicked(const QModelIndex &index){
 
     listView->setCurrentIndex(updatedIndex);
     QRect rect = listView->visualRect(index);
-    QPoint pos = rect.topRight();
-    pos.setX(pos.x() - (DECORATION_SIZE * 2));
-    pos.setY(pos.y() + (DECORATION_SIZE));
+
     const QString constType = type;
-    if(!this->menu) this->menu = new AddressesMenu(constType , updatedIndex, this, this->mainWindow, this->model);
+    if(!this->menu) this->menu = new AddressesMenu(constType , updatedIndex, mainWindow->getGUI(), this->mainWindow, this->model);
     else {
-        this->menu->hide();
         this->menu->setInitData(updatedIndex, this->model, constType);
     }
+
+    QPoint pos = mainWindow->getGUI()->mapFromGlobal(QCursor::pos());
+
+	if(pos.x()+menu->width()>mainWindow->getGUI()->width()){
+		pos.setX(pos.x() - menu->width());
+	}
+	if(pos.y()+menu->height()>mainWindow->getGUI()->height()){
+		pos.setY(pos.y() - menu->height());
+	}
+
     menu->move(pos);
     menu->show();
+    menu->raise();
 }
 
 void AddressesWidget::initAddressesView(){
@@ -371,6 +387,7 @@ void AddressesWidget::onNewAddressClicked(){
         openToastDialog(QString::fromStdString(toast + " Creation Failed"), mainWindow->getGUI());
     }
     // if it's the first one created, display it without having to reload
+// WE NEED TO DISPLAY THE NEW ADDRESS HERE AND IN THE BALANCE AND RECEIVE WIDGETS
     onForeground();
 }
 

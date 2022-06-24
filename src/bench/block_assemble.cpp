@@ -1,3 +1,4 @@
+// Copyright (c) 2019 Veil developers
 // Copyright (c) 2011-2019 The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
@@ -13,7 +14,7 @@
 #include <scheduler.h>
 #include <txdb.h>
 #include <txmempool.h>
-#include <utiltime.h>
+#include <util/time.h>
 #include <validation.h>
 #include <validationinterface.h>
 
@@ -40,7 +41,7 @@ static CTxIn MineBlock(const CScript& coinbase_scriptPubKey)
 {
     auto block = PrepareBlock(coinbase_scriptPubKey);
 
-    while (!CheckProofOfWork(block->GetPoWHash(), block->nBits, Params().GetConsensus())) {
+    while (!CheckProofOfWork(block->GetX16RTPoWHash(), block->nBits, Params().GetConsensus())) {
         assert(++block->nNonce);
     }
 
@@ -76,7 +77,7 @@ static void AssembleBlock(benchmark::State& state)
         ::pcoinsTip.reset(new CCoinsViewCache(pcoinsdbview.get()));
 
         const CChainParams& chainparams = Params();
-        thread_group.create_thread(boost::bind(&CScheduler::serviceQueue, &scheduler));
+        thread_group.create_thread(std::bind(&CScheduler::serviceQueue, &scheduler));
         GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
         LoadGenesisBlock(chainparams);
         CValidationState state;

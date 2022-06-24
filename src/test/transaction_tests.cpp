@@ -19,7 +19,7 @@
 #include <script/sign.h>
 #include <script/script_error.h>
 #include <script/standard.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <veil/ringct/stealth.h>
 #include <veil/ringct/extkey.h>
 
@@ -486,7 +486,7 @@ BOOST_AUTO_TEST_CASE(test_big_witness_transaction) {
     CCheckQueueControl<CScriptCheck> control(&scriptcheckqueue);
 
     for (int i=0; i<20; i++)
-        threadGroup.create_thread(boost::bind(&CCheckQueue<CScriptCheck>::Thread, boost::ref(scriptcheckqueue)));
+        threadGroup.create_thread(std::bind(&CCheckQueue<CScriptCheck>::Thread, std::ref(scriptcheckqueue)));
 
     std::vector<Coin> coins;
     for(uint32_t i = 0; i < mtx.vin.size(); i++) {

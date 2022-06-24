@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Copyright (c) 2015-2019 The PIVX developers
-// Copyright (c) 2018-2019 The Veil developers
+// Copyright (c) 2018-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -45,8 +45,8 @@
 #include <txmempool.h>
 #include <torcontrol.h>
 #include <ui_interface.h>
-#include <util.h>
-#include <utilmoneystr.h>
+#include <util/system.h>
+#include <util/moneystr.h>
 #include <validation.h>
 #include <validationinterface.h>
 #include <warnings.h>
@@ -56,8 +56,6 @@
 #include <veil/invalid.h>
 #include <veil/ringct/anon.h>
 #include <veil/zerocoin/zchain.h>
-#include <veil/zerocoin/witness.h>
-#include <veil/zerocoin/precompute.h>
 
 #ifndef WIN32
 #include <signal.h>
@@ -66,13 +64,14 @@
 #ifdef ENABLE_WALLET
 #include <veil/ringct/anonwallet.h>
 #include "wallet/wallet.h"
+#include "pow.h"
+
 #endif
 
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/bind.hpp>
 #include <boost/interprocess/sync/file_lock.hpp>
 #include <boost/thread.hpp>
 #include <openssl/crypto.h>
@@ -190,6 +189,7 @@ static boost::thread_group threadGroupPrecompute;
 static boost::thread_group threadGroupAutoSpend;
 #endif
 static boost::thread_group threadGroupPoWMining;
+static boost::thread_group threadGroupRandomX;
 static boost::thread_group threadGroupStaging;
 static CScheduler scheduler;
 
@@ -244,6 +244,11 @@ void Shutdown()
     // CScheduler/checkqueue threadGroup
     threadGroupPoWMining.interrupt_all();
     threadGroupPoWMining.join_all();
+    DeallocateVMVector();
+    DeallocateDataSet();
+
+    threadGroupRandomX.interrupt_all();
+    threadGroupRandomX.join_all();
 #ifdef ENABLE_WALLET
     if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
         threadGroupStaking.interrupt_all();
@@ -268,11 +273,6 @@ void Shutdown()
     if (g_is_mempool_loaded && gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         DumpMempool();
     }
-#ifdef ENABLE_WALLET
-    if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
-        DumpPrecomputes();
-    }
-#endif
 
     if (fFeeEstimatesInitialized)
     {
@@ -311,9 +311,9 @@ void Shutdown()
         pcoinsdbview.reset();
         pblocktree.reset();
         pzerocoinDB.reset();
-        pprecomputeDB.reset();
-        pprecompute.reset();
     }
+
+    DeallocateRandomXLightCache();
 #ifdef ENABLE_WALLET
     g_wallet_init_interface.Stop();
 #endif
@@ -716,6 +716,10 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
                 break; // This error is logged in OpenBlockFile
             LogPrintf("Reindexing block file blk%05u.dat...\n", (unsigned int)nFile);
             LoadExternalBlockFile(chainparams, file, &pos);
+            if (ShutdownRequested()) {
+                LogPrintf("Shutdown requested. Exit %s\n", __func__);
+                return;
+            }
             nFile++;
         }
         pblocktree->WriteReindexing(false);
@@ -733,6 +737,10 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
             fs::path pathBootstrapOld = GetDataDir() / "bootstrap.dat.old";
             LogPrintf("Importing bootstrap.dat...\n");
             LoadExternalBlockFile(chainparams, file);
+            if (ShutdownRequested()) {
+                LogPrintf("Shutdown requested. Exit %s\n", __func__);
+                return;
+            }
             RenameOver(pathBootstrap, pathBootstrapOld);
         } else {
             LogPrintf("Warning: Could not open bootstrap file %s\n", pathBootstrap.string());
@@ -745,6 +753,10 @@ static void ThreadImport(std::vector<fs::path> vImportFiles)
         if (file) {
             LogPrintf("Importing blocks file %s...\n", path.string());
             LoadExternalBlockFile(chainparams, file);
+            if (ShutdownRequested()) {
+                LogPrintf("Shutdown requested. Exit %s\n", __func__);
+                return;
+            }
         } else {
             LogPrintf("Warning: Could not open blocks file %s\n", path.string());
         }
@@ -1000,7 +1012,7 @@ bool AppInitParameterInteraction()
     // if using block pruning, then disallow txindex
     if (gArgs.GetArg("-prune", 0)) {
         if (gArgs.GetBoolArg("-txindex", DEFAULT_TXINDEX))
-            return InitError(_("Prune mode is incompatible with -txindex."));
+            InitWarning(_("Ignoring Prune Mode: Incompatible with -txindex."));
     }
 
     // -bind and -whitebind can't be set when not listening
@@ -1122,6 +1134,10 @@ bool AppInitParameterInteraction()
     int64_t nPruneArg = gArgs.GetArg("-prune", 0);
     if (nPruneArg < 0) {
         return InitError(_("Prune cannot be configured with a negative value."));
+    }
+    if (nPruneArg && gArgs.GetBoolArg("-txindex", DEFAULT_TXINDEX)) {
+        // We already warned them that it's getting ignored
+        nPruneArg = 0;
     }
     nPruneTarget = (uint64_t) nPruneArg * 1024 * 1024;
     if (nPruneArg == 1) {  // manual pruning: -prune=1
@@ -1338,8 +1354,8 @@ bool AppInitMain()
     }
 
     // Start the lightweight task scheduler thread
-    CScheduler::Function serviceLoop = boost::bind(&CScheduler::serviceQueue, &scheduler);
-    threadGroup.create_thread(boost::bind(&TraceThread<CScheduler::Function>, "scheduler", serviceLoop));
+    CScheduler::Function serviceLoop = std::bind(&CScheduler::serviceQueue, &scheduler);
+    threadGroup.create_thread(std::bind(&TraceThread<CScheduler::Function>, "scheduler", serviceLoop));
 
     GetMainSignals().RegisterBackgroundSignalScheduler(scheduler);
     GetMainSignals().RegisterWithMempoolSignals(mempool);
@@ -1580,17 +1596,6 @@ bool AppInitMain()
                 pzerocoinDB.reset();
                 pzerocoinDB.reset(new CZerocoinDB(0, false, fReindex));
 
-#ifdef ENABLE_WALLET
-                if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
-                    //zerocoinDB
-                    pprecomputeDB.reset();
-                    pprecomputeDB.reset(new CPrecomputeDB(0, false, false));
-
-                    pprecompute.reset();
-                    pprecompute.reset(new Precompute());
-                }
-#endif
-
                 if (fReset) {
                     pblocktree->WriteReindexing(true);
                     //If we're reindexing in prune mode, wipe away unusable block files and all undo data files
@@ -1609,10 +1614,13 @@ bool AppInitMain()
                     break;
                 }
 
-                // If the loaded chain has a wrong genesis, bail out immediately
-                // (we're likely using a testnet datadir, or the other way around).
-                if (!mapBlockIndex.empty() && !LookupBlockIndex(chainparams.GetConsensus().hashGenesisBlock)) {
-                    return InitError(_("Incorrect or no genesis block found. Wrong datadir for network?"));
+                {
+                    LOCK(cs_mapblockindex);
+                    // If the loaded chain has a wrong genesis, bail out immediately
+                    // (we're likely using a testnet datadir, or the other way around).
+                    if (!mapBlockIndex.empty() && !LookupBlockIndex(chainparams.GetConsensus().hashGenesisBlock)) {
+                        return InitError(_("Incorrect or no genesis block found. Wrong datadir for network?"));
+                    }
                 }
 
                 // Check for changed -prune state.  What we are concerned about is a user who has pruned blocks
@@ -1764,9 +1772,10 @@ bool AppInitMain()
 
 
     // Automint denom
-    if(nPreferredDenom == DEFAULT_AUTOMINT_DENOM) {
+    if(gArgs.IsArgSet("-nautomintdenom")){
         nPreferredDenom = gArgs.GetArg("-nautomintdenom", DEFAULT_AUTOMINT_DENOM);
         if(nPreferredDenom != 10 && nPreferredDenom != 100 && nPreferredDenom != 1000 && nPreferredDenom != 10000){
+        	LogPrintf("Invalid -nautomintdenom value set: %d. Defaulting to : %d\n", nPreferredDenom, DEFAULT_AUTOMINT_DENOM);
             nPreferredDenom = DEFAULT_AUTOMINT_DENOM;
         }
     }
@@ -1821,7 +1830,7 @@ bool AppInitMain()
         vImportFiles.push_back(strFile);
     }
 
-    threadGroup.create_thread(boost::bind(&ThreadImport, vImportFiles));
+    threadGroup.create_thread(std::bind(&ThreadImport, vImportFiles));
 
     // Wait for genesis block to be processed
     {
@@ -1841,14 +1850,12 @@ bool AppInitMain()
 
     // ********************************************************* Step 12: start node
 
-    int chain_active_height;
-
     //// debug print
     {
-        LOCK(cs_main);
+        LOCK(cs_mapblockindex);
         LogPrintf("mapBlockIndex.size() = %u\n", mapBlockIndex.size());
-        chain_active_height = chainActive.Height();
     }
+    int chain_active_height = chainActive.Height();
     LogPrintf("nBestHeight = %d\n", chain_active_height);
 
     if (gArgs.GetBoolArg("-listenonion", DEFAULT_LISTEN_ONION))
@@ -1927,6 +1934,7 @@ bool AppInitMain()
     //threadGroupStaging.create_thread(&ThreadStagingBatchVerify);
 
     LinkPoWThreadGroup(&threadGroupPoWMining);
+    LinkRandomXThreadGroup(&threadGroupRandomX);
 
 #ifdef ENABLE_WALLET
     if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
@@ -1937,8 +1945,18 @@ bool AppInitMain()
             threadGroupStaking.create_thread(&ThreadStakeMiner);
 
         // Link thread groups
-        LinkPrecomputeThreadGroup(&threadGroupPrecompute);
         LinkAutoSpendThreadGroup(&threadGroupAutoSpend);
+
+        // Validate wallet mining address.
+        std::string sAddress = gArgs.GetArg("-miningaddress", "");
+        if (!sAddress.empty()) {
+            CTxDestination dest = DecodeDestination(sAddress);
+
+            auto pt = GetMainWallet();
+            if (pt && pt->IsMine(dest) != ISMINE_SPENDABLE) {
+                return InitError(strprintf(_("Invalid -miningaddress: '%s' not owned by wallet"), sAddress));
+            }
+        }
 
         // Start wallet CPU mining if the -gen=<n> parameter is given
         int nThreads = gArgs.GetArg("-gen", 0);
@@ -1966,17 +1984,6 @@ bool AppInitMain()
             }
         }
 
-        auto pt = GetMainWallet();
-        if (pprecompute && pt) {
-            pprecompute->SetBlocksPerCycle(gArgs.GetArg("-precomputeblockpercycle", DEFAULT_PRECOMPUTE_BPC));
-            if (gArgs.GetBoolArg("-precompute", false)) {
-                // Start precomputing zerocoin proofs
-                std::string strStatus;
-                if (!pt->StartPrecomputing(strStatus))
-                    error("Failed to start precomputing : %s", strStatus);
-            }
-        }
-
         if (gArgs.GetBoolArg("-autospend", false)) {
             int nNumberToSpend = gArgs.GetArg("-autospendcount", 3);
             int nDenomToSpend = gArgs.GetArg("-autospenddenom", 10);
@@ -1997,6 +2004,8 @@ bool AppInitMain()
         }
     }
 #endif // ENABLE_WALLET
+
+    InitRandomXLightCache(chainActive.Height());
 
     return true;
 }

@@ -1,6 +1,6 @@
 // Copyright (c) 2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
-// Copyright (c) 2018-2019 The Veil developers
+// Copyright (c) 2018-2022 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -27,7 +27,7 @@
 #include <script/standard.h>
 #include <txmempool.h>
 #include <uint256.h>
-#include <utilstrencodings.h>
+#include <util/strencodings.h>
 #include <veil/dandelioninventory.h>
 #include <veil/ringct/anon.h>
 #ifdef ENABLE_WALLET
@@ -51,8 +51,6 @@ static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& 
     TxToUniv(tx, uint256(), vTxRingCtInputs, entry, true, RPCSerializationFlags());
 
     if (!hashBlock.IsNull()) {
-        LOCK(cs_main);
-
         entry.pushKV("blockhash", hashBlock.GetHex());
         CBlockIndex* pindex = LookupBlockIndex(hashBlock);
         if (pindex) {
@@ -94,10 +92,10 @@ static UniValue getrawtransaction(const JSONRPCRequest& request)
 
             "\nResult (if verbose is set to true):\n"
             "{\n"
-            "  \"in_active_chain\": b, (bool) Whether specified block is in the active chain or not (only present with explicit \"blockhash\" argument)\n"
-            "  \"hex\" : \"data\",       (string) The serialized, hex-encoded data for 'txid'\n"
-            "  \"txid\" : \"id\",        (string) The transaction id (same as provided)\n"
-            "  \"hash\" : \"id\",        (string) The transaction hash (differs from txid for witness transactions)\n"
+            "  \"in_active_chain\":       (bool) Whether specified block is in the active chain or not (only present with explicit \"blockhash\" argument)\n"
+            "  \"hex\" : \"data\",          (string) The serialized, hex-encoded data for 'txid'\n"
+            "  \"txid\" : \"id\",           (string) The transaction id (same as provided)\n"
+            "  \"hash\" : \"id\",           (string) The transaction hash (differs from txid for witness transactions)\n"
             "  \"size\" : n,             (numeric) The serialized transaction size\n"
             "  \"vsize\" : n,            (numeric) The virtual transaction size (differs from size for witness transactions)\n"
             "  \"weight\" : n,           (numeric) The transaction's weight (between vsize*4-3 and vsize*4)\n"
@@ -105,11 +103,11 @@ static UniValue getrawtransaction(const JSONRPCRequest& request)
             "  \"locktime\" : ttt,       (numeric) The lock time\n"
             "  \"vin\" : [               (array of json objects)\n"
             "     {\n"
-            "       \"txid\": \"id\",    (string) The transaction id\n"
+            "       \"txid\": \"id\",       (string) The transaction id\n"
             "       \"vout\": n,         (numeric) \n"
             "       \"scriptSig\": {     (json object) The script\n"
-            "         \"asm\": \"asm\",  (string) asm\n"
-            "         \"hex\": \"hex\"   (string) hex\n"
+            "         \"asm\": \"asm\",     (string) asm\n"
+            "         \"hex\": \"hex\"      (string) hex\n"
             "       },\n"
             "       \"sequence\": n      (numeric) The script sequence number\n"
             "       \"txinwitness\": [\"hex\", ...] (array of string) hex-encoded witness data (if any)\n"
@@ -118,22 +116,23 @@ static UniValue getrawtransaction(const JSONRPCRequest& request)
             "  ],\n"
             "  \"vout\" : [              (array of json objects)\n"
             "     {\n"
-            "       \"value\" : x.xxx,            (numeric) The value in " + CURRENCY_UNIT + "\n"
-            "       \"n\" : n,                    (numeric) index\n"
-            "       \"scriptPubKey\" : {          (json object)\n"
+            "       \"value\" : x.xxx,          (numeric) The value in " + CURRENCY_UNIT + "\n"
+            "       \"valueSat\" : x.xxx,       (numeric) The sat value in " + CURRENCY_UNIT + "\n"
+            "       \"vout.n\" : n,             (numeric) index\n"
+            "       \"scriptPubKey\" : {        (json object)\n"
             "         \"asm\" : \"asm\",          (string) the asm\n"
             "         \"hex\" : \"hex\",          (string) the hex\n"
-            "         \"reqSigs\" : n,            (numeric) The required sigs\n"
+            "         \"reqSigs\" : n,          (numeric) The required sigs\n"
             "         \"type\" : \"pubkeyhash\",  (string) The type, eg 'pubkeyhash'\n"
-            "         \"addresses\" : [           (json array of string)\n"
-            "           \"address\"        (string) veil address\n"
+            "         \"addresses\" : [         (json array of string)\n"
+            "           \"address\"             (string) veil address\n"
             "           ,...\n"
             "         ]\n"
             "       }\n"
             "     }\n"
             "     ,...\n"
             "  ],\n"
-            "  \"blockhash\" : \"hash\",   (string) the block hash\n"
+            "  \"blockhash\" : \"hash\",     (string) The block hash\n"
             "  \"confirmations\" : n,      (numeric) The confirmations\n"
             "  \"time\" : ttt,             (numeric) The transaction time in seconds since epoch (Jan 1 1970 GMT)\n"
             "  \"blocktime\" : ttt         (numeric) The block time in seconds since epoch (Jan 1 1970 GMT)\n"
@@ -163,8 +162,6 @@ static UniValue getrawtransaction(const JSONRPCRequest& request)
     }
 
     if (!request.params[2].isNull()) {
-        LOCK(cs_main);
-
         uint256 blockhash = ParseHashV(request.params[2], "parameter 3");
         blockindex = LookupBlockIndex(blockhash);
         if (!blockindex) {
@@ -247,7 +244,6 @@ static UniValue gettxoutproof(const JSONRPCRequest& request)
     CBlockIndex* pblockindex = nullptr;
     uint256 hashBlock;
     if (!request.params[1].isNull()) {
-        LOCK(cs_main);
         hashBlock = uint256S(request.params[1].get_str());
         pblockindex = LookupBlockIndex(hashBlock);
         if (!pblockindex) {
@@ -271,8 +267,6 @@ static UniValue gettxoutproof(const JSONRPCRequest& request)
     if (g_txindex && !pblockindex) {
         g_txindex->BlockUntilSyncedToCurrentChain();
     }
-
-    LOCK(cs_main);
 
     if (pblockindex == nullptr)
     {
@@ -299,7 +293,7 @@ static UniValue gettxoutproof(const JSONRPCRequest& request)
     CDataStream ssMB(SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
     CMerkleBlock mb(block, setTxids);
     ssMB << mb;
-    std::string strHex = HexStr(ssMB.begin(), ssMB.end());
+    std::string strHex = HexStr(ssMB);
     return strHex;
 }
 
@@ -327,8 +321,6 @@ static UniValue verifytxoutproof(const JSONRPCRequest& request)
     std::vector<unsigned int> vIndex;
     //if (merkleBlock.txn.ExtractMatches(vMatch, vIndex) != merkleBlock.header.hashMerkleRoot)
     //    return res;
-
-    LOCK(cs_main);
 
     const CBlockIndex* pindex = LookupBlockIndex(merkleBlock.header.GetHash());
     if (!pindex || !chainActive.Contains(pindex) || pindex->nTx == 0) {
@@ -519,14 +511,14 @@ static UniValue decoderawtransaction(const JSONRPCRequest& request)
             "\nReturn a JSON object representing the serialized, hex-encoded transaction.\n"
 
             "\nArguments:\n"
-            "1. \"hexstring\"      (string, required) The transaction hex string\n"
+            "1. \"hexstring\"        (string, required) The transaction hex string\n"
             "2. iswitness          (boolean, optional) Whether the transaction hex is a serialized witness transaction\n"
             "                         If iswitness is not present, heuristic tests will be used in decoding\n"
 
             "\nResult:\n"
             "{\n"
-            "  \"txid\" : \"id\",        (string) The transaction id\n"
-            "  \"hash\" : \"id\",        (string) The transaction hash (differs from txid for witness transactions)\n"
+            "  \"txid\" : \"id\",          (string) The transaction id\n"
+            "  \"hash\" : \"id\",          (string) The transaction hash (differs from txid for witness transactions)\n"
             "  \"size\" : n,             (numeric) The transaction size\n"
             "  \"vsize\" : n,            (numeric) The virtual transaction size (differs from size for witness transactions)\n"
             "  \"weight\" : n,           (numeric) The transaction's weight (between vsize*4 - 3 and vsize*4)\n"
@@ -534,27 +526,28 @@ static UniValue decoderawtransaction(const JSONRPCRequest& request)
             "  \"locktime\" : ttt,       (numeric) The lock time\n"
             "  \"vin\" : [               (array of json objects)\n"
             "     {\n"
-            "       \"txid\": \"id\",    (string) The transaction id\n"
+            "       \"txid\": \"id\",      (string) The transaction id\n"
             "       \"vout\": n,         (numeric) The output number\n"
             "       \"scriptSig\": {     (json object) The script\n"
-            "         \"asm\": \"asm\",  (string) asm\n"
-            "         \"hex\": \"hex\"   (string) hex\n"
+            "         \"asm\": \"asm\",    (string) asm\n"
+            "         \"hex\": \"hex\"     (string) hex\n"
             "       },\n"
             "       \"txinwitness\": [\"hex\", ...] (array of string) hex-encoded witness data (if any)\n"
-            "       \"sequence\": n     (numeric) The script sequence number\n"
+            "       \"sequence\": n      (numeric) The script sequence number\n"
             "     }\n"
             "     ,...\n"
             "  ],\n"
             "  \"vout\" : [             (array of json objects)\n"
             "     {\n"
-            "       \"value\" : x.xxx,            (numeric) The value in " + CURRENCY_UNIT + "\n"
-            "       \"n\" : n,                    (numeric) index\n"
-            "       \"scriptPubKey\" : {          (json object)\n"
+            "       \"value\" : x.xxx,          (numeric) The value in " + CURRENCY_UNIT + "\n"
+            "       \"valueSat\" : x.xxx,       (numeric) The sat value in " + CURRENCY_UNIT + "\n"
+            "       \"vout.n\" : n,             (numeric) index\n"
+            "       \"scriptPubKey\" : {        (json object)\n"
             "         \"asm\" : \"asm\",          (string) the asm\n"
             "         \"hex\" : \"hex\",          (string) the hex\n"
-            "         \"reqSigs\" : n,            (numeric) The required sigs\n"
+            "         \"reqSigs\" : n,          (numeric) The required sigs\n"
             "         \"type\" : \"pubkeyhash\",  (string) The type, eg 'pubkeyhash'\n"
-            "         \"addresses\" : [           (json array of string)\n"
+            "         \"addresses\" : [         (json array of string)\n"
             "           \"12tvKAXCxZjSmdNbao16dKXC8tRWfcF5oc\"   (string) veil address\n"
             "           ,...\n"
             "         ]\n"
@@ -1024,7 +1017,7 @@ UniValue signrawtransaction(const JSONRPCRequest& request)
             "The third optional argument (may be null) is an array of base58-encoded private\n"
             "keys that, if given, will be the only keys used to sign the transaction.\n"
 #ifdef ENABLE_WALLET
-            + (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) ? HelpRequiringPassphrase(pwallet) + "\n" : ""
+            + HelpRequiringPassphrase(pwallet) + "\n"
 #endif
             "\nArguments:\n"
             "1. \"hexstring\"     (string, required) The transaction hex string\n"
@@ -1518,7 +1511,7 @@ UniValue decodepsbt(const JSONRPCRequest& request)
         if (!input.final_script_witness.IsNull()) {
             UniValue txinwitness(UniValue::VARR);
             for (const auto& item : input.final_script_witness.stack) {
-                txinwitness.push_back(HexStr(item.begin(), item.end()));
+                txinwitness.push_back(HexStr(item));
             }
             in.pushKV("final_scriptwitness", txinwitness);
         }

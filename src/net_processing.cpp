@@ -27,9 +27,9 @@
 #include <tinyformat.h>
 #include <txmempool.h>
 #include <ui_interface.h>
-#include <util.h>
-#include <utilmoneystr.h>
-#include <utilstrencodings.h>
+#include <util/system.h>
+#include <util/moneystr.h>
+#include <util/strencodings.h>
 
 #include <veil/dandelioninventory.h>
 
@@ -815,10 +815,11 @@ unsigned int LimitOrphanTxSize(unsigned int nMaxOrphans)
         nNextSweep = nMinExpTime + ORPHAN_TX_EXPIRE_INTERVAL;
         if (nErased > 0) LogPrint(BCLog::MEMPOOL, "Erased %d orphan tx due to expiration\n", nErased);
     }
+    FastRandomContext rng;
     while (mapOrphanTransactions.size() > nMaxOrphans)
     {
         // Evict a random orphan:
-        uint256 randomhash = GetRandHash();
+        uint256 randomhash = rng.rand256();
         std::map<uint256, COrphanTx>::iterator it = mapOrphanTransactions.lower_bound(randomhash);
         if (it == mapOrphanTransactions.end())
             it = mapOrphanTransactions.begin();
@@ -1156,21 +1157,19 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
     }
 
     bool need_activate_chain = false;
-    {
-        LOCK(cs_main);
-        const CBlockIndex* pindex = LookupBlockIndex(inv.hash);
-        if (pindex) {
-            if (pindex->nChainTx && !pindex->IsValid(BLOCK_VALID_SCRIPTS) &&
-                    pindex->IsValid(BLOCK_VALID_TREE)) {
-                // If we have the block and all of its parents, but have not yet validated it,
-                // we might be in the middle of connecting it (ie in the unlock of cs_main
-                // before ActivateBestChain but after AcceptBlock).
-                // In this case, we need to run ActivateBestChain prior to checking the relay
-                // conditions below.
-                need_activate_chain = true;
-            }
+
+    const CBlockIndex* pindex = LookupBlockIndex(inv.hash);
+    if (pindex) {
+        if (pindex->nChainTx && !pindex->IsValid(BLOCK_VALID_SCRIPTS) &&
+                pindex->IsValid(BLOCK_VALID_TREE)) {
+            // If we have the block and all of its parents, but have not yet validated it,
+            // we might be in the middle of connecting it
+            // (ie before ActivateBestChain but after AcceptBlock).
+            // In this case, we need to run ActivateBestChain prior to checking the relay
+            // conditions below.
+            need_activate_chain = true;
         }
-    } // release cs_main before calling ActivateBestChain
+    }
     if (need_activate_chain) {
         CValidationState state;
         if (!ActivateBestChain(state, Params(), a_recent_block)) {
@@ -1178,8 +1177,9 @@ void static ProcessGetBlockData(CNode* pfrom, const CChainParams& chainparams, c
         }
     }
 
+    pindex = LookupBlockIndex(inv.hash);
+
     LOCK(cs_main);
-    const CBlockIndex* pindex = LookupBlockIndex(inv.hash);
     if (pindex) {
         send = BlockRequestAllowed(pindex, consensusParams);
         if (!send) {
@@ -1465,7 +1465,7 @@ void ProcessStagingBatchVerify()
                 mapStagedBlocksCopy = mapStagedBlocks;
         }
         if (fNextIter) {
-            MilliSleep(500);
+            UninterruptibleSleep(std::chrono::milliseconds{500});
             continue;
         }
 
@@ -1573,14 +1573,17 @@ void ProcessStaging()
             }
         }
         if (!fProcessNext) {
-            MilliSleep(100);
+            UninterruptibleSleep(std::chrono::milliseconds{100});
             continue;
         }
 
-        fProcessNext = mapBlockIndex.at(pblockStaged->hashPrevBlock)->nChainTx > 0;
+        {
+            LOCK(cs_mapblockindex);
+            fProcessNext = mapBlockIndex.at(pblockStaged->hashPrevBlock)->nChainTx > 0;
+        }
 
         if (!fProcessNext) {
-            MilliSleep(100);
+            UninterruptibleSleep(std::chrono::milliseconds{100});
             continue;
         }
 
@@ -1981,18 +1984,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         bool fNewEnforcement = false;
         if (chainActive.Tip()) {
-            fNewEnforcement = chainActive.Height() >= Params().HeightLightZerocoin();
+            fNewEnforcement = chainActive.Tip()->GetBlockTime() >= Params().KIforkTimestamp();
         }
 
         int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT : MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
-
-        // Make sure new testnet proto veresion checks are in place
-        if (Params().NetworkIDString() == "test") {
-            nMinPeerVersion = MIN_PEER_PROTO_VERSION_TESTNET;
-        }
-        if (Params().NetworkIDString() == "dev") {
-            nMinPeerVersion = MIN_PEER_PROTO_VERSION_DEVNET;
-        }
 
         if (nVersion < nMinPeerVersion)
         {
@@ -2139,18 +2134,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
     bool fNewEnforcement = false;
     if (chainActive.Tip()) {
-        fNewEnforcement = chainActive.Height() >= Params().HeightLightZerocoin();
+        fNewEnforcement = chainActive.Tip()->GetBlockTime() >= Params().KIforkTimestamp();
     }
 
     int nMinPeerVersion = (fNewEnforcement ? MIN_PEER_PROTO_VERSION_AFTER_ENFORCEMENT :MIN_PEER_PROTO_VERSION_BEFORE_ENFORCEMENT);
-
-    // Check testnet proto version
-    if (Params().NetworkIDString() == "test") {
-        nMinPeerVersion = MIN_PEER_PROTO_VERSION_TESTNET;
-    }
-    if (Params().NetworkIDString() == "dev") {
-        nMinPeerVersion = MIN_PEER_PROTO_VERSION_DEVNET;
-    }
 
     if (fNewEnforcement && pfrom->nVersion < nMinPeerVersion) {
         // disconnect from peers older than this proto version
@@ -2463,13 +2450,13 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             return true;
         }
 
-        LOCK(cs_main);
-
         const CBlockIndex* pindex = LookupBlockIndex(req.blockhash);
         if (!pindex || !(pindex->nStatus & BLOCK_HAVE_DATA)) {
             LogPrint(BCLog::NET, "Peer %d sent us a getblocktxn for a block we don't have\n", pfrom->GetId());
             return true;
         }
+
+        LOCK(cs_main);
 
         if (pindex->nHeight < chainActive.Height() - MAX_BLOCKTXN_DEPTH) {
             // If an older block is requested (should never happen in practice,
@@ -2792,10 +2779,8 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         bool received_new_header = false;
 
-        {
-        LOCK(cs_main);
-
         if (!LookupBlockIndex(cmpctblock.header.hashPrevBlock)) {
+            LOCK(cs_main);
             // Doesn't connect (or is genesis), instead of DoSing in AcceptBlockHeader, request deeper headers
             if (!IsInitialBlockDownload())
                 connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexBestHeader), uint256()));
@@ -2804,7 +2789,6 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         if (!LookupBlockIndex(cmpctblock.header.GetHash())) {
             received_new_header = true;
-        }
         }
 
         const CBlockIndex *pindex = nullptr;
@@ -3121,7 +3105,7 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         int nHeightNext = 0;
         const uint256 hash(pblock->GetHash());
         {
-            LOCK(cs_main);
+            LOCK2(cs_main, cs_mapblockindex);
             // Also always process if we requested the block explicitly, as we may
             // need it even though it is not a candidate for a new best tip.
             forceProcessing |= MarkBlockAsReceived(hash);
