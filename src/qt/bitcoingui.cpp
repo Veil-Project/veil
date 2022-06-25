@@ -1225,14 +1225,14 @@ void BitcoinGUI::showEvent(QShowEvent *event)
 }
 
 #ifdef ENABLE_WALLET
-void BitcoinGUI::incomingTransaction(const QString& date, int unit, const CAmount& amount, const QString& type, const QString& address, const QString& label, const QString& walletName)
+void BitcoinGUI::incomingTransaction(const QString& date, int unit, const CAmount& amount, bool amountLocked, const QString& type, const QString& address, const QString& label, const QString& walletName)
 {
     if(!enableWallet)
         return;
 
     // On new transaction, make an info balloon
     QString msg = tr("Date: %1\n").arg(date) +
-                  tr("Amount: %1\n").arg(BitcoinUnits::formatWithUnit(unit, amount, true));
+                  tr("Amount: %1\n").arg(!amountLocked ? BitcoinUnits::formatWithUnit(unit, amount, true) : tr("Hidden"));
     if (m_node.getWallets().size() > 1 && !walletName.isEmpty()) {
         msg += tr("Wallet: %1\n").arg(walletName);
     }

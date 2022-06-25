@@ -65,11 +65,12 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                 outputType = OutputTypes::OUTPUT_RINGCT;
             };
 
-            if (nFlags & ORF_OWNED)
+            if (r.nFlags & ORF_OWNED)
                 sub.credit += r.GetRawValue();
-            if (nFlags & ORF_FROM)
+            if (r.nFlags & ORF_FROM)
                 sub.debit -= r.GetRawValue();
         };
+        sub.status.isLocked = nFlags & ORF_LOCKED;
 
         if (sub.debit != 0)
             sub.debit -= wtx.ct_fee.second;
@@ -324,8 +325,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     sub.address = strAddress;
 
                     // Value is blinded so must come from outputrecord
-                    if (precord)
+                    if (precord) {
                         sub.credit = precord->GetAmount();
+                        sub.status.isLocked = precord->nFlags & ORF_LOCKED;
+                    }
                 }
 
                 if (strAddress.empty())

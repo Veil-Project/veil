@@ -1044,9 +1044,9 @@ public:
     int64_t nRelockTime = 0;
 
     bool LockWallet();
-    bool Unlock(const SecureString& strWalletPassphrase, bool fUnlockForStakingOnly);
+    bool Unlock(const SecureString& strWalletPassphrase, bool fUnlockForStakingOnly, bool fAnonRescan = true);
     bool UnlockZerocoinWallet();
-    bool UnlockAnonWallet();
+    bool UnlockAnonWallet(bool fAnonRescan = true);
     bool ChangeWalletPassphrase(const SecureString& strOldWalletPassphrase, const SecureString& strNewWalletPassphrase);
 
     void GetKeyBirthTimes(std::map<CTxDestination, int64_t> &mapKeyBirth) const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);

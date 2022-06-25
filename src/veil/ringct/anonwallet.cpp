@@ -4020,17 +4020,24 @@ bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
     return true;
 }
 
-bool AnonWallet::UnlockWallet(const CExtKey& keyMasterIn)
+bool AnonWallet::UnlockWallet(const CExtKey& keyMasterIn, bool fRescan)
 {
     if (!SetMasterKey(keyMasterIn))
         return false;
 
+    {
     // Create stealth change account if it does not exist
     AnonWalletDB wdb(*walletDatabase);
     if (!wdb.ReadNamedExtKeyId("stealthchange", idChangeAccount)) {
         //If the change account is not created yet, then create it
         if (!CreateStealthChangeAccount(&wdb))
             return error("%s: failed to create stealth change account ", __func__);
+    }
+    }
+
+    if (fRescan) {
+        LOCK2(cs_main, pwalletParent->cs_wallet);
+        RescanWallet<RESCAN_WALLET_LOCKED_ONLY>();
     }
 
     return true;
@@ -4997,6 +5004,7 @@ bool KeyIdFromScriptPubKey(const CScript& script, CKeyID& id)
     return true;
 }
 
+template<AnonWallet::RescanWalletType ScanType>
 void AnonWallet::RescanWallet()
 {
     AssertLockHeld(pwalletParent->cs_wallet);
@@ -5011,12 +5019,14 @@ void AnonWallet::RescanWallet()
     view.SetBackend(viewMemPool);
 
     std::set<uint256> setErase;
-    for (auto mi = mapRecords.begin(); mi != mapRecords.end(); mi++) {
+
+    auto scanTransaction = [&](auto && mi) {
         uint256 txid = mi->first;
         CTransactionRecord* txrecord = &mi->second;
 
         int nHeightTx = 0;
-        if (!IsTransactionInChain(txid, nHeightTx, Params().GetConsensus())) {
+        bool isTransactionInChain = IsTransactionInChain(txid, nHeightTx, Params().GetConsensus());
+        if (!isTransactionInChain) {
             //This particular transaction never made it into the chain. If it is a certain amount of time old, delete it.
             if (GetTime() - txrecord->nTimeReceived > 60*20) {
                 //20 minutes too old?
@@ -5040,144 +5050,185 @@ void AnonWallet::RescanWallet()
                     }
                 }
                 setErase.emplace(txid);
+                return;
             }
-        } else {
-            // Check outputs for inconsistencies
-            CTransactionRef txRef;
-            uint256 hashBlock;
-            if (!GetTransaction(txid, txRef, Params().GetConsensus(), hashBlock, true))
+        }
+
+        // Check outputs for inconsistencies
+        CTransactionRef txRef;
+        uint256 hashBlock;
+        if (!GetTransaction(txid, txRef, Params().GetConsensus(), hashBlock, true))
+            return;
+
+        bool transactionUpdated = false;
+        for (auto it = txrecord->vout.begin(); it != txrecord->vout.end(); it++) {
+            bool fUpdated = false;
+            if (txRef->vpout.size() < static_cast<unsigned int>(it->n + 1))
                 continue;
 
-            for (auto it = txrecord->vout.begin(); it != txrecord->vout.end(); it++) {
-                bool fUpdated = false;
-                if (txRef->vpout.size() < static_cast<unsigned int>(it->n + 1))
-                    continue;
-
-                auto pout = txRef->vpout[it->n];
-                if (it->scriptPubKey.empty()) {
-                    CStoredTransaction stx;
-                    if (it->nType == OUTPUT_CT) {
-                        OwnBlindOut(&wdb, txid, (CTxOutCT*)pout.get(), *(it), stx, fUpdated);
-                    } else if (it->nType == OUTPUT_RINGCT) {
-                        OwnAnonOut(&wdb, txid, (CTxOutRingCT*)pout.get(), *(it), stx, fUpdated);
-                    }
-                    if (fUpdated)
-                        LogPrintf("%s: Updating scriptpubkey for %s\n", __func__, COutPoint(txid, it->n).ToString());
+            auto pout = txRef->vpout[it->n];
+            if (it->scriptPubKey.empty()) {
+                CStoredTransaction stx;
+                if (it->nType == OUTPUT_CT) {
+                    OwnBlindOut(&wdb, txid, (CTxOutCT*)pout.get(), *(it), stx, fUpdated);
+                } else if (it->nType == OUTPUT_RINGCT) {
+                    OwnAnonOut(&wdb, txid, (CTxOutRingCT*)pout.get(), *(it), stx, fUpdated);
                 }
+                if (fUpdated)
+                    LogPrintf("%s: Updating scriptpubkey for %s\n", __func__, COutPoint(txid, it->n).ToString());
+            }
 
-                // Check that the record's type is correct
-                if (it->nType != pout->GetType()) {
-                    it->nType = pout->GetType();
-                    fUpdated = true;
-                    LogPrintf("%s: Updated txout type for %s\n", __func__, COutPoint(txid, it->n).ToString());
+            // Check that the record's type is correct
+            if (it->nType != pout->GetType()) {
+                it->nType = pout->GetType();
+                fUpdated = true;
+                LogPrintf("%s: Updated txout type for %s\n", __func__, COutPoint(txid, it->n).ToString());
 
-                    if (it->IsBasecoin()) {
-                        // clear scriptpubkey info on basecoin. Don't need redundant storing.
-                        it->scriptPubKey.clear();
-                    }
-                }
-
-                // If value is marked as 0, check blind to make sure it is actually 0
-                if ((it->nFlags & ORF_OWNED) && it->GetAmount() == 0) {
-                    int64_t nValue = 0;
-                    uint256 blind;
-                    bool fBlindsSuccess = true;
-                    if (it->nType == OUTPUT_CT) {
-                        auto pout = (CTxOutCT*) txRef->vpout[it->n].get();
-                        CKeyID idKey;
-                        if (!KeyIdFromScriptPubKey(pout->scriptPubKey, idKey))
-                            continue;
-                        if (GetCTBlinds(idKey, pout->vData, &pout->commitment, pout->vRangeproof, blind, nValue)) {
-                            if (nValue != 0) {
-                                fUpdated = true;
-                                LogPrintf("%s: Recovered %s that was marked as 0 \n", __func__, FormatMoney(nValue));
-                            }
-                            fBlindsSuccess = true;
-                        }
-                    } else if (it->nType == OUTPUT_RINGCT) {
-                        auto pout = (CTxOutRingCT*) txRef->vpout[it->n].get();
-                        if (GetCTBlinds(pout->pk.GetID(), pout->vData, &pout->commitment, pout->vRangeproof, blind, nValue)) {
-                            if (nValue != 0) {
-                                fUpdated = true;
-                                LogPrintf("%s: Recovered %s that was marked as 0 \n", __func__, FormatMoney(nValue));
-                            }
-                            fBlindsSuccess = true;
-                        }
-                    }
-                    //Failed to decrypt blinds. This could happen if a 0 value output is added. Double check.
-                    if (!fBlindsSuccess) {
-                        auto nValueIn = txrecord->GetOwnedValueIn();
-                        if (nValueIn == 0) {
-                            //Maybe not correctly marked as 0 in, update this.
-                            for (auto& in : txrecord->vin) {
-                                auto mi = mapRecords.find(in.hash);
-                                if (mi != mapRecords.end()) {
-                                    auto prevout = mi->second.GetOutput(in.n);
-                                    if (!prevout)
-                                        continue;
-                                    nValueIn += prevout->GetAmount();
-                                }
-                            }
-
-                            if (nValueIn > 0) {
-                                txrecord->SetOwnedValueIn(nValueIn);
-                                LogPrintf("%s: Updated owned value in for %s\n", __func__, txid.GetHex());
-                                fUpdated = true;
-                            }
-                        }
-                        auto nValueOut = txrecord->GetValueSent(/*fExternalOnly*/false);
-                        auto nFee = txrecord->nFee;
-                        if (nValueIn - nFee - nValueOut > 0)
-                            LogPrintf("%s: Failed to get blinds for output %s %s %s valuein:%s valueout:%s fee=%s\n",
-                                      __func__, txid.GetHex(), COutPoint(txid, it->n).ToString(), it->ToString(),
-                                      FormatMoney(nValueIn), FormatMoney(nValueOut), FormatMoney(nFee));
-                    }
-
-                    it->SetValue(nValue);
-                }
-
-                // Check if it has the correct is_spent status //todo ringct outputs
-                if ((it->nFlags & ORF_OWNED)) {
-                    if (it->nType == OUTPUT_CT) {
-                        bool isSpentOnChain = !view.HaveCoin(COutPoint(txid, it->n));
-                        if (isSpentOnChain != it->IsSpent()) {
-                            it->MarkSpent(isSpentOnChain);
-                            fUpdated = true;
-                        }
-                    } else if (it->nType == OUTPUT_RINGCT) {
-                        auto txout = (CTxOutRingCT*)pout.get();
-                        CKeyID idk = txout->pk.GetID();
-                        CKey key;
-                        if (GetKey(idk, key)) {
-                            // Keyimage is required for the tx hash
-                            CCmpPubKey ki;
-                            if (secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), txout->pk.begin(), key.begin()) == 0) {
-                                // Double check key image is not used...
-                                uint256 txhashKI;
-                                if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
-                                    COutPoint out;
-                                    if (wdb.ReadAnonKeyImage(ki, out)) {
-                                        MarkOutputSpent(out, true);
-                                        LogPrintf("%s: marking ringct output %s:%d spent\n", __func__, txid.GetHex(), it->n);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (fUpdated) {
-                    wdb.WriteTxRecord(txid, *txrecord);
+                if (it->IsBasecoin()) {
+                    // clear scriptpubkey info on basecoin. Don't need redundant storing.
+                    it->scriptPubKey.clear();
                 }
             }
+
+            // If value is marked as 0, check blind to make sure it is actually 0
+            if ((it->nFlags & ORF_OWNED) && it->GetAmount() == 0) {
+                int64_t nValue = 0;
+                uint256 blind;
+                bool fBlindsSuccess = true;
+                if (it->nType == OUTPUT_CT) {
+                    auto pout = (CTxOutCT*) txRef->vpout[it->n].get();
+                    CKeyID idKey;
+                    if (!KeyIdFromScriptPubKey(pout->scriptPubKey, idKey))
+                        continue;
+                    if (GetCTBlinds(idKey, pout->vData, &pout->commitment, pout->vRangeproof, blind, nValue)) {
+                        if (nValue != 0) {
+                            fUpdated = true;
+                            LogPrintf("%s: Recovered %s that was marked as 0 \n", __func__, FormatMoney(nValue));
+                        }
+                        fBlindsSuccess = true;
+                    }
+                } else if (it->nType == OUTPUT_RINGCT) {
+                    auto pout = (CTxOutRingCT*) txRef->vpout[it->n].get();
+                    if (GetCTBlinds(pout->pk.GetID(), pout->vData, &pout->commitment, pout->vRangeproof, blind, nValue)) {
+                        if (nValue != 0) {
+                            fUpdated = true;
+                            LogPrintf("%s: Recovered %s that was marked as 0 \n", __func__, FormatMoney(nValue));
+                        }
+                        fBlindsSuccess = true;
+                    }
+                }
+                //Failed to decrypt blinds. This could happen if a 0 value output is added. Double check.
+                if (!fBlindsSuccess) {
+                    auto nValueIn = txrecord->GetOwnedValueIn();
+                    if (nValueIn == 0) {
+                        //Maybe not correctly marked as 0 in, update this.
+                        for (auto& in : txrecord->vin) {
+                            auto mi = mapRecords.find(in.hash);
+                            if (mi != mapRecords.end()) {
+                                auto prevout = mi->second.GetOutput(in.n);
+                                if (!prevout)
+                                    continue;
+                                nValueIn += prevout->GetAmount();
+                            }
+                        }
+
+                        if (nValueIn > 0) {
+                            txrecord->SetOwnedValueIn(nValueIn);
+                            LogPrintf("%s: Updated owned value in for %s\n", __func__, txid.GetHex());
+                            fUpdated = true;
+                        }
+                    }
+                    auto nValueOut = txrecord->GetValueSent(/*fExternalOnly*/false);
+                    auto nFee = txrecord->nFee;
+                    if (nValueIn - nFee - nValueOut > 0)
+                        LogPrintf("%s: Failed to get blinds for output %s %s %s valuein:%s valueout:%s fee=%s\n",
+                                  __func__, txid.GetHex(), COutPoint(txid, it->n).ToString(), it->ToString(),
+                                  FormatMoney(nValueIn), FormatMoney(nValueOut), FormatMoney(nFee));
+                }
+
+                it->SetValue(nValue);
+            }
+
+            // Check if it has the correct is_spent status //todo ringct outputs
+            if (isTransactionInChain && (it->nFlags & ORF_OWNED)) {
+                if (it->nType == OUTPUT_CT) {
+                    bool isSpentOnChain = !view.HaveCoin(COutPoint(txid, it->n));
+                    if (isSpentOnChain != it->IsSpent()) {
+                        it->MarkSpent(isSpentOnChain);
+                        fUpdated = true;
+                    }
+                } else if (it->nType == OUTPUT_RINGCT) {
+                    auto txout = (CTxOutRingCT*)pout.get();
+                    CKeyID idk = txout->pk.GetID();
+                    CKey key;
+                    if (GetKey(idk, key)) {
+                        // Keyimage is required for the tx hash
+                        CCmpPubKey ki;
+                        if (secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), txout->pk.begin(), key.begin()) == 0) {
+                            // Double check key image is not used...
+                            uint256 txhashKI;
+                            if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
+                                COutPoint out;
+                                if (wdb.ReadAnonKeyImage(ki, out)) {
+                                    MarkOutputSpent(out, true);
+                                    LogPrintf("%s: marking ringct output %s:%d spent\n", __func__, txid.GetHex(), it->n);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (fUpdated) {
+                wdb.WriteTxRecord(txid, *txrecord);
+                transactionUpdated = true;
+            }
+        }
+
+        // Check whether transaction is still locked (should in theory not happen, but just in case).
+        // If it is unlocked, ensure it is not tracked anymore.
+        bool isLocked = false;
+        for (auto it = txrecord->vout.begin(); it != txrecord->vout.end(); it++) {
+            if (it->nFlags & ORF_LOCKED) {
+                isLocked = true;
+                break;
+            }
+        }
+        if (!isLocked) {
+            mapLockedRecords.erase(txid);
+        }
+
+        if (transactionUpdated) {
+            pwalletParent->NotifyTransactionChanged(pwalletParent.get(), txid, CT_UPDATED_FULL);
+        }
+    };
+
+    if constexpr (ScanType == RESCAN_WALLET_LOCKED_ONLY) {
+        std::set<uint256> lockedTransactions(mapLockedRecords);
+        for (uint256 txhash : lockedTransactions) {
+            auto mi = mapRecords.find(txhash);
+            if (mi == mapRecords.end()) {
+                LogPrintf("ERROR: %s: inconsistency of tracked locked transactions detected.\n", __func__);
+                continue;
+            }
+            scanTransaction(mi);
+        }
+    } else {
+        for (auto mi = mapRecords.begin(); mi != mapRecords.end(); mi++) {
+            scanTransaction(mi);
         }
     }
 
     for (const uint256& txid : setErase) {
         mapRecords.erase(txid);
+        mapLockedRecords.erase(txid);
         wdb.EraseTxRecord(txid);
+        pwalletParent->NotifyTransactionChanged(pwalletParent.get(), txid, CT_DELETED);
     }
 }
+
+template void AnonWallet::RescanWallet<AnonWallet::RESCAN_WALLET_FULL>();
+template void AnonWallet::RescanWallet<AnonWallet::RESCAN_WALLET_LOCKED_ONLY>();
 
 bool AnonWallet::AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate)
 {
@@ -5447,7 +5498,7 @@ int AnonWallet::OwnAnonOut(AnonWalletDB *pwdb, const uint256 &txhash, const CTxO
     CKeyID idStealthDestination = pout->pk.GetID();
     CKey key;
     if (IsLocked()) {
-        if (!HaveKeyID(idStealthDestination))
+        if (!HaveKeyID(idStealthDestination) && !HaveAddress(idStealthDestination))
             return 0;
 
         rout.nFlags |= ORF_OWNED;
@@ -5707,6 +5758,7 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
         stx.vBlinds.clear();
     }
 
+    bool isLocked = false;
     for (size_t i = 0; i < tx.vpout.size(); ++i) {
         const auto &txout = tx.vpout[i];
 
@@ -5718,7 +5770,10 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
             fHave = true;
         } else {
             pout = &rout;
-            //pout->nFlags |= ORF_LOCKED; // mark new output as locked
+            if (IsMine(txout.get()) & ISMINE_ALL) {
+                pout->nFlags |= ORF_LOCKED; // mark new output as locked
+                pout->SetValue(0);
+            }
         }
 
         //If there were any spending flags, remove
@@ -5766,9 +5821,18 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
                 break;
         }
         fUpdated = true;
+
+        if (pout->nFlags & ORF_LOCKED)
+            isLocked = true;
     }
 
     if (fInsertedNew || fUpdated) {
+        // Keep track of locked transactions for faster unlocking
+        if (isLocked)
+            mapLockedRecords.insert(txhash);
+        else
+            mapLockedRecords.erase(txhash);
+
         // Plain to plain will always be a wtx, revisit if adding p2p to rtx
         if (!tx.GetCTFee(rtx.nFee))
             LogPrintf("%s: ERROR - GetCTFee failed %s.\n", __func__, txhash.ToString());

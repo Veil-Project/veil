@@ -258,7 +258,7 @@ public:
     bool MakeDefaultAccount(const CExtKey& extKeyMaster);
     bool CreateStealthChangeAccount(AnonWalletDB* wdb);
     bool SetMasterKey(const CExtKey& keyMasterIn);
-    bool UnlockWallet(const CExtKey& keyMasterIn);
+    bool UnlockWallet(const CExtKey& keyMasterIn, bool fRescan = true);
     bool LoadAccountCounters();
     bool LoadKeys();
     CKeyID GetSeedHash() const;
@@ -301,7 +301,13 @@ public:
     bool ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr);
     bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);
     void MarkOutputSpent(const COutPoint& outpoint, bool isSpent);
-    void RescanWallet();
+
+    enum RescanWalletType {
+      RESCAN_WALLET_FULL,
+      RESCAN_WALLET_LOCKED_ONLY,
+    };
+    template<RescanWalletType = RESCAN_WALLET_FULL>
+    void RescanWallet() EXCLUSIVE_LOCKS_REQUIRED(cs_main, pwalletParent->cs_wallet);
 
     int InsertTempTxn(const uint256 &txid, const CTransactionRecord *rtx) const;
 
@@ -364,6 +370,7 @@ public:
     mutable MapWallet_t mapTempWallet;
 
     MapRecords_t mapRecords;
+    std::set<uint256> mapLockedRecords; // Keep track of locked transactions (hidden value) for faster unlocking
     RtxOrdered_t rtxOrdered;
     mutable MapRecords_t mapTempRecords; // Hack for sending unmined inputs through fundrawtransactionfrom
 

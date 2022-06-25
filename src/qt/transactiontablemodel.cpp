@@ -106,7 +106,7 @@ public:
         int upperIndex = (upper - cachedWallet.begin());
         bool inModel = (lower != upper);
 
-        if(status == CT_UPDATED)
+        if(status == CT_UPDATED || status == CT_UPDATED_FULL)
         {
             if(showTransaction && !inModel)
                 status = CT_NEW; /* Not in model, but want to show, treat as new */
@@ -120,6 +120,23 @@ public:
 
         switch(status)
         {
+        case CT_UPDATED_FULL:
+        case CT_DELETED:
+            if(!inModel)
+            {
+                const char *statusStr = status == CT_DELETED ? "CT_DELETED" : "CT_UPDATED_FULL";
+                qWarning() << "TransactionTablePriv::updateWallet: Warning: Got " << statusStr << ", but transaction is not in model";
+                break;
+            }
+            // Removed -- remove entire transaction from table
+            parent->beginRemoveRows(QModelIndex(), lowerIndex, upperIndex-1);
+            cachedWallet.erase(lower, upper);
+            parent->endRemoveRows();
+            if (status == CT_DELETED)
+                break;
+            // Fall through is intentional here to prevent code duplication, since CT_UPDATED_FULL
+            // is equivalent to first CT_DELETED and then CT_NEW.
+            inModel = false;
         case CT_NEW:
             if(inModel)
             {
@@ -150,17 +167,6 @@ public:
                     parent->endInsertRows();
                 }
             }
-            break;
-        case CT_DELETED:
-            if(!inModel)
-            {
-                qWarning() << "TransactionTablePriv::updateWallet: Warning: Got CT_DELETED, but transaction is not in model";
-                break;
-            }
-            // Removed -- remove entire transaction from table
-            parent->beginRemoveRows(QModelIndex(), lowerIndex, upperIndex-1);
-            cachedWallet.erase(lower, upper);
-            parent->endRemoveRows();
             break;
         case CT_UPDATED:
             // Miscellaneous updates -- nothing to do, status update will take care of this, and is only computed for
@@ -566,7 +572,12 @@ QVariant TransactionTableModel::txWatchonlyDecoration(const TransactionRecord *w
 
 QString TransactionTableModel::formatTooltip(const TransactionRecord *rec) const
 {
-    QString tooltip = formatTxStatus(rec) + QString("\n") + formatTxType(rec);
+    QString tooltip;
+    if (rec->status.isLocked) {
+        tooltip += tr("Unlock wallet to see hidden amount");
+        tooltip += "\n";
+    }
+    tooltip += formatTxStatus(rec) + QString("\n") + formatTxType(rec);
     if(rec->type==TransactionRecord::RecvFromOther || rec->type==TransactionRecord::SendToOther ||
        rec->type==TransactionRecord::SendToAddress || rec->type==TransactionRecord::RecvWithAddress)
     {
@@ -670,6 +681,8 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         return walletModel->getAddressTableModel()->labelForAddress(QString::fromStdString(rec->address));
     case AmountRole:
         return qint64(rec->credit + rec->debit);
+    case AmountLockedRole:
+        return rec->status.isLocked;
     case FeeRole:
         return "Fee " + ( rec->getFee() == 0 ? "0.00 VEIL" : BitcoinUnits::formatWithUnit(BitcoinUnits::VEIL, rec->getFee(), false, BitcoinUnits::separatorAlways)) ;
     case TxHashRole:
