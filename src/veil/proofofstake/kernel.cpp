@@ -16,7 +16,6 @@
 #include "util/system.h"
 #include "stakeinput.h"
 #include "veil/zerocoin/zchain.h"
-#include "libzerocoin/bignum.h"
 #include <versionbits.h>
 
 using namespace std;
@@ -47,21 +46,6 @@ bool CheckStake(const CDataStream& ssUniqueID, CAmount nValueIn, const uint64_t 
 }
 
 
-//Sets nValueIn with the weighted amount given a certain zerocoin denomination
-void WeightStake(CAmount& nValueIn, const libzerocoin::CoinDenomination denom)
-{
-    if (denom == libzerocoin::CoinDenomination::ZQ_ONE_HUNDRED) {
-        //10% reduction
-        nValueIn = (nValueIn * 90) / 100;
-    } else if (denom == libzerocoin::CoinDenomination::ZQ_ONE_THOUSAND) {
-        //20% reduction
-        nValueIn = (nValueIn * 80) / 100;
-    } else if (denom == libzerocoin::CoinDenomination::ZQ_TEN_THOUSAND) {
-        //30% reduction
-        nValueIn = (nValueIn * 70) / 100;
-    }
-}
-
 std::set<uint256> setFoundStakes;
 bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockFrom, unsigned int& nTimeTx, const CBlockIndex* pindexBest, uint256& hashProofOfStake, bool fWeightStake)
 {
@@ -84,11 +68,8 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
     int64_t nMaxTime = (int)GetAdjustedTime() + MAX_FUTURE_BLOCK_TIME - 40;
 
     CDataStream ssUniqueID = stakeInput->GetUniqueness();
-    CAmount nValueIn = stakeInput->GetValue();
-
-    //Adjust stake weights to larger denoms
-    if (fWeightStake)
-        WeightStake(nValueIn, stakeInput->GetDenomination());
+    // Adjust stake weights
+    CAmount nValueIn = fWeightStake ? stakeInput->GetWeight() : stakeInput->GetValue();
 
     int nBestHeight = pindexBest->nHeight;
     uint256 hashBestBlock = pindexBest->GetBlockHash();
@@ -167,11 +148,12 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
 
     unsigned int nBlockFromTime = blockprev.nTime;
     unsigned int nTxTime = nTimeBlock;
-    CAmount nValue = stake->GetValue();
 
     // Enforce VIP-1 after it was activated
-    if ((int)nTxTime > Params().EnforceWeightReductionTime())
-        WeightStake(nValue, stake->GetDenomination());
+    CAmount nValue = (int)nTxTime > Params().EnforceWeightReductionTime()
+        ? stake->GetWeight()
+        : stake->GetValue();
+
 
     if (!CheckStake(stake->GetUniqueness(), nValue, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime,
                     nTxTime, hashProofOfStake)) {
