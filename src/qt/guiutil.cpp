@@ -56,6 +56,13 @@
 #include <QFontDatabase>
 #endif
 
+#if defined(Q_OS_MAC)
+#include <CoreServices/CoreServices.h>
+#include <QProcess>
+
+void ForceActivation();
+#endif
+
 static fs::detail::utf8_codecvt_facet utf8;
 
 namespace GUIUtil {
@@ -357,6 +364,24 @@ bool isObscured(QWidget *w)
         && checkPoint(QPoint(0, w->height() - 1), w)
         && checkPoint(QPoint(w->width() - 1, w->height() - 1), w)
         && checkPoint(QPoint(w->width() / 2, w->height() / 2), w));
+}
+
+void bringToFront(QWidget* w)
+{
+#ifdef Q_OS_MAC
+    ForceActivation();
+#endif
+
+    if (w) {
+        // activateWindow() (sometimes) helps with keyboard focus on Windows
+        if (w->isMinimized()) {
+            w->showNormal();
+        } else {
+            w->show();
+        }
+        w->activateWindow();
+        w->raise();
+    }
 }
 
 void openDebugLogfile()
