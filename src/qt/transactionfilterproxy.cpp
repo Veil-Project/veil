@@ -21,6 +21,7 @@ TransactionFilterProxy::TransactionFilterProxy(QObject *parent) :
     dateTo(MAX_DATE),
     m_search_string(),
     typeFilter(ALL_TYPES),
+    powTypeFilter(0),
     watchOnlyFilter(WatchOnlyFilter_All),
     minAmount(0),
     limitRows(-1),
@@ -40,6 +41,12 @@ bool TransactionFilterProxy::filterAcceptsRow(int sourceRow, const QModelIndex &
     int type = index.data(TransactionTableModel::TypeRole).toInt();
     if (!(TYPE(type) & typeFilter))
         return false;
+
+    if (powTypeFilter != 0) {
+        int32_t nPowType = index.data(TransactionTableModel::PowTypeRole).toInt();
+        if (nPowType != powTypeFilter)
+            return false;
+    }
 
     bool involvesWatchAddress = index.data(TransactionTableModel::WatchonlyRole).toBool();
     if (involvesWatchAddress && watchOnlyFilter == WatchOnlyFilter_No)
@@ -88,6 +95,11 @@ void TransactionFilterProxy::setTypeFilter(quint32 modes)
 {
     this->typeFilter = modes;
     invalidateFilter();
+}
+
+void TransactionFilterProxy::setPowTypeFilter(int32_t nPowType)
+{
+    this->powTypeFilter = nPowType;
 }
 
 void TransactionFilterProxy::setMinAmount(const CAmount& minimum)

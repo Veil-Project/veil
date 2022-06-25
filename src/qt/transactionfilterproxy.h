@@ -40,6 +40,7 @@ public:
       @note Type filter takes a bit field created with TYPE() or ALL_TYPES
      */
     void setTypeFilter(quint32 modes);
+    void setPowTypeFilter(int32_t nPowType);
     void setMinAmount(const CAmount& minimum);
     void setWatchOnlyFilter(WatchOnlyFilter filter);
 
@@ -64,6 +65,7 @@ private:
     QDateTime dateTo;
     QString m_search_string;
     quint32 typeFilter;
+    int32_t powTypeFilter;
     WatchOnlyFilter watchOnlyFilter;
     CAmount minAmount;
     int limitRows;

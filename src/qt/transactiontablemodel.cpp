@@ -342,6 +342,19 @@ QString TransactionTableModel::lookupAddress(const std::string &address, bool to
     return description;
 }
 
+QString GetPoWTypeSuffix(int32_t nPowType)
+{
+    if (nPowType == CBlockHeader::PROGPOW_BLOCK) {
+        return " (ProgPow)";
+    } else if (nPowType == CBlockHeader::RANDOMX_BLOCK) {
+        return " (RandomX)";
+    } else if (nPowType == CBlockHeader::SHA256D_BLOCK) {
+        return " (Sha256d)";
+    } else {
+        return {};
+    }
+}
+
 QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
 {
     switch(wtx->type)
@@ -356,7 +369,7 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
     case TransactionRecord::SendToSelf:
         return tr("Basecoin payment to yourself");
     case TransactionRecord::Generated:
-        return tr("Basecoin mined");
+        return tr("Basecoin mined") + GetPoWTypeSuffix(wtx->nPowType);
     case TransactionRecord::CTRecvWithAddress:
         return tr("CT received with");
     case TransactionRecord::CTSendToAddress:
@@ -698,6 +711,8 @@ QVariant TransactionTableModel::data(const QModelIndex &index, int role) const
         return formatTxAmount(rec, false, BitcoinUnits::separatorNever);
     case StatusRole:
         return rec->status.status;
+    case PowTypeRole:
+        return rec->nPowType;
     }
     return QVariant();
 }

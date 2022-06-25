@@ -158,6 +158,7 @@ public:
     int inputsSize = 0;
     int confirmations = 0;
     int computetime = 0;
+    int32_t nPowType = 0;
 
     /**@}*/
 

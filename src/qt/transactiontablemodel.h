@@ -76,6 +76,8 @@ public:
         RawDecorationRole,
         /** Transaction Fee */
         FeeRole,
+        /** PoW Type */
+        PowTypeRole,
     };
 
     int rowCount(const QModelIndex &parent) const;
