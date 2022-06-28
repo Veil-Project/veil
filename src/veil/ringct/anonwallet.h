@@ -253,6 +253,7 @@ public:
     void GetAllScanKeys(std::vector<CStealthAddress>& vStealthAddresses);
     bool IsMyPubKey(const CKeyID& keyId);
 
+    bool CoinToTxIn(const COutputR& coin, CTxIn& txin, size_t nRingSize);
 
     void LoadToWallet(const uint256 &hash, const CTransactionRecord &rtx);
     bool LoadTxRecords();

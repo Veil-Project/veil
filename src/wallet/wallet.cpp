@@ -3986,6 +3986,10 @@ bool CWallet::CreateZerocoinStake(const CBlockIndex* pindexBest, unsigned int nB
 {
     return CreateCoinStake<ZerocoinStake>(pindexBest, nBits, txNew, nTxNewTime, nComputeTimeStart);
 }
+bool CWallet::CreateRingCTStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart)
+{
+    return CreateCoinStake<RingCTStake>(pindexBest, nBits, txNew, nTxNewTime, nComputeTimeStart);
+}
 
 bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs)
 {
@@ -4023,6 +4027,30 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listI
     }
 
     LogPrint(BCLog::STAKING, "%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());
+
+    return true;
+}
+
+bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<RingCTStake> >& listInputs)
+{
+    LOCK(cs_main);
+
+    std::vector<COutputR> vCoins;
+    pAnonWalletMain->AvailableAnonCoins(vCoins);
+
+    // TODO: change required depth
+    int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
+    if (chainActive.Height() >= Params().HeightLightZerocoin())
+        nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+
+    for (auto coin : vCoins) {
+        if (coin.nDepth >= nRequiredDepth) {
+            std::unique_ptr<RingCTStake> input(new RingCTStake(coin));
+            listInputs.emplace_back(std::move(input));
+        }
+    }
+
+    LogPrint(BCLog::STAKING, "%s: FOUND %d STAKABLE RINGCT COINS\n", __func__, listInputs.size());
 
     return true;
 }

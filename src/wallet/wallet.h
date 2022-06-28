@@ -1101,8 +1101,10 @@ private:
 
 public:
     bool CreateZerocoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
+    bool CreateRingCTStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
 
     bool SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs);
+    bool SelectStakeCoins(std::list<std::unique_ptr<RingCTStake> >& listInputs);
 
     // sub wallet seeds
     bool GetZerocoinSeed(CKey& keyZerocoinMaster);

@@ -12,9 +12,11 @@
 
 #include "libzerocoin/CoinSpend.h"
 
+class AnonWallet;
 class CKeyStore;
 class CWallet;
 class CWalletTx;
+class COutputR;
 
 class CStakeInput
 {
@@ -39,7 +41,34 @@ public:
 };
 
 
-// zPIVStake can take two forms
+class RingCTStake : public CStakeInput
+{
+private:
+    const COutputR& coin;
+    // Need: depth, COutputRecord (amount)
+
+public:
+    explicit RingCTStake(const COutputR& coin_) : coin(coin_) { };
+
+    CBlockIndex* GetIndexFrom() override;
+    bool GetTxFrom(CTransaction& tx) override;
+    CAmount GetValue() override;
+    CAmount GetWeight() override;
+    bool GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev) override;
+    CDataStream GetUniqueness() override;
+
+    bool IsZerocoins() override { return false; }
+
+    bool MarkSpent(AnonWallet* panonwallet, const uint256& txid);
+    bool CompleteTx(AnonWallet* panonwallet, CMutableTransaction& txNew);
+
+    bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) override;
+    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) override;
+    bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) override;
+};
+
+
+// ZerocoinStake can take two forms
 // 1) the stake candidate, which is a zcmint that is attempted to be staked
 // 2) a staked zerocoin, which is a zcspend that has successfully staked
 class ZerocoinStake : public CStakeInput

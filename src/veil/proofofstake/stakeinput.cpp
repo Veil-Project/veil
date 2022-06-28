@@ -15,8 +15,24 @@
 #ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
 #endif
+#include "veil/ringct/anonwallet.h"
 
-typedef std::vector<unsigned char> valtype;
+// Based on https://stackoverflow.com/a/23000588
+int fast_log16(uint64_t value)
+{
+    // Round value up to the nearest 2^k - 1
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    value |= value >> 32;
+    // value & 0x1111... reduces the max index of the leftmost 1 down to a multiple of 4
+    // There are now only 16 possible values
+    // Multiply by 0x0111... results in a unique value in the top 4 bits
+    // Thanks to the repeated addition, this is exactly log16 of our number.
+    return ((value & 0x1111111111111111u) * 0x0111111111111111u) >> 60;
+}
 
 // Use the PoW hash or the PoS hash
 uint256 GetHashFromIndex(const CBlockIndex* pindexSample)
@@ -97,6 +113,145 @@ bool GetStakeModifier(uint64_t& nStakeModifier, const CBlockIndex& pindexChainPr
 
     nStakeModifier = UintToArith256(hashModifier).GetLow64();
     return true;
+}
+
+// BRACKETBASE is the Log base that establishes brackets, see below
+const uint64_t BRACKETBASE = 16;
+// log2 of the BASE is the amount we have to shift by to be equivalent to multiplying by the BASE
+// so that << (4 * x) is the same as pow(16, x+1)
+const uint32_t LOG2BRACKETBASE = 4;
+
+const CAmount nBareMinStake = BRACKETBASE;
+const CAmount nOneSat = 1;
+
+bool CheckMinStake(const CAmount& nAmount)
+{
+    // Protocol needs to enforce bare minimum (mathematical min). User can define selective min
+    if (nAmount <= nBareMinStake)
+        return false;
+    return true;
+}
+
+
+CBlockIndex* RingCTStake::GetIndexFrom()
+{
+    if (pindexFrom)
+        return pindexFrom;
+
+    if (coin.nDepth > 0)
+        //note that this will be a nullptr if the height DNE
+        pindexFrom = chainActive[coin.nDepth];
+
+    return pindexFrom;
+}
+
+bool RingCTStake::GetTxFrom(CTransaction& tx)
+{
+    // TODO
+    return false;
+}
+
+CAmount RingCTStake::GetValue()
+{
+    const COutputRecord* oR = coin.rtx->second.GetOutput(coin.i);
+    if (!oR)
+        return 0;
+    return oR->GetAmount();
+}
+
+// Returns a weight amount based on a bracket for privacy.
+// The bracket is given by log16 (value in sats - 1), and the weight is equal to
+// the minimum value of the bracket. Values of 16 sats and below are not eligible
+// to be staked.
+//
+//      Bracket                 min                                     max
+//      -------                 ---                                     ---
+//         0                    0 (        0.00000000)                 16 (        0.00000016)
+//         1                   17 (        0.00000017)                256 (        0.00000256)
+//         2                  257 (        0.00000257)               4096 (        0.00004096)
+//         3                 4097 (        0.00004097)              65536 (        0.00065536)
+//         4                65537 (        0.00065537)            1048576 (        0.01048576)
+//         5              1048577 (        0.01048577)           16777216 (        0.16777216)
+//         6             16777217 (        0.16777217)          268435456 (        2.68435456)
+//         7            268435457 (        2.68435457)         4294967296 (       42.94967296)
+//         8           4294967297 (       42.94967297)        68719476736 (      687.19476736)
+//         9          68719476737 (      687.19476737)      1099511627776 (    10995.11627776)
+//         10       1099511627777 (    10995.11627777)     17592186044416 (   175921.86044416)
+//         11      17592186044417 (   175921.86044417)    281474976710656 (  2814749.76710656)
+//         12     281474976710657 (  2814749.76710657)   4503599627370496 ( 45035996.27370496)
+//         13    4503599627370497 ( 45035996.27370497)  72057594037927936 (720575940.37927936)
+CAmount RingCTStake::GetWeight()
+{
+    CAmount nValueIn = GetValue();
+    // fast mode
+    if (nValueIn <= nBareMinStake)
+        return 0;
+
+    // bracket is at least 1 now.
+    int bracket = fast_log16(nValueIn - nOneSat);
+    // We'd do 16 << (4 * (bracket - 1)) but 16 is 1 << 4 so it's really
+    // 1 << (4 + 4 * bracket - 4)
+    return (1 << (4 * bracket)) + nOneSat;
+}
+
+bool RingCTStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)
+{
+    if (!pindexChainPrev)
+        return false;
+
+    return GetStakeModifier(nStakeModifier, *pindexChainPrev);
+}
+
+CDataStream RingCTStake::GetUniqueness()
+{
+    //The unique identifier for a VEIL RingCT txo is... txhash + n?
+    CDataStream ss(SER_GETHASH, 0);
+    ss << coin.txhash;
+    ss << coin.i;
+    return ss;
+}
+
+bool RingCTStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
+{
+#ifdef ENABLE_WALLET
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+#endif
+        return error("%s: wallet disabled", __func__);
+#ifdef ENABLE_WALLET
+    }
+
+    return pwallet->GetAnonWallet()->CoinToTxIn(coin, txIn, 32);
+#endif
+}
+
+bool RingCTStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nReward)
+{
+#ifdef ENABLE_WALLET
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+#endif
+        return error("%s: wallet disabled", __func__);
+#ifdef ENABLE_WALLET
+    }
+
+    //Create an output returning the RingCT and adding the reward to it
+    // or two separate rewards
+    // The former could be an info leak over time when it gets staked again in a different
+    // bucket.
+    // The latter is an info leak of the reward...
+
+
+    return true;
+#endif
+}
+
+bool RingCTStake::CompleteTx(CWallet* pwallet, CMutableTransaction& txNew)
+{
+    return false;
+}
+
+bool RingCTStake::MarkSpent(AnonWallet* panonwallet, const uint256& txid)
+{
+    return false;
 }
 
 ZerocoinStake::ZerocoinStake(const libzerocoin::CoinSpend& spend)

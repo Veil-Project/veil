@@ -2823,6 +2823,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     CAmount nCreated = nBlockValueOut - nBlockValueIn;
 
     // Check change doesn't exceed fees and that only PoFN blocks have blind txouts
+    // TODO for ringctstake
     if ((block.fProofOfFullNode || block.hashPoFN != uint256()) && block.vtx[1]->HasBlindedValues()) {
         // This should consist only of block fees, so it should be <= nFees
         CAmount nBlindFeePayout = 0;

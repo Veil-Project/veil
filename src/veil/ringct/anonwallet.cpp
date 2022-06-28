@@ -4073,6 +4073,116 @@ bool AnonWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vec
     return true;
 }
 
+bool AnonWallet::CoinToTxIn(const COutputR& coin, CTxIn& txin, size_t nRingSize)
+{
+    // Mostly copied from AddAnonInputs_Inner
+    std::string sError;
+    int rv;
+
+    txin.nSequence = CTxIn::SEQUENCE_FINAL;
+    txin.prevout.n = COutPoint::ANON_MARKER;
+    txin.SetAnonInfo(1, nRingSize);
+
+    std::vector<std::pair<MapRecords_t::const_iterator, unsigned int>> vCoins;
+    vCoins.emplace_back(coin.rtx, coin.rtx->second.GetOutput(coin.i)->GetAmount());
+
+    std::set<int64_t> setHave; // Anon prev-outputs can only be used once per transaction.
+    // Must add real outputs to setHave before picking decoys
+    uint32_t nSigInputs, nSigRingSize;
+    txin.GetAnonInfo(nSigInputs, nSigRingSize);
+
+    std::vector<std::vector<int64_t>> vMI;
+    ec_point vInputBlinds;
+    size_t secretColumn;
+
+    // ArrangeBlinds part 1: place real output
+    vInputBlinds.resize(32 * nSigInputs);
+
+    if (!PlaceRealOutputs(vMI, secretColumn, nSigRingSize, setHave, vCoins, vInputBlinds, sError)) {
+        return false;
+    }
+
+    // ArrangeBlinds part 2: hiding outputs (no dummy sigs)
+    if (!PickHidingOutputs(vMI, secretColumn, nSigRingSize, setHave, sError))
+        return false;
+
+    std::vector<uint8_t> vPubkeyMatrixIndices;
+
+    for (size_t k = 0; k < nSigInputs; ++k)
+        for (size_t i = 0; i < nSigRingSize; ++i) {
+            PutVarInt(vPubkeyMatrixIndices, vMI[k][i]);
+        }
+
+    // Since we don't need the dummy sigs for fee calculation,
+    // just emplace empty vectors in the proper places.
+    txin.scriptWitness.stack.emplace_back(vPubkeyMatrixIndices);
+
+    // end ArrangeBlinds
+
+    // if sign
+    txin.scriptData.stack.emplace_back(33 * nSigInputs);
+    std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
+
+    if (!GetKeyImage(txin, vMI, secretColumn, sError))
+        return false;
+
+    // SetBlinds. Some of these later vectors contain pointers to data in the earlier ones.
+    size_t nCols = nSigRingSize;
+    size_t nRows = nSigInputs + 1;
+
+    std::vector<CKey> vsk(nSigInputs);
+    std::vector<const uint8_t*> vpsk(nRows);
+
+    std::vector<uint8_t> vm(nCols * nRows * 33);
+    std::vector<secp256k1_pedersen_commitment> vCommitments;
+    vCommitments.reserve(nCols * nSigInputs);
+    std::vector<const uint8_t*> vpInCommits(nCols * nSigInputs);
+    std::vector<const uint8_t*> vpBlinds;
+
+    if (!SetBlinds(nSigRingSize, nSigInputs, vMI, vsk, vpsk, vm, vCommitments,
+                   vpInCommits, vpBlinds, vInputBlinds,
+                   secretColumn, sError))
+        return false;
+
+    // This deals with the outputs and the tx as a whole
+    // and probably has to be moved.
+    /*
+                uint8_t blindSum[32];
+                memset(blindSum, 0, 32);
+                vpsk[nRows-1] = blindSum;
+
+                txin.scriptWitness.stack.emplace_back((1 + (nSigInputs+1) * nSigRingSize) * 32); // extra element for C, extra row for commitment row
+                std::vector<uint8_t> &vDL = txin.scriptWitness.stack[1];
+
+                vpBlinds.insert(vpBlinds.end(), vpOutBlinds.begin(), vpOutBlinds.end());
+
+                if (0 != (rv = secp256k1_prepare_mlsag(&vm[0], blindSum,
+                                vpOutCommits.size(), vpOutCommits.size(), nCols, nRows,
+                                &vpInCommits[0], &vpOutCommits[0], &vpBlinds[0]))) {
+                    sError = strprintf("Failed to prepare mlsag with %d.", rv);
+                    return error("%s: %s", __func__, sError);
+                }
+
+
+                uint256 hashOutputs = txNew.GetOutputsHash();
+                if (0 != (rv = secp256k1_generate_mlsag(secp256k1_ctx_blind, &vKeyImages[0], &vDL[0], &vDL[32],
+                                                        randSeed, hashOutputs.begin(), nCols, nRows, vSecretColumns[l],
+                                                        &vpsk[0], &vm[0]))) {
+                    sError = strprintf("Failed to generate mlsag with %d.", rv);
+                    return error("%s: %s", __func__, sError);
+                }
+
+                // Validate the mlsag
+                if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind, hashOutputs.begin(), nCols,
+                                                      nRows, &vm[0], &vKeyImages[0], &vDL[0], &vDL[32]))) {
+                    sError = strprintf("Failed to generate mlsag on initial generation %d.", rv);
+                    return error("%s: %s", __func__, sError);
+                }
+*/
+
+    return true;
+}
+
 bool AnonWallet::CreateStealthChangeAccount(AnonWalletDB* wdb)
 {
     /** Derive a stealth address that is specifically for change **/
