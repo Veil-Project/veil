@@ -211,7 +211,7 @@ UniValue blockToJSON(const CBlock& block, const CBlockIndex* tip, const CBlockIn
     if (block.IsProgPow()) {
         result.pushKV("prog_header_hash", block.GetProgPowHeaderHash().GetHex());
         result.pushKV("prog_header_hex", HexStr(ss.begin(), ss.end()));
-        result.pushKV("epoch_number", ethash::get_epoch_number(block.nHeight));
+        result.pushKV("epoch_number", Params().GetProgPowEpochNumber(block.nHeight));
     }
     if (blockindex->pprev)
         result.pushKV("previousblockhash", blockindex->pprev->GetBlockHash().GetHex());

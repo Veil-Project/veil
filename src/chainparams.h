@@ -146,6 +146,7 @@ public:
     int HeightCheckDenom() const { return nHeightCheckDenom; }
     int HeightLightZerocoin() const { return nHeightLightZerocoin; }
     int HeightEnforceBlacklist() const { return nHeightEnforceBlacklist; }
+    int HeightProgPowDAGSizeReduction() const { return nHeightProgPowDAGSizeReduction; }
 
     uint32_t PowUpdateTimestamp() const { return nPowUpdateTimestamp; }
     uint64_t KIforkTimestamp() const { return nTimeKIfork; }
@@ -163,6 +164,15 @@ public:
 
     bool CheckKIenforced(const CBlockIndex* pindex) const;
     bool CheckKIenforced(int nSpendHeight) const;
+
+    /**
+     * Returns the current epoch number for the specified block number
+     */
+    int GetProgPowEpochNumber(int blockNumber) const;
+    /**
+     * Returns a pair with <next epoch, height of next epoch> for the specified block number
+     */
+    std::pair<int, int> GetProgPowNextEpoch(int blockNumber) const;
 
 
 protected:
@@ -225,6 +235,7 @@ protected:
     int nHeightCheckDenom;
     int nHeightLightZerocoin;
     int nHeightEnforceBlacklist;
+    int nHeightProgPowDAGSizeReduction;
 
     //Settings that are not chain critical, but should not be edited unless the person changing understands the consequence
     int nMaxHeaderRequestWithoutPoW;

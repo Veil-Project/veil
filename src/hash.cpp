@@ -2,6 +2,7 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
+#include <chainparams.h>
 #include <hash.h>
 #include <crypto/common.h>
 #include <crypto/hmac_sha512.h>
@@ -272,7 +273,7 @@ uint256 ProgPowHash(const CBlockHeader& blockHeader, uint256& mix_hash)
     {
         LOCK(cs_context_builder);
         // Get the context from the block height
-        const auto epoch_number = ethash::get_epoch_number(blockHeader.nHeight);
+        const auto epoch_number = Params().GetProgPowEpochNumber(blockHeader.nHeight);
         if (!progpow_context || progpow_context->epoch_number != epoch_number)
             progpow_context = ethash::create_epoch_context(epoch_number);
     }
