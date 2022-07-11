@@ -57,7 +57,6 @@ bool LightWalletUpdateChangeOutputCommitment(CMutableTransaction& txNew, std::ve
 
 bool LightWalletInsertKeyImages(CMutableTransaction& txNew, std::vector<std::pair<int64_t, CKey>>& vSigningKeys, const std::vector<CWatchOnlyTx>& vSelectedTxes, const std::vector<size_t>& vSecretColumns, const std::vector<std::vector<std::vector<int64_t>>>& vMI, const CPubKey& spend_pubkey, const CKey& scan_secret, const CKey& spend_secret, std::string& errorMsg);
 
-
 bool LightWalletSignAndVerifyTx(CMutableTransaction& txNew, std::vector<std::vector<uint8_t>>& vInputBlinds, std::vector<const uint8_t *>& vpOutCommits, std::vector<const uint8_t *>& vpOutBlinds, std::vector<CKey>& vSplitCommitBlindingKeys, const std::vector<std::pair<int64_t, CKey>>& vSigningKeys, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, const std::vector<CWatchOnlyTx>& vSelectedTx, const std::vector<size_t>& vSecretColumns, const std::vector<std::vector<std::vector<int64_t>>>& vMI, std::string& errorMsg);
 
 #endif //VEIL_LIGHTWALLET_H

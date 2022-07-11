@@ -2154,12 +2154,10 @@ static UniValue importlightwalletaddress(const JSONRPCRequest &request)
         SetPublicKey(pkSpend, sxAddr.spend_pubkey);
     }
 
-    UniValue result(UniValue::VOBJ);
-    if (anonwallet->HaveStealthAddress(sxAddr)) { // check for extkeys, no update possible
-        throw JSONRPCError(RPC_WALLET_ERROR, "Import failed - stealth address exists.");
+    if (mapWatchOnlyAddresses.count(sxAddr.ToString(fBech32))) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Watchonly address already imported");
     }
-
-//      pwallet->SetAddressBook(sxAddr, sLabel, "", fBech32);
+    UniValue result(UniValue::VOBJ);
 
     if (!anonwallet->ImportStealthAddress(sxAddr, skSpend)) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Could not save to wallet.");

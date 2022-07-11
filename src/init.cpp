@@ -595,6 +595,7 @@ void SetupServerArgs()
     gArgs.AddArg("-rpcuser=<user>", "Username for JSON-RPC connections", false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE), true, OptionsCategory::RPC);
     gArgs.AddArg("-server", "Accept command line and JSON-RPC commands", false, OptionsCategory::RPC);
+    gArgs.AddArg("-watchonly", "Only run this if you are running a watchonly server", false, OptionsCategory::RPC);
     gArgs.AddArg("-lightwallet", "Normal blockchain syncing doesn't occur", false, OptionsCategory::RPC);
 
 #if HAVE_DECL_DAEMON

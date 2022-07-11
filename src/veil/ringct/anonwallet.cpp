@@ -364,11 +364,16 @@ isminetype AnonWallet::HaveStealthAddress(const CStealthAddress &sxAddr) const
 
     auto si = mapStealthAddresses.find(sxAddr.GetID());
     if (si != mapStealthAddresses.end()) {
-        isminetype imSpend = pwalletParent->IsMine(si->second.spend_secret_id);
-        if (imSpend & ISMINE_SPENDABLE) {
-            return imSpend; // Retain ISMINE_HARDWARE_DEVICE flag if present
+
+        if (mapWatchOnlyAddresses.count(si->second.ToString(true))) {
+            return ISMINE_WATCH_ONLY;
         }
-        return ISMINE_WATCH_ONLY;
+
+        if (mapWatchOnlyAddresses.count(si->second.ToString(false))) {
+            return ISMINE_WATCH_ONLY;
+        }
+
+        return ISMINE_SPENDABLE;
     }
 
     return ISMINE_NO;
