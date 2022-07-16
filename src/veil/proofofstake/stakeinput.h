@@ -47,6 +47,8 @@ private:
     const COutputR& coin;
     // Need: depth, COutputRecord (amount)
 
+    CAmount GetBracketMinValue();
+
 public:
     explicit RingCTStake(const COutputR& coin_) : coin(coin_) { };
 

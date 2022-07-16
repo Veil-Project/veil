@@ -254,6 +254,7 @@ public:
     bool IsMyPubKey(const CKeyID& keyId);
 
     bool CoinToTxIn(const COutputR& coin, CTxIn& txin, size_t nRingSize);
+    bool CreateStakeTxOuts(const COutputR& coin, std::vector<CTxOutBaseRef>& vpout, CAmount nInput, CAmount nReward, CAmount bracketMin, size_t nRingSize);
 
     void LoadToWallet(const uint256 &hash, const CTransactionRecord &rtx);
     bool LoadTxRecords();
@@ -417,8 +418,7 @@ private:
     bool SetOutputs(
         std::vector<CTxOutBaseRef>& vpout,
         std::vector<CTempRecipient>& vecSend,
-        CAmount& nFeeRet,
-        CAmount& nFeeNeeded,
+        CAmount nFeeRet,
         size_t nSubtractFeeFromAmount,
         CAmount& nValueOutPlain,
         int& nChangePosInOut,

@@ -180,7 +180,7 @@ CAmount RingCTStake::GetValue()
 //         11      17592186044417 (   175921.86044417)    281474976710656 (  2814749.76710656)
 //         12     281474976710657 (  2814749.76710657)   4503599627370496 ( 45035996.27370496)
 //         13    4503599627370497 ( 45035996.27370497)  72057594037927936 (720575940.37927936)
-CAmount RingCTStake::GetWeight()
+CAmount RingCTStake::GetBracketMinValue()
 {
     CAmount nValueIn = GetValue();
     // fast mode
@@ -192,6 +192,43 @@ CAmount RingCTStake::GetWeight()
     // We'd do 16 << (4 * (bracket - 1)) but 16 is 1 << 4 so it's really
     // 1 << (4 + 4 * bracket - 4)
     return (1 << (4 * bracket)) + nOneSat;
+}
+
+// We further reduce the weights of higher brackets to match zerocoin reductions.
+CAmount RingCTStake::GetWeight() {
+    CAmount nValueIn = GetValue();
+    // fast mode
+    if (nValueIn <= nBareMinStake)
+        return 0;
+
+    // bracket is at least 1 now.
+    int bracket = fast_log16(nValueIn - nOneSat);
+    // We'd do 16 << (4 * (bracket - 1)) but 16 is 1 << 4 so it's really
+    // 1 << (4 + 4 * bracket - 4)
+    int val = (1 << (4 * bracket)) + nOneSat;
+
+    switch (bracket) {
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+            return val;
+        case 8:
+            return (val * 95) / 100;
+        case 9:
+            return (val * 91) / 100;
+        case 10:
+            return (val * 71) / 100;
+        case 11:
+            return (val * 5) / 10;
+        case 12:
+            return (val * 3) / 10;
+        default:
+            return val / 10;
+    }
 }
 
 bool RingCTStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)
@@ -233,14 +270,7 @@ bool RingCTStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpo
 #ifdef ENABLE_WALLET
     }
 
-    //Create an output returning the RingCT and adding the reward to it
-    // or two separate rewards
-    // The former could be an info leak over time when it gets staked again in a different
-    // bucket.
-    // The latter is an info leak of the reward...
-
-
-    return true;
+    return pwallet->GetAnonWallet()->CreateStakeTxOuts(coin, vpout, GetValue(), nReward, GetBracketMinValue(), 32);
 #endif
 }
 

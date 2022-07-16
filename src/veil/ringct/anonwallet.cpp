@@ -3474,8 +3474,7 @@ bool AnonWallet::SetBlinds(
 bool AnonWallet::SetOutputs(
         std::vector<CTxOutBaseRef>& vpout,
         std::vector<CTempRecipient>& vecSend,
-        CAmount& nFeeRet,
-        CAmount& nFeeNeeded,
+        CAmount nFeeRet,
         size_t nSubtractFeeFromAmount,
         CAmount& nValueOutPlain,
         int& nChangePosInOut,
@@ -3771,7 +3770,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             nChangePosInOut = -1;
 
             bool fFeesFromChange = nMaximumInputs > 0 && nChange >= MIN_FINAL_CHANGE + nFeeRet;
-            if (!SetOutputs(txNew.vpout, vecSend, nFeeRet, nFeeNeeded, nSubtractFeeFromAmount,
+            if (!SetOutputs(txNew.vpout, vecSend, nFeeRet, nSubtractFeeFromAmount,
                             nValueOutPlain, nChangePosInOut, fSkipFee, fFeesFromChange, sError)) {
                 return false;
             }
@@ -4099,12 +4098,12 @@ bool AnonWallet::CoinToTxIn(const COutputR& coin, CTxIn& txin, size_t nRingSize)
     vInputBlinds.resize(32 * nSigInputs);
 
     if (!PlaceRealOutputs(vMI, secretColumn, nSigRingSize, setHave, vCoins, vInputBlinds, sError)) {
-        return false;
+        return error("%s: %s", __func__, sError);
     }
 
     // ArrangeBlinds part 2: hiding outputs (no dummy sigs)
     if (!PickHidingOutputs(vMI, secretColumn, nSigRingSize, setHave, sError))
-        return false;
+        return error("%s: %s", __func__, sError);
 
     std::vector<uint8_t> vPubkeyMatrixIndices;
 
@@ -4124,9 +4123,10 @@ bool AnonWallet::CoinToTxIn(const COutputR& coin, CTxIn& txin, size_t nRingSize)
     std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
 
     if (!GetKeyImage(txin, vMI, secretColumn, sError))
-        return false;
+        return error("%s: %s", __func__, sError);
 
     // SetBlinds. Some of these later vectors contain pointers to data in the earlier ones.
+    // This probably needs to be done in Complete() because these may be needed there as well.
     size_t nCols = nSigRingSize;
     size_t nRows = nSigInputs + 1;
 
@@ -4142,7 +4142,7 @@ bool AnonWallet::CoinToTxIn(const COutputR& coin, CTxIn& txin, size_t nRingSize)
     if (!SetBlinds(nSigRingSize, nSigInputs, vMI, vsk, vpsk, vm, vCommitments,
                    vpInCommits, vpBlinds, vInputBlinds,
                    secretColumn, sError))
-        return false;
+        return error("%s: %s", __func__, sError);
 
     // This deals with the outputs and the tx as a whole
     // and probably has to be moved.
@@ -4179,6 +4179,56 @@ bool AnonWallet::CoinToTxIn(const COutputR& coin, CTxIn& txin, size_t nRingSize)
                     return error("%s: %s", __func__, sError);
                 }
 */
+
+    return true;
+}
+
+bool AnonWallet::CreateStakeTxOuts(
+        const COutputR& coin, std::vector<CTxOutBaseRef>& vpout, CAmount nInput, CAmount nReward, CAmount bracketMin, size_t nRingSize)
+{
+    std::string sError;
+    std::vector<CTempRecipient> vecOut;
+
+    CTempRecipient stakeRet;
+    stakeRet.nType = OUTPUT_RINGCT;
+    stakeRet.fChange = true;
+    stakeRet.address = GetStealthChangeAddress();
+    stakeRet.SetAmount(nInput);
+    // This should set the proof that our stake input is large enough when SetOutputs is called.
+    stakeRet.fOverwriteRangeProofParams = true;
+    stakeRet.min_value = (uint64_t)bracketMin;
+
+    CTempRecipient reward;
+    reward.nType = OUTPUT_RINGCT;
+    reward.fChange = false;
+    reward.address = GetStealthChangeAddress();
+    reward.SetAmount(nReward);
+
+    vecOut.push_back(stakeRet);
+    vecOut.push_back(reward);
+
+    // TODO: maybe shuffle the order?
+
+    int nChangePosInOut = -1;
+    CAmount nValueOutPlain = 0;
+
+    // SetOutputs
+    if (!SetOutputs(vpout, vecOut, 0, 0, nValueOutPlain, nChangePosInOut, true, false, sError)) {
+        return error("%s: %s", __func__, sError);
+    }
+
+    // ArrangeOutBlinds
+    std::vector<const uint8_t*> vpOutCommits;
+    std::vector<const uint8_t*> vpOutBlinds;
+    std::vector<uint8_t> vBlindPlain;
+    secp256k1_pedersen_commitment plainCommitment;
+    vBlindPlain.resize(32);
+    memset(&vBlindPlain[0], 0, 32);
+
+    if (!ArrangeOutBlinds(vpout, vecOut, vpOutCommits, vpOutBlinds, vBlindPlain,
+                          &plainCommitment, 0, nChangePosInOut, false, sError)) {
+        return error("%s: %s", __func__, sError);
+    }
 
     return true;
 }
