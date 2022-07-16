@@ -14,6 +14,7 @@
 #include <veil/ringct/temprecipient.h>
 #include <veil/ringct/outputrecord.h>
 #include <veil/ringct/transactionrecord.h>
+#include <veil/ringct/transactionsigcontext.h>
 
 #include <key_io.h>
 #include <veil/ringct/stealth.h>
@@ -253,8 +254,9 @@ public:
     void GetAllScanKeys(std::vector<CStealthAddress>& vStealthAddresses);
     bool IsMyPubKey(const CKeyID& keyId);
 
-    bool CoinToTxIn(const COutputR& coin, CTxIn& txin, size_t nRingSize);
-    bool CreateStakeTxOuts(const COutputR& coin, std::vector<CTxOutBaseRef>& vpout, CAmount nInput, CAmount nReward, CAmount bracketMin, size_t nRingSize);
+    bool CoinToTxIn(const COutputR& coin, CTxIn& txin, veil_ringct::TransactionSigContext& ctx, size_t nRingSize);
+    bool CreateStakeTxOuts(const COutputR& coin, std::vector<CTxOutBaseRef>& vpout, CAmount nInput, CAmount nReward, CAmount bracketMin, veil_ringct::TransactionSigContext& ctx, size_t nRingSize);
+    bool SignStakeTx(const COutputR& coin, CMutableTransaction& txNew, veil_ringct::TransactionSigContext& ctx);
 
     void LoadToWallet(const uint256 &hash, const CTransactionRecord &rtx);
     bool LoadTxRecords();

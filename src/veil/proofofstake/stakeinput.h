@@ -6,6 +6,7 @@
 #ifndef PIVX_STAKEINPUT_H
 #define PIVX_STAKEINPUT_H
 
+#include "veil/ringct/transactionsigcontext.h"
 #include "veil/zerocoin/accumulatormap.h"
 #include "chain.h"
 #include "streams.h"
@@ -46,6 +47,7 @@ class RingCTStake : public CStakeInput
 private:
     const COutputR& coin;
     // Need: depth, COutputRecord (amount)
+    std::unique_ptr<veil_ringct::TransactionSigContext> tx_sig_context;
 
     CAmount GetBracketMinValue();
 

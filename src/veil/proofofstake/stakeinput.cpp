@@ -257,7 +257,11 @@ bool RingCTStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
 #ifdef ENABLE_WALLET
     }
 
-    return pwallet->GetAnonWallet()->CoinToTxIn(coin, txIn, 32);
+    uint32_t nSigInputs, nSigRingSize;
+    txIn.GetAnonInfo(nSigInputs, nSigRingSize);
+    tx_sig_context = std::make_unique<veil_ringct::TransactionSigContext>(nSigRingSize, nSigInputs + 1);
+
+    return pwallet->GetAnonWallet()->CoinToTxIn(coin, txIn, *tx_sig_context, 32);
 #endif
 }
 
@@ -270,13 +274,21 @@ bool RingCTStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpo
 #ifdef ENABLE_WALLET
     }
 
-    return pwallet->GetAnonWallet()->CreateStakeTxOuts(coin, vpout, GetValue(), nReward, GetBracketMinValue(), 32);
+    return pwallet->GetAnonWallet()->CreateStakeTxOuts(coin, vpout, GetValue(), nReward, GetBracketMinValue(), *tx_sig_context, 32);
 #endif
 }
 
 bool RingCTStake::CompleteTx(CWallet* pwallet, CMutableTransaction& txNew)
 {
-    return false;
+#ifdef ENABLE_WALLET
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+#endif
+        return error("%s: wallet disabled", __func__);
+#ifdef ENABLE_WALLET
+    }
+
+    return pwallet->GetAnonWallet()->SignStakeTx(coin, txNew, *tx_sig_context);
+#endif
 }
 
 bool RingCTStake::MarkSpent(AnonWallet* panonwallet, const uint256& txid)
