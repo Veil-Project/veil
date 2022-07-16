@@ -6,6 +6,7 @@
 #ifndef PIVX_STAKEINPUT_H
 #define PIVX_STAKEINPUT_H
 
+#include "veil/ringct/transactionrecord.h"
 #include "veil/ringct/transactionsigcontext.h"
 #include "veil/zerocoin/accumulatormap.h"
 #include "chain.h"
@@ -47,12 +48,14 @@ class RingCTStake : public CStakeInput
 private:
     const COutputR& coin;
     // Need: depth, COutputRecord (amount)
+
     std::unique_ptr<veil_ringct::TransactionSigContext> tx_sig_context;
+    CTransactionRecord rtx;
 
     CAmount GetBracketMinValue();
 
 public:
-    explicit RingCTStake(const COutputR& coin_) : coin(coin_) { };
+    explicit RingCTStake(const COutputR& coin_) : coin(coin_) { }
 
     CBlockIndex* GetIndexFrom() override;
     bool GetTxFrom(CTransaction& tx) override;
@@ -63,7 +66,7 @@ public:
 
     bool IsZerocoins() override { return false; }
 
-    bool MarkSpent(AnonWallet* panonwallet, const uint256& txid);
+    bool MarkSpent(AnonWallet* panonwallet, CMutableTransaction& txNew);
     bool CompleteTx(AnonWallet* panonwallet, CMutableTransaction& txNew);
 
     bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) override;

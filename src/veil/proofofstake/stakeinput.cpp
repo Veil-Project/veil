@@ -274,7 +274,7 @@ bool RingCTStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpo
 #ifdef ENABLE_WALLET
     }
 
-    return pwallet->GetAnonWallet()->CreateStakeTxOuts(coin, vpout, GetValue(), nReward, GetBracketMinValue(), *tx_sig_context, 32);
+    return pwallet->GetAnonWallet()->CreateStakeTxOuts(coin, vpout, GetValue(), nReward, GetBracketMinValue(), *tx_sig_context, rtx);
 #endif
 }
 
@@ -287,13 +287,28 @@ bool RingCTStake::CompleteTx(CWallet* pwallet, CMutableTransaction& txNew)
 #ifdef ENABLE_WALLET
     }
 
-    return pwallet->GetAnonWallet()->SignStakeTx(coin, txNew, *tx_sig_context);
+    if (!pwallet->GetAnonWallet()->SignStakeTx(coin, txNew, *tx_sig_context))
+        return false;
+
+    if (!MarkSpent(pwallet->GetAnonWallet(), txNew))
+        return error("%s: failed to mark ringct input as used\n", __func__);
+    return true;
 #endif
 }
 
-bool RingCTStake::MarkSpent(AnonWallet* panonwallet, const uint256& txid)
+bool RingCTStake::MarkSpent(AnonWallet* panonwallet, CMutableTransaction& txNew)
 {
-    return false;
+    rtx.nFlags |= ORF_ANON_IN;
+    rtx.vin.emplace_back(txNew.vin[0].prevout);
+
+    std::vector<COutPoint> spends;
+    spends.emplace_back(coin.rtx->first, coin.i);
+    panonwallet->MarkInputsAsPendingSpend(spends);
+
+    uint256 txid = txNew.GetHash();
+    panonwallet->SaveRecord(txid, rtx);
+
+    return true;
 }
 
 ZerocoinStake::ZerocoinStake(const libzerocoin::CoinSpend& spend)

@@ -4140,7 +4140,7 @@ bool AnonWallet::CreateStakeTxOuts(
         const COutputR& coin, std::vector<CTxOutBaseRef>& vpout,
         CAmount nInput, CAmount nReward, CAmount bracketMin,
         veil_ringct::TransactionSigContext& ctx,
-        size_t nRingSize)
+        CTransactionRecord& rtx)
 {
     std::string sError;
     std::vector<CTempRecipient> vecOut;
@@ -4163,7 +4163,7 @@ bool AnonWallet::CreateStakeTxOuts(
     vecOut.push_back(stakeRet);
     vecOut.push_back(reward);
 
-    // TODO: maybe shuffle the order?
+    Shuffle(vecOut.begin(), vecOut.end(), FastRandomContext());
 
     int nChangePosInOut = -1;
     CAmount nValueOutPlain = 0;
@@ -4179,6 +4179,7 @@ bool AnonWallet::CreateStakeTxOuts(
         return error("%s: %s", __func__, sError);
     }
 
+    AddOutputRecordMetaData(rtx, vecOut);
     return true;
 }
 
@@ -4188,7 +4189,6 @@ bool AnonWallet::SignStakeTx(
 {
     std::string sError;
     int rv;
-
 
     CTxIn& txin = txNew.vin[0];
     // This deals with the outputs and the tx as a whole.
