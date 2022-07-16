@@ -46,16 +46,17 @@ public:
 class RingCTStake : public CStakeInput
 {
 private:
-    const COutputR& coin;
-    // Need: depth, COutputRecord (amount)
+    static const int RING_SIZE = 32;
 
-    std::unique_ptr<veil_ringct::TransactionSigContext> tx_sig_context;
+    const COutputR& coin;  // Contains: depth (coin.i), output record (coin.rtx->second)
+    veil_ringct::TransactionInputsSigContext tx_inCtx;
+    veil_ringct::TransactionOutputsSigContext tx_outCtx;
     CTransactionRecord rtx;
 
     CAmount GetBracketMinValue();
 
 public:
-    explicit RingCTStake(const COutputR& coin_) : coin(coin_) { }
+    explicit RingCTStake(const COutputR& coin_) : coin(coin_), tx_inCtx(RING_SIZE, 2) { }
 
     CBlockIndex* GetIndexFrom() override;
     bool GetTxFrom(CTransaction& tx) override;
@@ -67,7 +68,6 @@ public:
     bool IsZerocoins() override { return false; }
 
     bool MarkSpent(AnonWallet* panonwallet, CMutableTransaction& txNew);
-    bool CompleteTx(AnonWallet* panonwallet, CMutableTransaction& txNew);
 
     bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) override;
     bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) override;

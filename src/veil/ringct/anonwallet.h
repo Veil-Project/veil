@@ -254,9 +254,9 @@ public:
     void GetAllScanKeys(std::vector<CStealthAddress>& vStealthAddresses);
     bool IsMyPubKey(const CKeyID& keyId);
 
-    bool CoinToTxIn(const COutputR& coin, CTxIn& txin, veil_ringct::TransactionSigContext& ctx, size_t nRingSize);
-    bool CreateStakeTxOuts(const COutputR& coin, std::vector<CTxOutBaseRef>& vpout, CAmount nInput, CAmount nReward, CAmount bracketMin, veil_ringct::TransactionSigContext& ctx, CTransactionRecord& rtx);
-    bool SignStakeTx(const COutputR& coin, CMutableTransaction& txNew, veil_ringct::TransactionSigContext& ctx);
+    bool CoinToTxIn(const COutputR& coin, CTxIn& txin, veil_ringct::TransactionInputsSigContext& inCtx, size_t nRingSize);
+    bool CreateStakeTxOuts(const COutputR& coin, std::vector<CTxOutBaseRef>& vpout, CAmount nInput, CAmount nReward, CAmount bracketMin, veil_ringct::TransactionOutputsSigContext& outCtx, CTransactionRecord& rtx);
+    bool SignStakeTx(const COutputR& coin, CMutableTransaction& txNew, veil_ringct::TransactionInputsSigContext& inCtx, veil_ringct::TransactionOutputsSigContext& outCtx);
 
     void LoadToWallet(const uint256 &hash, const CTransactionRecord &rtx);
     bool LoadTxRecords();

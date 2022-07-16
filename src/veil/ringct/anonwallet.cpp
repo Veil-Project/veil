@@ -4073,7 +4073,7 @@ bool AnonWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vec
 }
 
 bool AnonWallet::CoinToTxIn(
-    const COutputR& coin, CTxIn& txin, veil_ringct::TransactionSigContext& ctx,
+    const COutputR& coin, CTxIn& txin, veil_ringct::TransactionInputsSigContext& inCtx,
     size_t nRingSize)
 {
     // Mostly copied from AddAnonInputs_Inner
@@ -4098,12 +4098,12 @@ bool AnonWallet::CoinToTxIn(
     // ArrangeBlinds part 1: place real output
     vInputBlinds.resize(32 * nSigInputs);
 
-    if (!PlaceRealOutputs(vMI, ctx.secretColumn, nSigRingSize, setHave, vCoins, vInputBlinds, sError)) {
+    if (!PlaceRealOutputs(vMI, inCtx.secretColumn, nSigRingSize, setHave, vCoins, vInputBlinds, sError)) {
         return error("%s: %s", __func__, sError);
     }
 
     // ArrangeBlinds part 2: hiding outputs (no dummy sigs)
-    if (!PickHidingOutputs(vMI, ctx.secretColumn, nSigRingSize, setHave, sError))
+    if (!PickHidingOutputs(vMI, inCtx.secretColumn, nSigRingSize, setHave, sError))
         return error("%s: %s", __func__, sError);
 
     std::vector<uint8_t> vPubkeyMatrixIndices;
@@ -4123,14 +4123,14 @@ bool AnonWallet::CoinToTxIn(
     txin.scriptData.stack.emplace_back(33 * nSigInputs);
     std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
 
-    if (!GetKeyImage(txin, vMI, ctx.secretColumn, sError))
+    if (!GetKeyImage(txin, vMI, inCtx.secretColumn, sError))
         return error("%s: %s", __func__, sError);
 
     // SetBlinds
-    // TODO: pass ctx instead of its components
-    if (!SetBlinds(nSigRingSize, nSigInputs, vMI, ctx.vsk, ctx.vpsk, ctx.vm, ctx.vCommitments,
-                   ctx.vpInCommits, ctx.vpBlinds, vInputBlinds,
-                   ctx.secretColumn, sError))
+    // TODO: pass inCtx instead of its components
+    if (!SetBlinds(nSigRingSize, nSigInputs, vMI, inCtx.vsk, inCtx.vpsk, inCtx.vm, inCtx.vCommitments,
+                   inCtx.vpInCommits, inCtx.vpBlinds, vInputBlinds,
+                   inCtx.secretColumn, sError))
         return error("%s: %s", __func__, sError);
 
     return true;
@@ -4139,7 +4139,7 @@ bool AnonWallet::CoinToTxIn(
 bool AnonWallet::CreateStakeTxOuts(
         const COutputR& coin, std::vector<CTxOutBaseRef>& vpout,
         CAmount nInput, CAmount nReward, CAmount bracketMin,
-        veil_ringct::TransactionSigContext& ctx,
+        veil_ringct::TransactionOutputsSigContext& outCtx,
         CTransactionRecord& rtx)
 {
     std::string sError;
@@ -4174,8 +4174,8 @@ bool AnonWallet::CreateStakeTxOuts(
     }
 
     // ArrangeOutBlinds
-    if (!ArrangeOutBlinds(vpout, vecOut, ctx.vpOutCommits, ctx.vpOutBlinds, ctx.vBlindPlain,
-                          &ctx.plainCommitment, 0, nChangePosInOut, false, sError)) {
+    if (!ArrangeOutBlinds(vpout, vecOut, outCtx.vpOutCommits, outCtx.vpOutBlinds, outCtx.vBlindPlain,
+                          &outCtx.plainCommitment, 0, nChangePosInOut, false, sError)) {
         return error("%s: %s", __func__, sError);
     }
 
@@ -4185,7 +4185,8 @@ bool AnonWallet::CreateStakeTxOuts(
 
 bool AnonWallet::SignStakeTx(
     const COutputR& coin, CMutableTransaction& txNew,
-    veil_ringct::TransactionSigContext& ctx)
+    veil_ringct::TransactionInputsSigContext& inCtx,
+    veil_ringct::TransactionOutputsSigContext& outCtx)
 {
     std::string sError;
     int rv;
@@ -4199,16 +4200,16 @@ bool AnonWallet::SignStakeTx(
 
     uint8_t blindSum[32];
     memset(blindSum, 0, 32);
-    ctx.vpsk[nRows-1] = blindSum;
+    inCtx.vpsk[nRows-1] = blindSum;
 
     txin.scriptWitness.stack.emplace_back((1 + nRows * nCols) * 32); // extra element for C, extra row for commitment row
     std::vector<uint8_t> &vDL = txin.scriptWitness.stack[1];
 
-    ctx.vpBlinds.insert(ctx.vpBlinds.end(), ctx.vpOutBlinds.begin(), ctx.vpOutBlinds.end());
+    inCtx.vpBlinds.insert(inCtx.vpBlinds.end(), outCtx.vpOutBlinds.begin(), outCtx.vpOutBlinds.end());
 
-    if (0 != (rv = secp256k1_prepare_mlsag(&ctx.vm[0], blindSum,
-                    ctx.vpOutCommits.size(), ctx.vpOutCommits.size(), nCols, nRows,
-                    &ctx.vpInCommits[0], &ctx.vpOutCommits[0], &ctx.vpBlinds[0]))) {
+    if (0 != (rv = secp256k1_prepare_mlsag(&inCtx.vm[0], blindSum,
+                    outCtx.vpOutCommits.size(), outCtx.vpOutCommits.size(), nCols, nRows,
+                    &inCtx.vpInCommits[0], &outCtx.vpOutCommits[0], &inCtx.vpBlinds[0]))) {
         sError = strprintf("Failed to prepare mlsag with %d.", rv);
         return error("%s: %s", __func__, sError);
     }
@@ -4219,15 +4220,15 @@ bool AnonWallet::SignStakeTx(
     uint8_t randSeed[32];
     GetStrongRandBytes(randSeed, 32);
     if (0 != (rv = secp256k1_generate_mlsag(secp256k1_ctx_blind, &vKeyImages[0], &vDL[0], &vDL[32],
-                                            randSeed, hashOutputs.begin(), nCols, nRows, ctx.secretColumn,
-                                            &ctx.vpsk[0], &ctx.vm[0]))) {
+                                            randSeed, hashOutputs.begin(), nCols, nRows, inCtx.secretColumn,
+                                            &inCtx.vpsk[0], &inCtx.vm[0]))) {
         sError = strprintf("Failed to generate mlsag with %d.", rv);
         return error("%s: %s", __func__, sError);
     }
 
     // Validate the mlsag
     if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind, hashOutputs.begin(), nCols,
-                                            nRows, &ctx.vm[0], &vKeyImages[0], &vDL[0], &vDL[32]))) {
+                                            nRows, &inCtx.vm[0], &vKeyImages[0], &vDL[0], &vDL[32]))) {
         sError = strprintf("Failed to generate mlsag on initial generation %d.", rv);
         return error("%s: %s", __func__, sError);
     }

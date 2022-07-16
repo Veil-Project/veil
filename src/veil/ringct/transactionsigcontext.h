@@ -14,12 +14,11 @@
 
 namespace veil_ringct {
 
-// A wrapper to hold vectors for ringct txn signing.
-struct TransactionSigContext {
-    TransactionSigContext(size_t nCols, size_t nRows)
+// A wrapper to hold vectors for ringct txn signing, for the inputs.
+struct TransactionInputsSigContext {
+    TransactionInputsSigContext(size_t nCols, size_t nRows)
         : vsk(nRows - 1), vpsk(nRows), vm(nCols * nRows * 33),
-          vpInCommits(nCols * (nRows - 1)),
-          vBlindPlain(32)
+          vpInCommits(nCols * (nRows - 1))
     {
         vCommitments.reserve(nCols * (nRows - 1));
     }
@@ -33,6 +32,11 @@ struct TransactionSigContext {
     std::vector<secp256k1_pedersen_commitment> vCommitments;
     std::vector<const uint8_t*> vpInCommits;
     std::vector<const uint8_t*> vpBlinds;
+};
+
+// A wrapper to hold vectors for ringct txn signing, for the outputs.
+struct TransactionOutputsSigContext {
+    TransactionOutputsSigContext() : vBlindPlain(32) {}
 
     // ArrangeOutBlinds
     std::vector<const uint8_t*> vpOutCommits;

@@ -257,11 +257,7 @@ bool RingCTStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
 #ifdef ENABLE_WALLET
     }
 
-    uint32_t nSigInputs, nSigRingSize;
-    txIn.GetAnonInfo(nSigInputs, nSigRingSize);
-    tx_sig_context = std::make_unique<veil_ringct::TransactionSigContext>(nSigRingSize, nSigInputs + 1);
-
-    return pwallet->GetAnonWallet()->CoinToTxIn(coin, txIn, *tx_sig_context, 32);
+    return pwallet->GetAnonWallet()->CoinToTxIn(coin, txIn, tx_inCtx, RING_SIZE);
 #endif
 }
 
@@ -274,7 +270,7 @@ bool RingCTStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpo
 #ifdef ENABLE_WALLET
     }
 
-    return pwallet->GetAnonWallet()->CreateStakeTxOuts(coin, vpout, GetValue(), nReward, GetBracketMinValue(), *tx_sig_context, rtx);
+    return pwallet->GetAnonWallet()->CreateStakeTxOuts(coin, vpout, GetValue(), nReward, GetBracketMinValue(), tx_outCtx, rtx);
 #endif
 }
 
@@ -287,7 +283,7 @@ bool RingCTStake::CompleteTx(CWallet* pwallet, CMutableTransaction& txNew)
 #ifdef ENABLE_WALLET
     }
 
-    if (!pwallet->GetAnonWallet()->SignStakeTx(coin, txNew, *tx_sig_context))
+    if (!pwallet->GetAnonWallet()->SignStakeTx(coin, txNew, tx_inCtx, tx_outCtx))
         return false;
 
     if (!MarkSpent(pwallet->GetAnonWallet(), txNew))
