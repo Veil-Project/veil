@@ -3969,7 +3969,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             }
             txNew.vin.emplace_back(in);
 
-            //Mark mints as spent
+            //Mark input as spent
             if (!stakeInput->CompleteTx(this, txNew))
                 return false;
 
@@ -4031,12 +4031,42 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listI
     return true;
 }
 
+bool CWallet::StakeableRingCTCoins()
+{
+    LOCK2(cs_main, cs_wallet);
+
+    // TODO: change required depth
+    int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
+    if (chainActive.Height() >= Params().HeightLightZerocoin())
+        nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+
+    BalanceList bal;
+    pAnonWalletMain->GetBalances(bal);
+
+    // zero coin
+    if (bal.nRingCT > 0) {
+        std::vector<COutputR> vCoins;
+        CCoinControl coincontrol;
+        pAnonWalletMain->AvailableAnonCoins(vCoins, true, &coincontrol);
+        LogPrintf("I have %d available ringct coins\n", vCoins.size());
+
+        for (auto coin : vCoins) {
+            if (coin.nDepth >= nRequiredDepth) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<RingCTStake> >& listInputs)
 {
     LOCK(cs_main);
 
     std::vector<COutputR> vCoins;
-    pAnonWalletMain->AvailableAnonCoins(vCoins);
+    CCoinControl coincontrol;
+    pAnonWalletMain->AvailableAnonCoins(vCoins, true, &coincontrol);
 
     // TODO: change required depth
     int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
@@ -4046,7 +4076,7 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<RingCTStake> >& listInp
     for (auto coin : vCoins) {
         if (coin.nDepth >= nRequiredDepth) {
             std::unique_ptr<RingCTStake> input(new RingCTStake(coin));
-            listInputs.emplace_back(std::move(input));
+            listInputs.push_back(std::move(input));
         }
     }
 

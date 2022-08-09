@@ -1105,6 +1105,7 @@ public:
 
     bool SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs);
     bool SelectStakeCoins(std::list<std::unique_ptr<RingCTStake> >& listInputs);
+    bool StakeableRingCTCoins();
 
     // sub wallet seeds
     bool GetZerocoinSeed(CKey& keyZerocoinMaster);

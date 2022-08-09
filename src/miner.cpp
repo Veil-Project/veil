@@ -186,11 +186,19 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
         uint32_t nTxNewTime = 0;
 #ifdef ENABLE_WALLET
-        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) && pwalletMain->CreateZerocoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime, nComputeTimeStart)) {
-            pblock->nTime = nTxNewTime;
-        } else {
+        if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET))
             return nullptr;
+
+        if (!pwalletMain->CreateZerocoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime, nComputeTimeStart)) {
+            if (!pwalletMain->CreateRingCTStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime, nComputeTimeStart))
+                return nullptr;
+            else {
+                // output debugging info
+                return nullptr;
+            }
         }
+
+        pblock->nTime = nTxNewTime;
 #endif
     }
 
@@ -891,7 +899,7 @@ double GetRecentHashSpeed() {
 }
 
 void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false, bool fProofOfFullNode = false, ThreadHashSpeed* pThreadHashSpeed = nullptr) {
-    LogPrintf("Veil Miner started\n");
+    LogPrintf("Veil Miner started: stake=%s\n", fProofOfStake);
 
     unsigned int nExtraNonce = 0;
     static const int nInnerLoopCount = 0x010000;
@@ -940,6 +948,8 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             {
                 nMintableLastCheck = GetTime();
                 fMintableCoins = pwallet->MintableCoins();
+                if (nHeight >= Params().HeightRingCTStaking())
+                    fMintableCoins |= pwallet->StakeableRingCTCoins();
             }
 
             bool fNextIter = false;
@@ -951,6 +961,8 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     {
                         nMintableLastCheck = GetTime();
                         fMintableCoins = pwallet->MintableCoins();
+                        if (nHeight >= Params().HeightRingCTStaking())
+                            fMintableCoins |= pwallet->StakeableRingCTCoins();
                     }
                     if (!fMintableCoins)
                         fNextIter = true;

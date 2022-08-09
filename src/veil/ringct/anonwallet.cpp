@@ -3915,7 +3915,6 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                     return false;
 
                 // Do a bunch of math on both inputs and outputs.
-                // TODO: Refactor into Complete
 
                 std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
 
@@ -4085,7 +4084,7 @@ bool AnonWallet::CoinToTxIn(
     txin.SetAnonInfo(1, nRingSize);
 
     std::vector<std::pair<MapRecords_t::const_iterator, unsigned int>> vCoins;
-    vCoins.emplace_back(coin.rtx, coin.rtx->second.GetOutput(coin.i)->GetAmount());
+    vCoins.emplace_back(coin.rtx, coin.i);
 
     std::set<int64_t> setHave; // Anon prev-outputs can only be used once per transaction.
     // Must add real outputs to setHave before picking decoys
@@ -4093,12 +4092,11 @@ bool AnonWallet::CoinToTxIn(
     txin.GetAnonInfo(nSigInputs, nSigRingSize);
 
     std::vector<std::vector<int64_t>> vMI;
-    ec_point vInputBlinds;
 
     // ArrangeBlinds part 1: place real output
-    vInputBlinds.resize(32 * nSigInputs);
+    inCtx.vInputBlinds.resize(32 * nSigInputs);
 
-    if (!PlaceRealOutputs(vMI, inCtx.secretColumn, nSigRingSize, setHave, vCoins, vInputBlinds, sError)) {
+    if (!PlaceRealOutputs(vMI, inCtx.secretColumn, nSigRingSize, setHave, vCoins, inCtx.vInputBlinds, sError)) {
         return error("%s: %s", __func__, sError);
     }
 
@@ -4117,19 +4115,18 @@ bool AnonWallet::CoinToTxIn(
     // just emplace empty vectors in the proper places.
     txin.scriptWitness.stack.emplace_back(vPubkeyMatrixIndices);
 
-    // end ArrangeBlinds
-
     // if sign
     txin.scriptData.stack.emplace_back(33 * nSigInputs);
-    std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
+
+    // end ArrangeBlinds
 
     if (!GetKeyImage(txin, vMI, inCtx.secretColumn, sError))
         return error("%s: %s", __func__, sError);
 
     // SetBlinds
-    // TODO: pass inCtx instead of its components
+    // TODO: pass inCtx instead of its components?
     if (!SetBlinds(nSigRingSize, nSigInputs, vMI, inCtx.vsk, inCtx.vpsk, inCtx.vm, inCtx.vCommitments,
-                   inCtx.vpInCommits, inCtx.vpBlinds, vInputBlinds,
+                   inCtx.vpInCommits, inCtx.vpBlinds, inCtx.vInputBlinds,
                    inCtx.secretColumn, sError))
         return error("%s: %s", __func__, sError);
 
@@ -4153,6 +4150,8 @@ bool AnonWallet::CreateStakeTxOuts(
     // This should set the proof that our stake input is large enough when SetOutputs is called.
     stakeRet.fOverwriteRangeProofParams = true;
     stakeRet.min_value = (uint64_t)bracketMin;
+    stakeRet.ct_exponent = 2;
+    stakeRet.ct_bits = 32;
 
     CTempRecipient reward;
     reward.nType = OUTPUT_RINGCT;
@@ -4164,6 +4163,9 @@ bool AnonWallet::CreateStakeTxOuts(
     vecOut.push_back(reward);
 
     Shuffle(vecOut.begin(), vecOut.end(), FastRandomContext());
+
+    if (!ExpandTempRecipients(vecOut, sError))
+        return false;
 
     int nChangePosInOut = -1;
     CAmount nValueOutPlain = 0;
@@ -4198,12 +4200,15 @@ bool AnonWallet::SignStakeTx(
     size_t nCols = nSigRingSize;
     size_t nRows = nSigInputs + 1;
 
+    std::vector<uint8_t>& vKeyImages = txin.scriptData.stack[0];
     uint8_t blindSum[32];
     memset(blindSum, 0, 32);
     inCtx.vpsk[nRows-1] = blindSum;
 
-    txin.scriptWitness.stack.emplace_back((1 + nRows * nCols) * 32); // extra element for C, extra row for commitment row
+    size_t vDLsize = (1 + nRows * nCols) * 32;  // extra element for C, extra row for commitment row
+    txin.scriptWitness.stack.emplace_back(vDLsize); // creates the vector with |vDLsize| capacity
     std::vector<uint8_t> &vDL = txin.scriptWitness.stack[1];
+    vDL.resize(vDLsize); // creates |vDLsize| elements
 
     inCtx.vpBlinds.insert(inCtx.vpBlinds.end(), outCtx.vpOutBlinds.begin(), outCtx.vpOutBlinds.end());
 
@@ -4214,7 +4219,6 @@ bool AnonWallet::SignStakeTx(
         return error("%s: %s", __func__, sError);
     }
 
-    std::vector<uint8_t>& vKeyImages = txin.scriptData.stack[0];
     uint256 hashOutputs = txNew.GetOutputsHash();
 
     uint8_t randSeed[32];

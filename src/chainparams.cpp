@@ -882,6 +882,7 @@ public:
         nHeightLightZerocoin = 500;
         nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
         nHeightEnforceBlacklist = 0;
+        nHeightRingCTStaking = 300;
 
         nMaxHeaderRequestWithoutPoW = 50;
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block

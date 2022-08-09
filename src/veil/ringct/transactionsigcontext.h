@@ -11,6 +11,7 @@
 
 #include <key.h>
 #include <secp256k1_mlsag.h>
+#include "veil/ringct/types.h"
 
 namespace veil_ringct {
 
@@ -31,6 +32,7 @@ struct TransactionInputsSigContext {
     std::vector<uint8_t> vm;
     std::vector<secp256k1_pedersen_commitment> vCommitments;
     std::vector<const uint8_t*> vpInCommits;
+    ec_point vInputBlinds;
     std::vector<const uint8_t*> vpBlinds;
 };
 

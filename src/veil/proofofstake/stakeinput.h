@@ -18,12 +18,11 @@ class AnonWallet;
 class CKeyStore;
 class CWallet;
 class CWalletTx;
-class COutputR;
 
 class CStakeInput
 {
 protected:
-    CBlockIndex* pindexFrom;
+    CBlockIndex* pindexFrom = nullptr;
     libzerocoin::CoinDenomination denom = libzerocoin::CoinDenomination::ZQ_ERROR;
 
 public:
@@ -46,9 +45,13 @@ public:
 class RingCTStake : public CStakeInput
 {
 private:
-    static const int RING_SIZE = 32;
+    static const int RING_SIZE = 11;
 
-    const COutputR& coin;  // Contains: depth (coin.i), output record (coin.rtx->second)
+    // Contains: depth (coin.nDepth), txo idx (coin.i), output record (coin.rtx->second)
+    // A copy is required for lifetime.
+    const COutputR coin;
+
+    // Details for constructing a tx from this stake input.
     veil_ringct::TransactionInputsSigContext tx_inCtx;
     veil_ringct::TransactionOutputsSigContext tx_outCtx;
     CTransactionRecord rtx;

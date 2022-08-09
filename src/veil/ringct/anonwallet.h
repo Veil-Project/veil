@@ -24,7 +24,6 @@ typedef std::map<CKeyID, CExtKeyAccount*> ExtKeyAccountMap;
 typedef std::map<CKeyID, CStoredExtKey*> ExtKeyMap;
 
 typedef std::map<uint256, CWalletTx> MapWallet_t;
-typedef std::map<uint256, CTransactionRecord> MapRecords_t;
 
 typedef std::multimap<int64_t, std::map<uint256, CTransactionRecord>::iterator> RtxOrdered_t;
 
@@ -32,28 +31,6 @@ class UniValue;
 class CWatchOnlyTx;
 
 const uint16_t OR_PLACEHOLDER_N = 0xFFFF; // index of a fake output to contain reconstructed amounts for txns with undecodeable outputs
-
-class COutputR
-{
-public:
-    COutputR() {};
-
-    COutputR(const uint256 &txhash_, MapRecords_t::const_iterator rtx_, int i_, int nDepth_,
-        bool fSpendable_, bool fSolvable_, bool fSafe_, bool fMature_, bool fNeedHardwareKey_)
-        : txhash(txhash_), rtx(rtx_), i(i_), nDepth(nDepth_),
-        fSpendable(fSpendable_), fSolvable(fSolvable_), fSafe(fSafe_), fMature(fMature_), fNeedHardwareKey(fNeedHardwareKey_) {};
-
-    uint256 txhash;
-    MapRecords_t::const_iterator rtx;
-    int i;
-    int nDepth;
-    bool fSpendable;
-    bool fSolvable;
-    bool fSafe;
-    bool fMature;
-    bool fNeedHardwareKey;
-};
-
 
 class CStoredTransaction
 {

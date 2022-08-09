@@ -14,8 +14,8 @@
 #include "veil/proofofstake/kernel.h"
 #ifdef ENABLE_WALLET
 #include "wallet/wallet.h"
-#endif
 #include "veil/ringct/anonwallet.h"
+#endif
 
 // Based on https://stackoverflow.com/a/23000588
 int fast_log16(uint64_t value)
@@ -98,7 +98,11 @@ bool GetStakeModifier(uint64_t& nStakeModifier, const CBlockIndex& pindexChainPr
         nHeightPrevious = nHeightSample;
         auto pindexSample = pindexChainPrev.GetAncestor(nHeightSample);
 
-        if (!pindexSample) return false;
+        if (!pindexSample) {
+            if (i > 5 && nHeightSample < 0 && (Params().NetworkIDString() == "regtest" || Params().NetworkIDString() == "dev"))
+                break;
+            return false;
+        }
         //Get a sampling of entropy from this block. Rehash the sample, since PoW hashes may have lots of 0's
         uint256 hashSample = GetHashFromIndex(pindexSample);
         hashSample = Hash(hashSample.begin(), hashSample.end());
@@ -139,8 +143,7 @@ CBlockIndex* RingCTStake::GetIndexFrom()
         return pindexFrom;
 
     if (coin.nDepth > 0)
-        //note that this will be a nullptr if the height DNE
-        pindexFrom = chainActive[coin.nDepth];
+        pindexFrom = LookupBlockIndex(coin.rtx->second.blockHash);
 
     return pindexFrom;
 }
