@@ -1995,11 +1995,11 @@ static UniValue importlightwalletaddress(const JSONRPCRequest &request)
 {
     if (request.fHelp || request.params.size() < 3)
         throw std::runtime_error(
-                "importlightwalletaddress \"scan_secret\" \"spend_secret\" \"created_height\" \"label\" num_prefix_bits \"prefix_num\" \"bech32\" \n"
-                "\nImport a stealth addresses. If spend_secret is valid privatekey it will be fully imported. If spend_secret is the spend pubkey it will be added as a watchonly address\n"
+                "importlightwalletaddress \"scan_secret\" \"spend_public\" \"created_height\" \"label\" num_prefix_bits \"prefix_num\" \"bech32\" \n"
+                "\nImport a stealth addresses for use for light wallet servers only\n"
                 "\nArguments:\n"
                 "1. \"scan_secret\"                      (string, required) Scan secret key\n"
-                "2. \"spend_secret\"                     (string, required) Spend secret key or Spend Public Key (watchonly)\n"
+                "2. \"spend_public\"                     (string, required) Spend Public Key (watchonly)\n"
                 "3. \"created_height\"                   (string, required) The block height, this address was created at. Can be a timestamp also\n"
                 "4. \"label\"                            (string, optional default=\"\") Label for address in addressbook\n"
                 "5. \"num_prefix_bits\"                  (number, optional default=0) Number of prefix bits\n"
@@ -2024,10 +2024,10 @@ static UniValue importlightwalletaddress(const JSONRPCRequest &request)
     const int64_t nImported = chainActive.Height();
 
     std::string sScanSecret  = request.params[0].get_str();
-    std::string sLabel, sSpendSecret;
+    std::string sLabel, sSpendPublic;
 
     if (request.params.size() > 1) {
-        sSpendSecret = request.params[1].get_str();
+        sSpendPublic = request.params[1].get_str();
     }
 
     int64_t nCreated = request.params.size() > 2 ? request.params[2].get_int64() : 0;
@@ -2069,9 +2069,9 @@ static UniValue importlightwalletaddress(const JSONRPCRequest &request)
 
     bool fBech32 = request.params.size() > 6 ? request.params[6].get_bool() : true;
 
-    std::vector<uint8_t> vchScanSecret, vchSpendSecret;
+    std::vector<uint8_t> vchScanSecret, vchSpendPublic;
     CBitcoinSecret wifScanSecret, wifSpendSecret;
-    CKey skScan, skSpend;
+    CKey skScan;
     CPubKey pkSpend;
     if (IsHex(sScanSecret)) {
         vchScanSecret = ParseHex(sScanSecret);
@@ -2090,75 +2090,48 @@ static UniValue importlightwalletaddress(const JSONRPCRequest &request)
         skScan.Set(&vchScanSecret[0], true);
     }
 
-    if (IsHex(sSpendSecret)) {
-        vchSpendSecret = ParseHex(sSpendSecret);
-    } else
-    if (wifSpendSecret.SetString(sSpendSecret)) {
-        skSpend = wifSpendSecret.GetKey();
+    if (IsHex(sSpendPublic)) {
+        vchSpendPublic = ParseHex(sSpendPublic);
     } else {
-        if (!DecodeBase58(sSpendSecret, vchSpendSecret, MAX_STEALTH_RAW_SIZE)) {
+        if (!DecodeBase58(sSpendPublic, vchSpendPublic, MAX_STEALTH_RAW_SIZE)) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode spend secret as hex or base58.");
         }
     }
-    if (vchSpendSecret.size() > 0) {
-        if (vchSpendSecret.size() == 32) {
-            skSpend.Set(&vchSpendSecret[0], true);
-        } else
-        if (vchSpendSecret.size() == 33) {
+    if (vchSpendPublic.size() > 0) {
+        if (vchSpendPublic.size() == 32) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Private Key supplied, only supply spend public key");
+        }
+        if (vchSpendPublic.size() == 33) {
             // watchonly
-            pkSpend = CPubKey(vchSpendSecret.begin(), vchSpendSecret.end());
+            pkSpend = CPubKey(vchSpendPublic.begin(), vchSpendPublic.end());
         } else {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend secret is not 32 or 33 bytes.");
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend public key size not recognized, must be 33 bytes.");
         }
     }
 
-    if (!pkSpend.IsValid() && !skSpend.IsValid()) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Must provide the spend key or pubkey.");
+    if (!pkSpend.IsValid()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Must provide valid spend pubkey.");
     }
 
-    if (skSpend == skScan) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend secret must be different to scan secret.");
-    }
 
     CStealthAddress sxAddr;
     sxAddr.label = sLabel;
     sxAddr.scan_secret = skScan;
-    if (skSpend.IsValid()) {
-        pkSpend = skSpend.GetPubKey();
-        sxAddr.spend_secret_id = pkSpend.GetID();
-    } else {
-        sxAddr.spend_secret_id = pkSpend.GetID();
-    }
-
+    sxAddr.spend_secret_id = pkSpend.GetID();
     sxAddr.prefix.number_bits = num_prefix_bits;
-    if (sxAddr.prefix.number_bits > 0) {
-        if (sPrefix_num.empty()) {
-            // if pPrefix is null, set nPrefix from the hash of kSpend
-            uint8_t tmp32[32];
-            CSHA256().Write(skSpend.begin(), 32).Finalize(tmp32);
-            memcpy(&nPrefix, tmp32, 4);
-            nPrefix = le32toh(nPrefix);
-        }
-
-        uint32_t nMask = SetStealthMask(num_prefix_bits);
-        nPrefix = nPrefix & nMask;
-        sxAddr.prefix.bitfield = nPrefix;
-    }
 
     if (0 != SecretToPublicKey(sxAddr.scan_secret, sxAddr.scan_pubkey)) {
         throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not get scan public key.");
     }
-    if (skSpend.IsValid() && 0 != SecretToPublicKey(skSpend, sxAddr.spend_pubkey)) {
-        throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not get spend public key.");
-    } else {
-        SetPublicKey(pkSpend, sxAddr.spend_pubkey);
-    }
+
+    SetPublicKey(pkSpend, sxAddr.spend_pubkey);
 
     if (mapWatchOnlyAddresses.count(sxAddr.ToString(fBech32))) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Watchonly address already imported");
     }
     UniValue result(UniValue::VOBJ);
 
+    CKey skSpend;
     if (!anonwallet->ImportStealthAddress(sxAddr, skSpend)) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Could not save to wallet.");
     }
@@ -2560,7 +2533,7 @@ static const CRPCCommand commands[] =
                 { "rawtransactions",    "verifycommitment",                 &verifycommitment,              {"commitment","blind","amount"} },
                 { "rawtransactions",    "verifyrawtransaction",             &verifyrawtransaction,          {"hexstring","prevtxs","returndecoded"} },
 
-                { "wallet",             "importlightwalletaddress",          &importlightwalletaddress,          {"scan_secret", "spend_secret", "created_height", "label", "num_prefix_bits", "prefix_num", "bech32"} },
+                { "wallet",             "importlightwalletaddress",          &importlightwalletaddress,          {"scan_secret", "spend_public", "created_height", "label", "num_prefix_bits", "prefix_num", "bech32"} },
                 { "wallet",             "getwatchonlystatus",                &getwatchonlystatus,                {"scan_secret", "spend_public"} },
                 { "wallet",             "getanonoutputs",                &getanonoutputs,                {"inputsize", "ringsize"} },
                 { "wallet",             "getkeyimages",                &getkeyimages,                {"txdata", "spend_secret", "scan_secret", "spend_public"} },

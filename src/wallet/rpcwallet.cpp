@@ -1024,7 +1024,7 @@ static UniValue signmessage(const JSONRPCRequest& request)
     return EncodeBase64(vchSig.data(), vchSig.size());
 }
 
-static UniValue getallscankeys(const JSONRPCRequest& request)
+static UniValue viewscankeys(const JSONRPCRequest& request)
 {
     std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
     CWallet* const pwallet = wallet.get();
@@ -1033,74 +1033,55 @@ static UniValue getallscankeys(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() > 1)
+    if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
-                "getallscankeys \"address\" \n"
-                "\nFetch scan key of an address if given - All scan keys if blank"
+                "viewscankeys \"address\" \n"
+                "\nView the scan keys of a given address address"
                 + HelpRequiringPassphrase(pwallet) + "\n"
                                                      "\nArguments:\n"
                                                      "1. \"address\"         (string, optional) The veil address if only want keys for this address.\n"
                                                      "\nResult:\n"
-                                                     "\"scan_key\"          (string) The scan key\n"
+                                                     "\"address\"              (string) The address to view the keys\n"
+                                                     "\"scan_secret\"          (string) The scan private key\n"
+                                                     "\"spend_public\"         (string) The spend public key\n"
+                                                     "\"spend_private\"        (string, optional if wallet contains private key) The spend private key\n"
         );
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
     EnsureWalletIsUnlocked(pwallet);
 
-    std::string strAddress = "";
-    if (request.params.size() > 0) {
-        strAddress = request.params[0].get_str();
+    std::string strAddress = request.params[0].get_str();
 
-        CTxDestination dest = DecodeDestination(strAddress);
-        if (!IsValidDestination(dest)) {
-            throw JSONRPCError(RPC_TYPE_ERROR, "Invalid address");
-        }
+    CTxDestination dest = DecodeDestination(strAddress);
+    if (!IsValidDestination(dest)) {
+        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid address");
+    }
 
-        CStealthAddress *stealthID = nullptr;
+    CStealthAddress *stealthID = nullptr;
 
-        if (dest.type() != typeid(CStealthAddress))
-            throw JSONRPCError(RPC_TYPE_ERROR, "Address is not a stealth address");
+    if (dest.type() != typeid(CStealthAddress))
+        throw JSONRPCError(RPC_TYPE_ERROR, "Address is not a stealth address");
 
-        stealthID = boost::get<CStealthAddress>(&dest);
-        if (!stealthID) {
-            throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to key");
-        }
+    stealthID = boost::get<CStealthAddress>(&dest);
+    if (!stealthID) {
+        throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to key");
+    }
 
-        CKey key;
-        if (pwallet->GetAnonWallet()->GetStealthAddressScanKey(*stealthID)) {
-            key = stealthID->scan_secret;
-            UniValue entry(UniValue::VOBJ);
-            entry.pushKV("address", stealthID->ToString(true));
-            entry.pushKV("scan_secret", CBitcoinSecret(key).ToString());
-            entry.pushKV("spend_public", HexStr(stealthID->spend_pubkey.begin(), stealthID->spend_pubkey.end()));
-            CKey spendkey;
-            if (pwallet->GetAnonWallet()->GetStealthAddressSpendKey(*stealthID, spendkey)) {
-                entry.pushKV("spend_private", CBitcoinSecret(spendkey).ToString());
-            }
-            return entry;
-        } else {
-            throw JSONRPCError(RPC_WALLET_ERROR, "Private key not available");
-        }
-    } else {
-
-        LOCK(pwallet->cs_wallet);
-
-        std::vector <CStealthAddress> myStealthAddresses;
-        auto pAnonWallet = pwallet->GetAnonWallet();
-        pAnonWallet->GetAllScanKeys(myStealthAddresses);
-
+    CKey key;
+    if (pwallet->GetAnonWallet()->GetStealthAddressScanKey(*stealthID)) {
+        key = stealthID->scan_secret;
         UniValue entry(UniValue::VOBJ);
-        int count = 0;
-        for (auto item : myStealthAddresses) {
-            UniValue i(UniValue::VOBJ);
-            i.pushKV("address", item.ToString(true));
-            i.pushKV("scan_secret", CBitcoinSecret(item.scan_secret).ToString());
-            i.pushKV("spend_public", HexStr(item.spend_pubkey.begin(), item.spend_pubkey.end()));
-            entry.pushKV(std::to_string(++count), i);
+        entry.pushKV("address", stealthID->ToString(true));
+        entry.pushKV("scan_secret", CBitcoinSecret(key).ToString());
+        entry.pushKV("spend_public", HexStr(stealthID->spend_pubkey.begin(), stealthID->spend_pubkey.end()));
+        CKey spendkey;
+        if (pwallet->GetAnonWallet()->GetStealthAddressSpendKey(*stealthID, spendkey)) {
+            entry.pushKV("spend_private", CBitcoinSecret(spendkey).ToString());
         }
-
         return entry;
+    } else {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Private key not available");
     }
 
     return NullUniValue;
@@ -1323,93 +1304,6 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
     return ret;
 }
 
-static UniValue testgetlightwalletbalance(const JSONRPCRequest& request)
-{
-    if (request.fHelp || request.params.size() != 3)
-        throw std::runtime_error(
-                "testlightwallettransaction \"scan_secret\", \"spend_secret\", \"spend_pubkey\""
-                "\nTest RPC call to get the ringct balance of a wallet address that has been imported as a watchonly address."
-                "\n"
-                "\nArguments:\n"
-                "1. \"scan_secret\"         (string, required) The scan secret\n"
-                "2. \"spend_secret\"         (string, required) The spend secret (Used to decrypt txes and find out if it is spent and the amount\n"
-                "3. \"spend_pubkey\"         (string, required) The spend pubkey\n"
-                "\nResult:\n"
-                "\"[\n"
-                "Total,       (number) The total amount of veil\n"
-                "...\n"
-                "]\"\n"
-        );
-
-
-    // Decode params 0
-    CKey scan_secret;
-    GetSecretFromString(request.params[0].get_str(), scan_secret);
-
-    // Decode params 1
-    CKey spend_secret;
-    GetSecretFromString(request.params[1].get_str(), spend_secret);
-
-    // Decode params 2
-    CPubKey spend_pubkey;
-    GetPubkeyFromString(request.params[2].get_str(), spend_pubkey);
-
-    // Fetch watchonly transactions
-    // This check will be happening via api
-    std::vector<std::pair<int,CWatchOnlyTx>> vTxes;
-    FetchWatchOnlyTransactions(scan_secret, vTxes);
-
-    // Store totals
-    CAmount nTotalAnonAmountAvailable = 0;
-    int nTotalAnonAvailableTxes = 0;
-
-    CAmount nTotalStealthAmountAvailable = 0;
-    int nTotalStealthAvailableTxes = 0;
-
-    // Loop through all txes, gathering a balance.
-    // Check to make sure they aren't spent by query the fullnode
-    if (vTxes.size()) {
-        for (int i =0; i < vTxes.size(); i++) {
-            CAmount nAmount;
-            uint256 blind;
-            CCmpPubKey keyImage;
-            if (GetAmountFromWatchonly(vTxes[i].second, scan_secret, spend_secret, spend_pubkey, nAmount, blind, keyImage)) {
-
-                if (vTxes[i].second.type == CWatchOnlyTx::ANON) {
-                    // Check if key image is spent
-                    // This check will happening via api
-                    uint256 tx_hash;
-                    bool spent_in_chain = pblocktree->ReadRCTKeyImage(keyImage, tx_hash);
-                    if (!spent_in_chain) {
-                        nTotalAnonAmountAvailable += nAmount;
-                        nTotalAnonAvailableTxes += 1;
-                    }
-                } else if (vTxes[i].second.type == CWatchOnlyTx::STEALTH) {
-                    LOCK(mempool.cs);
-                    CCoinsView dummy;
-                    CCoinsViewCache view(&dummy);
-                    CCoinsViewMemPool viewMemPool(pcoinsTip.get(), mempool);
-                    view.SetBackend(viewMemPool);
-
-                    bool spent_in_chain = view.HaveCoin(COutPoint(vTxes[i].second.tx_hash, vTxes[i].second.tx_index));
-                    if (!spent_in_chain) {
-                        nTotalStealthAmountAvailable += nAmount;
-                        nTotalStealthAvailableTxes += 1;
-                    }
-                }
-            }
-        }
-    }
-
-    UniValue ret(UniValue::VOBJ);
-    ret.pushKV("Anon Amount", ValueFromAmount(nTotalAnonAmountAvailable));
-    ret.pushKV("Anon Inputs", nTotalAnonAvailableTxes);
-    ret.pushKV("Stealth Amount", ValueFromAmount(nTotalStealthAmountAvailable));
-    ret.pushKV("Stealth Inputs", nTotalStealthAvailableTxes);
-
-    return ret;
-}
-
 static UniValue checkkeyimage(const JSONRPCRequest& request)
 {
     if (request.fHelp || request.params.size() != 1)
@@ -1419,11 +1313,12 @@ static UniValue checkkeyimage(const JSONRPCRequest& request)
                      "\n"
                      "\nArguments:\n"
                      "1. \"key_image\"         (string, required) The key image to check\n"
-                     "\nResult:\n"
-                     "\"[\n"
-                     "txhash,       (string) The txhash\n"
-                     "...\n"
-                     "]\"\n"
+                "\"[\n"
+                "spent,                (boolean) If the key_image was spent and confirmed in the block\n"
+                "spentinmempool,       (boolean) If the key_image was spent but only in the mempool (not confirmed)\n"
+                "txid,                 (hex) The txid of the transaction that the key_image was spent in\n"
+                "...\n"
+                "]\"\n"
         );
 
     LOCK(cs_main);
@@ -1469,7 +1364,11 @@ static UniValue checkkeyimages(const JSONRPCRequest& request)
                 "1. \"key_images\"         (array, required) The key images to check\n"
                 "\nResult:\n"
                 "\"[\n"
-                "txhash,       (string) The txhash\n"
+                "status,               (string) Wether the key image hex is valid\n"
+                "msg,                  (string, optional (only if status is invalid) If not valid, tell why\n"
+                "spent,                (boolean) If the key_image was spent and confirmed in the block\n"
+                "spentinmempool,       (boolean) If the key_image was spent but only in the mempool (not confirmed)\n"
+                "txid,                 (hex) The txid of the transaction that the key_image was spent in\n"
                 "...\n"
                 "]\"\n"
         );
@@ -1525,8 +1424,14 @@ static UniValue getwatchonlyaddresses(const JSONRPCRequest& request)
         throw std::runtime_error(
                 "getwatchonlyaddresses \n"
                 "\n"
-                             "\nResult:\n"
-                             "\"result\"          (boolean) Scan height info\n"
+                 "\nResult:\n"
+                "\"[\"\n"
+                "\"address\"                     (string) Imported address\n"
+                "\"imported_at_block\"           (number) Block height the address was imported at\n"
+                "\"start_scan_block\"            (number) The block height this address will start scanning for transactions at \n"
+                "\"currently_scan_block\"        (number) The currently scanned block height for this address\n"
+                "\",...\"\n"
+                "\"]\"\n"
         );
 
     UniValue result(UniValue::VARR);
@@ -6604,14 +6509,12 @@ static const CRPCCommand commands[] =
     { "wallet",             "listlabels",                       &listlabels,                    {"purpose"} },
     { "wallet",             "listreceivedbylabel",              &listreceivedbylabel,           {"minconf","include_empty","include_watchonly"} },
     { "wallet",             "setlabel",                         &setlabel,                      {"address","label"} },
-    { "wallet",             "getallscankeys",                   &getallscankeys,                {"address"} },
+    { "wallet",             "viewscankeys",                   &viewscankeys,                    {"address"} },
     { "wallet",             "getwatchonlyaddresses",            &getwatchonlyaddresses,         {} },
     { "wallet",             "getwatchonlytxes",                 &getwatchonlytxes,              {"scan_secret", "starting_index", "scan_public_key", "spend_secret", "testing"}},
 
     { "info",             "checkkeyimage",                      &checkkeyimage,                 {"key_image"} },
     { "info",             "checkkeyimages",                      &checkkeyimages,                 {"key_images"} },
-
-    { "info",             "testgetlightwalletbalance",          &testgetlightwalletbalance,     {"scan_secret", "spend_secret", "spend_pubkey"} },
 
     { "generating",         "generate",                         &generate,                      {"nblocks","maxtries"} },
     { "generating",         "generatecontinuous",               &generatecontinuous,            {"fGenerate"} },
