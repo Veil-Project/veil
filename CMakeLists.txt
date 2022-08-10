@@ -70,8 +70,6 @@ add_executable(veil
         src/veil/invalid.h
         src/libzerocoin/PubcoinSignature.h
         src/libzerocoin/PubcoinSignature.cpp
-        src/veil/zerocoin/witness.h
-        src/veil/zerocoin/witness.cpp
         src/bench/base58.cpp
         src/bench/bech32.cpp
         src/bench/bench.cpp
@@ -184,7 +182,6 @@ add_executable(veil
         src/crypto/sha512.h
         src/csv/CSVread.cpp
         src/csv/CSVwrite.cpp
-        src/csv/libcsv.c.cpp
         src/csv/strerror.cpp
         src/csv/strerror.hpp
         src/index/base.cpp
@@ -391,8 +388,6 @@ add_executable(veil
         src/qt/veil/settings/settingsfaq.h
         src/qt/veil/settings/settingsfaq01.cpp
         src/qt/veil/settings/settingsfaq01.h
-        src/qt/veil/settings/settingsfaq02.cpp
-        src/qt/veil/settings/settingsfaq02.h
         src/qt/veil/settings/settingsfaq03.cpp
         src/qt/veil/settings/settingsfaq03.h
         src/qt/veil/settings/settingsfaq04.cpp
@@ -409,8 +404,6 @@ add_executable(veil
         src/qt/veil/settings/settingsfaq09.h
         src/qt/veil/settings/settingsfaq10.cpp
         src/qt/veil/settings/settingsfaq10.h
-        src/qt/veil/settings/settingsfaq11.cpp
-        src/qt/veil/settings/settingsfaq11.h
         src/qt/veil/settings/settingsminting.cpp
         src/qt/veil/settings/settingsminting.h
         src/qt/veil/settings/settingsnetwork.cpp
@@ -542,8 +535,6 @@ add_executable(veil
         src/qt/sendcoinsentry.h
         src/qt/signverifymessagedialog.cpp
         src/qt/signverifymessagedialog.h
-        src/qt/splashscreen.cpp
-        src/qt/splashscreen.h
         src/qt/splashscreenveil.cpp
         src/qt/splashscreenveil.h
         src/qt/trafficgraphwidget.cpp
@@ -978,6 +969,12 @@ add_executable(veil
         src/random.cpp
         src/random.h
         src/veil/ringct/rctindex.h
+        src/veil/ringct/lightwallet.h
+        src/veil/ringct/lightwallet.cpp
+        src/veil/ringct/watchonly.h
+        src/veil/ringct/watchonly.cpp
+        src/veil/ringct/watchonlydb.h
+        src/veil/ringct/watchonly.cpp
         src/rest.cpp
         src/reverse_iterator.h
         src/reverselock.h
@@ -1028,6 +1025,6 @@ add_executable(veil
         src/versionbits.h
         src/walletinitinterface.h
         src/warnings.cpp
-        src/warnings.h src/veil/lru_cache.h src/veil/zerocoin/spendreceipt.h src/veil/ringct/temprecipient.h src/veil/ringct/temprecipient.cpp src/veil/zerocoin/spendreceipt.cpp src/veil/ringct/outputrecord.cpp src/veil/ringct/outputrecord.h src/wallet/walletbalances.h src/veil/ringct/transactionrecord.h src/veil/zerocoin/mintmeta.h src/test/zerocoin_zkp_tests.cpp src/veil/zerocoin/lrucache.h src/veil/zerocoin/lrucache.cpp src/veil/zerocoin/precompute.h src/veil/zerocoin/precompute.cpp src/libzerocoin/PubcoinSignature.h src/libzerocoin/PubcoinSignature.cpp src/test/zerocoin_pubcoinsig_tests.cpp src/veil/invalid_list.h src/veil/invalid_list.cpp)
+        src/warnings.h src/veil/lru_cache.h src/veil/zerocoin/spendreceipt.h src/veil/ringct/temprecipient.h src/veil/ringct/temprecipient.cpp src/veil/zerocoin/spendreceipt.cpp src/veil/ringct/outputrecord.cpp src/veil/ringct/outputrecord.h src/wallet/walletbalances.h src/veil/ringct/transactionrecord.h src/veil/zerocoin/mintmeta.h src/test/zerocoin_zkp_tests.cpp src/libzerocoin/PubcoinSignature.h src/libzerocoin/PubcoinSignature.cpp src/test/zerocoin_pubcoinsig_tests.cpp src/veil/invalid_list.h src/veil/invalid_list.cpp)
 
 qt5_use_modules(veil Core Widgets Gui)

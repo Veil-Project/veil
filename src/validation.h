@@ -38,6 +38,7 @@ class CBlockTreeDB;
 class CZerocoinDB;
 class CChainParams;
 class CCoinsViewDB;
+class CWatchOnlyDB;
 class CInv;
 class CConnman;
 class CScriptCheck;
@@ -45,6 +46,7 @@ class CBlockPolicyEstimator;
 class CTxMemPool;
 class CValidationState;
 struct ChainTxData;
+class CWatchOnlyAddress;
 
 extern int global_randomx_flags;
 
@@ -150,6 +152,7 @@ struct BlockHasher
 
 extern CScript COINBASE_FLAGS;
 extern CCriticalSection cs_main;
+extern CCriticalSection cs_watchonly;
 extern CBlockPolicyEstimator feeEstimator;
 extern CTxMemPool mempool;
 extern std::atomic_bool g_is_mempool_loaded;

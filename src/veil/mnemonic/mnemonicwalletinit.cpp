@@ -22,6 +22,11 @@ bool MnemonicWalletInit::Open() const
         return true;
     }
 
+    if(gArgs.GetArg("-lightwallet", false)) {
+        LogPrintf("Light wallet enabled, wallet creation bypassed!\n");
+        return true;
+    }
+
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
         bool fNewSeed = false;
         uint512 hashMasterKey;

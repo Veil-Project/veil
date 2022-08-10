@@ -23,6 +23,7 @@
 class CBlockIndex;
 class CCoinsViewDBCursor;
 class uint256;
+class CBitcoinAddress;
 
 const char DB_RCTOUTPUT = 'A';
 const char DB_RCTOUTPUT_LINK = 'L';

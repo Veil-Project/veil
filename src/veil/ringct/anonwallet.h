@@ -28,6 +28,7 @@ typedef std::map<uint256, CTransactionRecord> MapRecords_t;
 typedef std::multimap<int64_t, std::map<uint256, CTransactionRecord>::iterator> RtxOrdered_t;
 
 class UniValue;
+class CWatchOnlyTx;
 
 const uint16_t OR_PLACEHOLDER_N = 0xFFFF; // index of a fake output to contain reconstructed amounts for txns with undecodeable outputs
 
@@ -237,6 +238,8 @@ public:
     bool PickHidingOutputs(std::vector<std::vector<int64_t> > &vMI, size_t nSecretColumn, size_t nRingSize, std::set<int64_t> &setHave,
          std::string &sError);
 
+    bool GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std::set<int64_t> &setHave, std::vector<CLightWalletAnonOutputData>& randomoutputs, std::string &sError);
+
 
     bool IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint);
     bool AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
@@ -246,6 +249,9 @@ public:
          bool sign, size_t nRingSize, size_t nInputsPerSig, size_t nMaximumInputs, CAmount &nFeeRet,
          const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs = false,
          CAmount nInputValue = 0);
+
+    void GetAllScanKeys(std::vector<CStealthAddress>& vStealthAddresses);
+    bool IsMyPubKey(const CKeyID& keyId);
 
 
     void LoadToWallet(const uint256 &hash, const CTransactionRecord &rtx);
@@ -293,12 +299,12 @@ public:
     bool ProcessLockedStealthOutputs();
     bool ProcessLockedBlindedOutputs();
     bool ProcessStealthOutput(const CTxDestination &address,
-        std::vector<uint8_t> &vchEphemPK, uint32_t prefix, bool fHavePrefix, CKey &sShared, bool fNeedShared=false);
+        std::vector<uint8_t> &vchEphemPK, uint32_t prefix, bool fHavePrefix, CKey &sShared, CWatchOnlyTx& watchOnlyOutput, bool fNeedShared=false);
 
     int CheckForStealthAndNarration(const CTxOutBase *pb, const CTxOutData *pdata, std::string &sNarr);
     bool FindStealthTransactions(const CTransaction &tx, mapValue_t &mapNarr);
 
-    bool ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr);
+    bool ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr, std::vector<CWatchOnlyTx>& vecWatchOnlyTx);
     bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);
     void MarkOutputSpent(const COutPoint& outpoint, bool isSpent);
 
@@ -421,6 +427,8 @@ private:
         return errorN(rv, s, func, ("%s " + fmt).c_str(), GetDisplayName(), parameters...);
     }
 };
+
+bool KeyIdFromScriptPubKey(const CScript& script, CKeyID& id);
 
 bool CheckOutputValue(const CTempRecipient &r, const CTxOutBase *txbout, CAmount nFeeRet, std::string sError);
 void SetCTOutVData(std::vector<uint8_t> &vData, const CPubKey &pkEphem, uint32_t nStealthPrefix);

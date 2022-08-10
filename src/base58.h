@@ -16,6 +16,7 @@
 
 #include <string>
 #include <vector>
+#include <string.h>
 
 /**
  * Encode a byte sequence as a base58-encoded string.
@@ -34,6 +35,22 @@ std::string EncodeBase58(const std::vector<unsigned char>& vch);
  * psz cannot be nullptr.
  */
 bool DecodeBase58(const char* psz, std::vector<unsigned char>& vchRet);
+
+/**
+ * Decode a base58-encoded string (psz) into a byte vector (vchRet). with max len check
+ * return true if decoding is successful.
+ * psz cannot be nullptr.
+ */
+bool DecodeBase58(const char* psz, std::vector<unsigned char>& vch, int max_ret_len);
+bool DecodeBase58(const std::string& str, std::vector<unsigned char>& vchRet, int max_ret_len);
+
+/**
+ * Check if a string does not contain any embedded NUL (\0) characters
+ */
+[[nodiscard]] inline bool ValidAsCString(const std::string& str) noexcept
+{
+    return str.size() == strlen(str.c_str());
+}
 
 /**
  * Decode a base58-encoded string (str) into a byte vector (vchRet).

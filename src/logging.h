@@ -60,6 +60,7 @@ namespace BCLog {
         MINING      = (1 << 25),
         STAKING     = (1 << 26),
         RINGCT      = (1 << 27),
+        WATCHONLYDB = (1 << 28),
         ALL         = ~(uint32_t)0,
     };
 

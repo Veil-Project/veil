@@ -37,4 +37,21 @@ public:
     };
 };
 
+class CLightWalletAnonOutputData
+{
+public:
+    CLightWalletAnonOutputData() {}
+
+    int64_t index;
+    CAnonOutput output;
+
+    ADD_SERIALIZE_METHODS;
+    template <typename Stream, typename Operation>
+    inline void SerializationOp(Stream& s, Operation ser_action)
+    {
+        READWRITE(index);
+        READWRITE(output);
+    };
+};
+
 #endif //VEIL_RCTINDEX_H

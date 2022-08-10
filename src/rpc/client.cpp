@@ -224,6 +224,22 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "setprecomputeblockpercycle", 0, "nBlockPerCycle"},
     { "startautospend", 1, "nNumberToSpend"},
     { "startautospend", 2, "nDenomination"},
+    { "importlightwalletaddress", 2, "created_height"},
+    { "importlightwalletaddress", 4, "num_prefix_bits"},
+    { "importlightwalletaddress", 6, "bech32"},
+    { "getanonoutputs", 0, "inputsize"},
+    { "getanonoutputs", 1, "ringsize"},
+    { "getkeyimages", 0, "txdata"},
+    { "checkkeyimages", 0, "keyimages"},
+    { "buildlightwallettx", 5, "txdata"},
+    { "buildlightwallettx", 6, "dummydata"},
+    { "getnewaddress", 3, "bech32"},
+    { "getnewaddress", 4, "makeV2"},
+    { "getwatchonlytxes", 1, "starting_index"},
+    { "getwatchonlytxes", 4, "testing"},
+
+
+
 };
 
 class CRPCConvertTable

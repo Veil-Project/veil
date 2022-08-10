@@ -126,6 +126,7 @@ const CLogCategoryDesc LogCategories[] =
     {BCLog::MINING, "mining"},
     {BCLog::STAKING, "staking"},
     {BCLog::RINGCT, "ringct"},
+    {BCLog::WATCHONLYDB, "watchonlydb"},
     {BCLog::ALL, "1"},
     {BCLog::ALL, "all"},
 };

@@ -46,6 +46,8 @@
 #include <util/moneystr.h>
 #include <util/strencodings.h>
 #include <validationinterface.h>
+#include <veil/ringct/watchonlydb.h>
+#include <veil/ringct/watchonly.h>
 #include <warnings.h>
 
 #include <veil/proofoffullnode/proofoffullnode.h>
@@ -67,6 +69,7 @@
 
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/thread.hpp>
+
 #include "veil/zerocoin/accumulators.h"
 #include "miner.h"
 
@@ -240,6 +243,7 @@ private:
 
 
 CCriticalSection cs_main;
+CCriticalSection cs_watchonly;
 CCriticalSection& cs_mapblockindex = g_chainstate.cs_mapblockindex;
 BlockMap& mapBlockIndex = g_chainstate.mapBlockIndex;
 CChain& chainActive = g_chainstate.chainActive;
@@ -2217,6 +2221,8 @@ static int64_t nTimeForks = 0;
 static int64_t nTimeVerify = 0;
 static int64_t nTimeConnect = 0;
 static int64_t nTimeIndex = 0;
+static int64_t nTimeComputeVeilHash = 0;
+static int64_t nTimeDatabaseZerocoin = 0;
 static int64_t nTimeCallbacks = 0;
 static int64_t nTimeTotal = 0;
 static int64_t nBlocksTotal = 0;
@@ -2892,6 +2898,10 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         }
     }
 
+    int64_t nTime5 = GetTimeMicros(); nTimeComputeVeilHash += nTime5 - nTime4;
+    LogPrint(BCLog::BENCH, "    - Calculating Veil data hash: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime5 - nTime4), nTimeComputeVeilHash * MICRO, nTimeComputeVeilHash * MILLI / nBlocksTotal);
+
+
     if (fJustCheck)
         return true;
 
@@ -2907,6 +2917,9 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         if (!pzerocoinDB->WritePubcoinSpendBatch(mapSpentPubcoinsInBlock, pindex->GetBlockHash()) )
             return state.Error(("Failed to record new pubcoinspends to database"));
     }
+
+    int64_t nTime6 = GetTimeMicros(); nTimeDatabaseZerocoin += nTime6 - nTime5;
+    LogPrint(BCLog::BENCH, "    - Writing zerocoin to database : %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime6 - nTime5), nTimeDatabaseZerocoin * MICRO, nTimeDatabaseZerocoin * MILLI / nBlocksTotal);
 
     //Record accumulator checksums - if they have been updated, which happens every ten blocks
     if (pindex->nHeight > 10 && pindex->nHeight % 10 == 0)
@@ -2924,11 +2937,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     // add this block to the view's block chain
     view.SetBestBlock(pindex->GetBlockHash());
 
-    int64_t nTime5 = GetTimeMicros(); nTimeIndex += nTime5 - nTime4;
-    LogPrint(BCLog::BENCH, "    - Index writing: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime5 - nTime4), nTimeIndex * MICRO, nTimeIndex * MILLI / nBlocksTotal);
+    int64_t nTime7 = GetTimeMicros(); nTimeIndex += nTime7 - nTime6;
+    LogPrint(BCLog::BENCH, "    - Write indexing: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime7 - nTime6), nTimeIndex * MICRO, nTimeIndex * MILLI / nBlocksTotal);
 
-    int64_t nTime6 = GetTimeMicros(); nTimeCallbacks += nTime6 - nTime5;
-    LogPrint(BCLog::BENCH, "    - Callbacks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime6 - nTime5), nTimeCallbacks * MICRO, nTimeCallbacks * MILLI / nBlocksTotal);
+    int64_t nTime8 = GetTimeMicros(); nTimeCallbacks += nTime8 - nTime7;
+    LogPrint(BCLog::BENCH, "    - Callbacks: %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime8 - nTime7), nTimeCallbacks * MICRO, nTimeCallbacks * MILLI / nBlocksTotal);
 
     return true;
 }
@@ -2979,6 +2992,7 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
         if (nLastFlush == 0) {
             nLastFlush = nNow;
         }
+
         int64_t nMempoolSizeMax = gArgs.GetArg("-maxmempool", DEFAULT_MAX_MEMPOOL_SIZE) * 1000000;
         int64_t cacheSize = pcoinsTip->DynamicMemoryUsage();
         int64_t nTotalSpace = nCoinCacheUsage + std::max<int64_t>(nMempoolSizeMax - nMempoolUsage, 0);
@@ -3017,9 +3031,17 @@ bool static FlushStateToDisk(const CChainParams& chainparams, CValidationState &
                     return AbortNode(state, "Failed to write to block index database");
                 }
             }
+
+            if (gArgs.GetBoolArg("-watchonly", false)) {
+                if (!FlushWatchOnlyAddresses()) {
+                    return AbortNode(state, "Fail to write watchonly addresses to database.");
+                }
+            }
+
             // Finally remove any pruned files
             if (fFlushForPrune)
                 UnlinkPrunedFiles(setFilesToPrune);
+
             nLastWrite = nNow;
         }
         // Flush best chain related state. This can only be done if the blocks / block index write was also done.
@@ -4153,6 +4175,11 @@ static bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, 
 
 static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, bool fCheckProofOfFullNode = false)
 {
+
+    // Bypass regtest check, actually allows us to generate blocks in regtest mode instantly
+    if (Params().NetworkIDString() == "regtest")
+        return true;
+
     //Prevent Proof of full node and proof of work existing together
     if (fCheckPOW && fCheckProofOfFullNode)
         return state.DoS(50, false, REJECT_INVALID, "PoW and PoFN conflict", false, "Block attempted to use both PoW and PoFN");

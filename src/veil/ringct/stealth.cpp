@@ -157,6 +157,13 @@ int CStealthAddress::SetScanPubKey(CPubKey pk)
     return 0;
 };
 
+int SetPublicKey(const CPubKey &pk, ec_point &out)
+{
+    out.resize(EC_COMPRESSED_SIZE);
+    memcpy(&out[0], pk.begin(), EC_COMPRESSED_SIZE);
+    return 0;
+};
+
 CKeyID CStealthAddress::GetSpendKeyID() const
 {
     return CKeyID(Hash160(spend_pubkey.begin(), spend_pubkey.end()));
@@ -191,20 +198,28 @@ int SecretToPublicKey(const CKey &secret, ec_point &out)
 
 int StealthShared(const CKey &secret, const ec_point &pubkey, CKey &sharedSOut)
 {
-    if (pubkey.size() != EC_COMPRESSED_SIZE)
+    if (pubkey.size() != EC_COMPRESSED_SIZE) {
+        LogPrintf("%s: sanity checks failed.\n", __func__);
         return errorN(1, "%s: sanity checks failed.", __func__);
+    }
 
     secp256k1_pubkey Q;
-    if (!secp256k1_ec_pubkey_parse(secp256k1_ctx_stealth, &Q, &pubkey[0], EC_COMPRESSED_SIZE))
+    if (!secp256k1_ec_pubkey_parse(secp256k1_ctx_stealth, &Q, &pubkey[0], EC_COMPRESSED_SIZE)) {
+        LogPrintf("%s: secp256k1_ec_pubkey_parse Q failed.\n", __func__);
         return errorN(1, "%s: secp256k1_ec_pubkey_parse Q failed.", __func__);
-    if (!secp256k1_ec_pubkey_tweak_mul(secp256k1_ctx_stealth, &Q, secret.begin())) // eQ
+    }
+
+    if (!secp256k1_ec_pubkey_tweak_mul(secp256k1_ctx_stealth, &Q, secret.begin())) { // eQ
+        LogPrintf("%s: secp256k1_ec_pubkey_tweak_mul failed.\n", __func__);
         return errorN(1, "%s: secp256k1_ec_pubkey_tweak_mul failed.", __func__);
+    }
 
     size_t len = 33;
     uint8_t tmp33[33];
     secp256k1_ec_pubkey_serialize(secp256k1_ctx_stealth, tmp33, &len, &Q, SECP256K1_EC_COMPRESSED); // Returns: 1 always.
 
     CSHA256().Write(tmp33, 33).Finalize(sharedSOut.begin_nc());
+
     return 0;
 };
 
@@ -238,7 +253,6 @@ int StealthSecret(const CKey &secret, const ec_point &pubkey, const ec_point &pk
 
     test 0 and infinity?
     */
-
     if (pubkey.size() != EC_COMPRESSED_SIZE || pkSpend.size() != EC_COMPRESSED_SIZE)
         return errorN(1, "%s: sanity checks failed.", __func__);
 
@@ -285,7 +299,6 @@ int StealthSecret(const CKey &secret, const ec_point &pubkey, const ec_point &pk
 
     return 0;
 };
-
 
 int StealthSecretSpend(const CKey &scanSecret, const ec_point &ephemPubkey, const CKey &spendSecret, CKey &secretOut)
 {

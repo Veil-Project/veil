@@ -55,6 +55,8 @@
 #include <stdio.h>
 #include <veil/invalid.h>
 #include <veil/ringct/anon.h>
+#include <veil/ringct/watchonlydb.h>
+#include <veil/ringct/watchonly.h>
 #include <veil/zerocoin/zchain.h>
 
 #ifndef WIN32
@@ -187,6 +189,7 @@ static boost::thread_group threadGroup;
 static boost::thread_group threadGroupStaking;
 static boost::thread_group threadGroupPrecompute;
 static boost::thread_group threadGroupAutoSpend;
+static boost::thread_group threadGroupWatchonlyScanning;
 #endif
 static boost::thread_group threadGroupPoWMining;
 static boost::thread_group threadGroupRandomX;
@@ -257,6 +260,9 @@ void Shutdown()
         threadGroupPrecompute.join_all();
         threadGroupAutoSpend.interrupt_all();
         threadGroupAutoSpend.join_all();
+
+        threadGroupWatchonlyScanning.interrupt_all();
+        threadGroupWatchonlyScanning.join_all();
     }
 #endif
     threadGroupStaging.interrupt_all();
@@ -272,6 +278,18 @@ void Shutdown()
 
     if (g_is_mempool_loaded && gArgs.GetArg("-persistmempool", DEFAULT_PERSIST_MEMPOOL)) {
         DumpMempool();
+    }
+
+    if (gArgs.GetBoolArg("-watchonly", false)) {
+        if (!FlushWatchOnlyAddresses()) {
+            error("Fail to write watchonly addresses to database.");
+        }
+
+        {
+            LOCK(cs_watchonly);
+            // Ran into memory problems if this map wasn't cleared before shutdown.
+            mapWatchOnlyAddresses.clear();
+        }
     }
 
     if (fFeeEstimatesInitialized)
@@ -311,6 +329,7 @@ void Shutdown()
         pcoinsdbview.reset();
         pblocktree.reset();
         pzerocoinDB.reset();
+        pwatchonlyDB.reset();
     }
 
     DeallocateRandomXLightCache();
@@ -576,6 +595,8 @@ void SetupServerArgs()
     gArgs.AddArg("-rpcuser=<user>", "Username for JSON-RPC connections", false, OptionsCategory::RPC);
     gArgs.AddArg("-rpcworkqueue=<n>", strprintf("Set the depth of the work queue to service RPC calls (default: %d)", DEFAULT_HTTP_WORKQUEUE), true, OptionsCategory::RPC);
     gArgs.AddArg("-server", "Accept command line and JSON-RPC commands", false, OptionsCategory::RPC);
+    gArgs.AddArg("-watchonly", "Only run this if you are running a watchonly server", false, OptionsCategory::RPC);
+    gArgs.AddArg("-lightwallet", "Normal blockchain syncing doesn't occur", false, OptionsCategory::RPC);
 
 #if HAVE_DECL_DAEMON
     gArgs.AddArg("-daemon", "Run in the background as a daemon and accept commands", false, OptionsCategory::OPTIONS);
@@ -1376,6 +1397,12 @@ bool AppInitMain()
     RegisterZMQRPCCommands(tableRPC);
 #endif
 
+    bool fLightWallet = false;
+
+    if(gArgs.GetArg("-lightwallet", false)) {
+        fLightWallet = true;
+    }
+
     /* Start the RPC server already.  It will be started in "warmup" mode
      * and not really process calls already (but it will signify connections
      * that the server is there and will be ready later).  Warmup mode will
@@ -1398,6 +1425,7 @@ bool AppInitMain()
     // until the very end ("start node") as the UTXO/block state
     // is not yet setup and may end up being set up twice if we
     // need to reindex later.
+
 
     assert(!g_connman);
     g_connman = std::unique_ptr<CConnman>(new CConnman(GetRand(std::numeric_limits<uint64_t>::max()), GetRand(std::numeric_limits<uint64_t>::max())));
@@ -1484,12 +1512,14 @@ bool AppInitMain()
     fDiscover = gArgs.GetBoolArg("-discover", true);
     fRelayTxes = !gArgs.GetBoolArg("-blocksonly", DEFAULT_BLOCKSONLY);
 
-    for (const std::string& strAddr : gArgs.GetArgs("-externalip")) {
-        CService addrLocal;
-        if (Lookup(strAddr.c_str(), addrLocal, GetListenPort(), fNameLookup) && addrLocal.IsValid())
-            AddLocal(addrLocal, LOCAL_MANUAL);
-        else
-            return InitError(ResolveErrMsg("externalip", strAddr));
+    if (!fLightWallet) {
+        for (const std::string &strAddr: gArgs.GetArgs("-externalip")) {
+            CService addrLocal;
+            if (Lookup(strAddr.c_str(), addrLocal, GetListenPort(), fNameLookup) && addrLocal.IsValid())
+                AddLocal(addrLocal, LOCAL_MANUAL);
+            else
+                return InitError(ResolveErrMsg("externalip", strAddr));
+        }
     }
 
 #if ENABLE_ZMQ
@@ -1595,6 +1625,10 @@ bool AppInitMain()
                 //zerocoinDB
                 pzerocoinDB.reset();
                 pzerocoinDB.reset(new CZerocoinDB(0, false, fReindex));
+
+                //watchonlyDB - don't wipe...
+                pwatchonlyDB.reset();
+                pwatchonlyDB.reset(new CWatchOnlyDB(0, false, false));
 
                 if (fReset) {
                     pblocktree->WriteReindexing(true);
@@ -1780,6 +1814,10 @@ bool AppInitMain()
         }
     }
 
+    // Load watchonly addresses
+    if (gArgs.GetBoolArg("-watchonly", false)) {
+        LoadWatchOnlyAddresses();
+    }
 
     // ********************************************************* Step 10: data directory maintenance
 
@@ -1814,12 +1852,14 @@ bool AppInitMain()
     if (!CheckDiskSpace() && !CheckDiskSpace(0, true))
         return false;
 
-    // Either install a handler to notify us when genesis activates, or set fHaveGenesis directly.
-    // No locking, as this happens before any background thread is started.
-    if (chainActive.Tip() == nullptr) {
-        uiInterface.NotifyBlockTip.connect(BlockNotifyGenesisWait);
-    } else {
-        fHaveGenesis = true;
+    if (!fLightWallet) {
+        // Either install a handler to notify us when genesis activates, or set fHaveGenesis directly.
+        // No locking, as this happens before any background thread is started.
+        if (chainActive.Tip() == nullptr) {
+            uiInterface.NotifyBlockTip.connect(BlockNotifyGenesisWait);
+        } else {
+            fHaveGenesis = true;
+        }
     }
 
     if (gArgs.IsArgSet("-blocknotify"))
@@ -1832,16 +1872,19 @@ bool AppInitMain()
 
     threadGroup.create_thread(std::bind(&ThreadImport, vImportFiles));
 
-    // Wait for genesis block to be processed
-    {
-        WaitableLock lock(cs_GenesisWait);
-        // We previously could hang here if StartShutdown() is called prior to
-        // ThreadImport getting started, so instead we just wait on a timer to
-        // check ShutdownRequested() regularly.
-        while (!fHaveGenesis && !ShutdownRequested()) {
-            condvar_GenesisWait.wait_for(lock, std::chrono::milliseconds(500));
+
+    if (!fLightWallet) {
+        // Wait for genesis block to be processed
+        {
+            WaitableLock lock(cs_GenesisWait);
+            // We previously could hang here if StartShutdown() is called prior to
+            // ThreadImport getting started, so instead we just wait on a timer to
+            // check ShutdownRequested() regularly.
+            while (!fHaveGenesis && !ShutdownRequested()) {
+                condvar_GenesisWait.wait_for(lock, std::chrono::milliseconds(500));
+            }
+            uiInterface.NotifyBlockTip.disconnect(BlockNotifyGenesisWait);
         }
-        uiInterface.NotifyBlockTip.disconnect(BlockNotifyGenesisWait);
     }
 
     if (ShutdownRequested()) {
@@ -1858,70 +1901,72 @@ bool AppInitMain()
     int chain_active_height = chainActive.Height();
     LogPrintf("nBestHeight = %d\n", chain_active_height);
 
-    if (gArgs.GetBoolArg("-listenonion", DEFAULT_LISTEN_ONION))
-        StartTorControl();
+    if (!fLightWallet) {
+        if (gArgs.GetBoolArg("-listenonion", DEFAULT_LISTEN_ONION))
+            StartTorControl();
 
-    Discover();
+        Discover();
 
-    // Map ports with UPnP
-    if (gArgs.GetBoolArg("-upnp", DEFAULT_UPNP)) {
-        StartMapPort();
-    }
-
-    CConnman::Options connOptions;
-    connOptions.nLocalServices = nLocalServices;
-    connOptions.nMaxConnections = nMaxConnections;
-    connOptions.nMaxOutbound = std::min(MAX_OUTBOUND_CONNECTIONS, connOptions.nMaxConnections);
-    connOptions.nMaxAddnode = MAX_ADDNODE_CONNECTIONS;
-    connOptions.nMaxFeeler = 1;
-    connOptions.nBestHeight = chain_active_height;
-    connOptions.uiInterface = &uiInterface;
-    connOptions.m_msgproc = peerLogic.get();
-    connOptions.nSendBufferMaxSize = 1000*gArgs.GetArg("-maxsendbuffer", DEFAULT_MAXSENDBUFFER);
-    connOptions.nReceiveFloodSize = 1000*gArgs.GetArg("-maxreceivebuffer", DEFAULT_MAXRECEIVEBUFFER);
-    connOptions.m_added_nodes = gArgs.GetArgs("-addnode");
-
-    connOptions.nMaxOutboundTimeframe = nMaxOutboundTimeframe;
-    connOptions.nMaxOutboundLimit = nMaxOutboundLimit;
-
-    for (const std::string& strBind : gArgs.GetArgs("-bind")) {
-        CService addrBind;
-        if (!Lookup(strBind.c_str(), addrBind, GetListenPort(), false)) {
-            return InitError(ResolveErrMsg("bind", strBind));
+        // Map ports with UPnP
+        if (gArgs.GetBoolArg("-upnp", DEFAULT_UPNP)) {
+            StartMapPort();
         }
-        connOptions.vBinds.push_back(addrBind);
-    }
-    for (const std::string& strBind : gArgs.GetArgs("-whitebind")) {
-        CService addrBind;
-        if (!Lookup(strBind.c_str(), addrBind, 0, false)) {
-            return InitError(ResolveErrMsg("whitebind", strBind));
-        }
-        if (addrBind.GetPort() == 0) {
-            return InitError(strprintf(_("Need to specify a port with -whitebind: '%s'"), strBind));
-        }
-        connOptions.vWhiteBinds.push_back(addrBind);
-    }
 
-    for (const auto& net : gArgs.GetArgs("-whitelist")) {
-        CSubNet subnet;
-        LookupSubNet(net.c_str(), subnet);
-        if (!subnet.IsValid())
-            return InitError(strprintf(_("Invalid netmask specified in -whitelist: '%s'"), net));
-        connOptions.vWhitelistedRange.push_back(subnet);
-    }
+        CConnman::Options connOptions;
+        connOptions.nLocalServices = nLocalServices;
+        connOptions.nMaxConnections = nMaxConnections;
+        connOptions.nMaxOutbound = std::min(MAX_OUTBOUND_CONNECTIONS, connOptions.nMaxConnections);
+        connOptions.nMaxAddnode = MAX_ADDNODE_CONNECTIONS;
+        connOptions.nMaxFeeler = 1;
+        connOptions.nBestHeight = chain_active_height;
+        connOptions.uiInterface = &uiInterface;
+        connOptions.m_msgproc = peerLogic.get();
+        connOptions.nSendBufferMaxSize = 1000 * gArgs.GetArg("-maxsendbuffer", DEFAULT_MAXSENDBUFFER);
+        connOptions.nReceiveFloodSize = 1000 * gArgs.GetArg("-maxreceivebuffer", DEFAULT_MAXRECEIVEBUFFER);
+        connOptions.m_added_nodes = gArgs.GetArgs("-addnode");
 
-    connOptions.vSeedNodes = gArgs.GetArgs("-seednode");
+        connOptions.nMaxOutboundTimeframe = nMaxOutboundTimeframe;
+        connOptions.nMaxOutboundLimit = nMaxOutboundLimit;
 
-    // Initiate outbound connections unless connect=0
-    connOptions.m_use_addrman_outgoing = !gArgs.IsArgSet("-connect");
-    if (!connOptions.m_use_addrman_outgoing) {
-        const auto connect = gArgs.GetArgs("-connect");
-        if (connect.size() != 1 || connect[0] != "0") {
-            connOptions.m_specified_outgoing = connect;
+        for (const std::string &strBind: gArgs.GetArgs("-bind")) {
+            CService addrBind;
+            if (!Lookup(strBind.c_str(), addrBind, GetListenPort(), false)) {
+                return InitError(ResolveErrMsg("bind", strBind));
+            }
+            connOptions.vBinds.push_back(addrBind);
         }
-    }
-    if (!connman.Start(scheduler, connOptions)) {
-        return false;
+        for (const std::string &strBind: gArgs.GetArgs("-whitebind")) {
+            CService addrBind;
+            if (!Lookup(strBind.c_str(), addrBind, 0, false)) {
+                return InitError(ResolveErrMsg("whitebind", strBind));
+            }
+            if (addrBind.GetPort() == 0) {
+                return InitError(strprintf(_("Need to specify a port with -whitebind: '%s'"), strBind));
+            }
+            connOptions.vWhiteBinds.push_back(addrBind);
+        }
+
+        for (const auto &net: gArgs.GetArgs("-whitelist")) {
+            CSubNet subnet;
+            LookupSubNet(net.c_str(), subnet);
+            if (!subnet.IsValid())
+                return InitError(strprintf(_("Invalid netmask specified in -whitelist: '%s'"), net));
+            connOptions.vWhitelistedRange.push_back(subnet);
+        }
+
+        connOptions.vSeedNodes = gArgs.GetArgs("-seednode");
+
+        // Initiate outbound connections unless connect=0
+        connOptions.m_use_addrman_outgoing = !gArgs.IsArgSet("-connect");
+        if (!connOptions.m_use_addrman_outgoing) {
+            const auto connect = gArgs.GetArgs("-connect");
+            if (connect.size() != 1 || connect[0] != "0") {
+                connOptions.m_specified_outgoing = connect;
+            }
+        }
+        if (!connman.Start(scheduler, connOptions)) {
+            return false;
+        }
     }
 
     // ********************************************************* Step 13: finished
@@ -1929,83 +1974,92 @@ bool AppInitMain()
     SetRPCWarmupFinished();
     uiInterface.InitMessage(_("Done loading"));
 
-    //Start block staging thread
-    threadGroupStaging.create_thread(&ThreadStagingBlockProcessing);
-    //threadGroupStaging.create_thread(&ThreadStagingBatchVerify);
+    if (!fLightWallet) {
+        //Start block staging thread
+        threadGroupStaging.create_thread(&ThreadStagingBlockProcessing);
+        //threadGroupStaging.create_thread(&ThreadStagingBatchVerify);
 
-    LinkPoWThreadGroup(&threadGroupPoWMining);
-    LinkRandomXThreadGroup(&threadGroupRandomX);
+        LinkPoWThreadGroup(&threadGroupPoWMining);
+        LinkRandomXThreadGroup(&threadGroupRandomX);
 
 #ifdef ENABLE_WALLET
-    if(!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)){
-        g_wallet_init_interface.Start(scheduler);
+        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+            g_wallet_init_interface.Start(scheduler);
 
-        //Start staking thread last
-        if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) && gArgs.GetBoolArg("-staking", true) && !gArgs.GetBoolArg("-exchangesandservicesmode", false))
-            threadGroupStaking.create_thread(&ThreadStakeMiner);
+            //Start staking thread last
+            if (!gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) && gArgs.GetBoolArg("-staking", true) &&
+                !gArgs.GetBoolArg("-exchangesandservicesmode", false))
+                threadGroupStaking.create_thread(&ThreadStakeMiner);
 
-        // Link thread groups
-        LinkAutoSpendThreadGroup(&threadGroupAutoSpend);
+            // Link thread groups
+            LinkAutoSpendThreadGroup(&threadGroupAutoSpend);
+            LinkWatchOnlyThreadGroup(&threadGroupWatchonlyScanning);
 
-        // Validate wallet mining address.
-        std::string sAddress = gArgs.GetArg("-miningaddress", "");
-        if (!sAddress.empty()) {
-            CTxDestination dest = DecodeDestination(sAddress);
+            // Validate wallet mining address.
+            std::string sAddress = gArgs.GetArg("-miningaddress", "");
+            if (!sAddress.empty()) {
+                CTxDestination dest = DecodeDestination(sAddress);
 
-            auto pt = GetMainWallet();
-            if (pt && pt->IsMine(dest) != ISMINE_SPENDABLE) {
-                return InitError(strprintf(_("Invalid -miningaddress: '%s' not owned by wallet"), sAddress));
-            }
-        }
-
-        // Start wallet CPU mining if the -gen=<n> parameter is given
-        int nThreads = gArgs.GetArg("-gen", 0);
-        if (nThreads) {
-            bool fSkip = false;
-            auto pt = GetMainWallet();
-            if (pt) {
-                std::shared_ptr<CReserveScript> coinbase_script;
-                pt->GetScriptForMining(coinbase_script);
-
-                // If the keypool is exhausted, no script is returned at all.  Catch this.
-                if (!coinbase_script) {
-                    error("Failed to start veilminer: Keypool ran out, please call keypoolrefill first");
-                    fSkip = true;
-                }
-
-                //throw an error if no script was provided
-                if (coinbase_script->reserveScript.empty()) {
-                    error("Failed to start veilminer: No coinbase script available");
-                    fSkip = true;
-                }
-
-                if (!fSkip)
-                    GenerateBitcoins(true, nThreads, coinbase_script);
-            }
-        }
-
-        if (gArgs.GetBoolArg("-autospend", false)) {
-            int nNumberToSpend = gArgs.GetArg("-autospendcount", 3);
-            int nDenomToSpend = gArgs.GetArg("-autospenddenom", 10);
-            std::string strAutoSpendAddress = gArgs.GetArg("-autospendaddress", "");
-
-            if (!strAutoSpendAddress.empty()) {
-                CTxDestination destination;
-                CBitcoinAddress addr(strAutoSpendAddress);
-                destination = addr.Get();
-
-                if (!addr.IsValidStealthAddress()) {
-                    return InitError(strprintf(_("Invalid stealth address with -autospendaddress: '%s'"), strAutoSpendAddress));
+                auto pt = GetMainWallet();
+                if (pt && pt->IsMine(dest) != ISMINE_SPENDABLE) {
+                    return InitError(strprintf(_("Invalid -miningaddress: '%s' not owned by wallet"), sAddress));
                 }
             }
 
-            SetAutoSpendParameters(nNumberToSpend, nDenomToSpend, strAutoSpendAddress);
-            StartAutoSpend();
+            // Start wallet CPU mining if the -gen=<n> parameter is given
+            int nThreads = gArgs.GetArg("-gen", 0);
+            if (nThreads) {
+                bool fSkip = false;
+                auto pt = GetMainWallet();
+                if (pt) {
+                    std::shared_ptr<CReserveScript> coinbase_script;
+                    pt->GetScriptForMining(coinbase_script);
+
+                    // If the keypool is exhausted, no script is returned at all.  Catch this.
+                    if (!coinbase_script) {
+                        error("Failed to start veilminer: Keypool ran out, please call keypoolrefill first");
+                        fSkip = true;
+                    }
+
+                    //throw an error if no script was provided
+                    if (coinbase_script->reserveScript.empty()) {
+                        error("Failed to start veilminer: No coinbase script available");
+                        fSkip = true;
+                    }
+
+                    if (!fSkip)
+                        GenerateBitcoins(true, nThreads, coinbase_script);
+                }
+            }
+
+            if (gArgs.GetBoolArg("-autospend", false)) {
+                int nNumberToSpend = gArgs.GetArg("-autospendcount", 3);
+                int nDenomToSpend = gArgs.GetArg("-autospenddenom", 10);
+                std::string strAutoSpendAddress = gArgs.GetArg("-autospendaddress", "");
+
+                if (!strAutoSpendAddress.empty()) {
+                    CTxDestination destination;
+                    CBitcoinAddress addr(strAutoSpendAddress);
+                    destination = addr.Get();
+
+                    if (!addr.IsValidStealthAddress()) {
+                        return InitError(strprintf(_("Invalid stealth address with -autospendaddress: '%s'"),
+                                                   strAutoSpendAddress));
+                    }
+                }
+
+                SetAutoSpendParameters(nNumberToSpend, nDenomToSpend, strAutoSpendAddress);
+                StartAutoSpend();
+            }
+
+            if (gArgs.GetBoolArg("-watchonly", false)) {
+                StartWatchonlyScanningThread();
+            }
         }
-    }
 #endif // ENABLE_WALLET
 
-    InitRandomXLightCache(chainActive.Height());
+        InitRandomXLightCache(chainActive.Height());
+    }
 
     return true;
 }

@@ -18,6 +18,7 @@
 #include <util/system.h>
 #include <util/moneystr.h>
 #include <util/strencodings.h>
+#include <veil/ringct/rctindex.h>
 
 UniValue ValueFromAmount(const CAmount& amount)
 {
@@ -156,8 +157,8 @@ void AddRangeproof(const std::vector<uint8_t> &vRangeproof, UniValue &entry)
     };
 }
 
-void OutputToJSON(uint256 &txid, int i,
-                  const CTxOutBase *baseOut, UniValue &entry, bool isCoinBase = false)
+void OutputToJSON(const uint256 &txid, const int& i,
+                  const CTxOutBase *baseOut, UniValue &entry, bool isCoinBase)
 {
     switch (baseOut->GetType())
     {
@@ -205,10 +206,11 @@ void OutputToJSON(uint256 &txid, int i,
         case OUTPUT_RINGCT:
         {
             CTxOutRingCT *s = (CTxOutRingCT*) baseOut;
+
             entry.pushKV("type", "ringct");
             entry.pushKV("vout.n", i);
             entry.pushKV("pubkey", HexStr(s->pk.begin(), s->pk.end()));
-
+            entry.pushKV("pubkey_hash", CBitcoinAddress(s->pk.GetID()).ToString());
             std::vector<uint8_t> objKeyImage;
             objKeyImage.resize(33);
             memcpy(&objKeyImage[0], &s->pk[0], 33);
@@ -217,6 +219,7 @@ void OutputToJSON(uint256 &txid, int i,
             entry.pushKV("valueCommitment", HexStr(&s->commitment.data[0], &s->commitment.data[0]+33));
             entry.pushKV("data_hex", HexStr(s->vData.begin(), s->vData.end()));
 
+
             AddRangeproof(s->vRangeproof, entry);
         }
             break;
@@ -224,6 +227,48 @@ void OutputToJSON(uint256 &txid, int i,
             entry.pushKV("type", "unknown");
             break;
     }
+}
+
+void RingCTOutputToJSON(const uint256& txid, const int& i, const int64_t& ringctIndex, const CTxOutRingCT& ringctOut, UniValue &entry)
+{
+    entry.pushKV("type", "anon");
+    entry.pushKV("tx_hash", txid.GetHex());
+    entry.pushKV("n", i);
+    entry.pushKV("ringct_index", ringctIndex);
+    entry.pushKV("pubkey", HexStr(ringctOut.pk.begin(), ringctOut.pk.end()));
+    entry.pushKV("pubkey_hash", CBitcoinAddress(ringctOut.pk.GetID()).ToString());
+    entry.pushKV("valueCommitment", HexStr(&ringctOut.commitment.data[0], &ringctOut.commitment.data[0]+33));
+    entry.pushKV("data_hex", HexStr(ringctOut.vData.begin(), ringctOut.vData.end()));
+
+//    AddRangeproof(ringctOut.vRangeproof, entry);
+}
+void CTOutputToJSON(const uint256& txid, const int& i, const CTxOutCT& ctOut, UniValue &entry)
+{
+    entry.pushKV("type", "stealth");
+    entry.pushKV("tx_hash", txid.GetHex());
+    entry.pushKV("n", i);
+    entry.pushKV("scriptPubKey", HexStr(ctOut.scriptPubKey.begin(), ctOut.scriptPubKey.end()));
+    CTxDestination dest;
+    if (ExtractDestination(ctOut.scriptPubKey, dest)) {
+        entry.pushKV("destination_bech32", EncodeDestination(dest, true));
+        entry.pushKV("destination", EncodeDestination(dest, false));
+    }
+    entry.pushKV("valueCommitment", HexStr(&ctOut.commitment.data[0], &ctOut.commitment.data[0]+33));
+    entry.pushKV("data_hex", HexStr(ctOut.vData.begin(), ctOut.vData.end()));
+
+//    AddRangeproof(ctOut.vRangeproof, entry);
+}
+
+
+void AnonOutputToJSON(const CAnonOutput& output, const int& ringctindex, UniValue &entry)
+{
+    entry.pushKV("ringctindex", ringctindex);
+    entry.pushKV("pubkey", HexStr(output.pubkey.begin(), output.pubkey.end()));
+    entry.pushKV("commitment", HexStr(&output.commitment.data[0], &output.commitment.data[0]+33));
+    entry.pushKV("tx_hash", output.outpoint.hash.GetHex());
+    entry.pushKV("tx_index", std::to_string(output.outpoint.n));
+    entry.pushKV("blockheight", output.nBlockHeight);
+    entry.pushKV("compromised", output.nCompromised);
 }
 
 void ScriptToUniv(const CScript& script, UniValue& out, bool include_address)

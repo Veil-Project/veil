@@ -297,6 +297,7 @@ static UniValue setmocktime(const JSONRPCRequest& request)
     return NullUniValue;
 }
 
+
 static UniValue RPCLockedMemoryInfo()
 {
     LockedPool::Stats stats = LockedPoolManager::Instance().stats();
