@@ -4232,7 +4232,7 @@ bool AnonWallet::SignStakeTx(
 
     // Validate the mlsag
     if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind, hashOutputs.begin(), nCols,
-                                            nRows, &inCtx.vm[0], &vKeyImages[0], &vDL[0], &vDL[32]))) {
+                                          nRows, &inCtx.vm[0], &vKeyImages[0], &vDL[0], &vDL[32]))) {
         sError = strprintf("Failed to generate mlsag on initial generation %d.", rv);
         return error("%s: %s", __func__, sError);
     }

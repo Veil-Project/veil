@@ -208,7 +208,7 @@ CAmount RingCTStake::GetWeight() {
     int bracket = fast_log16(nValueIn - nOneSat);
     // We'd do 16 << (4 * (bracket - 1)) but 16 is 1 << 4 so it's really
     // 1 << (4 + 4 * bracket - 4)
-    int val = (1 << (4 * bracket)) + nOneSat;
+    CAmount val = (1L << (4 * bracket)) + nOneSat;
 
     switch (bracket) {
         case 1:
