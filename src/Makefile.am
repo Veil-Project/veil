@@ -216,6 +216,7 @@ BITCOIN_CORE_H = \
   veil/ringct/stealth.h \
   veil/ringct/temprecipient.h \
   veil/ringct/transactionrecord.h \
+  veil/ringct/transactionsigcontext.h \
   veil/ringct/types.h \
   veil/ringct/watchonlydb.h \
   veil/ringct/watchonly.h \

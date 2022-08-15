@@ -1621,8 +1621,8 @@ bool AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sE
 
     if (r.fOverwriteRangeProofParams == true) {
         min_value = r.min_value;
-        ct_exponent = r.ct_exponent;
-        ct_bits = r.ct_bits;
+        ct_exponent = r.ct_exponent || ct_exponent;
+        ct_bits = r.ct_bits || ct_bits;
     }
 
     if (1 != secp256k1_rangeproof_sign(secp256k1_ctx_blind,
@@ -4150,8 +4150,8 @@ bool AnonWallet::CreateStakeTxOuts(
     // This should set the proof that our stake input is large enough when SetOutputs is called.
     stakeRet.fOverwriteRangeProofParams = true;
     stakeRet.min_value = (uint64_t)bracketMin;
-    stakeRet.ct_exponent = 2;
-    stakeRet.ct_bits = 32;
+    stakeRet.ct_exponent = 0;
+    stakeRet.ct_bits = 0;
 
     CTempRecipient reward;
     reward.nType = OUTPUT_RINGCT;
@@ -4177,7 +4177,14 @@ bool AnonWallet::CreateStakeTxOuts(
 
     // ArrangeOutBlinds
     if (!ArrangeOutBlinds(vpout, vecOut, outCtx.vpOutCommits, outCtx.vpOutBlinds, outCtx.vBlindPlain,
-                          &outCtx.plainCommitment, 0, nChangePosInOut, false, sError)) {
+                          &outCtx.plainCommitment, nValueOutPlain, nChangePosInOut, false, sError)) {
+        return error("%s: %s", __func__, sError);
+    }
+
+    std::vector<uint8_t> &vData = ((CTxOutData*)vpout[1].get())->vData;
+    vData.resize(1);
+    if (0 != PutVarInt(vData, nValueOutPlain)) {
+        sError = strprintf("Failed to add zero fee to stake transaction.");
         return error("%s: %s", __func__, sError);
     }
 
