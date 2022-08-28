@@ -5614,6 +5614,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
             throw std::runtime_error(strprintf("%s: could not get anon wallet seed on wallet load", __func__));
         AnonWallet* anonwallet = walletInstance->GetAnonWallet();
         assert(anonwallet->UnlockWallet(extMasterAnon));
+        assert(anonwallet->Initialise());
     }
 
     return walletInstance;

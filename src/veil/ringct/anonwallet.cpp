@@ -162,6 +162,20 @@ bool AnonWallet::Initialise(CExtKey* pExtMaster)
                     return error("%s: Failed to write stealth change address to wallet db", __func__);
             }
 
+            idStakeAccount.SetNull();
+            if (!wdb.ReadNamedExtKeyId("stealthstake", idStakeAccount)) {
+                //If the stake account is not created yet, then create it
+                if (!IsLocked() && !CreateStealthStakeAccount(&wdb))
+                    return error("%s: failed to create stealth stake account ", __func__);
+            }
+            //Load the stake address
+            if (!idStakeAccount.IsNull() && !wdb.ReadNamedExtKeyId("stealthstakeaddress", idStakeAddress)) {
+                auto address = GetStealthStakeAddress();
+                idStakeAddress = address.GetID();
+                if (!wdb.WriteNamedExtKeyId("stealthstakeaddress", idStakeAddress))
+                    return error("%s: Failed to write stealth stake address to wallet db", __func__);
+            }
+
             // Load all accounts, keys, stealth addresses from db
             if (!LoadAccountCounters())
                 return error("%s: failed to read account counters from db", __func__);
@@ -4091,45 +4105,43 @@ bool AnonWallet::CoinToTxIn(
     uint32_t nSigInputs, nSigRingSize;
     txin.GetAnonInfo(nSigInputs, nSigRingSize);
 
-    std::vector<std::vector<int64_t>> vMI;
-
     // ArrangeBlinds part 1: place real output
     inCtx.vInputBlinds.resize(32 * nSigInputs);
 
-    if (!PlaceRealOutputs(vMI, inCtx.secretColumn, nSigRingSize, setHave, vCoins, inCtx.vInputBlinds, sError)) {
+    if (!PlaceRealOutputs(inCtx.vMI, inCtx.secretColumn, nSigRingSize, setHave, vCoins, inCtx.vInputBlinds, sError)) {
         return error("%s: %s", __func__, sError);
     }
 
     // ArrangeBlinds part 2: hiding outputs (no dummy sigs)
-    if (!PickHidingOutputs(vMI, inCtx.secretColumn, nSigRingSize, setHave, sError))
+    if (!PickHidingOutputs(inCtx.vMI, inCtx.secretColumn, nSigRingSize, setHave, sError))
         return error("%s: %s", __func__, sError);
 
-    std::vector<uint8_t> vPubkeyMatrixIndices;
 
     for (size_t k = 0; k < nSigInputs; ++k)
         for (size_t i = 0; i < nSigRingSize; ++i) {
-            PutVarInt(vPubkeyMatrixIndices, vMI[k][i]);
+            PutVarInt(inCtx.vPubkeyMatrixIndices, inCtx.vMI[k][i]);
         }
 
     // Since we don't need the dummy sigs for fee calculation,
     // just emplace empty vectors in the proper places.
-    txin.scriptWitness.stack.emplace_back(vPubkeyMatrixIndices);
+    txin.scriptWitness.stack.emplace_back(inCtx.vPubkeyMatrixIndices);
 
     // if sign
     txin.scriptData.stack.emplace_back(33 * nSigInputs);
 
     // end ArrangeBlinds
 
-    if (!GetKeyImage(txin, vMI, inCtx.secretColumn, sError))
+    if (!GetKeyImage(txin, inCtx.vMI, inCtx.secretColumn, sError))
         return error("%s: %s", __func__, sError);
 
     // SetBlinds
     // TODO: pass inCtx instead of its components?
-    if (!SetBlinds(nSigRingSize, nSigInputs, vMI, inCtx.vsk, inCtx.vpsk, inCtx.vm, inCtx.vCommitments,
+    if (!SetBlinds(nSigRingSize, nSigInputs, inCtx.vMI, inCtx.vsk, inCtx.vpsk, inCtx.vm, inCtx.vCommitments,
                    inCtx.vpInCommits, inCtx.vpBlinds, inCtx.vInputBlinds,
                    inCtx.secretColumn, sError))
         return error("%s: %s", __func__, sError);
 
+    LogPrintf("Stake: set up tx ins\n");
     return true;
 }
 
@@ -4144,30 +4156,34 @@ bool AnonWallet::CreateStakeTxOuts(
 
     CTempRecipient stakeRet;
     stakeRet.nType = OUTPUT_RINGCT;
-    stakeRet.fChange = true;
-    stakeRet.address = GetStealthChangeAddress();
+    stakeRet.fChange = false;
+    stakeRet.address = GetStealthStakeAddress();
     stakeRet.SetAmount(nInput);
+    stakeRet.isMine = true;
+    stakeRet.fExemptFeeSub = true;
     // This should set the proof that our stake input is large enough when SetOutputs is called.
     stakeRet.fOverwriteRangeProofParams = true;
     stakeRet.min_value = (uint64_t)bracketMin;
     stakeRet.ct_exponent = 0;
     stakeRet.ct_bits = 0;
 
+    int nChangePosInOut = -1;
+
     CTempRecipient reward;
     reward.nType = OUTPUT_RINGCT;
     reward.fChange = false;
-    reward.address = GetStealthChangeAddress();
+    reward.fExemptFeeSub = true;
+    reward.address = GetStealthStakeAddress();
     reward.SetAmount(nReward);
 
-    vecOut.push_back(stakeRet);
-    vecOut.push_back(reward);
+    vecOut.push_back(stakeRet); // already inserted via InsertChangeAddress
+    //vecOut.push_back(reward);
 
     Shuffle(vecOut.begin(), vecOut.end(), FastRandomContext());
 
     if (!ExpandTempRecipients(vecOut, sError))
         return false;
 
-    int nChangePosInOut = -1;
     CAmount nValueOutPlain = 0;
 
     // SetOutputs
@@ -4177,18 +4193,19 @@ bool AnonWallet::CreateStakeTxOuts(
 
     // ArrangeOutBlinds
     if (!ArrangeOutBlinds(vpout, vecOut, outCtx.vpOutCommits, outCtx.vpOutBlinds, outCtx.vBlindPlain,
-                          &outCtx.plainCommitment, nValueOutPlain, nChangePosInOut, false, sError)) {
+                          &outCtx.plainCommitment, nValueOutPlain, -1, false, sError)) {
         return error("%s: %s", __func__, sError);
     }
 
     std::vector<uint8_t> &vData = ((CTxOutData*)vpout[1].get())->vData;
     vData.resize(1);
-    if (0 != PutVarInt(vData, nValueOutPlain)) {
-        sError = strprintf("Failed to add zero fee to stake transaction.");
+    if (0 != PutVarInt(vData, 0)) {
+        sError = strprintf("Failed to add fee to stake transaction.");
         return error("%s: %s", __func__, sError);
     }
 
     AddOutputRecordMetaData(rtx, vecOut);
+    LogPrintf("Stake: set up tx outs\n");
     return true;
 }
 
@@ -4236,6 +4253,9 @@ bool AnonWallet::SignStakeTx(
         sError = strprintf("Failed to generate mlsag with %d.", rv);
         return error("%s: %s", __func__, sError);
     }
+
+    CTransaction tx(txNew);
+    LogPrintf("Signed stake tx: %s\n", tx.ToString());
 
     // Validate the mlsag
     if (0 != (rv = secp256k1_verify_mlsag(secp256k1_ctx_blind, hashOutputs.begin(), nCols,
@@ -4287,6 +4307,45 @@ CStealthAddress AnonWallet::GetStealthChangeAddress()
     return mapStealthAddresses.at(idChangeAddress);
 }
 
+bool AnonWallet::CreateStealthStakeAccount(AnonWalletDB* wdb)
+{
+    /** Derive a stealth address that is specifically for stake **/
+    BIP32Path vPathStealthStake;
+    vPathStealthStake.emplace_back(4, true);
+    CExtKey keyStealthStake = DeriveKeyFromPath(*pkeyMaster, vPathStealthStake);
+    idStakeAccount = keyStealthStake.key.GetPubKey().GetID();
+    mapKeyPaths.emplace(idStakeAccount, std::make_pair(idMaster, vPathStealthStake));
+    mapAccountCounter.emplace(idStakeAccount, 1);
+    if (!wdb->WriteExtKey(idMaster, idStakeAccount, vPathStealthStake))
+        return false;
+    if (!wdb->WriteAccountCounter(idStakeAccount, (uint32_t)1))
+        return false;
+    if (!wdb->WriteNamedExtKeyId("stealthstake", idStakeAccount))
+        return false;
+
+    //Make the stake address
+    GetStealthStakeAddress();
+
+    if (!wdb->WriteNamedExtKeyId("stealthstakeaddress", idStakeAddress))
+        return false;
+
+    return true;
+}
+
+CStealthAddress AnonWallet::GetStealthStakeAddress()
+{
+    if (!mapStealthAddresses.count(idStakeAddress)) {
+        //Make sure idStakeAccount is loaded
+        if (!mapAccountCounter.count(idStakeAddress))
+            mapAccountCounter.emplace(idStakeAddress, 0);
+
+        CStealthAddress address;
+        NewStealthKey(address, 0 , nullptr, &idStakeAccount);
+        idStakeAddress = address.GetID();
+    }
+    return mapStealthAddresses.at(idStakeAddress);
+}
+
 bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
 {
     LogPrintf("%s: Generating new default account.\n", __func__);
@@ -4330,10 +4389,12 @@ bool AnonWallet::MakeDefaultAccount(const CExtKey& extKeyMaster)
 
     /** Derive a stealth address that is specifically for change **/
     CreateStealthChangeAccount(&wdb);
+    CreateStealthStakeAccount(&wdb);
 
     LogPrintf("%s: Default account %s\n", __func__, idDefaultAccount.GetHex());
     LogPrintf("%s: Stealth account %s\n", __func__, idStealthAccount.GetHex());
     LogPrintf("%s: Stealth Change account %s\n", __func__, idChangeAccount.GetHex());
+    LogPrintf("%s: Stealth Stake account %s\n", __func__, idStakeAccount.GetHex());
     LogPrintf("%s: Master account %s\n", __func__, idMaster.GetHex());
 
     return true;

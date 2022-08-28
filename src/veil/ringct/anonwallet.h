@@ -93,6 +93,8 @@ class AnonWallet
     CKeyID idStealthAccount;
     CKeyID idChangeAccount;
     CKeyID idChangeAddress;
+    CKeyID idStakeAccount;
+    CKeyID idStakeAddress;
 
     typedef std::multimap<COutPoint, uint256> TxSpends;
     TxSpends mapTxSpends;
@@ -244,6 +246,7 @@ public:
 
     bool MakeDefaultAccount(const CExtKey& extKeyMaster);
     bool CreateStealthChangeAccount(AnonWalletDB* wdb);
+    bool CreateStealthStakeAccount(AnonWalletDB* wdb);
     bool SetMasterKey(const CExtKey& keyMasterIn);
     bool UnlockWallet(const CExtKey& keyMasterIn, bool fRescan = true);
     bool LoadAccountCounters();
@@ -263,6 +266,7 @@ public:
 
     bool NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefixBits, const char *pPrefix, CKeyID* paccount = nullptr);
     CStealthAddress GetStealthChangeAddress();
+    CStealthAddress GetStealthStakeAddress();
 
     /**
      * Insert additional inputs into the transaction by

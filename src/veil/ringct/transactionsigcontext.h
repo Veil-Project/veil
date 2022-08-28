@@ -26,6 +26,8 @@ struct TransactionInputsSigContext {
 
     size_t secretColumn;
 
+    std::vector<std::vector<int64_t>> vMI;
+    std::vector<uint8_t> vPubkeyMatrixIndices;
     // SetBlinds
     std::vector<CKey> vsk;
     std::vector<const uint8_t*> vpsk;
