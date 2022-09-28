@@ -375,6 +375,7 @@ public:
         nHeightLightZerocoin = 335975;
         nValueBlacklist = (282125 + 60540) * COIN;
         nHeightEnforceBlacklist = 336413;
+        nHeightProgPowDAGSizeReduction = 2100000;
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
         nPreferredMintsPerTx = 15; //Do not consider a transaction as standard that includes more than this many mints
 
@@ -552,6 +553,7 @@ public:
 
         nHeightLightZerocoin = 9428;
         nHeightEnforceBlacklist = 0;
+        nHeightProgPowDAGSizeReduction = 1125000;
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
@@ -723,6 +725,7 @@ public:
 
         nHeightLightZerocoin = 1000;
         nHeightEnforceBlacklist = 0;
+        nHeightProgPowDAGSizeReduction = 1071250;
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
@@ -931,6 +934,41 @@ bool CChainParams::CheckKIenforced(int nSpendHeight) const
         return true;
     }
     return false;
+}
+
+int CChainParams::GetProgPowEpochNumber(int blockNumber) const
+{
+    int epochLength = blockNumber >= HeightProgPowDAGSizeReduction() ?
+                          ETHASH_EPOCH_LENGTH_750MB_PER_YEAR :
+                          ETHASH_EPOCH_LENGTH;
+
+    if (blockNumber >= HeightProgPowDAGSizeReduction()) {
+        blockNumber -= HeightProgPowDAGSizeReduction();
+    }
+
+    return blockNumber ? blockNumber / epochLength : 0;
+}
+
+std::pair<int, int> CChainParams::GetProgPowNextEpoch(int blockNumber) const {
+    int epochLength = blockNumber >= HeightProgPowDAGSizeReduction() ?
+                          ETHASH_EPOCH_LENGTH_750MB_PER_YEAR :
+                          ETHASH_EPOCH_LENGTH;
+
+    int epochBaseHeight = 0;
+    if (blockNumber >= HeightProgPowDAGSizeReduction()) {
+        epochBaseHeight = HeightProgPowDAGSizeReduction();
+    }
+
+    int currentEpoch = (blockNumber - epochBaseHeight) / epochLength;
+    int currentEpochStart = currentEpoch * epochLength + epochBaseHeight;
+
+    if (blockNumber < HeightProgPowDAGSizeReduction() &&
+        currentEpochStart + epochLength >= HeightProgPowDAGSizeReduction()) {
+        // Next epoch is the transition back to epoch 0
+        return { 0, HeightProgPowDAGSizeReduction() };
+    }
+
+    return { currentEpoch + 1, currentEpochStart + epochLength };
 }
 
 

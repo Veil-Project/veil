@@ -762,13 +762,19 @@ static UniValue getblocktemplate_impl(const std::string &strMode, const UniValue
             if (mapProgPowTemplates.count(lastheader)) {
                 if (pblock->nTime - 60 < mapProgPowTemplates.at(lastheader).nTime) {
                     result.pushKV("pprpcheader", lastheader);
-                    result.pushKV("pprpcepoch", ethash::get_epoch_number(pblock->nHeight));
+                    result.pushKV("pprpcepoch", Params().GetProgPowEpochNumber(pblock->nHeight));
+                    auto nextEpoch = Params().GetProgPowNextEpoch(pblock->nHeight);
+                    result.pushKV("pprpcnextepoch", nextEpoch.first);
+                    result.pushKV("pprpcnextepochheight", nextEpoch.second);
                     return result;
                 }
             }
 
             result.pushKV("pprpcheader", pblock->GetProgPowHeaderHash().GetHex());
-            result.pushKV("pprpcepoch", progpow::get_epoch_number(pblock->nHeight));
+            result.pushKV("pprpcepoch", Params().GetProgPowEpochNumber(pblock->nHeight));
+            auto nextEpoch = Params().GetProgPowNextEpoch(pblock->nHeight);
+            result.pushKV("pprpcnextepoch", nextEpoch.first);
+            result.pushKV("pprpcnextepochheight", nextEpoch.second);
             mapProgPowTemplates[pblock->GetProgPowHeaderHash().GetHex()] = *pblock;
             lastheader = pblock->GetProgPowHeaderHash().GetHex();
         }

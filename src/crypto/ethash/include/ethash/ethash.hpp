@@ -25,7 +25,6 @@ namespace ethash
 {
 constexpr auto revision = ETHASH_REVISION;
 
-static constexpr int epoch_length = ETHASH_EPOCH_LENGTH;
 static constexpr int light_cache_item_size = ETHASH_LIGHT_CACHE_ITEM_SIZE;
 static constexpr int full_dataset_item_size = ETHASH_FULL_DATASET_ITEM_SIZE;
 static constexpr int num_dataset_accesses = ETHASH_NUM_DATASET_ACCESSES;
@@ -72,9 +71,10 @@ static constexpr auto calculate_epoch_seed = ethash_calculate_epoch_seed;
 
 
 /// Calculates the epoch number out of the block number.
+[[deprecated("Use CChainParams::GetProgPowEpochNumber() instead")]]
 inline constexpr int get_epoch_number(int block_number) noexcept
 {
-    return block_number ? block_number / epoch_length : 0;
+    return block_number ? block_number / ETHASH_EPOCH_LENGTH : 0;
 }
 
 /**
