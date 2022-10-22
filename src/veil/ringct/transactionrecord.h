@@ -217,6 +217,8 @@ public:
     bool fSafe;
     bool fMature;
     bool fNeedHardwareKey;
+
+    COutPoint GetOutpoint() const { return COutPoint(txhash, i); }
 };
 
 #endif //VEIL_TRANSACTIONRECORD_H

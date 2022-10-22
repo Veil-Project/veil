@@ -306,7 +306,7 @@ bool CTransaction::IsCoinStake() const
     if (vin.empty())
         return false;
 
-    if (vin.size() != 1 || !vin[0].IsZerocoinSpend())
+    if (vin.size() != 1 || !(vin[0].IsZerocoinSpend() || vin[0].IsAnonInput()))
         return false;
 
     // the coin stake transaction is marked with the first output empty

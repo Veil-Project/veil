@@ -8,11 +8,13 @@
 #include "veil/zerocoin/mintmeta.h"
 #include "chain.h"
 #include "chainparams.h"
+#include "consensus/consensus.h"
 #include "wallet/deterministicmint.h"
 #include "validation.h"
 #include "stakeinput.h"
 #include "veil/proofofstake/kernel.h"
 #ifdef ENABLE_WALLET
+#include "wallet/coincontrol.h"
 #include "wallet/wallet.h"
 #include "veil/ringct/anonwallet.h"
 #endif
@@ -310,6 +312,53 @@ bool RingCTStake::MarkSpent(AnonWallet* panonwallet, CMutableTransaction& txNew)
     return true;
 }
 
+/**
+ * @brief Create a coinstake transaction from the stake candidate.
+ *
+ * @note Call CreateCoinStake() after finding a valid stake kernel. A kernel can be found without needing to create the full transaction.
+ *
+ * @param[in] pwallet: The CWallet that holds the AnonWallet that holds the RingCT output that is being staked.
+ * @return <b>true</b> upon success.
+ *         <b>false</b> if the AnonWallet fails to find the StakeAddress or if AddAnonInputs() fails.
+ */
+bool RingCTStake::CreateCoinStake(CWallet* pwallet, const CAmount& nReward, CMutableTransaction& txCoinStake, bool& retryable)
+{
+    AnonWallet* panonWallet = pwallet->GetAnonWallet();
+    CTransactionRef ptx = MakeTransactionRef();
+    CWalletTx wtx(pwallet, ptx);
+
+    //Add the input to coincontrol so that addanoninputs knows what to use
+    CCoinControl coinControl;
+    coinControl.Select(coin.GetOutpoint(), GetValue());
+    coinControl.nCoinType = OUTPUT_RINGCT;
+    coinControl.fProofOfStake = true;
+    coinControl.nStakeReward = nReward;
+
+    //Tell the rct code who the recipient is
+    std::vector<CTempRecipient> vecSend;
+    CTempRecipient tempRecipient;
+    tempRecipient.nType = OUTPUT_RINGCT;
+    tempRecipient.SetAmount(GetValue());
+    tempRecipient.address = panonWallet->GetStealthStakeAddress();
+    tempRecipient.fSubtractFeeFromAmount = false;
+    tempRecipient.fExemptFeeSub = true;
+    tempRecipient.fOverwriteRangeProofParams = true;
+    tempRecipient.min_value = GetBracketMinValue();
+    vecSend.emplace_back(tempRecipient);
+
+    std::string strError;
+    CTransactionRecord rtx;
+    CAmount nFeeRet = 0;
+    retryable = false;
+    if (!panonWallet->AddAnonInputs(
+            wtx, rtx, vecSend, /*fSign*/true,
+            /*nRingSize*/Params().DefaultRingSize(), /*nInputsPerSig*/32,
+            /*nMaximumInputs*/0, nFeeRet, &coinControl, strError))
+        return error("%s: AddAnonInputs failed with error %s", __func__, strError);
+
+    return true;
+}
+
 ZerocoinStake::ZerocoinStake(const libzerocoin::CoinSpend& spend)
 {
     this->nChecksum = spend.getAccumulatorChecksum();
@@ -534,3 +583,37 @@ bool ZerocoinStake::MarkSpent(CWallet *pwallet, const uint256& txid)
 #endif
 }
 
+bool ZerocoinStake::CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable) {
+    if (!CreateTxOuts(pwallet, txCoinStake.vpout, nBlockReward)) {
+        LogPrintf("%s : failed to get scriptPubKey\n", __func__);
+        retryable = true;
+        return false;
+    }
+
+    // Limit size
+    unsigned int nBytes = ::GetSerializeSize(txCoinStake, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR;
+
+    if (nBytes >= MAX_BLOCK_WEIGHT / 5) {
+        retryable = false;
+        return error("CreateCoinStake : exceeded coinstake size limit");
+    }
+
+    uint256 hashTxOut = txCoinStake.GetOutputsHash();
+    txCoinStake.vin.emplace_back();
+    {
+        if (!CreateTxIn(pwallet, txCoinStake.vin[0], hashTxOut)) {
+            LogPrintf("%s : failed to create TxIn\n", __func__);
+            txCoinStake.vin.clear();
+            txCoinStake.vpout.clear();
+            retryable = true;
+            return false;
+        }
+    }
+
+    //Mark input as spent
+    if (!CompleteTx(pwallet, txCoinStake)) {
+        retryable = false;
+        return false;
+    }
+    return true;
+}

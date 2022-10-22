@@ -58,6 +58,9 @@ public:
     mutable int nChangePos = -1;
     bool m_addChangeOutput = true;
 
+    bool fProofOfStake = false;
+    CAmount nStakeReward;
+
     CCoinControl()
     {
         SetNull();

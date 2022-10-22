@@ -3887,7 +3887,6 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
         UninterruptibleSleep(std::chrono::milliseconds{2500});
 
     CScript scriptPubKeyKernel;
-    bool fKernelFound = false;
     for (std::unique_ptr<TStake>& stakeInput : listInputs) {
         CAmount nCredit = 0;
         // Make sure the wallet is unlocked and shutdown hasn't been requested
@@ -3946,40 +3945,17 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             txNew.vpout.clear();
             txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
 
-            if (!stakeInput->CreateTxOuts(this, txNew.vpout, nBlockReward)) {
-                LogPrintf("%s : failed to get scriptPubKey\n", __func__);
-                continue;
-            }
-
-            // Limit size
-            unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR;
-
-            if (nBytes >= MAX_BLOCK_WEIGHT / 5)
-                return error("CreateCoinStake : exceeded coinstake size limit");
-
-            uint256 hashTxOut = txNew.GetOutputsHash();
-            CTxIn in;
-            {
-                if (!stakeInput->CreateTxIn(this, in, hashTxOut)) {
-                    LogPrintf("%s : failed to create TxIn\n", __func__);
-                    txNew.vin.clear();
-                    txNew.vpout.clear();
+            bool retryable = true;
+            if (!stakeInput->CreateCoinStake(this, nBlockReward, txNew, retryable)) {
+                if (retryable)
                     continue;
-                }
-            }
-            txNew.vin.emplace_back(in);
-
-            //Mark input as spent
-            if (!stakeInput->CompleteTx(this, txNew))
                 return false;
+            }
 
-            fKernelFound = true;
-            break;
+            return true;
         }
-        if (fKernelFound)
-            break; // if kernel is found stop searching
     }
-    return fKernelFound;
+    return false;
 }
 
 bool CWallet::CreateZerocoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart)

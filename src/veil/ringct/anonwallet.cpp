@@ -43,6 +43,7 @@
 #include <univalue.h>
 
 #include <secp256k1_mlsag.h>
+#include <secp256k1_rangeproof.h>
 
 #include <algorithm>
 #include <random>
@@ -3496,10 +3497,12 @@ bool AnonWallet::SetOutputs(
         bool fFeesFromChange,
         std::string& sError)
 {
-    OUTPUT_PTR<CTxOutData> outFee = MAKE_OUTPUT<CTxOutData>();
-    outFee->vData.push_back(DO_FEE);
-    outFee->vData.resize(9); // More bytes than varint fee could use
-    vpout.push_back(outFee);
+    if (vpout.empty()) {
+        OUTPUT_PTR<CTxOutData> outFee = MAKE_OUTPUT<CTxOutData>();
+        outFee->vData.push_back(DO_FEE);
+        outFee->vData.resize(9); // More bytes than varint fee could use
+        vpout.push_back(outFee);
+    }
 
     bool fFirst = true;
     for (size_t i = 0; i < vecSend.size(); ++i) {
@@ -3613,6 +3616,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
         return error("%s: %s", __func__, sError);
     }
 
+    bool fProofOfStake = coinControl->fProofOfStake;
     nFeeRet = 0;
     CAmount nValueOutAnon;
     size_t nSubtractFeeFromAmount;
@@ -3637,7 +3641,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             r.fExemptFeeSub = true;
         }
     }
-    fSkipFee = fZerocoinInputs && nZerocoinMintOuts == 0;
+    fSkipFee = fProofOfStake || (fZerocoinInputs && nZerocoinMintOuts == 0);
     //If output is going out as zerocoin, then it is being double counted and needs to be subtracted
     nValueOutAnon -= nValueOutZerocoin;
 
@@ -3998,7 +4002,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                     }
 
                     vpBlinds.pop_back();
-                };
+                }
 
                 uint256 hashOutputs = txNew.GetOutputsHash();
 
@@ -4018,6 +4022,46 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                     return error("%s: %s", __func__, sError);
                 }
             }
+        }
+
+
+        if (fProofOfStake) {
+            // Add reward outputs
+            std::vector<CTempRecipient> rewards(2);
+            rewards[0].address = rewards[1].address = vecSend[0].address;
+            rewards[0].nType = rewards[1].nType = OUTPUT_RINGCT;
+            rewards[0].fSubtractFeeFromAmount = rewards[1].fSubtractFeeFromAmount = false;
+            rewards[0].fExemptFeeSub = rewards[1].fExemptFeeSub = true;
+            rewards[0].SetAmount(GetRandInt(coinControl->nStakeReward - 1));
+            rewards[1].SetAmount(coinControl->nStakeReward - rewards[0].nAmount);
+            if (!ExpandTempRecipients(rewards, sError))
+                return false;
+            if (!SetOutputs(txNew.vpout, rewards, nFeeRet, nSubtractFeeFromAmount,
+                            nValueOutPlain, nChangePosInOut, true, false, sError)) {
+                return false;
+            }
+            std::vector<const uint8_t*> vpOutCommits;
+            std::vector<const uint8_t*> vpOutBlinds;
+            std::vector<uint8_t> vBlindPlain(32, 0);
+            secp256k1_pedersen_commitment plainCommitment;
+            // Add 3 blinds: reward total as plain output, two rewards that sum to total
+            nValueOutPlain = coinControl->nStakeReward;
+            if (!ArrangeOutBlinds(txNew.vpout, rewards, vpOutCommits, vpOutBlinds, vBlindPlain,
+                                &plainCommitment, nValueOutPlain, nChangePosInOut, fCTOut, sError)) {
+                return false;
+            }
+
+            // compute the blind sum of the rewards to equal the total
+            if (!secp256k1_pedersen_blind_sum(secp256k1_ctx_blind, &rewards[1].vBlind[0], &vpOutBlinds[0], vpOutBlinds.size(), 1)) {
+                wserrorN(1, sError, __func__, "secp256k1_pedersen_blind_sum failed.");
+                return false;
+            }
+
+            CTxOutBase *pout = (CTxOutBase*)txNew.vpout[rewards[1].n].get();
+            if (!AddCTData(pout, rewards[1], sError)) {
+                return false; // sError will be set
+            }
+            vecSend.insert(vecSend.end(), rewards.begin(), rewards.end());
         }
 
         rtx.nFee = nFeeRet;
