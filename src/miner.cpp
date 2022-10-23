@@ -33,6 +33,8 @@
 
 #include <veil/budget.h>
 #include <veil/proofoffullnode/proofoffullnode.h>
+#include <veil/ringct/anonwallet.h>
+#include <veil/ringct/anon.h>
 #include <veil/zerocoin/zchain.h>
 
 #include <algorithm>
@@ -178,6 +180,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         LOCK(cs_mapblockindex);
         pindexPrev = mapBlockIndex.at(hashBest);
     }
+    std::unique_ptr<CPendingSpend> pendingRCTStake;
     if (fProofOfStake && pindexPrev->nHeight + 1 >= Params().HeightPoSStart()) {
         //POS block - one coinbase is null then non null coinstake
         //POW block - one coinbase that is not null
@@ -192,10 +195,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         if (!pwalletMain->CreateZerocoinStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime, nComputeTimeStart)) {
             if (!pwalletMain->CreateRingCTStake(pindexPrev, pblock->nBits, txCoinStake, nTxNewTime, nComputeTimeStart))
                 return nullptr;
-            else {
-                // output debugging info
-                return nullptr;
-            }
+            pendingRCTStake = pwalletMain->GetAnonWallet()->GetPendingSpendForTx(txCoinStake.GetHash());
         }
 
         pblock->nTime = nTxNewTime;
@@ -539,8 +539,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         } else if (pblock->vtx[1]->IsRingCtSpend()) {
             // TODO: enable_wallet guards.
             COutPoint prevout;
-            COutputRecord record;
-            CKeyID keyid;
+            // Get keyimage from the input
             if (!pwalletMain->GetAnonWallet()->IsMyAnonInput(pblock->vtx[1]->vin[0], prevout, key)) {
                 LogPrint(BCLog::STAKING, "Failed to get key from anon spend\n");
                 return nullptr;
@@ -560,6 +559,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     if (pindexPrev && pindexPrev != chainActive.Tip()) {
         error("%s: stale tip.", __func__);
         pblocktemplate->nFlags |= TF_STAILTIP;
+        if (pendingRCTStake)
+            pendingRCTStake->SetSuccess(true);
         return std::move(pblocktemplate);
     }
 
@@ -580,6 +581,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
 
     pblocktemplate->nFlags = TF_SUCCESS;
+    if (pendingRCTStake)
+        pendingRCTStake->SetSuccess(true);
     return std::move(pblocktemplate);
 }
 
