@@ -518,27 +518,37 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     //Sign block if this is a proof of stake block
     if (fProofOfStake) {
-        if (!pblock->vtx[1]->IsZerocoinSpend()) {
-            error("%s: invalid block created. Stake is not zerocoinspend!", __func__);
-            return nullptr;
-        }
-        auto spend = TxInToZerocoinSpend(pblock->vtx[1]->vin[0]);
-        if (!spend) {
-            LogPrint(BCLog::STAKING, "%s: failed to get spend for txin", __func__);
-            return nullptr;
-        }
-
-        auto bnSerial = spend->getCoinSerialNumber();
-
         CKey key;
+        if (pblock->vtx[1]->IsZerocoinSpend()) {
+            auto spend = TxInToZerocoinSpend(pblock->vtx[1]->vin[0]);
+            if (!spend) {
+                LogPrint(BCLog::STAKING, "%s: failed to get spend for txin\n", __func__);
+                return nullptr;
+            }
+
+            auto bnSerial = spend->getCoinSerialNumber();
+
 #ifdef ENABLE_WALLET
-        if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) || !pwalletMain->GetZerocoinKey(bnSerial, key)) {
+            if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) || !pwalletMain->GetZerocoinKey(bnSerial, key)) {
 #endif
-            LogPrint(BCLog::STAKING, "%s: Failed to get zerocoin key from wallet!\n", __func__);
+                LogPrint(BCLog::STAKING, "%s: Failed to get zerocoin key from wallet!\n", __func__);
+                return nullptr;
+#ifdef ENABLE_WALLET
+            }
+#endif
+        } else if (pblock->vtx[1]->IsRingCtSpend()) {
+            // TODO: enable_wallet guards.
+            COutPoint prevout;
+            COutputRecord record;
+            CKeyID keyid;
+            if (!pwalletMain->GetAnonWallet()->IsMyAnonInput(pblock->vtx[1]->vin[0], prevout, key)) {
+                LogPrint(BCLog::STAKING, "Failed to get key from anon spend\n");
+                return nullptr;
+            }
+        } else {
+            error("%s: invalid block created. Stake is neither zerocoin nor anon spend!", __func__);
             return nullptr;
-#ifdef ENABLE_WALLET
         }
-#endif
 
         if (!key.Sign(pblock->GetHash(), pblock->vchBlockSig)) {
             LogPrint(BCLog::STAKING, "%s: Failed to sign block hash\n", __func__);

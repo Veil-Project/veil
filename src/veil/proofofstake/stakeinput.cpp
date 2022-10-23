@@ -324,7 +324,7 @@ bool RingCTStake::MarkSpent(AnonWallet* panonwallet, CMutableTransaction& txNew)
 bool RingCTStake::CreateCoinStake(CWallet* pwallet, const CAmount& nReward, CMutableTransaction& txCoinStake, bool& retryable)
 {
     AnonWallet* panonWallet = pwallet->GetAnonWallet();
-    CTransactionRef ptx = MakeTransactionRef();
+    CTransactionRef ptx = MakeTransactionRef(txCoinStake);
     CWalletTx wtx(pwallet, ptx);
 
     //Add the input to coincontrol so that addanoninputs knows what to use
@@ -356,6 +356,7 @@ bool RingCTStake::CreateCoinStake(CWallet* pwallet, const CAmount& nReward, CMut
             /*nMaximumInputs*/0, nFeeRet, &coinControl, strError))
         return error("%s: AddAnonInputs failed with error %s", __func__, strError);
 
+    txCoinStake = CMutableTransaction(*wtx.tx);
     return true;
 }
 

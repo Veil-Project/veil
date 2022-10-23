@@ -865,7 +865,7 @@ bool AnonWallet::GetOutputRecord(const COutPoint& outpoint, COutputRecord& recor
     auto& r = mapRecords.at(outpoint.hash);
     auto precord = r.GetOutput(outpoint.n);
     if (!precord)
-        return error("%s: Could no locate output record for tx %s n=%d. FIXME", __func__, outpoint.hash.GetHex(), outpoint.n);
+        return error("%s: Could not locate output record for tx %s n=%d. FIXME", __func__, outpoint.hash.GetHex(), outpoint.n);
     record = *precord;
     return true;
 }
@@ -3261,7 +3261,7 @@ bool AnonWallet::GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std
 }
 
 /**Compute whether an anon input's key images belongs to us**/
-bool AnonWallet::IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint)
+bool AnonWallet::IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint, CKey& myKey)
 {
     uint32_t nInputs, nRingSize;
     txin.GetAnonInfo(nInputs, nRingSize);
@@ -3308,6 +3308,7 @@ bool AnonWallet::IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint)
 
                 if (vchKeyImage == image) {
                     myOutpoint = ao.outpoint;
+                    myKey = key;
                     return true;
                 }
 
@@ -3316,6 +3317,10 @@ bool AnonWallet::IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint)
     }
 
     return false;
+}
+bool AnonWallet::IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint) {
+    CKey key;
+    return IsMyAnonInput(txin, myOutpoint, key);
 }
 
 bool AnonWallet::ArrangeBlinds(
@@ -3497,7 +3502,7 @@ bool AnonWallet::SetOutputs(
         bool fFeesFromChange,
         std::string& sError)
 {
-    if (vpout.empty()) {
+    if (vpout.size() < 2) {
         OUTPUT_PTR<CTxOutData> outFee = MAKE_OUTPUT<CTxOutData>();
         outFee->vData.push_back(DO_FEE);
         outFee->vData.resize(9); // More bytes than varint fee could use
@@ -3652,7 +3657,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
     wtx.BindWallet(pwalletParent.get());
     wtx.fFromMe = true;
     CMutableTransaction txNew;
-    if (fZerocoinInputs) {
+    if (fZerocoinInputs || fProofOfStake) {
         txNew = CMutableTransaction(*wtx.tx);
     }
 
@@ -3672,6 +3677,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
 
         CAmount nValueOutPlain = 0;
         int nChangePosInOut = -1;
+        size_t nDataIndex = fProofOfStake ? 1 : 0;
 
         std::vector<std::vector<std::vector<int64_t> > > vMI;
         std::vector<std::vector<uint8_t> > vInputBlinds;
@@ -3696,7 +3702,10 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
 
             if (!fAlreadyHaveInputs)
                 txNew.vin.clear();
-            txNew.vpout.clear();
+            if (fProofOfStake)
+                txNew.vpout.resize(1);
+            else
+                txNew.vpout.clear();
             wtx.fFromMe = true;
 
             CAmount nValueToSelect = nValueOutAnon + nValueOutZerocoin;
@@ -3894,7 +3903,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
         }
 
         //Add actual fee to CT Fee output
-        std::vector<uint8_t> &vData = ((CTxOutData*)txNew.vpout[0].get())->vData;
+        std::vector<uint8_t> &vData = ((CTxOutData*)txNew.vpout[nDataIndex].get())->vData;
         vData.resize(1);
         if (0 != PutVarInt(vData, nFeeRet)) {
             sError = strprintf("Failed to add fee to transaction.");
@@ -4023,7 +4032,6 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
                 }
             }
         }
-
 
         if (fProofOfStake) {
             // Add reward outputs

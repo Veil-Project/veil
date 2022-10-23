@@ -222,6 +222,7 @@ public:
 
 
     bool IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint);
+    bool IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint, CKey& key);
     bool AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
          bool sign, size_t nRingSize, size_t nInputsPerSig, size_t nMaximumInputs, CAmount &nFeeRet,
          const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs, CAmount nInputValue);

@@ -340,6 +340,15 @@ bool CTransaction::IsZerocoinMint() const
     return false;
 }
 
+bool CTransaction::IsRingCtSpend() const
+{
+    for (const CTxIn& in : vin) {
+        if (in.IsAnonInput())
+            return true;
+    }
+    return false;
+}
+
 bool CTransaction::IsZerocoinSpend() const
 {
     for (const CTxIn& in : vin) {
