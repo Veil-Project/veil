@@ -6,6 +6,8 @@
 #ifndef PARTICL_WALLET_HDWALLET_H
 #define PARTICL_WALLET_HDWALLET_H
 
+#include <memory>
+
 #include <wallet/wallet.h>
 #include <wallet/walletbalances.h>
 #include <veil/ringct/anonwalletdb.h>
@@ -75,6 +77,23 @@ public:
         READWRITE(tx);
         READWRITE(vBlinds);
     };
+};
+
+// A class that holds reference to a pending tx, so it can mark inputs
+// as no longer pending spend and delete the transaction if the transaction is not
+// broadcast successfully.
+class CPendingSpend
+{
+public:
+    CPendingSpend(AnonWallet& wallet, uint256 txhash) : wallet(wallet), txhash(txhash) {}
+    ~CPendingSpend();
+
+    void SetSuccess(bool s) { success = s; }
+
+private:
+    AnonWallet& wallet;
+    uint256 txhash;
+    bool success;
 };
 
 class AnonWallet
@@ -294,6 +313,9 @@ public:
     bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);
     void MarkOutputSpent(const COutPoint& outpoint, bool isSpent);
 
+    std::unique_ptr<CPendingSpend> GetPendingSpendForTx(uint256 txid);
+    void DeletePendingTx(uint256 txid);
+
     enum RescanWalletType {
       RESCAN_WALLET_FULL,
       RESCAN_WALLET_LOCKED_ONLY,
@@ -420,6 +442,9 @@ private:
         int nChangePosInOut,
         bool fCTOut,
         std::string& sError);
+
+    void InternalResetSpent(AnonWalletDB& wdb, CTransactionRecord* txrecord)
+        EXCLUSIVE_LOCKS_REQUIRED(cs_main, pwalletParent->cs_wallet);
 
     template<typename... Params>
     bool werror(std::string fmt, Params... parameters) const {

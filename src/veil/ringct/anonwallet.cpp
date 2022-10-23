@@ -122,6 +122,10 @@ const COutputRecord *CTransactionRecord::GetChangeOutput() const
     return nullptr;
 };
 
+CPendingSpend::~CPendingSpend() {
+    if (!success)
+        wallet.DeletePendingTx(txhash);
+}
 
 int AnonWallet::Finalise()
 {
@@ -4076,15 +4080,11 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
         rtx.nFlags |= ORF_ANON_IN;
         AddOutputRecordMetaData(rtx, vecSend);
 
-        for (auto txin : txNew.vin)
-            rtx.vin.emplace_back(txin.prevout);
-
         // Convert the real inputs (setCoins) into COutPoints that we can mark as pending spends
-        std::vector<COutPoint> spends;
-        spends.reserve(setCoins.size());
-        std::transform(setCoins.begin(), setCoins.end(), std::back_inserter(spends),
+        rtx.vin.reserve(setCoins.size());
+        std::transform(setCoins.begin(), setCoins.end(), std::back_inserter(rtx.vin),
                 [](std::pair<MapRecords_t::const_iterator, unsigned int> coin) -> COutPoint { return COutPoint(coin.first->first, coin.second); });
-        MarkInputsAsPendingSpend(spends);
+        MarkInputsAsPendingSpend(rtx.vin);
 
         uint256 txid = txNew.GetHash();
         if (nValueOutZerocoin)
@@ -5489,6 +5489,60 @@ void AnonWallet::MarkOutputSpent(const COutPoint& outpoint, bool isSpent)
     SaveRecord(outpoint.hash, record);
 }
 
+std::unique_ptr<CPendingSpend> AnonWallet::GetPendingSpendForTx(uint256 txid) {
+    int nHeightTx = 0;
+    bool isTransactionInChain = IsTransactionInChain(txid, nHeightTx, Params().GetConsensus());
+    if (isTransactionInChain)
+        return nullptr;
+
+    return std::unique_ptr<CPendingSpend>(new CPendingSpend(*this, txid));
+}
+
+void AnonWallet::InternalResetSpent(AnonWalletDB& wdb, CTransactionRecord* txrecord) {
+    AssertLockHeld(pwalletParent->cs_wallet);
+    AssertLockHeld(cs_main);
+
+    for (auto input : txrecord->vin) {
+        //If the input is marked as spent because of this tx, then unmark
+        auto mi_2 = mapRecords.find(input.hash);
+        if (mi_2 != mapRecords.end()) {
+            CTransactionRecord* txrecord_input = &mi_2->second;
+            COutputRecord* outrecord = txrecord_input->GetOutput(input.n);
+
+            //not sure why this would ever happen
+            if (!outrecord)
+                continue;
+
+            //Assume the spentness is from this, should do a full chain rescan after? //todo
+            outrecord->MarkSpent(false);
+            outrecord->MarkPendingSpend(false);
+
+            wdb.WriteTxRecord(input.hash, *txrecord_input);
+            LogPrintf("%s: Marking %s as unspent\n", __func__, input.ToString());
+        }
+    }
+}
+
+void AnonWallet::DeletePendingTx(uint256 txid) {
+    LOCK(cs_main);
+    LOCK(pwalletParent->cs_wallet);
+    AnonWalletDB wdb(*walletDatabase);
+
+    auto mi = mapRecords.find(txid);
+    if (mi == mapRecords.end()) {
+        LogPrintf("ERROR: %s: Unable to find pending transaction to delete.\n", __func__);
+        return;
+    }
+    CTransactionRecord* txrecord = &mi->second;
+
+    InternalResetSpent(wdb, txrecord);
+
+    mapRecords.erase(txid);
+    mapLockedRecords.erase(txid);
+    wdb.EraseTxRecord(txid);
+    pwalletParent->NotifyTransactionChanged(pwalletParent.get(), txid, CT_DELETED);
+}
+
 bool KeyIdFromScriptPubKey(const CScript& script, CKeyID& id)
 {
     CTxDestination dest;
@@ -5516,7 +5570,7 @@ void AnonWallet::RescanWallet()
 
     std::set<uint256> setErase;
 
-    auto scanTransaction = [&](auto && mi) {
+    auto scanTransaction = [&](auto && mi) EXCLUSIVE_LOCKS_REQUIRED(cs_main, pwalletParent->cs_wallet) {
         uint256 txid = mi->first;
         CTransactionRecord* txrecord = &mi->second;
 
@@ -5526,25 +5580,7 @@ void AnonWallet::RescanWallet()
             //This particular transaction never made it into the chain. If it is a certain amount of time old, delete it.
             if (GetTime() - txrecord->nTimeReceived > 60*20) {
                 //20 minutes too old?
-                for (auto input : txrecord->vin) {
-                    //If the input is marked as spent because of this tx, then unmark
-                    auto mi_2 = mapRecords.find(input.hash);
-                    if (mi_2 != mapRecords.end()) {
-                        CTransactionRecord* txrecord_input = &mi_2->second;
-                        COutputRecord* outrecord = txrecord_input->GetOutput(input.n);
-
-                        //not sure why this would ever happen
-                        if (!outrecord)
-                            continue;
-
-                        //Assume the spentness is from this, should do a full chain rescan after? //todo
-                        outrecord->MarkSpent(false);
-                        outrecord->MarkPendingSpend(false);
-
-                        wdb.WriteTxRecord(input.hash, *txrecord_input);
-                        LogPrintf("%s: Marking %s as unspent\n", __func__, input.ToString());
-                    }
-                }
+                InternalResetSpent(wdb, txrecord);
                 setErase.emplace(txid);
                 return;
             }
