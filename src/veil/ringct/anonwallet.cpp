@@ -3504,9 +3504,11 @@ bool AnonWallet::SetOutputs(
         int& nChangePosInOut,
         bool fSkipFee,
         bool fFeesFromChange,
+        bool fAddFeeDataOutput,
+        bool fUseBlindSum,
         std::string& sError)
 {
-    if (vpout.size() < 2) {
+    if (fAddFeeDataOutput) {
         OUTPUT_PTR<CTxOutData> outFee = MAKE_OUTPUT<CTxOutData>();
         outFee->vData.push_back(DO_FEE);
         outFee->vData.resize(9); // More bytes than varint fee could use
@@ -3514,6 +3516,16 @@ bool AnonWallet::SetOutputs(
     }
 
     bool fFirst = true;
+    std::vector<uint8_t*> vpBlinds;
+    int lastBlind = 0;
+    if (fUseBlindSum) {
+        for (size_t i = vecSend.size() - 1; i >= 0; --i) {
+            if (vecSend[i].nType == OUTPUT_CT || vecSend[i].nType == OUTPUT_RINGCT) {
+                lastBlind = i;
+                break;
+            }
+        }
+    }
     for (size_t i = 0; i < vecSend.size(); ++i) {
         auto &recipient = vecSend[i];
 
@@ -3540,9 +3552,20 @@ bool AnonWallet::SetOutputs(
         recipient.n = vpout.size();
         vpout.push_back(txbout);
         if (recipient.nType == OUTPUT_CT || recipient.nType == OUTPUT_RINGCT) {
-            if (recipient.vBlind.size() != 32) {
+            if (fUseBlindSum && (int)i == lastBlind) {
                 recipient.vBlind.resize(32);
-                GetStrongRandBytes(&recipient.vBlind[0], 32);
+                // Last to-be-blinded value: compute from all other blinding factors.
+                // sum of output blinding values must equal sum of input blinding values
+                if (!secp256k1_pedersen_blind_sum(secp256k1_ctx_blind, &recipient.vBlind[0], &vpBlinds[0], vpBlinds.size(), 0)) {
+                    return wserrorN(1, sError, __func__, "secp256k1_pedersen_blind_sum failed.");
+                }
+            } else {
+                if (recipient.vBlind.size() != 32) {
+                    recipient.vBlind.resize(32);
+                    GetStrongRandBytes(&recipient.vBlind[0], 32);
+                }
+                if (fUseBlindSum)
+                    vpBlinds.push_back(&recipient.vBlind[0]);
             }
 
             if (!AddCTData(txbout.get(), recipient, sError))
@@ -3570,7 +3593,7 @@ bool AnonWallet::ArrangeOutBlinds(
             sError = strprintf("Pedersen Commit failed for plain out.");
             return error("%s: %s", __func__, sError);
         }
-
+        LogPrintf("Creating plain commitment of value %d\n", nValueOutPlain);
         vpOutCommits.push_back(plainCommitment->data);
         vpOutBlinds.push_back(&vBlindPlain[0]);
     }
@@ -3746,7 +3769,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             }
 
             // Insert a sender-owned 0 value output that becomes the change output if needed
-            {
+            if (!fProofOfStake) {
                 // Fill an output to ourself
                 CTempRecipient recipient;
                 recipient.nType = fCTOut ? OUTPUT_CT : OUTPUT_RINGCT;
@@ -3802,7 +3825,7 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
 
             bool fFeesFromChange = nMaximumInputs > 0 && nChange >= MIN_FINAL_CHANGE + nFeeRet;
             if (!SetOutputs(txNew.vpout, vecSend, nFeeRet, nSubtractFeeFromAmount,
-                            nValueOutPlain, nChangePosInOut, fSkipFee, fFeesFromChange, sError)) {
+                            nValueOutPlain, nChangePosInOut, fSkipFee, fFeesFromChange, true, false, sError)) {
                 return false;
             }
 
@@ -4037,45 +4060,6 @@ bool AnonWallet::AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, st
             }
         }
 
-        if (fProofOfStake) {
-            // Add reward outputs
-            std::vector<CTempRecipient> rewards(2);
-            rewards[0].address = rewards[1].address = vecSend[0].address;
-            rewards[0].nType = rewards[1].nType = OUTPUT_RINGCT;
-            rewards[0].fSubtractFeeFromAmount = rewards[1].fSubtractFeeFromAmount = false;
-            rewards[0].fExemptFeeSub = rewards[1].fExemptFeeSub = true;
-            rewards[0].SetAmount(GetRandInt(coinControl->nStakeReward - 1));
-            rewards[1].SetAmount(coinControl->nStakeReward - rewards[0].nAmount);
-            if (!ExpandTempRecipients(rewards, sError))
-                return false;
-            if (!SetOutputs(txNew.vpout, rewards, nFeeRet, nSubtractFeeFromAmount,
-                            nValueOutPlain, nChangePosInOut, true, false, sError)) {
-                return false;
-            }
-            std::vector<const uint8_t*> vpOutCommits;
-            std::vector<const uint8_t*> vpOutBlinds;
-            std::vector<uint8_t> vBlindPlain(32, 0);
-            secp256k1_pedersen_commitment plainCommitment;
-            // Add 3 blinds: reward total as plain output, two rewards that sum to total
-            nValueOutPlain = coinControl->nStakeReward;
-            if (!ArrangeOutBlinds(txNew.vpout, rewards, vpOutCommits, vpOutBlinds, vBlindPlain,
-                                &plainCommitment, nValueOutPlain, nChangePosInOut, fCTOut, sError)) {
-                return false;
-            }
-
-            // compute the blind sum of the rewards to equal the total
-            if (!secp256k1_pedersen_blind_sum(secp256k1_ctx_blind, &rewards[1].vBlind[0], &vpOutBlinds[0], vpOutBlinds.size(), 1)) {
-                wserrorN(1, sError, __func__, "secp256k1_pedersen_blind_sum failed.");
-                return false;
-            }
-
-            CTxOutBase *pout = (CTxOutBase*)txNew.vpout[rewards[1].n].get();
-            if (!AddCTData(pout, rewards[1], sError)) {
-                return false; // sError will be set
-            }
-            vecSend.insert(vecSend.end(), rewards.begin(), rewards.end());
-        }
-
         rtx.nFee = nFeeRet;
         rtx.nFlags |= ORF_ANON_IN;
         AddOutputRecordMetaData(rtx, vecSend);
@@ -4131,6 +4115,72 @@ bool AnonWallet::AddAnonInputs(CWalletTx &wtx, CTransactionRecord &rtx, std::vec
     }
 
     if (!AddAnonInputs_Inner(wtx, rtx, vecSend, sign, nRingSize, nSigs, nMaximumInputs, nFeeRet, coinControl, sError, fZerocoinInputs, nInputValue)) {
+        return false;
+    }
+
+    return true;
+}
+
+bool AnonWallet::AddCoinbaseRewards(
+    CMutableTransaction& txCoinbase, CAmount nStakeReward, std::string& sError)
+{
+    // Add reward outputs
+    std::vector<CTempRecipient> rewards(2);
+
+    for (CTempRecipient& recp : rewards) {
+        recp.nType = OUTPUT_RINGCT;
+        recp.address = GetStealthStakeAddress();
+        recp.fSubtractFeeFromAmount = false;
+        recp.fExemptFeeSub = true;
+        recp.fOverwriteRangeProofParams = false;
+    }
+
+    if (nStakeReward > 1) {
+        rewards[0].SetAmount(GetRandInt(nStakeReward - 2) + 1);
+        rewards[1].SetAmount(nStakeReward - rewards[0].nAmount);
+    } else {
+        LogPrint(BCLog::STAKING, "Creating a RingCT stake with a tiny reward: %d\n", nStakeReward);
+        rewards[0].SetAmount(nStakeReward);
+        rewards.pop_back();
+    }
+
+    if (!ExpandTempRecipients(rewards, sError))
+        return false;
+    CAmount nValueOutPlain = 0;
+    int nChangePosInOut = -1;
+
+    if (!SetOutputs(txCoinbase.vpout, rewards, 0, 0,
+                    nValueOutPlain, nChangePosInOut, true, false, false, true, sError)) {
+        return false;
+    }
+
+    std::vector<const uint8_t*> vpOutCommits;
+    std::vector<const uint8_t*> vpOutBlinds;
+    std::vector<uint8_t> vBlindPlain(32, 0);
+    secp256k1_pedersen_commitment plainCommitment;
+    // Reward total as plain output and two blinds
+    nValueOutPlain = nStakeReward;
+    if (!ArrangeOutBlinds(txCoinbase.vpout, rewards, vpOutCommits, vpOutBlinds, vBlindPlain,
+                        &plainCommitment, nValueOutPlain, nChangePosInOut, true, sError)) {
+        return false;
+    }
+
+    std::vector<const secp256k1_pedersen_commitment*> vpCommitsIn, vpCommitsOut;
+    vpCommitsIn.push_back(&plainCommitment);
+    secp256k1_pedersen_commitment *pc;
+    for (auto &txout : txCoinbase.vpout) {
+        if ((pc = txout->GetPCommitment()))
+            vpCommitsOut.push_back(pc);
+    }
+
+    int rv;
+    if (1 != (rv = secp256k1_pedersen_verify_tally(secp256k1_ctx_blind, vpCommitsIn.data(), vpCommitsIn.size(),
+                vpCommitsOut.data(), vpCommitsOut.size())))
+    {
+        LogPrintf("verify_tally failed: %d commits, plain: %d, r1: %d, r2: %d, r1+r2: %d, rv: %d\n",
+            vpCommitsOut.size(), nValueOutPlain, rewards[0].nAmount, rewards[1].nAmount,
+            rewards[0].nAmount + rewards[1].nAmount, rv
+        );
         return false;
     }
 
@@ -4239,7 +4289,7 @@ bool AnonWallet::CreateStakeTxOuts(
     CAmount nValueOutPlain = 0;
 
     // SetOutputs
-    if (!SetOutputs(vpout, vecOut, 0, 0, nValueOutPlain, nChangePosInOut, true, false, sError)) {
+    if (!SetOutputs(vpout, vecOut, 0, 0, nValueOutPlain, nChangePosInOut, true, false, true, false, sError)) {
         return error("%s: %s", __func__, sError);
     }
 

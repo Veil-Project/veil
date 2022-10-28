@@ -117,17 +117,26 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
         return error("%s: called on non-coinstake %s", __func__, txRef->GetHash().ToString().c_str());
 
     //Construct the stakeinput object
-    if (txRef->vin.size() != 1 && txRef->vin[0].IsZerocoinSpend())
-        return error("%s: Stake is not a zerocoinspend", __func__);
+    if (txRef->vin.size() != 1)
+        return error("%s: Stake is not correctly sized for coinstake", __func__);
 
     const CTxIn& txin = txRef->vin[0];
 
-    auto spend = TxInToZerocoinSpend(txin);
-    if (!spend)
+    if (txin.IsZerocoinSpend()) {
+        auto spend = TxInToZerocoinSpend(txin);
+        if (!spend)
+            return false;
+
+        if (spend->getSpendType() != libzerocoin::SpendType::STAKE)
+            return error("%s: spend is using the wrong SpendType (%d)", __func__, (int)spend->getSpendType());
+
+        stake = std::unique_ptr<CStakeInput>(new ZerocoinStake(*spend));
+    } else if (txin.IsAnonInput()) {
+        // TODO
         return false;
-    stake = std::unique_ptr<CStakeInput>(new ZerocoinStake(*spend.get()));
-    if (spend->getSpendType() != libzerocoin::SpendType::STAKE)
-        return error("%s: spend is using the wrong SpendType (%d)", __func__, (int)spend->getSpendType());
+    } else {
+        return error("%s: Stake is not a zerocoin or ringctspend", __func__);
+    }
 
     CBlockIndex* pindex = stake->GetIndexFrom();
     if (!pindex)

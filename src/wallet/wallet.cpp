@@ -3859,8 +3859,9 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
     return true;
 }
 
+// RingCTStake needs the coinbase tx somehow
 template <typename TStake>
-bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart)
+bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart, CMutableTransaction& txCoinbase)
 {
     static_assert(std::is_base_of<CStakeInput, TStake>::value, "TStake must derive from CStakeInput");
     // The following split & combine thresholds are important to security
@@ -3946,7 +3947,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
 
             bool retryable = true;
-            if (!stakeInput->CreateCoinStake(this, nBlockReward, txNew, retryable)) {
+            if (!stakeInput->CreateCoinStake(this, nBlockReward, txNew, retryable, txCoinbase)) {
                 if (retryable)
                     continue;
                 return false;
@@ -3958,13 +3959,13 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     return false;
 }
 
-bool CWallet::CreateZerocoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart)
+bool CWallet::CreateZerocoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart, CMutableTransaction& txCoinbase)
 {
-    return CreateCoinStake<ZerocoinStake>(pindexBest, nBits, txNew, nTxNewTime, nComputeTimeStart);
+    return CreateCoinStake<ZerocoinStake>(pindexBest, nBits, txNew, nTxNewTime, nComputeTimeStart, txCoinbase);
 }
-bool CWallet::CreateRingCTStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart)
+bool CWallet::CreateRingCTStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart, CMutableTransaction& txCoinbase)
 {
-    return CreateCoinStake<RingCTStake>(pindexBest, nBits, txNew, nTxNewTime, nComputeTimeStart);
+    return CreateCoinStake<RingCTStake>(pindexBest, nBits, txNew, nTxNewTime, nComputeTimeStart, txCoinbase);
 }
 
 bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs)

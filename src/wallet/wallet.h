@@ -1097,11 +1097,11 @@ public:
 
 private:
     template <typename TStake>
-    bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
+    bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart, CMutableTransaction& txCoinbase);
 
 public:
-    bool CreateZerocoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
-    bool CreateRingCTStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
+    bool CreateZerocoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart, CMutableTransaction& txCoinbase);
+    bool CreateRingCTStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart, CMutableTransaction& txCoinbase);
 
     bool SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs);
     bool SelectStakeCoins(std::list<std::unique_ptr<RingCTStake> >& listInputs);

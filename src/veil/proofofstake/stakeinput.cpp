@@ -321,9 +321,15 @@ bool RingCTStake::MarkSpent(AnonWallet* panonwallet, CMutableTransaction& txNew)
  * @return <b>true</b> upon success.
  *         <b>false</b> if the AnonWallet fails to find the StakeAddress or if AddAnonInputs() fails.
  */
-bool RingCTStake::CreateCoinStake(CWallet* pwallet, const CAmount& nReward, CMutableTransaction& txCoinStake, bool& retryable)
+bool RingCTStake::CreateCoinStake(CWallet* pwallet, const CAmount& nReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase)
 {
     AnonWallet* panonWallet = pwallet->GetAnonWallet();
+
+    // Update the coinbase tx
+    std::string strError;
+    if (!panonWallet->AddCoinbaseRewards(txCoinbase, nReward, strError))
+        return false;
+
     CTransactionRef ptx = MakeTransactionRef(txCoinStake);
     CWalletTx wtx(pwallet, ptx);
 
@@ -346,7 +352,6 @@ bool RingCTStake::CreateCoinStake(CWallet* pwallet, const CAmount& nReward, CMut
     tempRecipient.min_value = GetBracketMinValue();
     vecSend.emplace_back(tempRecipient);
 
-    std::string strError;
     CTransactionRecord rtx;
     CAmount nFeeRet = 0;
     retryable = false;
@@ -584,7 +589,7 @@ bool ZerocoinStake::MarkSpent(CWallet *pwallet, const uint256& txid)
 #endif
 }
 
-bool ZerocoinStake::CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable) {
+bool ZerocoinStake::CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) {
     if (!CreateTxOuts(pwallet, txCoinStake.vpout, nBlockReward)) {
         LogPrintf("%s : failed to get scriptPubKey\n", __func__);
         retryable = true;

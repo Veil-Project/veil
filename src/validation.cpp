@@ -2444,6 +2444,13 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     bool fZCLimpMode = tstate == ThresholdState::ACTIVE;
     bool fCheckBlacklistHard = pindex->nHeight >= Params().HeightEnforceBlacklist();
 
+    CAmount networkReward = pindex->nNetworkRewardReserve > Params().MaxNetworkReward() ? Params().MaxNetworkReward() : pindex->nNetworkRewardReserve;
+
+    // The block rewards are stratified based upon the height of the block.
+    CAmount nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment = 0;
+    veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
+    CAmount nExpStakeReward = networkReward + nBlockReward;
+
     CAmount nBlockValueIn = 0;
     CAmount nBlockValueOut = 0;
     int64_t nTimeZerocoinSpendCheck = 0;
@@ -2474,6 +2481,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         CAmount nTxValueOut = 0;
         if (tx.IsCoinBase() && !tx.HasBlindedValues()) {
             nTxValueOut += tx.GetValueOut();
+        } else if (tx.IsCoinBase() && block.IsProofOfStake()) {
+            // covers ringct stakes
+            if (!VerifyCoinbase(nExpStakeReward, tx, state))
+                return false;
+            nTxValueOut += nExpStakeReward;
         } else if (tx.IsCoinBase()) {
             // Check tx with blinded values
             for (auto& pout : tx.vpout) {
@@ -2796,12 +2808,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     if (!mapSpends.empty())
         LogPrint(BCLog::BENCH, "      - Check zerocoin spends: %.2fms\n", MILLI * nTimeZerocoinSpendCheck);
 
-    CAmount networkReward = pindex->nNetworkRewardReserve > Params().MaxNetworkReward() ? Params().MaxNetworkReward() : pindex->nNetworkRewardReserve;
     pindex->nNetworkRewardReserve -= networkReward;
 
-    // The block rewards are stratified based upon the height of the block.
-    CAmount nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment = 0;
-    veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
     //Check proof of full node
     if (!fSkipComputation && (block.fProofOfFullNode || block.hashPoFN != uint256())) {
@@ -2823,37 +2831,44 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     CAmount nCreated = nBlockValueOut - nBlockValueIn;
 
     // Check change doesn't exceed fees and that only PoFN blocks have blind txouts
-    // TODO for ringctstake
-    if ((block.fProofOfFullNode || block.hashPoFN != uint256()) && block.vtx[1]->HasBlindedValues()) {
-        // This should consist only of block fees, so it should be <= nFees
-        CAmount nBlindFeePayout = 0;
-        for (auto& pout : block.vtx[1]->vpout) {
-            // Check that the max value doesn't exceed the creation limit, so we can
-            // be sure the block doesn't generate generate more than it should
-            if (!(pout->IsType(OUTPUT_CT) || pout->IsType(OUTPUT_RINGCT)))
-                continue;
+    if ((block.fProofOfFullNode || block.hashPoFN != uint256())) {
+        if (block.vtx[0]->HasBlindedValues()) {
+            // ringctstake currently has no mechanism for claiming fees
+        } else if (block.vtx[1]->HasBlindedValues()) {
+            // This should consist only of block fees, so it should be <= nFees
+            CAmount nBlindFeePayout = 0;
+            for (auto& pout : block.vtx[1]->vpout) {
+                // Check that the max value doesn't exceed the creation limit, so we can
+                // be sure the block doesn't generate generate more than it should
+                if (!(pout->IsType(OUTPUT_CT) || pout->IsType(OUTPUT_RINGCT)))
+                    continue;
 
-            if (pout->IsType(OUTPUT_RINGCT))
-                state.fHasAnonOutput = true;
+                if (pout->IsType(OUTPUT_RINGCT))
+                    state.fHasAnonOutput = true;
 
-            int nExponent, nMantissa;
-            CAmount nMin, nMax;
-            if (GetRangeProofInfo(*(pout->GetPRangeproof()), nExponent, nMantissa, nMin, nMax) != 0)
-                return state.DoS(100, error("ConnectBlock(): couldn't get range proof info\n",
-                                            REJECT_INVALID, "bad-range-proof"));
-            else {
-                nCreated += nMax;
-                nBlindFeePayout += nMax;
+                int nExponent, nMantissa;
+                CAmount nMin, nMax;
+                if (GetRangeProofInfo(*(pout->GetPRangeproof()), nExponent, nMantissa, nMin, nMax) != 0)
+                    return state.DoS(100, error("ConnectBlock(): couldn't get range proof info\n",
+                                                REJECT_INVALID, "bad-range-proof"));
+                else {
+                    nCreated += nMax;
+                    nBlindFeePayout += nMax;
+                }
             }
-        }
 
-        if (nBlindFeePayout > nFees)
-            return state.DoS(100, error("ConnectBlock(): blind fee payout is too large\n",
-                                        REJECT_INVALID, "bad-cs-amount"));
+            if (nBlindFeePayout > nFees)
+                return state.DoS(100, error("ConnectBlock(): blind fee payout is too large\n"),
+                                            REJECT_INVALID, "bad-cs-amount");
+        }
     } else if (block.IsProofOfStake() && block.vtx[1]->HasBlindedValues()) {
-        return state.DoS(100, error("ConnectBlock(): coinstake without proof of full node has blinded values\n",
-                                    REJECT_INVALID, "bad-cs-txout"));
+        return state.DoS(100, error("ConnectBlock(): coinstake without proof of full node has blinded values\n"),
+                                    REJECT_INVALID, "bad-cs-txout");
     }
+
+    // check ringct coinbase
+    if (block.IsProofOfStake() && block.vtx[0]->HasBlindedValues() && !VerifyCoinbase(nExpStakeReward, *block.vtx[0], state))
+        return false;
 
     if (nCreated > nCreationLimit) {
         LogPrintf("%s : BlockReward=%s Network=%s Founder=%s Budget=%s Foundation=%s\n", __func__, FormatMoney(nBlockReward),
@@ -4732,17 +4747,29 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
     }
 
     if (block.IsProofOfStake()) {
+        size_t expVpSize = 1;
+        if (block.vtx[1]->IsRingCtSpend()) {
+            if (nHeight < Params().HeightRingCTStaking())
+                return state.DoS(50, false, REJECT_INVALID, "ringct-stake", false, strprintf("RingCT PoS not allowed until height %d", Params().HeightRingCTStaking()));
+            // might be covered elsewhere?
+            if (!block.vtx[1]->IsCoinStake())
+                return state.DoS(50, false, REJECT_INVALID, "bad-coinstake-txn", false, strprintf("RingCT PoS has invalid coinstake tx"));
+            // two ringct outputs
+            expVpSize += 2;
+        }
         if (!veil::BudgetParams::IsSuperBlock(pindexPrev->nHeight + 1))
         {
-            if (block.vtx[0]->vpout.size() != 1)
+            if (block.vtx[0]->vpout.size() != expVpSize)
+                return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS non-superblock has invalid coinbase out"));
+            if (block.vtx[0]->vpout[0]->nVersion != OUTPUT_STANDARD)
                 return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS non-superblock has invalid coinbase out"));
 
             auto pTxBase = ((CTxOutStandard*) &*(block.vtx[0]->vpout[0]));
-            if (pTxBase->nValue != 0 || pTxBase->scriptPubKey != CScript() || pTxBase->nVersion != OUTPUT_STANDARD)
+            if (pTxBase->nValue != 0 || pTxBase->scriptPubKey != CScript())
                 return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS non-superblock has invalid coinbase out"));
         } else {
             // next block is a superblock
-            if (block.vtx[0]->vpout.size() > 3)
+            if (block.vtx[0]->vpout.size() > expVpSize + 2 || block.vtx[0]->vpout.size() < expVpSize)
                 return state.DoS(50, false, REJECT_INVALID, "bad-coinbase-vpout", false, strprintf("PoS superblock has invalid coinbase out"));
         }
     }

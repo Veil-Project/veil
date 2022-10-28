@@ -39,7 +39,7 @@ public:
     virtual bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) = 0;
     virtual bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) = 0;
     virtual bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) = 0;
-    virtual bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable) = 0;
+    virtual bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) = 0;
 };
 
 
@@ -77,7 +77,7 @@ public:
     bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) override;
     bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) override;
 
-    bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable) override;
+    bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) override;
 };
 
 
@@ -111,7 +111,7 @@ public:
     bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) override;
     bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) override;
     bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) override;
-    bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable) override;
+    bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) override;
     bool IsZerocoins() override { return true; }
 
     bool MarkSpent(CWallet* pwallet, const uint256& txid);

@@ -239,6 +239,7 @@ public:
 
     bool GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std::set<int64_t> &setHave, std::vector<CLightWalletAnonOutputData>& randomoutputs, std::string &sError);
 
+    bool AddCoinbaseRewards(CMutableTransaction& txCoinbase, CAmount nStakeReward, std::string& sError);
 
     bool IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint);
     bool IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint, CKey& key);
@@ -430,6 +431,8 @@ private:
         int& nChangePosInOut,
         bool fSkipFee,
         bool fFeesFromChange,
+        bool fAddFeeDataOutput,
+        bool fUseBlindSum,
         std::string& sError);
     bool ArrangeOutBlinds(
         std::vector<CTxOutBaseRef>& vpout,
