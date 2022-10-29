@@ -40,7 +40,7 @@ bool CheckStake(const CDataStream& ssUniqueID, CAmount nValueIn, const uint64_t 
     CDataStream ss(SER_GETHASH, 0);
     ss << nStakeModifier << nTimeBlockFrom << ssUniqueID << nTimeTx;
     hashProofOfStake = Hash(ss.begin(), ss.end());
-    //LogPrintf("%s: modifier:%d nTimeBlockFrom:%d nTimeTx:%d hash:%s\n", __func__, nStakeModifier, nTimeBlockFrom, nTimeTx, hashProofOfStake.GetHex());
+    //LogPrintf("%s: modifier:%d nTimeBlockFrom:%d nTimeTx:%d u:%s hash:%s\n", __func__, nStakeModifier, nTimeBlockFrom, nTimeTx, Hash(ssUniqueID.begin(), ssUniqueID.end()).GetHex(), hashProofOfStake.GetHex());
 
     return stakeTargetHit(UintToArith256(hashProofOfStake), nValueIn, UintToArith256(bnTarget));
 }
@@ -122,7 +122,7 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
 
     const CTxIn& txin = txRef->vin[0];
 
-    CBlockIndex* pindexFrom;
+    const CBlockIndex* pindexFrom;
     if (txin.IsZerocoinSpend()) {
         auto spend = TxInToZerocoinSpend(txin);
         if (!spend)
@@ -132,10 +132,10 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
             return error("%s: spend is using the wrong SpendType (%d)", __func__, (int)spend->getSpendType());
 
         stake = std::unique_ptr<CStakeInput>(new ZerocoinStake(*spend));
-        pindexFrom = stake->GetIndexFrom();
+        pindexFrom = stake->GetIndexFrom(pindexCheck->pprev);
     } else if (txin.IsAnonInput()) {
         stake = std::unique_ptr<CStakeInput>(new PublicRingCTStake(txRef));
-        pindexFrom = pindexCheck->GetAncestor(pindexCheck->nHeight - Params().RingCT_RequiredStakeDepth());
+        pindexFrom = stake->GetIndexFrom(pindexCheck->pprev);
     } else {
         return error("%s: Stake is not a zerocoin or ringctspend", __func__);
     }

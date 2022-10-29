@@ -4984,7 +4984,7 @@ bool CChainState::ContextualCheckRingCTStake(CBlockIndex* pindex, PublicRingCTSt
 
 bool CChainState::ContextualCheckZerocoinStake(CBlockIndex* pindex, ZerocoinStake* stake)
 {
-    CBlockIndex* pindexFrom = stake->GetIndexFrom();
+    const CBlockIndex* pindexFrom = stake->GetIndexFrom(pindex);
     if (!pindexFrom)
         return error("%s: failed to get index associated with zerocoin stake checksum", __func__);
 

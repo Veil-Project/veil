@@ -175,20 +175,19 @@ CAmount GetRingCTWeightForValue(const CAmount& nValueIn) {
     }
 }
 
-CBlockIndex* RingCTStake::GetIndexFrom()
+// To keep the input private, we use the stake depth as the index from.
+const CBlockIndex* RingCTStake::GetIndexFrom(const CBlockIndex* pindexPrev)
 {
     if (pindexFrom)
         return pindexFrom;
 
-    if (coin.nDepth > 0)
-        pindexFrom = LookupBlockIndex(coin.rtx->second.blockHash);
+    pindexFrom = pindexPrev->GetAncestor(pindexPrev->nHeight - Params().RingCT_RequiredStakeDepth());
 
     return pindexFrom;
 }
 
 bool RingCTStake::GetTxFrom(CTransaction& tx)
 {
-    // TODO
     return false;
 }
 
@@ -250,10 +249,9 @@ bool RingCTStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pinde
 
 CDataStream RingCTStake::GetUniqueness()
 {
-    //The unique identifier for a VEIL RingCT txo is... txhash + n?
-    CDataStream ss(SER_GETHASH, 0);
-    ss << coin.txhash;
-    ss << coin.i;
+    //The unique identifier for a VEIL RingCT txo is the hash of the keyimage pubkey.
+    CDataStream ss(0, 0);
+    ss << hashPubKey;
     return ss;
 }
 
@@ -410,7 +408,7 @@ uint256 ZerocoinStake::GetChecksum()
 // The Zerocoin block index is the first appearance of the accumulator checksum that was used in the spend
 // note that this also means when staking that this checksum should be from a block that is beyond 60 minutes old and
 // 100 blocks deep.
-CBlockIndex* ZerocoinStake::GetIndexFrom()
+const CBlockIndex* ZerocoinStake::GetIndexFrom(const CBlockIndex* pindexPrev)
 {
     if (pindexFrom)
         return pindexFrom;
@@ -461,7 +459,7 @@ int ZerocoinStake::HeightToModifierHeight(int nHeight)
 //Use the first accumulator checkpoint that occurs 60 minutes after the block being staked from
 bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)
 {
-    CBlockIndex* pindex = GetIndexFrom();
+    const CBlockIndex* pindex = GetIndexFrom(pindexChainPrev);
 
     if (!pindex || !pindexChainPrev) {
         return false;
@@ -483,7 +481,7 @@ bool ZerocoinStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pin
         pindex = pindex->pprev;
     }
 
-    nStakeModifier = UintToArith256(pindex->mapAccumulatorHashes[denom]).GetLow64();
+    nStakeModifier = UintToArith256(pindex->mapAccumulatorHashes.at(denom)).GetLow64();
     return true;
 }
 
@@ -504,7 +502,7 @@ bool ZerocoinStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
 #ifdef ENABLE_WALLET
     }
 
-    CBlockIndex* pindexCheckpoint = GetIndexFrom();
+    const CBlockIndex* pindexCheckpoint = GetIndexFrom(nullptr);
     if (!pindexCheckpoint)
         return error("%s: failed to find checkpoint block index", __func__);
 
@@ -517,7 +515,7 @@ bool ZerocoinStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
 
     int nSecurityLevel = 100;
     CZerocoinSpendReceipt receipt;
-    if (!pwallet->MintToTxIn(mint, nSecurityLevel, hashTxOut, txIn, receipt, libzerocoin::SpendType::STAKE, GetIndexFrom()))
+    if (!pwallet->MintToTxIn(mint, nSecurityLevel, hashTxOut, txIn, receipt, libzerocoin::SpendType::STAKE, pindexCheckpoint))
         return error("%s\n", receipt.GetStatusMessage());
 
     return true;
@@ -657,6 +655,16 @@ bool PublicRingCTStake::GetMinimumInputValue(CAmount& nValue) const
 
     nValue = nMinValue;
     return true;
+}
+
+const CBlockIndex* PublicRingCTStake::GetIndexFrom(const CBlockIndex* pindexPrev)
+{
+    if (pindexFrom)
+        return pindexFrom;
+
+    pindexFrom = pindexPrev->GetAncestor(pindexPrev->nHeight - Params().RingCT_RequiredStakeDepth());
+
+    return pindexFrom;
 }
 
 /**

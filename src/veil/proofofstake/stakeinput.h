@@ -28,13 +28,13 @@ enum StakeInputType
 class CStakeInput
 {
 protected:
-    CBlockIndex* pindexFrom = nullptr;
+    const CBlockIndex* pindexFrom = nullptr;
     libzerocoin::CoinDenomination denom = libzerocoin::CoinDenomination::ZQ_ERROR;
     StakeInputType nType = STAKE_RINGCT;
 
 public:
     virtual ~CStakeInput(){};
-    virtual CBlockIndex* GetIndexFrom() = 0;
+    virtual const CBlockIndex* GetIndexFrom(const CBlockIndex* pindexPrev) = 0;
     virtual bool GetTxFrom(CTransaction& tx) = 0;
     virtual CAmount GetValue() = 0;
     virtual CAmount GetWeight() = 0;
@@ -65,12 +65,16 @@ private:
     veil_ringct::TransactionOutputsSigContext tx_outCtx;
     CTransactionRecord rtx;
 
+    // A hash of the key image of the RingCt output. This is used for the CStakeInput's uniqueness.
+    uint256 hashPubKey;
+
     CAmount GetBracketMinValue();
 
 public:
-    explicit RingCTStake(const COutputR& coin_) : coin(coin_), tx_inCtx(RING_SIZE, 2) { }
+    explicit RingCTStake(const COutputR& coin_, uint256 hashPubKey_)
+      : coin(coin_), tx_inCtx(RING_SIZE, 2), hashPubKey(hashPubKey_) {}
 
-    CBlockIndex* GetIndexFrom() override;
+    const CBlockIndex* GetIndexFrom(const CBlockIndex* pindexPrev) override;
     bool GetTxFrom(CTransaction& tx) override;
     CAmount GetValue() override;
     CAmount GetWeight() override;
@@ -111,7 +115,7 @@ public:
 
     explicit ZerocoinStake(const libzerocoin::CoinSpend& spend);
 
-    CBlockIndex* GetIndexFrom() override;
+    const CBlockIndex* GetIndexFrom(const CBlockIndex* pindexPrev) override;
     bool GetTxFrom(CTransaction& tx) override;
     CAmount GetValue() override;
     CAmount GetWeight() override;
@@ -148,7 +152,6 @@ public:
     explicit PublicRingCTStake(const CTransactionRef& txStake) : m_ptx(txStake) {}
 
     // None of these are implemented, intentionally.
-    CBlockIndex* GetIndexFrom() override { return nullptr; }
     bool IsZerocoins() override { return false; }
     bool GetTxFrom(CTransaction& tx) override { return false; }
     bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) override { return false; }
@@ -156,10 +159,15 @@ public:
     bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) override {return false; }
     bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) override { return false; }
 
+    // Most of these are similar to RingCTStake's. TODO: maybe we could have
+    // a base ringctstake class instead of duplicating.
+    const CBlockIndex* GetIndexFrom(const CBlockIndex* pindexPrev) override;
     CAmount GetValue() override;
     CAmount GetWeight() override;
-    CDataStream GetUniqueness() override;
     bool GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev) override;
+
+    // Uses the transaction embedded
+    CDataStream GetUniqueness() override;
 
     // PublicRingCt specific items
     std::vector<COutPoint> GetTxInputs() const;

@@ -372,7 +372,7 @@ bool GetAccumulatorValue(int& nHeight, const libzerocoin::CoinDenomination denom
 }
 
 bool GenerateAccumulatorWitness(const PublicCoin &coin, Accumulator& accumulator, AccumulatorWitness& witness,
-        int nSecurityLevel, int& nMintsAdded, std::string& strError, CBlockIndex* pindexCheckpoint)
+        int nSecurityLevel, int& nMintsAdded, std::string& strError, const CBlockIndex* pindexCheckpoint)
 {
     LogPrintf("%s: generating\n", __func__);
     CBlockIndex* pindex = nullptr;
