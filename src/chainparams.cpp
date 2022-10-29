@@ -759,7 +759,7 @@ public:
         // ProgPow, RandomX, Sha256d
         consensus.nProgPowTargetSpacing = 172;
         consensus.nRandomXTargetSpacing = 600;
-        consensus.nSha256DTargetSpacing = 1200;
+        consensus.nSha256DTargetSpacing = 120;
 
         consensus.nDgwPastBlocks = 60; // number of blocks to average in Dark Gravity Wave
         consensus.nDgwPastBlocks_old = 60; // number of blocks to average in Dark Gravity Wave
@@ -879,7 +879,7 @@ public:
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
 
-        nHeightLightZerocoin = 500;
+        nHeightLightZerocoin = 110;
         nZerocoinRequiredStakeDepthV2 = 10; //The required confirmations for a zerocoin to be stakable
         nHeightEnforceBlacklist = 0;
         nHeightRingCTStaking = 300;
