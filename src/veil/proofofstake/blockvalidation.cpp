@@ -34,10 +34,6 @@ bool ValidateBlockSignature(const CBlock& block)
 
         return pubkey.Verify(block.GetHash(), block.vchBlockSig);
     } else if (block.vtx[1]->vin[0].IsAnonInput()) {
-        if (block.nHeight < Params().HeightRingCTStaking()) {
-            return error("%s: RingCT staking not accepted before height %d",
-                         __func__, Params().HeightRingCTStaking());
-        }
         CTxIn txin = block.vtx[1]->vin[0];
         const std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
         const std::vector<uint8_t> vMI = txin.scriptWitness.stack[0];
@@ -67,7 +63,7 @@ bool ValidateBlockSignature(const CBlock& block)
             CPubKey pubkey;
             pubkey.Set(ao.pubkey.begin(), ao.pubkey.end());
             if (!pubkey.IsValid())
-                return error("%s: public key from ringct stake is not valid");
+                return error("%s: public key from ringct stake is not valid", __func__);
 
             if (pubkey.Verify(block.GetHash(), block.vchBlockSig))
                 return true;

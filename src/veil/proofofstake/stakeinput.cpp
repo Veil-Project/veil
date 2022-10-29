@@ -13,6 +13,8 @@
 #include "validation.h"
 #include "stakeinput.h"
 #include "veil/proofofstake/kernel.h"
+#include "veil/ringct/anon.h"
+#include "veil/ringct/blind.h"
 #ifdef ENABLE_WALLET
 #include "wallet/coincontrol.h"
 #include "wallet/wallet.h"
@@ -138,6 +140,40 @@ bool CheckMinStake(const CAmount& nAmount)
     return true;
 }
 
+CAmount GetRingCTWeightForValue(const CAmount& nValueIn) {
+    // fast mode
+    if (nValueIn <= nBareMinStake)
+        return 0;
+
+    // bracket is at least 1 now.
+    int bracket = fast_log16(nValueIn - nOneSat);
+    // We'd do 16 << (4 * (bracket - 1)) but 16 is 1 << 4 so it's really
+    // 1 << (4 + 4 * bracket - 4)
+    CAmount val = (1ULL << (4 * bracket)) + nOneSat;
+
+    switch (bracket) {
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+            return val;
+        case 8:
+            return (val * 95) / 100;
+        case 9:
+            return (val * 91) / 100;
+        case 10:
+            return (val * 71) / 100;
+        case 11:
+            return (val * 5) / 10;
+        case 12:
+            return (val * 3) / 10;
+        default:
+            return val / 10;
+    }
+}
 
 CBlockIndex* RingCTStake::GetIndexFrom()
 {
@@ -196,44 +232,12 @@ CAmount RingCTStake::GetBracketMinValue()
     int bracket = fast_log16(nValueIn - nOneSat);
     // We'd do 16 << (4 * (bracket - 1)) but 16 is 1 << 4 so it's really
     // 1 << (4 + 4 * bracket - 4)
-    return (1 << (4 * bracket)) + nOneSat;
+    return (1ULL << (4 * bracket)) + nOneSat;
 }
 
 // We further reduce the weights of higher brackets to match zerocoin reductions.
 CAmount RingCTStake::GetWeight() {
-    CAmount nValueIn = GetValue();
-    // fast mode
-    if (nValueIn <= nBareMinStake)
-        return 0;
-
-    // bracket is at least 1 now.
-    int bracket = fast_log16(nValueIn - nOneSat);
-    // We'd do 16 << (4 * (bracket - 1)) but 16 is 1 << 4 so it's really
-    // 1 << (4 + 4 * bracket - 4)
-    CAmount val = (1L << (4 * bracket)) + nOneSat;
-
-    switch (bracket) {
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
-        case 7:
-            return val;
-        case 8:
-            return (val * 95) / 100;
-        case 9:
-            return (val * 91) / 100;
-        case 10:
-            return (val * 71) / 100;
-        case 11:
-            return (val * 5) / 10;
-        case 12:
-            return (val * 3) / 10;
-        default:
-            return val / 10;
-    }
+    return GetRingCTWeightForValue(GetValue());
 }
 
 bool RingCTStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)
@@ -367,6 +371,7 @@ bool RingCTStake::CreateCoinStake(CWallet* pwallet, const CAmount& nReward, CMut
 
 ZerocoinStake::ZerocoinStake(const libzerocoin::CoinSpend& spend)
 {
+    nType = STAKE_ZEROCOIN;
     this->nChecksum = spend.getAccumulatorChecksum();
     this->denom = spend.getDenomination();
     uint256 nSerial = spend.getCoinSerialNumber().getuint256();
@@ -382,7 +387,7 @@ int ZerocoinStake::GetChecksumHeightFromMint()
     if (nNewBlockHeight >= Params().HeightLightZerocoin()) {
         nHeightChecksum = nNewBlockHeight - Params().Zerocoin_RequiredStakeDepthV2();
     } else {
-        nHeightChecksum = chainActive.Height() + 1 - Params().Zerocoin_RequiredStakeDepth();
+        nHeightChecksum = nNewBlockHeight - Params().Zerocoin_RequiredStakeDepth();
     }
 
     //Need to return the first occurance of this checksum in order for the validation process to identify a specific
@@ -622,4 +627,110 @@ bool ZerocoinStake::CreateCoinStake(CWallet* pwallet, const CAmount& nBlockRewar
         return false;
     }
     return true;
+}
+
+/**
+ * @brief Get the lowest possible value of the inputs used in this RingCT transaction.
+ * @param[out] nValue: The returned minimum value of the RingCT output [usually 2].
+ * @return <b>true</b> upon success.
+ *         <b>false</b> if the output type is not OUTPUT_RINGCT or if GetRangeProofInfo() fails.
+ */
+bool PublicRingCTStake::GetMinimumInputValue(CAmount& nValue) const
+{
+    int nExp = 0;
+    int nMantissa = 0;
+    CAmount nMinValue = 0;
+    CAmount nMaxValue = 0;
+    CTxOutRingCT* txout = nullptr;
+    for (auto& pout : m_ptx->vpout) {
+        if (pout->GetType() != OUTPUT_RINGCT)
+            continue;
+        txout = (CTxOutRingCT*)pout.get();
+        break;
+    }
+
+    if (!txout)
+        return error("%s: PublicRingCTStake has no RingCT outputs.", __func__);
+
+    if (!GetRangeProofInfo(txout->vRangeproof, nExp, nMantissa, nMinValue, nMaxValue))
+        return error("%s: Failed to get range proof info.", __func__);
+
+    nValue = nMinValue;
+    return true;
+}
+
+/**
+ * @brief Get the theoretical value of the RingCT stake.
+ * @return CAmount: the minimum value of the PublicRingCTStake. Returns 0 on fail.
+ * @see GetMinimumInputValue()
+ */
+CAmount PublicRingCTStake::GetValue()
+{
+    CAmount nValue = 0;
+    if (!GetMinimumInputValue(nValue))
+        return 0;
+
+    return nValue;
+}
+
+/**
+ * @brief Gets the relative weight of the RingCT stake, based on its input.
+ * @return CAmount: the weighted value of the PublicRingCTStake. Returns 0 on fail.
+ */
+CAmount PublicRingCTStake::GetWeight() {
+    return GetRingCTWeightForValue(GetValue());
+}
+
+bool PublicRingCTStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)
+{
+    if (!pindexChainPrev)
+        return false;
+
+    return GetStakeModifier(nStakeModifier, *pindexChainPrev);
+}
+
+/**
+ * @brief Get the inputs used for the RingCT transaction. This includes all inputs, including decoy inputs.
+ * @return std::vector<COutPoint>: A vector of the outpoints that are inputs in the transaction.
+ */
+std::vector<COutPoint> PublicRingCTStake::GetTxInputs() const
+{
+    return GetRingCtInputs(m_ptx->vin[0]);
+}
+
+/**
+ * @brief Get a hash of the the key image for output 0.
+ * @param[out] hashPubKey: resulting hash of the key image
+ * @return bool: true upon success. false if there is a casting error when attempting to extract the key.
+ */
+bool PublicRingCTStake::GetPubkeyHash(uint256& hashPubKey) const
+{
+    //Extract the pubkeyhash from the keyimage
+    try {
+        const CTxIn &txin = m_ptx->vin[0];
+        const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
+        uint32_t nInputs, nRingSize;
+        txin.GetAnonInfo(nInputs, nRingSize);
+        const CCmpPubKey &ki = *((CCmpPubKey *) &vKeyImages[0]);
+        hashPubKey = ki.GetHash();
+    } catch (...) {
+        return error("%s: Deserialization of compressed pubkey failed.", __func__);
+    }
+
+    return true;
+}
+
+/**
+ * @brief Get the deterministic uniqueness of the RingCT output that is spent in this transaction.
+ * The uniqueness of a RingCT stake is a hash of the key image.
+ *
+ * @return CDataStream : uniqueness is serialized into a datastream object.
+ */
+CDataStream PublicRingCTStake::GetUniqueness()
+{
+    uint256 hashPubKey;
+    GetPubkeyHash(hashPubKey);
+    CDataStream ss(0,0);
+    ss << hashPubKey;
+    return ss;
 }

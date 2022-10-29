@@ -194,7 +194,9 @@ public:
     bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams,
             CBlockIndex** ppindex, bool fProofOfStake, bool fProofOfFullNode, int nMaxHeightNoPoWScore) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
-    bool ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput* stake);
+    bool ContextualCheckStake(CBlockIndex* pindex, CStakeInput* stake);
+    bool ContextualCheckRingCTStake(CBlockIndex* pindex, PublicRingCTStake* stake);
+    bool ContextualCheckZerocoinStake(CBlockIndex* pindex, ZerocoinStake* stake);
 
     // Block (dis)connection on a given view:
     DisconnectResult DisconnectBlock(const CBlock& block, const CBlockIndex* pindex, CCoinsViewCache& view);
@@ -2506,7 +2508,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                 // Use max values in range proofs, so we know the max value out
                 int nExponent, nMantissa;
                 CAmount nMin, nMax;
-                if (GetRangeProofInfo(*(pout->GetPRangeproof()), nExponent, nMantissa, nMin, nMax) != 0)
+                if (!GetRangeProofInfo(*(pout->GetPRangeproof()), nExponent, nMantissa, nMin, nMax))
                     return state.DoS(100, error("ConnectBlock(): couldn't get range proof info\n",
                                                 REJECT_INVALID, "bad-range-proof"));
                 else
@@ -2848,7 +2850,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
                 int nExponent, nMantissa;
                 CAmount nMin, nMax;
-                if (GetRangeProofInfo(*(pout->GetPRangeproof()), nExponent, nMantissa, nMin, nMax) != 0)
+                if (!GetRangeProofInfo(*(pout->GetPRangeproof()), nExponent, nMantissa, nMin, nMax))
                     return state.DoS(100, error("ConnectBlock(): couldn't get range proof info\n",
                                                 REJECT_INVALID, "bad-range-proof"));
                 else {
@@ -4931,33 +4933,78 @@ static CDiskBlockPos SaveBlockToDisk(const CBlock& block, int nHeight, const CCh
     return blockPos;
 }
 
-bool CChainState::ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput* stake)
+bool CChainState::ContextualCheckStake(CBlockIndex* pindex, CStakeInput* stake)
 {
-    if (ZerocoinStake* stakeCheck = dynamic_cast<ZerocoinStake*>(stake)) {
-        CBlockIndex* pindexFrom = stakeCheck->GetIndexFrom();
-        if (!pindexFrom)
-            return error("%s: failed to get index associated with zerocoin stake checksum", __func__);
+    switch (stake->GetType()) {
+        case STAKE_ZEROCOIN:
+            ZerocoinStake* stakeZerocoin;
+            try {
+                stakeZerocoin = dynamic_cast<ZerocoinStake*>(stake);
+            } catch (std::bad_cast) {
+                return false;
+            }
 
-        int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
-        if (pindex->nHeight >= Params().HeightLightZerocoin())
-            nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+            return ContextualCheckZerocoinStake(pindex, stakeZerocoin);
+        case STAKE_RINGCT:
+            PublicRingCTStake* stakeRCT = nullptr;
 
-        if (pindex->nHeight - pindexFrom->nHeight < nRequiredDepth)
-            return error("%s: zerocoin stake does not have required confirmation depth", __func__);
+            try {
+                stakeRCT = dynamic_cast<PublicRingCTStake*>(stake);
+            } catch (std::bad_cast) {
+                return false;
+            }
 
-        //The checksum needs to be the exact checksum from the modifier height
-        libzerocoin::CoinDenomination denom = libzerocoin::AmountToZerocoinDenomination(stakeCheck->GetValue());
-        int nHeightStake = pindex->nHeight - nRequiredDepth;
-        CBlockIndex* pindexFrom2 = pindex->GetAncestor(nHeightStake);
-        if (!pindexFrom2)
-            return error("%s: block ancestor does not exist", __func__);
-
-        uint256 hashCheckpoint = pindexFrom2->GetAccumulatorHash(denom);
-        if (hashCheckpoint != stakeCheck->GetChecksum())
-            return error("%s: accumulator checksum is different than the modifier block. indexfromheight=%d stake=%s blockfrom=%s", __func__, pindexFrom->nHeight, stakeCheck->GetChecksum().GetHex(), hashCheckpoint.GetHex());
-    } else {
-        return error("%s: dynamic_cast of stake ptr failed", __func__);
+            return ContextualCheckRingCTStake(pindex, stakeRCT);
     }
+    return error ("%s: Invalid stake type %d block height %d", __func__, stake->GetType(), pindex->nHeight);
+}
+
+bool CChainState::ContextualCheckRingCTStake(CBlockIndex* pindex, PublicRingCTStake* stake)
+{
+    // Check that all included inputs are beyond the minimum stake age
+    const std::vector<COutPoint>& vAnonInputs = stake->GetTxInputs();
+    for (const COutPoint& input : vAnonInputs) {
+        CTransactionRef ptxPrev;
+        int nHeightTx = 0;
+        if (!IsTransactionInChain(input.hash, nHeightTx, ptxPrev, Params().GetConsensus(), pindex))
+            return error("%s: could not find tx %s within the same chain", __func__, input.hash.GetHex());
+        if (nHeightTx == 0 || nHeightTx > pindex->nHeight - Params().RingCT_RequiredStakeDepth())
+            return error("%s: included RingCT input is not below the required stake depth : %s", __func__, input.ToString());
+        if (ptxPrev->vpout.size() <= input.n)
+            return error("%s: RingCT Input %s does not exist", input.ToString());
+
+        //Check that it is a ringct output
+        const CTxOutBaseRef txbout = ptxPrev->vpout[input.n];
+        if (txbout->GetType() != OUTPUT_RINGCT)
+            return error ("%s: RingCT Input %s is not a ringct output type", __func__, input.ToString());
+    }
+    // Stake hash check elsewhere confirms that the stake value is above the minimum
+    return true;
+}
+
+bool CChainState::ContextualCheckZerocoinStake(CBlockIndex* pindex, ZerocoinStake* stake)
+{
+    CBlockIndex* pindexFrom = stake->GetIndexFrom();
+    if (!pindexFrom)
+        return error("%s: failed to get index associated with zerocoin stake checksum", __func__);
+
+    int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
+    if (pindex->nHeight >= Params().HeightLightZerocoin())
+        nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+
+    if (pindex->nHeight - pindexFrom->nHeight < nRequiredDepth)
+        return error("%s: zerocoin stake does not have required confirmation depth", __func__);
+
+    //The checksum needs to be the exact checksum from the modifier height
+    libzerocoin::CoinDenomination denom = libzerocoin::AmountToZerocoinDenomination(stake->GetValue());
+    int nHeightStake = pindex->nHeight - nRequiredDepth;
+    CBlockIndex* pindexFrom2 = pindex->GetAncestor(nHeightStake);
+    if (!pindexFrom2)
+        return error("%s: block ancestor does not exist", __func__);
+
+    uint256 hashCheckpoint = pindexFrom2->GetAccumulatorHash(denom);
+    if (hashCheckpoint != stake->GetChecksum())
+        return error("%s: accumulator checksum is different than the modifier block. indexfromheight=%d stake=%s blockfrom=%s", __func__, pindexFrom->nHeight, stake->GetChecksum().GetHex(), hashCheckpoint.GetHex());
 
     return true;
 }
@@ -4994,8 +5041,8 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
         if (!stake)
             return error("%s: null stake ptr", __func__);
 
-        if (!ContextualCheckZerocoinStake(pindex, stake.get()))
-            return state.DoS(100, error("%s: zerocoin stake fails context checks", __func__));
+        if (!ContextualCheckStake(pindex, stake.get()))
+            return state.DoS(100, error("%s: stake fails context checks", __func__));
 
         // This stake has already been seen in a different block, prevent disk-space attack by requiring valid PoW block header
         uint256 hashBlock = block.GetHash();

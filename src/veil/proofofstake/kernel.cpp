@@ -122,6 +122,7 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
 
     const CTxIn& txin = txRef->vin[0];
 
+    CBlockIndex* pindexFrom;
     if (txin.IsZerocoinSpend()) {
         auto spend = TxInToZerocoinSpend(txin);
         if (!spend)
@@ -131,20 +132,20 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
             return error("%s: spend is using the wrong SpendType (%d)", __func__, (int)spend->getSpendType());
 
         stake = std::unique_ptr<CStakeInput>(new ZerocoinStake(*spend));
+        pindexFrom = stake->GetIndexFrom();
     } else if (txin.IsAnonInput()) {
-        // TODO
-        return false;
+        stake = std::unique_ptr<CStakeInput>(new PublicRingCTStake(txRef));
+        pindexFrom = pindexCheck->GetAncestor(pindexCheck->nHeight - Params().RingCT_RequiredStakeDepth());
     } else {
         return error("%s: Stake is not a zerocoin or ringctspend", __func__);
     }
 
-    CBlockIndex* pindex = stake->GetIndexFrom();
-    if (!pindex)
+    if (!pindexFrom)
         return error("%s: Failed to find the block index", __func__);
 
     // Read block header
     CBlock blockprev;
-    if (!ReadBlockFromDisk(blockprev, pindex->GetBlockPos(), Params().GetConsensus()))
+    if (!ReadBlockFromDisk(blockprev, pindexFrom->GetBlockPos(), Params().GetConsensus()))
         return error("CheckProofOfStake(): INFO: failed to find block");
 
     arith_uint256 bnTargetPerCoinDay;
@@ -152,7 +153,7 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
 
     uint64_t nStakeModifier = 0;
     if (!stake->GetModifier(nStakeModifier, pindexCheck->pprev)) {
-        if (pindexCheck->nHeight - Params().HeightLightZerocoin() > 400)
+        if (txin.IsAnonInput() || pindexCheck->nHeight - Params().HeightLightZerocoin() > 400)
             return error("%s failed to get modifier for stake input\n", __func__);
     }
 
@@ -160,10 +161,12 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
     unsigned int nTxTime = nTimeBlock;
 
     // Enforce VIP-1 after it was activated
-    CAmount nValue = (int)nTxTime > Params().EnforceWeightReductionTime()
+    CAmount nValue = txin.IsAnonInput() || (int)nTxTime > Params().EnforceWeightReductionTime()
         ? stake->GetWeight()
         : stake->GetValue();
 
+    if (nValue == 0)
+        return error("%s: coinstake %s has no stake weight\n", __func__, txRef->GetHash().GetHex());
 
     if (!CheckStake(stake->GetUniqueness(), nValue, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime,
                     nTxTime, hashProofOfStake)) {

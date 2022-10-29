@@ -19,11 +19,18 @@ class CKeyStore;
 class CWallet;
 class CWalletTx;
 
+enum StakeInputType
+{
+    STAKE_ZEROCOIN,
+    STAKE_RINGCT,
+};
+
 class CStakeInput
 {
 protected:
     CBlockIndex* pindexFrom = nullptr;
     libzerocoin::CoinDenomination denom = libzerocoin::CoinDenomination::ZQ_ERROR;
+    StakeInputType nType = STAKE_RINGCT;
 
 public:
     virtual ~CStakeInput(){};
@@ -35,6 +42,7 @@ public:
     virtual bool IsZerocoins() = 0;
     virtual CDataStream GetUniqueness() = 0;
     libzerocoin::CoinDenomination GetDenomination() {return denom;};
+    StakeInputType GetType() const { return nType; }
 
     virtual bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) = 0;
     virtual bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) = 0;
@@ -94,6 +102,7 @@ private:
 public:
     explicit ZerocoinStake(libzerocoin::CoinDenomination denom, const uint256& hashSerial)
     {
+        nType = STAKE_ZEROCOIN;
         this->denom = denom;
         this->hashSerial = hashSerial;
         this->pindexFrom = nullptr;
@@ -120,6 +129,44 @@ public:
     uint256 GetChecksum();
 
     static int HeightToModifierHeight(int nHeight);
+};
+
+
+/**
+ * @brief A RingCt output that has been published to the blockchain in a coinstake transaction.
+ * @note The PublicRingCTStake contains no private information about the RingCt output. The data that a PublicRingCTStake
+ * reveals that would not have been revealed in a typical RingCt transaction is a narrowed range of values in the rangeproof.
+ * An object of this class is safe to communicate to peers, but should only exist inside of a block and not as a loose transaction.
+ */
+class PublicRingCTStake : public CStakeInput
+{
+private:
+    //! The CTransactionRef that is the coinstake transaction containing this CStakeInput
+    CTransactionRef m_ptx;
+
+public:
+    explicit PublicRingCTStake(const CTransactionRef& txStake) : m_ptx(txStake) {}
+
+    // None of these are implemented, intentionally.
+    CBlockIndex* GetIndexFrom() override { return nullptr; }
+    bool IsZerocoins() override { return false; }
+    bool GetTxFrom(CTransaction& tx) override { return false; }
+    bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) override { return false; }
+    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) override { return false; }
+    bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) override {return false; }
+    bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) override { return false; }
+
+    CAmount GetValue() override;
+    CAmount GetWeight() override;
+    CDataStream GetUniqueness() override;
+    bool GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev) override;
+
+    // PublicRingCt specific items
+    std::vector<COutPoint> GetTxInputs() const;
+
+private:
+    bool GetMinimumInputValue(CAmount& nValue) const;
+    bool GetPubkeyHash(uint256& hashPubKey) const;
 };
 
 #endif //PIVX_STAKEINPUT_H

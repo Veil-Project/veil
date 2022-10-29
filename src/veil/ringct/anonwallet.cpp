@@ -1640,8 +1640,8 @@ bool AnonWallet::AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sE
 
     if (r.fOverwriteRangeProofParams == true) {
         min_value = r.min_value;
-        ct_exponent = r.ct_exponent || ct_exponent;
-        ct_bits = r.ct_bits || ct_bits;
+        ct_exponent = r.ct_exponent >= 0 ? r.ct_exponent : ct_exponent;
+        ct_bits = r.ct_bits >= 0 ? r.ct_bits : ct_bits;
     }
 
     if (1 != secp256k1_rangeproof_sign(secp256k1_ctx_blind,
@@ -5500,7 +5500,8 @@ bool AnonWallet::ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t
             continue;
         } else
         if (txout->IsType(OUTPUT_STANDARD)) {
-            if (nOutputId < (int)tx.vpout.size()-1
+            if (!tx.IsCoinStake()
+                && nOutputId < (int)tx.vpout.size()-1
                 && tx.vpout[nOutputId+1]->IsType(OUTPUT_DATA)) {
                 CTxOutData *txd = (CTxOutData*) tx.vpout[nOutputId+1].get();
 
@@ -6421,7 +6422,7 @@ bool AnonWallet::AddToRecord(CTransactionRecord &rtxIn, const CTransaction &tx,
             mapLockedRecords.erase(txhash);
 
         // Plain to plain will always be a wtx, revisit if adding p2p to rtx
-        if (!tx.GetCTFee(rtx.nFee))
+        if (!tx.IsCoinBase() && !tx.IsCoinStake() && !tx.GetCTFee(rtx.nFee))
             LogPrintf("%s: ERROR - GetCTFee failed %s.\n", __func__, txhash.ToString());
 
         // If txn has change, it must have been sent by this wallet

@@ -570,7 +570,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             LogPrint(BCLog::STAKING, "%s: Failed to sign block hash\n", __func__);
             return nullptr;
         }
-        LogPrint(BCLog::STAKING, "%s: FOUND STAKE!!\n block: \n%s\n", __func__, pblock->ToString());
+        LogPrint(BCLog::STAKING, "%s: FOUND STAKE!!\n", __func__);
     }
 
     if (pindexPrev && pindexPrev != chainActive.Tip()) {

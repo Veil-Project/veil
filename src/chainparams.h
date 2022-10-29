@@ -148,6 +148,7 @@ public:
     int HeightEnforceBlacklist() const { return nHeightEnforceBlacklist; }
     int HeightProgPowDAGSizeReduction() const { return nHeightProgPowDAGSizeReduction; }
     int HeightRingCTStaking() const { return nHeightRingCTStaking; }
+    int RingCT_RequiredStakeDepth() const { return nZerocoinRequiredStakeDepthV2; }
 
     uint32_t PowUpdateTimestamp() const { return nPowUpdateTimestamp; }
     uint64_t KIforkTimestamp() const { return nTimeKIfork; }
