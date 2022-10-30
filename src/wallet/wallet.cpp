@@ -25,6 +25,7 @@
 #include <primitives/block.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
+#include <secp256k1/include/secp256k1_mlsag.h>
 #include <shutdown.h>
 #include <timedata.h>
 #include <txmempool.h>
@@ -4013,10 +4014,7 @@ bool CWallet::StakeableRingCTCoins()
 {
     LOCK2(cs_main, cs_wallet);
 
-    // TODO: change required depth
-    int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
-    if (chainActive.Height() >= Params().HeightLightZerocoin())
-        nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+    int nRequiredDepth = Params().RingCT_RequiredStakeDepth();
 
     BalanceList bal;
     pAnonWalletMain->GetBalances(bal);
@@ -4026,7 +4024,7 @@ bool CWallet::StakeableRingCTCoins()
         std::vector<COutputR> vCoins;
         CCoinControl coincontrol;
         pAnonWalletMain->AvailableAnonCoins(vCoins, true, &coincontrol);
-        LogPrintf("I have %d available ringct coins\n", vCoins.size());
+        LogPrint(BCLog::STAKING, "I have %d available ringct coins\n", vCoins.size());
 
         for (auto coin : vCoins) {
             if (coin.nDepth >= nRequiredDepth) {
@@ -4090,7 +4088,6 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<RingCTStake> >& listInp
     pAnonWalletMain->AvailableAnonCoins(vCoins, true, &coincontrol);
     AnonWalletDB wdb(GetDBHandle());
 
-    // TODO: change required depth
     int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
     if (chainActive.Height() >= Params().HeightLightZerocoin())
         nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
