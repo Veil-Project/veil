@@ -554,13 +554,16 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             }
 #endif
         } else if (pblock->vtx[1]->IsRingCtSpend()) {
-            // TODO: enable_wallet guards.
             COutPoint prevout;
             // Get keyimage from the input
-            if (!pwalletMain->GetAnonWallet()->IsMyAnonInput(pblock->vtx[1]->vin[0], prevout, key)) {
-                LogPrint(BCLog::STAKING, "Failed to get key from anon spend\n");
+#ifdef ENABLE_WALLET
+            if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET) || !pwalletMain->GetAnonWallet()->IsMyAnonInput(pblock->vtx[1]->vin[0], prevout, key)) {
+#endif
+                LogPrint(BCLog::STAKING, "%s: Failed to get key from anon spend\n", __func__);
                 return nullptr;
+#ifdef ENABLE_WALLET
             }
+#endif
         } else {
             error("%s: invalid block created. Stake is neither zerocoin nor anon spend!", __func__);
             return nullptr;

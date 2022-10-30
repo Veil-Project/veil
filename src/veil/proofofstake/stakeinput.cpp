@@ -282,50 +282,6 @@ CDataStream RingCTStake::GetUniqueness()
     return ss;
 }
 
-bool RingCTStake::CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut)
-{
-#ifdef ENABLE_WALLET
-    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
-#endif
-        return error("%s: wallet disabled", __func__);
-#ifdef ENABLE_WALLET
-    }
-
-    return pwallet->GetAnonWallet()->CoinToTxIn(coin, txIn, tx_inCtx, RING_SIZE);
-#endif
-}
-
-bool RingCTStake::CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nReward)
-{
-#ifdef ENABLE_WALLET
-    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
-#endif
-        return error("%s: wallet disabled", __func__);
-#ifdef ENABLE_WALLET
-    }
-
-    return pwallet->GetAnonWallet()->CreateStakeTxOuts(coin, vpout, GetValue(), nReward, GetBracketMinValue(), tx_outCtx, rtx);
-#endif
-}
-
-bool RingCTStake::CompleteTx(CWallet* pwallet, CMutableTransaction& txNew)
-{
-#ifdef ENABLE_WALLET
-    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
-#endif
-        return error("%s: wallet disabled", __func__);
-#ifdef ENABLE_WALLET
-    }
-
-    if (!pwallet->GetAnonWallet()->SignStakeTx(coin, txNew, tx_inCtx, tx_outCtx))
-        return false;
-
-    if (!MarkSpent(pwallet->GetAnonWallet(), txNew))
-        return error("%s: failed to mark ringct input as used\n", __func__);
-    return true;
-#endif
-}
-
 bool RingCTStake::MarkSpent(AnonWallet* panonwallet, CMutableTransaction& txNew)
 {
     rtx.nFlags |= ORF_ANON_IN;
@@ -352,6 +308,12 @@ bool RingCTStake::MarkSpent(AnonWallet* panonwallet, CMutableTransaction& txNew)
  */
 bool RingCTStake::CreateCoinStake(CWallet* pwallet, const CAmount& nReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase)
 {
+#ifdef ENABLE_WALLET
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+#endif
+        return error("%s: wallet disabled", __func__);
+#ifdef ENABLE_WALLET
+    }
     AnonWallet* panonWallet = pwallet->GetAnonWallet();
 
     // Update the coinbase tx
@@ -392,6 +354,7 @@ bool RingCTStake::CreateCoinStake(CWallet* pwallet, const CAmount& nReward, CMut
 
     txCoinStake = CMutableTransaction(*wtx.tx);
     return true;
+#endif
 }
 
 ZerocoinStake::ZerocoinStake(const libzerocoin::CoinSpend& spend)
@@ -620,6 +583,12 @@ bool ZerocoinStake::MarkSpent(CWallet *pwallet, const uint256& txid)
 }
 
 bool ZerocoinStake::CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) {
+#ifdef ENABLE_WALLET
+    if (gArgs.GetBoolArg("-disablewallet", DEFAULT_DISABLE_WALLET)) {
+#endif
+        return error("%s: wallet disabled", __func__);
+#ifdef ENABLE_WALLET
+    }
     if (!CreateTxOuts(pwallet, txCoinStake.vpout, nBlockReward)) {
         LogPrintf("%s : failed to get scriptPubKey\n", __func__);
         retryable = true;
@@ -652,6 +621,7 @@ bool ZerocoinStake::CreateCoinStake(CWallet* pwallet, const CAmount& nBlockRewar
         return false;
     }
     return true;
+#endif
 }
 
 /**

@@ -44,9 +44,6 @@ public:
     libzerocoin::CoinDenomination GetDenomination() {return denom;};
     StakeInputType GetType() const { return nType; }
 
-    virtual bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) = 0;
-    virtual bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) = 0;
-    virtual bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) = 0;
     virtual bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) = 0;
     virtual void OnStakeFound(const arith_uint256& bnTarget, const uint256& hashProofOfStake) {}
 };
@@ -87,9 +84,6 @@ public:
 
     bool MarkSpent(AnonWallet* panonwallet, CMutableTransaction& txNew);
 
-    bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) override;
-    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) override;
-    bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) override;
     void OnStakeFound(const arith_uint256& bnTarget, const uint256& hashProofOfStake) override;
     bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) override;
 };
@@ -123,9 +117,9 @@ public:
     CAmount GetWeight() override;
     bool GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev) override;
     CDataStream GetUniqueness() override;
-    bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) override;
-    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) override;
-    bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) override;
+    bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256());
+    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal);
+    bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew);
     bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) override;
     bool IsZerocoins() override { return true; }
 
@@ -154,15 +148,12 @@ public:
     explicit PublicRingCTStake(const CTransactionRef& txStake) : m_ptx(txStake) {}
 
     // None of these are implemented, intentionally.
-    bool IsZerocoins() override { return false; }
     bool GetTxFrom(CTransaction& tx) override { return false; }
-    bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) override { return false; }
-    bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) override { return false; }
-    bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) override {return false; }
     bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) override { return false; }
 
     // Most of these are similar to RingCTStake's. TODO: maybe we could have
     // a base ringctstake class instead of duplicating.
+    bool IsZerocoins() override { return false; }
     const CBlockIndex* GetIndexFrom(const CBlockIndex* pindexPrev) override;
     CAmount GetValue() override;
     CAmount GetWeight() override;
