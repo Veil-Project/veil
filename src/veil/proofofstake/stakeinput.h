@@ -6,11 +6,10 @@
 #ifndef PIVX_STAKEINPUT_H
 #define PIVX_STAKEINPUT_H
 
-#include "veil/ringct/transactionrecord.h"
-#include "veil/ringct/transactionsigcontext.h"
-#include "veil/zerocoin/accumulatormap.h"
 #include "chain.h"
 #include "streams.h"
+#include "veil/ringct/transactionrecord.h"
+#include "veil/zerocoin/accumulatormap.h"
 
 #include "libzerocoin/CoinSpend.h"
 
@@ -19,8 +18,7 @@ class CKeyStore;
 class CWallet;
 class CWalletTx;
 
-enum StakeInputType
-{
+enum StakeInputType {
     STAKE_ZEROCOIN,
     STAKE_RINGCT,
 };
@@ -41,7 +39,7 @@ public:
     virtual bool GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev) = 0;
     virtual bool IsZerocoins() = 0;
     virtual CDataStream GetUniqueness() = 0;
-    libzerocoin::CoinDenomination GetDenomination() {return denom;};
+    libzerocoin::CoinDenomination GetDenomination() { return denom; };
     StakeInputType GetType() const { return nType; }
 
     virtual bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) = 0;
@@ -59,9 +57,6 @@ private:
     const COutputR coin;
     CAmount nWeight = 0;
 
-    // Details for constructing a tx from this stake input.
-    veil_ringct::TransactionInputsSigContext tx_inCtx;
-    veil_ringct::TransactionOutputsSigContext tx_outCtx;
     CTransactionRecord rtx;
 
     // A hash of the key image of the RingCt output. This is used for the CStakeInput's uniqueness.
@@ -71,7 +66,7 @@ private:
 
 public:
     explicit RingCTStake(const COutputR& coin_, uint256 hashPubKey_)
-      : coin(coin_), tx_inCtx(RING_SIZE, 2), hashPubKey(hashPubKey_) {}
+        : coin(coin_), hashPubKey(hashPubKey_) {}
 
     const CBlockIndex* GetIndexFrom(const CBlockIndex* pindexPrev) override;
     bool GetTxFrom(CTransaction& tx) override;
@@ -170,4 +165,4 @@ private:
     bool GetPubkeyHash(uint256& hashPubKey) const;
 };
 
-#endif //PIVX_STAKEINPUT_H
+#endif // PIVX_STAKEINPUT_H

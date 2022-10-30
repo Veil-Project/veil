@@ -16,7 +16,6 @@
 #include <veil/ringct/temprecipient.h>
 #include <veil/ringct/outputrecord.h>
 #include <veil/ringct/transactionrecord.h>
-#include <veil/ringct/transactionsigcontext.h>
 
 #include <key_io.h>
 #include <veil/ringct/stealth.h>
