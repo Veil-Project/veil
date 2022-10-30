@@ -24,17 +24,19 @@ using namespace std;
 bool stakeTargetHit(arith_uint256 hashProofOfStake, int64_t nValueIn, arith_uint256 bnTargetPerCoinDay)
 {
     //get the stake weight - weight is equal to coin amount
-    arith_uint256 bnTarget = arith_uint256(nValueIn) * bnTargetPerCoinDay;
+    arith_uint256 bnTarget(nValueIn);
+    bool overflow = false;
+    bnTarget.safeMultiply(bnTargetPerCoinDay, overflow);
 
     //Double check for overflow, give max value if overflow
-    if (bnTargetPerCoinDay > bnTarget)
+    if (overflow)
         bnTarget = ~arith_uint256();
 
     // Now check if proof-of-stake hash meets target protocol
     return hashProofOfStake < bnTarget;
 }
 
-bool CheckStake(const CDataStream& ssUniqueID, CAmount nValueIn, const uint64_t nStakeModifier, const uint256& bnTarget,
+bool CheckStake(const CDataStream& ssUniqueID, CAmount nValueIn, const uint64_t nStakeModifier, const arith_uint256& bnTarget,
                 unsigned int nTimeBlockFrom, unsigned int& nTimeTx, uint256& hashProofOfStake)
 {
     CDataStream ss(SER_GETHASH, 0);
@@ -42,7 +44,7 @@ bool CheckStake(const CDataStream& ssUniqueID, CAmount nValueIn, const uint64_t 
     hashProofOfStake = Hash(ss.begin(), ss.end());
     //LogPrintf("%s: modifier:%d nTimeBlockFrom:%d nTimeTx:%d u:%s hash:%s\n", __func__, nStakeModifier, nTimeBlockFrom, nTimeTx, Hash(ssUniqueID.begin(), ssUniqueID.end()).GetHex(), hashProofOfStake.GetHex());
 
-    return stakeTargetHit(UintToArith256(hashProofOfStake), nValueIn, UintToArith256(bnTarget));
+    return stakeTargetHit(UintToArith256(hashProofOfStake), nValueIn, bnTarget);
 }
 
 
@@ -92,8 +94,10 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
         i++;
 
         // if stake hash does not meet the target then continue to next iteration
-        if (!CheckStake(ssUniqueID, nValueIn, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nTimeBlockFrom, nTryTime, hashProofOfStake))
+        if (!CheckStake(ssUniqueID, nValueIn, nStakeModifier, bnTargetPerCoinDay, nTimeBlockFrom, nTryTime, hashProofOfStake))
             continue;
+
+        stakeInput->OnStakeFound(bnTargetPerCoinDay, hashProofOfStake);
 
         if (setFoundStakes.count(hashProofOfStake))
             continue;
@@ -168,7 +172,7 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
     if (nValue == 0)
         return error("%s: coinstake %s has no stake weight\n", __func__, txRef->GetHash().GetHex());
 
-    if (!CheckStake(stake->GetUniqueness(), nValue, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime,
+    if (!CheckStake(stake->GetUniqueness(), nValue, nStakeModifier, bnTargetPerCoinDay, nBlockFromTime,
                     nTxTime, hashProofOfStake)) {
         return error("CheckProofOfStake() : INFO: check kernel failed on coinstake %s, hashProof=%s \n",
                      txRef->GetHash().GetHex(), hashProofOfStake.GetHex());

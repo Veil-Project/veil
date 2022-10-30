@@ -130,7 +130,7 @@ const uint64_t BRACKETBASE = 16;
 const uint32_t LOG2BRACKETBASE = 4;
 
 const CAmount nBareMinStake = BRACKETBASE;
-const CAmount nOneSat = 1;
+constexpr CAmount nOneSat = 1;
 
 bool CheckMinStake(const CAmount& nAmount)
 {
@@ -140,39 +140,33 @@ bool CheckMinStake(const CAmount& nAmount)
     return true;
 }
 
-CAmount GetRingCTWeightForValue(const CAmount& nValueIn) {
+static constexpr size_t RingCTNumBuckets = 13;
+static constexpr uint64_t RingCTWeightsByBracket[RingCTNumBuckets + 1] = {
+    0,
+    (1ULL << (4 * 1)) + nOneSat,
+    (1ULL << (4 * 2)) + nOneSat,
+    (1ULL << (4 * 3)) + nOneSat,
+    (1ULL << (4 * 4)) + nOneSat,
+    (1ULL << (4 * 5)) + nOneSat,
+    (1ULL << (4 * 6)) + nOneSat,
+    (1ULL << (4 * 7)) + nOneSat,
+    (((1ULL << (4 * 8)) + nOneSat) * 95) / 100,
+    (((1ULL << (4 * 9)) + nOneSat) * 91) / 100,
+    (((1ULL << (4 * 10)) + nOneSat) * 71) / 100,
+    (((1ULL << (4 * 11)) + nOneSat) * 5) / 10,
+    (((1ULL << (4 * 12)) + nOneSat) * 3) / 10,
+    ((1ULL << (4 * 13)) + nOneSat) / 10,
+    };
+
+CAmount GetRingCTWeightForValue(const CAmount& nValueIn)
+{
     // fast mode
     if (nValueIn <= nBareMinStake)
         return 0;
 
     // bracket is at least 1 now.
     int bracket = fast_log16(nValueIn - nOneSat);
-    // We'd do 16 << (4 * (bracket - 1)) but 16 is 1 << 4 so it's really
-    // 1 << (4 + 4 * bracket - 4)
-    CAmount val = (1ULL << (4 * bracket)) + nOneSat;
-
-    switch (bracket) {
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
-        case 7:
-            return val;
-        case 8:
-            return (val * 95) / 100;
-        case 9:
-            return (val * 91) / 100;
-        case 10:
-            return (val * 71) / 100;
-        case 11:
-            return (val * 5) / 10;
-        case 12:
-            return (val * 3) / 10;
-        default:
-            return val / 10;
-    }
+    return RingCTWeightsByBracket[bracket > RingCTNumBuckets ? RingCTNumBuckets : bracket];
 }
 
 // To keep the input private, we use the stake depth as the index from.
@@ -235,8 +229,41 @@ CAmount RingCTStake::GetBracketMinValue()
 }
 
 // We further reduce the weights of higher brackets to match zerocoin reductions.
-CAmount RingCTStake::GetWeight() {
-    return GetRingCTWeightForValue(GetValue());
+CAmount RingCTStake::GetWeight()
+{
+    if (nWeight == 0) {
+        nWeight = GetRingCTWeightForValue(GetValue());
+    }
+    return nWeight;
+}
+
+void RingCTStake::OnStakeFound(const arith_uint256& bnTarget, const uint256& hashProofOfStake)
+{
+    CAmount nValueIn = GetValue();
+    // fast mode
+    if (nValueIn <= nBareMinStake)
+        return;
+
+    // bracket is at least 1 now.
+    arith_uint256 hashProof = UintToArith256(hashProofOfStake);
+    int bracket = fast_log16(nValueIn - nOneSat);
+    if (bracket > RingCTNumBuckets)
+        bracket = RingCTNumBuckets;
+    for (--bracket; bracket > 0; --bracket) {
+        arith_uint256 newTarget(RingCTWeightsByBracket[bracket]);
+        bool overflow = false;
+        newTarget.safeMultiply(bnTarget, overflow);
+        // in case of overflow, the real target is MAX_UINT256, which is an auto-pass.
+        if (overflow) {
+            continue;
+        }
+        // Stop when we find a bucket that fails to meet the target.
+        if (hashProof >= newTarget) {
+            break;
+        }
+    }
+    ++bracket;
+    nWeight = RingCTWeightsByBracket[bracket];
 }
 
 bool RingCTStake::GetModifier(uint64_t& nStakeModifier, const CBlockIndex* pindexChainPrev)

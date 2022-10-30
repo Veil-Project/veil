@@ -66,7 +66,7 @@ base_uint<BITS>& base_uint<BITS>::operator*=(uint32_t b32)
 }
 
 template <unsigned int BITS>
-base_uint<BITS>& base_uint<BITS>::operator*=(const base_uint& b)
+base_uint<BITS>& base_uint<BITS>::safeMultiply(const base_uint& b, bool& overflow)
 {
     base_uint<BITS> a;
     for (int j = 0; j < WIDTH; j++) {
@@ -76,9 +76,18 @@ base_uint<BITS>& base_uint<BITS>::operator*=(const base_uint& b)
             a.pn[i + j] = n & 0xffffffff;
             carry = n >> 32;
         }
+        // j > 0 implies we hit i + j == WIDTH before i == WIDTH
+        overflow |= carry > 0 || (j > 0 && pn[j] > 0 && b.pn[WIDTH - j] > 0);
     }
     *this = a;
     return *this;
+}
+
+template <unsigned int BITS>
+base_uint<BITS>& base_uint<BITS>::operator*=(const base_uint& b)
+{
+    bool overflow = true;
+    return safeMultiply(b, overflow);
 }
 
 template <unsigned int BITS>
@@ -188,6 +197,7 @@ unsigned int base_uint<BITS>::bits() const
 template base_uint<256>::base_uint(const std::string&);
 template base_uint<256>& base_uint<256>::operator<<=(unsigned int);
 template base_uint<256>& base_uint<256>::operator>>=(unsigned int);
+template base_uint<256>& base_uint<256>::safeMultiply(const base_uint<256>& b, bool& overflow);
 template base_uint<256>& base_uint<256>::operator*=(uint32_t b32);
 template base_uint<256>& base_uint<256>::operator*=(const base_uint<256>& b);
 template base_uint<256>& base_uint<256>::operator/=(const base_uint<256>& b);
@@ -203,6 +213,7 @@ template unsigned int base_uint<256>::bits() const;
 template base_uint<512>::base_uint(const std::string&);
 template base_uint<512>& base_uint<512>::operator<<=(unsigned int);
 template base_uint<512>& base_uint<512>::operator>>=(unsigned int);
+template base_uint<512>& base_uint<512>::safeMultiply(const base_uint<512>& b, bool& overflow);
 template base_uint<512>& base_uint<512>::operator*=(uint32_t b32);
 template base_uint<512>& base_uint<512>::operator*=(const base_uint<512>& b);
 template base_uint<512>& base_uint<512>::operator/=(const base_uint<512>& b);

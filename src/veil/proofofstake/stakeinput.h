@@ -48,6 +48,7 @@ public:
     virtual bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) = 0;
     virtual bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) = 0;
     virtual bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) = 0;
+    virtual void OnStakeFound(const arith_uint256& bnTarget, const uint256& hashProofOfStake) {}
 };
 
 
@@ -59,6 +60,7 @@ private:
     // Contains: depth (coin.nDepth), txo idx (coin.i), output record (coin.rtx->second)
     // A copy is required for lifetime.
     const COutputR coin;
+    CAmount nWeight = 0;
 
     // Details for constructing a tx from this stake input.
     veil_ringct::TransactionInputsSigContext tx_inCtx;
@@ -88,7 +90,7 @@ public:
     bool CreateTxIn(CWallet* pwallet, CTxIn& txIn, uint256 hashTxOut = uint256()) override;
     bool CreateTxOuts(CWallet* pwallet, std::vector<CTxOutBaseRef>& vpout, CAmount nTotal) override;
     bool CompleteTx(CWallet* pwallet, CMutableTransaction& txNew) override;
-
+    void OnStakeFound(const arith_uint256& bnTarget, const uint256& hashProofOfStake) override;
     bool CreateCoinStake(CWallet* pwallet, const CAmount& nBlockReward, CMutableTransaction& txCoinStake, bool& retryable, CMutableTransaction& txCoinbase) override;
 };
 
