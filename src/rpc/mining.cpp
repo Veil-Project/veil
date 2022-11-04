@@ -780,13 +780,13 @@ static UniValue getblocktemplate_impl(const std::string &strMode, const UniValue
         }
     }
     if constexpr (nPoWType == CBlockHeader::RANDOMX_BLOCK) {      // if (pblock->IsRandomX()) {
+        result.pushKV("rxrpcseed", GetKeyBlock(pblock->nHeight).GetHex());
         std::string address = gArgs.GetArg("-miningaddress", "");
         if (IsValidDestinationString(address)) {
             static std::string lastheader = "";
             if (mapRandomXTemplates.count(lastheader)) {
                 if (pblock->nTime - 60 < mapRandomXTemplates.at(lastheader).nTime) {
                     result.pushKV("rxrpcheader", lastheader);
-                    result.pushKV("rxrpcseed", GetKeyBlock(pblock->nHeight).GetHex());
                     return result;
                 }
             }
@@ -795,7 +795,6 @@ static UniValue getblocktemplate_impl(const std::string &strMode, const UniValue
             ssBlockHeader << CRandomXInput(*pblock);
             std::string blockHeaderHex = HexStr(ssBlockHeader);
             result.pushKV("rxrpcheader", blockHeaderHex);
-            result.pushKV("rxrpcseed", GetKeyBlock(pblock->nHeight).GetHex());
             mapRandomXTemplates[blockHeaderHex] = *pblock;
             lastheader = blockHeaderHex;
         }
