@@ -4937,26 +4937,23 @@ bool CChainState::ContextualCheckStake(CBlockIndex* pindex, CStakeInput* stake)
 {
     switch (stake->GetType()) {
         case STAKE_ZEROCOIN:
-            ZerocoinStake* stakeZerocoin;
-            try {
-                stakeZerocoin = dynamic_cast<ZerocoinStake*>(stake);
-            } catch (std::bad_cast) {
+        {
+            ZerocoinStake* stakeZerocoin = dynamic_cast<ZerocoinStake*>(stake);
+            if (!stakeZerocoin)
                 return false;
-            }
 
             return ContextualCheckZerocoinStake(pindex, stakeZerocoin);
+        }
         case STAKE_RINGCT:
-            PublicRingCTStake* stakeRCT = nullptr;
-
-            try {
-                stakeRCT = dynamic_cast<PublicRingCTStake*>(stake);
-            } catch (std::bad_cast) {
+        {
+            PublicRingCTStake* stakeRCT = dynamic_cast<PublicRingCTStake*>(stake);
+            if (!stakeRCT)
                 return false;
-            }
 
             return ContextualCheckRingCTStake(pindex, stakeRCT);
+        }
     }
-    return error ("%s: Invalid stake type %d block height %d", __func__, stake->GetType(), pindex->nHeight);
+    return error("%s: Invalid stake type %d block height %d", __func__, stake->GetType(), pindex->nHeight);
 }
 
 bool CChainState::ContextualCheckRingCTStake(CBlockIndex* pindex, PublicRingCTStake* stake)
