@@ -111,6 +111,8 @@ static const unsigned int BLOCK_DOWNLOAD_WINDOW = 1024;
 static const unsigned int DATABASE_WRITE_INTERVAL = 60 * 6;
 /** Time to wait (in seconds) between flushing chainstate to disk. */
 static const unsigned int DATABASE_FLUSH_INTERVAL = 24 * 60 * 6;
+/** Time to wait (in seconds) between checking for stale block indexes. */
+static const unsigned int DEFAULT_INDEXCHECK_INTERVAL = 60 * 5;
 /** Maximum length of reject messages. */
 static const unsigned int MAX_REJECT_MESSAGE_LENGTH = 111;
 /** Block download timeout base, expressed in millionths of the block interval (i.e. 10 min) */
@@ -535,6 +537,8 @@ int GetSpendHeight(const CCoinsViewCache& inputs);
 static bool isPowTimeStampActive() { return (chainActive.Tip()->nTime >= nPowTimeStampActive); }
 
 extern VersionBitsCache versionbitscache;
+
+void PruneStaleBlockIndexes();
 
 /**
  * Determine what nVersion a new block should use.

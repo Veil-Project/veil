@@ -2061,5 +2061,10 @@ bool AppInitMain()
         InitRandomXLightCache(chainActive.Height());
     }
 
+    // Check for stale block indexes every five minutes
+    scheduler.scheduleEvery([]{
+        PruneStaleBlockIndexes();
+    }, DEFAULT_INDEXCHECK_INTERVAL * 1000);
+
     return true;
 }
