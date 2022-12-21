@@ -756,37 +756,33 @@ static UniValue getblocktemplate_impl(const std::string &strMode, const UniValue
     result.pushKV("mining_disabled", (!CheckConsecutivePoW(*pblock , pindexPrev))? true : false );
 
     if constexpr (nPoWType == CBlockHeader::PROGPOW_BLOCK) {      // if (pblock->IsProgPow()) {
+        result.pushKV("pprpcepoch", Params().GetProgPowEpochNumber(pblock->nHeight));
+        auto nextEpoch = Params().GetProgPowNextEpoch(pblock->nHeight);
+        result.pushKV("pprpcnextepoch", nextEpoch.first);
+        result.pushKV("pprpcnextepochheight", nextEpoch.second);
         std::string address = gArgs.GetArg("-miningaddress", "");
         if (IsValidDestinationString(address)) {
             static std::string lastheader = "";
             if (mapProgPowTemplates.count(lastheader)) {
                 if (pblock->nTime - 60 < mapProgPowTemplates.at(lastheader).nTime) {
                     result.pushKV("pprpcheader", lastheader);
-                    result.pushKV("pprpcepoch", Params().GetProgPowEpochNumber(pblock->nHeight));
-                    auto nextEpoch = Params().GetProgPowNextEpoch(pblock->nHeight);
-                    result.pushKV("pprpcnextepoch", nextEpoch.first);
-                    result.pushKV("pprpcnextepochheight", nextEpoch.second);
                     return result;
                 }
             }
 
             result.pushKV("pprpcheader", pblock->GetProgPowHeaderHash().GetHex());
-            result.pushKV("pprpcepoch", Params().GetProgPowEpochNumber(pblock->nHeight));
-            auto nextEpoch = Params().GetProgPowNextEpoch(pblock->nHeight);
-            result.pushKV("pprpcnextepoch", nextEpoch.first);
-            result.pushKV("pprpcnextepochheight", nextEpoch.second);
             mapProgPowTemplates[pblock->GetProgPowHeaderHash().GetHex()] = *pblock;
             lastheader = pblock->GetProgPowHeaderHash().GetHex();
         }
     }
     if constexpr (nPoWType == CBlockHeader::RANDOMX_BLOCK) {      // if (pblock->IsRandomX()) {
+        result.pushKV("rxrpcseed", GetKeyBlock(pblock->nHeight).GetHex());
         std::string address = gArgs.GetArg("-miningaddress", "");
         if (IsValidDestinationString(address)) {
             static std::string lastheader = "";
             if (mapRandomXTemplates.count(lastheader)) {
                 if (pblock->nTime - 60 < mapRandomXTemplates.at(lastheader).nTime) {
                     result.pushKV("rxrpcheader", lastheader);
-                    result.pushKV("rxrpcseed", GetKeyBlock(pblock->nHeight).GetHex());
                     return result;
                 }
             }
@@ -795,7 +791,6 @@ static UniValue getblocktemplate_impl(const std::string &strMode, const UniValue
             ssBlockHeader << CRandomXInput(*pblock);
             std::string blockHeaderHex = HexStr(ssBlockHeader);
             result.pushKV("rxrpcheader", blockHeaderHex);
-            result.pushKV("rxrpcseed", GetKeyBlock(pblock->nHeight).GetHex());
             mapRandomXTemplates[blockHeaderHex] = *pblock;
             lastheader = blockHeaderHex;
         }
