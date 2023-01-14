@@ -729,6 +729,7 @@ public:
 
         /** RingCT/Stealth **/
         nDefaultRingSize = 11;
+        nHeightRingCTStaking = 25000;
 
         nMaxHeaderRequestWithoutPoW = 50;
         nPreferredMintsPerBlock = 70; //Miner will not include more than this many mints per block
