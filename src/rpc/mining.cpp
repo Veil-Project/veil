@@ -54,12 +54,35 @@ unsigned int ParseConfirmTarget(const UniValue& value)
     return (unsigned int)target;
 }
 
+enum class MiningType {
+    Sha256D,
+    ProgPow,
+    RandomX,
+    PoS,
+    X16RT,
+    Invalid
+};
+
+MiningType ParseMiningType(const std::string &type) {
+    if (type == "sha256d")
+        return MiningType::Sha256D;
+    if (type == "progpow")
+        return MiningType::ProgPow;
+    if (type == "randomx")
+        return MiningType::RandomX;
+    if (type == "pos")
+        return MiningType::PoS;
+    if (type == "xr16t")
+        return MiningType::X16RT;
+    return MiningType::Invalid;
+}
+
 /**
  * Return average network hashes per second based on the last 'lookup' blocks,
  * or from the last difficulty change if 'lookup' is nonpositive.
  * If 'height' is nonnegative, compute the estimate at the time when a given block was found.
  */
-static UniValue GetNetworkHashPS(int lookup, int height, std::string type) {
+static UniValue GetNetworkHashPS(int lookup, int height, MiningType type) {
     CBlockIndex *pb = chainActive.Tip();
 
     if (height >= 0 && height < chainActive.Height())
@@ -71,74 +94,104 @@ static UniValue GetNetworkHashPS(int lookup, int height, std::string type) {
         return 0;
 
     // If lookup is -1, then use blocks since last difficulty change.
-    if (lookup <= 1)
-        lookup = 2;
+    int32_t minLookup = lookup < 0 ? 2 : 0;
+
+    // The total work in the considered timespan
+    arith_uint256 workDiff;
 
     CBlockIndex *pbLast = pb;
     CBlockIndex *pbFirst = nullptr;
     bool found = false;
-    while (pb->nHeight > 0)
+    while (pb->nHeight > 0 && lookup != 0)
     {
+        --lookup;
+
         // find the last of the algo
-        if (0 == type.compare("pos")) {
-            if (pb->IsProofOfStake()) found=true;
-        } else if (0 == type.compare("sha256d")) {
+        switch (type) {
+        case MiningType::Sha256D:
             if (pb->GetBlockTime() < Params().PowUpdateTimestamp()) return 0;
             if (pb->IsSha256DProofOfWork()) found=true;
-        } else if (0 == type.compare("randomx")) {
-            if (pb->GetBlockTime() < Params().PowUpdateTimestamp()) return 0;
-            if (pb->IsRandomXProofOfWork()) found=true;
-        } else if (0 == type.compare("progpow")) {
+            break;
+        case MiningType::ProgPow:
             if (pb->GetBlockTime() < Params().PowUpdateTimestamp()) return 0;
             if (pb->IsProgProofOfWork()) found=true;
-        } else if (0 == type.compare("xr16t")) {
+            break;
+        case MiningType::RandomX:
+            if (pb->GetBlockTime() < Params().PowUpdateTimestamp()) return 0;
+            if (pb->IsRandomXProofOfWork()) found=true;
+            break;
+        case MiningType::PoS:
+            if (pb->IsProofOfStake()) found=true;
+            break;
+        case MiningType::X16RT:
             if (pb->IsX16RTProofOfWork()) found=true;
-        } else {
+            break;
+        default:
             // Unknown Algo
             return 0;
         }
+
         if (found) {
             pbLast = pb;
             break;
         }
+
         pb = pb->pprev;
     }
 
     if (!found) return 0;
 
+    pbFirst = pbLast;
+
     // find the nth previous
-    uint32_t nCountBlocks = 1;
-    while ((nCountBlocks < lookup) && (pb->nHeight > 1))
+    int32_t nCountBlocks = 0, nCountAlgoBlocks = 1;
+    while ((nCountBlocks < lookup || nCountAlgoBlocks < minLookup) &&
+           (pb->nHeight > 1))
     {
+        ++nCountBlocks;
+
         pb = pb->pprev;
-        if (0 == type.compare("pos")) {
-            if (pb->IsProofOfStake()) {
-                nCountBlocks++;
-                pbFirst = pb;
-            }
-        } else if (0 == type.compare("sha256d")) {
+
+        switch (type) {
+        case MiningType::Sha256D:
             if (pb->IsSha256DProofOfWork()) {
-                nCountBlocks++;
+                ++nCountAlgoBlocks;
+                workDiff += GetBlockProof(*pbFirst);
                 pbFirst = pb;
             }
-        } else if (0 == type.compare("randomx")) {
-            if (pb->IsRandomXProofOfWork()) {
-                nCountBlocks++;
-                pbFirst = pb;
-            }
-        } else if (0 == type.compare("progpow")) {
+            break;
+        case MiningType::ProgPow:
             if (pb->IsProgProofOfWork()) {
-                nCountBlocks++;
+                ++nCountAlgoBlocks;
+                workDiff += GetBlockProof(*pbFirst);
                 pbFirst = pb;
             }
-        } else { // xr16rt
+            break;
+        case MiningType::RandomX:
+            if (pb->IsRandomXProofOfWork()) {
+                ++nCountAlgoBlocks;
+                workDiff += GetBlockProof(*pbFirst);
+                pbFirst = pb;
+            }
+            break;
+        case MiningType::PoS:
+            if (pb->IsProofOfStake()) {
+                ++nCountAlgoBlocks;
+                pbFirst = pb;
+            }
+            break;
+        case MiningType::X16RT:
             if (pb->IsX16RTProofOfWork()) {
-                nCountBlocks++;
+                ++nCountAlgoBlocks;
                 pbFirst = pb;
             }
+            break;
+        default:
+          return 0;
         }
+
         // Check if we should continue
-        if (((0 != type.compare("sha256d")) || (0 != type.compare("randomx")) || (0 != type.compare("progpow"))) &&
+        if ((type == MiningType::Sha256D || type == MiningType::ProgPow || type == MiningType::RandomX) &&
             (pb->GetBlockTime() < Params().PowUpdateTimestamp()))
         {
             // Don't keep searching, abort now
@@ -147,7 +200,7 @@ static UniValue GetNetworkHashPS(int lookup, int height, std::string type) {
     }
 
     // only one was found
-    if (!pbFirst || !pbLast || (pbFirst == pbLast)) return 0;
+    if (pbFirst == pbLast) return 0;
 
     int64_t minTime = pbFirst->GetBlockTime();
     int64_t maxTime = pbLast->GetBlockTime();
@@ -156,9 +209,16 @@ static UniValue GetNetworkHashPS(int lookup, int height, std::string type) {
     if (minTime == maxTime)
         return 0;
 
-    arith_uint256 workDiff = pbLast->nChainWork - pbFirst->nChainWork;
-    int64_t timeDiff = maxTime - minTime;
+    if (type != MiningType::Sha256D && type != MiningType::ProgPow && type != MiningType::RandomX) {
+        workDiff = pbLast->nChainWork - pbFirst->nChainWork;
 
+        if (type == MiningType::PoS) {
+            // Remove PoW work from nChainWork diff
+            workDiff -= pbLast->nChainPoW - pbFirst->nChainPoW;
+        }
+    }
+
+    int64_t timeDiff = maxTime - minTime;
     return workDiff.getdouble() / timeDiff;
 }
 
@@ -172,7 +232,7 @@ static UniValue getnetworkhashps(const JSONRPCRequest& request)
             "Pass in [height] to estimate the network hash at the time when a certain block was found.\n"
             "Pass in [algo] to estimate the network hash for a different algo then your wallet is set to.\n"
             "\nArguments:\n"
-            "1. nblocks     (numeric, optional, default=120) The number of blocks, or -1 for blocks since last difficulty change.\n"
+            "1. nblocks     (numeric, optional, default=180) The number of blocks, or -1 for blocks since last difficulty change.\n"
             "2. height      (numeric, optional, default=-1) To estimate at the time of the given height.\n"
             "3. algo        (string, optional, default="+GetMiningType(GetMiningAlgorithm(), false, false)+") Algo to calculate [randomx, sha256d, progpow, xr16t, pos].\n"
             "\nResult:\n"
@@ -188,15 +248,18 @@ static UniValue getnetworkhashps(const JSONRPCRequest& request)
         // Check if it's a mining algorithm
         if (!SetMiningAlgorithm(algo, false))
             // check that it's not one of the other two
-            if (algo.compare("pos") && algo.compare("xr16t"))
+            if (algo != "pos" && algo != "xr16t")
                 throw JSONRPCError(RPC_INVALID_PARAMETER,
                                    strprintf("%s is not a supported mining type", algo));
     }
 
-    return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 120,
+    MiningType type = ParseMiningType(!request.params[2].isNull()
+                                          ? request.params[2].get_str()
+                                          : GetMiningType(GetMiningAlgorithm(), false, false));
+
+    return GetNetworkHashPS(!request.params[0].isNull() ? request.params[0].get_int() : 180,
                             !request.params[1].isNull() ? request.params[1].get_int() : -1,
-                            !request.params[2].isNull() ? request.params[2].get_str()
-                                                        : GetMiningType(GetMiningAlgorithm(), false, false));
+                            type);
 }
 
 UniValue generateBlocks(std::shared_ptr<CReserveScript> coinbaseScript, int nGenerate, uint64_t nMaxTries, bool keepScript)
