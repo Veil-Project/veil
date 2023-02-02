@@ -23,6 +23,7 @@ class CReserveScript;
 
 extern std::vector<randomx_vm*> vecRandomXVM;
 extern bool fKeyBlockedChanged;
+extern class CCriticalSection cs_randomx_validator;
 
 arith_uint256 GetPowLimit(int nPoWType);
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params&,
