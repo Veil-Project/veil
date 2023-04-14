@@ -8,7 +8,7 @@ env:
 jobs:
   create-source-distribution:
     name: Create Source Distribution
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       ARTIFACT_DIR: source
     steps:
@@ -17,8 +17,8 @@ jobs:
     # Needs qt and protobuf to configure qt and include veil-qt.1 in distribution
     - name: Install Required Packages
       run: |
-        sudo apt-get update
-        sudo apt-get install -y libboost-all-dev libdb-dev libdb++-dev libevent-dev libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler
+        sudo apt update
+        sudo apt install -y libboost-all-dev libdb-dev libdb++-dev libevent-dev libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler
     - name: Create Distribution Tarball
       run: |
         ./autogen.sh
@@ -40,7 +40,7 @@ jobs:
   build-x86_64-linux:
     name: Build for x86 Linux 64bit
     needs: create-source-distribution
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       ARTIFACT_DIR: x86_64-linux-binaries
       TEST_LOG_ARTIFACT_DIR: test-logs
@@ -56,8 +56,8 @@ jobs:
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Install Required Packages
       run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-zmq
+        sudo apt update
+        sudo apt install -y python3-zmq
     - name: Build Dependencies
       run: make -C depends -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
@@ -79,7 +79,7 @@ jobs:
   build-win64:
     name: Build for Win64
     needs: create-source-distribution
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       ARTIFACT_DIR: win64-binaries
     steps:
@@ -94,8 +94,8 @@ jobs:
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Install Required Packages
       run: |
-        sudo apt-get update
-        sudo apt-get install -y g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64
+        sudo apt update
+        sudo apt install -y g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64
     - name: Switch MinGW GCC and G++ to POSIX Threading
       run: |
         sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
@@ -121,7 +121,7 @@ jobs:
   build-osx64:
     name: Build for MacOSX
     needs: create-source-distribution
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       ARTIFACT_DIR: macosx-binaries
     steps:
@@ -136,8 +136,8 @@ jobs:
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Install Required Packages
       run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-setuptools libcap-dev zlib1g-dev cmake
+        sudo apt update
+        sudo apt install -y python3-setuptools libcap-dev zlib1g-dev cmake
         sudo -H pip install setuptools
     - name: Get macOS SDK
       run: |
@@ -168,7 +168,7 @@ jobs:
   build-aarch64-linux:
     name: Build for ARM Linux 64bit
     needs: create-source-distribution
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       ARTIFACT_DIR: aarch64-linux-binaries
     steps:
@@ -183,8 +183,8 @@ jobs:
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Install Required Packages
       run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-zmq libcap-dev cmake g++-aarch64-linux-gnu
+        sudo apt update
+        sudo apt install -y python3-zmq libcap-dev cmake g++-aarch64-linux-gnu
     - name: Build Dependencies
       run: make -C depends HOST=aarch64-linux-gnu -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
@@ -207,7 +207,7 @@ jobs:
   build-arm-linux-gnueabihf:
     name: Build for ARM Linux 32bit
     needs: create-source-distribution
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       ARTIFACT_DIR: arm32-binaries
     steps:
@@ -222,8 +222,8 @@ jobs:
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Install Required Packages
       run: |
-        sudo apt-get update
-        sudo apt-get install -y g++-arm-linux-gnueabihf libgmp-dev
+        sudo apt update
+        sudo apt install -y g++-arm-linux-gnueabihf libgmp-dev
     - name: Build Dependencies
       run: make -C depends -j$(nproc) HOST=arm-linux-gnueabihf
       working-directory: ${{ env.SOURCE_ARTIFACT }}
@@ -246,7 +246,7 @@ jobs:
   build-i686-linux32:
     name: Build for x86 Linux 32bit
     needs: create-source-distribution
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
     env:
       ARTIFACT_DIR: i686-linux32-binaries
     steps:
@@ -261,17 +261,14 @@ jobs:
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Install Required Packages
       run: |
-        sudo apt-get update
-        sudo apt-get install -y python3-zmq libboost-all-dev libevent-dev libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler libqrencode-dev
-        sudo add-apt-repository ppa:bitcoin/bitcoin
-        sudo apt-get update
-        sudo apt-get install -y libdb4.8-dev libdb4.8++-dev
+        sudo apt update
+        sudo apt install -y python3-zmq gcc-multilib g++-multilib
     - name: Build Dependencies
-      run: make -C depends -j$(nproc)
+      run: make -C depends -j$(nproc) HOST=i686-linux-gnu
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Build Veil
       run: |
-        ./configure --disable-jni --prefix=$(realpath depends/i686-pc-linux-gnu)
+        ./configure --disable-jni --prefix=$(realpath depends/i686-linux-gnu)
         make -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Prepare Files for Artifact
