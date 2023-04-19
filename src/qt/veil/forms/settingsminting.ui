@@ -271,8 +271,8 @@ border:0;
 font-size:18px;</string>
               </property>
               <property name="text">
-               <string>Automint is now OFF. This only effects AUTOMINTING. 
-You can still mint to right side-> or with the debug console</string>
+               <string>AUTOMINTING is now OFF. 
+You can still mint with the debug console or to the right-></string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
