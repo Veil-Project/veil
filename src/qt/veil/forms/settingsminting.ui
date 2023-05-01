@@ -271,8 +271,8 @@ border:0;
 font-size:18px;</string>
               </property>
               <property name="text">
-               <string>Select a Zerocoin denomination
-to have automatically minted by automint</string>
+               <string>AUTOMINTING is now OFF. 
+You can still mint with the debug console or to the right-></string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
@@ -292,8 +292,8 @@ to have automatically minted by automint</string>
 font-size:14px;</string>
               </property>
               <property name="text">
-               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;Every 5 minutes the wallet will try to 
-&lt;br&gt;mint new zerocoins of the selected denom&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;To manually mint with debug console:
+&lt;br&gt;Settings Tab>Advanced Options>Console Tab> mintzerocoin (denom)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
               </property>
               <property name="alignment">
                <set>Qt::AlignCenter</set>
