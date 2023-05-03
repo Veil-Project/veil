@@ -645,10 +645,10 @@ UniValue dumpprivkey(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
-            "dumpprivkey \"address\"\n"
-            "\nNote: dumprivkey does not include private keys for stealth addresses. Use wallet.dat file or seed words for complete backup.\n" 
+            "dumpprivkey \"address\"\n" 
             "\nReveals the private key corresponding to 'address'.\n"
             "Then the importprivkey can be used with this output\n"
+            "\nNote: dumpprivkey does not include private keys for stealth addresses. Use wallet.dat file or seed words for complete backup.\n" 
             "\nArguments:\n"
             "1. \"address\"   (string, required) The veil address for the private key\n"
             "\nResult:\n"
@@ -701,7 +701,7 @@ UniValue dumpwallet(const JSONRPCRequest& request)
             "\nResult:\n"
             "{                           (json object)\n"
             "  \"filename\" : {        (string) The filename with full absolute path\n"
-            "} Note: dumpwallet does not include private keys for stealth addresses. Use wallet.dat file or seed words for complete backup.\n"
+            "}\n"
             "\nExamples:\n"
             + HelpExampleCli("dumpwallet", "\"test\"")
             + HelpExampleRpc("dumpwallet", "\"test\"")
@@ -750,6 +750,7 @@ UniValue dumpwallet(const JSONRPCRequest& request)
     file << strprintf("# * Created on %s\n", FormatISO8601DateTime(GetTime()));
     file << strprintf("# * Best block at time of backup was %i (%s),\n", chainActive.Height(), chainActive.Tip()->GetBlockHash().ToString());
     file << strprintf("#   mined on %s\n", FormatISO8601DateTime(chainActive.Tip()->GetBlockTime()));
+    file << "# Note: dumpwallet does not include private keys for stealth addresses. Use wallet.dat file or seed words for complete backup.\n";
     file << "\n";
 
     // add the base58check encoded extended master if the wallet uses HD
