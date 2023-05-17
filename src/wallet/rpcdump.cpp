@@ -645,9 +645,10 @@ UniValue dumpprivkey(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
-            "dumpprivkey \"address\"\n"
+            "dumpprivkey \"address\"\n" 
             "\nReveals the private key corresponding to 'address'.\n"
             "Then the importprivkey can be used with this output\n"
+            "\nNote: dumpprivkey does not include private keys for stealth addresses. Use wallet.dat file or seed words for complete backup.\n" 
             "\nArguments:\n"
             "1. \"address\"   (string, required) The veil address for the private key\n"
             "\nResult:\n"
@@ -689,11 +690,12 @@ UniValue dumpwallet(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
-            "dumpwallet \"filename\"\n"
+            "dumpwallet \"filename\"\n" 
             "\nDumps all wallet keys in a human-readable format to a server-side file. This does not allow overwriting existing files.\n"
             "Imported scripts are included in the dumpfile, but corresponding BIP173 addresses, etc. may not be added automatically by importwallet.\n"
             "Note that if your wallet contains keys which are not derived from your HD seed (e.g. imported keys), these are not covered by\n"
             "only backing up the seed itself, and must be backed up too (e.g. ensure you back up the whole dumpfile).\n"
+            "\nNote: dumpwallet does not include private keys for stealth addresses. Use wallet.dat file or seed words for complete backup.\n"
             "\nArguments:\n"
             "1. \"filename\"    (string, required) The filename with path (either absolute or relative to veild)\n"
             "\nResult:\n"
@@ -748,6 +750,7 @@ UniValue dumpwallet(const JSONRPCRequest& request)
     file << strprintf("# * Created on %s\n", FormatISO8601DateTime(GetTime()));
     file << strprintf("# * Best block at time of backup was %i (%s),\n", chainActive.Height(), chainActive.Tip()->GetBlockHash().ToString());
     file << strprintf("#   mined on %s\n", FormatISO8601DateTime(chainActive.Tip()->GetBlockTime()));
+    file << "# Note: dumpwallet does not include private keys for stealth addresses. Use wallet.dat file or seed words for complete backup.\n";
     file << "\n";
 
     // add the base58check encoded extended master if the wallet uses HD
