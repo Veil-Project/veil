@@ -385,6 +385,9 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
     showOutOfSyncWarning(true);
     //connect(ui->labelWalletStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
     //connect(ui->labelTransactionsStatus, SIGNAL(clicked()), this, SLOT(handleOutOfSyncWarningClicks()));
+
+    // Fix veil.tools hyperlink in wallet "looks like your new here" not working. #1032
+    ui->label_3->setOpenExternalLinks(true);
 }
 
 void OverviewPage::handleTransactionClicked(const QModelIndex &index)
