@@ -513,14 +513,12 @@ void OverviewPage::setWalletModel(WalletModel *model)
 
         interfaces::Wallet& wallet = model->wallet();
 
-        if(wallet.getWalletTxs().size() == 0 ){
-            // show empty view
-            ui->containerEmpty->setVisible(true);
-            ui->listTransactions->setVisible(false);
+        if(isNewWallet()){
+            showHelp();
 
             connect(model, SIGNAL(balanceChanged(interfaces::WalletBalances)), this, SLOT(updateTxesView()));
         }else{
-            ui->containerEmpty->setVisible(false);
+            hideHelp();
         }
 
         // Keep up to date with wallet
@@ -541,8 +539,7 @@ void OverviewPage::setWalletModel(WalletModel *model)
 
 void OverviewPage::updateTxesView(){
     if(ui->containerEmpty->isVisible()){
-        ui->containerEmpty->setVisible(false);
-        ui->listTransactions->setVisible(true);
+        hideHelp();
         disconnect(this, SLOT(updateTxesView()));
     }
 }
@@ -609,4 +606,38 @@ void OverviewPage::hideEvent(QHideEvent *event){
     a->setEndValue(0);
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+}
+
+void OverviewPage::showHelp()
+{
+    // show empty view
+    ui->containerEmpty->setVisible(true);
+    ui->listTransactions->setVisible(false);
+}
+
+void OverviewPage::hideHelp()
+{
+    ui->containerEmpty->setVisible(false);
+    ui->listTransactions->setVisible(true);
+}
+
+bool OverviewPage::isNewWallet()
+{
+    bool retVal = true;
+
+    if(this->walletModel)
+    {
+        interfaces::Wallet& wallet = this->walletModel->wallet();
+
+        if(wallet.getWalletTxs().size() == 0)
+        {
+            retVal = true;
+        }
+        else
+        {
+            retVal = false;
+        }
+    }
+
+    return retVal;
 }

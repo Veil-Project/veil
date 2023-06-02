@@ -204,6 +204,10 @@ void WalletView::processNewTransaction(const QModelIndex& parent, int start, int
 
 void WalletView::gotoOverviewPage()
 {
+    if(!(overviewPage->isNewWallet()))
+    {
+        overviewPage->hideHelp();
+    }
     setCurrentWidget(overviewPage);
 }
 
@@ -237,6 +241,12 @@ void WalletView::gotoAddressesPage(){
 
 void WalletView::gotoSettingsPage(){
     setCurrentWidget(settingsWidget);
+}
+
+void WalletView::gotoHelpPage()
+{
+    overviewPage->showHelp();
+    setCurrentWidget(overviewPage);
 }
 
 void WalletView::gotoSignMessageTab(QString addr)

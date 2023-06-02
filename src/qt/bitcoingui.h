@@ -153,6 +153,7 @@ private:
     QAction* settingsAction = nullptr;
     QAction* settingsAction2 = nullptr;
     QAction* miningAction = nullptr;
+    QAction* helpAction = nullptr;
     //QAction* historyAction = nullptr;
     QAction* quitAction = nullptr;
     QAction* sendCoinsAction = nullptr;
@@ -296,6 +297,8 @@ private Q_SLOTS:
     void gotoAddressesPage();
     /** Switch to settings page */
     void gotoSettingsPage();
+    /** Switch to help page */
+    void gotoHelpPage();
 
     /** Show Sign/Verify Message dialog and switch to sign message tab */
     void gotoSignMessageTab(QString addr = "");

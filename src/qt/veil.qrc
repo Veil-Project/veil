@@ -286,6 +286,7 @@
         <file alias="ic-locked-png">res/icons/ic-locked.png</file>
         <file alias="ic-unlocked-png">res/icons/ic-unlocked.png</file>
         <file alias="ic-menu-png">res/icons/ic-menu.png</file>
+        <file alias="ic-information-white">res/icons/ic-information-white.png</file>
     </qresource>
     <qresource prefix="/movies">
         <file alias="spinner-000">res/movies/spinner-000.png</file>

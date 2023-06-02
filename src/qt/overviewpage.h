@@ -38,6 +38,9 @@ public:
     void setClientModel(ClientModel *clientModel);
     void setWalletModel(WalletModel *walletModel);
     void showOutOfSyncWarning(bool fShow);
+    void showHelp();
+    void hideHelp();
+    bool isNewWallet();
 
 Q_SIGNALS:
     void transactionClicked(const QModelIndex &index);

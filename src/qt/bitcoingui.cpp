@@ -345,6 +345,14 @@ void BitcoinGUI::createActions()
 
     tabGroup->addAction(settingsAction);
 
+    QIcon iconHelp(":/icons/ic-information-white");
+    helpAction = new QAction(iconHelp,tr("&Help"), this);
+    helpAction->setStatusTip(tr("Help"));
+    helpAction->setToolTip(helpAction->statusTip());
+    helpAction->setCheckable(true);
+    helpAction->setShortcut(QKeySequence(Qt::ALT + Qt::Key_7));
+    tabGroup->addAction(helpAction);
+
     sendCoinsMenuAction = new QAction(platformStyle->TextColorIcon(":/icons/send"), sendCoinsAction->text(), this);
     sendCoinsMenuAction->setStatusTip(sendCoinsAction->statusTip());
     sendCoinsMenuAction->setToolTip(sendCoinsMenuAction->statusTip());
@@ -373,6 +381,8 @@ void BitcoinGUI::createActions()
         connect(miningAction, SIGNAL(triggered()), this, SLOT(gotoMiningPage()));
         connect(settingsAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
         connect(settingsAction, SIGNAL(triggered()), this, SLOT(gotoSettingsPage()));
+        connect(helpAction, SIGNAL(triggered()), this, SLOT(showNormalIfMinimized()));
+        connect(helpAction, SIGNAL(triggered()), this, SLOT(gotoHelpPage()));
     }
 #endif // ENABLE_WALLET
 
@@ -491,6 +501,8 @@ void BitcoinGUI::createToolBars()
         toolbar->addAction(miningAction);
         toolbar->addAction(addressesAction);
         toolbar->addAction(settingsAction);
+        toolbar->addAction(helpAction);
+
         overviewAction->setChecked(true);
 
         toolbar->setIconSize(QSize(24,24));
@@ -841,6 +853,14 @@ void BitcoinGUI::gotoSettingsPage(){
 
     settingsAction->setChecked(true);
     if (walletFrame) walletFrame->gotoSettings();
+}
+
+void BitcoinGUI::gotoHelpPage(){
+    if(!enableWallet)
+        return;
+
+    helpAction->setChecked(true);
+    if (walletFrame) walletFrame->gotoHelpPage();
 }
 
 void BitcoinGUI::gotoSignMessageTab(QString addr)
