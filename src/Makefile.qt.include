@@ -586,7 +586,8 @@ RES_ICONS = \
   qt/res/icons/ic-locked.png \
   qt/res/icons/ic-unlocked.png \
   qt/res/icons/ic-menu.png \
-  qt/res/icons/verify.png
+  qt/res/icons/verify.png \
+  qt/res/icons/ic-information-white.png
 
 BITCOIN_QT_BASE_CPP = \
   qt/splashscreenveil.cpp \
