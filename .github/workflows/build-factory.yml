@@ -282,7 +282,7 @@ jobs:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
   build-riscv64-linux:
-    name: Build for RISCV64 Linux 64bit
+    name: Build for RISCV Linux 64bit
     needs: create-source-distribution
     runs-on: ubuntu-22.04
     env:
