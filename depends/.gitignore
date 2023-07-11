@@ -1,7 +1,8 @@
 SDKs/
 work/
 built/
-sources/
+!sources/**
+sources/download-stamps
 config.site
 x86_64*
 i686*
