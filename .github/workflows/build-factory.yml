@@ -281,4 +281,42 @@ jobs:
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
-
+  build-riscv64-linux:
+    name: Build for RISCV Linux 64bit
+    needs: create-source-distribution
+    runs-on: ubuntu-22.04
+    env:
+      ARTIFACT_DIR: riscv64-linux-binaries
+    steps:
+    - name: Getting Source
+      uses: actions/download-artifact@v1
+      with:
+        name: ${{ env.SOURCE_ARTIFACT }}
+    - name: Extract Archives
+      run: |
+        tar -xzf depends.tar.gz
+        tar -xzf veil-*.tar.gz --strip-components=1
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Install Required Packages
+      run: |
+        sudo apt update
+        sudo apt install -y python3-zmq libcap-dev cmake g++-riscv64-linux-gnu
+    - name: Build Dependencies
+      run: make -C depends NO_QR=1 NO_QT=1 HOST=riscv64-linux-gnu -j$(nproc)
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Build Veil
+      run: |
+        ./configure --disable-jni --without-gui --prefix=$(realpath depends/riscv64-linux-gnu)
+        make -j$(nproc)
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Prepare Files for Artifact
+      run: |
+        mkdir -p $ARTIFACT_DIR
+        # strip fails with "Unable to recognise the format of the input file"
+        # strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild}
+        mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild} $ARTIFACT_DIR
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v1
+      with:
+        name: ${{ env.ARTIFACT_DIR }}
+        path: ${{ env.ARTIFACT_DIR }}
