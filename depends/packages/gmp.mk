@@ -1,6 +1,6 @@
 package=gmp
 $(package)_version=6.1.2
-$(package)_download_path=https://gmplib.org/download/gmp
+$(package)_download_path=https://mirror-eu1.veil.tools/packages/libgmp
 $(package)_file_name=$(package)-$($(package)_version).tar.bz2
 $(package)_sha256_hash=5275bb04f4863a13516b2f39392ac5e272f5e1bb8057b18aec1c9b79d73d8fb2
 
