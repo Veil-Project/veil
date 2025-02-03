@@ -25,16 +25,18 @@
 #include <primitives/block.h>
 #include <primitives/transaction.h>
 #include <script/script.h>
+#include <secp256k1/include/secp256k1_mlsag.h>
 #include <shutdown.h>
 #include <timedata.h>
 #include <txmempool.h>
 #include <util/moneystr.h>
+#include <wallet/deterministicmint.h>
 #include <wallet/fees.h>
 #include <wallet/walletutil.h>
-#include <veil/zerocoin/accumulators.h>
-#include <wallet/deterministicmint.h>
-#include <veil/zerocoin/denomination_functions.h>
 #include <veil/mnemonic/mnemonic.h>
+#include <veil/ringct/blind.h>
+#include <veil/zerocoin/accumulators.h>
+#include <veil/zerocoin/denomination_functions.h>
 #include <veil/zerocoin/mintmeta.h>
 #include <veil/zerocoin/zchain.h>
 #include <veil/zerocoin/zwallet.h>
@@ -3859,8 +3861,11 @@ bool CWallet::CreateTransaction(const std::vector<CRecipient>& vecSend, CTransac
     return true;
 }
 
-bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart)
+// RingCTStake needs the coinbase tx somehow
+template <typename TStake>
+bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart, CMutableTransaction& txCoinbase)
 {
+    static_assert(std::is_base_of<CStakeInput, TStake>::value, "TStake must derive from CStakeInput");
     // The following split & combine thresholds are important to security
     // Should not be adjusted if you don't understand the consequences
     //int64_t nCombineThreshold = 0;
@@ -3873,7 +3878,7 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
     txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
 
     // Get the list of stakable inputs
-    std::list<std::unique_ptr<ZerocoinStake> > listInputs;
+    std::list<std::unique_ptr<TStake>> listInputs;
     if (!SelectStakeCoins(listInputs))
         return false;
 
@@ -3881,18 +3886,17 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
         return false;
 
     //Small sleep if too far back on timing
-    if (GetAdjustedTime() - chainActive.Tip()->GetBlockTime() < 1)
+    if (GetAdjustedTime() - pindexBest->GetBlockTime() < 1)
         UninterruptibleSleep(std::chrono::milliseconds{2500});
 
     CScript scriptPubKeyKernel;
-    bool fKernelFound = false;
-    for (std::unique_ptr<ZerocoinStake>& stakeInput : listInputs) {
+    for (std::unique_ptr<TStake>& stakeInput : listInputs) {
         CAmount nCredit = 0;
         // Make sure the wallet is unlocked and shutdown hasn't been requested
         if (IsLocked() || ShutdownRequested())
             return false;
 
-        CBlockIndex *pindexFrom = stakeInput->GetIndexFrom();
+        const CBlockIndex *pindexFrom = stakeInput->GetIndexFrom(pindexBest);
         if (!pindexFrom || pindexFrom->nHeight < 1) {
             LogPrintf("*** no pindexfrom\n");
             continue;
@@ -3941,46 +3945,31 @@ bool CWallet::CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits,
             nCredit += nNetworkReward;
 
             // Create the output transaction(s)
-            std::vector<CTxOut> vout;
-            if (!stakeInput->CreateTxOuts(this, vout, nBlockReward)) {
-                LogPrintf("%s : failed to get scriptPubKey\n", __func__);
-                continue;
-            }
             txNew.vpout.clear();
             txNew.vpout.emplace_back(CTxOut(0, scriptEmpty).GetSharedPtr());
-            for (auto& txOut : vout)
-                txNew.vpout.emplace_back(txOut.GetSharedPtr());
 
-            // Limit size
-            unsigned int nBytes = ::GetSerializeSize(txNew, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR;
-
-            if (nBytes >= MAX_BLOCK_WEIGHT / 5)
-                return error("CreateCoinStake : exceeded coinstake size limit");
-
-            uint256 hashTxOut = txNew.GetOutputsHash();
-            CTxIn in;
-            {
-                if (!stakeInput->CreateTxIn(this, in, hashTxOut)) {
-                    LogPrintf("%s : failed to create TxIn\n", __func__);
-                    txNew.vin.clear();
-                    txNew.vpout.clear();
+            bool retryable = true;
+            if (!stakeInput->CreateCoinStake(this, nBlockReward, txNew, retryable, txCoinbase)) {
+                if (retryable)
                     continue;
-                }
-            }
-            txNew.vin.emplace_back(in);
-
-            //Mark mints as spent
-            if (!stakeInput->CompleteTx(this, txNew))
                 return false;
+            }
 
-            fKernelFound = true;
-            break;
+            return true;
         }
-        if (fKernelFound)
-            break; // if kernel is found stop searching
     }
-    return fKernelFound;
+    return false;
 }
+
+bool CWallet::CreateZerocoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart, CMutableTransaction& txCoinbase)
+{
+    return CreateCoinStake<ZerocoinStake>(pindexBest, nBits, txNew, nTxNewTime, nComputeTimeStart, txCoinbase);
+}
+bool CWallet::CreateRingCTStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart, CMutableTransaction& txCoinbase)
+{
+    return CreateCoinStake<RingCTStake>(pindexBest, nBits, txNew, nTxNewTime, nComputeTimeStart, txCoinbase);
+}
+
 bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs)
 {
     LOCK(cs_main);
@@ -4017,6 +4006,105 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listI
     }
 
     LogPrint(BCLog::STAKING, "%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());
+
+    return true;
+}
+
+bool CWallet::StakeableRingCTCoins()
+{
+    LOCK2(cs_main, cs_wallet);
+
+    int nRequiredDepth = Params().RingCT_RequiredStakeDepth();
+
+    BalanceList bal;
+    pAnonWalletMain->GetBalances(bal);
+
+    // zero coin
+    if (bal.nRingCT > 0) {
+        std::vector<COutputR> vCoins;
+        CCoinControl coincontrol;
+        pAnonWalletMain->AvailableAnonCoins(vCoins, true, &coincontrol);
+        LogPrint(BCLog::STAKING, "I have %d available ringct coins\n", vCoins.size());
+
+        for (auto coin : vCoins) {
+            if (coin.nDepth >= nRequiredDepth) {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool CWallet::GetKeyImageForCoin(const COutputR& coin, AnonWalletDB& wdb, CCmpPubKey& keyimage)
+{
+    // Get pubkey hash for the StakeInput.
+    CStoredTransaction stx;
+    if (!wdb.ReadStoredTx(coin.txhash, stx)) {
+        LogPrint(BCLog::STAKING, "Failed to read stored transaction %s\n", coin.txhash.GetHex());
+        return false;
+    }
+
+    if (!stx.tx->vpout[coin.i]->IsType(OUTPUT_RINGCT)) {
+        LogPrint(BCLog::STAKING, "Output %d somehow not a RingCT output, tx=%s\n", coin.i, coin.txhash.GetHex());
+        return false;
+    }
+
+    CTxOutRingCT* txout = (CTxOutRingCT*)stx.tx->vpout[coin.i].get();
+    CCmpPubKey pk = txout->pk;
+    int64_t index;
+    if (!pblocktree->ReadRCTOutputLink(pk, index)) {
+        LogPrint(BCLog::STAKING, "RingCT public key not found in database: %s\n", HexStr(pk.begin(), pk.end()));
+        return false;
+    }
+
+    CAnonOutput anonOutput;
+    if (!pblocktree->ReadRCTOutput(index, anonOutput)) {
+        LogPrint(BCLog::STAKING, "Output %d not found in database.\n", index);
+        return false;
+    }
+
+    CKeyID idk = anonOutput.pubkey.GetID();
+    CKey key;
+    if (!pAnonWalletMain->GetKey(idk, key)) {
+        LogPrint(BCLog::STAKING, "No key for output: %s\n", HexStr(anonOutput.pubkey.begin(), anonOutput.pubkey.end()));
+        return false;
+    }
+
+    if (secp256k1_get_keyimage(secp256k1_ctx_blind, keyimage.ncbegin(), anonOutput.pubkey.begin(), key.begin()) != 0) {
+        LogPrint(BCLog::STAKING, "RingCT stake unable to get key image\n");
+        return false;
+    }
+
+    return true;
+}
+
+bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<RingCTStake> >& listInputs)
+{
+    LOCK(cs_main);
+
+    std::vector<COutputR> vCoins;
+    CCoinControl coincontrol;
+    pAnonWalletMain->AvailableAnonCoins(vCoins, true, &coincontrol);
+    AnonWalletDB wdb(GetDBHandle());
+
+    int nRequiredDepth = Params().Zerocoin_RequiredStakeDepth();
+    if (chainActive.Height() >= Params().HeightLightZerocoin())
+        nRequiredDepth = Params().Zerocoin_RequiredStakeDepthV2();
+
+    for (auto coin : vCoins) {
+        if (coin.nDepth >= nRequiredDepth) {
+            // Get pubkey hash for the StakeInput.
+            CCmpPubKey keyimage;
+            if (!GetKeyImageForCoin(coin, wdb, keyimage))
+                continue;
+
+            std::unique_ptr<RingCTStake> input(new RingCTStake(coin, keyimage.GetHash()));
+            listInputs.push_back(std::move(input));
+        }
+    }
+
+    LogPrint(BCLog::STAKING, "%s: FOUND %d STAKABLE RINGCT COINS\n", __func__, listInputs.size());
 
     return true;
 }
@@ -5550,6 +5638,7 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
             throw std::runtime_error(strprintf("%s: could not get anon wallet seed on wallet load", __func__));
         AnonWallet* anonwallet = walletInstance->GetAnonWallet();
         assert(anonwallet->UnlockWallet(extMasterAnon));
+        assert(anonwallet->Initialise());
     }
 
     return walletInstance;
@@ -5707,7 +5796,7 @@ CScript GetLargestContributor(std::set<CInputCoin>& setCoins)
 }
 
 bool CWallet::MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, const uint256& hashTxOut, CTxIn& newTxIn,
-                         CZerocoinSpendReceipt& receipt, libzerocoin::SpendType spendType, CBlockIndex* pindexCheckpoint)
+                         CZerocoinSpendReceipt& receipt, libzerocoin::SpendType spendType, const CBlockIndex* pindexCheckpoint)
 {
     auto hashSerial = GetSerialHash(zerocoinSelected.GetSerialNumber());
     CMintMeta meta = zTracker->Get(hashSerial);

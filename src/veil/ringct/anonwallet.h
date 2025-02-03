@@ -6,6 +6,8 @@
 #ifndef PARTICL_WALLET_HDWALLET_H
 #define PARTICL_WALLET_HDWALLET_H
 
+#include <memory>
+
 #include <wallet/wallet.h>
 #include <wallet/walletbalances.h>
 #include <veil/ringct/anonwalletdb.h>
@@ -23,7 +25,6 @@ typedef std::map<CKeyID, CExtKeyAccount*> ExtKeyAccountMap;
 typedef std::map<CKeyID, CStoredExtKey*> ExtKeyMap;
 
 typedef std::map<uint256, CWalletTx> MapWallet_t;
-typedef std::map<uint256, CTransactionRecord> MapRecords_t;
 
 typedef std::multimap<int64_t, std::map<uint256, CTransactionRecord>::iterator> RtxOrdered_t;
 
@@ -31,28 +32,6 @@ class UniValue;
 class CWatchOnlyTx;
 
 const uint16_t OR_PLACEHOLDER_N = 0xFFFF; // index of a fake output to contain reconstructed amounts for txns with undecodeable outputs
-
-class COutputR
-{
-public:
-    COutputR() {};
-
-    COutputR(const uint256 &txhash_, MapRecords_t::const_iterator rtx_, int i_, int nDepth_,
-        bool fSpendable_, bool fSolvable_, bool fSafe_, bool fMature_, bool fNeedHardwareKey_)
-        : txhash(txhash_), rtx(rtx_), i(i_), nDepth(nDepth_),
-        fSpendable(fSpendable_), fSolvable(fSolvable_), fSafe(fSafe_), fMature(fMature_), fNeedHardwareKey(fNeedHardwareKey_) {};
-
-    uint256 txhash;
-    MapRecords_t::const_iterator rtx;
-    int i;
-    int nDepth;
-    bool fSpendable;
-    bool fSolvable;
-    bool fSafe;
-    bool fMature;
-    bool fNeedHardwareKey;
-};
-
 
 class CStoredTransaction
 {
@@ -99,6 +78,23 @@ public:
     };
 };
 
+// A class that holds reference to a pending tx, so it can mark inputs
+// as no longer pending spend and delete the transaction if the transaction is not
+// broadcast successfully.
+class CPendingSpend
+{
+public:
+    CPendingSpend(AnonWallet& wallet, uint256 txhash) : wallet(wallet), txhash(txhash) {}
+    ~CPendingSpend();
+
+    void SetSuccess(bool s) { success = s; }
+
+private:
+    AnonWallet& wallet;
+    uint256 txhash;
+    bool success;
+};
+
 class AnonWallet
 {
     std::shared_ptr<WalletDatabase> walletDatabase;
@@ -115,6 +111,8 @@ class AnonWallet
     CKeyID idStealthAccount;
     CKeyID idChangeAccount;
     CKeyID idChangeAddress;
+    CKeyID idStakeAccount;
+    CKeyID idStakeAddress;
 
     typedef std::multimap<COutPoint, uint256> TxSpends;
     TxSpends mapTxSpends;
@@ -240,8 +238,10 @@ public:
 
     bool GetRandomHidingOutputs(size_t nInputSize, size_t nRingSize, std::set<int64_t> &setHave, std::vector<CLightWalletAnonOutputData>& randomoutputs, std::string &sError);
 
+    bool AddCoinbaseRewards(CMutableTransaction& txCoinbase, CAmount nStakeReward, std::string& sError);
 
     bool IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint);
+    bool IsMyAnonInput(const CTxIn& txin, COutPoint& myOutpoint, CKey& key);
     bool AddAnonInputs_Inner(CWalletTx &wtx, CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend,
          bool sign, size_t nRingSize, size_t nInputsPerSig, size_t nMaximumInputs, CAmount &nFeeRet,
          const CCoinControl *coinControl, std::string &sError, bool fZerocoinInputs, CAmount nInputValue);
@@ -253,7 +253,6 @@ public:
     void GetAllScanKeys(std::vector<CStealthAddress>& vStealthAddresses);
     bool IsMyPubKey(const CKeyID& keyId);
 
-
     void LoadToWallet(const uint256 &hash, const CTransactionRecord &rtx);
     bool LoadTxRecords();
 
@@ -263,6 +262,7 @@ public:
 
     bool MakeDefaultAccount(const CExtKey& extKeyMaster);
     bool CreateStealthChangeAccount(AnonWalletDB* wdb);
+    bool CreateStealthStakeAccount(AnonWalletDB* wdb);
     bool SetMasterKey(const CExtKey& keyMasterIn);
     bool UnlockWallet(const CExtKey& keyMasterIn, bool fRescan = true);
     bool LoadAccountCounters();
@@ -282,6 +282,7 @@ public:
 
     bool NewStealthKey(CStealthAddress& stealthAddress, uint32_t nPrefixBits, const char *pPrefix, CKeyID* paccount = nullptr);
     CStealthAddress GetStealthChangeAddress();
+    CStealthAddress GetStealthStakeAddress();
 
     /**
      * Insert additional inputs into the transaction by
@@ -307,6 +308,9 @@ public:
     bool ScanForOwnedOutputs(const CTransaction &tx, size_t &nCT, size_t &nRingCT, mapValue_t &mapNarr, std::vector<CWatchOnlyTx>& vecWatchOnlyTx);
     bool AddToWalletIfInvolvingMe(const CTransactionRef& ptx, const CBlockIndex* pIndex, int posInBlock, bool fUpdate);
     void MarkOutputSpent(const COutPoint& outpoint, bool isSpent);
+
+    std::unique_ptr<CPendingSpend> GetPendingSpendForTx(uint256 txid);
+    void DeletePendingTx(uint256 txid);
 
     enum RescanWalletType {
       RESCAN_WALLET_FULL,
@@ -413,6 +417,32 @@ private:
         ec_point& vInputBlinds,
         size_t& secretColumn,
         std::string& sError);
+    bool SetOutputs(
+        std::vector<CTxOutBaseRef>& vpout,
+        std::vector<CTempRecipient>& vecSend,
+        CAmount nFeeRet,
+        size_t nSubtractFeeFromAmount,
+        CAmount& nValueOutPlain,
+        int& nChangePosInOut,
+        bool fSkipFee,
+        bool fFeesFromChange,
+        bool fAddFeeDataOutput,
+        bool fUseBlindSum,
+        std::string& sError);
+    bool ArrangeOutBlinds(
+        std::vector<CTxOutBaseRef>& vpout,
+        std::vector<CTempRecipient>& vecSend,
+        std::vector<const uint8_t*>& vpOutCommits,
+        std::vector<const uint8_t*>& vpOutBlinds,
+        std::vector<uint8_t>& vBlindPlain,
+        secp256k1_pedersen_commitment* plainCommitment,
+        CAmount nValueOutPlain,
+        int nChangePosInOut,
+        bool fCTOut,
+        std::string& sError);
+
+    void InternalResetSpent(AnonWalletDB& wdb, CTransactionRecord* txrecord)
+        EXCLUSIVE_LOCKS_REQUIRED(cs_main, pwalletParent->cs_wallet);
 
     template<typename... Params>
     bool werror(std::string fmt, Params... parameters) const {
