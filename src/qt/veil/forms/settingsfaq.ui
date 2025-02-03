@@ -640,8 +640,7 @@ margin:0px;</string>
 }</string>
                   </property>
                   <property name="text">
-                   <string>What is the single non-autominting 
-address / exchange or service mode?</string>
+                   <string>What is exchange or service mode?</string>
                   </property>
                  </widget>
                 </item>
