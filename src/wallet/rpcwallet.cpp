@@ -1096,11 +1096,11 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() > 5)
+    if (request.fHelp || request.params.size() > 7)
         throw std::runtime_error(
-                "getwatchonlytxes \"scan_secret\" \"starting_index\" \"(scan_public_key)\" \"(spend_secret)\" \"testing\""
+                "getwatchonlytxes \"scan_secret\" \"starting_index\" \"(scan_public_key)\" \"(spend_secret)\" \"testing\" \"verbose\" \"batch_size\""
                 "\nFetch txes belonging to watchonly address with a certain scan key"
-                "\nThis rpccall will give transactions in batches of 1000 at a time. "
+                "\nThis rpccall will give transactions in batches (default 1000 at a time). "
 
                 + HelpRequiringPassphrase(pwallet) + "\n"
                                                      "\nArguments:\n"
@@ -1109,11 +1109,36 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
                                                      "3. \"scan_public_key\"         (string, optional) For testing only - The public spend secret\n"
                                                      "4. \"spend_secret\"         (string, optional)  For testing only - s The private spend secret\n"
                                                      "5. \"testing\"         (boolean, optional default=false)  For testing only\n"
+                                                     "6. \"verbose\"         (boolean, optional default=false)  Include confirmations, blocktime, and raw transaction hex\n"
+                                                     "7. \"batch_size\"         (number, optional default=1000, max=1000)  Number of transactions to return per call\n"
                                                      "\nResult:\n"
-                                                     "\"[\n"
-                                                     "txhash,       (string) The txhash\n"
-                                                     "...\n"
-                                                     "]\"\n"
+                                                     "{\n"
+                                                     "  \"anon\": [         (array) Array of anonymous transactions\n"
+                                                     "    {\n"
+                                                     "      \"type\": \"anon\",           (string) Transaction type\n"
+                                                     "      \"dbindex\": n,             (numeric) Database index\n"
+                                                     "      \"tx_hash\": \"hex\",         (string) Transaction hash\n"
+                                                     "      \"n\": n,                   (numeric) Output index\n"
+                                                     "      \"ringct_index\": n,        (numeric) RingCT index\n"
+                                                     "      \"confirmations\": n,       (numeric, optional) Number of confirmations (only if verbose=true, -1 if not in block)\n"
+                                                     "      \"blocktime\": ttt,         (numeric, optional) Block timestamp (only if verbose=true, 0 if not in block)\n"
+                                                     "      \"hex\": \"data\",            (string, optional) Raw transaction hex (only if verbose=true)\n"
+                                                     "      ...\n"
+                                                     "    },\n"
+                                                     "    ...\n"
+                                                     "  ],\n"
+                                                     "  \"stealth\": [      (array) Array of stealth transactions\n"
+                                                     "    {\n"
+                                                     "      \"type\": \"stealth\",        (string) Transaction type\n"
+                                                     "      \"dbindex\": n,             (numeric) Database index\n"
+                                                     "      \"confirmations\": n,       (numeric, optional) Number of confirmations (only if verbose=true, -1 if not in block)\n"
+                                                     "      \"blocktime\": ttt,         (numeric, optional) Block timestamp (only if verbose=true, 0 if not in block)\n"
+                                                     "      \"hex\": \"data\",            (string, optional) Raw transaction hex (only if verbose=true)\n"
+                                                     "      ...\n"
+                                                     "    },\n"
+                                                     "    ...\n"
+                                                     "  ]\n"
+                                                     "}\n"
         );
 
     LOCK2(cs_main, pwallet->cs_wallet);
@@ -1204,6 +1229,21 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         }
     }
 
+    // Get verbose flag (param 5)
+    bool fVerbose = false;
+    if (request.params.size() > 5) {
+        fVerbose = request.params[5].get_bool();
+    }
+
+    // Get batch size (param 6)
+    int nBatchSize = 1000;
+    if (request.params.size() > 6) {
+        nBatchSize = request.params[6].get_int();
+        if (nBatchSize < 1 || nBatchSize > 1000) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "batch_size must be between 1 and 1000");
+        }
+    }
+
     int current_count = 0;
     int dbIndex = nStartingIndex - 1;
     UniValue anonTxes(UniValue::VARR);
@@ -1213,20 +1253,41 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
             dbIndex = 0;
         }
 
-        // Only do 1000 txes at a time.
-        if (current_count > dbIndex + 1000) {
-            current_count = dbIndex + 1000;
+        // Only do batch_size txes at a time.
+        if (current_count > dbIndex + nBatchSize) {
+            current_count = dbIndex + nBatchSize;
         }
 
         for (int i = dbIndex; i <= current_count; i++) {
             CWatchOnlyTx watchonlytx;
             if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
+                // Get transaction block information for confirmations and timestamp (only if verbose)
+                int confirmations = -1;
+                int64_t blocktime = 0;
+                std::string rawtx = "";
+                CTransactionRef tx;
+                uint256 hash_block;
+                if (fVerbose && GetTransaction(watchonlytx.tx_hash, tx, Params().GetConsensus(), hash_block, true)) {
+                    // Get raw transaction hex
+                    CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION);
+                    ssTx << tx;
+                    rawtx = HexStr(ssTx);
+
+                    if (!hash_block.IsNull()) {
+                        CBlockIndex* pindex = LookupBlockIndex(hash_block);
+                        if (pindex && chainActive.Contains(pindex)) {
+                            confirmations = 1 + chainActive.Height() - pindex->nHeight;
+                            blocktime = pindex->GetBlockTime();
+                        }
+                    }
+                }
+
                 if (!spend_secret.IsValid()) {
                     pblocktree->ReadRCTOutputLink(watchonlytx.ringctout.pk, watchonlytx.ringctIndex);
                     if (watchonlytx.type == CWatchOnlyTx::ANON) {
-                        anonTxes.push_back(watchonlytx.GetUniValue(i));
+                        anonTxes.push_back(watchonlytx.GetUniValue(i, false, "", uint256(), true, 0, confirmations, blocktime, rawtx));
                     } else if (watchonlytx.type == CWatchOnlyTx::STEALTH) {
-                        stealthTxes.push_back(watchonlytx.GetUniValue(i));
+                        stealthTxes.push_back(watchonlytx.GetUniValue(i, false, "", uint256(), true, 0, confirmations, blocktime, rawtx));
                     }
                 } else {
                     // TESTING ONLY - Param 5 must be true
@@ -1286,10 +1347,10 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
                             uint256 txhashKI;
                             if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
                                 anonTxes.push_back(
-                                        watchonlytx.GetUniValue(i, true, HexStr(ki), txhashKI, false, amountOut));
+                                        watchonlytx.GetUniValue(i, true, HexStr(ki), txhashKI, false, amountOut, confirmations, blocktime, rawtx));
                             } else {
                                 anonTxes.push_back(
-                                        watchonlytx.GetUniValue(i, false, HexStr(ki), txhashKI, false, amountOut));
+                                        watchonlytx.GetUniValue(i, false, HexStr(ki), txhashKI, false, amountOut, confirmations, blocktime, rawtx));
                             }
                         }
                     }

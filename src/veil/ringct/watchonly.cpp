@@ -346,7 +346,7 @@ CWatchOnlyTx::CWatchOnlyTx() {
     tx_hash.SetNull();
 }
 
-UniValue CWatchOnlyTx::GetUniValue(int& index, bool spent, std::string keyimage, uint256 txhash, bool fSkip, CAmount amount)
+UniValue CWatchOnlyTx::GetUniValue(int& index, bool spent, std::string keyimage, uint256 txhash, bool fSkip, CAmount amount, int confirmations, int64_t blocktime, std::string rawtx)
 {
     UniValue out(UniValue::VOBJ);
 
@@ -365,6 +365,19 @@ UniValue CWatchOnlyTx::GetUniValue(int& index, bool spent, std::string keyimage,
         RingCTOutputToJSON(this->tx_hash, this->tx_index, this->ringctIndex, this->ringctout, out);
     } else if (this->type == STEALTH) {
         CTOutputToJSON(this->tx_hash, this->tx_index, this->ctout, out);
+    }
+
+    // Add verbose fields if provided
+    if (confirmations >= 0) {
+        out.pushKV("confirmations", confirmations);
+    }
+
+    if (blocktime > 0) {
+        out.pushKV("blocktime", blocktime);
+    }
+
+    if (!rawtx.empty()) {
+        out.pushKV("hex", rawtx);
     }
 
     CWatchOnlyTxWithIndex watchonlywithindex;
