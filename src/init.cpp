@@ -281,6 +281,19 @@ void Shutdown()
     }
 
     if (gArgs.GetBoolArg("-watchonly", false)) {
+        // Flush any cached watch-only data before shutdown (cache is always enabled)
+        LogPrintf("Flushing watch-only caches on shutdown...\n");
+
+        // Flush transaction cache
+        if (!watchonlyTxCache.FlushAll()) {
+            error("Failed to flush watch-only transaction cache on shutdown");
+        }
+
+        // Flush block cache
+        if (!watchonlyBlockCache.FlushAll()) {
+            error("Failed to flush watch-only block cache on shutdown");
+        }
+
         if (!FlushWatchOnlyAddresses()) {
             error("Fail to write watchonly addresses to database.");
         }
@@ -1817,6 +1830,10 @@ bool AppInitMain()
 
     // Load watchonly addresses
     if (gArgs.GetBoolArg("-watchonly", false)) {
+        // Cache is always enabled with fixed size of 1000
+        watchonlyTxCache.nMaxCacheSize = 1000;
+        LogPrintf("Watch-only transaction cache enabled with size 1000\n");
+
         LoadWatchOnlyAddresses();
     }
 

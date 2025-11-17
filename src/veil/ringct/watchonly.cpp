@@ -16,15 +16,23 @@
 #include <secp256k1_mlsag.h>
 #include <rpc/protocol.h>
 #include <validation.h>
+#include <util/time.h>
+#include <util/system.h>
 
 #include <boost/thread.hpp>
 
 /** Map of watchonly keys */
-std::map<std::string, CWatchOnlyAddress> mapWatchOnlyAddresses;
+std::map<CKeyID, CWatchOnlyAddress> mapWatchOnlyAddresses;
 
+/** Global transaction cache instance */
+CWatchOnlyTxCache watchonlyTxCache;
+
+/** Global block cache instance */
+CWatchOnlyBlockCache watchonlyBlockCache;
 
 boost::thread_group* pthreadGroupWatchOnly;
 bool fScanning = false;
+
 void LinkWatchOnlyThreadGroup(void* pthreadgroup)
 {
     pthreadGroupWatchOnly = (boost::thread_group*)pthreadgroup;
@@ -85,6 +93,11 @@ void ScanWatchOnlyAddresses()
     try {
         int64_t nMilliSeconds = 3000;
         int count = 0;
+        int64_t nTotalTxsFound = 0;
+        int64_t nTotalBlocksScanned = 0;
+        int64_t nOverallStartTime = GetTimeMicros();
+
+        LogPrint(BCLog::WATCHONLYIMPORT, "%s: Starting watchonly address scanning thread\n", __func__);
 
         while (true) {
             boost::this_thread::interruption_point();
@@ -126,6 +139,12 @@ void ScanWatchOnlyAddresses()
                 nNumberOfBlockPerScan = currentTipHeight - nStartBlockHeight + 1;
                 LogPrintf("Changing blocks per scan to %d\n", nNumberOfBlockPerScan);
             }
+
+            int64_t nBatchStartTime = GetTimeMicros();
+            int64_t nBlocksRemaining = currentTipHeight - nStartBlockHeight;
+            LogPrint(BCLog::WATCHONLYIMPORT, "%s: Scanning batch starting at height %d to %d (%d blocks, %d remaining to tip %d)\n",
+                     __func__, nStartBlockHeight, nStartBlockHeight + nNumberOfBlockPerScan - 1,
+                     nNumberOfBlockPerScan, nBlocksRemaining, currentTipHeight);
 
             std::vector<std::vector<CTxOutWatchonly>> vecNewRingCTTransactions(nNumberOfBlockPerScan, std::vector<CTxOutWatchonly>());
             std::vector<std::vector<CTxOutWatchonly>> vecRingCTTranasctionToScan(nNumberOfBlockPerScan, std::vector<CTxOutWatchonly>());
@@ -182,27 +201,56 @@ void ScanWatchOnlyAddresses()
                 }
             }
 
-            // Write new txes to database
+            // Cache block transactions (write to DB in batches for performance)
+            bool fUseBlockCache = gArgs.GetBoolArg("-watchonlycache", false);
             for (int i = 0; i < nNumberOfBlockPerScan; i++) {
                 boost::this_thread::interruption_point();
                 int nIndexHeight = nStartBlockHeight + i;
                 if (vecNewRingCTTransactions[i].size()) {
-                    pwatchonlyDB->WriteBlockTransactions(nIndexHeight, vecNewRingCTTransactions[i]);
+                    if (fUseBlockCache) {
+                        // Use cache for better performance during initial scan
+                        watchonlyBlockCache.AddBlock(nIndexHeight, vecNewRingCTTransactions[i]);
+
+                        // Flush if cache is full
+                        if (watchonlyBlockCache.ShouldFlush()) {
+                            watchonlyBlockCache.FlushAll();
+                        }
+                    } else {
+                        // Direct write (backward compatible)
+                        pwatchonlyDB->WriteBlockTransactions(nIndexHeight, vecNewRingCTTransactions[i]);
+                    }
                     vecRingCTTranasctionToScan[i] = vecNewRingCTTransactions[i];
                 }
             }
 
+            int64_t nBatchTxsFound = 0;
+
             for (int i = 0; i < nNumberOfBlockPerScan; i++) {
                 boost::this_thread::interruption_point();
-                // Get a list of CWatchOnlyAddress to scan with
-                std::vector<std::pair<std::string,CWatchOnlyAddress>> scanThese;
+
+                // Get block height and timestamp for this batch
+                int64_t nCurrentBlockHeight = nStartBlockHeight + i;
+                int64_t nCurrentBlockTime = 0;
+                const CBlockIndex* pCurrentBlockIndex = chainActive[nCurrentBlockHeight];
+                if (pCurrentBlockIndex) {
+                    nCurrentBlockTime = pCurrentBlockIndex->GetBlockTime();
+                }
+
+                // Get a list of CWatchOnlyAddress to scan with, pre-computing elliptic curve keys
+                std::vector<CWatchOnlyAddressPrecomputed> scanThese;
                 for (const auto &addr : mapWatchOnlyAddresses) {
                     if (addr.second.nCurrentScannedHeight != addr.second.nImportedHeight) {
                         if (nStartBlockHeight + i > addr.second.nCurrentScannedHeight &&
                             nStartBlockHeight + i <= addr.second.nImportedHeight) {
-                            scanThese.push_back(addr);
+                            // addr.first is now CKeyID
+                            scanThese.emplace_back(CWatchOnlyAddressPrecomputed(addr.first, addr.second));
                         }
                     }
+                }
+
+                // Skip expensive crypto operations if no addresses need scanning at this height
+                if (scanThese.empty()) {
+                    continue;
                 }
 
                 for (const auto& watchonlyout : vecRingCTTranasctionToScan[i]) {
@@ -245,12 +293,10 @@ void ScanWatchOnlyAddresses()
                         continue;
                     }
                         /// Scan through transactions for txes that are owned.
-                    for (const auto addr : scanThese) {
+                    for (const auto& precomp : scanThese) {
                         ec_point pkExtracted;
-                        ec_point ecPubKey;
-                        SetPublicKey(addr.second.spend_pubkey, ecPubKey);
-                        if (StealthSecret(addr.second.scan_secret, vchEphemPK, ecPubKey, sShared, pkExtracted) !=
-                            0) {
+                        // Use pre-computed ecSpendPubKey instead of calling SetPublicKey
+                        if (StealthSecret(precomp.address.scan_secret, vchEphemPK, precomp.ecSpendPubKey, sShared, pkExtracted) != 0) {
                             continue;
                         }
 
@@ -282,9 +328,11 @@ void ScanWatchOnlyAddresses()
 
                         CWatchOnlyTx watchOnlyTx;
                         watchonlyTx.type = watchonlyout.type;
-                        watchonlyTx.scan_secret = addr.second.scan_secret;
+                        watchonlyTx.scan_secret = precomp.address.scan_secret;
                         watchonlyTx.tx_hash = watchonlyout.tx_hash;
                         watchonlyTx.tx_index = watchonlyout.nIndex;
+                        watchonlyTx.nBlockHeight = nCurrentBlockHeight;
+                        watchonlyTx.nBlockTime = nCurrentBlockTime;
                         if (watchonlyout.type == CTxOutWatchonly::ANON) {
                             watchonlyTx.ringctout = txringCT;
                         } else if (watchonlyout.type == CTxOutWatchonly::STEALTH) {
@@ -296,29 +344,273 @@ void ScanWatchOnlyAddresses()
                         // TODO Also make sure we database the cache on shutdowns and anyother time we database the
                         // TODO watchonly stuff.
                         AddWatchOnlyTransaction(watchonlyTx.scan_secret, watchonlyTx);
+                        nBatchTxsFound++;
                     }
                 }
 
                 {
-                    for (const auto &addr : scanThese) {
-                        if (mapWatchOnlyAddresses.count(addr.first)) {
+                    // Flush cached transactions for this block if caching is enabled
+                    bool fUseCache = gArgs.GetBoolArg("-watchonlycache", false);
+                    if (fUseCache) {
+                        for (const auto &precomp : scanThese) {
+                            watchonlyTxCache.Flush(precomp.address.scan_secret);
+                        }
+                    }
+
+                    // Update scanned heights
+                    for (const auto &precomp : scanThese) {
+                        if (mapWatchOnlyAddresses.count(precomp.keyID)) {
                             LOCK(cs_watchonly);
-                            mapWatchOnlyAddresses.at(addr.first).fDirty = true;
-                            mapWatchOnlyAddresses.at(addr.first).nCurrentScannedHeight = nStartBlockHeight + i;
+                            mapWatchOnlyAddresses.at(precomp.keyID).fDirty = true;
+                            mapWatchOnlyAddresses.at(precomp.keyID).nCurrentScannedHeight = nStartBlockHeight + i;
                         }
                     }
                 }
             }
+
+            // Batch complete - log performance metrics
+            int64_t nBatchEndTime = GetTimeMicros();
+            double nBatchElapsedSeconds = (nBatchEndTime - nBatchStartTime) / 1000000.0;
+            double nBlocksPerSecond = nBatchElapsedSeconds > 0 ? nNumberOfBlockPerScan / nBatchElapsedSeconds : 0;
+            nTotalTxsFound += nBatchTxsFound;
+            nTotalBlocksScanned += nNumberOfBlockPerScan;
+
+            double nOverallElapsedSeconds = (nBatchEndTime - nOverallStartTime) / 1000000.0;
+            double nOverallBlocksPerSecond = nOverallElapsedSeconds > 0 ? nTotalBlocksScanned / nOverallElapsedSeconds : 0;
+
+            LogPrint(BCLog::WATCHONLYIMPORT, "%s: Batch complete - scanned %d blocks in %.2f seconds (%.2f blocks/sec)\n",
+                     __func__, nNumberOfBlockPerScan, nBatchElapsedSeconds, nBlocksPerSecond);
+            LogPrint(BCLog::WATCHONLYIMPORT, "%s: Found %d transactions in this batch (%d total txs found)\n",
+                     __func__, nBatchTxsFound, nTotalTxsFound);
+            LogPrint(BCLog::WATCHONLYIMPORT, "%s: Progress - Total blocks scanned: %d, Overall speed: %.2f blocks/sec, Elapsed time: %.2f seconds\n",
+                     __func__, nTotalBlocksScanned, nOverallBlocksPerSecond, nOverallElapsedSeconds);
+
+            // Estimate time remaining
+            if (nBlocksRemaining > 0 && nOverallBlocksPerSecond > 0) {
+                double nEstimatedSecondsRemaining = nBlocksRemaining / nOverallBlocksPerSecond;
+                int nEstimatedMinutesRemaining = (int)(nEstimatedSecondsRemaining / 60);
+                int nEstimatedHoursRemaining = nEstimatedMinutesRemaining / 60;
+                if (nEstimatedHoursRemaining > 0) {
+                    LogPrint(BCLog::WATCHONLYIMPORT, "%s: Estimated time remaining: ~%d hours %d minutes\n",
+                             __func__, nEstimatedHoursRemaining, nEstimatedMinutesRemaining % 60);
+                } else if (nEstimatedMinutesRemaining > 0) {
+                    LogPrint(BCLog::WATCHONLYIMPORT, "%s: Estimated time remaining: ~%d minutes\n",
+                             __func__, nEstimatedMinutesRemaining);
+                } else {
+                    LogPrint(BCLog::WATCHONLYIMPORT, "%s: Estimated time remaining: ~%.0f seconds\n",
+                             __func__, nEstimatedSecondsRemaining);
+                }
+            }
         }
+        // Scanning complete - log final summary
+        int64_t nOverallEndTime = GetTimeMicros();
+        double nTotalElapsedSeconds = (nOverallEndTime - nOverallStartTime) / 1000000.0;
+        double nFinalBlocksPerSecond = nTotalElapsedSeconds > 0 ? nTotalBlocksScanned / nTotalElapsedSeconds : 0;
+
+        LogPrint(BCLog::WATCHONLYIMPORT, "%s: ========== SCAN COMPLETE ==========\n", __func__);
+        LogPrint(BCLog::WATCHONLYIMPORT, "%s: Total blocks scanned: %d\n", __func__, nTotalBlocksScanned);
+        LogPrint(BCLog::WATCHONLYIMPORT, "%s: Total transactions found: %d\n", __func__, nTotalTxsFound);
+        LogPrint(BCLog::WATCHONLYIMPORT, "%s: Total time elapsed: %.2f seconds (%.2f minutes)\n",
+                 __func__, nTotalElapsedSeconds, nTotalElapsedSeconds / 60.0);
+        LogPrint(BCLog::WATCHONLYIMPORT, "%s: Average speed: %.2f blocks/sec\n", __func__, nFinalBlocksPerSecond);
+        LogPrint(BCLog::WATCHONLYIMPORT, "%s: ===================================\n", __func__);
+
+        // Flush all caches to database
+        watchonlyBlockCache.FlushAll();
+        watchonlyTxCache.FlushAll();  // This writes checkpoints for each address
+
+        // Flush watch-only addresses to save updated scanned heights
+        FlushWatchOnlyAddresses();
+
     } catch (std::exception& e) {
         LogPrintf("ScanWatchOnlyAddresses() exception\n");
+        // Flush caches on exception to save any progress
+        watchonlyBlockCache.FlushAll();
+        watchonlyTxCache.FlushAll();
+        FlushWatchOnlyAddresses();
     } catch (boost::thread_interrupted) {
         LogPrintf("ScanWatchOnlyAddresses() interrupted\n");
+        // Flush caches on interruption to save any progress
+        watchonlyBlockCache.FlushAll();
+        watchonlyTxCache.FlushAll();
+        FlushWatchOnlyAddresses();
     }
 
     fScanning = false;
     LogPrintf("ScanWatchOnlyAddresses stopping\n");
 }
+
+// ===== CWatchOnlyTxCache Implementation =====
+
+size_t CWatchOnlyTxCache::GetTotalSize()
+{
+    LOCK(cs_cache);
+    // O(1) access - no loop needed!
+    return nTotalCached;
+}
+
+bool CWatchOnlyTxCache::ShouldFlush(const CKey& key)
+{
+    LOCK(cs_cache);
+    // O(1) check using running counter
+    return nTotalCached >= nMaxCacheSize;
+}
+
+void CWatchOnlyTxCache::AddTx(const CKey& key, const CWatchOnlyTx& tx)
+{
+    LOCK(cs_cache);
+    mapPendingTxes[key].push_back(tx);
+    nTotalCached++; // Increment running counter
+
+    // Track highest block height for checkpoint writing
+    if (tx.nBlockHeight > 0) {
+        if (!mapHighestBlockHeight.count(key) || tx.nBlockHeight > mapHighestBlockHeight[key]) {
+            mapHighestBlockHeight[key] = tx.nBlockHeight;
+            // Get the block hash for this height
+            const CBlockIndex* pindex = chainActive[tx.nBlockHeight];
+            if (pindex) {
+                mapHighestBlockHash[key] = pindex->GetBlockHash();
+            }
+        }
+    }
+}
+
+void CWatchOnlyTxCache::GetCachedTxes(const CKey& key, std::vector<CWatchOnlyTx>& vTxes)
+{
+    LOCK(cs_cache);
+    vTxes.clear();
+
+    if (mapPendingTxes.count(key)) {
+        vTxes = mapPendingTxes[key];
+    }
+}
+
+bool CWatchOnlyTxCache::Flush(const CKey& key)
+{
+    LOCK(cs_cache);
+    if (!mapPendingTxes.count(key) || mapPendingTxes[key].empty())
+        return true;
+
+    int current_count = 0;
+    GetWatchOnlyKeyCount(key, current_count);
+
+    size_t numTxs = mapPendingTxes[key].size();
+    int64_t nHeight = mapHighestBlockHeight.count(key) ? mapHighestBlockHeight[key] : 0;
+    uint256 blockHash = mapHighestBlockHash.count(key) ? mapHighestBlockHash[key] : uint256();
+
+    LogPrint(BCLog::WATCHONLYDB, "%s: Flushing %d cached transactions for key at height %d\n",
+             __func__, numTxs, nHeight);
+
+    // Use bulk write instead of individual writes for better performance
+    if (!pwatchonlyDB->WriteBulkWatchOnlyTx(key, current_count, mapPendingTxes[key])) {
+        return error("%s: Failed to bulk write transactions", __func__);
+    }
+
+    // Write checkpoint if we have block height info (checkpoints are always enabled)
+    if (nHeight > 0) {
+        CWatchOnlyScanCheckpoint checkpoint;
+        checkpoint.scan_secret = key;
+        checkpoint.nBlockHeight = nHeight;
+        checkpoint.nTxCount = current_count + numTxs;
+        checkpoint.blockHash = blockHash;
+        checkpoint.nTimestamp = GetTime();
+
+        if (!pwatchonlyDB->WriteCheckpoint(key, checkpoint)) {
+            return error("%s: Failed to write checkpoint at height %d", __func__, nHeight);
+        }
+
+        LogPrint(BCLog::WATCHONLYDB, "%s: Wrote checkpoint at height %d\n", __func__, nHeight);
+    }
+
+    mapPendingTxes[key].clear();
+    mapHighestBlockHeight.erase(key);
+    mapHighestBlockHash.erase(key);
+    nTotalCached -= numTxs; // Decrement running counter
+    LogPrint(BCLog::WATCHONLYDB, "%s: Successfully flushed cache for key (total remaining: %d)\n",
+             __func__, nTotalCached);
+    return true;
+}
+
+bool CWatchOnlyTxCache::FlushAll()
+{
+    LOCK(cs_cache);
+    size_t totalTxs = nTotalCached; // Use O(1) counter instead of calculating
+    size_t numAddresses = mapPendingTxes.size();
+    LogPrint(BCLog::WATCHONLYDB, "%s: Flushing %d total transactions across %d addresses\n",
+             __func__, totalTxs, numAddresses);
+
+    for (const auto& pair : mapPendingTxes) {
+        if (!pair.second.empty()) {
+            // Temporarily unlock to allow Flush to acquire its own lock
+            LEAVE_CRITICAL_SECTION(cs_cache);
+            bool result = Flush(pair.first);
+            ENTER_CRITICAL_SECTION(cs_cache);
+
+            if (!result) {
+                return error("%s: Failed to flush cache", __func__);
+            }
+        }
+    }
+
+    LogPrint(BCLog::WATCHONLYDB, "%s: Successfully flushed all addresses (total remaining: %d)\n",
+             __func__, nTotalCached);
+    return true;
+}
+
+size_t CWatchOnlyTxCache::GetSize(const CKey& key)
+{
+    LOCK(cs_cache);
+    if (!mapPendingTxes.count(key))
+        return 0;
+    return mapPendingTxes[key].size();
+}
+
+// ===== End CWatchOnlyTxCache Implementation =====
+
+// ===== CWatchOnlyBlockCache Implementation =====
+
+void CWatchOnlyBlockCache::AddBlock(int64_t nHeight, const std::vector<CTxOutWatchonly>& vTxes)
+{
+    LOCK(cs_blockcache);
+    mapPendingBlocks[nHeight] = vTxes;
+}
+
+bool CWatchOnlyBlockCache::ShouldFlush()
+{
+    LOCK(cs_blockcache);
+    return mapPendingBlocks.size() >= nMaxBlocks;
+}
+
+size_t CWatchOnlyBlockCache::GetSize()
+{
+    LOCK(cs_blockcache);
+    return mapPendingBlocks.size();
+}
+
+bool CWatchOnlyBlockCache::FlushAll()
+{
+    LOCK(cs_blockcache);
+
+    if (mapPendingBlocks.empty())
+        return true;
+
+    size_t numBlocks = mapPendingBlocks.size();
+    LogPrint(BCLog::WATCHONLYDB, "%s: Flushing %d cached blocks to database in single batch\n",
+             __func__, numBlocks);
+
+    // Single atomic write of all blocks using bulk method
+    if (!pwatchonlyDB->WriteBulkBlockTransactions(mapPendingBlocks)) {
+        return error("%s: Failed to write batch of %d blocks", __func__, numBlocks);
+    }
+
+    mapPendingBlocks.clear();
+
+    LogPrint(BCLog::WATCHONLYDB, "%s: Successfully flushed %d blocks in single batch write\n",
+             __func__, numBlocks);
+    return true;
+}
+
+// ===== End CWatchOnlyBlockCache Implementation =====
 
 
 CWatchOnlyAddress::CWatchOnlyAddress()
@@ -338,15 +630,19 @@ CWatchOnlyTx::CWatchOnlyTx(const CKey& key, const uint256& txhash) {
     type = NOTSET;
     scan_secret = key;
     tx_hash = txhash;
+    nBlockHeight = 0;
+    nBlockTime = 0;
 }
 
 CWatchOnlyTx::CWatchOnlyTx() {
     type = NOTSET;
     scan_secret.Clear();
     tx_hash.SetNull();
+    nBlockHeight = 0;
+    nBlockTime = 0;
 }
 
-UniValue CWatchOnlyTx::GetUniValue(int& index, bool spent, std::string keyimage, uint256 txhash, bool fSkip, CAmount amount, int confirmations, int64_t blocktime, std::string rawtx)
+UniValue CWatchOnlyTx::GetUniValue(int& index, bool spent, std::string keyimage, uint256 txhash, bool fSkip, CAmount amount, int confirmations, int64_t blocktime, std::string rawtx) const
 {
     UniValue out(UniValue::VOBJ);
 
@@ -396,10 +692,13 @@ UniValue CWatchOnlyTx::GetUniValue(int& index, bool spent, std::string keyimage,
 
 bool AddWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey, const int64_t& nStart, const int64_t& nImported)
 {
-    if (mapWatchOnlyAddresses.count(address)) {
-        auto watchOnlyInfo = mapWatchOnlyAddresses.at(address);
+    // Use CKeyID as the map key (V2)
+    CKeyID keyID = scan_secret.GetPubKey().GetID();
+
+    if (mapWatchOnlyAddresses.count(keyID)) {
+        auto watchOnlyInfo = mapWatchOnlyAddresses.at(keyID);
         if (scan_secret == watchOnlyInfo.scan_secret && spend_pubkey == watchOnlyInfo.spend_pubkey) {
-            LogPrint(BCLog::WATCHONLYDB, "Trying to add a watchonly address that already exists: %s\n", address);
+            LogPrint(BCLog::WATCHONLYDB, "Trying to add a watchonly address that already exists: %s (keyID: %s)\n", address, keyID.ToString());
             return true;
         } else {
             LogPrint(BCLog::WATCHONLYDB, "Trying to add a watchonly address with different scan key and pubkey then what already exists: %s\n", address);
@@ -408,12 +707,13 @@ bool AddWatchOnlyAddress(const std::string& address, const CKey& scan_secret, co
     } else {
         CWatchOnlyAddress newAddress(scan_secret, spend_pubkey, nStart, nImported, nStart);
 
-        if (!pwatchonlyDB->WriteWatchOnlyAddress(address, newAddress)) {
-            LogPrint(BCLog::WATCHONLYDB, "Failed to WriteWatchOnlyAddress: %s\n", address);
+        // Use V2 write method
+        if (!pwatchonlyDB->WriteWatchOnlyAddressV2(keyID, newAddress)) {
+            LogPrint(BCLog::WATCHONLYDB, "Failed to WriteWatchOnlyAddress: %s (keyID: %s)\n", address, keyID.ToString());
             return false;
         }
         LOCK(cs_watchonly);
-        mapWatchOnlyAddresses.insert(std::make_pair(address, newAddress));
+        mapWatchOnlyAddresses.insert(std::make_pair(keyID, newAddress));
     }
 
     StartWatchonlyScanningIfNotStarted();
@@ -422,6 +722,36 @@ bool AddWatchOnlyAddress(const std::string& address, const CKey& scan_secret, co
 
 bool RemoveWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey)
 {
+    // Use CKeyID as the map key (V2)
+    CKeyID keyID = scan_secret.GetPubKey().GetID();
+
+    // Check if address exists
+    if (!mapWatchOnlyAddresses.count(keyID)) {
+        return error("%s: Watch-only address not found (keyID: %s)", __func__, keyID.ToString());
+    }
+
+    // Verify scan key matches
+    auto& info = mapWatchOnlyAddresses.at(keyID);
+    if (!(info.scan_secret == scan_secret)) {
+        return error("%s: Scan secret mismatch", __func__);
+    }
+
+    // Verify spend pubkey matches
+    if (info.spend_pubkey != spend_pubkey) {
+        return error("%s: Spend public key mismatch", __func__);
+    }
+
+    {
+        LOCK(cs_watchonly);
+        // Remove from memory
+        mapWatchOnlyAddresses.erase(keyID);
+    }
+
+    // Note: We don't remove transactions from database immediately
+    // This prevents accidental data loss and allows users to re-import if needed
+    // Transaction data can be cleaned up with a separate maintenance tool/RPC if desired
+
+    LogPrintf("Removed watch-only address: %s (keyID: %s)\n", address, keyID.ToString());
     return true;
 }
 
@@ -437,8 +767,9 @@ bool FlushWatchOnlyAddresses()
         LOCK(cs_watchonly);
         for (auto &pair : mapWatchOnlyAddresses) {
             if (pair.second.fDirty) {
-                if (!pwatchonlyDB->WriteWatchOnlyAddress(pair.first, pair.second)) {
-                    return error("Failed to flush watchonly addresses on - %s", pair.first);
+                // Use V2 write method with CKeyID
+                if (!pwatchonlyDB->WriteWatchOnlyAddressV2(pair.first, pair.second)) {
+                    return error("Failed to flush watchonly addresses on keyID - %s", pair.first.ToString());
                 }
                 pair.second.fDirty = false;
             }
@@ -449,7 +780,7 @@ bool FlushWatchOnlyAddresses()
 
 void PrintWatchOnlyAddressInfo() {
     for (const auto& info: mapWatchOnlyAddresses) {
-        LogPrintf("address: %s\n", info.first);
+        LogPrintf("keyID: %s\n", info.first.ToString());
         LogPrintf("scan_secret: %s\n", HexStr(info.second.scan_secret.begin(),  info.second.scan_secret.end()));
         LogPrintf("spend_pubkey: %s\n\n", HexStr(info.second.spend_pubkey.begin(),  info.second.spend_pubkey.end()));
     }
@@ -462,16 +793,34 @@ bool GetWatchOnlyAddressTransactions(const CBitcoinAddress& address, std::vector
 
 bool AddWatchOnlyTransaction(const CKey& key, const CWatchOnlyTx& watchonlytx)
 {
-    LOCK(cs_watchonly);
-    int current_count = 0;
-    if (GetWatchOnlyKeyCount(key, current_count)) {
-        LogPrintf("%s: adding watchonly transaction to current count %d\n", __func__, current_count);
-        // Key count exists
-        return pwatchonlyDB->WriteWatchOnlyTx(key, current_count, watchonlytx);
+    // Check if caching is enabled
+    bool fUseCache = gArgs.GetBoolArg("-watchonlycache", false);
+
+    if (fUseCache) {
+        // Use cached implementation for better performance
+        watchonlyTxCache.AddTx(key, watchonlytx);
+
+        // Flush ALL addresses if total cache threshold reached
+        if (watchonlyTxCache.ShouldFlush(key)) {
+            LogPrint(BCLog::WATCHONLYDB, "%s: Cache threshold reached (%d total txs), flushing all addresses\n",
+                     __func__, watchonlyTxCache.GetTotalSize());
+            return watchonlyTxCache.FlushAll();
+        }
+
+        return true;
     } else {
-        // Key count didn't exist.. do the same thing?
-        LogPrintf("%s: adding watchonly transaction to fresh count %d\n", __func__, current_count);
-        return pwatchonlyDB->WriteWatchOnlyTx(key, -1, watchonlytx);
+        // Use original implementation (backward compatible)
+        LOCK(cs_watchonly);
+        int current_count = 0;
+        if (GetWatchOnlyKeyCount(key, current_count)) {
+            LogPrintf("%s: adding watchonly transaction to current count %d\n", __func__, current_count);
+            // Key count exists
+            return pwatchonlyDB->WriteWatchOnlyTx(key, current_count, watchonlytx);
+        } else {
+            // Key count didn't exist.. do the same thing?
+            LogPrintf("%s: adding watchonly transaction to fresh count %d\n", __func__, current_count);
+            return pwatchonlyDB->WriteWatchOnlyTx(key, -1, watchonlytx);
+        }
     }
 }
 
@@ -480,6 +829,46 @@ bool ReadWatchOnlyTransaction(const CKey& key, const int& count, CWatchOnlyTx& w
 {
     LogPrintf("%s: reading watchonly transaction from database\n", __func__);
     return pwatchonlyDB->ReadWatchOnlyTx(key, count, watchonlytx);
+}
+
+bool WriteWatchOnlyCheckpoint(const CKey& scan_secret, const std::vector<CWatchOnlyTx>& vTxes, int64_t nHeight, const uint256& blockHash)
+{
+    // Checkpoints are always enabled for data safety
+    LOCK(cs_watchonly);
+
+    // Get current count
+    int current_count = 0;
+    GetWatchOnlyKeyCount(scan_secret, current_count);
+
+    int starting_count = current_count;
+
+    LogPrint(BCLog::WATCHONLYDB, "%s: Writing %d transactions atomically at height %d\n",
+             __func__, vTxes.size(), nHeight);
+
+    // Write all transactions
+    for (const auto& tx : vTxes) {
+        if (!pwatchonlyDB->WriteWatchOnlyTx(scan_secret, current_count, tx)) {
+            return error("%s: Failed to write transaction %s", __func__, tx.tx_hash.GetHex());
+        }
+        current_count++;
+    }
+
+    // Create and write checkpoint atomically
+    CWatchOnlyScanCheckpoint checkpoint;
+    checkpoint.scan_secret = scan_secret;
+    checkpoint.nBlockHeight = nHeight;
+    checkpoint.nTxCount = current_count;
+    checkpoint.blockHash = blockHash;
+    checkpoint.nTimestamp = GetTime();
+
+    if (!pwatchonlyDB->WriteCheckpoint(scan_secret, checkpoint)) {
+        return error("%s: Failed to write checkpoint at height %d", __func__, nHeight);
+    }
+
+    LogPrint(BCLog::WATCHONLYDB, "%s: Successfully wrote checkpoint at height %d with %d total txs\n",
+             __func__, nHeight, current_count);
+
+    return true;
 }
 
 bool IncrementWatchOnlyKeyCount(const CKey& key)
