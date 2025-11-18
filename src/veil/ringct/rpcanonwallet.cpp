@@ -45,6 +45,7 @@
 #include <core_io.h>
 #include <veil/ringct/watchonly.h>
 #include <secp256k1_mlsag.h>
+#include <fstream>
 
 static const std::string WALLET_ENDPOINT_BASE = "/wallet/";
 
@@ -2335,6 +2336,290 @@ static UniValue getwatchonlystatus(const JSONRPCRequest &request)
     return result;
 };
 
+static UniValue backupwatchonlyaddresses(const JSONRPCRequest &request)
+{
+    if (request.fHelp || request.params.size() > 1)
+        throw std::runtime_error(
+            "backupwatchonlyaddresses ( \"filepath\" )\n"
+            "\nExport all watch-only addresses with their configuration data.\n"
+            "This creates a backup that can be used to restore watch-only addresses\n"
+            "on a fresh server without needing to re-import UTXOs.\n"
+            "\nArguments:\n"
+            "1. \"filepath\"     (string, optional) File path to write backup to. If not provided, returns JSON.\n"
+            "\nResult (when no filepath provided):\n"
+            "[\n"
+            "  {\n"
+            "    \"scan_secret\": \"hex\",          (string) Scan secret key in hex\n"
+            "    \"spend_public\": \"hex\",         (string) Spend public key in hex\n"
+            "    \"scan_start_height\": n,        (numeric) Block height to start scanning from\n"
+            "    \"imported_height\": n,          (numeric) Block height when imported\n"
+            "    \"scanned_height\": n,           (numeric) Current scanned height\n"
+            "    \"stealth_address\": \"address\"   (string) The stealth address (bech32)\n"
+            "  }\n"
+            "  ,...\n"
+            "]\n"
+            "\nResult (when filepath provided):\n"
+            "{\n"
+            "  \"filepath\": \"path\",              (string) Path where backup was written\n"
+            "  \"addresses_exported\": n           (numeric) Number of addresses exported\n"
+            "}\n"
+            "\nNote: This backup contains PRIVATE KEYS (scan secrets). Keep it secure!\n"
+            "\nExamples:\n"
+            + HelpExampleCli("backupwatchonlyaddresses", "")
+            + HelpExampleCli("backupwatchonlyaddresses", "\"/path/to/backup.json\"")
+            + HelpExampleRpc("backupwatchonlyaddresses", "")
+            + HelpExampleRpc("backupwatchonlyaddresses", "\"/path/to/backup.json\"")
+        );
+
+    UniValue result(UniValue::VARR);
+
+    LOCK(cs_watchonly);
+
+    for (const auto& item : mapWatchOnlyAddresses) {
+        const CKeyID& keyID = item.first;
+        const CWatchOnlyAddress& addr = item.second;
+
+        UniValue entry(UniValue::VOBJ);
+
+        // Export scan secret as hex
+        entry.pushKV("scan_secret", HexStr(addr.scan_secret.begin(), addr.scan_secret.end()));
+
+        // Export spend public key as hex
+        entry.pushKV("spend_public", HexStr(addr.spend_pubkey.begin(), addr.spend_pubkey.end()));
+
+        // Export heights
+        entry.pushKV("scan_start_height", addr.nScanStartHeight);
+        entry.pushKV("imported_height", addr.nImportedHeight);
+        entry.pushKV("scanned_height", addr.nCurrentScannedHeight);
+
+        // Generate stealth address for reference
+        CStealthAddress sxAddr;
+        sxAddr.scan_secret = addr.scan_secret;
+        if (SecretToPublicKey(addr.scan_secret, sxAddr.scan_pubkey) == 0) {
+            SetPublicKey(addr.spend_pubkey, sxAddr.spend_pubkey);
+            entry.pushKV("stealth_address", sxAddr.ToString(true)); // bech32
+        }
+
+        result.push_back(entry);
+    }
+
+    // If filepath provided, write to file
+    if (request.params.size() > 0) {
+        std::string filepath = request.params[0].get_str();
+
+        std::ofstream file;
+        file.open(filepath);
+        if (!file.is_open()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot open file for writing: " + filepath);
+        }
+
+        file << result.write(2); // Pretty print with 2-space indent
+        file.close();
+
+        UniValue fileResult(UniValue::VOBJ);
+        fileResult.pushKV("filepath", filepath);
+        fileResult.pushKV("addresses_exported", (int)result.size());
+        return fileResult;
+    }
+
+    return result;
+}
+
+static UniValue importwatchonlybackup(const JSONRPCRequest &request)
+{
+    if (request.fHelp || request.params.size() != 1)
+        throw std::runtime_error(
+            "importwatchonlybackup \"backup_data_or_filepath\"\n"
+            "\nImport watch-only addresses from a backup created by backupwatchonlyaddresses.\n"
+            "This allows restoring watch-only addresses on a fresh server.\n"
+            "\nArguments:\n"
+            "1. \"backup_data_or_filepath\"     (string or array, required) Either:\n"
+            "                                   - A file path to read backup from (string starting with / or ./ or containing path separators)\n"
+            "                                   - The backup data array directly from backupwatchonlyaddresses (array)\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"imported\": n,              (numeric) Number of addresses successfully imported\n"
+            "  \"skipped\": n,               (numeric) Number of addresses skipped (already exist)\n"
+            "  \"failed\": n,                (numeric) Number of addresses that failed to import\n"
+            "  \"addresses\": [              (array) Details of imported addresses\n"
+            "    {\n"
+            "      \"stealth_address\": \"address\",\n"
+            "      \"status\": \"imported|skipped|failed\",\n"
+            "      \"error\": \"error message\"  (string, only present if failed)\n"
+            "    }\n"
+            "    ,...\n"
+            "  ]\n"
+            "}\n"
+            "\nExamples:\n"
+            + HelpExampleCli("importwatchonlybackup", "\"/path/to/backup.json\"")
+            + HelpExampleCli("importwatchonlybackup", "\"[{\\\"scan_secret\\\":\\\"...\\\", ...}]\"")
+            + HelpExampleRpc("importwatchonlybackup", "\"/path/to/backup.json\"")
+            + HelpExampleRpc("importwatchonlybackup", "[{\"scan_secret\":\"...\", ...}]")
+        );
+
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    if (!wallet) return NullUniValue;
+
+    CWallet* const pwallet = wallet.get();
+    auto anonwallet = pwallet->GetAnonWallet();
+
+    if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: Private keys are disabled for this wallet");
+    }
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    UniValue backupData;
+
+    // Check if parameter is a filepath (string) or JSON array
+    if (request.params[0].isStr()) {
+        std::string filepath = request.params[0].get_str();
+
+        // Try to open as a file
+        std::ifstream file;
+        file.open(filepath, std::ios::in);
+        if (!file.is_open()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Cannot open backup file: " + filepath);
+        }
+
+        // Read entire file content
+        std::string fileContent((std::istreambuf_iterator<char>(file)),
+                                std::istreambuf_iterator<char>());
+        file.close();
+
+        // Parse JSON from file
+        if (!backupData.read(fileContent)) {
+            throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Failed to parse JSON from file: " + filepath);
+        }
+
+        if (!backupData.isArray()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Backup file must contain a JSON array");
+        }
+    } else if (request.params[0].isArray()) {
+        backupData = request.params[0].get_array();
+    } else {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Parameter must be either a file path (string) or backup data (array)");
+    }
+
+    int nImported = 0;
+    int nSkipped = 0;
+    int nFailed = 0;
+    UniValue addresses(UniValue::VARR);
+
+    for (unsigned int i = 0; i < backupData.size(); i++) {
+        const UniValue& entry = backupData[i].get_obj();
+        UniValue addrResult(UniValue::VOBJ);
+
+        try {
+            // Parse scan secret (same as importlightwalletaddress)
+            std::string sScanSecret = find_value(entry, "scan_secret").get_str();
+            std::vector<uint8_t> vchScanSecret;
+            CKey skScan;
+
+            if (IsHex(sScanSecret)) {
+                vchScanSecret = ParseHex(sScanSecret);
+            } else {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "scan_secret must be hex");
+            }
+
+            if (vchScanSecret.size() != 32) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Scan secret is not 32 bytes.");
+            }
+            skScan.Set(&vchScanSecret[0], true);
+
+            // Parse spend public key (same as importlightwalletaddress)
+            std::string sSpendPublic = find_value(entry, "spend_public").get_str();
+            std::vector<uint8_t> vchSpendPublic;
+            CPubKey pkSpend;
+
+            if (IsHex(sSpendPublic)) {
+                vchSpendPublic = ParseHex(sSpendPublic);
+            } else {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "spend_public must be hex");
+            }
+
+            if (vchSpendPublic.size() == 32) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Private Key supplied, only supply spend public key");
+            }
+            if (vchSpendPublic.size() == 33) {
+                pkSpend = CPubKey(vchSpendPublic.begin(), vchSpendPublic.end());
+            } else {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend public key size not recognized, must be 33 bytes.");
+            }
+
+            if (!pkSpend.IsValid()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Must provide valid spend pubkey.");
+            }
+
+            // Parse heights
+            int64_t nScanStart = find_value(entry, "scan_start_height").get_int64();
+            int64_t nImportedHeight = find_value(entry, "imported_height").get_int64();
+
+            // Create stealth address (same as importlightwalletaddress)
+            CStealthAddress sxAddr;
+            sxAddr.scan_secret = skScan;
+            sxAddr.spend_secret_id = pkSpend.GetID();
+            sxAddr.prefix.number_bits = 0;
+
+            if (0 != SecretToPublicKey(sxAddr.scan_secret, sxAddr.scan_pubkey)) {
+                throw JSONRPCError(RPC_INTERNAL_ERROR, "Could not get scan public key.");
+            }
+
+            SetPublicKey(pkSpend, sxAddr.spend_pubkey);
+
+            bool fBech32 = true;
+            std::string address = sxAddr.ToString(fBech32);
+            addrResult.pushKV("stealth_address", address);
+
+            // Check if already imported using CKeyID (V2) - same as importlightwalletaddress
+            CKeyID keyID = skScan.GetPubKey().GetID();
+            if (mapWatchOnlyAddresses.count(keyID)) {
+                addrResult.pushKV("status", "skipped");
+                addrResult.pushKV("reason", "Watchonly address already imported");
+                nSkipped++;
+            } else {
+                // Import to wallet (same as importlightwalletaddress)
+                CKey skSpend;
+                if (!anonwallet->ImportStealthAddress(sxAddr, skSpend)) {
+                    throw JSONRPCError(RPC_WALLET_ERROR, "Could not save to wallet.");
+                }
+
+                LogPrint(BCLog::WATCHONLYIMPORT, "%s: Importing light wallet address from backup: %s\n", __func__, sxAddr.ToString(fBech32));
+                LogPrint(BCLog::WATCHONLYIMPORT, "%s: Scan will start from block height: %d (imported at: %d, blocks to scan: %d)\n",
+                         __func__, nScanStart, nImportedHeight, (nImportedHeight - nScanStart));
+
+                // Add watch-only address (same as importlightwalletaddress)
+                if (!AddWatchOnlyAddress(sxAddr.ToString(fBech32), skScan, pkSpend, nScanStart, nImportedHeight)) {
+                    throw JSONRPCError(RPC_WALLET_ERROR, "Could not save light wallet address.");
+                }
+
+                addrResult.pushKV("status", "imported");
+                addrResult.pushKV("scan_start_height", nScanStart);
+                addrResult.pushKV("imported_height", nImportedHeight);
+                if (!skSpend.IsValid()) {
+                    addrResult.pushKV("watchonly", true);
+                }
+                nImported++;
+            }
+
+        } catch (const std::exception& e) {
+            addrResult.pushKV("status", "failed");
+            addrResult.pushKV("error", e.what());
+            nFailed++;
+        }
+
+        addresses.push_back(addrResult);
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("imported", nImported);
+    result.pushKV("skipped", nSkipped);
+    result.pushKV("failed", nFailed);
+    result.pushKV("addresses", addresses);
+
+    return result;
+}
+
 
 static UniValue getanonoutputs(const JSONRPCRequest &request)
 {
@@ -2608,6 +2893,8 @@ static const CRPCCommand commands[] =
                 { "wallet",             "importlightwalletaddress",          &importlightwalletaddress,          {"scan_secret", "spend_public", "created_height", "label", "num_prefix_bits", "prefix_num", "bech32"} },
                 { "wallet",             "removewatchonlyaddress",            &removewatchonlyaddress,            {"scan_secret", "spend_public"} },
                 { "wallet",             "getwatchonlystatus",                &getwatchonlystatus,                {"scan_secret", "spend_public"} },
+                { "wallet",             "backupwatchonlyaddresses",          &backupwatchonlyaddresses,          {"filepath"} },
+                { "wallet",             "importwatchonlybackup",             &importwatchonlybackup,             {"backup_data_or_filepath"} },
                 { "wallet",             "getanonoutputs",                &getanonoutputs,                {"inputsize", "ringsize"} },
                 { "wallet",             "getkeyimages",                &getkeyimages,                {"txdata", "spend_secret", "scan_secret", "spend_public"} },
                 { "wallet",             "buildlightwallettx",                &buildlightwallettx,                {"to_address", "amount", "spend_secret", "scan_secret", "spend_public", "txdata", "dummydata"} },
