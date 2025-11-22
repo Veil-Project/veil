@@ -8,7 +8,7 @@ env:
 jobs:
   create-source-distribution:
     name: Create Source Distribution
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       ARTIFACT_DIR: source
     steps:
@@ -40,7 +40,7 @@ jobs:
   build-x86_64-linux:
     name: Build for x86 Linux 64bit
     needs: create-source-distribution
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       ARTIFACT_DIR: x86_64-linux-binaries
       TEST_LOG_ARTIFACT_DIR: test-logs
@@ -80,7 +80,7 @@ jobs:
   build-win64:
     name: Build for Win64
     needs: create-source-distribution
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       ARTIFACT_DIR: win64-binaries
     steps:
@@ -123,7 +123,7 @@ jobs:
   build-osx64:
     name: Build for MacOSX
     needs: create-source-distribution
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       ARTIFACT_DIR: macosx-binaries
     steps:
@@ -171,7 +171,7 @@ jobs:
   build-aarch64-linux:
     name: Build for ARM Linux 64bit
     needs: create-source-distribution
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       ARTIFACT_DIR: aarch64-linux-binaries
     steps:
@@ -211,7 +211,7 @@ jobs:
   build-arm-linux-gnueabihf:
     name: Build for ARM Linux 32bit
     needs: create-source-distribution
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       ARTIFACT_DIR: arm32-binaries
     steps:
@@ -251,7 +251,7 @@ jobs:
   build-i686-linux32:
     name: Build for x86 Linux 32bit
     needs: create-source-distribution
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     env:
       ARTIFACT_DIR: i686-linux32-binaries
     steps:
