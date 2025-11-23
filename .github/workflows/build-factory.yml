@@ -132,16 +132,31 @@ jobs:
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
+
     - name: Extract Archives
       run: |
         tar -xzf depends.tar.gz
         tar -xzf veil-*.tar.gz --strip-components=1
       working-directory: ${{ env.SOURCE_ARTIFACT }}
+
     - name: Install Required Packages
       run: |
         sudo apt update
         sudo apt install -y python3-setuptools libcap-dev zlib1g-dev cmake
         sudo -H pip install setuptools
+
+    - name: Work around missing libtinfo.so.5 for macOS cross-toolchain
+      run: |
+        # Try to install libtinfo5 if it's in the repo
+        if apt-cache show libtinfo5 >/dev/null 2>&1; then
+          sudo apt-get install -y libtinfo5
+        fi
+        # If still no libtinfo.so.5, symlink it to libtinfo.so.6
+        if [ ! -f /usr/lib/x86_64-linux-gnu/libtinfo.so.5 ] && [ -f /usr/lib/x86_64-linux-gnu/libtinfo.so.6 ]; then
+          echo "Creating libtinfo.so.5 -> libtinfo.so.6 symlink..."
+          sudo ln -s /usr/lib/x86_64-linux-gnu/libtinfo.so.6 /usr/lib/x86_64-linux-gnu/libtinfo.so.5
+        fi
+
     - name: Get macOS SDK
       run: |
         mkdir -p depends/sdk-sources
@@ -149,20 +164,24 @@ jobs:
         curl https://bitcoincore.org/depends-sources/sdks/Xcode-11.3.1-11C505-extracted-SDK-with-libcxx-headers.tar.gz -o depends/sdk-sources/Xcode-11.3.1-11C505-extracted-SDK-with-libcxx-headers.tar.gz
         tar -C depends/SDKs -xf depends/sdk-sources/Xcode-11.3.1-11C505-extracted-SDK-with-libcxx-headers.tar.gz
       working-directory: ${{ env.SOURCE_ARTIFACT }}
+
     - name: Build Dependencies
       run: make -C depends HOST=x86_64-apple-darwin18 -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
+
     - name: Build Veil
       run: |
         ./configure --enable-c++17 --disable-jni --prefix=$(realpath depends/x86_64-apple-darwin18)
         make -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
+
     - name: Prepare Files for Artifact
       run: |
         mkdir -p $ARTIFACT_DIR
         # strip fails with "Unable to recognise the format of the input file"
         #strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
         mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
