@@ -236,7 +236,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getnewaddress", 3, "bech32"},
     { "getnewaddress", 4, "makeV2"},
     { "getwatchonlytxes", 1, "starting_index"},
-    { "getwatchonlytxes", 4, "testing"},
+    { "getwatchonlytxes", 2, "batch_size"},
 
 
 
