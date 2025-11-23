@@ -1475,19 +1475,20 @@ bool LightWalletAddRealOutputs(CMutableTransaction& txNew, std::vector<CWatchOnl
 
             vSecretColumns[l] = GetRandInt(nSigRingSize);
 
-            vMI[l].resize(currentSize);
+            vMI[l].resize(nSigInputs);
 
-            for (size_t k = 0; k < vSelectedTxes.size(); ++k) {
+            size_t txOffset = currentSize - nSigInputs;
+            for (size_t k = 0; k < nSigInputs; ++k) {
                 vMI[l][k].resize(nSigRingSize);
                 for (size_t i = 0; i < nSigRingSize; ++i) {
                     if (i == vSecretColumns[l]) {
-                        const auto &coin = vSelectedTxes[k];
-                        const uint256 &txhash = vSelectedTxes[k].tx_hash;
+                        const auto &coin = vSelectedTxes[txOffset + k];
+                        const uint256 &txhash = vSelectedTxes[txOffset + k].tx_hash;
 
-                        CCmpPubKey pk = vSelectedTxes[k].ringctout.pk;
-                        memcpy(&vInputBlinds[l][k * 32], &vSelectedTxes[k].blind, 32);
+                        CCmpPubKey pk = vSelectedTxes[txOffset + k].ringctout.pk;
+                        memcpy(&vInputBlinds[l][k * 32], &vSelectedTxes[txOffset + k].blind, 32);
 
-                        int64_t index = vSelectedTxes[k].ringctIndex;
+                        int64_t index = vSelectedTxes[txOffset + k].ringctIndex;
 
                         if (setHave.count(index)) {
                             errorMsg = "Duplicate index found";

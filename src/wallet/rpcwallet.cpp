@@ -43,6 +43,7 @@
 #include <veil/ringct/anon.h>
 #include <veil/ringct/stealth.h>
 #include <veil/ringct/watchonly.h>
+#include <veil/ringct/watchonlydb.h>
 
 #include <stdint.h>
 
@@ -52,6 +53,79 @@
 #include <boost/assign.hpp>
 #include <veil/ringct/blind.h>
 #include <secp256k1_mlsag.h>
+
+// Transaction cache for watch-only RPC calls
+struct CachedTransaction {
+    uint256 hash;
+    CTransactionRef tx;
+    uint256 hashBlock;
+    int64_t nTimeAdded;
+
+    CachedTransaction(const uint256& h, CTransactionRef t, const uint256& hb)
+        : hash(h), tx(t), hashBlock(hb), nTimeAdded(GetTime()) {}
+};
+
+class CTransactionCache {
+private:
+    static const size_t MAX_CACHE_SIZE = 5000;
+    static const int64_t MAX_CACHE_AGE = 300; // 5 minutes
+
+    std::map<uint256, CachedTransaction> mapCache;
+    std::list<uint256> listLRU;
+    CCriticalSection cs_cache;
+
+public:
+    bool Get(const uint256& hash, CTransactionRef& tx, uint256& hashBlock);
+    void Add(const uint256& hash, CTransactionRef tx, const uint256& hashBlock);
+    void Clear();
+    size_t Size() { LOCK(cs_cache); return mapCache.size(); }
+};
+
+// Global cache instance
+static CTransactionCache txCache;
+
+bool CTransactionCache::Get(const uint256& hash, CTransactionRef& tx, uint256& hashBlock) {
+    LOCK(cs_cache);
+
+    auto it = mapCache.find(hash);
+    if (it == mapCache.end())
+        return false;
+
+    // Check if expired
+    if (GetTime() - it->second.nTimeAdded > MAX_CACHE_AGE) {
+        mapCache.erase(it);
+        listLRU.remove(hash);
+        return false;
+    }
+
+    // Move to front of LRU
+    listLRU.remove(hash);
+    listLRU.push_front(hash);
+
+    tx = it->second.tx;
+    hashBlock = it->second.hashBlock;
+    return true;
+}
+
+void CTransactionCache::Add(const uint256& hash, CTransactionRef tx, const uint256& hashBlock) {
+    LOCK(cs_cache);
+
+    // Evict oldest if cache full
+    if (mapCache.size() >= MAX_CACHE_SIZE) {
+        uint256 evictHash = listLRU.back();
+        listLRU.pop_back();
+        mapCache.erase(evictHash);
+    }
+
+    mapCache.emplace(hash, CachedTransaction(hash, tx, hashBlock));
+    listLRU.push_front(hash);
+}
+
+void CTransactionCache::Clear() {
+    LOCK(cs_cache);
+    mapCache.clear();
+    listLRU.clear();
+}
 
 // This enumeration determines the order of the CSV file header columns
 typedef enum
@@ -1096,39 +1170,54 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         return NullUniValue;
     }
 
-    if (request.fHelp || request.params.size() > 5)
+    if (request.fHelp || request.params.size() > 3)
         throw std::runtime_error(
-                "getwatchonlytxes \"scan_secret\" \"starting_index\" \"(scan_public_key)\" \"(spend_secret)\" \"testing\""
+                "getwatchonlytxes \"scan_secret\" \"starting_index\" \"batch_size\""
                 "\nFetch txes belonging to watchonly address with a certain scan key"
-                "\nThis rpccall will give transactions in batches of 1000 at a time. "
+                "\nThis rpccall will give transactions in batches (default 1000 at a time). "
 
                 + HelpRequiringPassphrase(pwallet) + "\n"
                                                      "\nArguments:\n"
                                                      "1. \"scan_secret\"         (string, required) The private scan key for the address\n"
-                                                     "2. \"starting_index\"         (number, optional) The database index to start from\n"
-                                                     "3. \"scan_public_key\"         (string, optional) For testing only - The public spend secret\n"
-                                                     "4. \"spend_secret\"         (string, optional)  For testing only - s The private spend secret\n"
-                                                     "5. \"testing\"         (boolean, optional default=false)  For testing only\n"
+                                                     "2. \"starting_index\"      (number, optional default=0) The database index to start from\n"
+                                                     "3. \"batch_size\"          (number, optional default=1000, max=1000) Number of transactions to return per call\n"
                                                      "\nResult:\n"
-                                                     "\"[\n"
-                                                     "txhash,       (string) The txhash\n"
-                                                     "...\n"
-                                                     "]\"\n"
+                                                     "{\n"
+                                                     "  \"anon\": [         (array) Array of anonymous transactions\n"
+                                                     "    {\n"
+                                                     "      \"type\": \"anon\",           (string) Transaction type\n"
+                                                     "      \"dbindex\": n,             (numeric) Database index\n"
+                                                     "      \"tx_hash\": \"hex\",         (string) Transaction hash\n"
+                                                     "      \"n\": n,                   (numeric) Output index\n"
+                                                     "      \"ringct_index\": n,        (numeric) RingCT index\n"
+                                                     "      \"confirmations\": n,       (numeric) Number of confirmations\n"
+                                                     "      \"blocktime\": ttt,         (numeric) Block timestamp in seconds since epoch\n"
+                                                     "      ...\n"
+                                                     "    },\n"
+                                                     "    ...\n"
+                                                     "  ],\n"
+                                                     "  \"stealth\": [      (array) Array of stealth transactions\n"
+                                                     "    {\n"
+                                                     "      \"type\": \"stealth\",        (string) Transaction type\n"
+                                                     "      \"dbindex\": n,             (numeric) Database index\n"
+                                                     "      \"confirmations\": n,       (numeric) Number of confirmations\n"
+                                                     "      \"blocktime\": ttt,         (numeric) Block timestamp in seconds since epoch\n"
+                                                     "      ...\n"
+                                                     "    },\n"
+                                                     "    ...\n"
+                                                     "  ]\n"
+                                                     "}\n"
         );
 
     LOCK2(cs_main, pwallet->cs_wallet);
 
     EnsureWalletIsUnlocked(pwallet);
 
+    // Parse scan secret (param 1 - required)
     std::string sScanSecret = request.params[0].get_str();
     std::vector<uint8_t> vchScanSecret;
     CBitcoinSecret wifScanSecret;
     CKey scan_secret;
-
-    int nStartingIndex = 0;
-    if (request.params.size() > 1) {
-        nStartingIndex = request.params[1].get_int();
-    }
 
     if (IsHex(sScanSecret)) {
         vchScanSecret = ParseHex(sScanSecret);
@@ -1149,58 +1238,18 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         scan_secret.Set(&vchScanSecret[0], true);
     }
 
-
-    CPubKey pkSpend;
-    std::string sSpendPublic = "";
-    if (request.params.size() > 2) {
-        std::vector<uint8_t> vchSpendPublic;
-        sSpendPublic = request.params[2].get_str();
-        if (IsHex(sSpendPublic)) {
-            vchSpendPublic = ParseHex(sSpendPublic);
-        }
-
-        if (vchSpendPublic.size() != 33) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend public is not 33 bytes.");
-        }
-
-        pkSpend = CPubKey(vchSpendPublic.begin(), vchSpendPublic.end());
+    // Parse starting index (param 2 - optional, default 0)
+    int nStartingIndex = 0;
+    if (request.params.size() > 1) {
+        nStartingIndex = request.params[1].get_int();
     }
 
-    std::string sSpendSecret = "";
-    CKey spend_secret;
-    if(request.params.size() > 3) {
-        std::vector<uint8_t> vchSpendSecret;
-        CBitcoinSecret wifSpendSecret;
-        sSpendSecret = request.params[3].get_str();
-        if (IsHex(sSpendSecret)) {
-            vchSpendSecret = ParseHex(sSpendSecret);
-        } else {
-            if (wifSpendSecret.SetString(sSpendSecret)) {
-                spend_secret = wifSpendSecret.GetKey();
-            } else {
-                if (!DecodeBase58(sSpendSecret, vchSpendSecret, MAX_STEALTH_RAW_SIZE)) {
-                    throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode spend secret as WIF, hex or base58.");
-                }
-            }
-        }
-
-        if (vchSpendSecret.size() > 0) {
-            if (vchSpendSecret.size() != 32) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend secret is not 32 bytes.");
-            }
-            spend_secret.Set(&vchScanSecret[0], true);
-        }
-    }
-
+    // Parse batch size (param 3 - optional, default 1000)
+    int nBatchSize = 1000;
     if (request.params.size() > 2) {
-        if (request.params.size() <= 4) {
-            throw JSONRPCError(RPC_INVALID_REQUEST, "You can only use params 3-4 when testing is set to true. Do this when testing only, never on production");
-        }
-
-        if (request.params.size() > 4) {
-            if (!request.params[4].get_bool()) {
-                throw JSONRPCError(RPC_INVALID_REQUEST, "Trying to use testing only parameters when testing isn't true");
-            }
+        nBatchSize = request.params[2].get_int();
+        if (nBatchSize < 1 || nBatchSize > 1000) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "batch_size must be between 1 and 1000");
         }
     }
 
@@ -1213,86 +1262,89 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
             dbIndex = 0;
         }
 
-        // Only do 1000 txes at a time.
-        if (current_count > dbIndex + 1000) {
-            current_count = dbIndex + 1000;
+        // Only do batch_size txes at a time.
+        if (current_count > dbIndex + nBatchSize) {
+            current_count = dbIndex + nBatchSize;
         }
 
         for (int i = dbIndex; i <= current_count; i++) {
             CWatchOnlyTx watchonlytx;
             if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
-                if (!spend_secret.IsValid()) {
-                    pblocktree->ReadRCTOutputLink(watchonlytx.ringctout.pk, watchonlytx.ringctIndex);
-                    if (watchonlytx.type == CWatchOnlyTx::ANON) {
-                        anonTxes.push_back(watchonlytx.GetUniValue(i));
-                    } else if (watchonlytx.type == CWatchOnlyTx::STEALTH) {
-                        stealthTxes.push_back(watchonlytx.GetUniValue(i));
-                    }
+                // Get transaction block information for confirmations and timestamp
+                int confirmations = -1;
+                int64_t blocktime = 0;
+
+                // Use stored block info if available (V2 database)
+                if (watchonlytx.nBlockHeight > 0) {
+                    // Fast path: use stored block height and time
+                    confirmations = 1 + chainActive.Height() - watchonlytx.nBlockHeight;
+                    blocktime = watchonlytx.nBlockTime;
                 } else {
-                    // TESTING ONLY - Param 5 must be true
-                    if (watchonlytx.type == CWatchOnlyTx::ANON) {
-                        auto txout = watchonlytx.ringctout;
+                    // Fallback for old database (pre-V2): fetch transaction from disk
+                    CTransactionRef tx;
+                    uint256 hash_block;
 
-                        CKeyID idk = txout.pk.GetID();
-                        std::vector<uint8_t> vchEphemPK;
-                        vchEphemPK.resize(33);
-                        memcpy(&vchEphemPK[0], &watchonlytx.ringctout.vData[0], 33);
-
-                        CKey sShared;
-                        ec_point pkExtracted;
-                        ec_point ecPubKey;
-                        SetPublicKey(pkSpend, ecPubKey);
-
-                        if (StealthSecret(scan_secret, vchEphemPK, ecPubKey, sShared, pkExtracted) != 0)
-                            error("%s: failed to generate stealth secret", __func__);
-
-                        CKey keyDestination;
-                        if (StealthSharedToSecretSpend(sShared, spend_secret, keyDestination) != 0)
-                            error("%s: StealthSharedToSecretSpend() failed.\n", __func__);
-
-                        if (keyDestination.GetPubKey().GetID() != idk)
-                            error("%s: failed to generate correct shared secret", __func__);
-
-                        // Regenerate nonce
-                        CPubKey pkEphem;
-                        pkEphem.Set(vchEphemPK.begin(), vchEphemPK.begin() + 33);
-                        uint256 nonce = keyDestination.ECDH(pkEphem);
-                        CSHA256().Write(nonce.begin(), 32).Finalize(nonce.begin());
-
-                        uint64_t min_value, max_value;
-                        uint8_t blindOut[32];
-                        unsigned char msg[256]; // Currently narration is capped at 32 bytes
-                        size_t mlen = sizeof(msg);
-                        memset(msg, 0, mlen);
-                        uint64_t amountOut;
-                        if (1 != secp256k1_rangeproof_rewind(secp256k1_ctx_blind,
-                                                             blindOut, &amountOut, msg, &mlen, nonce.begin(),
-                                                             &min_value, &max_value,
-                                                             &watchonlytx.ringctout.commitment,
-                                                             watchonlytx.ringctout.vRangeproof.data(),
-                                                             watchonlytx.ringctout.vRangeproof.size(),
-                                                             nullptr, 0,
-                                                             secp256k1_generator_h)) {
-                            error("%s: failed to get the amount", __func__);
-                        }
-
-                        CAmount actualAmount = amountOut;
-
-                        // Keyimage is required for the tx hash
-                        CCmpPubKey ki;
-                        if (secp256k1_get_keyimage(secp256k1_ctx_blind, ki.ncbegin(), watchonlytx.ringctout.pk.begin(),
-                                                   keyDestination.begin()) == 0) {
-                            // Check if keyimage is used
-                            uint256 txhashKI;
-                            if (pblocktree->ReadRCTKeyImage(ki, txhashKI)) {
-                                anonTxes.push_back(
-                                        watchonlytx.GetUniValue(i, true, HexStr(ki), txhashKI, false, amountOut));
-                            } else {
-                                anonTxes.push_back(
-                                        watchonlytx.GetUniValue(i, false, HexStr(ki), txhashKI, false, amountOut));
-                            }
+                    // Try cache first
+                    if (!txCache.Get(watchonlytx.tx_hash, tx, hash_block)) {
+                        // Cache miss - fetch from disk
+                        if (GetTransaction(watchonlytx.tx_hash, tx, Params().GetConsensus(), hash_block, true)) {
+                            // Add to cache for future requests
+                            txCache.Add(watchonlytx.tx_hash, tx, hash_block);
                         }
                     }
+
+                    if (tx && !hash_block.IsNull()) {
+                        CBlockIndex* pindex = LookupBlockIndex(hash_block);
+                        if (pindex && chainActive.Contains(pindex)) {
+                            confirmations = 1 + chainActive.Height() - pindex->nHeight;
+                            blocktime = pindex->GetBlockTime();
+                        }
+                    }
+                }
+
+                // Add transaction to appropriate array
+                pblocktree->ReadRCTOutputLink(watchonlytx.ringctout.pk, watchonlytx.ringctIndex);
+                if (watchonlytx.type == CWatchOnlyTx::ANON) {
+                    anonTxes.push_back(watchonlytx.GetUniValue(i, false, "", uint256(), true, 0, confirmations, blocktime, ""));
+                } else if (watchonlytx.type == CWatchOnlyTx::STEALTH) {
+                    stealthTxes.push_back(watchonlytx.GetUniValue(i, false, "", uint256(), true, 0, confirmations, blocktime, ""));
+                }
+            }
+        }
+
+        // After processing database transactions, append any unflushed cached transactions
+        std::vector<CWatchOnlyTx> vCachedTxes;
+        watchonlyTxCache.GetCachedTxes(scan_secret, vCachedTxes);
+
+        if (!vCachedTxes.empty()) {
+            LogPrint(BCLog::WATCHONLYDB, "%s: Appending %d unflushed cached transactions\n",
+                     __func__, vCachedTxes.size());
+
+            // Start index for cached transactions is after the database count
+            int cacheStartIndex = current_count + 1;
+
+            for (size_t i = 0; i < vCachedTxes.size(); i++) {
+                const CWatchOnlyTx& watchonlytx = vCachedTxes[i];
+                int txIndex = cacheStartIndex + i;
+
+                // Get transaction block information for confirmations and timestamp
+                int confirmations = -1;
+                int64_t blocktime = 0;
+
+                // Use stored block info if available
+                if (watchonlytx.nBlockHeight > 0) {
+                    confirmations = 1 + chainActive.Height() - watchonlytx.nBlockHeight;
+                    blocktime = watchonlytx.nBlockTime;
+                }
+
+                // Add transaction to appropriate array
+                int64_t ringctIndex = 0;
+                pblocktree->ReadRCTOutputLink(watchonlytx.ringctout.pk, ringctIndex);
+
+                if (watchonlytx.type == CWatchOnlyTx::ANON) {
+                    anonTxes.push_back(watchonlytx.GetUniValue(txIndex, false, "", uint256(), true, 0, confirmations, blocktime, ""));
+                } else if (watchonlytx.type == CWatchOnlyTx::STEALTH) {
+                    stealthTxes.push_back(watchonlytx.GetUniValue(txIndex, false, "", uint256(), true, 0, confirmations, blocktime, ""));
                 }
             }
         }
@@ -1302,6 +1354,34 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
     ret.pushKV("anon", anonTxes);
     ret.pushKV("stealth", stealthTxes);
     return ret;
+}
+
+static UniValue compactwatchonlydb(const JSONRPCRequest& request)
+{
+    if (request.fHelp || request.params.size() != 0)
+        throw std::runtime_error(
+            "compactwatchonlydb\n"
+            "\nCompact the watch-only database to reclaim space and improve performance.\n"
+            "This operation may take several minutes depending on database size.\n"
+            "\nResult:\n"
+            "{\n"
+            "  \"result\": \"success\"           (string) Status of the operation\n"
+            "}\n"
+            "\nExamples:\n"
+            + HelpExampleCli("compactwatchonlydb", "")
+            + HelpExampleRpc("compactwatchonlydb", "")
+        );
+
+    if (!pwatchonlyDB) {
+        throw JSONRPCError(RPC_INTERNAL_ERROR, "Watch-only database not initialized");
+    }
+
+    LogPrintf("RPC: compactwatchonlydb called\n");
+    pwatchonlyDB->CompactDatabase();
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("result", "success");
+    return result;
 }
 
 static UniValue checkkeyimage(const JSONRPCRequest& request)
@@ -1426,7 +1506,8 @@ static UniValue getwatchonlyaddresses(const JSONRPCRequest& request)
                 "\n"
                  "\nResult:\n"
                 "\"[\"\n"
-                "\"address\"                     (string) Imported address\n"
+                "\"keyid\"                       (string) Key ID (hash of scan public key)\n"
+                "\"address\"                     (string) Stealth address in bech32 format\n"
                 "\"imported_at_block\"           (number) Block height the address was imported at\n"
                 "\"start_scan_block\"            (number) The block height this address will start scanning for transactions at \n"
                 "\"currently_scan_block\"        (number) The currently scanned block height for this address\n"
@@ -1437,7 +1518,18 @@ static UniValue getwatchonlyaddresses(const JSONRPCRequest& request)
     UniValue result(UniValue::VARR);
     for (const auto& address : mapWatchOnlyAddresses) {
         UniValue data(UniValue::VOBJ);
-        data.pushKV("address", address.first);
+        // address.first is now CKeyID (V2), convert to string for display
+        data.pushKV("keyid", address.first.ToString());
+
+        // Reconstruct the stealth address string for light wallet verification
+        CStealthAddress sxAddr;
+        sxAddr.scan_secret = address.second.scan_secret;
+        if (0 == SecretToPublicKey(sxAddr.scan_secret, sxAddr.scan_pubkey)) {
+            SetPublicKey(address.second.spend_pubkey, sxAddr.spend_pubkey);
+            sxAddr.spend_secret_id = address.second.spend_pubkey.GetID();
+            data.pushKV("address", sxAddr.ToString(true)); // bech32 format
+        }
+
         data.pushKV("imported_at_block", address.second.nImportedHeight);
         data.pushKV("start_scan_block", address.second.nScanStartHeight);
         data.pushKV("currently_scan_block", address.second.nCurrentScannedHeight);
@@ -6511,7 +6603,8 @@ static const CRPCCommand commands[] =
     { "wallet",             "setlabel",                         &setlabel,                      {"address","label"} },
     { "wallet",             "viewscankeys",                   &viewscankeys,                    {"address"} },
     { "wallet",             "getwatchonlyaddresses",            &getwatchonlyaddresses,         {} },
-    { "wallet",             "getwatchonlytxes",                 &getwatchonlytxes,              {"scan_secret", "starting_index", "scan_public_key", "spend_secret", "testing"}},
+    { "wallet",             "getwatchonlytxes",                 &getwatchonlytxes,              {"scan_secret", "starting_index", "batch_size"}},
+    { "wallet",             "compactwatchonlydb",               &compactwatchonlydb,            {} },
 
     { "info",             "checkkeyimage",                      &checkkeyimage,                 {"key_image"} },
     { "info",             "checkkeyimages",                      &checkkeyimages,                 {"key_images"} },

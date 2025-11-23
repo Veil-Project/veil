@@ -5,6 +5,7 @@
 #include <cuckoocache.h>
 #include <script/sigcache.h>
 #include <test/test_veil.h>
+#include <deque>
 #include <random.h>
 #include <thread>
 

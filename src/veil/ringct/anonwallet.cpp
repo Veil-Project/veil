@@ -365,11 +365,9 @@ isminetype AnonWallet::HaveStealthAddress(const CStealthAddress &sxAddr) const
     auto si = mapStealthAddresses.find(sxAddr.GetID());
     if (si != mapStealthAddresses.end()) {
 
-        if (mapWatchOnlyAddresses.count(si->second.ToString(true))) {
-            return ISMINE_WATCH_ONLY;
-        }
-
-        if (mapWatchOnlyAddresses.count(si->second.ToString(false))) {
+        // Check if this is a watch-only address using CKeyID (V2)
+        CKeyID keyID = si->second.scan_secret.GetPubKey().GetID();
+        if (mapWatchOnlyAddresses.count(keyID)) {
             return ISMINE_WATCH_ONLY;
         }
 

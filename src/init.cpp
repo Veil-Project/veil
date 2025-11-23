@@ -281,6 +281,19 @@ void Shutdown()
     }
 
     if (gArgs.GetBoolArg("-watchonly", false)) {
+        // Flush any cached watch-only data before shutdown (cache is always enabled)
+        LogPrintf("Flushing watch-only caches on shutdown...\n");
+
+        // Flush transaction cache
+        if (!watchonlyTxCache.FlushAll()) {
+            error("Failed to flush watch-only transaction cache on shutdown");
+        }
+
+        // Flush block cache
+        if (!watchonlyBlockCache.FlushAll()) {
+            error("Failed to flush watch-only block cache on shutdown");
+        }
+
         if (!FlushWatchOnlyAddresses()) {
             error("Fail to write watchonly addresses to database.");
         }
@@ -649,6 +662,7 @@ static void BlockNotifyCallback(bool initialSync, const CBlockIndex *pBlockIndex
 static bool fHaveGenesis = false;
 static CWaitableCriticalSection cs_GenesisWait;
 static CConditionVariable condvar_GenesisWait;
+static boost::signals2::connection genesisWaitConnection;
 
 static void BlockNotifyGenesisWait(bool, const CBlockIndex *pBlockIndex)
 {
@@ -1816,6 +1830,10 @@ bool AppInitMain()
 
     // Load watchonly addresses
     if (gArgs.GetBoolArg("-watchonly", false)) {
+        // Cache is always enabled with fixed size of 1000
+        watchonlyTxCache.nMaxCacheSize = 1000;
+        LogPrintf("Watch-only transaction cache enabled with size 1000\n");
+
         LoadWatchOnlyAddresses();
     }
 
@@ -1856,7 +1874,7 @@ bool AppInitMain()
         // Either install a handler to notify us when genesis activates, or set fHaveGenesis directly.
         // No locking, as this happens before any background thread is started.
         if (chainActive.Tip() == nullptr) {
-            uiInterface.NotifyBlockTip.connect(BlockNotifyGenesisWait);
+            genesisWaitConnection = uiInterface.NotifyBlockTip.connect(BlockNotifyGenesisWait);
         } else {
             fHaveGenesis = true;
         }
@@ -1883,7 +1901,7 @@ bool AppInitMain()
             while (!fHaveGenesis && !ShutdownRequested()) {
                 condvar_GenesisWait.wait_for(lock, std::chrono::milliseconds(500));
             }
-            uiInterface.NotifyBlockTip.disconnect(BlockNotifyGenesisWait);
+            genesisWaitConnection.disconnect();
         }
     }
 
