@@ -166,6 +166,7 @@ public:
         return *this;
     }
 
+    base_uint& safeMultiply(const base_uint& b, bool& overflow);
     base_uint& operator*=(uint32_t b32);
     base_uint& operator*=(const base_uint& b);
     base_uint& operator/=(const base_uint& b);
