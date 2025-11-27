@@ -823,6 +823,6 @@ bool CZerocoinDB::WriteBlockZerocoinData(
              (unsigned int)countMints,
              (unsigned int)countPubcoinSpends);
 
-    return WriteBatch(batch, true);
+    return WriteBatch(batch, false);
 }
 
