@@ -2907,9 +2907,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     pindex->nAnonOutputs = view.nLastRCTOutput;
 
-    // Record zerocoin serials
-    //std::set<uint256> setAddedTx;
-
+	// Batch-write all Zerocoin data (spends, mints, pubcoin spends) in a single DB operation.
     bool fWritePubcoinSpends = (pindex->nHeight >= Params().HeightLightZerocoin());
 	if (!pzerocoinDB->WriteBlockZerocoinData(
 	        mapSpends,
