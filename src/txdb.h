@@ -155,6 +155,14 @@ public:
     bool EraseBlacklisterPubcoin(const uint256& hashPubcoin);
     bool LoadBlacklistOutPoints();
     bool LoadBlacklistPubcoins();
+
+    // Write all Zerocoin data for a block in a single batch
+    bool WriteBlockZerocoinData(
+        const std::map<libzerocoin::CoinSpend, uint256>& spendInfo,
+        const std::map<libzerocoin::PublicCoin, uint256>& mintInfo,
+        const std::map<uint256, uint256>& mapPubcoinSpends,
+        const uint256& hashBlock,
+        bool fWritePubcoinSpends);
 };
 
 #endif // BITCOIN_TXDB_H

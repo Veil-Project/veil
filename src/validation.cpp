@@ -2907,16 +2907,16 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     pindex->nAnonOutputs = view.nLastRCTOutput;
 
-    // Record zerocoin serials
-    std::set<uint256> setAddedTx;
-
-    // Flush spend/mint info to disk
-    if (!pzerocoinDB->WriteCoinSpendBatch(mapSpends)) return state.Error(("Failed to record coin serials to database"));
-    if (!pzerocoinDB->WriteCoinMintBatch(mapMints)) return state.Error(("Failed to record new mints to database"));
-    if (pindex->nHeight >= Params().HeightLightZerocoin()) {
-        if (!pzerocoinDB->WritePubcoinSpendBatch(mapSpentPubcoinsInBlock, pindex->GetBlockHash()) )
-            return state.Error(("Failed to record new pubcoinspends to database"));
-    }
+	// Batch-write all Zerocoin data (spends, mints, pubcoin spends) in a single DB operation.
+    bool fWritePubcoinSpends = (pindex->nHeight >= Params().HeightLightZerocoin());
+	if (!pzerocoinDB->WriteBlockZerocoinData(
+	        mapSpends,
+	        mapMints,
+	        mapSpentPubcoinsInBlock,
+	        pindex->GetBlockHash(),
+	        fWritePubcoinSpends)) {
+	    return state.Error("Failed to record zerocoin data to database");
+	}
 
     int64_t nTime6 = GetTimeMicros(); nTimeDatabaseZerocoin += nTime6 - nTime5;
     LogPrint(BCLog::BENCH, "    - Writing zerocoin to database : %.2fms [%.2fs (%.2fms/blk)]\n", MILLI * (nTime6 - nTime5), nTimeDatabaseZerocoin * MICRO, nTimeDatabaseZerocoin * MILLI / nBlocksTotal);
