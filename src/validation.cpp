@@ -2905,17 +2905,22 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     if (fJustCheck)
         return true;
 
-    pindex->nAnonOutputs = view.nLastRCTOutput;
+	pindex->nAnonOutputs = view.nLastRCTOutput;
 
-	// Batch-write all Zerocoin data (spends, mints, pubcoin spends) in a single DB operation.
-    bool fWritePubcoinSpends = (pindex->nHeight >= Params().HeightLightZerocoin());
-	if (!pzerocoinDB->WriteBlockZerocoinData(
-	        mapSpends,
-	        mapMints,
-	        mapSpentPubcoinsInBlock,
-	        pindex->GetBlockHash(),
-	        fWritePubcoinSpends)) {
-	    return state.Error("Failed to record zerocoin data to database");
+	const bool fWritePubcoinSpends = (pindex->nHeight >= Params().HeightLightZerocoin());
+
+	if (!mapSpends.empty() ||
+	    !mapMints.empty() ||
+	    (fWritePubcoinSpends && !mapSpentPubcoinsInBlock.empty())) {
+	
+	    if (!pzerocoinDB->WriteBlockZerocoinData(
+	            mapSpends,
+	            mapMints,
+	            mapSpentPubcoinsInBlock,
+	            pindex->GetBlockHash(),
+	            fWritePubcoinSpends)) {
+	        return state.Error("Failed to write zerocoin data");
+	    }
 	}
 
     int64_t nTime6 = GetTimeMicros(); nTimeDatabaseZerocoin += nTime6 - nTime5;
