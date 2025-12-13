@@ -778,6 +778,13 @@ bool CZerocoinDB::WriteBlockZerocoinData(
     const uint256& hashBlock,
     bool fWritePubcoinSpends)
 {
+    // Fast path: nothing to write for this block
+    if (spendInfo.empty() &&
+        mintInfo.empty() &&
+        (!fWritePubcoinSpends || mapPubcoinSpends.empty())) {
+        return true;
+    }
+    
     CDBBatch batch(*this);
     size_t countSpends = 0;
     size_t countMints = 0;
