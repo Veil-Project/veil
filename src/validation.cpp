@@ -2864,14 +2864,56 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                          REJECT_INVALID, "bad-cb-amount");
     }
 
-    // Ensure that accumulator checkpoints are valid and in the same state as this instance of the chain
-    int64_t nTimeAccumulate = GetTimeMicros();
-    AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
-    if (!ValidateAccumulatorCheckpoint(block, pindex, mapAccumulators))
-        return state.DoS(100, error("%s: Failed to validate accumulator checkpoint for block=%s height=%d", __func__,
-                                    block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID, "bad-acc-checkpoint");
-    nTimeAccumulate = GetTimeMicros() - nTimeAccumulate;
-    LogPrint(BCLog::BENCH, "    - Accumulate zerocoinmints in: %.2fms\n", MILLI * nTimeAccumulate);
+    // Zerocoin accumulator validation
+	int64_t nTimeAccumulate = 0;
+	AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
+	
+	// This is the ONLY time ValidateAccumulatorCheckpoint() actually calculates accumulators
+	const bool fChecksumBoundary = (pindex->nHeight > 10 && (pindex->nHeight % 10) == 0);
+	
+	// Pre-Light Zerocoin: keep legacy behavior (always validate)
+	if (pindex->nHeight < Params().HeightLightZerocoin()) {
+	    const int64_t nStart = GetTimeMicros();
+	
+	    if (!ValidateAccumulatorCheckpoint(block, pindex, mapAccumulators)) {
+	        return state.DoS(
+	            100,
+	            error("%s: Failed to validate pre-LZC accumulator checkpoint for block=%s height=%d",
+	                  __func__, block.GetHash().GetHex(), pindex->nHeight),
+	            REJECT_INVALID,
+	            "bad-pre-lzc-acc-checkpoint");
+	    }
+	
+	    nTimeAccumulate = GetTimeMicros() - nStart;
+	    LogPrint(BCLog::BENCH, "    - Accumulate (pre-LZC mandatory): %.2fms\n", MILLI * nTimeAccumulate);
+	}
+	// Post-Light Zerocoin: only validate when it matters
+	else {
+	    // MUST validate on checksum boundary blocks or you will not write accumulator values
+	    // and later spends will fail with "Cannot find accumulator checkpoint in zerocoinDB".
+	    const bool fNeedAccumulatorBuild = fChecksumBoundary;
+	
+	    if (fNeedAccumulatorBuild) {
+	        const int64_t nStart = GetTimeMicros();
+	
+	        if (!ValidateAccumulatorCheckpoint(block, pindex, mapAccumulators)) {
+	            return state.DoS(
+	                100,
+	                error("%s: Failed to validate post-LZC accumulator checkpoint for block=%s height=%d",
+	                      __func__, block.GetHash().GetHex(), pindex->nHeight),
+	                REJECT_INVALID,
+	                "bad-post-lzc-acc-checkpoint");
+	        }
+	
+	        nTimeAccumulate = GetTimeMicros() - nStart;
+	        LogPrint(BCLog::BENCH, "    - Accumulate (checksum boundary): %.2fms\n", MILLI * nTimeAccumulate);
+	
+	        // Write accumulator values to DB for later spend verification
+	        DatabaseChecksums(mapAccumulators);
+	    } else {
+	        LogPrint(BCLog::BENCH, "    - Accumulate skipped (post-LZC, not checksum boundary)\n");
+	    }
+	}
 
     if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
