@@ -2889,9 +2889,8 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 	}
 	// Post-Light Zerocoin: only validate when it matters
 	else {
-	    // MUST validate on checksum boundary blocks or you will not write accumulator values
-	    // and later spends will fail with "Cannot find accumulator checkpoint in zerocoinDB".
-	    const bool fNeedAccumulatorBuild = fChecksumBoundary;
+	    const bool fHasZerocoinSpends = !mapSpends.empty();   
+	    const bool fNeedAccumulatorBuild = fChecksumBoundary || fHasZerocoinSpends;
 	
 	    if (fNeedAccumulatorBuild) {
 	        const int64_t nStart = GetTimeMicros();
@@ -2906,12 +2905,15 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 	        }
 	
 	        nTimeAccumulate = GetTimeMicros() - nStart;
-	        LogPrint(BCLog::BENCH, "    - Accumulate (checksum boundary): %.2fms\n", MILLI * nTimeAccumulate);
 	
-	        // Write accumulator values to DB for later spend verification
-	        DatabaseChecksums(mapAccumulators);
+	        if (fChecksumBoundary) {
+	            LogPrint(BCLog::BENCH, "    - Accumulate (checksum boundary): %.2fms\n", MILLI * nTimeAccumulate);
+	            DatabaseChecksums(mapAccumulators); 
+	        } else {
+	            LogPrint(BCLog::BENCH, "    - Accumulate (spend present): %.2fms\n", MILLI * nTimeAccumulate);
+	        }
 	    } else {
-	        LogPrint(BCLog::BENCH, "    - Accumulate skipped (post-LZC, not checksum boundary)\n");
+	        LogPrint(BCLog::BENCH, "    - Accumulate skipped (post-LZC, no spends, not checksum boundary)\n");
 	    }
 	}
 
