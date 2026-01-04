@@ -147,6 +147,8 @@ public:
     int HeightLightZerocoin() const { return nHeightLightZerocoin; }
     int HeightEnforceBlacklist() const { return nHeightEnforceBlacklist; }
     int HeightProgPowDAGSizeReduction() const { return nHeightProgPowDAGSizeReduction; }
+    int HeightRingCTStaking() const { return nHeightRingCTStaking; }
+    int RingCT_RequiredStakeDepth() const { return nZerocoinRequiredStakeDepthV2; }
 
     uint32_t PowUpdateTimestamp() const { return nPowUpdateTimestamp; }
     uint64_t KIforkTimestamp() const { return nTimeKIfork; }
@@ -236,6 +238,7 @@ protected:
     int nHeightLightZerocoin;
     int nHeightEnforceBlacklist;
     int nHeightProgPowDAGSizeReduction;
+    int nHeightRingCTStaking = 50000000;
 
     //Settings that are not chain critical, but should not be edited unless the person changing understands the consequence
     int nMaxHeaderRequestWithoutPoW;

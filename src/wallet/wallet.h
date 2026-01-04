@@ -97,6 +97,7 @@ class CzWallet;
 struct FeeCalculation;
 enum class FeeEstimateMode;
 class AnonWallet;
+class AnonWalletDB;
 class CTransactionRecord;
 
 /** (client) version numbers for particular wallet features */
@@ -839,7 +840,7 @@ public:
             CZerocoinSpendReceipt& receipt, std::vector<CZerocoinMint>& vSelectedMints,
             std::vector<CDeterministicMint>& vNewMints, bool fMintChange,  bool fMinimizeChange, CTxDestination* address = NULL);
     bool MintToTxIn(CZerocoinMint zerocoinSelected, int nSecurityLevel, const uint256& hashTxOut, CTxIn& newTxIn,
-            CZerocoinSpendReceipt& receipt, libzerocoin::SpendType spendType, CBlockIndex* pindexCheckpoint = nullptr);
+            CZerocoinSpendReceipt& receipt, libzerocoin::SpendType spendType, const CBlockIndex* pindexCheckpoint = nullptr);
     std::string MintZerocoinFromOutPoint(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints,
             const std::vector<COutPoint> vOutpts);
     std::string MintZerocoin(CAmount nValue, CWalletTx& wtxNew, std::vector<CDeterministicMint>& vDMints, OutputTypes inputtype,
@@ -1094,8 +1095,19 @@ public:
     CAmount GetZerocoinBalance(bool fMatureOnly, const int min_depth=0) const;
     CAmount GetUnconfirmedZerocoinBalance() const;
     CAmount GetImmatureZerocoinBalance() const;
-    bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart);
+
+private:
+    template <typename TStake>
+    bool CreateCoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart, CMutableTransaction& txCoinbase);
+
+public:
+    bool CreateZerocoinStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart, CMutableTransaction& txCoinbase);
+    bool CreateRingCTStake(const CBlockIndex* pindexBest, unsigned int nBits, CMutableTransaction& txNew, unsigned int& nTxNewTime, int64_t& nComputeTimeStart, CMutableTransaction& txCoinbase);
+
     bool SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listInputs);
+    bool GetKeyImageForCoin(const COutputR& coin, AnonWalletDB& wdb, CCmpPubKey& keyimage);
+    bool SelectStakeCoins(std::list<std::unique_ptr<RingCTStake> >& listInputs);
+    bool StakeableRingCTCoins();
 
     // sub wallet seeds
     bool GetZerocoinSeed(CKey& keyZerocoinMaster);
@@ -1379,7 +1391,6 @@ public:
         LogPrintf(("%s " + fmt).c_str(), GetDisplayName(), parameters...);
     };
 };
-
 
 
 /** A key allocated from the key pool. */
