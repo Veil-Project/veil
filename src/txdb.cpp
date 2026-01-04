@@ -770,3 +770,59 @@ bool CZerocoinDB::EraseBlacklisterPubcoin(const uint256& hashPubcoin)
 {
     return Erase(std::make_pair(DB_BLACKLISTPUB, hashPubcoin));
 }
+
+bool CZerocoinDB::WriteBlockZerocoinData(
+    const std::map<libzerocoin::CoinSpend, uint256>& spendInfo,
+    const std::map<libzerocoin::PublicCoin, uint256>& mintInfo,
+    const std::map<uint256, uint256>& mapPubcoinSpends,
+    const uint256& hashBlock,
+    bool fWritePubcoinSpends)
+{
+    CDBBatch batch(*this);
+    size_t countSpends = 0;
+    size_t countMints = 0;
+    size_t countPubcoinSpends = 0;
+
+    // --- spends (copy logic from WriteCoinSpendBatch) ---
+    for (auto it = spendInfo.begin(); it != spendInfo.end(); ++it) {
+        const libzerocoin::CoinSpend& spend = it->first;
+        const uint256& txid = it->second;
+
+        CBigNum bnSerial = spend.getCoinSerialNumber();
+        CDataStream ss(SER_GETHASH, 0);
+        ss << bnSerial;
+        uint256 hash = Hash(ss.begin(), ss.end());
+
+        batch.Write(std::make_pair('s', hash), txid);
+        ++countSpends;
+    }
+
+    // --- mints (copy logic from WriteCoinMintBatch) ---
+    for (auto it = mintInfo.begin(); it != mintInfo.end(); ++it) {
+        libzerocoin::PublicCoin pubCoin = it->first;
+        const uint256& txid = it->second;
+
+        uint256 hash = GetPubCoinHash(pubCoin.getValue());
+        batch.Write(std::make_pair('m', hash), txid);
+        ++countMints;
+    }
+
+    // --- pubcoin spends (copy logic from WritePubcoinSpendBatch) ---
+    if (fWritePubcoinSpends) {
+        for (const auto& pair : mapPubcoinSpends) {
+            const uint256& hashPubcoin = pair.first;
+            const uint256& txid = pair.second;
+            batch.Write(std::make_pair('l', hashPubcoin), std::make_pair(txid, hashBlock));
+            ++countPubcoinSpends;
+        }
+    }
+
+    LogPrint(BCLog::ZEROCOINDB,
+             "Writing %u coin spends, %u coin mints, %u pubcoin spends to db (single batch).\n",
+             (unsigned int)countSpends,
+             (unsigned int)countMints,
+             (unsigned int)countPubcoinSpends);
+
+    return WriteBatch(batch, true);
+}
+
