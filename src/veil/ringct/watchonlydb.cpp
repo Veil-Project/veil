@@ -274,6 +274,41 @@ bool CWatchOnlyDB::ReadWatchOnlyAddressV2(const CKeyID& keyID, CWatchOnlyAddress
     return fSuccess;
 }
 
+bool CWatchOnlyDB::EraseWatchOnlyAddressV2(const CKeyID& keyID)
+{
+    CDBBatch batch(*this);
+    batch.Erase(std::make_pair(DB_WATCHONLY_KEY_V2, keyID));
+    LogPrint(BCLog::WATCHONLYDB, "Erasing watchonly address (V2) %s from db.\n", keyID.ToString());
+    return WriteBatch(batch);
+}
+
+bool CWatchOnlyDB::EraseWatchOnlyAddressData(const CKeyID& keyID, const CKey& scan_secret)
+{
+    CDBBatch batch(*this);
+
+    // Get the transaction count for this key
+    int txCount = 0;
+    ReadKeyCount(scan_secret, txCount);
+
+    // Erase all transactions for this address
+    for (int i = 1; i <= txCount; i++) {
+        batch.Erase(std::make_pair(DB_WATCHONLY_TXS, std::make_pair(scan_secret, i)));
+    }
+    LogPrint(BCLog::WATCHONLYDB, "Erasing %d transactions for watchonly address %s from db.\n", txCount, keyID.ToString());
+
+    // Erase the key count
+    batch.Erase(std::make_pair(DB_WATCHONLY_KEY_COUNT, scan_secret));
+
+    // Erase any checkpoint
+    batch.Erase(std::make_pair(DB_WATCHONLY_CHECKPOINT, scan_secret));
+
+    // Erase the address entry
+    batch.Erase(std::make_pair(DB_WATCHONLY_KEY_V2, keyID));
+
+    LogPrint(BCLog::WATCHONLYDB, "Erasing all data for watchonly address %s from db.\n", keyID.ToString());
+    return WriteBatch(batch);
+}
+
 bool CWatchOnlyDB::MigrateToV2()
 {
     int currentVersion = GetDatabaseVersion();
