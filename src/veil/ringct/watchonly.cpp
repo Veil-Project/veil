@@ -725,33 +725,38 @@ bool RemoveWatchOnlyAddress(const std::string& address, const CKey& scan_secret,
     // Use CKeyID as the map key (V2)
     CKeyID keyID = scan_secret.GetPubKey().GetID();
 
-    // Check if address exists
-    if (!mapWatchOnlyAddresses.count(keyID)) {
-        return error("%s: Watch-only address not found (keyID: %s)", __func__, keyID.ToString());
-    }
-
-    // Verify scan key matches
-    auto& info = mapWatchOnlyAddresses.at(keyID);
-    if (!(info.scan_secret == scan_secret)) {
-        return error("%s: Scan secret mismatch", __func__);
-    }
-
-    // Verify spend pubkey matches
-    if (info.spend_pubkey != spend_pubkey) {
-        return error("%s: Spend public key mismatch", __func__);
-    }
-
     {
         LOCK(cs_watchonly);
-        // Remove from memory
+
+        // Check if address exists
+        if (!mapWatchOnlyAddresses.count(keyID)) {
+            return error("%s: Watch-only address not found (keyID: %s)", __func__, keyID.ToString());
+        }
+
+        // Verify scan key matches
+        auto& info = mapWatchOnlyAddresses.at(keyID);
+        if (!(info.scan_secret == scan_secret)) {
+            return error("%s: Scan secret mismatch", __func__);
+        }
+
+        // Verify spend pubkey matches
+        if (info.spend_pubkey != spend_pubkey) {
+            return error("%s: Spend public key mismatch", __func__);
+        }
+
+        // Remove from memory first to prevent scanning thread from using it
         mapWatchOnlyAddresses.erase(keyID);
     }
 
-    // Note: We don't remove transactions from database immediately
-    // This prevents accidental data loss and allows users to re-import if needed
-    // Transaction data can be cleaned up with a separate maintenance tool/RPC if desired
+    // Flush any pending cached transactions for this address before removal
+    watchonlyTxCache.Flush(scan_secret);
 
-    LogPrintf("Removed watch-only address: %s (keyID: %s)\n", address, keyID.ToString());
+    // Remove all data from database (address, transactions, count, checkpoint)
+    if (!pwatchonlyDB->EraseWatchOnlyAddressData(keyID, scan_secret)) {
+        return error("%s: Failed to erase watch-only address data from database", __func__);
+    }
+
+    LogPrintf("Removed watch-only address and all associated data: %s (keyID: %s)\n", address, keyID.ToString());
     return true;
 }
 
