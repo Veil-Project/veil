@@ -1179,7 +1179,7 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
                 + HelpRequiringPassphrase(pwallet) + "\n"
                                                      "\nArguments:\n"
                                                      "1. \"scan_secret\"         (string, required) The private scan key for the address\n"
-                                                     "2. \"starting_index\"      (number, optional default=0) The database index to start from\n"
+                                                     "2. \"starting_index\"      (number, optional default=0) The 0-based index to start from (0 = first transaction)\n"
                                                      "3. \"batch_size\"          (number, optional default=1000, max=1000) Number of transactions to return per call\n"
                                                      "\nResult:\n"
                                                      "{\n"
@@ -1239,9 +1239,14 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
     }
 
     // Parse starting index (param 2 - optional, default 0)
+    // Note: User-facing API uses 0-based indexing (0 = first transaction)
+    // But database uses 1-based indexing (1 = first transaction)
     int nStartingIndex = 0;
     if (request.params.size() > 1) {
         nStartingIndex = request.params[1].get_int();
+        if (nStartingIndex < 0) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "starting_index must be >= 0");
+        }
     }
 
     // Parse batch size (param 3 - optional, default 1000)
@@ -1253,21 +1258,30 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         }
     }
 
-    int current_count = 0;
-    int dbIndex = nStartingIndex - 1;
+    int total_count = 0;
     UniValue anonTxes(UniValue::VARR);
     UniValue stealthTxes(UniValue::VARR);
-    if (GetWatchOnlyKeyCount(scan_secret, current_count)) {
-        if (nStartingIndex > current_count) {
-            dbIndex = 0;
+
+    if (GetWatchOnlyKeyCount(scan_secret, total_count)) {
+        // Convert 0-based user index to 1-based database index
+        int dbStartIndex = nStartingIndex + 1;
+        int dbEndIndex = dbStartIndex + nBatchSize - 1;
+
+        // Clamp to available range
+        if (dbEndIndex > total_count) {
+            dbEndIndex = total_count;
         }
 
-        // Only do batch_size txes at a time.
-        if (current_count > dbIndex + nBatchSize) {
-            current_count = dbIndex + nBatchSize;
+        // If starting beyond available transactions, return empty
+        if (dbStartIndex > total_count) {
+            UniValue ret(UniValue::VOBJ);
+            ret.pushKV("anon", anonTxes);
+            ret.pushKV("stealth", stealthTxes);
+            return ret;
         }
 
-        for (int i = dbIndex; i <= current_count; i++) {
+        // Fetch transactions from database
+        for (int i = dbStartIndex; i <= dbEndIndex; i++) {
             CWatchOnlyTx watchonlytx;
             if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
                 // Get transaction block information for confirmations and timestamp
@@ -1313,19 +1327,28 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         }
 
         // After processing database transactions, append any unflushed cached transactions
+        // that fall within the requested batch range
         std::vector<CWatchOnlyTx> vCachedTxes;
         watchonlyTxCache.GetCachedTxes(scan_secret, vCachedTxes);
 
         if (!vCachedTxes.empty()) {
-            LogPrint(BCLog::WATCHONLYDB, "%s: Appending %d unflushed cached transactions\n",
+            LogPrint(BCLog::WATCHONLYDB, "%s: Found %d unflushed cached transactions\n",
                      __func__, vCachedTxes.size());
 
-            // Start index for cached transactions is after the database count
-            int cacheStartIndex = current_count + 1;
+            // Cached transactions start after the database count (1-indexed)
+            int cacheDbStartIndex = total_count + 1;
 
             for (size_t i = 0; i < vCachedTxes.size(); i++) {
                 const CWatchOnlyTx& watchonlytx = vCachedTxes[i];
-                int txIndex = cacheStartIndex + i;
+                int txDbIndex = cacheDbStartIndex + i;
+
+                // Only include cached transactions that fall within the requested batch range
+                if (txDbIndex < dbStartIndex) {
+                    continue; // Before requested range
+                }
+                if (txDbIndex > dbEndIndex) {
+                    break; // Beyond requested range, stop processing
+                }
 
                 // Get transaction block information for confirmations and timestamp
                 int confirmations = -1;
@@ -1342,9 +1365,9 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
                 pblocktree->ReadRCTOutputLink(watchonlytx.ringctout.pk, ringctIndex);
 
                 if (watchonlytx.type == CWatchOnlyTx::ANON) {
-                    anonTxes.push_back(watchonlytx.GetUniValue(txIndex, false, "", uint256(), true, 0, confirmations, blocktime, ""));
+                    anonTxes.push_back(watchonlytx.GetUniValue(txDbIndex, false, "", uint256(), true, 0, confirmations, blocktime, ""));
                 } else if (watchonlytx.type == CWatchOnlyTx::STEALTH) {
-                    stealthTxes.push_back(watchonlytx.GetUniValue(txIndex, false, "", uint256(), true, 0, confirmations, blocktime, ""));
+                    stealthTxes.push_back(watchonlytx.GetUniValue(txDbIndex, false, "", uint256(), true, 0, confirmations, blocktime, ""));
                 }
             }
         }
