@@ -2356,7 +2356,7 @@ static UniValue getwatchonlystatus(const JSONRPCRequest &request)
         return result;
     }
 
-    if (scannedToHeight >= scanFromHeight) {
+    if (scannedToHeight >= heightWhenImported) {
         result.pushKV("status", "synced");
         result.pushKV("stealth_address", sxAddr.ToString(fBech32));
 
@@ -2370,6 +2370,17 @@ static UniValue getwatchonlystatus(const JSONRPCRequest &request)
 
     result.pushKV("status", "scanning");
     result.pushKV("stealth_address", sxAddr.ToString(fBech32));
+    result.pushKV("scanned_to_height", scannedToHeight);
+    result.pushKV("scan_from_height", scanFromHeight);
+    result.pushKV("imported_at_height", heightWhenImported);
+
+    // Calculate progress
+    if (heightWhenImported > scanFromHeight) {
+        int64_t totalBlocks = heightWhenImported - scanFromHeight;
+        int64_t scannedBlocks = scannedToHeight - scanFromHeight;
+        double percentComplete = (scannedBlocks * 100.0) / totalBlocks;
+        result.pushKV("percent_complete", percentComplete);
+    }
     return result;
 };
 
