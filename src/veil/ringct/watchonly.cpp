@@ -295,7 +295,6 @@ void ScanWatchOnlyAddresses()
                         /// Scan through transactions for txes that are owned.
                     for (const auto& precomp : scanThese) {
                         ec_point pkExtracted;
-                        // Use pre-computed ecSpendPubKey instead of calling SetPublicKey
                         if (StealthSecret(precomp.address.scan_secret, vchEphemPK, precomp.ecSpendPubKey, sShared, pkExtracted) != 0) {
                             continue;
                         }
@@ -705,7 +704,11 @@ bool AddWatchOnlyAddress(const std::string& address, const CKey& scan_secret, co
             return false;
         }
     } else {
-        CWatchOnlyAddress newAddress(scan_secret, spend_pubkey, nStart, nImported, nStart);
+        // Initialize nCurrentScannedHeight to (nStart - 1) so the scan includes block nStart
+        // The scan condition is "blockHeight > nCurrentScannedHeight", so we need to start
+        // one block before to ensure nStart itself is scanned
+        int64_t nInitialScannedHeight = (nStart > 0) ? (nStart - 1) : 0;
+        CWatchOnlyAddress newAddress(scan_secret, spend_pubkey, nStart, nImported, nInitialScannedHeight);
 
         // Use V2 write method
         if (!pwatchonlyDB->WriteWatchOnlyAddressV2(keyID, newAddress)) {
