@@ -1263,24 +1263,18 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
     UniValue stealthTxes(UniValue::VARR);
 
     if (GetWatchOnlyKeyCount(scan_secret, total_count)) {
-        // Convert 0-based user index to 1-based database index
-        int dbStartIndex = nStartingIndex + 1;
+        // Database uses mixed indexing: index 0 exists for first tx (bug), then 1-based after that
+        // To handle both old buggy data (at index 0) and new data (1-based), we check both
+        int dbStartIndex = nStartingIndex;  // Start at actual user index
         int dbEndIndex = dbStartIndex + nBatchSize - 1;
 
-        // Clamp to available range
+        // Clamp to available range (total_count is the max 1-based index, but we also check 0)
         if (dbEndIndex > total_count) {
             dbEndIndex = total_count;
         }
 
-        // If starting beyond available transactions, return empty
-        if (dbStartIndex > total_count) {
-            UniValue ret(UniValue::VOBJ);
-            ret.pushKV("anon", anonTxes);
-            ret.pushKV("stealth", stealthTxes);
-            return ret;
-        }
-
         // Fetch transactions from database
+        // Try index 0 first (handles buggy writes), then 1-based indices
         for (int i = dbStartIndex; i <= dbEndIndex; i++) {
             CWatchOnlyTx watchonlytx;
             if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
