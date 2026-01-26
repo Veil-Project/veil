@@ -2160,61 +2160,221 @@ static UniValue importlightwalletaddress(const JSONRPCRequest &request)
     return result;
 };
 
+static UniValue importstealthkeys(const JSONRPCRequest &request)
+{
+    if (request.fHelp || request.params.size() < 2 || request.params.size() > 4)
+        throw std::runtime_error(
+                "importstealthkeys \"scan_secret\" \"spend_secret\" (rescan) (\"label\")\n"
+                "\nImport a stealth address with full private keys (scan and spend secrets).\n"
+                "This allows spending funds received to this stealth address.\n"
+                "\nArguments:\n"
+                "1. \"scan_secret\"      (string, required) Scan secret key in WIF or hex format\n"
+                "2. \"spend_secret\"     (string, required) Spend secret key in WIF or hex format\n"
+                "3. rescan               (boolean, optional, default=true) Rescan the wallet for transactions\n"
+                "4. \"label\"            (string, optional, default=\"\") Label for address in addressbook\n"
+                "\nResult:\n"
+                "{\n"
+                "  \"result\": \"success\",\n"
+                "  \"stealth_address\": \"address\"\n"
+                "}\n"
+                "\nExamples:\n"
+                + HelpExampleCli("importstealthkeys", "\"cQS2VU6R4CjsnrXn6jJWSvtzvrcjKHBB4mVSe17o4toJPPBqkbRm\" \"cT8K39zqJ4H3kW6qN5kF7mN...\"")
+                + HelpExampleRpc("importstealthkeys", "\"cQS2VU6R4CjsnrXn6jJWSvtzvrcjKHBB4mVSe17o4toJPPBqkbRm\", \"cT8K39zqJ4H3kW6qN5kF7mN...\"")
+        );
+
+    std::shared_ptr<CWallet> const wallet = GetWalletForJSONRPCRequest(request);
+    if (!wallet) return NullUniValue;
+
+    CWallet* const pwallet = wallet.get();
+    auto anonwallet = pwallet->GetAnonWallet();
+
+    if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
+        throw JSONRPCError(RPC_WALLET_ERROR, "Error: Private keys are disabled for this wallet");
+    }
+
+    EnsureWalletIsUnlocked(pwallet);
+
+    std::string sScanSecret = request.params[0].get_str();
+    std::string sSpendSecret = request.params[1].get_str();
+    bool fRescan = request.params.size() > 2 ? request.params[2].get_bool() : true;
+    std::string sLabel = request.params.size() > 3 ? request.params[3].get_str() : "";
+
+    // Parse scan secret
+    CKey skScan;
+    std::vector<uint8_t> vchScanSecret;
+
+    CBitcoinSecret wifScanSecret;
+    if (wifScanSecret.SetString(sScanSecret)) {
+        skScan = wifScanSecret.GetKey();
+    } else if (IsHex(sScanSecret)) {
+        vchScanSecret = ParseHex(sScanSecret);
+        if (vchScanSecret.size() != 32) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Scan secret hex must be 32 bytes.");
+        }
+        skScan.Set(vchScanSecret.begin(), vchScanSecret.end(), true);
+    } else {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode scan secret as WIF or hex.");
+    }
+
+    if (!skScan.IsValid()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid scan secret key.");
+    }
+
+    // Parse spend secret
+    CKey skSpend;
+    std::vector<uint8_t> vchSpendSecret;
+
+    CBitcoinSecret wifSpendSecret;
+    if (wifSpendSecret.SetString(sSpendSecret)) {
+        skSpend = wifSpendSecret.GetKey();
+    } else if (IsHex(sSpendSecret)) {
+        vchSpendSecret = ParseHex(sSpendSecret);
+        if (vchSpendSecret.size() != 32) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Spend secret hex must be 32 bytes.");
+        }
+        skSpend.Set(vchSpendSecret.begin(), vchSpendSecret.end(), true);
+    } else {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode spend secret as WIF or hex.");
+    }
+
+    if (!skSpend.IsValid()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid spend secret key.");
+    }
+
+    // Create stealth address from the keys
+    CStealthAddress sxAddr;
+    sxAddr.scan_secret = skScan;
+    sxAddr.spend_secret_id = skSpend.GetPubKey().GetID();
+    sxAddr.SetScanPubKey(skScan.GetPubKey());
+
+    CPubKey pkSpend = skSpend.GetPubKey();
+    if (!pkSpend.IsValid()) {
+        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid spend public key derived from spend secret.");
+    }
+    sxAddr.spend_pubkey.resize(pkSpend.size());
+    memcpy(&sxAddr.spend_pubkey[0], pkSpend.begin(), pkSpend.size());
+
+    // Note: ImportStealthAddress will handle duplicate checks internally
+
+    // Import the stealth address with full spend key
+    {
+        LOCK(pwallet->cs_wallet);
+        if (!anonwallet->ImportStealthAddress(sxAddr, skSpend)) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Could not import stealth address to wallet.");
+        }
+    }
+
+    // Set label if provided
+    if (!sLabel.empty()) {
+        pwallet->SetAddressBook(sxAddr, sLabel, "receive");
+    }
+
+    UniValue result(UniValue::VOBJ);
+    result.pushKV("result", "success");
+    result.pushKV("stealth_address", sxAddr.ToString(true));
+
+    // Rescan if requested
+    if (fRescan) {
+        result.pushKV("rescan", "started");
+        LOCK2(cs_main, pwallet->cs_wallet);
+        anonwallet->RescanWallet();
+    }
+
+    return result;
+};
+
 static UniValue removewatchonlyaddress(const JSONRPCRequest &request)
 {
-    if (request.fHelp || request.params.size() != 2)
+    if (request.fHelp || request.params.size() < 1 || request.params.size() > 2)
         throw std::runtime_error(
-            "removewatchonlyaddress \"scan_secret\" \"spend_public\"\n"
-            "\nRemove a watch-only address from monitoring\n"
-            "\nArguments:\n"
+            "removewatchonlyaddress \"address\" OR removewatchonlyaddress \"scan_secret\" \"spend_public\"\n"
+            "\nRemove a watch-only address and all associated data from monitoring.\n"
+            "\nArguments (Option 1 - by address):\n"
+            "1. \"address\"         (string, required) The stealth address to remove\n"
+            "\nArguments (Option 2 - by keys):\n"
             "1. \"scan_secret\"     (string, required) Scan secret key\n"
             "2. \"spend_public\"    (string, required) Spend public key\n"
             "\nResult:\n"
             "{\n"
             "  \"result\": \"success\",\n"
-            "  \"address\": \"address\"\n"
+            "  \"address\": \"address\",\n"
+            "  \"transactions_removed\": n\n"
             "}\n"
-            "\nNote: This removes the address from active monitoring but preserves\n"
-            "      transaction data in the database to prevent accidental data loss.\n"
+            "\nNote: This permanently removes the address and all associated transaction data.\n"
             "\nExamples:\n"
+            + HelpExampleCli("removewatchonlyaddress", "\"sv1qqp...\"")
             + HelpExampleCli("removewatchonlyaddress", "\"scankey\" \"spendpubkey\"")
-            + HelpExampleRpc("removewatchonlyaddress", "\"scankey\", \"spendpubkey\"")
+            + HelpExampleRpc("removewatchonlyaddress", "\"sv1qqp...\"")
         );
 
-    std::string sScanSecret = request.params[0].get_str();
-    std::string sSpendPublic = request.params[1].get_str();
-
-    // Parse scan secret
     CKey scan_secret;
-    std::vector<uint8_t> vData = ParseHex(sScanSecret);
-    if (vData.size() != 32) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid scan secret - must be 32 bytes hex");
-    }
-    scan_secret.Set(vData.begin(), vData.end(), true);
-    if (!scan_secret.IsValid()) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid scan secret");
-    }
-
-    // Parse spend public
     CPubKey spend_public;
-    std::vector<uint8_t> vPubKey = ParseHex(sSpendPublic);
-    spend_public.Set(vPubKey.begin(), vPubKey.end());
-    if (!spend_public.IsValid()) {
-        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid spend public key");
+    std::string address;
+
+    if (request.params.size() == 1) {
+        // Lookup by stealth address
+        std::string sAddress = request.params[0].get_str();
+        bool fFound = false;
+
+        // Iterate through all watch-only addresses to find matching one
+        {
+            LOCK(cs_watchonly);
+            for (const auto& pair : mapWatchOnlyAddresses) {
+                const CWatchOnlyAddress& watchAddr = pair.second;
+
+                // Regenerate stealth address string from stored data
+                CStealthAddress sxAddr;
+                sxAddr.scan_secret = watchAddr.scan_secret;
+                if (SecretToPublicKey(watchAddr.scan_secret, sxAddr.scan_pubkey) != 0) {
+                    continue;
+                }
+                SetPublicKey(watchAddr.spend_pubkey, sxAddr.spend_pubkey);
+
+                // Check both bech32 and non-bech32 formats
+                if (sxAddr.ToString(true) == sAddress || sxAddr.ToString(false) == sAddress) {
+                    scan_secret = watchAddr.scan_secret;
+                    spend_public = watchAddr.spend_pubkey;
+                    address = sxAddr.ToString(true);
+                    fFound = true;
+                    break;
+                }
+            }
+        }
+
+        if (!fFound) {
+            throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Watch-only address not found: " + sAddress);
+        }
+    } else {
+        // Parse scan secret and spend public (original 2-parameter method)
+        std::string sScanSecret = request.params[0].get_str();
+        std::string sSpendPublic = request.params[1].get_str();
+
+        std::vector<uint8_t> vData = ParseHex(sScanSecret);
+        if (vData.size() != 32) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid scan secret - must be 32 bytes hex");
+        }
+        scan_secret.Set(vData.begin(), vData.end(), true);
+        if (!scan_secret.IsValid()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid scan secret");
+        }
+
+        std::vector<uint8_t> vPubKey = ParseHex(sSpendPublic);
+        spend_public.Set(vPubKey.begin(), vPubKey.end());
+        if (!spend_public.IsValid()) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid spend public key");
+        }
+
+        // Create address for display
+        CStealthAddress sxAddr;
+        sxAddr.scan_secret = scan_secret;
+        SetPublicKey(spend_public, sxAddr.spend_pubkey);
+        if (SecretToPublicKey(scan_secret, sxAddr.scan_pubkey) != 0) {
+            throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to derive scan public key");
+        }
+        address = sxAddr.ToString(true);
     }
 
-    // Create address for display
-    CStealthAddress sxAddr;
-    sxAddr.scan_secret = scan_secret;
-    SetPublicKey(spend_public, sxAddr.spend_pubkey);
-    if (SecretToPublicKey(scan_secret, sxAddr.scan_pubkey) != 0) {
-        throw JSONRPCError(RPC_INTERNAL_ERROR, "Failed to derive scan public key");
-    }
-
-    bool fBech32 = true;
-    std::string address = sxAddr.ToString(fBech32);
-
-    // Remove address
+    // Remove address and all associated data
     if (!RemoveWatchOnlyAddress(address, scan_secret, spend_public)) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Failed to remove watch-only address");
     }
@@ -2319,12 +2479,19 @@ static UniValue getwatchonlystatus(const JSONRPCRequest &request)
         return result;
     }
 
-    if (scannedToHeight >= scanFromHeight) {
+    if (scannedToHeight >= heightWhenImported) {
         result.pushKV("status", "synced");
         result.pushKV("stealth_address", sxAddr.ToString(fBech32));
 
         int current_count = 0;
         if (GetWatchOnlyKeyCount(sxAddr.scan_secret, current_count)) {
+            // Handle legacy bug: first tx may be at index 0 with count stored as 0
+            if (current_count == 0) {
+                CWatchOnlyTx checkTx;
+                if (ReadWatchOnlyTransaction(sxAddr.scan_secret, 0, checkTx)) {
+                    current_count = 1;
+                }
+            }
             result.pushKV("transactions_found", current_count);
         }
 
@@ -2333,6 +2500,17 @@ static UniValue getwatchonlystatus(const JSONRPCRequest &request)
 
     result.pushKV("status", "scanning");
     result.pushKV("stealth_address", sxAddr.ToString(fBech32));
+    result.pushKV("scanned_to_height", scannedToHeight);
+    result.pushKV("scan_from_height", scanFromHeight);
+    result.pushKV("imported_at_height", heightWhenImported);
+
+    // Calculate progress
+    if (heightWhenImported > scanFromHeight) {
+        int64_t totalBlocks = heightWhenImported - scanFromHeight;
+        int64_t scannedBlocks = scannedToHeight - scanFromHeight;
+        double percentComplete = (scannedBlocks * 100.0) / totalBlocks;
+        result.pushKV("percent_complete", percentComplete);
+    }
     return result;
 };
 
@@ -2891,7 +3069,8 @@ static const CRPCCommand commands[] =
                 { "rawtransactions",    "verifyrawtransaction",             &verifyrawtransaction,          {"hexstring","prevtxs","returndecoded"} },
 
                 { "wallet",             "importlightwalletaddress",          &importlightwalletaddress,          {"scan_secret", "spend_public", "created_height", "label", "num_prefix_bits", "prefix_num", "bech32"} },
-                { "wallet",             "removewatchonlyaddress",            &removewatchonlyaddress,            {"scan_secret", "spend_public"} },
+                { "wallet",             "importstealthkeys",                 &importstealthkeys,                 {"scan_secret", "spend_secret", "rescan", "label"} },
+                { "wallet",             "removewatchonlyaddress",            &removewatchonlyaddress,            {"address_or_scan_secret", "spend_public"} },
                 { "wallet",             "getwatchonlystatus",                &getwatchonlystatus,                {"scan_secret", "spend_public"} },
                 { "wallet",             "backupwatchonlyaddresses",          &backupwatchonlyaddresses,          {"filepath"} },
                 { "wallet",             "importwatchonlybackup",             &importwatchonlybackup,             {"backup_data_or_filepath"} },
