@@ -2485,6 +2485,13 @@ static UniValue getwatchonlystatus(const JSONRPCRequest &request)
 
         int current_count = 0;
         if (GetWatchOnlyKeyCount(sxAddr.scan_secret, current_count)) {
+            // Handle legacy bug: first tx may be at index 0 with count stored as 0
+            if (current_count == 0) {
+                CWatchOnlyTx checkTx;
+                if (ReadWatchOnlyTransaction(sxAddr.scan_secret, 0, checkTx)) {
+                    current_count = 1;
+                }
+            }
             result.pushKV("transactions_found", current_count);
         }
 
