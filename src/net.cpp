@@ -1503,8 +1503,17 @@ static void ThreadMapPort()
     struct UPNPUrls urls;
     struct IGDdatas data;
     int r;
+    char wanaddr[64];
+    #ifndef MINIUPNPC_API_VERSION
+    #define MINIUPNPC_API_VERSION 0
+    #endif
+    #if MINIUPNPC_API_VERSION >= 17
+        r = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr), wanaddr, sizeof(wanaddr));
+    #else
+        r = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
+        (void)wanaddr;
+    #endif
 
-    r = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
     if (r == 1)
     {
         if (fDiscover) {
