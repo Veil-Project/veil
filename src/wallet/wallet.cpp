@@ -1412,13 +1412,21 @@ void CWallet::BlockConnected(const std::shared_ptr<const CBlock>& pblock, const 
 
 void CWallet::AutoConvertToRingCT()
 {
+    LogPrintf("AutoConvert: checking...\n");
+
     // Skip if anon wallet not available
-    if (!pAnonWalletMain)
+    if (!pAnonWalletMain) {
+        LogPrintf("AutoConvert: no anon wallet, returning\n");
         return;
+    }
 
     // Skip if wallet is locked or staking-only unlock
-    if (pAnonWalletMain->IsLocked())
+    if (pAnonWalletMain->IsLocked()) {
+        LogPrintf("AutoConvert: wallet locked, returning\n");
         return;
+    }
+
+    LogPrintf("AutoConvert: wallet unlocked, checking balances\n");
 
     const CAmount MIN_CONVERT = 0.1 * COIN;
     std::string sError;
@@ -1430,6 +1438,8 @@ void CWallet::AutoConvertToRingCT()
         LOCK2(cs_main, cs_wallet);
         nBasecoin = GetBasecoinBalance();
     }
+    LogPrintf("AutoConvert: basecoin balance = %s\n", FormatMoney(nBasecoin));
+
     if (nBasecoin >= MIN_CONVERT) {
         LOCK2(cs_main, cs_wallet);
         LogPrintf("AutoConvert: converting %s basecoin -> CT\n", FormatMoney(nBasecoin));
@@ -1461,6 +1471,8 @@ void CWallet::AutoConvertToRingCT()
         LOCK2(cs_main, cs_wallet);
         nCT = pAnonWalletMain->GetAvailableBlindBalance();
     }
+    LogPrintf("AutoConvert: CT balance = %s\n", FormatMoney(nCT));
+
     if (nCT >= MIN_CONVERT) {
         LOCK2(cs_main, cs_wallet);
         LogPrintf("AutoConvert: converting %s CT -> RingCT\n", FormatMoney(nCT));
