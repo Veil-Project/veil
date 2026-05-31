@@ -1427,7 +1427,7 @@ void CWallet::AutoConvertToRingCT()
     // Step 1: Basecoin -> CT
     {
         LOCK2(cs_main, cs_wallet);
-        CAmount nBasecoin = GetBalance();
+        CAmount nBasecoin = GetBasecoinBalance();
         if (nBasecoin >= MIN_CONVERT) {
             LogPrintf("AutoConvert: converting %s basecoin -> CT\n", FormatMoney(nBasecoin));
 
