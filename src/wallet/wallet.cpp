@@ -1469,7 +1469,7 @@ void CWallet::AutoConvertToRingCT()
     CAmount nCT = 0;
     {
         LOCK2(cs_main, cs_wallet);
-        nCT = pAnonWalletMain->GetAvailableBlindBalance();
+        nCT = pAnonWalletMain->GetBlindBalance();
     }
     LogPrintf("AutoConvert: CT balance = %s\n", FormatMoney(nCT));
 
