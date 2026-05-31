@@ -1385,25 +1385,103 @@ void CWallet::TransactionRemovedFromMempool(const CTransactionRef &ptx) {
 }
 
 void CWallet::BlockConnected(const std::shared_ptr<const CBlock>& pblock, const CBlockIndex *pindex, const std::vector<CTransactionRef>& vtxConflicted) {
-    LOCK2(cs_main, cs_wallet);
-    // TODO: Temporarily ensure that mempool removals are notified before
-    // connected transactions.  This shouldn't matter, but the abandoned
-    // state of transactions in our wallet is currently cleared when we
-    // receive another notification and there is a race condition where
-    // notification of a connected conflict might cause an outside process
-    // to abandon a transaction and then have it inadvertently cleared by
-    // the notification that the conflicted transaction was evicted.
+    {
+        LOCK2(cs_main, cs_wallet);
+        // TODO: Temporarily ensure that mempool removals are notified before
+        // connected transactions.  This shouldn't matter, but the abandoned
+        // state of transactions in our wallet is currently cleared when we
+        // receive another notification and there is a race condition where
+        // notification of a connected conflict might cause an outside process
+        // to abandon a transaction and then have it inadvertently cleared by
+        // the notification that the conflicted transaction was evicted.
+        for (const CTransactionRef& ptx : vtxConflicted) {
+            SyncTransaction(ptx);
+            TransactionRemovedFromMempool(ptx);
+        }
+        for (size_t i = 0; i < pblock->vtx.size(); i++) {
+            SyncTransaction(pblock->vtx[i], pindex, i);
+            TransactionRemovedFromMempool(pblock->vtx[i]);
+        }
+        m_last_block_processed = pindex;
+    } // cs_main, cs_wallet released here
 
-    for (const CTransactionRef& ptx : vtxConflicted) {
-        SyncTransaction(ptx);
-        TransactionRemovedFromMempool(ptx);
+    if (gArgs.GetBoolArg("-autoconvert", true)) {
+        AutoConvertToRingCT();
     }
-    for (size_t i = 0; i < pblock->vtx.size(); i++) {
-        SyncTransaction(pblock->vtx[i], pindex, i);
-        TransactionRemovedFromMempool(pblock->vtx[i]);
+}
+
+void CWallet::AutoConvertToRingCT()
+{
+    // Skip if anon wallet not available
+    if (!pAnonWalletMain)
+        return;
+
+    // Skip if wallet is locked or staking-only unlock
+    if (pAnonWalletMain->IsLocked())
+        return;
+
+    const CAmount MIN_CONVERT = 0.1 * COIN;
+    std::string sError;
+    CValidationState state;
+
+    // Step 1: Basecoin -> CT
+    {
+        LOCK2(cs_main, cs_wallet);
+        CAmount nBasecoin = GetBalance();
+        if (nBasecoin >= MIN_CONVERT) {
+            LogPrintf("AutoConvert: converting %s basecoin -> CT\n", FormatMoney(nBasecoin));
+
+            CWalletTx wtx;
+            CTransactionRecord rtx;
+            std::vector<CTempRecipient> vecSend;
+            CTempRecipient r;
+            r.nType = OUTPUT_CT;
+            r.SetAmount(nBasecoin);
+            r.fSubtractFeeFromAmount = true;
+            r.address = pAnonWalletMain->GetStealthChangeAddress();
+            vecSend.push_back(r);
+
+            CCoinControl coinControl;
+            CAmount nFeeRet = 0;
+            if (pAnonWalletMain->AddStandardInputs(wtx, rtx, vecSend, true, nFeeRet, &coinControl, sError, false, 0) != 0) {
+                LogPrintf("AutoConvert: basecoin->CT failed: %s\n", sError);
+            } else {
+                CReserveKey reservekey(this);
+                if (!CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, &reservekey, g_connman.get(), state))
+                    LogPrintf("AutoConvert: basecoin->CT commit failed: %s\n", FormatStateMessage(state));
+            }
+        }
     }
 
-    m_last_block_processed = pindex;
+    // Step 2: CT -> RingCT
+    {
+        LOCK2(cs_main, cs_wallet);
+        CAmount nCT = pAnonWalletMain->GetAvailableBlindBalance();
+        if (nCT >= MIN_CONVERT) {
+            LogPrintf("AutoConvert: converting %s CT -> RingCT\n", FormatMoney(nCT));
+
+            CWalletTx wtx;
+            CTransactionRecord rtx;
+            std::vector<CTempRecipient> vecSend;
+            CTempRecipient r;
+            r.nType = OUTPUT_RINGCT;
+            r.SetAmount(nCT);
+            r.fSubtractFeeFromAmount = true;
+            r.address = pAnonWalletMain->GetStealthChangeAddress();
+            vecSend.push_back(r);
+
+            CCoinControl coinControl;
+            coinControl.m_addChangeOutput = true;
+            CAmount nFeeRet = 0;
+            if (pAnonWalletMain->AddBlindedInputs(wtx, rtx, vecSend, true, 0, nFeeRet, &coinControl, sError) != 0) {
+                LogPrintf("AutoConvert: CT->RingCT failed: %s\n", sError);
+            } else {
+                CReserveKey reservekey(this);
+                if (!CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, &reservekey, g_connman.get(), state))
+                    LogPrintf("AutoConvert: CT->RingCT commit failed: %s\n", FormatStateMessage(state));
+            }
+        }
+    }
 }
 
 void CWallet::BlockDisconnected(const std::shared_ptr<const CBlock>& pblock) {
