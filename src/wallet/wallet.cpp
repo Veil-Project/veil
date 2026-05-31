@@ -1425,61 +1425,57 @@ void CWallet::AutoConvertToRingCT()
     CValidationState state;
 
     // Step 1: Basecoin -> CT
-    {
+    CAmount nBasecoin = GetBasecoinBalance();
+    if (nBasecoin >= MIN_CONVERT) {
         LOCK2(cs_main, cs_wallet);
-        CAmount nBasecoin = GetBasecoinBalance();
-        if (nBasecoin >= MIN_CONVERT) {
-            LogPrintf("AutoConvert: converting %s basecoin -> CT\n", FormatMoney(nBasecoin));
+        LogPrintf("AutoConvert: converting %s basecoin -> CT\n", FormatMoney(nBasecoin));
 
-            CWalletTx wtx(this, nullptr);
-            CTransactionRecord rtx;
-            std::vector<CTempRecipient> vecSend;
-            CTempRecipient r;
-            r.nType = OUTPUT_CT;
-            r.SetAmount(nBasecoin);
-            r.fSubtractFeeFromAmount = true;
-            r.address = pAnonWalletMain->GetStealthChangeAddress();
-            vecSend.push_back(r);
+        CWalletTx wtx(this, nullptr);
+        CTransactionRecord rtx;
+        std::vector<CTempRecipient> vecSend;
+        CTempRecipient r;
+        r.nType = OUTPUT_CT;
+        r.SetAmount(nBasecoin);
+        r.fSubtractFeeFromAmount = true;
+        r.address = pAnonWalletMain->GetStealthChangeAddress();
+        vecSend.push_back(r);
 
-            CCoinControl coinControl;
-            CAmount nFeeRet = 0;
-            if (pAnonWalletMain->AddStandardInputs(wtx, rtx, vecSend, true, nFeeRet, &coinControl, sError, false, 0) != 0) {
-                LogPrintf("AutoConvert: basecoin->CT failed: %s\n", sError);
-            } else {
-                CReserveKey reservekey(this);
-                if (!CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, &reservekey, g_connman.get(), state))
-                    LogPrintf("AutoConvert: basecoin->CT commit failed: %s\n", FormatStateMessage(state));
-            }
+        CCoinControl coinControl;
+        CAmount nFeeRet = 0;
+        if (pAnonWalletMain->AddStandardInputs(wtx, rtx, vecSend, true, nFeeRet, &coinControl, sError, false, 0) != 0) {
+            LogPrintf("AutoConvert: basecoin->CT failed: %s\n", sError);
+        } else {
+            CReserveKey reservekey(this);
+            if (!CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, &reservekey, g_connman.get(), state))
+                LogPrintf("AutoConvert: basecoin->CT commit failed: %s\n", FormatStateMessage(state));
         }
     }
 
     // Step 2: CT -> RingCT
-    {
+    CAmount nCT = pAnonWalletMain->GetAvailableBlindBalance();
+    if (nCT >= MIN_CONVERT) {
         LOCK2(cs_main, cs_wallet);
-        CAmount nCT = pAnonWalletMain->GetAvailableBlindBalance();
-        if (nCT >= MIN_CONVERT) {
-            LogPrintf("AutoConvert: converting %s CT -> RingCT\n", FormatMoney(nCT));
+        LogPrintf("AutoConvert: converting %s CT -> RingCT\n", FormatMoney(nCT));
 
-            CWalletTx wtx(this, nullptr);
-            CTransactionRecord rtx;
-            std::vector<CTempRecipient> vecSend;
-            CTempRecipient r;
-            r.nType = OUTPUT_RINGCT;
-            r.SetAmount(nCT);
-            r.fSubtractFeeFromAmount = true;
-            r.address = pAnonWalletMain->GetStealthChangeAddress();
-            vecSend.push_back(r);
+        CWalletTx wtx(this, nullptr);
+        CTransactionRecord rtx;
+        std::vector<CTempRecipient> vecSend;
+        CTempRecipient r;
+        r.nType = OUTPUT_RINGCT;
+        r.SetAmount(nCT);
+        r.fSubtractFeeFromAmount = true;
+        r.address = pAnonWalletMain->GetStealthChangeAddress();
+        vecSend.push_back(r);
 
-            CCoinControl coinControl;
-            coinControl.m_addChangeOutput = true;
-            CAmount nFeeRet = 0;
-            if (pAnonWalletMain->AddBlindedInputs(wtx, rtx, vecSend, true, 0, nFeeRet, &coinControl, sError) != 0) {
-                LogPrintf("AutoConvert: CT->RingCT failed: %s\n", sError);
-            } else {
-                CReserveKey reservekey(this);
-                if (!CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, &reservekey, g_connman.get(), state))
-                    LogPrintf("AutoConvert: CT->RingCT commit failed: %s\n", FormatStateMessage(state));
-            }
+        CCoinControl coinControl;
+        coinControl.m_addChangeOutput = true;
+        CAmount nFeeRet = 0;
+        if (pAnonWalletMain->AddBlindedInputs(wtx, rtx, vecSend, true, 0, nFeeRet, &coinControl, sError) != 0) {
+            LogPrintf("AutoConvert: CT->RingCT failed: %s\n", sError);
+        } else {
+            CReserveKey reservekey(this);
+            if (!CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, &reservekey, g_connman.get(), state))
+                LogPrintf("AutoConvert: CT->RingCT commit failed: %s\n", FormatStateMessage(state));
         }
     }
 }
