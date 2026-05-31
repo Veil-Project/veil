@@ -1425,7 +1425,11 @@ void CWallet::AutoConvertToRingCT()
     CValidationState state;
 
     // Step 1: Basecoin -> CT
-    CAmount nBasecoin = GetBasecoinBalance();
+    CAmount nBasecoin = 0;
+    {
+        LOCK2(cs_main, cs_wallet);
+        nBasecoin = GetBasecoinBalance();
+    }
     if (nBasecoin >= MIN_CONVERT) {
         LOCK2(cs_main, cs_wallet);
         LogPrintf("AutoConvert: converting %s basecoin -> CT\n", FormatMoney(nBasecoin));
@@ -1452,7 +1456,11 @@ void CWallet::AutoConvertToRingCT()
     }
 
     // Step 2: CT -> RingCT
-    CAmount nCT = pAnonWalletMain->GetAvailableBlindBalance();
+    CAmount nCT = 0;
+    {
+        LOCK2(cs_main, cs_wallet);
+        nCT = pAnonWalletMain->GetAvailableBlindBalance();
+    }
     if (nCT >= MIN_CONVERT) {
         LOCK2(cs_main, cs_wallet);
         LogPrintf("AutoConvert: converting %s CT -> RingCT\n", FormatMoney(nCT));
