@@ -1431,7 +1431,7 @@ void CWallet::AutoConvertToRingCT()
         if (nBasecoin >= MIN_CONVERT) {
             LogPrintf("AutoConvert: converting %s basecoin -> CT\n", FormatMoney(nBasecoin));
 
-            CWalletTx wtx;
+            CWalletTx wtx(this, nullptr);
             CTransactionRecord rtx;
             std::vector<CTempRecipient> vecSend;
             CTempRecipient r;
@@ -1460,7 +1460,7 @@ void CWallet::AutoConvertToRingCT()
         if (nCT >= MIN_CONVERT) {
             LogPrintf("AutoConvert: converting %s CT -> RingCT\n", FormatMoney(nCT));
 
-            CWalletTx wtx;
+            CWalletTx wtx(this, nullptr);
             CTransactionRecord rtx;
             std::vector<CTempRecipient> vecSend;
             CTempRecipient r;
