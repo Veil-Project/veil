@@ -1420,6 +1420,11 @@ void CWallet::AutoConvertToRingCT()
         return;
     }
 
+    //Skip inital block download
+    if (IsInitialBlockDownload()) {
+        return;
+    }
+
     // Skip if wallet is locked or staking-only unlock
     if (pAnonWalletMain->IsLocked()) {
         LogPrintf("AutoConvert: wallet locked, returning\n");
