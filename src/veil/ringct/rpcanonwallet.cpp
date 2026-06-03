@@ -895,6 +895,12 @@ UniValue sendtypeto(const JSONRPCRequest &request)
     if (typeOut == OUTPUT_NULL)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown output type.");
 
+    //Block privacy regression, RingCT can only be sent to RingCT.
+    if (typeIn == OUTPUT_RINGCT && typeOut != OUTPUT_RINGCT)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, 
+            "Cannot send RingCT to a less private type. "
+            "RingCT can only be sent to RingCT to avoid privacy regression.");
+
     JSONRPCRequest req = request;
     req.params.erase(0, 2);
 
