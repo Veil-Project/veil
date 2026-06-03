@@ -703,13 +703,13 @@ UniValue spendzerocoinmints(const JSONRPCRequest& request)
     UniValue params = request.params;
     if (request.fHelp || params.size() < 1 || params.size() > 2)
         throw std::runtime_error(
-                "spendzerocoinmints mints_list (\"address\") \n"
+                "spendzerocoinmints mints_list \"address\" \n"
                 "\nSpend zerocoin mints to a VEIL address.\n" +
                 HelpRequiringPassphrase(pwallet) + "\n"
 
                 "\nArguments:\n"
                 "1. mints_list     (string, required) A json array of zerocoin mints serial hashes\n"
-                "2. \"address\"     (string, optional, default=change) Send to specified address or to a new change address.\n"
+                "2. \"address\"     (string, required) Send to specified VEIL address.\n"
 
                 "\nResult:\n"
                 "{\n"
