@@ -422,6 +422,8 @@ QString TransactionTableModel::formatTxType(const TransactionRecord *wtx) const
         return tr("Received Zerocoin");
     case TransactionRecord::ZeroCoinStake:
         return tr("Zerocoin Stake");
+    case TransactionRecord::RingCTStake:
+        return tr("RingCT Stake");
     default:
         return QString();
     }
@@ -479,6 +481,8 @@ QString TransactionTableModel::formatTxToAddress(const TransactionRecord *wtx, b
     case TransactionRecord::RingCTSendToSelf:
         return tr("(n/a) RingCTSendToSelf");
     case TransactionRecord::ZeroCoinStake:
+        return tr("  ");
+    case TransactionRecord::RingCTStake:
         return tr("  ");
     case TransactionRecord::SendToSelf:
     default:

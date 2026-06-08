@@ -98,6 +98,7 @@ public:
         ZeroCoinSpendSelf,
         ZeroCoinRecv,
         ZeroCoinStake,
+        RingCTStake,
         ConvertBasecoinToCT,
         ConvertBasecoinToRingCT,
         ConvertCtToRingCT,

@@ -281,6 +281,7 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
         TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinSpendRemint) |
         TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinRecv) |
         TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinStake) |
+        TransactionFilterProxy::TYPE(TransactionRecord::RingCTStake) |
         TransactionFilterProxy::TYPE(TransactionRecord::ConvertBasecoinToCT) |
         TransactionFilterProxy::TYPE(TransactionRecord::ConvertBasecoinToRingCT) |
         TransactionFilterProxy::TYPE(TransactionRecord::ConvertCtToRingCT) |
@@ -308,7 +309,8 @@ OverviewPage::OverviewPage(const PlatformStyle *platformStyle, WalletView *paren
     );
 
     ui->comboFilter->addItem(tr("Stake"),
-        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinStake)
+        TransactionFilterProxy::TYPE(TransactionRecord::ZeroCoinStake) |
+        TransactionFilterProxy::TYPE(TransactionRecord::RingCTStake)
     );
 
     ui->comboFilter->addItem(tr("Basecoin"),

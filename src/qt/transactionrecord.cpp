@@ -166,14 +166,20 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                     sub.type = TransactionRecord::CTGenerated;
                     break;
                 case OUTPUT_RINGCT:
-                    sub.type = TransactionRecord::RingCTGenerated;
+                    if (wtx.is_coinstake)
+                        sub.type = TransactionRecord::RingCTStake;
+                    else
+                        sub.type = TransactionRecord::RingCTGenerated;
                     break;
                 default:
                     sub.type = TransactionRecord::Generated;
                     break;
             }
         } else if (((nFlags & ORF_OWNED) || wtx.is_my_zerocoin_mint) && wtx.is_coinstake) {
-            sub.type = TransactionRecord::ZeroCoinStake;
+            if (outputType == OUTPUT_RINGCT)
+                sub.type = TransactionRecord::RingCTStake;
+            else
+                sub.type = TransactionRecord::ZeroCoinStake;
         } else if (nFlags & ORF_OWNED) {
             switch (outputType) {
                 case OUTPUT_STANDARD:
