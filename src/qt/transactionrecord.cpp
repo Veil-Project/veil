@@ -519,8 +519,8 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                             continue;
 
                         bool fBech32 = false;    
-                        if (boost::get<WitnessV0KeyHash>(&wtx.txout_address[i]) ||
-                            boost::get<WitnessV0ScriptHash>(&wtx.txout_address[i])){
+                        if (boost::get<WitnessV0KeyHash>(&wtx.txout_address[nOut]) ||
+                            boost::get<WitnessV0ScriptHash>(&wtx.txout_address[nOut])){
                             fBech32 = true;
                         }
 
