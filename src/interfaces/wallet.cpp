@@ -126,6 +126,9 @@ WalletTx MakeWalletTx(CWallet& wallet, const CWalletTx& wtx)
             if (txout->nVersion == OUTPUT_DATA && fInputsFromMe)
                 fAddressIsMine = ISMINE_SPENDABLE;
             result.txout_address_is_mine.emplace_back(fAddressIsMine);
+            // Keep txout_address in sync with txout_is_mine
+            if (!result.has_rtx)
+                result.txout_address.emplace_back(CNoDestination());
         }
 
         /** RingCT/CT/Data Output **/
