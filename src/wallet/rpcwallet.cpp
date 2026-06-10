@@ -4875,10 +4875,12 @@ static UniValue listunspent(const JSONRPCRequest& request)
             }
 
             if (scriptPubKey.IsPayToScriptHash()) {
-                const CScriptID& hash = boost::get<CScriptID>(address);
-                CScript redeemScript;
-                if (pwallet->GetCScript(hash, redeemScript))
-                    entry.pushKV("redeemScript", HexStr(redeemScript.begin(), redeemScript.end()));
+                const CScriptID* hash = boost::get<CScriptID>(&address);
+                if (hash) {
+                    CScript redeemScript;
+                    if (pwallet->GetCScript(*hash, redeemScript))
+                        entry.pushKV("redeemScript", HexStr(redeemScript.begin(), redeemScript.end()));
+                }
             }
 
             // if not basecoin, get the stealth address (and destination if ct)
