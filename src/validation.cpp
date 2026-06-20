@@ -2864,14 +2864,58 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
                          REJECT_INVALID, "bad-cb-amount");
     }
 
-    // Ensure that accumulator checkpoints are valid and in the same state as this instance of the chain
-    int64_t nTimeAccumulate = GetTimeMicros();
-    AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
-    if (!ValidateAccumulatorCheckpoint(block, pindex, mapAccumulators))
-        return state.DoS(100, error("%s: Failed to validate accumulator checkpoint for block=%s height=%d", __func__,
-                                    block.GetHash().GetHex(), pindex->nHeight), REJECT_INVALID, "bad-acc-checkpoint");
-    nTimeAccumulate = GetTimeMicros() - nTimeAccumulate;
-    LogPrint(BCLog::BENCH, "    - Accumulate zerocoinmints in: %.2fms\n", MILLI * nTimeAccumulate);
+    // Zerocoin accumulator validation
+	int64_t nTimeAccumulate = 0;
+	AccumulatorMap mapAccumulators(Params().Zerocoin_Params());
+	
+	// This is the ONLY time ValidateAccumulatorCheckpoint() actually calculates accumulators
+	const bool fChecksumBoundary = (pindex->nHeight > 10 && (pindex->nHeight % 10) == 0);
+	
+	// Pre-Light Zerocoin: keep legacy behavior (always validate)
+	if (pindex->nHeight < Params().HeightLightZerocoin()) {
+	    const int64_t nStart = GetTimeMicros();
+	
+	    if (!ValidateAccumulatorCheckpoint(block, pindex, mapAccumulators)) {
+	        return state.DoS(
+	            100,
+	            error("%s: Failed to validate pre-LZC accumulator checkpoint for block=%s height=%d",
+	                  __func__, block.GetHash().GetHex(), pindex->nHeight),
+	            REJECT_INVALID,
+	            "bad-pre-lzc-acc-checkpoint");
+	    }
+	
+	    nTimeAccumulate = GetTimeMicros() - nStart;
+	    LogPrint(BCLog::BENCH, "    - Accumulate (pre-LZC mandatory): %.2fms\n", MILLI * nTimeAccumulate);
+	}
+	// Post-Light Zerocoin: only validate when it matters
+	else {
+	    const bool fHasZerocoinSpends = !mapSpends.empty();   
+	    const bool fNeedAccumulatorBuild = fChecksumBoundary || fHasZerocoinSpends;
+	
+	    if (fNeedAccumulatorBuild) {
+	        const int64_t nStart = GetTimeMicros();
+	
+	        if (!ValidateAccumulatorCheckpoint(block, pindex, mapAccumulators)) {
+	            return state.DoS(
+	                100,
+	                error("%s: Failed to validate post-LZC accumulator checkpoint for block=%s height=%d",
+	                      __func__, block.GetHash().GetHex(), pindex->nHeight),
+	                REJECT_INVALID,
+	                "bad-post-lzc-acc-checkpoint");
+	        }
+	
+	        nTimeAccumulate = GetTimeMicros() - nStart;
+	
+	        if (fChecksumBoundary) {
+	            LogPrint(BCLog::BENCH, "    - Accumulate (checksum boundary): %.2fms\n", MILLI * nTimeAccumulate);
+	            DatabaseChecksums(mapAccumulators); 
+	        } else {
+	            LogPrint(BCLog::BENCH, "    - Accumulate (spend present): %.2fms\n", MILLI * nTimeAccumulate);
+	        }
+	    } else {
+	        LogPrint(BCLog::BENCH, "    - Accumulate skipped (post-LZC, no spends, not checksum boundary)\n");
+	    }
+	}
 
     if (!control.Wait())
         return state.DoS(100, error("%s: CheckQueue failed", __func__), REJECT_INVALID, "block-validation-failed");
@@ -2905,17 +2949,22 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     if (fJustCheck)
         return true;
 
-    pindex->nAnonOutputs = view.nLastRCTOutput;
+	pindex->nAnonOutputs = view.nLastRCTOutput;
 
-	// Batch-write all Zerocoin data (spends, mints, pubcoin spends) in a single DB operation.
-    bool fWritePubcoinSpends = (pindex->nHeight >= Params().HeightLightZerocoin());
-	if (!pzerocoinDB->WriteBlockZerocoinData(
-	        mapSpends,
-	        mapMints,
-	        mapSpentPubcoinsInBlock,
-	        pindex->GetBlockHash(),
-	        fWritePubcoinSpends)) {
-	    return state.Error("Failed to record zerocoin data to database");
+	const bool fWritePubcoinSpends = (pindex->nHeight >= Params().HeightLightZerocoin());
+
+	if (!mapSpends.empty() ||
+	    !mapMints.empty() ||
+	    (fWritePubcoinSpends && !mapSpentPubcoinsInBlock.empty())) {
+	
+	    if (!pzerocoinDB->WriteBlockZerocoinData(
+	            mapSpends,
+	            mapMints,
+	            mapSpentPubcoinsInBlock,
+	            pindex->GetBlockHash(),
+	            fWritePubcoinSpends)) {
+	        return state.Error("Failed to write zerocoin data");
+	    }
 	}
 
     int64_t nTime6 = GetTimeMicros(); nTimeDatabaseZerocoin += nTime6 - nTime5;
