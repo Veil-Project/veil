@@ -417,9 +417,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
              
                 if(IsValidDestination(wtx.txout_address[i])){
                     bool fBech32 = false;    
-                    if (boost::get<CScriptID>(&wtx.txout_address[i])){
+                    if (boost::get<WitnessV0KeyHash>(&wtx.txout_address[i]) ||
+                        boost::get<WitnessV0ScriptHash>(&wtx.txout_address[i])){
                         fBech32 = true;
-                    }            
+                    }          
                     sub.address = EncodeDestination(wtx.txout_address[i], fBech32);
                 }                
             } else {
@@ -518,9 +519,10 @@ QList<TransactionRecord> TransactionRecord::decomposeTransaction(const interface
                             continue;
 
                         bool fBech32 = false;    
-                        if (boost::get<CScriptID>(&wtx.txout_address[nOut])){
+                        if (boost::get<WitnessV0KeyHash>(&wtx.txout_address[nOut]) ||
+                            boost::get<WitnessV0ScriptHash>(&wtx.txout_address[nOut])){
                             fBech32 = true;
-                        }   
+                        }
 
                         // Sent to Bitcoin Address
                         sub.type = TransactionRecord::SendToAddress;
