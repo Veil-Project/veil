@@ -73,7 +73,7 @@ jobs:
         strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
         mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4.4.3
+      uses: actions/upload-artifact@v6.0.0
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
@@ -85,7 +85,7 @@ jobs:
       ARTIFACT_DIR: win64-binaries
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v4.1.8
+      uses: actions/download-artifact@v6.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
@@ -116,7 +116,7 @@ jobs:
         strip $SOURCE_ARTIFACT/src/{veil-cli.exe,veil-tx.exe,veild.exe,qt/veil-qt.exe}
         mv $SOURCE_ARTIFACT/src/{veil-cli.exe,veil-tx.exe,veild.exe,qt/veil-qt.exe} $ARTIFACT_DIR
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4.4.3
+      uses: actions/upload-artifact@v6.0.0
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
@@ -128,7 +128,7 @@ jobs:
       ARTIFACT_DIR: macosx-binaries
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v4.1.8
+      uses: actions/download-artifact@v6.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
@@ -183,7 +183,7 @@ jobs:
         mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4.4.3
+      uses: actions/upload-artifact@v6.0.0
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
@@ -195,7 +195,7 @@ jobs:
       ARTIFACT_DIR: aarch64-linux-binaries
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v4.1.8
+      uses: actions/download-artifact@v6.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
@@ -223,7 +223,7 @@ jobs:
         # strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
         mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4.4.3
+      uses: actions/upload-artifact@v6.0.0
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
@@ -235,7 +235,7 @@ jobs:
       ARTIFACT_DIR: arm32-binaries
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v4.1.8
+      uses: actions/download-artifact@v6.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
@@ -263,7 +263,7 @@ jobs:
         # strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
         mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4.4.3
+      uses: actions/upload-artifact@v6.0.0
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
@@ -275,7 +275,7 @@ jobs:
       ARTIFACT_DIR: i686-linux32-binaries
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v4.1.8
+      uses: actions/download-artifact@v6.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
@@ -302,7 +302,7 @@ jobs:
         strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
         mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4.4.3
+      uses: actions/upload-artifact@v6.0.0
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
@@ -314,7 +314,7 @@ jobs:
       ARTIFACT_DIR: riscv64-linux-binaries
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v4.1.8
+      uses: actions/download-artifact@v6.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
@@ -342,7 +342,7 @@ jobs:
         # strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild}
         mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild} $ARTIFACT_DIR
     - name: Upload Artifact
-      uses: actions/upload-artifact@v4.4.3
+      uses: actions/upload-artifact@v6.0.0
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
