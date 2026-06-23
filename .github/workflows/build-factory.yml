@@ -46,7 +46,7 @@ jobs:
       TEST_LOG_ARTIFACT_DIR: test-logs
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v6.0.0
+      uses: actions/download-artifact@v7.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
@@ -85,7 +85,7 @@ jobs:
       ARTIFACT_DIR: win64-binaries
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v6.0.0
+      uses: actions/download-artifact@v7.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
@@ -128,7 +128,7 @@ jobs:
       ARTIFACT_DIR: macosx-binaries
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v6.0.0
+      uses: actions/download-artifact@v7.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
@@ -195,7 +195,7 @@ jobs:
       ARTIFACT_DIR: aarch64-linux-binaries
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v6.0.0
+      uses: actions/download-artifact@v7.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
@@ -235,7 +235,7 @@ jobs:
       ARTIFACT_DIR: arm32-binaries
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v6.0.0
+      uses: actions/download-artifact@v7.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
@@ -275,7 +275,7 @@ jobs:
       ARTIFACT_DIR: i686-linux32-binaries
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v6.0.0
+      uses: actions/download-artifact@v7.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
@@ -314,7 +314,7 @@ jobs:
       ARTIFACT_DIR: riscv64-linux-binaries
     steps:
     - name: Getting Source
-      uses: actions/download-artifact@v6.0.0
+      uses: actions/download-artifact@v7.0.0
       with:
         name: ${{ env.SOURCE_ARTIFACT }}
         path: ${{ env.SOURCE_ARTIFACT }}
