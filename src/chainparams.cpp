@@ -366,6 +366,7 @@ public:
         nHeightPoSStart = 1500;
         nKernelModulus = 100;
         nCoinbaseMaturity = 100;
+        nHeightRejectStealthOrRingCTCoinbase = 3890103;
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 9816000; // Continue POW until supply creation ends
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
@@ -546,6 +547,7 @@ public:
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
+        nHeightRejectStealthOrRingCTCoinbase = 0;
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 9816000; // Continue POW until supply creation ends
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
@@ -718,6 +720,7 @@ public:
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
+        nHeightRejectStealthOrRingCTCoinbase = 0;
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 9816000; // Continue POW until supply creation ends
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
@@ -871,6 +874,7 @@ public:
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
+        nHeightRejectStealthOrRingCTCoinbase = 0;
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 9816000; // Continue POW until supply creation ends
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time

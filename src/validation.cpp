@@ -2475,6 +2475,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         if (tx.IsCoinBase() && !tx.HasBlindedValues()) {
             nTxValueOut += tx.GetValueOut();
         } else if (tx.IsCoinBase()) {
+            if (pindex->nHeight >= Params().HeightRejectStealthOrRingCTCoinbase()) {
+                return state.DoS(100, error("ConnectBlock(): coinbase contains stealth or RingCT outputs\n"),
+                                 REJECT_INVALID, "bad-cb-stealth-ringct");
+            }
+
             // Check tx with blinded values
             for (auto& pout : tx.vpout) {
                 // Check non-blind txouts
