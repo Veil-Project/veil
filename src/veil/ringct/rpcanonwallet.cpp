@@ -775,7 +775,9 @@ static UniValue sendstealthtobasecoin(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 7)
         throw std::runtime_error(SendHelp(wallet, OUTPUT_CT, OUTPUT_STANDARD));
 
-    return SendToInner(request, OUTPUT_CT, OUTPUT_STANDARD);
+    throw JSONRPCError(RPC_INVALID_PARAMETER, 
+        "Cannot send stealth to basecoin. "
+        "Use sendstealthtoringct instead to move funds to RingCT.");
 };
 
 static UniValue sendstealthtostealth(const JSONRPCRequest& request)
@@ -786,7 +788,9 @@ static UniValue sendstealthtostealth(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 7)
         throw std::runtime_error(SendHelp(wallet, OUTPUT_CT, OUTPUT_CT));
 
-    return SendToInner(request, OUTPUT_CT, OUTPUT_CT);
+    throw JSONRPCError(RPC_INVALID_PARAMETER, 
+        "Cannot send stealth to stealth. "
+        "Use sendstealthtoringct instead to move funds to RingCT.");
 };
 
 static UniValue sendstealthtoringct(const JSONRPCRequest& request)
@@ -809,7 +813,9 @@ static UniValue sendringcttobasecoin(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 9)
         throw std::runtime_error(SendHelp(wallet, OUTPUT_RINGCT, OUTPUT_STANDARD));
 
-    return SendToInner(request, OUTPUT_RINGCT, OUTPUT_STANDARD);
+    throw JSONRPCError(RPC_INVALID_PARAMETER, 
+        "Cannot send RingCT to a less private type. "
+        "RingCT can only be sent to RingCT to avoid privacy regression.");
 }
 
 static UniValue sendringcttostealth(const JSONRPCRequest& request)
@@ -820,7 +826,9 @@ static UniValue sendringcttostealth(const JSONRPCRequest& request)
     if (request.fHelp || request.params.size() < 2 || request.params.size() > 9)
         throw std::runtime_error(SendHelp(wallet, OUTPUT_RINGCT, OUTPUT_CT));
 
-    return SendToInner(request, OUTPUT_RINGCT, OUTPUT_CT);
+    throw JSONRPCError(RPC_INVALID_PARAMETER, 
+        "Cannot send RingCT to a less private type. "
+        "RingCT can only be sent to RingCT to avoid privacy regression.");
 }
 
 static UniValue sendringcttoringct(const JSONRPCRequest& request)
@@ -882,7 +890,7 @@ UniValue sendtypeto(const JSONRPCRequest &request)
                 "\nResult:\n"
                 "\"txid\"              (string) The transaction id.\n"
                 "\nExamples:\n"
-                + HelpExampleCli("sendtypeto", "ringct basecoin \"[{\\\"address\\\":\\\"PbpVcjgYatnkKgveaeqhkeQBFwjqR7jKBR\\\",\\\"amount\\\":0.1}]\""));
+                + HelpExampleCli("sendtypeto", "ringct ringct \"[{\\\"address\\\":\\\"PbpVcjgYatnkKgveaeqhkeQBFwjqR7jKBR\\\",\\\"amount\\\":0.1}]\""));
 
     std::string sTypeIn = request.params[0].get_str();
     std::string sTypeOut = request.params[1].get_str();
@@ -894,6 +902,17 @@ UniValue sendtypeto(const JSONRPCRequest &request)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown input type.");
     if (typeOut == OUTPUT_NULL)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown output type.");
+
+    //Block CT to basecoin
+    if (typeOut == OUTPUT_STANDARD && typeIn != OUTPUT_STANDARD)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, 
+            "Cannot send to basecoin. Veil only moves toward more private types.");
+
+    //Block RingCT to CT
+    if (typeIn == OUTPUT_RINGCT && typeOut != OUTPUT_RINGCT)
+        throw JSONRPCError(RPC_INVALID_PARAMETER, 
+            "Cannot send RingCT to a less private type. "
+            "RingCT can only be sent to RingCT to avoid privacy regression.");
 
     JSONRPCRequest req = request;
     req.params.erase(0, 2);
