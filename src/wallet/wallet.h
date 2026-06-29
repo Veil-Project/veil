@@ -1072,6 +1072,7 @@ public:
     void ReacceptWalletTransactions();
     void ResendWalletTransactions(int64_t nBestBlockTime, CConnman* connman) override;
     // ResendWalletTransactionsBefore may only be called if fBroadcastTransactions!
+    void AutoConvertToRingCT();
     std::vector<uint256> ResendWalletTransactionsBefore(int64_t nTime, CConnman* connman);
     CAmount GetBasecoinBalance(const isminefilter& filter=ISMINE_SPENDABLE, const int min_depth=0) const;
     CAmount GetBalance(const isminefilter& filter=ISMINE_SPENDABLE, const int min_depth=0) const;
