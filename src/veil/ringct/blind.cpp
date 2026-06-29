@@ -108,11 +108,11 @@ int SelectRangeProofParameters(uint64_t nValueIn, uint64_t &minValue, int &expon
     return 0;
 };
 
-int GetRangeProofInfo(const std::vector<uint8_t> &vRangeproof, int &rexp, int &rmantissa, CAmount &min_value, CAmount &max_value)
+bool GetRangeProofInfo(const std::vector<uint8_t> &vRangeproof, int &rexp, int &rmantissa, CAmount &min_value, CAmount &max_value)
 {
-    return (!(secp256k1_rangeproof_info(secp256k1_ctx_blind,
+    return 1 == secp256k1_rangeproof_info(secp256k1_ctx_blind,
                                         &rexp, &rmantissa, (uint64_t*) &min_value, (uint64_t*) &max_value,
-                                        &vRangeproof[0], vRangeproof.size()) == 1));
+                                        &vRangeproof[0], vRangeproof.size());
 };
 
 void ECC_Start_Blinding()

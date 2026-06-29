@@ -19,6 +19,7 @@ const size_t ANON_FEE_MULTIPLIER = 2;
 
 
 bool VerifyMLSAG(const CTransaction &tx, CValidationState &state);
+bool VerifyCoinbase(CAmount nExpStakeReward, const CTransaction &tx, CValidationState &state);
 
 bool AddKeyImagesToMempool(const CTransaction &tx, CTxMemPool &pool);
 bool RemoveKeyImagesFromMempool(const uint256 &hash, const CTxIn &txin, CTxMemPool &pool);

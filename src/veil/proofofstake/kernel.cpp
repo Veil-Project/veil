@@ -24,25 +24,27 @@ using namespace std;
 bool stakeTargetHit(arith_uint256 hashProofOfStake, int64_t nValueIn, arith_uint256 bnTargetPerCoinDay)
 {
     //get the stake weight - weight is equal to coin amount
-    arith_uint256 bnTarget = arith_uint256(nValueIn) * bnTargetPerCoinDay;
+    arith_uint256 bnTarget(nValueIn);
+    bool overflow = false;
+    bnTarget.safeMultiply(bnTargetPerCoinDay, overflow);
 
     //Double check for overflow, give max value if overflow
-    if (bnTargetPerCoinDay > bnTarget)
+    if (overflow)
         bnTarget = ~arith_uint256();
 
     // Now check if proof-of-stake hash meets target protocol
     return hashProofOfStake < bnTarget;
 }
 
-bool CheckStake(const CDataStream& ssUniqueID, CAmount nValueIn, const uint64_t nStakeModifier, const uint256& bnTarget,
+bool CheckStake(const CDataStream& ssUniqueID, CAmount nValueIn, const uint64_t nStakeModifier, const arith_uint256& bnTarget,
                 unsigned int nTimeBlockFrom, unsigned int& nTimeTx, uint256& hashProofOfStake)
 {
     CDataStream ss(SER_GETHASH, 0);
     ss << nStakeModifier << nTimeBlockFrom << ssUniqueID << nTimeTx;
     hashProofOfStake = Hash(ss.begin(), ss.end());
-    //LogPrintf("%s: modifier:%d nTimeBlockFrom:%d nTimeTx:%d hash:%s\n", __func__, nStakeModifier, nTimeBlockFrom, nTimeTx, hashProofOfStake.GetHex());
+    //LogPrintf("%s: modifier:%d nTimeBlockFrom:%d nTimeTx:%d u:%s hash:%s\n", __func__, nStakeModifier, nTimeBlockFrom, nTimeTx, Hash(ssUniqueID.begin(), ssUniqueID.end()).GetHex(), hashProofOfStake.GetHex());
 
-    return stakeTargetHit(UintToArith256(hashProofOfStake), nValueIn, UintToArith256(bnTarget));
+    return stakeTargetHit(UintToArith256(hashProofOfStake), nValueIn, bnTarget);
 }
 
 
@@ -92,8 +94,10 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
         i++;
 
         // if stake hash does not meet the target then continue to next iteration
-        if (!CheckStake(ssUniqueID, nValueIn, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nTimeBlockFrom, nTryTime, hashProofOfStake))
+        if (!CheckStake(ssUniqueID, nValueIn, nStakeModifier, bnTargetPerCoinDay, nTimeBlockFrom, nTryTime, hashProofOfStake))
             continue;
+
+        stakeInput->OnStakeFound(bnTargetPerCoinDay, hashProofOfStake);
 
         if (setFoundStakes.count(hashProofOfStake))
             continue;
@@ -110,31 +114,42 @@ bool Stake(CStakeInput* stakeInput, unsigned int nBits, unsigned int nTimeBlockF
 }
 
 // Check kernel hash target and coinstake signature
+// TODO: parameterize
 bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, const uint32_t& nBits, const unsigned int& nTimeBlock, uint256& hashProofOfStake, std::unique_ptr<CStakeInput>& stake)
 {
     if (!txRef->IsCoinStake())
         return error("%s: called on non-coinstake %s", __func__, txRef->GetHash().ToString().c_str());
 
     //Construct the stakeinput object
-    if (txRef->vin.size() != 1 && txRef->vin[0].IsZerocoinSpend())
-        return error("%s: Stake is not a zerocoinspend", __func__);
+    if (txRef->vin.size() != 1)
+        return error("%s: Stake is not correctly sized for coinstake", __func__);
 
     const CTxIn& txin = txRef->vin[0];
 
-    auto spend = TxInToZerocoinSpend(txin);
-    if (!spend)
-        return false;
-    stake = std::unique_ptr<CStakeInput>(new ZerocoinStake(*spend.get()));
-    if (spend->getSpendType() != libzerocoin::SpendType::STAKE)
-        return error("%s: spend is using the wrong SpendType (%d)", __func__, (int)spend->getSpendType());
+    const CBlockIndex* pindexFrom;
+    if (txin.IsZerocoinSpend()) {
+        auto spend = TxInToZerocoinSpend(txin);
+        if (!spend)
+            return false;
 
-    CBlockIndex* pindex = stake->GetIndexFrom();
-    if (!pindex)
+        if (spend->getSpendType() != libzerocoin::SpendType::STAKE)
+            return error("%s: spend is using the wrong SpendType (%d)", __func__, (int)spend->getSpendType());
+
+        stake = std::unique_ptr<CStakeInput>(new ZerocoinStake(*spend));
+        pindexFrom = stake->GetIndexFrom(pindexCheck->pprev);
+    } else if (txin.IsAnonInput()) {
+        stake = std::unique_ptr<CStakeInput>(new PublicRingCTStake(txRef));
+        pindexFrom = stake->GetIndexFrom(pindexCheck->pprev);
+    } else {
+        return error("%s: Stake is not a zerocoin or ringctspend", __func__);
+    }
+
+    if (!pindexFrom)
         return error("%s: Failed to find the block index", __func__);
 
     // Read block header
     CBlock blockprev;
-    if (!ReadBlockFromDisk(blockprev, pindex->GetBlockPos(), Params().GetConsensus()))
+    if (!ReadBlockFromDisk(blockprev, pindexFrom->GetBlockPos(), Params().GetConsensus()))
         return error("CheckProofOfStake(): INFO: failed to find block");
 
     arith_uint256 bnTargetPerCoinDay;
@@ -142,7 +157,7 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
 
     uint64_t nStakeModifier = 0;
     if (!stake->GetModifier(nStakeModifier, pindexCheck->pprev)) {
-        if (pindexCheck->nHeight - Params().HeightLightZerocoin() > 400)
+        if (txin.IsAnonInput() || pindexCheck->nHeight - Params().HeightLightZerocoin() > 400)
             return error("%s failed to get modifier for stake input\n", __func__);
     }
 
@@ -150,12 +165,14 @@ bool CheckProofOfStake(CBlockIndex* pindexCheck, const CTransactionRef txRef, co
     unsigned int nTxTime = nTimeBlock;
 
     // Enforce VIP-1 after it was activated
-    CAmount nValue = (int)nTxTime > Params().EnforceWeightReductionTime()
+    CAmount nValue = txin.IsAnonInput() || (int)nTxTime > Params().EnforceWeightReductionTime()
         ? stake->GetWeight()
         : stake->GetValue();
 
+    if (nValue == 0)
+        return error("%s: coinstake %s has no stake weight\n", __func__, txRef->GetHash().GetHex());
 
-    if (!CheckStake(stake->GetUniqueness(), nValue, nStakeModifier, ArithToUint256(bnTargetPerCoinDay), nBlockFromTime,
+    if (!CheckStake(stake->GetUniqueness(), nValue, nStakeModifier, bnTargetPerCoinDay, nBlockFromTime,
                     nTxTime, hashProofOfStake)) {
         return error("CheckProofOfStake() : INFO: check kernel failed on coinstake %s, hashProof=%s \n",
                      txRef->GetHash().GetHex(), hashProofOfStake.GetHex());

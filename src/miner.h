@@ -216,6 +216,9 @@ private:
     void resetBlock();
     /** Add a tx to the block */
     void AddToBlock(CTxMemPool::txiter iter);
+    /** Create the coinbase transaction. */
+    void CreateCoinbase(CMutableTransaction& coinbaseTx, const CScript& scriptPubKeyIn,
+        bool fProofOfStake, CAmount nNetworkRewardReserve);
 
     // Methods for how to add transactions to a block.
     /** Add transactions based on feerate including unconfirmed ancestors

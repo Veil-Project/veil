@@ -36,7 +36,7 @@ class CTransactionRecord
 // Stored by uint256 txnHash;
 public:
     CTransactionRecord() :
-        nFlags(0), nIndex(0), nBlockTime(0) , nTimeReceived(0) , nFee(0) {};
+        nFlags(0), nIndex(0), nBlockTime(0) , nTimeReceived(0) , nFee(0), vin(), vout() {};
 
 
     // Conflicted state is marked by set blockHash and nIndex -1
@@ -194,6 +194,31 @@ public:
         READWRITE(vin);
         READWRITE(vout);
     };
+};
+
+typedef std::map<uint256, CTransactionRecord> MapRecords_t;
+
+class COutputR
+{
+public:
+    COutputR() {};
+
+    COutputR(const uint256 &txhash_, MapRecords_t::const_iterator rtx_, int i_, int nDepth_,
+        bool fSpendable_, bool fSolvable_, bool fSafe_, bool fMature_, bool fNeedHardwareKey_)
+        : txhash(txhash_), rtx(rtx_), i(i_), nDepth(nDepth_),
+        fSpendable(fSpendable_), fSolvable(fSolvable_), fSafe(fSafe_), fMature(fMature_), fNeedHardwareKey(fNeedHardwareKey_) {};
+
+    uint256 txhash;
+    MapRecords_t::const_iterator rtx;
+    int i;
+    int nDepth;
+    bool fSpendable;
+    bool fSolvable;
+    bool fSafe;
+    bool fMature;
+    bool fNeedHardwareKey;
+
+    COutPoint GetOutpoint() const { return COutPoint(txhash, i); }
 };
 
 #endif //VEIL_TRANSACTIONRECORD_H
