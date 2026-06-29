@@ -18,6 +18,8 @@
 
 #include <wallet/rpcwallet.h>
 #include <veil/ringct/rpcanonwallet.h>
+#include <veil/ringct/anonwallet.h>
+#include <veil/ringct/stealth.h>
 
 #include <fstream>
 #include <stdint.h>
@@ -645,16 +647,24 @@ UniValue dumpprivkey(const JSONRPCRequest& request)
 
     if (request.fHelp || request.params.size() != 1)
         throw std::runtime_error(
-            "dumpprivkey \"address\"\n" 
+            "dumpprivkey \"address\"\n"
             "\nReveals the private key corresponding to 'address'.\n"
             "Then the importprivkey can be used with this output\n"
-            "\nNote: dumpprivkey does not include private keys for stealth addresses. Use wallet.dat file or seed words for complete backup.\n" 
+            "\nFor stealth addresses, returns a JSON object with scan and spend keys.\n"
             "\nArguments:\n"
             "1. \"address\"   (string, required) The veil address for the private key\n"
-            "\nResult:\n"
-            "\"key\"                (string) The private key\n"
+            "\nResult (regular address):\n"
+            "\"key\"                (string) The private key in WIF format\n"
+            "\nResult (stealth address):\n"
+            "{\n"
+            "  \"address\": \"address\",           (string) The stealth address\n"
+            "  \"scan_secret\": \"key\",           (string) The scan private key in WIF format\n"
+            "  \"spend_secret\": \"key\",          (string) The spend private key in WIF format\n"
+            "  \"spend_public\": \"hex\"           (string) The spend public key in hex format\n"
+            "}\n"
             "\nExamples:\n"
             + HelpExampleCli("dumpprivkey", "\"myaddress\"")
+            + HelpExampleCli("dumpprivkey", "\"sv1qstealth...\"")
             + HelpExampleCli("importprivkey", "\"mykey\"")
             + HelpExampleRpc("dumpprivkey", "\"myaddress\"")
         );
@@ -668,6 +678,41 @@ UniValue dumpprivkey(const JSONRPCRequest& request)
     if (!IsValidDestination(dest)) {
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Invalid Veil address");
     }
+
+    // Check if this is a stealth address
+    if (dest.type() == typeid(CStealthAddress)) {
+        CStealthAddress* stealthID = boost::get<CStealthAddress>(&dest);
+        if (!stealthID) {
+            throw JSONRPCError(RPC_TYPE_ERROR, "Failed to parse stealth address");
+        }
+
+        AnonWallet* panonwallet = pwallet->GetAnonWallet();
+        if (!panonwallet) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Anonymous wallet not available");
+        }
+
+        // Get scan secret
+        if (!panonwallet->GetStealthAddressScanKey(*stealthID)) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Scan key not available (watch-only?)");
+        }
+
+        // Get spend secret
+        CKey spendSecret;
+        if (!panonwallet->GetStealthAddressSpendKey(*stealthID, spendSecret)) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Spend key not available (watch-only?)");
+        }
+
+        // Build JSON response
+        UniValue result(UniValue::VOBJ);
+        result.pushKV("address", stealthID->ToString(true)); // Bech32 format
+        result.pushKV("scan_secret", CBitcoinSecret(stealthID->scan_secret).ToString());
+        result.pushKV("spend_secret", CBitcoinSecret(spendSecret).ToString());
+        result.pushKV("spend_public", HexStr(stealthID->spend_pubkey.begin(),
+                                             stealthID->spend_pubkey.end()));
+        return result;
+    }
+
+    // Regular address handling
     auto keyid = GetKeyForDestination(*pwallet, dest);
     if (keyid.IsNull()) {
         throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to a key");

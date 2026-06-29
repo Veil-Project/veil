@@ -227,6 +227,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "importlightwalletaddress", 2, "created_height"},
     { "importlightwalletaddress", 4, "num_prefix_bits"},
     { "importlightwalletaddress", 6, "bech32"},
+    { "importstealthkeys", 2, "rescan"},
     { "getanonoutputs", 0, "inputsize"},
     { "getanonoutputs", 1, "ringsize"},
     { "getkeyimages", 0, "txdata"},
@@ -237,9 +238,6 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "getnewaddress", 4, "makeV2"},
     { "getwatchonlytxes", 1, "starting_index"},
     { "getwatchonlytxes", 2, "batch_size"},
-
-
-
 };
 
 class CRPCConvertTable
