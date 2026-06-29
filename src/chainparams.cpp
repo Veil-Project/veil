@@ -331,6 +331,7 @@ public:
                 { 706000, uint256S("0xf98ece86f185e15af9a9d6b554c54f36f0b8b19d11e5e98ffe3b7578a0c8e2f9")},
                 { 840000, uint256S("0x9b46be33e4a84456e7c4e4785bad8646cb7cf1b6192adfd4c2916e768254f621")},
                 { 1744442, uint256S("0xe464d7547e1a21fe2471ddc4a6da535e2e9011ed570ab687897c7b7c7d9ed83f")},
+                { 3890102, uint256S("0x5651c2cf36c6178512afe27340db440064020a2d7dae58d8513ee12aa45a7c90")},
             }
         };
 
@@ -366,6 +367,7 @@ public:
         nHeightPoSStart = 1500;
         nKernelModulus = 100;
         nCoinbaseMaturity = 100;
+        nHeightRejectStealthOrRingCTCoinbase = 3890103;
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 9816000; // Continue POW until supply creation ends
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
@@ -546,6 +548,7 @@ public:
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
+        nHeightRejectStealthOrRingCTCoinbase = 0;
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 9816000; // Continue POW until supply creation ends
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
@@ -718,6 +721,7 @@ public:
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
+        nHeightRejectStealthOrRingCTCoinbase = 0;
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 9816000; // Continue POW until supply creation ends
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time
@@ -871,6 +875,7 @@ public:
         nHeightPoSStart = 100;
         nKernelModulus = 10;
         nCoinbaseMaturity = 10;
+        nHeightRejectStealthOrRingCTCoinbase = 0;
         nProofOfFullNodeRounds = 4;
         nLastPOWBlock = 9816000; // Continue POW until supply creation ends
         nHeightSupplyCreationStop = 9816000; //Should create very close to 300m coins at this time

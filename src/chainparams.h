@@ -137,6 +137,7 @@ public:
     int HeightPoSStart() const { return nHeightPoSStart; }
     int KernelModulus() const { return nKernelModulus; }
     int CoinbaseMaturity() const { return nCoinbaseMaturity; }
+    int HeightRejectStealthOrRingCTCoinbase() const { return nHeightRejectStealthOrRingCTCoinbase; }
     int HeightSupplyCreationStop() const { return nHeightSupplyCreationStop; }
     int ProofOfFullNodeRounds() const {return nProofOfFullNodeRounds; }
     int EnforceWeightReductionTime() const { return nTimeEnforceWeightReduction; }
@@ -226,6 +227,7 @@ protected:
     int nKernelModulus;
     int nLastPOWBlock;
     int nCoinbaseMaturity;
+    int nHeightRejectStealthOrRingCTCoinbase;
     int nProofOfFullNodeRounds;
     int nHeightSupplyCreationStop;
 
