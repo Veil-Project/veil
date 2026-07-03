@@ -839,10 +839,6 @@ public:
         bech32_hrp_stealth = "tps";
         bech32_hrp_base = "tv";
 
-        fDefaultConsistencyChecks = false;
-        fRequireStandard = false;
-        fMineBlocksOnDemand = false;
-
         /* enable fallback fee on regtest */
         m_fallback_fee_enabled = true;
 

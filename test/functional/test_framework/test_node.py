@@ -80,7 +80,9 @@ class TestNode():
             "-debugexclude=libevent",
             "-debugexclude=leveldb",
             "-mocktime=" + str(mocktime),
-            "-uacomment=testnode%d" % i
+            "-uacomment=testnode%d" % i,
+            # Veil requires an explicit seed decision on new wallet creation
+            "-generateseed=1"
         ]
 
         self.cli = TestNodeCLI(veil_cli, self.datadir)
@@ -197,6 +199,10 @@ class TestNode():
         # Check that stderr is as expected
         self.stderr.seek(0)
         stderr = self.stderr.read().decode('utf-8').strip()
+        # Veil prints a seed backup warning on first wallet creation
+        # (-generateseed=1); it is expected and not an error.
+        stderr = '\n'.join(l for l in stderr.splitlines()
+                           if not l.startswith('WARNING BACKUP THESE WORDS')).strip()
         if stderr != expected_stderr:
             raise AssertionError("Unexpected stderr {} != {}".format(stderr, expected_stderr))
 
