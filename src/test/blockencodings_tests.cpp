@@ -29,6 +29,8 @@ static CBlock BuildBlockTestCase() {
     tx.vin.resize(1);
     tx.vin[0].scriptSig.resize(10);
     tx.vpout.resize(2);
+    tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
+    tx.vpout[1] = MAKE_OUTPUT<CTxOutStandard>();
     tx.vpout[0]->SetValue(42);
     std::string strBudgetAddress = veil::Budget().GetBudgetAddress(0); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
@@ -38,7 +40,11 @@ static CBlock BuildBlockTestCase() {
 
     block.vtx.resize(3);
     block.vtx[0] = MakeTransactionRef(tx);
-    block.nVersion = 42;
+    // Use the post-PoW-update header format (version nibble > OLD_POW_BLOCK_VERSION,
+    // nTime >= nPowTimeStampActive) so hashMerkleRoot is serialized in the header;
+    // the legacy hashVeilData format does not survive a header-only round-trip.
+    block.nVersion = 0x30000000;
+    block.nTime = 1600000000;
     block.hashPrevBlock = InsecureRand256();
     block.nBits = 0x207fffff;
 
@@ -292,6 +298,8 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     coinbase.vin.resize(1);
     coinbase.vin[0].scriptSig.resize(10);
     coinbase.vpout.resize(2);
+    coinbase.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
+    coinbase.vpout[1] = MAKE_OUTPUT<CTxOutStandard>();
     coinbase.vpout[0]->SetValue(42);
     std::string strBudgetAddress = veil::Budget().GetBudgetAddress(0); // KeyID for now
     CTxDestination dest = DecodeDestination(strBudgetAddress);
@@ -302,7 +310,11 @@ BOOST_AUTO_TEST_CASE(EmptyBlockRoundTripTest)
     CBlock block;
     block.vtx.resize(1);
     block.vtx[0] = MakeTransactionRef(std::move(coinbase));
-    block.nVersion = 42;
+    // Use the post-PoW-update header format (version nibble > OLD_POW_BLOCK_VERSION,
+    // nTime >= nPowTimeStampActive) so hashMerkleRoot is serialized in the header;
+    // the legacy hashVeilData format does not survive a header-only round-trip.
+    block.nVersion = 0x30000000;
+    block.nTime = 1600000000;
     block.hashPrevBlock = InsecureRand256();
     block.nBits = 0x207fffff;
 
