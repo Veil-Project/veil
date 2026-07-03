@@ -17,6 +17,15 @@
 #include "crypto/randomx/reciprocal.h"
 #include "crypto/randomx/intrin_portable.h"
 #include "crypto/randomx/jit_compiler.hpp"
+
+// The vendored RandomX JIT predates Apple Silicon W^X (MAP_JIT) support and
+// faults at runtime; production code also disables it there (randomx.cpp
+// randomx_get_flags). Interpreter tests still cover consensus hashing.
+#if defined(__APPLE__) && defined(__aarch64__)
+#define RANDOMX_TEST_JIT 0
+#else
+#define RANDOMX_TEST_JIT RANDOMX_HAVE_COMPILER
+#endif
 #include "crypto/randomx/aes_hash.hpp"
 #include "crypto/randomx/utility.hpp"
 
@@ -264,7 +273,7 @@ BOOST_AUTO_TEST_CASE(randomx_run_tests)
         assert(datasetItem[0] == 0x145a5091f7853099);
     });
 
-    runTest("Dataset initialization (compiler)", RANDOMX_HAVE_COMPILER && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), []() {
+    runTest("Dataset initialization (compiler)", RANDOMX_TEST_JIT && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), []() {
         initCache("test key 000");
         randomx::JitCompiler jit;
         jit.generateSuperscalarHash(cache->programs, cache->reciprocalCache);
@@ -1121,7 +1130,7 @@ BOOST_AUTO_TEST_CASE(randomx_run_tests)
 
     runTest("Hash test 1e (interpreter)", stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), test_e);
 
-    if (RANDOMX_HAVE_COMPILER) {
+    if (RANDOMX_TEST_JIT) {
         randomx_release_cache(cache);
         randomx_destroy_vm(vm);
         vm = nullptr;
@@ -1130,15 +1139,15 @@ BOOST_AUTO_TEST_CASE(randomx_run_tests)
         vm = randomx_create_vm(RANDOMX_FLAG_JIT, cache, nullptr);
     }
 
-    runTest("Hash test 2a (compiler)", RANDOMX_HAVE_COMPILER && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), test_a);
+    runTest("Hash test 2a (compiler)", RANDOMX_TEST_JIT && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), test_a);
 
-    runTest("Hash test 2b (compiler)", RANDOMX_HAVE_COMPILER && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), test_b);
+    runTest("Hash test 2b (compiler)", RANDOMX_TEST_JIT && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), test_b);
 
-    runTest("Hash test 2c (compiler)", RANDOMX_HAVE_COMPILER && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), test_c);
+    runTest("Hash test 2c (compiler)", RANDOMX_TEST_JIT && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), test_c);
 
-    runTest("Hash test 2d (compiler)", RANDOMX_HAVE_COMPILER && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), test_d);
+    runTest("Hash test 2d (compiler)", RANDOMX_TEST_JIT && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), test_d);
 
-    runTest("Hash test 2e (compiler)", RANDOMX_HAVE_COMPILER && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), test_e);
+    runTest("Hash test 2e (compiler)", RANDOMX_TEST_JIT && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), test_e);
 
     randomx_release_cache(cache);
     cache = randomx_alloc_cache(RANDOMX_FLAG_ARGON2_SSSE3);
@@ -1167,7 +1176,7 @@ BOOST_AUTO_TEST_CASE(randomx_run_tests)
     randomx_release_cache(cache);
     cache = randomx_alloc_cache(RANDOMX_FLAG_DEFAULT);
 
-    runTest("Hash batch test", RANDOMX_HAVE_COMPILER && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), []() {
+    runTest("Hash batch test", RANDOMX_TEST_JIT && stringsEqual(RANDOMX_ARGON_SALT, "RandomX\x03"), []() {
         char hash1[RANDOMX_HASH_SIZE];
         char hash2[RANDOMX_HASH_SIZE];
         char hash3[RANDOMX_HASH_SIZE];
@@ -1189,6 +1198,9 @@ BOOST_AUTO_TEST_CASE(randomx_run_tests)
     runTest("Preserve rounding mode", RANDOMX_FREQ_CFROUND > 0, []() {
         rx_set_rounding_mode(RoundToNearest);
         char hash[RANDOMX_HASH_SIZE];
+        // The hash computation was missing here, leaving `hash` uninitialized;
+        // restored from upstream RandomX tests (same vector as hash2 above).
+        calcStringHash("test key 000", "Lorem ipsum dolor sit amet", &hash);
         assert(equalsHex(hash, "300a0adb47603dedb42228ccb2b211104f4da45af709cd7547cd049e9489c969"));
         assert(rx_get_rounding_mode() == RoundToNearest);
     });
