@@ -153,6 +153,9 @@ BITCOIN_CORE_H = \
   pow.h \
   protocol.h \
   random.h \
+  randomenv.h \
+  util/threadnames.h \
+  compat/cpuid.h \
   reverse_iterator.h \
   reverselock.h \
   rpc/blockchain.h \
@@ -719,6 +722,8 @@ libbitcoin_util_a_SOURCES = \
   interfaces/node.cpp \
   logging.cpp \
   random.cpp \
+  randomenv.cpp \
+  util/threadnames.cpp \
   rpc/protocol.cpp \
   support/cleanse.cpp \
   sync.cpp \
@@ -772,7 +777,7 @@ veild_LDADD = \
   $(LIBMEMENV) \
   $(LIBSECP256K1)
 
-veild_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
+veild_LDADD += $(BOOST_LIBS) $(BDB_LIBS) $(MINIUPNPC_LIBS) $(EVENT_PTHREADS_LIBS) $(EVENT_LIBS) $(ZMQ_LIBS)
 
 # veil-cli binary #
 veil_cli_SOURCES = veil-cli.cpp
@@ -790,7 +795,7 @@ veil_cli_LDADD = \
   $(LIBBITCOIN_UTIL) \
   $(LIBBITCOIN_CRYPTO)
 
-veil_cli_LDADD += $(BOOST_LIBS) $(SSL_LIBS) $(CRYPTO_LIBS) $(EVENT_LIBS)
+veil_cli_LDADD += $(BOOST_LIBS) $(EVENT_LIBS)
 #
 
 # veil-tx binary #
@@ -812,7 +817,7 @@ veil_tx_LDADD = \
   $(LIBBITCOIN_CRYPTO) \
   $(LIBSECP256K1)
 
-veil_tx_LDADD += $(BOOST_LIBS) $(CRYPTO_LIBS)
+veil_tx_LDADD += $(BOOST_LIBS)
 #
 
 # bitcoinconsensus library #
