@@ -32,6 +32,9 @@ BOOST_AUTO_TEST_CASE(bip173_testvectors_valid)
         "11qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqc8247j",
         "split1checkupstagehandshakeupstreamerranterredcaperred2y9e3w",
         "?1ezyfcl",
+        // 92 chars: invalid per BIP173 (>90) but valid under Veil's 122-char
+        // limit, which accommodates long stealth-address encodings.
+        "an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1569pvx",
     };
     for (const std::string& str : CASES) {
         auto ret = bech32::Decode(str);
@@ -48,7 +51,8 @@ BOOST_AUTO_TEST_CASE(bip173_testvectors_invalid)
         " 1nwldj5",
         "\x7f""1axkwrx",
         "\x80""1eym55h",
-        "an84characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbio1569pvx",
+        // 127 chars: exceeds Veil's 122-char limit (Veil allows >90 for stealth addresses)
+        "an119characterslonghumanreadablepartthatcontainsthenumber1andtheexcludedcharactersbioplusextrapaddingtomakeitlongenough1569pvx",
         "pzry9x0s0muk",
         "1pzry9x0s0muk",
         "x1b4n0q5v",

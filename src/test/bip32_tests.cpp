@@ -135,7 +135,10 @@ static void RunTest(const TestVector &test) {
 
         CDataStream ssPriv(SER_DISK, CLIENT_VERSION);
         ssPriv << keyNew;
-        BOOST_CHECK(ssPriv.size() == 75);
+        // Veil's CExtKey (veil/ringct/extkey.h) serializes as
+        // depth(1) + fingerprint(4) + child(4) + chaincode(32) + valid(1) + key(32) = 74,
+        // with no compact-size prefix (unlike upstream's 75).
+        BOOST_CHECK(ssPriv.size() == 74);
 
         CExtPubKey pubCheck;
         CExtKey privCheck;
