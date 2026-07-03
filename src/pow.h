@@ -8,6 +8,7 @@
 #define BITCOIN_POW_H
 
 #include <consensus/params.h>
+#include <sync.h>
 
 #include <stdint.h>
 #include <memory>
@@ -23,7 +24,7 @@ class CReserveScript;
 
 extern std::vector<randomx_vm*> vecRandomXVM;
 extern bool fKeyBlockedChanged;
-extern class CCriticalSection cs_randomx_validator;
+extern CCriticalSection cs_randomx_validator;
 
 arith_uint256 GetPowLimit(int nPoWType);
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params&,

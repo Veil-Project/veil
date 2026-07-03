@@ -21,7 +21,17 @@ const char * const DEFAULT_DEBUGLOGFILE = "debug.log";
  * This method of initialization was originally introduced in
  * ee3374234c60aba2cc4c5cd5cac1c0aefc2d817c.
  */
-BCLog::Logger* const g_logger = new BCLog::Logger();
+BCLog::Logger& LogInstance()
+{
+/**
+ * NOTE: the logger instance is leaked on exit. This is ugly, but will be
+ * cleaned up by the OS/libc. Defining a logger as a global object doesn't work
+ * since it may be used before other global objects are initialized (static
+ * initialization order fiasco) -- this pattern follows upstream #15111.
+ */
+    static BCLog::Logger* g_logger{new BCLog::Logger()};
+    return *g_logger;
+}
 
 bool fLogIPs = DEFAULT_LOGIPS;
 
