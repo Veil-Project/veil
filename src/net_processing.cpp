@@ -54,6 +54,11 @@ static constexpr int64_t HEADERS_DOWNLOAD_TIMEOUT_PER_HEADER = 1000; // 1ms/head
 static constexpr int32_t MAX_OUTBOUND_PEERS_TO_PROTECT_FROM_DISCONNECT = 4;
 /** Timeout for (unprotected) outbound peers to sync to our chainwork, in seconds */
 static constexpr int64_t CHAIN_SYNC_TIMEOUT = 20 * 60; // 20 minutes
+/** Maximum rate of address-relay processing per peer (addresses per second). */
+static constexpr double MAX_ADDR_RATE_PER_SECOND{0.1};
+/** Maximum burst of addresses processed at once, and the initial token bucket
+ *  size. Matches the 1000-address cap on a single addr message. */
+static constexpr size_t MAX_ADDR_PROCESSING_TOKEN_BUCKET{1000};
 /** How frequently to check for stale tips, in seconds */
 static constexpr int64_t STALE_CHECK_INTERVAL = 10 * 60; // 10 minutes
 /** How frequently to check for extra outbound peers and disconnect, in seconds */
@@ -2214,6 +2219,25 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             return false;
         }
 
+        // Update the addr-processing token bucket for this peer, refilling it
+        // for the time elapsed since the last addr message.
+        const int64_t current_time_us = GetTimeMicros();
+        if (pfrom->m_addr_token_bucket < MAX_ADDR_PROCESSING_TOKEN_BUCKET) {
+            const int64_t time_diff_us = std::max<int64_t>(current_time_us - pfrom->m_addr_token_timestamp_us, 0);
+            const double increment = (time_diff_us / 1000000.0) * MAX_ADDR_RATE_PER_SECOND;
+            pfrom->m_addr_token_bucket = std::min<double>(pfrom->m_addr_token_bucket + increment, MAX_ADDR_PROCESSING_TOKEN_BUCKET);
+        }
+        pfrom->m_addr_token_timestamp_us = current_time_us;
+
+        // Whitelisted peers bypass addr-relay rate limiting.
+        const bool rate_limited = !pfrom->fWhitelisted;
+        uint64_t num_proc = 0;
+        uint64_t num_rate_limit = 0;
+
+        // Process addresses in random order so a flooding peer cannot control
+        // which addresses survive rate limiting.
+        Shuffle(vAddr.begin(), vAddr.end(), FastRandomContext());
+
         // Store the new addresses
         std::vector<CAddress> vAddrOk;
         int64_t nNow = GetAdjustedTime();
@@ -2222,6 +2246,18 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         {
             if (interruptMsgProc)
                 return true;
+
+            // Apply rate limiting: drop addresses received beyond the token
+            // budget. This is purely on the addr-relay path and does not touch
+            // transaction relay (Dandelion uses NetMsgType::TX_DAND).
+            if (rate_limited) {
+                if (pfrom->m_addr_token_bucket < 1.0) {
+                    ++num_rate_limit;
+                    continue;
+                }
+                pfrom->m_addr_token_bucket -= 1.0;
+            }
+            ++num_proc;
 
             // We only bother storing full nodes, though this may include
             // things which we would not make an outbound connection to, in
@@ -2243,6 +2279,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 vAddrOk.push_back(addr);
         }
         connman->AddNewAddresses(vAddrOk, pfrom->addr, 2 * 60 * 60);
+        pfrom->m_addr_processed += num_proc;
+        pfrom->m_addr_rate_limited += num_rate_limit;
+        LogPrint(BCLog::NET, "Received addr: %u addresses (%u processed, %u rate-limited) from peer=%d\n",
+                 vAddr.size(), num_proc, num_rate_limit, pfrom->GetId());
         if (vAddr.size() < 1000)
             pfrom->fGetAddr = false;
         if (pfrom->fOneShot)
