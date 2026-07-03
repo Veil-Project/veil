@@ -59,12 +59,10 @@ static const int MAX_OUTBOUND_CONNECTIONS = 8;
 static const int MAX_ADDNODE_CONNECTIONS = 8;
 /** -listen default */
 static const bool DEFAULT_LISTEN = true;
-/** -upnp default */
-#ifdef USE_UPNP
-static const bool DEFAULT_UPNP = USE_UPNP;
-#else
+/** -upnp default. Off by default even when compiled with miniupnpc: UPnP
+ *  advertises the node on the local network and has a history of CVEs.
+ *  (Upstream disabled the default in 0.19.) */
 static const bool DEFAULT_UPNP = false;
-#endif
 /** The maximum number of entries in mapAskFor */
 static const size_t MAPASKFOR_MAX_SZ = MAX_INV_SZ;
 /** The maximum number of entries in setAskFor (larger due to getdata latency)*/
