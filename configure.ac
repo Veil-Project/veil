@@ -500,6 +500,8 @@ case $host in
   *darwin*)
      TARGET_OS=darwin
      case $host in
+       arm64-*) ARM_64=yes ;;
+       aarch64-*) ARM_64=yes ;;
        x86_64-*) X86_64=yes ;;
      esac
      LEVELDB_TARGET_FLAGS="-DOS_MACOSX"
