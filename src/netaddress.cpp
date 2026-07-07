@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <netaddress.h>
+#include <crypto/sha3.h>
 #include <hash.h>
 #include <util/strencodings.h>
 #include <tinyformat.h>
@@ -22,6 +23,30 @@ static const unsigned char pchOnionCat[] = {0xFD,0x87,0xD8,0x7E,0xEB,0x43};
 
 // 0xFD + sha256("veil")[0:5]
 static const unsigned char g_internal_prefix[] = { 0xFD, 0x6B, 0x88, 0xC0, 0x87, 0x24 };
+
+// Tor v3 (.onion) address helpers. A v3 address encodes, in base32:
+//   pubkey(32) || checksum(2) || version(1), where
+//   checksum = SHA3-256(".onion checksum" || pubkey || version)[:2], version = 3.
+namespace torv3 {
+static constexpr size_t CHECKSUM_LEN = 2;
+static const uint8_t VERSION[] = {3};
+static constexpr size_t TOTAL_LEN = ADDR_TORV3_SIZE + CHECKSUM_LEN + sizeof(VERSION);
+
+static void Checksum(Span<const uint8_t> addr_pubkey, uint8_t (&checksum)[CHECKSUM_LEN])
+{
+    static const unsigned char prefix[] = ".onion checksum";
+    static constexpr size_t prefix_len = 15; // strlen(prefix), excluding the NUL
+
+    SHA3_256 hasher;
+    hasher.Write(MakeSpan(prefix).first(prefix_len));
+    hasher.Write(addr_pubkey);
+    hasher.Write(MakeSpan(VERSION));
+
+    uint8_t checksum_full[SHA3_256::OUTPUT_SIZE];
+    hasher.Finalize(MakeSpan(checksum_full));
+    memcpy(checksum, checksum_full, CHECKSUM_LEN);
+}
+} // namespace torv3
 
 CNetAddr::CNetAddr()
 {
@@ -66,16 +91,34 @@ bool CNetAddr::SetInternal(const std::string &name)
 
 bool CNetAddr::SetSpecial(const std::string &strName)
 {
-    if (strName.size()>6 && strName.substr(strName.size() - 6, 6) == ".onion") {
-        std::vector<unsigned char> vchAddr = DecodeBase32(strName.substr(0, strName.size() - 6).c_str());
-        if (vchAddr.size() != 16-sizeof(pchOnionCat))
-            return false;
+    if (strName.size() <= 6 || strName.substr(strName.size() - 6, 6) != ".onion")
+        return false;
+    std::vector<unsigned char> vchAddr = DecodeBase32(strName.substr(0, strName.size() - 6).c_str());
+
+    if (vchAddr.size() == ADDR_TORV2_SIZE) {
+        // Tor v2: 10-byte address stored onioncat-mapped in the 16-byte form.
         m_addr.assign(ADDR_IPV6_SIZE, 0);
         memcpy(m_addr.data(), pchOnionCat, sizeof(pchOnionCat));
-        for (unsigned int i=0; i<16-sizeof(pchOnionCat); i++)
-            m_addr[i + sizeof(pchOnionCat)] = vchAddr[i];
+        memcpy(m_addr.data() + sizeof(pchOnionCat), vchAddr.data(), ADDR_TORV2_SIZE);
         return true;
     }
+
+    if (vchAddr.size() == torv3::TOTAL_LEN) {
+        // Tor v3: validate the version byte and SHA3-256 checksum, then store
+        // the raw 32-byte pubkey.
+        Span<const uint8_t> input_pubkey(vchAddr.data(), ADDR_TORV3_SIZE);
+        Span<const uint8_t> input_checksum(vchAddr.data() + ADDR_TORV3_SIZE, torv3::CHECKSUM_LEN);
+        const uint8_t input_version = vchAddr[ADDR_TORV3_SIZE + torv3::CHECKSUM_LEN];
+        if (input_version != torv3::VERSION[0])
+            return false;
+        uint8_t calculated_checksum[torv3::CHECKSUM_LEN];
+        torv3::Checksum(input_pubkey, calculated_checksum);
+        if (memcmp(calculated_checksum, input_checksum.data(), torv3::CHECKSUM_LEN) != 0)
+            return false;
+        m_addr.assign(input_pubkey.begin(), input_pubkey.end());
+        return true;
+    }
+
     return false;
 }
 
@@ -287,11 +330,17 @@ enum Network CNetAddr::GetNetwork() const
 
 std::string CNetAddr::ToStringIP() const
 {
-    // Tor v3: proper ".onion" rendering needs the base32 checksum (SHA3-256),
-    // which is added with the string parse/render support in a later change.
-    // Until then render the 32-byte pubkey as hex so logging is unambiguous.
-    if (m_addr.size() == ADDR_TORV3_SIZE)
-        return HexStr(m_addr.begin(), m_addr.end()) + ".torv3";
+    // Tor v3: base32(pubkey || checksum || version) + ".onion".
+    if (m_addr.size() == ADDR_TORV3_SIZE) {
+        uint8_t checksum[torv3::CHECKSUM_LEN];
+        torv3::Checksum(Span<const uint8_t>(m_addr.data(), ADDR_TORV3_SIZE), checksum);
+        std::vector<uint8_t> address;
+        address.reserve(torv3::TOTAL_LEN);
+        address.insert(address.end(), m_addr.begin(), m_addr.end());
+        address.insert(address.end(), checksum, checksum + torv3::CHECKSUM_LEN);
+        address.push_back(torv3::VERSION[0]);
+        return EncodeBase32(address.data(), address.size()) + ".onion";
+    }
     if (IsTor())
         return EncodeBase32(&m_addr[6], 10) + ".onion";
     if (IsInternal())
