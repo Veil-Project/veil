@@ -28,6 +28,38 @@ enum Network
     NET_MAX,
 };
 
+// --- BIP155 (addrv2) scaffolding ---------------------------------------------
+// Foundational declarations for Tor v3 / addrv2 support. Not yet wired into
+// CNetAddr's storage or serialization: the representation rewrite
+// (ip[16] -> prevector m_addr) and the ADDRV2_FORMAT-gated serialization land
+// in subsequent, independently-gated commits. Kept deliberately additive so
+// this commit changes no behavior (NET_MAX and existing paths are untouched).
+
+/** Sentinel bit in the serialize version, set only when (de)serializing an
+ *  address in the BIP155 (addrv2) format. Default streams keep the legacy
+ *  16-byte encoding, so peers.dat and v1 wire stay byte-identical. */
+static constexpr int ADDRV2_FORMAT = 0x20000000;
+
+/** BIP155 network ids as they appear on the wire in addrv2 messages.
+ *  Distinct from the internal `enum Network` above. */
+enum BIP155Network : uint8_t {
+    BIP155_NET_IPV4 = 1,
+    BIP155_NET_IPV6 = 2,
+    BIP155_NET_TORV2 = 3,
+    BIP155_NET_TORV3 = 4,
+    BIP155_NET_I2P = 5,
+    BIP155_NET_CJDNS = 6,
+};
+
+/** Size (in bytes) of the raw address for each supported network. */
+static constexpr size_t ADDR_IPV4_SIZE = 4;
+static constexpr size_t ADDR_IPV6_SIZE = 16;
+static constexpr size_t ADDR_TORV2_SIZE = 10;
+static constexpr size_t ADDR_TORV3_SIZE = 32;
+static constexpr size_t ADDR_I2P_SIZE = 32;
+static constexpr size_t ADDR_CJDNS_SIZE = 16;
+static constexpr size_t ADDR_INTERNAL_SIZE = 10;
+
 /** IP address (IPv6, or IPv4 using mapped IPv6 range (::FFFF:0:0/96)) */
 class CNetAddr
 {
