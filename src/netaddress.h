@@ -62,6 +62,10 @@ static constexpr size_t ADDR_I2P_SIZE = 32;
 static constexpr size_t ADDR_CJDNS_SIZE = 16;
 static constexpr size_t ADDR_INTERNAL_SIZE = 10;
 
+/** Upper bound on the raw address length accepted from a BIP155 (addrv2)
+ *  message, to bound memory when decoding untrusted input. */
+static constexpr size_t MAX_ADDRV2_SIZE = 512;
+
 /** IP address (IPv6, or IPv4 using mapped IPv6 range (::FFFF:0:0/96)) */
 class CNetAddr
 {
@@ -136,12 +140,29 @@ class CNetAddr
 
         template <typename Stream, typename Operation>
         inline void SerializationOp(Stream& s, Operation ser_action) {
-            // Legacy fixed 16-byte encoding, byte-identical to the previous
-            // `unsigned char ip[16]`. m_addr is invariant at ADDR_IPV6_SIZE here.
+            if (s.GetVersion() & ADDRV2_FORMAT) SerializeV2(s, ser_action);
+            else SerializeV1(s, ser_action);
+        }
+
+    protected:
+        // BIP155 (addrv2) codec helpers, defined in netaddress.cpp.
+        uint8_t GetBIP155Network() const;
+        std::vector<uint8_t> GetAddrV2Bytes() const;
+        bool SetFromBIP155(uint8_t bip155_net, const std::vector<uint8_t>& bytes);
+
+        // Legacy fixed 16-byte encoding, byte-identical to the previous
+        // `unsigned char ip[16]` for all 16-byte address types. Addresses that
+        // do not fit the v1 format (e.g. Tor v3, 32 bytes) are written as 16
+        // zero bytes; they are only meaningfully carried in the BIP155 form.
+        template <typename Stream, typename Operation>
+        inline void SerializeV1(Stream& s, Operation ser_action) {
             unsigned char legacy_ip[ADDR_IPV6_SIZE];
             if (!ser_action.ForRead()) {
-                assert(m_addr.size() == ADDR_IPV6_SIZE);
-                memcpy(legacy_ip, m_addr.data(), ADDR_IPV6_SIZE);
+                if (m_addr.size() == ADDR_IPV6_SIZE) {
+                    memcpy(legacy_ip, m_addr.data(), ADDR_IPV6_SIZE);
+                } else {
+                    memset(legacy_ip, 0, ADDR_IPV6_SIZE);
+                }
             }
             READWRITE(legacy_ip);
             if (ser_action.ForRead()) {
@@ -149,6 +170,28 @@ class CNetAddr
             }
         }
 
+        // BIP155 variable-length encoding: network id (1 byte) + CompactSize
+        // length + raw address bytes. Used only on ADDRV2_FORMAT streams.
+        template <typename Stream, typename Operation>
+        inline void SerializeV2(Stream& s, Operation ser_action) {
+            // Only READWRITE is used for stream I/O so the same template body
+            // compiles for read-only and write-only streams; ForRead() guards
+            // pure logic. READWRITE on a std::vector<uint8_t> is exactly the
+            // BIP155 body: CompactSize length followed by the raw bytes.
+            uint8_t bip155_net = ser_action.ForRead() ? 0 : GetBIP155Network();
+            READWRITE(bip155_net);
+            std::vector<uint8_t> bytes;
+            if (!ser_action.ForRead()) bytes = GetAddrV2Bytes();
+            READWRITE(bytes);
+            if (ser_action.ForRead()) {
+                if (bytes.size() > MAX_ADDRV2_SIZE) {
+                    throw std::ios_base::failure("BIP155 address too long");
+                }
+                SetFromBIP155(bip155_net, bytes);
+            }
+        }
+
+    public:
         friend class CSubNet;
 };
 
@@ -218,17 +261,11 @@ class CService : public CNetAddr
 
         template <typename Stream, typename Operation>
         inline void SerializationOp(Stream& s, Operation ser_action) {
-            // Legacy fixed 16-byte address + big-endian port, byte-identical to
-            // the previous `unsigned char ip[16]` encoding.
-            unsigned char legacy_ip[ADDR_IPV6_SIZE];
-            if (!ser_action.ForRead()) {
-                assert(m_addr.size() == ADDR_IPV6_SIZE);
-                memcpy(legacy_ip, m_addr.data(), ADDR_IPV6_SIZE);
-            }
-            READWRITE(legacy_ip);
-            if (ser_action.ForRead()) {
-                m_addr.assign(legacy_ip, legacy_ip + ADDR_IPV6_SIZE);
-            }
+            // Address in the stream's format (legacy 16-byte or BIP155),
+            // followed by the big-endian port. The address encoding is shared
+            // with CNetAddr so both stay in lock-step.
+            if (s.GetVersion() & ADDRV2_FORMAT) SerializeV2(s, ser_action);
+            else SerializeV1(s, ser_action);
             READWRITE(WrapBigEndian(port));
         }
 };

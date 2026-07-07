@@ -9,6 +9,8 @@
 #include <util/strencodings.h>
 #include <tinyformat.h>
 
+#include <algorithm>
+
 // NOTE (BIP155/2B.1): m_addr replaces the former `unsigned char ip[16]`. For
 // every address type supported here it is held at exactly ADDR_IPV6_SIZE (16)
 // bytes in the same IPv6-mapped/onioncat/internal layout as before, so all of
@@ -93,14 +95,19 @@ unsigned int CNetAddr::GetByte(int n) const
     return m_addr[15-n];
 }
 
+// The classifiers below inspect the fixed 16-byte IPv6-mapped layout. They are
+// only meaningful for 16-byte addresses; for longer addresses (Tor v3 = 32
+// bytes) they must report false so a v3 pubkey cannot accidentally match an
+// IPv4/IPv6/RFC prefix. The `size() == ADDR_IPV6_SIZE` guards do not change
+// behaviour for existing 16-byte addresses.
 bool CNetAddr::IsIPv4() const
 {
-    return (memcmp(m_addr.data(), pchIPv4, sizeof(pchIPv4)) == 0);
+    return m_addr.size() == ADDR_IPV6_SIZE && (memcmp(m_addr.data(), pchIPv4, sizeof(pchIPv4)) == 0);
 }
 
 bool CNetAddr::IsIPv6() const
 {
-    return (!IsIPv4() && !IsTor() && !IsInternal());
+    return m_addr.size() == ADDR_IPV6_SIZE && (!IsIPv4() && !IsTor() && !IsInternal());
 }
 
 bool CNetAddr::IsRFC1918() const
@@ -178,11 +185,17 @@ bool CNetAddr::IsRFC4843() const
 
 bool CNetAddr::IsTor() const
 {
-    return (memcmp(m_addr.data(), pchOnionCat, sizeof(pchOnionCat)) == 0);
+    // Tor v3: raw 32-byte ed25519 pubkey. Tor v2: onioncat-mapped in 16 bytes.
+    if (m_addr.size() == ADDR_TORV3_SIZE)
+        return true;
+    return m_addr.size() == ADDR_IPV6_SIZE && (memcmp(m_addr.data(), pchOnionCat, sizeof(pchOnionCat)) == 0);
 }
 
 bool CNetAddr::IsLocal() const
 {
+   if (m_addr.size() != ADDR_IPV6_SIZE)
+       return false;
+
     // IPv4 loopback
    if (IsIPv4() && (GetByte(3) == 127 || GetByte(3) == 0))
        return true;
@@ -197,6 +210,13 @@ bool CNetAddr::IsLocal() const
 
 bool CNetAddr::IsValid() const
 {
+    // Tor v3 (raw 32-byte pubkey) is valid; sizes other than the legacy 16
+    // bytes or a Tor v3 pubkey are not representable and are treated invalid.
+    if (m_addr.size() == ADDR_TORV3_SIZE)
+        return true;
+    if (m_addr.size() != ADDR_IPV6_SIZE)
+        return false;
+
     // Cleanup 3-byte shifted addresses caused by garbage in size field
     // of addr messages from versions before 0.2.9 checksum.
     // Two consecutive addr messages look like this:
@@ -236,12 +256,16 @@ bool CNetAddr::IsValid() const
 
 bool CNetAddr::IsRoutable() const
 {
+    // Tor v3 addresses are routable; short-circuit before the 16-byte RFC
+    // classifiers, which are not meaningful for a 32-byte pubkey.
+    if (m_addr.size() == ADDR_TORV3_SIZE)
+        return IsValid();
     return IsValid() && !(IsRFC1918() || IsRFC2544() || IsRFC3927() || IsRFC4862() || IsRFC6598() || IsRFC5737() || (IsRFC4193() && !IsTor()) || IsRFC4843() || IsLocal() || IsInternal());
 }
 
 bool CNetAddr::IsInternal() const
 {
-   return memcmp(m_addr.data(), g_internal_prefix, sizeof(g_internal_prefix)) == 0;
+   return m_addr.size() == ADDR_IPV6_SIZE && memcmp(m_addr.data(), g_internal_prefix, sizeof(g_internal_prefix)) == 0;
 }
 
 enum Network CNetAddr::GetNetwork() const
@@ -263,6 +287,11 @@ enum Network CNetAddr::GetNetwork() const
 
 std::string CNetAddr::ToStringIP() const
 {
+    // Tor v3: proper ".onion" rendering needs the base32 checksum (SHA3-256),
+    // which is added with the string parse/render support in a later change.
+    // Until then render the 32-byte pubkey as hex so logging is unambiguous.
+    if (m_addr.size() == ADDR_TORV3_SIZE)
+        return HexStr(m_addr.begin(), m_addr.end()) + ".torv3";
     if (IsTor())
         return EncodeBase32(&m_addr[6], 10) + ".onion";
     if (IsInternal())
@@ -292,12 +321,18 @@ std::string CNetAddr::ToString() const
 
 bool operator==(const CNetAddr& a, const CNetAddr& b)
 {
-    return (memcmp(a.m_addr.data(), b.m_addr.data(), 16) == 0);
+    // Length-aware: for the 16-byte types this is identical to the previous
+    // memcmp over 16 bytes; it additionally distinguishes 32-byte Tor v3.
+    return a.m_addr == b.m_addr;
 }
 
 bool operator<(const CNetAddr& a, const CNetAddr& b)
 {
-    return (memcmp(a.m_addr.data(), b.m_addr.data(), 16) < 0);
+    // Lexicographic over the raw bytes. For equal-length 16-byte addresses this
+    // matches the previous `memcmp(.., 16) < 0` ordering exactly, so addrman
+    // bucketing/serialization order is unchanged.
+    return std::lexicographical_compare(a.m_addr.begin(), a.m_addr.end(),
+                                        b.m_addr.begin(), b.m_addr.end());
 }
 
 bool CNetAddr::GetInAddr(struct in_addr* pipv4Addr) const
@@ -322,6 +357,16 @@ bool CNetAddr::GetIn6Addr(struct in6_addr* pipv6Addr) const
 std::vector<unsigned char> CNetAddr::GetGroup() const
 {
     std::vector<unsigned char> vchRet;
+
+    // Tor v3: give each address its own group (no IP-locality to cluster on),
+    // keyed by NET_ONION + the full pubkey. Handled before the 16-byte logic
+    // since GetByte()/the RFC checks assume the legacy layout.
+    if (m_addr.size() == ADDR_TORV3_SIZE) {
+        vchRet.push_back(NET_ONION);
+        vchRet.insert(vchRet.end(), m_addr.begin(), m_addr.end());
+        return vchRet;
+    }
+
     int nClass = NET_IPV6;
     int nStartByte = 0;
     int nBits = 16;
@@ -392,9 +437,81 @@ std::vector<unsigned char> CNetAddr::GetGroup() const
     return vchRet;
 }
 
+// --- BIP155 (addrv2) codec ---------------------------------------------------
+// Maps the internal (16-byte-mapped or 32-byte Tor v3) representation to/from
+// the BIP155 wire form: a network id plus the raw per-network address bytes.
+
+uint8_t CNetAddr::GetBIP155Network() const
+{
+    if (IsIPv4())
+        return BIP155_NET_IPV4;
+    if (m_addr.size() == ADDR_TORV3_SIZE)
+        return BIP155_NET_TORV3;
+    if (IsTor())                     // 16-byte onioncat reaches here
+        return BIP155_NET_TORV2;
+    if (IsInternal())                // internal addresses are not relayed
+        return 0;
+    if (m_addr.size() == ADDR_IPV6_SIZE)
+        return BIP155_NET_IPV6;
+    return 0;
+}
+
+std::vector<uint8_t> CNetAddr::GetAddrV2Bytes() const
+{
+    switch (GetBIP155Network()) {
+    case BIP155_NET_IPV4:  return std::vector<uint8_t>(m_addr.begin() + 12, m_addr.begin() + 16);
+    case BIP155_NET_IPV6:  return std::vector<uint8_t>(m_addr.begin(), m_addr.begin() + 16);
+    case BIP155_NET_TORV2: return std::vector<uint8_t>(m_addr.begin() + sizeof(pchOnionCat), m_addr.begin() + 16);
+    case BIP155_NET_TORV3: return std::vector<uint8_t>(m_addr.begin(), m_addr.begin() + ADDR_TORV3_SIZE);
+    default:               return {};
+    }
+}
+
+bool CNetAddr::SetFromBIP155(uint8_t bip155_net, const std::vector<uint8_t>& bytes)
+{
+    switch (bip155_net) {
+    case BIP155_NET_IPV4:
+        if (bytes.size() == ADDR_IPV4_SIZE) {
+            m_addr.assign(ADDR_IPV6_SIZE, 0);
+            memcpy(m_addr.data(), pchIPv4, 12);
+            memcpy(m_addr.data() + 12, bytes.data(), ADDR_IPV4_SIZE);
+            return true;
+        }
+        break;
+    case BIP155_NET_IPV6:
+        if (bytes.size() == ADDR_IPV6_SIZE) {
+            m_addr.assign(bytes.begin(), bytes.end());
+            return true;
+        }
+        break;
+    case BIP155_NET_TORV2:
+        if (bytes.size() == ADDR_TORV2_SIZE) {
+            m_addr.assign(ADDR_IPV6_SIZE, 0);
+            memcpy(m_addr.data(), pchOnionCat, sizeof(pchOnionCat));
+            memcpy(m_addr.data() + sizeof(pchOnionCat), bytes.data(), ADDR_TORV2_SIZE);
+            return true;
+        }
+        break;
+    case BIP155_NET_TORV3:
+        if (bytes.size() == ADDR_TORV3_SIZE) {
+            m_addr.assign(bytes.begin(), bytes.end());
+            return true;
+        }
+        break;
+    default:
+        break;
+    }
+    // Unknown network id or a length that does not match the network (this
+    // includes I2P/CJDNS, which are not supported here): the stream position
+    // has already been consumed by the caller, so just mark the address invalid
+    // (16 zero bytes -> IsValid() false) so it is never relayed or connected to.
+    m_addr.assign(ADDR_IPV6_SIZE, 0);
+    return false;
+}
+
 uint64_t CNetAddr::GetHash() const
 {
-    uint256 hash = Hash(m_addr.data(), m_addr.data() + ADDR_IPV6_SIZE);
+    uint256 hash = Hash(m_addr.data(), m_addr.data() + m_addr.size());
     uint64_t nRet;
     memcpy(&nRet, &hash, sizeof(nRet));
     return nRet;
@@ -559,11 +676,15 @@ bool CService::GetSockAddr(struct sockaddr* paddr, socklen_t *addrlen) const
 
 std::vector<unsigned char> CService::GetKey() const
 {
+     // Length-aware key: raw address bytes followed by the port. For 16-byte
+     // addresses this is byte-identical to the previous fixed 18-byte key; Tor
+     // v3 (32 bytes) yields a distinct 34-byte key rather than colliding on the
+     // first 16 bytes.
      std::vector<unsigned char> vKey;
-     vKey.resize(18);
-     memcpy(vKey.data(), m_addr.data(), 16);
-     vKey[16] = port / 0x100;
-     vKey[17] = port & 0x0FF;
+     vKey.resize(m_addr.size() + 2);
+     memcpy(vKey.data(), m_addr.data(), m_addr.size());
+     vKey[m_addr.size()] = port / 0x100;
+     vKey[m_addr.size() + 1] = port & 0x0FF;
      return vKey;
 }
 
