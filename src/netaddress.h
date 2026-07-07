@@ -120,6 +120,9 @@ class CNetAddr
         bool IsRoutable() const;
         bool IsInternal() const;
         bool IsValid() const;
+        //! Whether this address fits the legacy (v1) 16-byte encoding. Longer
+        //! addresses (Tor v3) can only be relayed to addrv2-capable peers.
+        bool IsAddrV1Compatible() const { return m_addr.size() == ADDR_IPV6_SIZE; }
         enum Network GetNetwork() const;
         std::string ToString() const;
         std::string ToStringIP() const;
