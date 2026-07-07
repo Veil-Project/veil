@@ -2211,10 +2211,19 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         return false;
     }
 
-    else if (strCommand == NetMsgType::ADDR)
+    else if (strCommand == NetMsgType::ADDR || strCommand == NetMsgType::ADDRV2)
     {
         std::vector<CAddress> vAddr;
-        vRecv >> vAddr;
+        if (strCommand == NetMsgType::ADDRV2) {
+            // Decode the address vector in the BIP155 format; processing below
+            // is identical to legacy addr.
+            int nOldVersion = vRecv.GetVersion();
+            vRecv.SetVersion(nOldVersion | ADDRV2_FORMAT);
+            vRecv >> vAddr;
+            vRecv.SetVersion(nOldVersion);
+        } else {
+            vRecv >> vAddr;
+        }
 
         // Don't want addr from older versions unless seeding
         if (pfrom->nVersion < CADDR_TIME_VERSION && connman->GetAddressCount() > 1000)
@@ -3803,10 +3812,20 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
         //
         if (pto->nNextAddrSend < nNow) {
             pto->nNextAddrSend = PoissonNextSend(nNow, AVG_ADDRESS_BROADCAST_INTERVAL);
+            // Peers that negotiated BIP155 get the addrv2 message (which can
+            // carry Tor v3); everyone else keeps the legacy addr message. The
+            // ADDRV2_FORMAT bit drives the CAddress/CService encoding.
+            const bool fAddrV2 = pto->m_wants_addrv2;
+            const CNetMsgMaker addrMaker(pto->GetSendVersion() | (fAddrV2 ? ADDRV2_FORMAT : 0));
+            const char* addrMsgType = fAddrV2 ? NetMsgType::ADDRV2 : NetMsgType::ADDR;
             std::vector<CAddress> vAddr;
             vAddr.reserve(pto->vAddrToSend.size());
             for (const CAddress& addr : pto->vAddrToSend)
             {
+                // Never send an address a legacy peer cannot represent (e.g.
+                // Tor v3); it would serialize as 16 zero bytes.
+                if (!fAddrV2 && !addr.IsAddrV1Compatible())
+                    continue;
                 if (!pto->addrKnown.contains(addr.GetKey()))
                 {
                     pto->addrKnown.insert(addr.GetKey());
@@ -3814,14 +3833,14 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                     // receiver rejects addr messages larger than 1000
                     if (vAddr.size() >= 1000)
                     {
-                        connman->PushMessage(pto, msgMaker.Make(NetMsgType::ADDR, vAddr));
+                        connman->PushMessage(pto, addrMaker.Make(addrMsgType, vAddr));
                         vAddr.clear();
                     }
                 }
             }
             pto->vAddrToSend.clear();
             if (!vAddr.empty())
-                connman->PushMessage(pto, msgMaker.Make(NetMsgType::ADDR, vAddr));
+                connman->PushMessage(pto, addrMaker.Make(addrMsgType, vAddr));
             // we only send the big addr message once
             if (pto->vAddrToSend.capacity() > 40)
                 pto->vAddrToSend.shrink_to_fit();
