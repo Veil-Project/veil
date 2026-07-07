@@ -346,3 +346,54 @@ jobs:
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
+  test-sanitizers-linux:
+    name: Unit Tests (ASan + UBSan, Linux)
+    needs: create-source-distribution
+    runs-on: ubuntu-22.04
+    env:
+      # Leak detection is off: Berkeley DB and some globals are reclaimed by the
+      # OS at exit rather than freed explicitly. ASan is a hard gate: any real
+      # memory error (use-after-free, OOB, etc.) aborts and fails the job.
+      ASAN_OPTIONS: detect_leaks=0:halt_on_error=1:abort_on_error=1:detect_stack_use_after_return=1
+      # UBSan is report-only for now (halt_on_error=0): the vendored crypto
+      # (RandomX, ethash) uses patterns UBSan flags but that are intentional.
+      # Once the first run's logs are used to write a suppressions file, flip
+      # this to halt_on_error=1 to make UBSan a hard gate too.
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=0
+    steps:
+    - name: Getting Source
+      uses: actions/download-artifact@v7.0.0
+      with:
+        name: ${{ env.SOURCE_ARTIFACT }}
+        path: ${{ env.SOURCE_ARTIFACT }}
+    - name: Extract Archives
+      run: |
+        tar -xzf depends.tar.gz
+        tar -xzf veil-*.tar.gz --strip-components=1
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Install Required Packages
+      run: |
+        sudo apt update
+        sudo apt install -y python3-zmq
+    - name: Build Dependencies
+      run: make -C depends -j$(nproc)
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Configure with sanitizers
+      run: |
+        ./configure --disable-jni --without-gui --enable-tests --disable-bench \
+          --with-sanitizers=address,undefined --disable-hardening \
+          CXXFLAGS="-O1 -g -fno-omit-frame-pointer" \
+          --prefix=$(realpath depends/x86_64-pc-linux-gnu)
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Build Veil (instrumented)
+      run: make -j$(nproc)
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Run sanitized unit tests
+      # Curated set of suites known to pass; excludes suites with pre-existing
+      # stale-vector failures (bloom, sighash, key_io, netbase, ...) and
+      # randomx_tests (its JIT executes generated code that ASan does not
+      # instrument). Expand as the remaining suites are fixed.
+      run: >
+        src/test/test_veil --catch_system_errors=no
+        --run_test=crypto_tests,random_tests,serialize_tests,streams_tests,prevector_tests,uint256_tests,allocator_tests,sanity_tests,scheduler_tests,bech32_tests,bip32_tests,net_tests,addrman_tests,blockencodings_tests,denialofservice_tests,monthly_rewards_tests,progpow_tests,zerocoin_implementation_tests
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
