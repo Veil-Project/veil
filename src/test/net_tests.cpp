@@ -283,4 +283,37 @@ BOOST_AUTO_TEST_CASE(bip155_encode_decode)
     BOOST_CHECK_EQUAL(HexStr(sv1), "0102030405060708090a0b0c0d0e0f10");
 }
 
+// A CAddress round-trips through the addrv2 (BIP155) format, where services are
+// a CompactSize and the address uses the BIP155 encoding; the legacy format is
+// unchanged. This is the wire format the addrv2 message relay (2B.3b) will use.
+BOOST_AUTO_TEST_CASE(caddress_addrv2_roundtrip)
+{
+    struct in6_addr a6;
+    for (int i = 0; i < 16; ++i) reinterpret_cast<uint8_t*>(&a6)[i] = static_cast<uint8_t>(i + 1);
+    CAddress addr(CService(CNetAddr(a6), 8333), NODE_NETWORK);
+    addr.nTime = 0x11223344;
+
+    // addrv2 format: time(4) + services(CompactSize) + BIP155 addr(net+len+bytes) + port.
+    CDataStream s2(SER_NETWORK, PROTOCOL_VERSION | ADDRV2_FORMAT);
+    s2 << addr;
+    BOOST_CHECK_EQUAL(HexStr(s2),
+        "44332211"                               // nTime, little-endian
+        "01"                                     // services CompactSize (NODE_NETWORK)
+        "02" "10" "0102030405060708090a0b0c0d0e0f10"  // net id 2, len 16, IPv6 bytes
+        "208d");                                 // port 8333 big-endian
+    CAddress back2;
+    s2 >> back2;
+    BOOST_CHECK(back2 == addr);                  // CService operator== (addr + port)
+    BOOST_CHECK(back2.nServices == addr.nServices);
+    BOOST_CHECK(back2.nTime == addr.nTime);
+
+    // Legacy format still round-trips (services as uint64).
+    CDataStream s1(SER_NETWORK, PROTOCOL_VERSION);
+    s1 << addr;
+    CAddress back1;
+    s1 >> back1;
+    BOOST_CHECK(back1 == addr);
+    BOOST_CHECK(back1.nServices == addr.nServices);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

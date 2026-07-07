@@ -242,6 +242,17 @@ extern const char *GETBLOCKTXN;
  * @since protocol version 70014 as described by BIP 152
  */
 extern const char *BLOCKTXN;
+/**
+ * Indicates that a node prefers to relay and receive addresses in the addrv2
+ * (BIP155) format rather than the legacy addr format. Sent during the version
+ * handshake; peers that do not understand it ignore it and keep using addr.
+ */
+extern const char *SENDADDRV2;
+/**
+ * The addrv2 message relays connection information for peers on the network,
+ * in the BIP155 variable-length address encoding (adds Tor v3 support).
+ */
+extern const char *ADDRV2;
 };
 
 /* Get a vector of all valid message types (see above) */
@@ -353,7 +364,13 @@ public:
             (nVersion >= CADDR_TIME_VERSION && !(s.GetType() & SER_GETHASH)))
             READWRITE(nTime);
         uint64_t nServicesInt = nServices;
-        READWRITE(nServicesInt);
+        if (s.GetVersion() & ADDRV2_FORMAT) {
+            // BIP155: services are a CompactSize in addrv2. The address itself
+            // (CService) picks up the BIP155 encoding from the same version bit.
+            READWRITE(COMPACTSIZE(nServicesInt));
+        } else {
+            READWRITE(nServicesInt);
+        }
         nServices = static_cast<ServiceFlags>(nServicesInt);
         READWRITEAS(CService, *this);
     }

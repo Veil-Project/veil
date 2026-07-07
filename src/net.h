@@ -697,6 +697,9 @@ public:
     int64_t m_addr_token_timestamp_us{0};
     std::atomic<uint64_t> m_addr_processed{0};
     std::atomic<uint64_t> m_addr_rate_limited{0};
+    // Set when the peer sent a `sendaddrv2` message: it understands and prefers
+    // the BIP155 addrv2 address format. Until then we relay legacy `addr`.
+    std::atomic_bool m_wants_addrv2{false};
     std::set<uint256> setKnown;
     int64_t nNextAddrSend;
     int64_t nNextLocalAddrSend;
