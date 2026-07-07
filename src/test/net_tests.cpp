@@ -218,4 +218,69 @@ BOOST_AUTO_TEST_CASE(cnetaddr_serialize_v1_bytes)
     BOOST_CHECK(back == netaddr);
 }
 
+// BIP155 (addrv2) encode/decode vectors, exercised on an ADDRV2_FORMAT stream.
+// Confirms the network-id + CompactSize-length + raw-bytes wire form and that a
+// decoded Tor v3 address classifies correctly, while the legacy (non-addrv2)
+// encoding is untouched.
+BOOST_AUTO_TEST_CASE(bip155_encode_decode)
+{
+    // IPv4 1.2.3.4 -> net id 0x01, len 0x04, four address bytes.
+    struct in_addr a4;
+    uint8_t v4[4] = {1, 2, 3, 4};
+    memcpy(&a4.s_addr, v4, 4);
+    CNetAddr n4(a4);
+    CDataStream s4(SER_NETWORK, PROTOCOL_VERSION | ADDRV2_FORMAT);
+    s4 << n4;
+    BOOST_CHECK_EQUAL(HexStr(s4), "010401020304");
+    CNetAddr back4;
+    s4 >> back4;
+    BOOST_CHECK(back4 == n4);
+    BOOST_CHECK(back4.IsIPv4());
+
+    // IPv6 -> net id 0x02, len 0x10, sixteen address bytes.
+    struct in6_addr a6;
+    for (int i = 0; i < 16; ++i) reinterpret_cast<uint8_t*>(&a6)[i] = static_cast<uint8_t>(i + 1);
+    CNetAddr n6(a6);
+    CDataStream s6(SER_NETWORK, PROTOCOL_VERSION | ADDRV2_FORMAT);
+    s6 << n6;
+    BOOST_CHECK_EQUAL(HexStr(s6), "0210" "0102030405060708090a0b0c0d0e0f10");
+    CNetAddr back6;
+    s6 >> back6;
+    BOOST_CHECK(back6 == n6);
+    BOOST_CHECK(back6.IsIPv6());
+
+    // Tor v3: decode a BIP155 blob (net id 0x04, len 0x20, 32-byte pubkey),
+    // check it classifies as a routable onion address, then re-encode.
+    std::vector<uint8_t> v3(32);
+    for (int i = 0; i < 32; ++i) v3[i] = static_cast<uint8_t>(i + 1);
+    CDataStream s3(SER_NETWORK, PROTOCOL_VERSION | ADDRV2_FORMAT);
+    ser_writedata8(s3, BIP155_NET_TORV3);
+    WriteCompactSize(s3, v3.size());
+    s3.write(reinterpret_cast<const char*>(v3.data()), v3.size());
+    CNetAddr n3;
+    s3 >> n3;
+    BOOST_CHECK(n3.IsTor());
+    BOOST_CHECK(n3.GetNetwork() == NET_ONION);
+    BOOST_CHECK(n3.IsRoutable());
+    BOOST_CHECK(!n3.IsIPv4());
+    BOOST_CHECK(!n3.IsIPv6());
+    CDataStream s3b(SER_NETWORK, PROTOCOL_VERSION | ADDRV2_FORMAT);
+    s3b << n3;
+    BOOST_CHECK_EQUAL(HexStr(s3b), "0420" + HexStr(v3.begin(), v3.end()));
+
+    // An unknown network id is consumed but yields an invalid address.
+    CDataStream su(SER_NETWORK, PROTOCOL_VERSION | ADDRV2_FORMAT);
+    ser_writedata8(su, 99);
+    WriteCompactSize(su, 4);
+    su.write("\x01\x02\x03\x04", 4);
+    CNetAddr nu;
+    su >> nu;
+    BOOST_CHECK(!nu.IsValid());
+
+    // Legacy (non-addrv2) encoding is unchanged: still exactly 16 raw bytes.
+    CDataStream sv1(SER_NETWORK, PROTOCOL_VERSION);
+    sv1 << n6;
+    BOOST_CHECK_EQUAL(HexStr(sv1), "0102030405060708090a0b0c0d0e0f10");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
