@@ -2038,6 +2038,13 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         connman->PushMessage(pfrom, CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::VERACK));
 
+        // Signal BIP155 (addrv2) support before verack so the peer can record
+        // it before any address exchange. Peers that predate BIP155 ignore the
+        // unknown message and we keep relaying legacy addr to them.
+        if (nVersion >= 70016) {
+            connman->PushMessage(pfrom, CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::SENDADDRV2));
+        }
+
         pfrom->nServices = nServices;
         pfrom->SetAddrLocal(addrMe);
         {
@@ -2287,6 +2294,12 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             pfrom->fGetAddr = false;
         if (pfrom->fOneShot)
             pfrom->fDisconnect = true;
+    }
+
+    else if (strCommand == NetMsgType::SENDADDRV2)
+    {
+        // The peer understands BIP155; relay addresses to it in addrv2 form.
+        pfrom->m_wants_addrv2 = true;
     }
 
     else if (strCommand == NetMsgType::SENDHEADERS)
