@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <serialize.h>
 #include <streams.h>
+#include <crypto/sha3.h>
 #include <net.h>
 #include <netbase.h>
 #include <netaddress.h>
@@ -314,6 +315,46 @@ BOOST_AUTO_TEST_CASE(caddress_addrv2_roundtrip)
     s1 >> back1;
     BOOST_CHECK(back1 == addr);
     BOOST_CHECK(back1.nServices == addr.nServices);
+}
+
+// SHA3-256 known-answer (NIST): SHA3-256("") == a7ffc6f8...434a. Validates the
+// ported hash that the Tor v3 checksum relies on.
+BOOST_AUTO_TEST_CASE(sha3_256_empty)
+{
+    unsigned char out[SHA3_256::OUTPUT_SIZE];
+    SHA3_256().Finalize(MakeSpan(out));
+    BOOST_CHECK_EQUAL(HexStr(out, out + sizeof(out)),
+        "a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a");
+}
+
+// Tor v3: a 32-byte pubkey decoded from BIP155 renders to a .onion string (with
+// the SHA3-256 checksum) and re-parses via SetSpecial back to the same pubkey,
+// and a corrupted checksum is rejected.
+BOOST_AUTO_TEST_CASE(torv3_onion_roundtrip)
+{
+    std::vector<uint8_t> pubkey(32);
+    for (int i = 0; i < 32; ++i) pubkey[i] = static_cast<uint8_t>(0x80 + i);
+    CDataStream s(SER_NETWORK, PROTOCOL_VERSION | ADDRV2_FORMAT);
+    ser_writedata8(s, BIP155_NET_TORV3);
+    WriteCompactSize(s, pubkey.size());
+    s.write(reinterpret_cast<const char*>(pubkey.data()), pubkey.size());
+    CNetAddr v3;
+    s >> v3;
+    BOOST_CHECK(v3.IsTor());
+
+    const std::string onion = v3.ToStringIP();
+    BOOST_CHECK(onion.size() == 62 && onion.substr(onion.size() - 6) == ".onion"); // 56 + ".onion"
+
+    CNetAddr reparsed;
+    BOOST_CHECK(reparsed.SetSpecial(onion));   // validates version + SHA3 checksum
+    BOOST_CHECK(reparsed == v3);
+    BOOST_CHECK(reparsed.GetNetwork() == NET_ONION);
+
+    // Flip a character in the pubkey portion: checksum no longer matches.
+    std::string corrupt = onion;
+    corrupt[0] = (corrupt[0] == 'a') ? 'b' : 'a';
+    CNetAddr bad;
+    BOOST_CHECK(!bad.SetSpecial(corrupt));
 }
 
 BOOST_AUTO_TEST_SUITE_END()
