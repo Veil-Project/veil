@@ -11,7 +11,9 @@
 #include <streams.h>
 #include <net.h>
 #include <netbase.h>
+#include <netaddress.h>
 #include <chainparams.h>
+#include <util/strencodings.h>
 #include <util/system.h>
 
 #include <memory>
@@ -188,6 +190,32 @@ BOOST_AUTO_TEST_CASE(cnode_simple_test)
     std::unique_ptr<CNode> pnode2(new CNode(id++, NODE_NETWORK, height, hSocket, addr, 1, 1, CAddress(), pszDest, fInboundIn));
     BOOST_CHECK(pnode2->fInbound == true);
     BOOST_CHECK(pnode2->fFeeler == false);
+}
+
+// Locks the legacy v1 (non-addrv2) address serialization to a fixed 16 raw
+// bytes with no length prefix. This guards the prevector-based m_addr storage
+// against accidentally emitting a CompactSize-prefixed vector, which would
+// break peers.dat and v1 wire compatibility.
+BOOST_AUTO_TEST_CASE(cnetaddr_serialize_v1_bytes)
+{
+    struct in6_addr raw;
+    for (int i = 0; i < 16; ++i) reinterpret_cast<uint8_t*>(&raw)[i] = static_cast<uint8_t>(i + 1);
+    CNetAddr netaddr(raw);
+
+    CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
+    ss << netaddr;
+    BOOST_CHECK_EQUAL(HexStr(ss), "0102030405060708090a0b0c0d0e0f10");
+
+    // CService appends a big-endian port; here 0x208D = 8333.
+    CService svc(netaddr, 8333);
+    CDataStream ss2(SER_NETWORK, PROTOCOL_VERSION);
+    ss2 << svc;
+    BOOST_CHECK_EQUAL(HexStr(ss2), "0102030405060708090a0b0c0d0e0f10208d");
+
+    // Round-trip must reproduce the same address.
+    CNetAddr back;
+    ss >> back;
+    BOOST_CHECK(back == netaddr);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

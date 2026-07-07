@@ -10,10 +10,12 @@
 #endif
 
 #include <compat.h>
+#include <prevector.h>
 #include <serialize.h>
 #include <span.h>
 
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -64,7 +66,14 @@ static constexpr size_t ADDR_INTERNAL_SIZE = 10;
 class CNetAddr
 {
     protected:
-        unsigned char ip[16]; // in network byte order
+        // Raw representation of the network address. Held at ADDR_IPV6_SIZE (16)
+        // bytes for every address type supported today (IPv4/IPv6 use the
+        // IPv6-mapped form, Tor v2 uses onioncat, internal uses the veil
+        // prefix), so all classification, GetGroup and serialization behave
+        // exactly as the previous fixed `unsigned char ip[16]`. Storing it in a
+        // prevector is the prerequisite for holding longer addresses (Tor v3 =
+        // 32 bytes) additively, without disturbing the 16-byte paths.
+        prevector<16, uint8_t> m_addr{ADDR_IPV6_SIZE, 0x0};
         uint32_t scopeId; // for scoped/link-local ipv6 addresses
 
     public:
@@ -127,7 +136,17 @@ class CNetAddr
 
         template <typename Stream, typename Operation>
         inline void SerializationOp(Stream& s, Operation ser_action) {
-            READWRITE(ip);
+            // Legacy fixed 16-byte encoding, byte-identical to the previous
+            // `unsigned char ip[16]`. m_addr is invariant at ADDR_IPV6_SIZE here.
+            unsigned char legacy_ip[ADDR_IPV6_SIZE];
+            if (!ser_action.ForRead()) {
+                assert(m_addr.size() == ADDR_IPV6_SIZE);
+                memcpy(legacy_ip, m_addr.data(), ADDR_IPV6_SIZE);
+            }
+            READWRITE(legacy_ip);
+            if (ser_action.ForRead()) {
+                m_addr.assign(legacy_ip, legacy_ip + ADDR_IPV6_SIZE);
+            }
         }
 
         friend class CSubNet;
@@ -199,7 +218,17 @@ class CService : public CNetAddr
 
         template <typename Stream, typename Operation>
         inline void SerializationOp(Stream& s, Operation ser_action) {
-            READWRITE(ip);
+            // Legacy fixed 16-byte address + big-endian port, byte-identical to
+            // the previous `unsigned char ip[16]` encoding.
+            unsigned char legacy_ip[ADDR_IPV6_SIZE];
+            if (!ser_action.ForRead()) {
+                assert(m_addr.size() == ADDR_IPV6_SIZE);
+                memcpy(legacy_ip, m_addr.data(), ADDR_IPV6_SIZE);
+            }
+            READWRITE(legacy_ip);
+            if (ser_action.ForRead()) {
+                m_addr.assign(legacy_ip, legacy_ip + ADDR_IPV6_SIZE);
+            }
             READWRITE(WrapBigEndian(port));
         }
 };
