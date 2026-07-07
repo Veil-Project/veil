@@ -565,8 +565,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v5.0.0
     - name: Install Required Packages
+      # boost@1.85 is pinned deliberately: the tree's AX_BOOST_* autoconf
+      # macros cannot resolve the library layout of Boost 1.90+ (the current
+      # unversioned formula), failing configure with "Could not find a version
+      # of the library!".
       run: |
-        brew install autoconf automake libtool pkgconf berkeley-db@4 boost gmp libevent zeromq miniupnpc
+        brew install autoconf automake libtool pkgconf berkeley-db@4 boost@1.85 gmp libevent zeromq miniupnpc
     - name: Autogen
       run: ./autogen.sh
     - name: Configure
@@ -577,7 +581,7 @@ jobs:
         CPPFLAGS="-I$(brew --prefix gmp)/include -DBOOST_NO_CXX98_FUNCTION_BASE"
         LDFLAGS="-L$(brew --prefix gmp)/lib"
         PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix libevent)/lib/pkgconfig:$(brew --prefix zeromq)/lib/pkgconfig"
-        --with-boost="$(brew --prefix boost)"
+        --with-boost="$(brew --prefix boost@1.85)"
     - name: Build
       run: make -j$(sysctl -n hw.ncpu)
     - name: Run unit tests
