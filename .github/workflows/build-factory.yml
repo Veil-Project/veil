@@ -125,7 +125,7 @@ jobs:
     needs: create-source-distribution
     runs-on: ubuntu-22.04
     env:
-      ARTIFACT_DIR: macosx-binaries
+      ARTIFACT_DIR: macosx-x86_64-binaries
     steps:
     - name: Getting Source
       uses: actions/download-artifact@v7.0.0
@@ -400,15 +400,27 @@ jobs:
   build-macos-arm64-native:
     name: Native Build + Tests (macOS arm64)
     runs-on: macos-14
+    env:
+      ARTIFACT_DIR: macosx-arm64-binaries
+      # Quiet Homebrew's non-fatal env hints and the deprecation nags for the
+      # two formulas below (both are intentional and still install).
+      HOMEBREW_NO_ENV_HINTS: 1
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
     steps:
     - name: Checkout
       uses: actions/checkout@v5.0.0
     - name: Install Required Packages
-      # boost@1.85 is pinned deliberately: the tree's AX_BOOST_* autoconf
-      # macros cannot resolve the library layout of Boost 1.90+ (the current
-      # unversioned formula), failing configure with "Could not find a version
-      # of the library!".
+      # Formula notes:
+      #  - berkeley-db@4: deprecated upstream but REQUIRED - the wallet uses the
+      #    BDB 4.8 on-disk format; a newer BDB would change wallet.dat.
+      #  - boost@1.85: pinned because the tree's AX_BOOST_* autoconf macros
+      #    cannot resolve Boost 1.90+ (the current unversioned formula), which
+      #    fails configure with "Could not find a version of the library!".
+      #    Removing this pin needs an ax_boost_base.m4 modernization (tracked).
+      # The untrusted aws/tap is pre-installed on the runner image and unrelated
+      # to our formulas; untap it to silence the tap-trust warning.
       run: |
+        brew untap aws/tap 2>/dev/null || true
         brew install autoconf automake libtool pkgconf berkeley-db@4 boost@1.85 gmp libevent zeromq miniupnpc
     - name: Autogen
       run: ./autogen.sh
@@ -430,3 +442,13 @@ jobs:
       run: >
         src/test/test_veil --catch_system_errors=no
         --run_test=crypto_tests,random_tests,serialize_tests,streams_tests,prevector_tests,uint256_tests,allocator_tests,sanity_tests,scheduler_tests,bech32_tests,bip32_tests,net_tests,addrman_tests,blockencodings_tests,denialofservice_tests,monthly_rewards_tests,progpow_tests,zerocoin_implementation_tests
+    - name: Prepare Files for Artifact
+      run: |
+        mkdir -p $ARTIFACT_DIR
+        strip src/veil-cli src/veil-tx src/veild
+        mv src/veil-cli src/veil-tx src/veild $ARTIFACT_DIR
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v6.0.0
+      with:
+        name: ${{ env.ARTIFACT_DIR }}
+        path: ${{ env.ARTIFACT_DIR }}
