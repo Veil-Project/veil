@@ -198,7 +198,7 @@ class DeploymentInfo(object):
                     return True
         return False
 
-def getFrameworks(binaryPath, verbose):
+def getFrameworks(binaryPath, verbose, fallbackSearchDir=None):
     if verbose >= 3:
         print("Inspecting with otool: " + binaryPath)
     otoolbin=os.getenv("OTOOL", "otool")
@@ -224,6 +224,19 @@ def getFrameworks(binaryPath, verbose):
         # same as @loader_path above. This doesn't do general LC_RPATH parsing,
         # but that's the only rpath convention these dependencies use.
         line = line.replace("@rpath", os.path.dirname(binaryPath))
+        # When inspecting a dylib already copied into the bundle, a sibling
+        # reference resolves to the bundle's Frameworks dir - where the
+        # dependency may not have been copied yet. Deploying it was previously
+        # skipped entirely ("already deployed" by path prefix), leaving the
+        # bundle missing libraries (e.g. protobuf's libutf8_validity). Fall
+        # back to the source library's own directory so the dependency gets
+        # copied from the original location.
+        if fallbackSearchDir is not None:
+            candidate = line.strip().split(" (compatibility")[0]
+            if candidate and not os.path.exists(candidate):
+                alt = os.path.join(fallbackSearchDir, os.path.basename(candidate))
+                if os.path.exists(alt):
+                    line = line.replace(candidate, alt)
         info = FrameworkInfo.fromOtoolLibraryLine(line.strip())
         if info is not None:
             if verbose >= 3:
@@ -355,8 +368,11 @@ def deployFrameworks(frameworks, bundlePath, binaryPath, strip, verbose, deploym
         
         # install_name_tool it a new id.
         changeIdentification(framework.deployedInstallName, deployedBinaryPath, verbose)
-        # Check for framework dependencies
-        dependencies = getFrameworks(deployedBinaryPath, verbose)
+        # Check for framework dependencies. Dependencies that are not in the
+        # bundle yet are resolved against the original library's directory
+        # (see getFrameworks) so @rpath siblings get copied too.
+        dependencies = getFrameworks(deployedBinaryPath, verbose,
+                                     fallbackSearchDir=os.path.dirname(framework.sourceFilePath))
         
         for dependency in dependencies:
             changeInstallName(dependency.installName, dependency.deployedInstallName, deployedBinaryPath, verbose)
