@@ -421,7 +421,9 @@ jobs:
       # to our formulas; untap it to silence the tap-trust warning.
       run: |
         brew untap aws/tap 2>/dev/null || true
-        brew install autoconf automake libtool pkgconf berkeley-db@4 boost@1.85 gmp libevent zeromq miniupnpc qt@5 protobuf
+        # librsvg (rsvg-convert) is needed by `make deploy` to render the
+        # .dmg background image; it is not preinstalled on the macOS runner.
+        brew install autoconf automake libtool pkgconf berkeley-db@4 boost@1.85 gmp libevent zeromq miniupnpc qt@5 protobuf librsvg
     - name: Autogen
       run: ./autogen.sh
     - name: Configure
