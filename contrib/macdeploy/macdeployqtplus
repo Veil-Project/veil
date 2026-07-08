@@ -218,6 +218,12 @@ def getFrameworks(binaryPath, verbose):
     libraries = []
     for line in otoolLines:
         line = line.replace("@loader_path", os.path.dirname(binaryPath))
+        # Homebrew's newer protobuf/abseil dylibs reference sibling libraries
+        # via @rpath, and set their LC_RPATH to @loader_path (verified with
+        # `otool -l`), so in practice @rpath here means "next to this dylib" -
+        # same as @loader_path above. This doesn't do general LC_RPATH parsing,
+        # but that's the only rpath convention these dependencies use.
+        line = line.replace("@rpath", os.path.dirname(binaryPath))
         info = FrameworkInfo.fromOtoolLibraryLine(line.strip())
         if info is not None:
             if verbose >= 3:
@@ -551,7 +557,8 @@ if len(config.fancy) == 1:
         sys.exit(1)
     
     try:
-        fancy = plistlib.readPlist(p)
+        with open(p, "rb") as fancy_file:
+            fancy = plistlib.load(fancy_file)
     except:
         if verbose >= 1:
             sys.stderr.write("Error: Could not parse fancy disk image plist at \"%s\"\n" % (p))
@@ -660,14 +667,21 @@ else:
             sys.stderr.write("Error: Could not find Qt translation path\n")
             sys.exit(1)
     add_qt_tr = ["qt_%s.qm" % lng for lng in config.add_qt_tr[0].split(",")]
+    # Newer Qt releases no longer ship a monolithic qt_<lang>.qm for every
+    # language (e.g. Qt 5.15 has qt_pt_PT.qm/qt_pt_BR.qm but no qt_pt.qm), so
+    # a missing file is expected with some Qt versions - warn and skip it
+    # rather than failing the whole deploy.
+    found_qt_tr = []
     for lng_file in add_qt_tr:
         p = os.path.join(qt_tr_dir, lng_file)
         if verbose >= 3:
             print("Checking for \"%s\"..." % p)
         if not os.path.exists(p):
             if verbose >= 1:
-                sys.stderr.write("Error: Could not find Qt translation file \"%s\"\n" % (lng_file))
-                sys.exit(1)
+                sys.stderr.write("Warning: Could not find Qt translation file \"%s\", skipping\n" % (lng_file))
+        else:
+            found_qt_tr.append(lng_file)
+    add_qt_tr = found_qt_tr
 
 # ------------------------------------------------
 
@@ -709,6 +723,48 @@ elif config.sign:
     if verbose >= 1:
         print("Code-signing app bundle %s"%(target,))
     subprocess.check_call("codesign --force %s %s"%(os.environ['CODESIGNARGS'], target), shell=True)
+else:
+    # The install_name_tool/strip calls above invalidate the code signatures
+    # of every dylib/framework they touch. arm64 macOS requires valid (at
+    # least ad-hoc) signatures - the kernel kills the process at dyld load
+    # time with SIGKILL (Code Signature Invalid) otherwise. Re-sign the whole
+    # bundle ad-hoc; a real signing pass (config.sign above) supersedes this.
+    if verbose >= 1:
+        print("Ad-hoc re-signing app bundle %s" % (target,))
+    # codesign also rejects the framework layout this script produces
+    # ("bundle format unrecognized"): copyFramework() puts Resources (with
+    # Info.plist) at the framework root, but a signable framework needs them
+    # under Versions/<v>/ with top-level symlinks. Restructure in place.
+    frameworks_dir = os.path.join(target, "Contents", "Frameworks")
+    if os.path.isdir(frameworks_dir):
+        for fw in os.listdir(frameworks_dir):
+            if not fw.endswith(".framework"):
+                continue
+            fw_path = os.path.join(frameworks_dir, fw)
+            versions_dir = os.path.join(fw_path, "Versions")
+            if not os.path.isdir(versions_dir):
+                continue
+            versions = [v for v in os.listdir(versions_dir) if v != "Current"]
+            if len(versions) != 1:
+                continue
+            version_dir = os.path.join(versions_dir, versions[0])
+            res_root = os.path.join(fw_path, "Resources")
+            res_versioned = os.path.join(version_dir, "Resources")
+            if os.path.isdir(res_root) and not os.path.islink(res_root) and not os.path.exists(res_versioned):
+                shutil.move(res_root, res_versioned)
+                os.symlink(os.path.join("Versions", "Current", "Resources"), res_root)
+            fw_binary = fw[:-len(".framework")]
+            top_link = os.path.join(fw_path, fw_binary)
+            if not os.path.exists(top_link) and os.path.exists(os.path.join(version_dir, fw_binary)):
+                os.symlink(os.path.join("Versions", "Current", fw_binary), top_link)
+    # codesign refuses bundles containing resource forks/Finder metadata
+    # ("detritus not allowed"), which the files copied from the Qt install
+    # can carry - strip extended attributes first. Those copies also keep
+    # the source's read-only permissions, which blocks both xattr and
+    # codesign's signature rewrite, so make the bundle user-writable.
+    subprocess.check_call(["chmod", "-R", "u+w", target])
+    subprocess.check_call(["xattr", "-cr", target])
+    subprocess.check_call(["codesign", "--force", "--deep", "--sign", "-", target])
 
 # ------------------------------------------------
 
@@ -852,12 +908,17 @@ if config.dmg is not None:
         p = subprocess.Popen(['osascript', '-'], stdin=subprocess.PIPE)
         p.communicate(input=s.encode('utf-8'))
         if p.returncode:
-            print("Error running osascript.")
+            # Finder scripting needs Automation permission and a logged-in GUI
+            # session, so it fails on headless/CI machines. The script's final
+            # `eject` also didn't run, and hdiutil convert fails on a mounted
+            # image - detach explicitly and continue with an undecorated .dmg.
+            print("Error running osascript (no Finder automation?); creating .dmg without fancy decoration.")
+            subprocess.call(['hdiutil', 'detach', disk_root])
 
         if verbose >= 2:
             print("+ Finalizing .dmg disk image +")
             time.sleep(5)
-        
+
         try:
             runHDIUtil("convert", dmg_name + ".temp", format="UDBZ", o=dmg_name + ".dmg", ov=True)
         except subprocess.CalledProcessError as e:

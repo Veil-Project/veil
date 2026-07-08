@@ -1077,7 +1077,12 @@ if test "x$use_zmq" = xyes; then
       ZMQ_CFLAGS="$ZMQ_CFLAGS -DZMQ_STATIC"
     ;;
   esac
-  BITCOIN_QT_CHECK(AC_CHECK_LIB([protobuf] ,[main],[PROTOBUF_LIBS=-lprotobuf], BITCOIN_QT_FAIL(libprotobuf not found)))
+  dnl PROTOBUF_LIBS/PROTOBUF_CFLAGS are already set correctly by the
+  dnl PKG_CHECK_MODULES([PROTOBUF], [protobuf], ...) check above, including any
+  dnl transitive link deps a given protobuf build needs (e.g. abseil on newer
+  dnl protobuf releases). A bare `-lprotobuf` re-check here (unrelated to ZMQ)
+  dnl used to clobber that with a weaker check that fails to link against
+  dnl protobuf builds with such transitive deps.
 fi
 
 save_CXXFLAGS="${CXXFLAGS}"

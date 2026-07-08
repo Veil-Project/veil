@@ -582,17 +582,20 @@ jobs:
       # to our formulas; untap it to silence the tap-trust warning.
       run: |
         brew untap aws/tap 2>/dev/null || true
-        brew install autoconf automake libtool pkgconf berkeley-db@4 boost@1.85 gmp libevent zeromq miniupnpc
+        brew install autoconf automake libtool pkgconf berkeley-db@4 boost@1.85 gmp libevent zeromq miniupnpc qt@5 protobuf
     - name: Autogen
       run: ./autogen.sh
     - name: Configure
+      # qt@5 is keg-only (like berkeley-db@4/boost@1.85 above), so it needs an
+      # explicit pkgconfig path and --with-qt-bindir for moc/uic/rcc/lrelease.
       run: >
-        ./configure --with-gui=no --disable-bench
+        ./configure --with-gui=yes --disable-bench
         BDB_LIBS="-L$(brew --prefix berkeley-db@4)/lib -ldb_cxx-4.8"
         BDB_CFLAGS="-I$(brew --prefix berkeley-db@4)/include"
         CPPFLAGS="-I$(brew --prefix gmp)/include -DBOOST_NO_CXX98_FUNCTION_BASE"
         LDFLAGS="-L$(brew --prefix gmp)/lib"
-        PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix libevent)/lib/pkgconfig:$(brew --prefix zeromq)/lib/pkgconfig"
+        PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix libevent)/lib/pkgconfig:$(brew --prefix zeromq)/lib/pkgconfig:$(brew --prefix qt@5)/lib/pkgconfig"
+        --with-qt-bindir="$(brew --prefix qt@5)/bin"
         --with-boost="$(brew --prefix boost@1.85)"
     - name: Build
       run: make -j$(sysctl -n hw.ncpu)
@@ -607,9 +610,21 @@ jobs:
       run: |
         mkdir -p $ARTIFACT_DIR
         strip src/veil-cli src/veil-tx src/veild
-        mv src/veil-cli src/veil-tx src/veild $ARTIFACT_DIR
+        mv src/veil-cli src/veil-tx src/veild src/qt/veil-qt $ARTIFACT_DIR
     - name: Upload Artifact
       uses: actions/upload-artifact@v6.0.0
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
+    - name: Build Veil-Qt.app and .dmg
+      # Native build machine is darwin, so `make deploy` takes the BUILD_DARWIN
+      # path in Makefile.am and calls contrib/macdeploy/macdeployqtplus directly
+      # with hdiutil (no cross-compile toolchain env vars needed). Output is
+      # Veil-Core.dmg (from PACKAGE_NAME "Veil Core" in configure.ac), containing
+      # Veil-Qt.app.
+      run: make deploy
+    - name: Upload Veil-Qt.dmg
+      uses: actions/upload-artifact@v6.0.0
+      with:
+        name: macosx-arm64-Veil-Qt-dmg
+        path: Veil-Core.dmg
