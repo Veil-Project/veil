@@ -47,6 +47,12 @@ extern bool fEnableZeromint;
 extern bool fEnableDandelion;
 extern const int64_t AUTOMINT_DELAY;
 extern int nPreferredDenom;
+extern bool isDarkModeSet;
+extern int qrColorCode;
+extern int selectedBgColorCode;
+extern int mouseOverBgColorCode;
+extern int selectedTextColorCode;
+extern int selectedDateColorCode;
 
 /** Signals for translation. */
 class CTranslationInterface

@@ -31,9 +31,6 @@
      <property name="autoFillBackground">
       <bool>false</bool>
      </property>
-     <property name="styleSheet">
-      <string notr="true">border:0;</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -74,13 +71,6 @@
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
-        <property name="styleSheet">
-         <string notr="true">padding:8px;
-border:none;
-font-size:16px;
-border-bottom:1px solid #bababa;
-color:#bababa;</string>
-        </property>
         <property name="text">
          <string>Select file</string>
         </property>
@@ -116,13 +106,6 @@ color:#bababa;</string>
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">color:#bababa;
-padding:8px;
-border:none;
-font-size:16px;
-border-bottom:1px solid #bababa;</string>
-        </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
         </property>
@@ -146,9 +129,6 @@ border-bottom:1px solid #bababa;</string>
       </item>
       <item>
        <widget class="QLabel" name="errorMessage">
-        <property name="styleSheet">
-         <string notr="true">color:#fd1337;</string>
-        </property>
         <property name="text">
          <string>Destination folder not available</string>
         </property>

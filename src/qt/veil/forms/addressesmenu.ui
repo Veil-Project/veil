@@ -19,11 +19,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">background-color:transparent;
-border:none;
-color:#bababa;</string>
-  </property>
   <layout class="QHBoxLayout" name="horizontalLayout">
    <item>
     <widget class="QFrame" name="frame">
@@ -33,21 +28,16 @@ color:#bababa;</string>
        <height>82</height>
       </size>
      </property>
-     <property name="styleSheet">
-      <string notr="true">#frame{
-	background-color:white;
-	border-radius:9px;
-	padding:3px;
-	border: 1px solid #bababa;
-}</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
      <property name="frameShadow">
       <enum>QFrame::Raised</enum>
      </property>
-     <layout class="QVBoxLayout" name="verticalLayout">
+     <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1">
+      <property name="sizeConstraint">
+       <enum>QLayout::SetMinimumSize</enum>
+      </property>
       <property name="spacing">
        <number>0</number>
       </property>
@@ -74,15 +64,6 @@ color:#bababa;</string>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
-        <property name="styleSheet">
-         <string notr="true">QPushButton{
-	padding-left:6px;
-}
-
-QPushButton::hover{
-	color:black;
-}</string>
-        </property>
         <property name="text">
          <string>Copy</string>
         </property>
@@ -99,15 +80,6 @@ QPushButton::hover{
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
         </property>
-        <property name="styleSheet">
-         <string notr="true">QPushButton{
-	padding-left:6px;
-}
-
-QPushButton::hover{
-	color:black;
-}</string>
-        </property>
         <property name="text">
          <string>Edit</string>
         </property>
@@ -123,15 +95,6 @@ QPushButton::hover{
         </property>
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">QPushButton{
-	padding-left:6px;
-}
-
-QPushButton::hover{
-	color:black;
-}</string>
         </property>
         <property name="text">
          <string>Delete</string>

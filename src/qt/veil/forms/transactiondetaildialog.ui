@@ -19,9 +19,6 @@
         <property name="windowTitle">
             <string>Form</string>
         </property>
-        <property name="styleSheet">
-            <string notr="true">color:#bababa;</string>
-        </property>
         <layout class="QVBoxLayout" name="verticalLayout_3">
             <property name="spacing">
                 <number>0</number>
@@ -40,14 +37,6 @@
             </property>
             <item>
                 <widget class="QFrame" name="frame">
-                    <property name="styleSheet">
-                        <string notr="true">#frame{
-                            background-color: white;
-                            padding: 10px 10px 10px 10px;
-                            border-radius:20px;
-                            }
-                        </string>
-                    </property>
                     <property name="frameShape">
                         <enum>QFrame::StyledPanel</enum>
                     </property>
@@ -65,23 +54,17 @@
                                         <property name="minimumSize">
                                             <size>
                                                 <width>0</width>
-                                                <height>40</height>
+                                                <height>60</height>
                                             </size>
                                         </property>
                                         <property name="maximumSize">
                                             <size>
                                                 <width>16777215</width>
-                                                <height>40</height>
+                                                <height>60</height>
                                             </size>
                                         </property>
-                                        <property name="styleSheet">
-                                            <string notr="true">color:#105aef;
-                                                font-size:20px;
-                                                padding-left:30px;
-                                            </string>
-                                        </property>
                                         <property name="text">
-                                            <string>Transaction details</string>
+                                            <string>Transaction Details</string>
                                         </property>
                                         <property name="alignment">
                                             <set>Qt::AlignCenter</set>
@@ -107,16 +90,6 @@
                                         </property>
                                         <property name="focusPolicy">
                                             <enum>Qt::NoFocus</enum>
-                                        </property>
-                                        <property name="styleSheet">
-                                            <string notr="true">#btnEsc {
-                                                background-color:transparent;
-                                                border:0px;
-                                                }
-
-                                                #btnEsc:hover {
-                                                }
-                                            </string>
                                         </property>
                                         <property name="text">
                                             <string/>
@@ -159,9 +132,6 @@
                                                 <height>16777215</height>
                                             </size>
                                         </property>
-                                        <property name="styleSheet">
-                                            <string notr="true">color:#105aef;</string>
-                                        </property>
                                         <property name="text">
                                             <string>ID:</string>
                                         </property>
@@ -188,15 +158,6 @@
                                         <property name="cursor">
                                             <cursorShape>PointingHandCursor</cursorShape>
                                         </property>
-                                        <property name="styleSheet">
-                                            <string notr="true">QPushButton {
-                                                    border:  none;
-                                                    background-color:#ffffff;
-                                                    color: #707070;
-                                                    font-size: 14px;
-                                                }
-                                            </string>
-                                        </property>
                                         <property name="text">
                                             <string/>
                                         </property>
@@ -216,9 +177,6 @@
                                         <height>1</height>
                                     </size>
                                 </property>
-                                <property name="styleSheet">
-                                    <string notr="true">background-color:#bababa;</string>
-                                </property>
                                 <property name="text">
                                     <string/>
                                 </property>
@@ -233,9 +191,6 @@
                                                 <width>16777215</width>
                                                 <height>16777215</height>
                                             </size>
-                                        </property>
-                                        <property name="styleSheet">
-                                            <string notr="true">color:#105aef;</string>
                                         </property>
                                         <property name="text">
                                             <string>Amount:</string>
@@ -259,9 +214,6 @@
                                         <height>1</height>
                                     </size>
                                 </property>
-                                <property name="styleSheet">
-                                    <string notr="true">background-color:#bababa;</string>
-                                </property>
                                 <property name="text">
                                     <string/>
                                 </property>
@@ -269,17 +221,6 @@
                         </item>
                         <item>
                             <widget class="QFrame" name="frameContainer">
-                                <property name="styleSheet">
-                                    <string notr="true">#frameContainer{
-                                        background-color: white;
-                                        padding: 0px 0px 0px 0px;
-                                        border-style: none;
-                                        border-color: transparent;
-                                        border-width: 0px;
-                                        border-radius: 0px;
-                                        }
-                                    </string>
-                                </property>
                                 <property name="frameShape">
                                     <enum>QFrame::StyledPanel</enum>
                                 </property>
@@ -321,9 +262,6 @@
                                                             <height>16777215</height>
                                                         </size>
                                                     </property>
-                                                    <property name="styleSheet">
-                                                        <string notr="true">color:#105aef;</string>
-                                                    </property>
                                                     <property name="text">
                                                         <string>Sent to:</string>
                                                     </property>
@@ -350,14 +288,6 @@
                                                             <height>20</height>
                                                         </size>
                                                     </property>
-                                                    <property name="styleSheet">
-                                                        <string notr="true">background-color:transparent;
-                                                            border:0;
-                                                            background-image: url(&quot;:/res/ic-arrow-down.png&quot;) ;
-                                                            background-repeat:no-repeat;
-                                                            background-position:center;
-                                                        </string>
-                                                    </property>
                                                     <property name="text">
                                                         <string/>
                                                     </property>
@@ -372,9 +302,6 @@
                                                     <width>16777215</width>
                                                     <height>1</height>
                                                 </size>
-                                            </property>
-                                            <property name="styleSheet">
-                                                <string notr="true">background-color:#bababa;</string>
                                             </property>
                                             <property name="text">
                                                 <string/>
@@ -397,9 +324,6 @@
                                                             <height>16777215</height>
                                                         </size>
                                                     </property>
-                                                    <property name="styleSheet">
-                                                        <string notr="true">color:#105aef;</string>
-                                                    </property>
                                                     <property name="text">
                                                         <string>Inputs:</string>
                                                     </property>
@@ -420,14 +344,6 @@
                                                             <height>20</height>
                                                         </size>
                                                     </property>
-                                                    <property name="styleSheet">
-                                                        <string notr="true">background-color:transparent;
-                                                            border:0;
-                                                            background-image: url(&quot;:/res/ic-arrow-down.png&quot;) ;
-                                                            background-repeat:no-repeat;
-                                                            background-position:center;
-                                                        </string>
-                                                    </property>
                                                     <property name="text">
                                                         <string/>
                                                     </property>
@@ -443,9 +359,6 @@
                                                     <height>1</height>
                                                 </size>
                                             </property>
-                                            <property name="styleSheet">
-                                                <string notr="true">background-color:#bababa;</string>
-                                            </property>
                                             <property name="text">
                                                 <string/>
                                             </property>
@@ -460,9 +373,6 @@
                                                             <width>16777215</width>
                                                             <height>16777215</height>
                                                         </size>
-                                                    </property>
-                                                    <property name="styleSheet">
-                                                        <string notr="true">color:#105aef;</string>
                                                     </property>
                                                     <property name="text">
                                                         <string>Fee:</string>
@@ -486,9 +396,6 @@
                                                     <height>1</height>
                                                 </size>
                                             </property>
-                                            <property name="styleSheet">
-                                                <string notr="true">background-color:#bababa;</string>
-                                            </property>
                                             <property name="text">
                                                 <string/>
                                             </property>
@@ -503,9 +410,6 @@
                                                             <width>16777215</width>
                                                             <height>16777215</height>
                                                         </size>
-                                                    </property>
-                                                    <property name="styleSheet">
-                                                        <string notr="true">color:#105aef;</string>
                                                     </property>
                                                     <property name="text">
                                                         <string>Confirmations:</string>
@@ -529,9 +433,6 @@
                                                     <height>1</height>
                                                 </size>
                                             </property>
-                                            <property name="styleSheet">
-                                                <string notr="true">background-color:#bababa;</string>
-                                            </property>
                                             <property name="text">
                                                 <string/>
                                             </property>
@@ -546,9 +447,6 @@
                                                             <width>16777215</width>
                                                             <height>16777215</height>
                                                         </size>
-                                                    </property>
-                                                    <property name="styleSheet">
-                                                        <string notr="true">color:#105aef;</string>
                                                     </property>
                                                     <property name="text">
                                                         <string>Size:</string>
@@ -572,9 +470,6 @@
                                                     <height>1</height>
                                                 </size>
                                             </property>
-                                            <property name="styleSheet">
-                                                <string notr="true">background-color:#bababa;</string>
-                                            </property>
                                             <property name="text">
                                                 <string/>
                                             </property>
@@ -589,9 +484,6 @@
                                                             <width>16777215</width>
                                                             <height>16777215</height>
                                                         </size>
-                                                    </property>
-                                                    <property name="styleSheet">
-                                                        <string notr="true">color:#105aef;</string>
                                                     </property>
                                                     <property name="text">
                                                         <string>Date:</string>
@@ -615,9 +507,6 @@
                                                     <height>1</height>
                                                 </size>
                                             </property>
-                                            <property name="styleSheet">
-                                                <string notr="true">background-color:#bababa;</string>
-                                            </property>
                                             <property name="text">
                                                 <string/>
                                             </property>
@@ -632,9 +521,6 @@
                                                             <width>16777215</width>
                                                             <height>16777215</height>
                                                         </size>
-                                                    </property>
-                                                    <property name="styleSheet">
-                                                        <string notr="true">color:#105aef;</string>
                                                     </property>
                                                     <property name="text">
                                                         <string>Status:</string>
@@ -658,9 +544,6 @@
                                                     <height>1</height>
                                                 </size>
                                             </property>
-                                            <property name="styleSheet">
-                                                <string notr="true">background-color:#bababa;</string>
-                                            </property>
                                             <property name="text">
                                                 <string/>
                                             </property>
@@ -675,9 +558,6 @@
                                                             <width>16777215</width>
                                                             <height>16777215</height>
                                                         </size>
-                                                    </property>
-                                                    <property name="styleSheet">
-                                                        <string notr="true">color:#105aef;</string>
                                                     </property>
                                                     <property name="text">
                                                         <string>ComputeTime:</string>

@@ -27,6 +27,7 @@ void openDialogFullScreen(QWidget *parent, QWidget * dialog){
 
 bool openDialogWithOpaqueBackgroundY(QDialog *widget, BitcoinGUI *gui, double posX, int posY){
     widget->setWindowFlags(Qt::CustomizeWindowHint);
+    widget->setWindowFlags(Qt::FramelessWindowHint);
     widget->setAttribute(Qt::WA_TranslucentBackground, true);
     QPropertyAnimation* animation = new QPropertyAnimation(widget, "pos");
     animation->setDuration(300);

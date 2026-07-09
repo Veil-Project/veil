@@ -26,17 +26,6 @@ SettingsFaq::SettingsFaq(QWidget *parent, bool howToObtainVeil) :
 
     setStyleSheet(GUIUtil::loadStyleSheet());
 
-    ui->radioButton_01->setProperty("cssClass" , "radio-button-faq");
-    ui->radioButton_03->setProperty("cssClass" , "radio-button-faq");
-    ui->radioButton_04->setProperty("cssClass" , "radio-button-faq");
-    ui->radioButton_05->setProperty("cssClass" , "radio-button-faq");
-    ui->radioButton_06->setProperty("cssClass" , "radio-button-faq");
-    ui->radioButton_07->setProperty("cssClass" , "radio-button-faq");
-    ui->radioButton_08->setProperty("cssClass" , "radio-button-faq");
-    ui->radioButton_09->setProperty("cssClass" , "radio-button-faq");
-    ui->radioButton_10->setProperty("cssClass" , "radio-button-faq");
-    ui->radioButton_12->setProperty("cssClass" , "radio-button-faq");
-
     connect(ui->radioButton_01,SIGNAL(clicked()),this, SLOT(onRadioButton01Clicked()));
     connect(ui->radioButton_03,SIGNAL(clicked()),this, SLOT(onRadioButton03Clicked()));
     connect(ui->radioButton_04,SIGNAL(clicked()),this, SLOT(onRadioButton04Clicked()));

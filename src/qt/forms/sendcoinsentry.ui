@@ -160,12 +160,6 @@ border:none;</string>
            <height>20</height>
           </size>
          </property>
-         <property name="styleSheet">
-          <string notr="true">padding:0px;
-margin:0px;
-margin-left:6px;
-color:#105AEF;</string>
-         </property>
          <property name="text">
           <string>Address</string>
          </property>
@@ -254,13 +248,6 @@ margin-top:24px</string>
               <height>20</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">border:none;
-margin:0px;
-margin-left:6px;
-padding:0px;
-color:#105AEF;</string>
-            </property>
             <property name="text">
              <string>Amount</string>
             </property>
@@ -346,13 +333,6 @@ border:none;</string>
            <width>16777215</width>
            <height>20</height>
           </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">border:none;
-margin:0px;
-padding:0px;
-color:#105AEF;
-margin-left:3px;</string>
          </property>
          <property name="text">
           <string>Address Label</string>

@@ -31,13 +31,6 @@
      <property name="autoFillBackground">
       <bool>false</bool>
      </property>
-     <property name="styleSheet">
-      <string notr="true">#frame{
-  background-color: white;
-border:0;
-  padding: 10px 10px 10px 10px;
-}</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -76,10 +69,6 @@ border:0;
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:16px;</string>
-            </property>
             <property name="text">
              <string>Zerocoin balance</string>
             </property>
@@ -90,10 +79,6 @@ font-size:16px;</string>
           </item>
           <item>
            <widget class="QLabel" name="labelZVeilBalance">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:22px;</string>
-            </property>
             <property name="text">
              <string>0 Zerocoin veil</string>
             </property>
@@ -136,10 +121,6 @@ font-size:22px;</string>
               <height>16777215</height>
              </size>
             </property>
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:16px;</string>
-            </property>
             <property name="text">
              <string>Convertable to Zerocoin</string>
             </property>
@@ -150,10 +131,6 @@ font-size:16px;</string>
           </item>
           <item>
            <widget class="QLabel" name="labelConvertable">
-            <property name="styleSheet">
-             <string notr="true">color:#707070;
-font-size:22px;</string>
-            </property>
             <property name="text">
              <string>50.738 veil</string>
             </property>
@@ -193,9 +170,6 @@ font-size:22px;</string>
           <height>1</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">background-color:#bababa;</string>
-        </property>
         <property name="text">
          <string/>
         </property>
@@ -231,23 +205,6 @@ font-size:22px;</string>
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">#btnMint {
-border-radius: 6px;
-color: #105aef;
-font-size: 16px;
-background-color:#FFFFFF;
-border:1px solid #105aef;
-line-height:10px;
-padding:8 12 8 12 ;
-}
-
-#btnMint:hover {
-background-color:#FFFFFF;
-color:#0e45b4;
-border:1px solid #0e45b4;
-}</string>
-        </property>
         <property name="text">
          <string>Mint Zerocoin veil</string>
         </property>
@@ -282,10 +239,6 @@ border:1px solid #0e45b4;
           <width>500</width>
           <height>16777215</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color:#bababa;
-font-size:18px;</string>
         </property>
         <property name="text">
          <string>Minting Zerocoin veil anonymizes your Basecoin veil by removing transaction history, making transactions untraceable.</string>
@@ -328,9 +281,6 @@ font-size:18px;</string>
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true"/>
-        </property>
         <property name="alignment">
          <set>Qt::AlignCenter</set>
         </property>
@@ -338,9 +288,6 @@ font-size:18px;</string>
       </item>
       <item>
        <widget class="QLabel" name="errorMessage">
-        <property name="styleSheet">
-         <string notr="true">color:#fd1337;</string>
-        </property>
         <property name="text">
          <string>Amount error</string>
         </property>
@@ -351,10 +298,6 @@ font-size:18px;</string>
       </item>
       <item>
        <widget class="QLabel" name="label">
-        <property name="styleSheet">
-         <string notr="true">color:#bababa;
-font-size:18px;</string>
-        </property>
         <property name="text">
          <string>Amount of Basecoin veil to mint into Zerocoin veil</string>
         </property>
@@ -380,9 +323,6 @@ font-size:18px;</string>
         </item>
         <item>
          <widget class="QPushButton" name="btnEsc">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>CANCEL</string>
           </property>
@@ -403,9 +343,6 @@ font-size:18px;</string>
         </item>
         <item>
          <widget class="QPushButton" name="btnSave">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>SAVE</string>
           </property>

@@ -59,6 +59,10 @@ OptionsDialog::OptionsDialog(QWidget *parent, bool enableWallet) :
     ui->showComputeTime->setChecked(settings.value("bShowComputeTime", false).toBool());
     connect(ui->showComputeTime, SIGNAL(toggled(bool)), this, SLOT(onShowComputeTimeCheck(bool)));
 
+    // Apply dark mode
+	ui->applyDarkMode->setChecked(settings.value("bDarkMode", false).toBool());
+	connect(ui->applyDarkMode, SIGNAL(toggled(bool)), this, SLOT(onApplyDarkModeCheck(bool)));
+
     /* Network elements init */
 #ifndef USE_UPNP
     ui->mapPortUpnp->setEnabled(false);
@@ -201,6 +205,7 @@ void OptionsDialog::setModel(OptionsModel *_model)
     connect(ui->threadsScriptVerif, SIGNAL(valueChanged(int)), this, SLOT(showRestartWarning()));
     /* Wallet */
     connect(ui->spendZeroConfChange, SIGNAL(clicked(bool)), this, SLOT(showRestartWarning()));
+    connect(ui->applyDarkMode, SIGNAL(clicked(bool)), this, SLOT(showRestartWarning()));
     /* Network */
     connect(ui->allowIncoming, SIGNAL(clicked(bool)), this, SLOT(showRestartWarning()));
     connect(ui->connectSocks, SIGNAL(clicked(bool)), this, SLOT(showRestartWarning()));
@@ -385,6 +390,12 @@ void OptionsDialog::onHideOrphansCheck(bool state) {
 void OptionsDialog::onShowComputeTimeCheck(bool state) {
     QSettings settings;
     settings.setValue("bShowComputeTime", state);
+    settings.sync();
+}
+
+void OptionsDialog::onApplyDarkModeCheck(bool state) {
+    QSettings settings;
+    settings.setValue("bDarkMode", state);
     settings.sync();
 }
 

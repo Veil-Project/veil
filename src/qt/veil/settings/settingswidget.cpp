@@ -258,6 +258,7 @@ void SettingsWidget::showEvent(QShowEvent *event){
         updateStakingCheckboxStatus();
     }
 
+    /*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -266,10 +267,11 @@ void SettingsWidget::showEvent(QShowEvent *event){
     a->setEndValue(1);
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
 }
 
 void SettingsWidget::hideEvent(QHideEvent *event){
-    QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
+    /*QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
     a->setDuration(100);
@@ -277,6 +279,7 @@ void SettingsWidget::hideEvent(QHideEvent *event){
     a->setEndValue(0);
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
 }
 
 void SettingsWidget::setWalletModel(WalletModel *model){
@@ -298,7 +301,7 @@ void SettingsWidget::updateStakingCheckboxStatus(){
         ui->labelStacking->setProperty("cssClass" , "btn-text-settings");
         ui->checkBoxStaking->setVisible(false);
     }else{
-        ui->labelStacking->setText("Unlock Wallet For Staking");
+        ui->labelStacking->setText("Unlock wallet for staking");
         ui->checkBoxStaking->setVisible(true);
     }
 }
