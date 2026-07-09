@@ -2466,12 +2466,12 @@ QWidget QLabel#labelBalance{
 }
 
 /** labelBalance */
-QWidget QLabel#label {
+QWidget#Balance QLabel#label {
     background-color:#bababa;
 }
 
 /** label_2 */
-QWidget QLabel#label_2 {
+QWidget#Balance QLabel#label_2 {
     background-color: transparent;
     color: #707070;
 }
@@ -2483,7 +2483,7 @@ QWidget QLabel#labelUnspendable {
 }
 
 /** label_5 */
-QWidget QLabel#label_5 {
+QWidget#Balance QLabel#label_5 {
     background-color: transparent;
     color: #707070;
 }

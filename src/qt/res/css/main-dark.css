@@ -2047,12 +2047,12 @@ QWidget QLabel#labelBalance{
 }
 
 /** labelBalance */
-QWidget QLabel#label {
+QWidget#Balance QLabel#label {
     background-color:#bababa;
 }
 
 /** label_2 */
-QWidget QLabel#label_2 {
+QWidget#Balance QLabel#label_2 {
     background-color: transparent;
     color: #bababa;
 }
@@ -2064,7 +2064,7 @@ QWidget QLabel#labelUnspendable {
 }
 
 /** label_5 */
-QWidget QLabel#label_5 {
+QWidget#Balance QLabel#label_5 {
     background-color: transparent;
     color: #bababa;
 }
@@ -4614,4 +4614,92 @@ QWidget#VeilStatusBar QPushButton#btnSync {
 /* ADDED text color */
 QWidget#VeilStatusBar QLabel {
     color: #bababa;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       addressbookpage.ui (page background and text)
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+QWidget#AddressBookPage {
+    background-color: #080B2E;
+}
+
+QWidget#AddressBookPage QLabel#labelExplanation {
+    color: #bababa;
+}
+
+QWidget#AddressBookPage QLineEdit#searchLineEdit {
+    color: #bababa;
+    border: 1px solid #bababa;
+    border-radius: 6px;
+    padding: 6px;
+    background-color: transparent;
+}
+
+QWidget#AddressBookPage QTableView {
+    background-color: transparent;
+    color: #bababa;
+    border: 1px solid #bababa;
+}
+
+QWidget#AddressBookPage QHeaderView::section {
+    background-color: #080B2E;
+    color: #bababa;
+    border: none;
+    font-weight: bold;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       signverifymessagedialog.ui
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+QDialog#SignVerifyMessageDialog {
+    background-color: #080B2E;
+}
+
+QDialog#SignVerifyMessageDialog QWidget#tabSignMessage,
+QDialog#SignVerifyMessageDialog QWidget#tabVerifyMessage {
+    background-color: #080B2E;
+}
+
+QDialog#SignVerifyMessageDialog QTabWidget::pane {
+    border: 1px solid #bababa;
+}
+
+QDialog#SignVerifyMessageDialog QLabel {
+    color: #bababa;
+}
+
+QDialog#SignVerifyMessageDialog QLineEdit,
+QDialog#SignVerifyMessageDialog QValidatedLineEdit,
+QDialog#SignVerifyMessageDialog QPlainTextEdit,
+QDialog#SignVerifyMessageDialog QTextEdit {
+    color: #f7fbfe;
+    border: 1px solid #bababa;
+    border-radius: 6px;
+    background-color: #0d124d;
+    padding: 4px;
+}
+
+/* icon-only buttons carry dark glyphs; keep them on a light chip */
+QDialog#SignVerifyMessageDialog QPushButton#addressBookButton_SM,
+QDialog#SignVerifyMessageDialog QPushButton#pasteButton_SM,
+QDialog#SignVerifyMessageDialog QPushButton#copySignatureButton_SM,
+QDialog#SignVerifyMessageDialog QPushButton#addressBookButton_VM {
+    background-color: #bababa;
+}
+
+QDialog#SignVerifyMessageDialog QPushButton {
+    border-radius: 6px;
+    border: 1px solid #bababa;
+    background-color: #000000;
+    color: #bababa;
+    font-size: 14px;
+    padding: 8px;
+}
+
+QDialog#SignVerifyMessageDialog QPushButton:hover {
+    border: 1px solid #bababa;
+    background-color: #bababa;
+    color: #FFFFFF;
 }
