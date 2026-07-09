@@ -1140,6 +1140,12 @@ QWidget#OverviewPage QFrame#containerEmpty {
     border:none;
 }
 
+/* empty-state onboarding text (content added on master after the
+   original dark theme was written) */
+QWidget#OverviewPage QFrame#containerEmpty QLabel {
+    color: #bababa;
+}
+
 /** btnGoFaq */
 QWidget#OverviewPage QPushButton#btnGoFaq {
     border-radius: 6px;
