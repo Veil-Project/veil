@@ -584,6 +584,10 @@ bool g_mock_deterministic_tests{false};
 
 uint64_t GetRand(uint64_t nMax) noexcept
 {
+    // Preserve the pre-CSPRNG-port contract: GetRand(0) == 0. Veil call
+    // sites rely on it (e.g. SelectRangeProofParameters passes a zero range
+    // for values with no trailing decimal zeros); randrange(0) asserts.
+    if (nMax == 0) return 0;
     return FastRandomContext(g_mock_deterministic_tests).randrange(nMax);
 }
 
