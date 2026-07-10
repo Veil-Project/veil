@@ -572,20 +572,50 @@ HH       debugwindow.ui (15)
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 /** RPCConsole */
 QWidget#RPCConsole {
-    background-color:white;
+    background-color:#000000;
     border:none;
 }
 
 /** frame */
 QWidget#RPCConsole QFrame#frame {
-    background-color: white;
+    background-color: #000000;
 }
 
 /** tabWidget */
 QWidget#RPCConsole QTabWidget#tabWidget {
-    background-color:white;
+    background-color:#000000;
     color:#bababa;
     font-size:13.5px;
+}
+
+QWidget#RPCConsole QTabWidget::pane {
+    border: 1px solid #1a2050;
+    background-color:#000000;
+}
+
+QWidget#RPCConsole QTabBar::tab {
+    background-color:#0d124d;
+    color:#bababa;
+    padding: 6px 18px 6px 18px;
+    border: 1px solid #1a2050;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+QWidget#RPCConsole QTabBar::tab:selected {
+    background-color:#3890c8;
+    color:#FFFFFF;
+}
+
+QWidget#RPCConsole QWidget#tab_info,
+QWidget#RPCConsole QWidget#tab_console,
+QWidget#RPCConsole QWidget#tab_nettraffic,
+QWidget#RPCConsole QWidget#tab_peers {
+    background-color:#000000;
+}
+
+QWidget#RPCConsole QLabel {
+    color:#bababa;
 }
 
 /** tab_info */
@@ -641,11 +671,15 @@ QWidget#RPCConsole QLabel#label_9 {
 /** messagesWidget */
 QWidget#RPCConsole QTextEdit#messagesWidget {
     border: 1px solid #bababa;
+    background-color:#ffffff;
+    color:#575756;
 }
 
 /** lineEdit */
 QWidget#RPCConsole QLineEdit#lineEdit {
     border: 1px solid #bababa;
+    background-color:#ffffff;
+    color:#575756;
 }
 
 /** label_16 */
@@ -657,6 +691,15 @@ QWidget#RPCConsole QLabel#label_16 {
 /** peerWidget */
 QWidget#RPCConsole QTableView#peerWidget {
     border: 1px solid #bababa;
+    background-color: transparent;
+    color: #bababa;
+}
+
+QWidget#RPCConsole QHeaderView::section {
+    background-color: #0d124d;
+    color: #bababa;
+    border: none;
+    padding: 4px;
 }
 
 /** banlistWidget */
@@ -861,19 +904,52 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /** windowTitle */
 QDialog#OptionsDialog {
-    background-color:#f7fbfe;
+    background-color:#000000;
     border:none;
+}
+
+QDialog#OptionsDialog QLabel,
+QDialog#OptionsDialog QCheckBox,
+QDialog#OptionsDialog QRadioButton,
+QDialog#OptionsDialog QGroupBox {
+    color:#bababa;
+}
+
+QDialog#OptionsDialog QSpinBox,
+QDialog#OptionsDialog QLineEdit,
+QDialog#OptionsDialog QComboBox {
+    color:#f7fbfe;
+    background-color:transparent;
+}
+
+QDialog#OptionsDialog QTabWidget::pane {
+    border: 1px solid #1a2050;
+    background-color:#000000;
+}
+
+QDialog#OptionsDialog QTabBar::tab {
+    background-color:#0d124d;
+    color:#bababa;
+    padding: 6px 18px 6px 18px;
+    border: 1px solid #1a2050;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+QDialog#OptionsDialog QTabBar::tab:selected {
+    background-color:#3890c8;
+    color:#FFFFFF;
 }
 
 /** tabMain */
 QDialog#OptionsDialog QWidget#tabMain {
     padding-top:6px;
-    background-color:#f7fbfe;
+    background-color:#000000;
 }
 
 /* frame_2 */
 QDialog#OptionsDialog QFrame#frame_2 {
-    background-color:#10000000;
+    background-color:#14f7fbfe;
     border-radius:20px;
     padding:9px;
 }
@@ -896,12 +972,12 @@ QDialog#OptionsDialog QSpinBox#threadsScriptVerif {
 /** tabWallet */
 QDialog#OptionsDialog QWidget#tabWallet {
     padding-top:6px;
-    background-color:#f7fbfe;
+    background-color:#000000;
 }
 
 /* frame_3*/
 QDialog#OptionsDialog QFrame#frame_3 {
-    background-color:#10000000;
+    background-color:#14f7fbfe;
     border-radius:20px;
     padding:9px;
 }
@@ -914,12 +990,12 @@ QDialog#OptionsDialog QGroupBox#groupBox {
 /** tabNetwork*/
 QDialog#OptionsDialog QWidget#tabNetwork {
     padding-top:6px;
-    background-color:#f7fbfe;
+    background-color:#000000;
 }
 
 /* frame_5*/
 QDialog#OptionsDialog QFrame#frame_5 {
-    background-color:#10000000;
+    background-color:#14f7fbfe;
     border-radius:20px;
     padding:9px;
 }
@@ -932,12 +1008,12 @@ QDialog#OptionsDialog QFrame#frame_4 {
 /** tabWindow */
 QDialog#OptionsDialog QWidget#tabWindow {
     padding-top:6px;
-    background-color:#f7fbfe;
+    background-color:#000000;
 }
 
 /* frame_6*/
 QDialog#OptionsDialog QFrame#frame_6 {
-    background-color:#10000000;
+    background-color:#14f7fbfe;
     border-radius:20px;
     padding:9px;
 }
@@ -951,12 +1027,12 @@ QDialog#OptionsDialog QFrame#frame_9 {
 /** tabDisplay */
 QDialog#OptionsDialog QWidget#tabDisplay {
     padding-top:6px;
-    background-color:#f7fbfe;
+    background-color:#000000;
 }
 
 /** #frame_8 */
 QDialog#OptionsDialog QFrame#frame_8 {
-    background-color:#10000000;
+    background-color:#14f7fbfe;
     border-radius:20px;
     padding:9px;
 }
@@ -4628,7 +4704,7 @@ HH       original dark theme was written)
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 QWidget#MiningWidget {
-    background-color: #080B2E;
+    background-color: #000000;
 }
 
 QWidget#MiningWidget QFrame {
@@ -4638,7 +4714,7 @@ QWidget#MiningWidget QFrame {
 /* plain QWidget pages don't paint stylesheet backgrounds; the
    top-level frame does */
 QWidget#MiningWidget QFrame#frame_5 {
-    background-color: #080B2E;
+    background-color: #000000;
 }
 
 QWidget#MiningWidget QLabel {
