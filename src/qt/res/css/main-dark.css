@@ -468,89 +468,96 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 
 /* CoinControlDialog */
 QDialog#CoinControlDialog {
-    background: rgba(255,255,255,0);
+    background: #000000;
+}
+
+QDialog#CoinControlDialog QHeaderView::section {
+    background-color: #0d124d;
+    color: #bababa;
+    border: none;
+    padding: 4px;
 }
 
 /* frame_2 */
 QDialog#CoinControlDialog QFrame#frame_2 {
-    background-color:white;
+    background-color:#000000;
     border-radius:20px;
     padding: 12px;
 }
 
 /** labelCoinControlQuantityText */
 QDialog#CoinControlDialog QLabel#labelCoinControlQuantityText {
-    color:#707070;
+    color:#bababa;
 }
 
 /** labelCoinControlQuantity */
 QDialog#CoinControlDialog QLabel#labelCoinControlQuantity {
-    color:#707070;
+    color:#bababa;
 }
 
 /** labelCoinControlBytesText */
 QDialog#CoinControlDialog QLabel#labelCoinControlBytesText {
-    color:#707070;
+    color:#bababa;
 }
 
 /** labelCoinControlBytes */
 QDialog#CoinControlDialog QLabel#labelCoinControlBytes {
-    color:#707070;
+    color:#bababa;
 }
 
 /** labelCoinControlAmountText */
 QDialog#CoinControlDialog QLabel#labelCoinControlAmountText {
-    color:#707070;
+    color:#bababa;
 }
 
 /** labelCoinControlAmount */
 QDialog#CoinControlDialog QLabel#labelCoinControlAmount {
-    color:#707070;
+    color:#bababa;
 }
 
 /** labelCoinControlFeeText */
 QDialog#CoinControlDialog#labelCoinControlFeeText {
-    color:#707070;
+    color:#bababa;
 }
 
 /** labelCoinControlFee */
 QDialog#CoinControlDialog QLabel#labelCoinControlFee {
-    color:#707070;
+    color:#bababa;
 }
 
 /** labelCoinControlAfterFeeText */
 QDialog#CoinControlDialog QLabel#labelCoinControlAfterFeeText {
-    color:#707070;
+    color:#bababa;
 }
 
 /** labelCoinControlAfterFee */
 QDialog#CoinControlDialog QLabel#labelCoinControlAfterFee {
-    color:#707070;
+    color:#bababa;
 }
 
 /** labelCoinControlChangeText */
 QDialog#CoinControlDialog QLabel#labelCoinControlChangeText {
-    color:#707070;
+    color:#bababa;
 }
 
 /** labelCoinControlChange */
 QDialog#CoinControlDialog QLabel#labelCoinControlChange {
-    color:#707070;
+    color:#bababa;
 }
 
 /* frame */
 QDialog#CoinControlDialog QFrame#frame {
-    background-color:white;
-    color:#707070;
+    background-color:#000000;
+    color:#bababa;
     font-size:13.5px;
 }
 
 /** treeWidget */
 QDialog#CoinControlDialog CoinControlTreeWidget#treeWidget {
-    background-color:white;
-    color:#707070;
+    background-color:#000000;
+    color:#bababa;
     font-size:13.5px;
-    alternate-background-color:#7fb3d2;
+    alternate-background-color:#0d124d;
 }
 
 /** buttonBox */
@@ -823,9 +830,9 @@ ModalOverlay#ModalOverlay QWidget#bgWidget {
 
 /* frame */
 ModalOverlay#ModalOverlay QFrame#frame {
-    background: #f7fbfe;
-    background-color:#f7fbfe;
-    border-radius: 6px; 
+    background: #000000;
+    background-color:#000000;
+    border-radius: 6px;
     border:none;
 }
 
@@ -842,16 +849,16 @@ ModalOverlay#ModalOverlay QFrame#frame_icon {
 
 /** contentWidget */
 ModalOverlay#ModalOverlay QWidget#contentWidget {
-    background: #f7fbfe; 
+    background: #000000;
     padding:0px;
     margin:0px;
     border:none;
-    border-top-right-radius: 6px; 
-    border-bottom-right-radius: 6px; 
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
 }
 
 ModalOverlay#ModalOverlay QLabel {
-    color: #000000;
+    color: #bababa;
 }
 
 /** infoText */
@@ -4842,4 +4849,89 @@ QDialog#SignVerifyMessageDialog QPushButton:hover {
     border: 1px solid #bababa;
     background-color: #bababa;
     color: #FFFFFF;
+}
+
+/* Zerocoin minting popups: denomination radios/checkboxes and the mint
+   button had no dark rules and rendered black-on-black / white-on-white */
+QDialog#SettingsMinting QRadioButton,
+QDialog#SettingsMinting QLabel,
+QWidget#SettingsMintingAuto QCheckBox,
+QWidget#SettingsMintingAuto QLabel,
+QWidget#SettingsMintingManual QLabel,
+QWidget#SettingsMintingManual QCheckBox {
+    color: #bababa;
+    background-color: transparent;
+}
+
+QWidget#SettingsMintingManual QPushButton#btnMint,
+QWidget#SettingsMintingAuto QPushButton#btnSave {
+    border-radius: 6px;
+    border: 1px solid #3890c8;
+    background-color: transparent;
+    color: #3890c8;
+    padding: 6px 16px 6px 16px;
+}
+
+QWidget#SettingsMintingManual QPushButton#btnMint:hover,
+QWidget#SettingsMintingAuto QPushButton#btnSave:hover {
+    background-color: #3890c8;
+    color: #FFFFFF;
+}
+
+/* FAQ label overrides: light sheet uses per-label ID selectors that outrank
+   the page-level dark rules, leaving #707070/#575756 text on black */
+
+QDialog#SettingsFaq QLabel#label_3 {
+    color: #bababa;
+    background-color: transparent;
+}
+
+QWidget#SettingsFaq01 QLabel#label_2 {
+    color: #bababa;
+    background-color: transparent;
+}
+
+QWidget#SettingsFaq03 QLabel#label2 {
+    color: #bababa;
+    background-color: transparent;
+}
+
+QWidget#SettingsFaq04 QLabel#label_2 {
+    color: #bababa;
+    background-color: transparent;
+}
+
+QWidget#SettingsFaq05 QLabel#label_2 {
+    color: #bababa;
+    background-color: transparent;
+}
+
+QWidget#SettingsFaq06 QLabel#label_2 {
+    color: #bababa;
+    background-color: transparent;
+}
+
+QWidget#SettingsFaq07 QLabel#label_2 {
+    color: #bababa;
+    background-color: transparent;
+}
+
+QWidget#SettingsFaq08 QLabel#label_2 {
+    color: #bababa;
+    background-color: transparent;
+}
+
+QWidget#SettingsFaq09 QLabel#label {
+    color: #bababa;
+    background-color: transparent;
+}
+
+QWidget#SettingsFaq10 QLabel#label_2 {
+    color: #bababa;
+    background-color: transparent;
+}
+
+QWidget#SettingsFaq12 QLabel#label_2 {
+    color: #bababa;
+    background-color: transparent;
 }
