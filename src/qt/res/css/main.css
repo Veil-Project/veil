@@ -60,9 +60,14 @@ QLineEdit{
     background-color: #fff;
     background: #fff;
     selection-background-color: #8bc3f5;
-    border: 2px solid rgb(33, 255, 231);
 }
 
+
+/** Mining tab (background moved here from an inline widget style so
+    the dark theme can override it) */
+QWidget#MiningWidget QFrame#frame_5 {
+    background-color:white;
+}
 
 /** Toolbar  */
 

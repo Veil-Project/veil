@@ -24,7 +24,7 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
     background-color: #f2f2f2;
     border-radius: 6px;
     border:1px solid #707070;
-    color: #bababa;
+    color: #575756;
     font-size: 14px;
     padding:10px;
 }
@@ -51,7 +51,7 @@ QPushButton[cssClass~="btn-text-primary-inactive"]{
 }
 
 QPushButton[cssClass~="btn-text-primary-inactive"]:hover {
-    color:#2c2c2b;
+    color:#f7fbfe;
 }
 
 QPushButton[cssClass~="btn-text-settings"] {
@@ -4620,6 +4620,64 @@ QWidget#VeilStatusBar QPushButton#btnSync {
 /* ADDED text color */
 QWidget#VeilStatusBar QLabel {
     color: #bababa;
+}
+
+/*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
+HH       miningwidget.ui (tab added on master after the
+HH       original dark theme was written)
+HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
+
+QWidget#MiningWidget {
+    background-color: #080B2E;
+}
+
+QWidget#MiningWidget QFrame {
+    background-color: transparent;
+}
+
+/* plain QWidget pages don't paint stylesheet backgrounds; the
+   top-level frame does */
+QWidget#MiningWidget QFrame#frame_5 {
+    background-color: #080B2E;
+}
+
+QWidget#MiningWidget QLabel {
+    color: #bababa;
+}
+
+QWidget#MiningWidget QLabel#title {
+    color: #3890c8;
+    padding:10 0 10 0;
+}
+
+QWidget#MiningWidget QSpinBox#numThreads {
+    color: #f7fbfe;
+    background-color: #0d124d;
+    border: 1px solid #bababa;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+QWidget#MiningWidget QComboBox#cmbAlgoSelect {
+    color: #bababa;
+    background-color: transparent;
+}
+
+QWidget#MiningWidget QPushButton#btnAllThreads,
+QWidget#MiningWidget QPushButton#btnUpdateAlgo,
+QWidget#MiningWidget QPushButton#btnActiveMine {
+    border-radius: 6px;
+    border: 1px solid #3890c8;
+    background-color: transparent;
+    color: #3890c8;
+    padding: 6px 16px 6px 16px;
+}
+
+QWidget#MiningWidget QPushButton#btnAllThreads:hover,
+QWidget#MiningWidget QPushButton#btnUpdateAlgo:hover,
+QWidget#MiningWidget QPushButton#btnActiveMine:hover {
+    background-color: #3890c8;
+    color: #FFFFFF;
 }
 
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
