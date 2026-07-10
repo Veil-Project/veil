@@ -12,11 +12,8 @@
    viewBox="0 0 37 20"
    version="1.1"
    id="svg11"
-   sodipodi:docname="ic-switch-off.svg"
-   inkscape:version="1.0.2-2 (e86c870879, 2021-01-15)"
-   inkscape:export-filename="C:\Users\ajh21\Downloads\ICONS TEST\on\ic-switch-on-grey@3x.png"
-   inkscape:export-xdpi="288"
-   inkscape:export-ydpi="288">
+   sodipodi:docname="ic-switch-off-blue.svg"
+   inkscape:version="1.0.2-2 (e86c870879, 2021-01-15)">
   <metadata
      id="metadata17">
     <rdf:RDF>
@@ -45,7 +42,7 @@
      id="namedview13"
      showgrid="false"
      inkscape:zoom="32.837838"
-     inkscape:cx="12.516049"
+     inkscape:cx="18.5"
      inkscape:cy="10"
      inkscape:window-x="-9"
      inkscape:window-y="-9"
@@ -63,25 +60,20 @@
      stroke-width="1"
      fill="none"
      fill-rule="evenodd"
-     transform="matrix(-0.99999638,0,0,1,36.999867,0)"
-     style="fill:#b3b3b3">
+     transform="matrix(-0.99999638,0,0,1,36.999867,0)">
     <g
        id="ic-switch-on"
-       fill="#105aef"
-       style="fill:#b3b3b3">
+       fill="#105aef">
       <path
          d="m 34,10.223 c 0.01153,1.860027 -0.722262,3.647213 -2.037524,4.962476 C 30.647213,16.500738 28.860027,17.234532 27,17.223 H 7 C 5.1399731,17.234532 3.3527873,16.500738 2.0375244,15.185476 0.72226151,13.870213 -0.01153247,12.083027 0,10.223 -0.01153247,8.3629731 0.72226151,6.5757873 2.0375244,5.2605244 3.3527873,3.9452615 5.1399731,3.2114675 7,3.223 H 27 C 28.860027,3.211468 30.647213,3.9452615 31.962476,5.2605244 33.277738,6.5757873 34.011533,8.3629731 34,10.223 Z"
          id="switch_path"
-         opacity="0.5"
-         style="fill:#b3b3b3" />
+         opacity="0.5" />
       <g
          id="Group"
-         transform="translate(17)"
-         style="fill:#b3b3b3">
+         transform="translate(17)">
         <path
            d="M 10,0 C 15.522847,0 20,4.4771525 20,10 20,15.522847 15.522847,20 10,20 4.4771525,20 0,15.522847 0,10 0,4.4771525 4.4771525,0 10,0 Z"
-           id="switch_button-2"
-           style="fill:#b3b3b3" />
+           id="switch_button-2" />
       </g>
     </g>
   </g>

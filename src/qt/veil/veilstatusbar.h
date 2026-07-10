@@ -7,6 +7,7 @@
 
 #include <QWidget>
 #include <QDateTime>
+#include <QTimer>
 #include <miner.h>
 #include "unlockpassworddialog.h"
 
@@ -41,6 +42,7 @@ public:
 private Q_SLOTS:
     void onBtnSyncClicked();
 #ifdef ENABLE_WALLET
+    void setStakingText();
     void onBtnLockClicked();
     void onCheckStakingClicked(bool res);
     void updateLockCheckbox();
@@ -52,9 +54,7 @@ private:
     WalletModel *walletModel = nullptr;
     ClientModel *clientModel = nullptr;
     UnlockPasswordDialog *unlockPasswordDialog = nullptr;
-#ifdef ENABLE_WALLET
-    void setStakingText();
-#endif
+    QTimer* stakingTextUpdateTimer;
 
     bool preparingFlag = false;
     bool syncFlag = true;
