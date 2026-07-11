@@ -516,11 +516,12 @@ jobs:
       # OS at exit rather than freed explicitly. ASan is a hard gate: any real
       # memory error (use-after-free, OOB, etc.) aborts and fails the job.
       ASAN_OPTIONS: detect_leaks=0:halt_on_error=1:abort_on_error=1:detect_stack_use_after_return=1
-      # UBSan is report-only for now (halt_on_error=0): the vendored crypto
-      # (RandomX, ethash) uses patterns UBSan flags but that are intentional.
-      # Once the first run's logs are used to write a suppressions file, flip
-      # this to halt_on_error=1 to make UBSan a hard gate too.
-      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=0
+      # UBSan is a hard gate (halt_on_error=1): the sanitizer-instrumented unit
+      # suite (incl. progpow_tests, which drives the vendored ethash) runs clean
+      # with zero runtime-error diagnostics, so no suppressions file is needed.
+      # If a future change trips UBSan on an intentional vendored-crypto pattern,
+      # add a targeted src/test/sanitizer_ubsan.supp entry rather than relaxing this.
+      UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
     steps:
     - name: Getting Source
       uses: actions/download-artifact@v7.0.0
