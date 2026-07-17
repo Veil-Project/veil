@@ -516,8 +516,14 @@ QDialog#CoinControlDialog QLabel#labelCoinControlAmount {
 }
 
 /** labelCoinControlFeeText */
-QDialog#CoinControlDialog#labelCoinControlFeeText {
+QDialog#CoinControlDialog QLabel#labelCoinControlFeeText {
     color:#bababa;
+}
+
+/** tree/list mode selectors */
+QDialog#CoinControlDialog QRadioButton {
+    color:#bababa;
+    background-color: transparent;
 }
 
 /** labelCoinControlFee */

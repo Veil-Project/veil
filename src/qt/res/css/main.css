@@ -995,7 +995,7 @@ QDialog#CoinControlDialog QLabel#labelCoinControlAmount {
 }
 
 /** labelCoinControlFeeText */
-QDialog#CoinControlDialog#labelCoinControlFeeText {
+QDialog#CoinControlDialog QLabel#labelCoinControlFeeText {
     color:#707070;
 }
 
