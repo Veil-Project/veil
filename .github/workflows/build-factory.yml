@@ -424,14 +424,16 @@ jobs:
         brew untap aws/tap 2>/dev/null || true
         # librsvg (rsvg-convert) is needed by `make deploy` to render the
         # .dmg background image; it is not preinstalled on the macOS runner.
-        brew install autoconf automake libtool pkgconf berkeley-db@4 boost@1.85 gmp libevent zeromq miniupnpc qt@5 protobuf librsvg
+        brew install autoconf automake libtool pkgconf berkeley-db@4 boost@1.85 gmp libevent zeromq miniupnpc qt@5 protobuf librsvg qrencode
     - name: Autogen
       run: ./autogen.sh
     - name: Configure
       # qt@5 is keg-only (like berkeley-db@4/boost@1.85 above), so it needs an
       # explicit pkgconfig path and --with-qt-bindir for moc/uic/rcc/lrelease.
+      # --with-qrencode is explicit (not auto) so configure hard-fails if
+      # libqrencode goes missing instead of silently shipping a QR-less GUI.
       run: >
-        ./configure --with-gui=yes --disable-bench
+        ./configure --with-gui=yes --with-qrencode --disable-bench
         BDB_LIBS="-L$(brew --prefix berkeley-db@4)/lib -ldb_cxx-4.8"
         BDB_CFLAGS="-I$(brew --prefix berkeley-db@4)/include"
         CPPFLAGS="-I$(brew --prefix gmp)/include -DBOOST_NO_CXX98_FUNCTION_BASE"
