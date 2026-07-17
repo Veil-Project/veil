@@ -41,9 +41,13 @@ Toolchain & CI
   (version-portable filesystem shim); native macOS arm64 supported.
 - CI now publishes **both** macOS binary artifacts: `macosx-x86_64-binaries`
   (cross-compiled, includes veil-qt) and `macosx-arm64-binaries` (native
-  Apple Silicon: veild/veil-cli/veil-tx).
-- New CI gates: a **Linux AddressSanitizer** job and a **native macOS arm64**
-  build+test job (the project's first automated sanitizer/unit coverage).
+  Apple Silicon: veild/veil-cli/veil-tx/veil-qt, plus a `Veil-Qt.app` `.dmg`).
+- The native macOS GUI is configured with `--with-qrencode` explicitly, so a
+  missing libqrencode fails the build instead of silently shipping a GUI
+  whose receive screen cannot render QR codes.
+- New CI gates: a **Linux ASan + UBSan** unit-test job (UBSan is a hard gate,
+  `halt_on_error=1`) and a **native macOS arm64** build+test job (the
+  project's first automated sanitizer/unit coverage).
 
 Notes
 -----
@@ -65,11 +69,11 @@ Verification status
   relayed them to a second node as a **populated addrv2 message** (decoded
   cleanly); a node created a **live Tor v3 onion service** (56-char `.onion`)
   against a real Tor daemon; a partial mainnet shadow-sync ran without issue.
+- A **full testnet IBD from genesis to tip** completed on this build, with
+  bidirectional addrv2 exchange and a live Tor v3 onion service on testnet.
 
 Recommended before a tagged mainnet release
 -------------------------------------------
 
-- Full mainnet resync-from-genesis on this build.
+- Full mainnet resync-from-genesis on this build (in progress).
 - A longer multi-peer Tor v3 soak.
-- Promote CI UBSan from report-only to a hard gate once a suppressions file is
-  in place.
