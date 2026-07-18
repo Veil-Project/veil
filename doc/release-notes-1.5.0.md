@@ -52,9 +52,6 @@ Toolchain & CI
 Notes
 -----
 
-- **Pruning** works as in prior releases. Because Veil enables `-txindex` by
-  default, run `-prune=<MiB> -txindex=0` to prune; `-prune` alone is ignored
-  (a warning is logged) because a transaction index cannot be pruned.
 - I2P and CJDNS `addrv2` networks are recognized but not routed; unknown
   network ids are safely ignored.
 
@@ -71,9 +68,12 @@ Verification status
   against a real Tor daemon; a partial mainnet shadow-sync ran without issue.
 - A **full testnet IBD from genesis to tip** completed on this build, with
   bidirectional addrv2 exchange and a live Tor v3 onion service on testnet.
+- A **full mainnet resync from genesis** with `-assumevalid=0` (full script
+  verification) completed on Apple Silicon and remained synced at tip for
+  several days.
 
 Recommended before a tagged mainnet release
 -------------------------------------------
 
-- Full mainnet resync-from-genesis on this build (in progress).
 - A longer multi-peer Tor v3 soak.
+- Wider community testing on additional platforms and network conditions.
