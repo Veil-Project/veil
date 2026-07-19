@@ -175,23 +175,29 @@ class CNetAddr
 
         // BIP155 variable-length encoding: network id (1 byte) + CompactSize
         // length + raw address bytes. Used only on ADDRV2_FORMAT streams.
-        template <typename Stream, typename Operation>
-        inline void SerializeV2(Stream& s, Operation ser_action) {
-            // Only READWRITE is used for stream I/O so the same template body
-            // compiles for read-only and write-only streams; ForRead() guards
-            // pure logic. READWRITE on a std::vector<uint8_t> is exactly the
-            // BIP155 body: CompactSize length followed by the raw bytes.
-            uint8_t bip155_net = ser_action.ForRead() ? 0 : GetBIP155Network();
-            READWRITE(bip155_net);
-            std::vector<uint8_t> bytes;
-            if (!ser_action.ForRead()) bytes = GetAddrV2Bytes();
-            READWRITE(bytes);
-            if (ser_action.ForRead()) {
-                if (bytes.size() > MAX_ADDRV2_SIZE) {
-                    throw std::ios_base::failure("BIP155 address too long");
-                }
-                SetFromBIP155(bip155_net, bytes);
+        // Split into per-action overloads so the read path can validate the
+        // declared length BEFORE buffering the payload; a hostile CompactSize
+        // is rejected without reading its bytes first.
+        template <typename Stream>
+        inline void SerializeV2(Stream& s, CSerActionSerialize) const {
+            const uint8_t bip155_net = GetBIP155Network();
+            ::Serialize(s, bip155_net);
+            ::Serialize(s, GetAddrV2Bytes());
+        }
+
+        template <typename Stream>
+        inline void SerializeV2(Stream& s, CSerActionUnserialize) {
+            uint8_t bip155_net = 0;
+            ::Unserialize(s, bip155_net);
+            const uint64_t n = ReadCompactSize(s);
+            if (n > MAX_ADDRV2_SIZE) {
+                throw std::ios_base::failure("BIP155 address too long");
             }
+            std::vector<uint8_t> bytes(n);
+            if (n > 0) {
+                s.read(reinterpret_cast<char*>(bytes.data()), n);
+            }
+            SetFromBIP155(bip155_net, bytes);
         }
 
     public:
