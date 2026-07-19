@@ -32,7 +32,10 @@ Privacy: Tor v3 / BIP155 (addrv2)
 - **Backward compatible.** Nodes negotiate `sendaddrv2` during the handshake;
   peers that predate it keep receiving legacy `addr`. The legacy 16-byte wire
   and `peers.dat` encodings are byte-identical to previous releases.
-- Each Tor v3 address forms its own address-group for eclipse-attack resistance.
+- All onion addresses (v2 and v3) share a small fixed set of address groups,
+  matching upstream Bitcoin Core: onion keys are free to generate, so giving
+  each address its own group would let one attacker occupy arbitrarily many
+  address-manager buckets.
 
 Toolchain & CI
 --------------
@@ -54,6 +57,14 @@ Notes
 
 - I2P and CJDNS `addrv2` networks are recognized but not routed; unknown
   network ids are safely ignored.
+- Upgrading nodes that use Tor: an `onion_private_key` file written by an
+  earlier release holds a v2 (RSA1024) key that modern Tor daemons reject.
+  Delete the file from the data directory and restart; a new `ED25519-V3`
+  v3 onion service is created automatically.
+- Tor v3 peer addresses are not yet persisted across restarts (`peers.dat`
+  keeps its legacy format, which cannot represent them), so v3 peers are
+  re-discovered each run. A `peers.dat` format upgrade is planned as a
+  follow-up.
 
 Verification status
 -------------------
