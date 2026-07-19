@@ -90,6 +90,13 @@ QString loadStyleSheet(){
 		mouseOverBgColorCode = 0xbababa;
 		selectedTextColorCode = 0x000000;
 		selectedDateColorCode = 0x707070;
+
+		// rich-text hyperlinks use the palette link color, which
+		// defaults to a blue too dark to read on black
+		QPalette palette = qApp->palette();
+		palette.setColor(QPalette::Link, QColor(0x58, 0xa6, 0xff));
+		palette.setColor(QPalette::LinkVisited, QColor(0xbc, 0x8c, 0xff));
+		qApp->setPalette(palette);
 	}
     return stylesheet;
 }

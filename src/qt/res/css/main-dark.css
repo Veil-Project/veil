@@ -177,6 +177,32 @@ QLineEdit {
     color: #bababa;
 }
 
+/* scroll bars: dark track (the light sheet uses a white track), and
+   style the horizontal axis the same slim, arrowless way as vertical */
+QScrollBar:vertical {
+    background: #14f7fbfe;
+}
+
+QScrollBar:horizontal {
+    border: 0px;
+    background: #14f7fbfe;
+    height: 7px;
+    margin: 0px;
+    border-radius: 3px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #bababa;
+    min-width: 0px;
+    border-radius: 3px;
+}
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    background: transparent;
+    width: 0px;
+}
+
 QValidatedLineEdit {
     color: #bababa;
 }
@@ -629,6 +655,23 @@ QWidget#RPCConsole QWidget#tab_peers {
 
 QWidget#RPCConsole QLabel {
     color:#bababa;
+}
+
+/* "Totals" box on the Network Traffic tab */
+QWidget#RPCConsole QGroupBox {
+    color:#bababa;
+    background-color:transparent;
+}
+
+/* icon-only console buttons (font size, clear) and the > prompt carry
+   dark glyphs; keep them on a light chip */
+QWidget#RPCConsole QPushButton#fontSmallerButton,
+QWidget#RPCConsole QPushButton#fontBiggerButton,
+QWidget#RPCConsole QPushButton#clearButton,
+QWidget#RPCConsole QPushButton#promptIcon {
+    background-color:#bababa;
+    border-radius:4px;
+    padding:2px;
 }
 
 /** tab_info */

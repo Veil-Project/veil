@@ -270,6 +270,35 @@ QScrollBar::sub-line:vertical {
     subcontrol-origin: margin;
 }
 
+/* style the horizontal axis the same slim, arrowless way as vertical
+   (a half-styled scrollbar otherwise draws blank end buttons) */
+QScrollBar:horizontal {
+    border: 0px;
+    background: white;
+    height: 7px;
+    margin: 0px;
+    border-radius: 3px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #bababa;
+    min-width: 0px;
+    border-radius: 3px;
+}
+
+QScrollBar::add-line:horizontal {
+    background: #bababa;
+    width: 0px;
+    subcontrol-position: right;
+    subcontrol-origin: margin;
+}
+QScrollBar::sub-line:horizontal {
+    background: #bababa;
+    width: 0px;
+    subcontrol-position: left;
+    subcontrol-origin: margin;
+}
+
 /*HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH
 HH       BUTTONS
 HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
@@ -1067,6 +1096,22 @@ QWidget#RPCConsole QFrame#frame {
     background-color: white;
 }
 
+/* explicit tab styling: the native macOS tab renders its selected
+   label white-on-light while the window has focus */
+QWidget#RPCConsole QTabBar::tab {
+    background-color:#f2f2f2;
+    color:#575756;
+    padding: 6px 18px 6px 18px;
+    border: 1px solid #e0e0e0;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+QWidget#RPCConsole QTabBar::tab:selected {
+    background-color:#105aef;
+    color:#FFFFFF;
+}
+
 /** tabWidget */
 QWidget#RPCConsole QTabWidget#tabWidget {
     background-color:white;
@@ -1343,6 +1388,22 @@ HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH*/
 QDialog#OptionsDialog {
     background-color:white;
     border:none;
+}
+
+/* explicit tab styling: same native-macOS focus quirk as the debug
+   window */
+QDialog#OptionsDialog QTabBar::tab {
+    background-color:#f2f2f2;
+    color:#575756;
+    padding: 6px 18px 6px 18px;
+    border: 1px solid #e0e0e0;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+QDialog#OptionsDialog QTabBar::tab:selected {
+    background-color:#105aef;
+    color:#FFFFFF;
 }
 
 /** tabMain */
