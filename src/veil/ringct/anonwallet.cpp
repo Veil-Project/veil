@@ -1278,6 +1278,28 @@ void AnonWallet::MarkInputsAsPendingSpend(const std::vector<COutPoint>& vin)
     }
 }
 
+void AnonWallet::UnwindPendingTransaction(const uint256& txid)
+{
+    LOCK(pwalletParent->cs_wallet);
+    auto mi = mapRecords.find(txid);
+    if (mi == mapRecords.end())
+        return;
+    for (const COutPoint& prevout : mi->second.vin) {
+        auto mit = mapRecords.find(prevout.hash);
+        if (mit == mapRecords.end())
+            continue;
+        COutputRecord* pout = mit->second.GetOutput(prevout.n);
+        if (!pout)
+            continue;
+        pout->MarkPendingSpend(false);
+        SaveRecord(prevout.hash, mit->second);
+    }
+    AnonWalletDB wdb(*walletDatabase);
+    wdb.EraseTxRecord(txid);
+    mapRecords.erase(mi);
+    LogPrintf("%s: removed unbroadcast transaction record %s\n", __func__, txid.ToString());
+}
+
 void AnonWallet::AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend)
 {
     for (const auto &r : vecSend) {

@@ -68,6 +68,12 @@ static const bool DEFAULT_SPEND_ZEROCONF_CHANGE = true;
 static const bool DEFAULT_WALLET_REJECT_LONG_CHAINS = false;
 //! Default for -avoidpartialspends
 static const bool DEFAULT_AVOIDPARTIALSPENDS = false;
+//! Default for -autoconvert
+static const bool DEFAULT_AUTOCONVERT = false;
+//! -autoconvertthreshold default
+static const CAmount DEFAULT_AUTOCONVERT_THRESHOLD = 10 * COIN;
+//! How often the -autoconvert scheduler task runs (milliseconds)
+static const int64_t AUTOCONVERT_TIMER_INTERVAL_MS = 60 * 1000;
 //! -txconfirmtarget default
 static const unsigned int DEFAULT_TX_CONFIRM_TARGET = 6;
 //! -walletrbf default
@@ -697,6 +703,12 @@ protected:
     bool fUnlockForStakingOnly = false;
     bool fStakingEnabled = true;
 
+    //! -autoconvert state, only touched from the scheduler thread
+    enum class AutoConvertResult { NOTHING_TO_CONVERT, CONVERTED, FAILED };
+    AutoConvertResult AutoConvertBatch(bool fFromBasecoin);
+    int64_t m_autoconvert_not_before = 0;
+    int m_autoconvert_failures = 0;
+
     WalletBatch *encrypted_batch = nullptr;
 
     //! the current wallet version: clients below this version are not able to load the wallet
@@ -1073,6 +1085,9 @@ public:
     void ResendWalletTransactions(int64_t nBestBlockTime, CConnman* connman) override;
     // ResendWalletTransactionsBefore may only be called if fBroadcastTransactions!
     std::vector<uint256> ResendWalletTransactionsBefore(int64_t nTime, CConnman* connman);
+    /** Convert a batch of confirmed basecoin or CT outputs to RingCT. Runs from
+     * a scheduler task when -autoconvert is enabled. */
+    void AutoConvertToRingCT();
     CAmount GetBasecoinBalance(const isminefilter& filter=ISMINE_SPENDABLE, const int min_depth=0) const;
     CAmount GetBalance(const isminefilter& filter=ISMINE_SPENDABLE, const int min_depth=0) const;
     bool GetBalances(BalanceList& bal);
@@ -1135,6 +1150,7 @@ public:
     bool m_signal_rbf{DEFAULT_WALLET_RBF};
     bool m_allow_fallback_fee{true}; //<! will be defined via chainparams
     CFeeRate m_min_fee{DEFAULT_TRANSACTION_MINFEE}; //!< Override with -mintxfee
+    CAmount m_autoconvert_threshold{DEFAULT_AUTOCONVERT_THRESHOLD}; //!< Override with -autoconvertthreshold
     /**
      * If fee estimation does not have enough data to provide estimates, use this fee instead.
      * Has no effect if not using fee estimation
