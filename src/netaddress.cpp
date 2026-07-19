@@ -185,45 +185,45 @@ bool CNetAddr::IsRFC5737() const
 
 bool CNetAddr::IsRFC3849() const
 {
-    return GetByte(15) == 0x20 && GetByte(14) == 0x01 && GetByte(13) == 0x0D && GetByte(12) == 0xB8;
+    return m_addr.size() == ADDR_IPV6_SIZE && GetByte(15) == 0x20 && GetByte(14) == 0x01 && GetByte(13) == 0x0D && GetByte(12) == 0xB8;
 }
 
 bool CNetAddr::IsRFC3964() const
 {
-    return (GetByte(15) == 0x20 && GetByte(14) == 0x02);
+    return m_addr.size() == ADDR_IPV6_SIZE && (GetByte(15) == 0x20 && GetByte(14) == 0x02);
 }
 
 bool CNetAddr::IsRFC6052() const
 {
     static const unsigned char pchRFC6052[] = {0,0x64,0xFF,0x9B,0,0,0,0,0,0,0,0};
-    return (memcmp(m_addr.data(), pchRFC6052, sizeof(pchRFC6052)) == 0);
+    return m_addr.size() == ADDR_IPV6_SIZE && (memcmp(m_addr.data(), pchRFC6052, sizeof(pchRFC6052)) == 0);
 }
 
 bool CNetAddr::IsRFC4380() const
 {
-    return (GetByte(15) == 0x20 && GetByte(14) == 0x01 && GetByte(13) == 0 && GetByte(12) == 0);
+    return m_addr.size() == ADDR_IPV6_SIZE && (GetByte(15) == 0x20 && GetByte(14) == 0x01 && GetByte(13) == 0 && GetByte(12) == 0);
 }
 
 bool CNetAddr::IsRFC4862() const
 {
     static const unsigned char pchRFC4862[] = {0xFE,0x80,0,0,0,0,0,0};
-    return (memcmp(m_addr.data(), pchRFC4862, sizeof(pchRFC4862)) == 0);
+    return m_addr.size() == ADDR_IPV6_SIZE && (memcmp(m_addr.data(), pchRFC4862, sizeof(pchRFC4862)) == 0);
 }
 
 bool CNetAddr::IsRFC4193() const
 {
-    return ((GetByte(15) & 0xFE) == 0xFC);
+    return m_addr.size() == ADDR_IPV6_SIZE && ((GetByte(15) & 0xFE) == 0xFC);
 }
 
 bool CNetAddr::IsRFC6145() const
 {
     static const unsigned char pchRFC6145[] = {0,0,0,0,0,0,0,0,0xFF,0xFF,0,0};
-    return (memcmp(m_addr.data(), pchRFC6145, sizeof(pchRFC6145)) == 0);
+    return m_addr.size() == ADDR_IPV6_SIZE && (memcmp(m_addr.data(), pchRFC6145, sizeof(pchRFC6145)) == 0);
 }
 
 bool CNetAddr::IsRFC4843() const
 {
-    return (GetByte(15) == 0x20 && GetByte(14) == 0x01 && GetByte(13) == 0x00 && (GetByte(12) & 0xF0) == 0x10);
+    return m_addr.size() == ADDR_IPV6_SIZE && (GetByte(15) == 0x20 && GetByte(14) == 0x01 && GetByte(13) == 0x00 && (GetByte(12) & 0xF0) == 0x10);
 }
 
 bool CNetAddr::IsTor() const
@@ -407,12 +407,15 @@ std::vector<unsigned char> CNetAddr::GetGroup() const
 {
     std::vector<unsigned char> vchRet;
 
-    // Tor v3: give each address its own group (no IP-locality to cluster on),
-    // keyed by NET_ONION + the full pubkey. Handled before the 16-byte logic
-    // since GetByte()/the RFC checks assume the legacy layout.
+    // Tor v3: like Tor v2 below (and upstream Bitcoin Core), all onion
+    // addresses share a small fixed set of 16 groups keyed by the first 4 bits
+    // of the address. Onion keys are free to generate, so giving each address
+    // its own group would let a single attacker spread across arbitrarily many
+    // addrman buckets. Handled before the 16-byte logic since GetByte()/the
+    // RFC checks assume the legacy layout.
     if (m_addr.size() == ADDR_TORV3_SIZE) {
         vchRet.push_back(NET_ONION);
-        vchRet.insert(vchRet.end(), m_addr.begin(), m_addr.end());
+        vchRet.push_back(m_addr[0] | ((1 << 4) - 1));
         return vchRet;
     }
 
@@ -764,7 +767,10 @@ CSubNet::CSubNet():
 
 CSubNet::CSubNet(const CNetAddr &addr, int32_t mask)
 {
-    valid = true;
+    // Masked subnets are only representable for 16-byte (IPv4/IPv6-mapped)
+    // addresses; a Tor v3 address can only form a single-address subnet via
+    // the CSubNet(addr) constructor.
+    valid = addr.IsAddrV1Compatible();
     network = addr;
     // Default to /32 (IPv4) or /128 (IPv6), i.e. match single address
     memset(netmask, 255, sizeof(netmask));
@@ -789,7 +795,8 @@ CSubNet::CSubNet(const CNetAddr &addr, int32_t mask)
 
 CSubNet::CSubNet(const CNetAddr &addr, const CNetAddr &mask)
 {
-    valid = true;
+    // See the int32_t-mask constructor: netmasks require the 16-byte layout.
+    valid = addr.IsAddrV1Compatible();
     network = addr;
     // Default to /32 (IPv4) or /128 (IPv6), i.e. match single address
     memset(netmask, 255, sizeof(netmask));
@@ -816,6 +823,17 @@ bool CSubNet::Match(const CNetAddr &addr) const
 {
     if (!valid || !addr.IsValid())
         return false;
+    // A netmask is only meaningful over addresses of the same size. Without
+    // this guard a 32-byte Tor v3 address would have its first 16 pubkey
+    // bytes compared against an IPv4/IPv6 mask (e.g. ::/0 would match every
+    // v3 address).
+    if (network.m_addr.size() != addr.m_addr.size())
+        return false;
+    if (network.m_addr.size() != ADDR_IPV6_SIZE) {
+        // Non-IP addresses (Tor v3) only form single-address subnets, so a
+        // match means exact equality.
+        return std::equal(network.m_addr.begin(), network.m_addr.end(), addr.m_addr.begin());
+    }
     for(int x=0; x<16; ++x)
         if ((addr.m_addr[x] & netmask[x]) != network.m_addr[x])
             return false;
