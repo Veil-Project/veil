@@ -219,6 +219,9 @@ public:
     void AddOutputRecordMetaData(CTransactionRecord &rtx, std::vector<CTempRecipient> &vecSend);
     bool ExpandTempRecipients(std::vector<CTempRecipient> &vecSend, std::string &sError);
     void MarkInputsAsPendingSpend(const std::vector<COutPoint>& rtxvin);
+    /** Remove the record of a transaction that was built but never accepted for
+     * broadcast, unmarking the pending spend state of its inputs. */
+    void UnwindPendingTransaction(const uint256& txid);
 
     bool AddCTData(CTxOutBase *txout, CTempRecipient &r, std::string &sError);
 
