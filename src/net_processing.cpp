@@ -2036,14 +2036,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         if (pfrom->fInbound)
             PushNodeVersion(pfrom, connman, GetAdjustedTime());
 
-        connman->PushMessage(pfrom, CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::VERACK));
+        // Signal BIP155 (addrv2) support. BIP155 requires this to be sent
+        // before verack. Peers that predate BIP155 ignore the unknown message
+        // and keep receiving legacy addr; every peer that can connect under
+        // the current MIN_PEER_PROTO_VERSION speaks a protocol version high
+        // enough that no version gate is needed here.
+        connman->PushMessage(pfrom, CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::SENDADDRV2));
 
-        // Signal BIP155 (addrv2) support before verack so the peer can record
-        // it before any address exchange. Peers that predate BIP155 ignore the
-        // unknown message and we keep relaying legacy addr to them.
-        if (nVersion >= 70016) {
-            connman->PushMessage(pfrom, CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::SENDADDRV2));
-        }
+        connman->PushMessage(pfrom, CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::VERACK));
 
         pfrom->nServices = nServices;
         pfrom->SetAddrLocal(addrMe);
