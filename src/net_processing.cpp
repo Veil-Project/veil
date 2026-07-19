@@ -2104,6 +2104,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             {
                 connman->PushMessage(pfrom, CNetMsgMaker(nSendVersion).Make(NetMsgType::GETADDR));
                 pfrom->fGetAddr = true;
+                // We asked for a full address dump, so grant the peer the
+                // bucket to deliver it; unsolicited addr trickle otherwise
+                // stays limited to the refill rate from the initial 1 token.
+                pfrom->m_addr_token_bucket += MAX_ADDR_PROCESSING_TOKEN_BUCKET;
             }
             connman->MarkAddressGood(pfrom->addr);
         }

@@ -689,11 +689,12 @@ public:
     CRollingBloomFilter addrKnown;
     bool fGetAddr;
     // Rate limiting of incoming addr-relay processing (token bucket).
-    // Bucket starts full (= the 1000-address message cap) so a solicited
-    // getaddr response is accepted in full; it refills at
-    // MAX_ADDR_RATE_PER_SECOND up to MAX_ADDR_PROCESSING_TOKEN_BUCKET (both
+    // Bucket starts near-empty (1 token) so an unsolicited peer cannot dump
+    // a full 1000-address message on connect; it is topped up by
+    // MAX_ADDR_PROCESSING_TOKEN_BUCKET when we send that peer a getaddr, and
+    // otherwise refills at MAX_ADDR_RATE_PER_SECOND up to the same cap (both
     // defined in net_processing.cpp), capping sustained addr processing.
-    double m_addr_token_bucket{1000};
+    double m_addr_token_bucket{1};
     int64_t m_addr_token_timestamp_us{0};
     std::atomic<uint64_t> m_addr_processed{0};
     std::atomic<uint64_t> m_addr_rate_limited{0};
