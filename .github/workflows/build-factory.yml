@@ -67,6 +67,23 @@ jobs:
         ./configure --disable-jni --enable-tests --with-comparison-tool=no --prefix=$(realpath depends/x86_64-pc-linux-gnu)
         make -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
+    - name: Verify daemon binaries link without OpenSSL
+      # 1.5.0 removed OpenSSL from veild/veil-cli/veil-tx (the RNG was its
+      # last user). Guard against it creeping back in: ldd catches dynamic
+      # linkage, nm on the still-unstripped binaries catches statically
+      # linked-in libssl/libcrypto from depends. veil-qt is intentionally
+      # not checked - the GUI still links OpenSSL via its Qt/BIP70 lineage.
+      run: |
+        for bin in src/veild src/veil-cli src/veil-tx; do
+          if ldd "$bin" | grep -Ei 'libssl|libcrypto'; then
+            echo "::error::$bin dynamically links OpenSSL"; exit 1
+          fi
+          if nm --defined-only "$bin" 2>/dev/null | grep -Ew 'SSL_new|SSL_CTX_new|EVP_EncryptInit_ex|RAND_bytes'; then
+            echo "::error::$bin contains statically linked OpenSSL symbols"; exit 1
+          fi
+          echo "$bin: no OpenSSL linkage"
+        done
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Prepare Files for Artifact
       run: |
         mkdir -p $ARTIFACT_DIR
@@ -396,7 +413,7 @@ jobs:
       # instrument). Expand as the remaining suites are fixed.
       run: >
         src/test/test_veil --catch_system_errors=no
-        --run_test=crypto_tests,random_tests,serialize_tests,streams_tests,prevector_tests,uint256_tests,allocator_tests,sanity_tests,scheduler_tests,bech32_tests,bip32_tests,net_tests,addrman_tests,blockencodings_tests,denialofservice_tests,monthly_rewards_tests,progpow_tests,zerocoin_implementation_tests
+        --run_test=crypto_tests,random_tests,serialize_tests,streams_tests,prevector_tests,uint256_tests,allocator_tests,sanity_tests,scheduler_tests,bech32_tests,bip32_tests,net_tests,netbase_tests,addrman_tests,blockencodings_tests,denialofservice_tests,monthly_rewards_tests,progpow_tests,zerocoin_implementation_tests
       working-directory: ${{ env.SOURCE_ARTIFACT }}
   build-macos-arm64-native:
     name: Native Build + Tests (macOS arm64)
@@ -449,7 +466,19 @@ jobs:
       # Linux and runs no tests).
       run: >
         src/test/test_veil --catch_system_errors=no
-        --run_test=crypto_tests,random_tests,serialize_tests,streams_tests,prevector_tests,uint256_tests,allocator_tests,sanity_tests,scheduler_tests,bech32_tests,bip32_tests,net_tests,addrman_tests,blockencodings_tests,denialofservice_tests,monthly_rewards_tests,progpow_tests,zerocoin_implementation_tests
+        --run_test=crypto_tests,random_tests,serialize_tests,streams_tests,prevector_tests,uint256_tests,allocator_tests,sanity_tests,scheduler_tests,bech32_tests,bip32_tests,net_tests,netbase_tests,addrman_tests,blockencodings_tests,denialofservice_tests,monthly_rewards_tests,progpow_tests,zerocoin_implementation_tests
+    - name: Verify daemon binaries link without OpenSSL
+      # Homebrew libs are all dynamic here, so otool -L is a complete check
+      # that veild/veil-cli/veil-tx carry no libssl/libcrypto (removed with
+      # the 1.5.0 RNG). veil-qt is intentionally not checked - the GUI still
+      # links OpenSSL via its Qt/BIP70 lineage.
+      run: |
+        for bin in src/veild src/veil-cli src/veil-tx; do
+          if otool -L "$bin" | grep -Ei 'libssl|libcrypto'; then
+            echo "::error::$bin links OpenSSL"; exit 1
+          fi
+          echo "$bin: no OpenSSL linkage"
+        done
     - name: Prepare Files for Artifact
       run: |
         mkdir -p $ARTIFACT_DIR
