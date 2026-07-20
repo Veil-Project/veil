@@ -37,13 +37,14 @@ static CNetAddr CreateInternal(const char* host)
 
 // Build a Tor v3 CNetAddr with a chosen first pubkey byte by decoding a raw
 // BIP155 stream (SetSpecial would require a valid SHA3 checksum).
-static CNetAddr TorV3Addr(uint8_t first_byte)
+static CNetAddr TorV3Addr(uint8_t first_byte, uint8_t last_byte = 0x11)
 {
     CDataStream s(SER_NETWORK, PROTOCOL_VERSION | ADDRV2_FORMAT);
     ser_writedata8(s, static_cast<uint8_t>(BIP155_NET_TORV3));
     WriteCompactSize(s, ADDR_TORV3_SIZE);
     std::vector<uint8_t> pubkey(ADDR_TORV3_SIZE, 0x11);
     pubkey[0] = first_byte;
+    pubkey[ADDR_TORV3_SIZE - 1] = last_byte;
     s.write(reinterpret_cast<const char*>(pubkey.data()), pubkey.size());
     CNetAddr addr;
     s >> addr;
@@ -307,6 +308,10 @@ BOOST_AUTO_TEST_CASE(subnet_test)
     BOOST_CHECK(CSubNet(tor_v3).IsValid());
     BOOST_CHECK(CSubNet(tor_v3).Match(tor_v3));
     BOOST_CHECK(!CSubNet(tor_v3).Match(TorV3Addr(0x78)));
+    // Two v3 addresses identical in their first 16 bytes but differing past
+    // byte 15 must not match: exact-match must span all 32 pubkey bytes, not
+    // just the legacy 16-byte prefix.
+    BOOST_CHECK(!CSubNet(tor_v3).Match(TorV3Addr(0x79, 0x22)));
     BOOST_CHECK(!CSubNet(tor_v3).Match(ResolveIP("1.2.3.4")));
 }
 
