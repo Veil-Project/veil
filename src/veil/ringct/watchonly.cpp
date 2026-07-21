@@ -723,8 +723,10 @@ bool AddWatchOnlyAddress(const std::string& address, const CKey& scan_secret, co
     return true;
 }
 
-bool RemoveWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey)
+bool RemoveWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey, int& nTxesRemoved)
 {
+    nTxesRemoved = 0;
+
     // Use CKeyID as the map key (V2)
     CKeyID keyID = scan_secret.GetPubKey().GetID();
 
@@ -755,7 +757,7 @@ bool RemoveWatchOnlyAddress(const std::string& address, const CKey& scan_secret,
     watchonlyTxCache.Flush(scan_secret);
 
     // Remove all data from database (address, transactions, count, checkpoint)
-    if (!pwatchonlyDB->EraseWatchOnlyAddressData(keyID, scan_secret)) {
+    if (!pwatchonlyDB->EraseWatchOnlyAddressData(keyID, scan_secret, nTxesRemoved)) {
         return error("%s: Failed to erase watch-only address data from database", __func__);
     }
 
@@ -825,9 +827,12 @@ bool AddWatchOnlyTransaction(const CKey& key, const CWatchOnlyTx& watchonlytx)
             // Key count exists
             return pwatchonlyDB->WriteWatchOnlyTx(key, current_count, watchonlytx);
         } else {
-            // Key count didn't exist.. do the same thing?
+            // Key count didn't exist: write the first transaction at index 1 so the
+            // non-cached path matches the 1-based indexing used by the cached path
+            // (WriteBulkWatchOnlyTx). Writing with -1 here stored the first tx at
+            // index 0 with the count also stored as 0, permanently under-counting.
             LogPrintf("%s: adding watchonly transaction to fresh count %d\n", __func__, current_count);
-            return pwatchonlyDB->WriteWatchOnlyTx(key, -1, watchonlytx);
+            return pwatchonlyDB->WriteWatchOnlyTx(key, 0, watchonlytx);
         }
     }
 }

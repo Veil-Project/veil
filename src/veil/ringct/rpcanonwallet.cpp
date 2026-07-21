@@ -2170,7 +2170,7 @@ static UniValue importstealthkeys(const JSONRPCRequest &request)
                 "\nArguments:\n"
                 "1. \"scan_secret\"      (string, required) Scan secret key in WIF or hex format\n"
                 "2. \"spend_secret\"     (string, required) Spend secret key in WIF or hex format\n"
-                "3. rescan               (boolean, optional, default=true) Rescan the wallet for transactions\n"
+                "3. rescan               (boolean, optional, default=true) Rescan the blockchain for transactions (may take several minutes)\n"
                 "4. \"label\"            (string, optional, default=\"\") Label for address in addressbook\n"
                 "\nResult:\n"
                 "{\n"
@@ -2273,11 +2273,18 @@ static UniValue importstealthkeys(const JSONRPCRequest &request)
     result.pushKV("result", "success");
     result.pushKV("stealth_address", sxAddr.ToString(true));
 
-    // Rescan if requested
+    // Rescan the chain if requested. AnonWallet::RescanWallet() only repairs
+    // records the wallet already knows about — a full chain rescan is required
+    // to discover historical transactions received by the imported keys
+    // (CWallet::AddToWalletIfInvolvingMe feeds the AnonWallet stealth
+    // processing during the rescan).
     if (fRescan) {
-        result.pushKV("rescan", "started");
-        LOCK2(cs_main, pwallet->cs_wallet);
-        anonwallet->RescanWallet();
+        WalletRescanReserver reserver(pwallet);
+        if (!reserver.reserve()) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Wallet is currently rescanning. Abort existing rescan or wait, then rescan manually.");
+        }
+        pwallet->RescanFromTime(0 /* scan whole chain */, reserver, true /* update */);
+        result.pushKV("rescan", "completed");
     }
 
     return result;
@@ -2375,13 +2382,15 @@ static UniValue removewatchonlyaddress(const JSONRPCRequest &request)
     }
 
     // Remove address and all associated data
-    if (!RemoveWatchOnlyAddress(address, scan_secret, spend_public)) {
+    int nTxesRemoved = 0;
+    if (!RemoveWatchOnlyAddress(address, scan_secret, spend_public, nTxesRemoved)) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Failed to remove watch-only address");
     }
 
     UniValue result(UniValue::VOBJ);
     result.pushKV("result", "success");
     result.pushKV("address", address);
+    result.pushKV("transactions_removed", nTxesRemoved);
     return result;
 }
 
@@ -2485,12 +2494,13 @@ static UniValue getwatchonlystatus(const JSONRPCRequest &request)
 
         int current_count = 0;
         if (GetWatchOnlyKeyCount(sxAddr.scan_secret, current_count)) {
-            // Handle legacy bug: first tx may be at index 0 with count stored as 0
-            if (current_count == 0) {
-                CWatchOnlyTx checkTx;
-                if (ReadWatchOnlyTransaction(sxAddr.scan_secret, 0, checkTx)) {
-                    current_count = 1;
-                }
+            // Databases written through the non-cached path stored the first
+            // transaction at index 0 with the count not including it (the count
+            // only covers indices 1..count). Probe index 0 and include it so the
+            // reported total is correct for any count, not just count == 0.
+            CWatchOnlyTx checkTx;
+            if (ReadWatchOnlyTransaction(sxAddr.scan_secret, 0, checkTx)) {
+                current_count += 1;
             }
             result.pushKV("transactions_found", current_count);
         }

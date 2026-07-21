@@ -1268,14 +1268,16 @@ static UniValue getwatchonlytxes(const JSONRPCRequest& request)
         int dbStartIndex = nStartingIndex;  // Start at actual user index
         int dbEndIndex = dbStartIndex + nBatchSize - 1;
 
-        // Clamp to available range (total_count is the max 1-based index, but we also check 0)
-        if (dbEndIndex > total_count) {
-            dbEndIndex = total_count;
-        }
+        // The requested range [dbStartIndex, dbEndIndex] deliberately extends past
+        // total_count so that unflushed cached transactions (which occupy indices
+        // total_count+1 and up) can be returned in the same batch. Only the
+        // database loop below is clamped to total_count; clamping dbEndIndex
+        // itself would make the cached-transaction range check always fail.
+        int dbLoopEnd = std::min(dbEndIndex, total_count);
 
         // Fetch transactions from database
         // Try index 0 first (handles buggy writes), then 1-based indices
-        for (int i = dbStartIndex; i <= dbEndIndex; i++) {
+        for (int i = dbStartIndex; i <= dbLoopEnd; i++) {
             CWatchOnlyTx watchonlytx;
             if (ReadWatchOnlyTransaction(scan_secret, i, watchonlytx)) {
                 // Get transaction block information for confirmations and timestamp

@@ -203,7 +203,7 @@ public:
 
 /** Watchonly address methods */
 bool AddWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey, const int64_t& nStart, const int64_t& nImported);
-bool RemoveWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey);
+bool RemoveWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey, int& nTxesRemoved);
 bool LoadWatchOnlyAddresses();
 bool FlushWatchOnlyAddresses();
 
