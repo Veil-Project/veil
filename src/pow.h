@@ -27,6 +27,12 @@ extern bool fKeyBlockedChanged;
 extern CCriticalSection cs_randomx_validator;
 
 arith_uint256 GetPowLimit(int nPoWType);
+/** One step of the DarkGravityWave running target average,
+ *  (bnPastTargetAvg * nCountBlocks + bnTarget) / (nCountBlocks + 1), evaluated at
+ *  512-bit width: the 256-bit intermediate sum wraps 2^256 once ~3 near-pow-limit
+ *  (regtest) targets are accumulated. Bit-identical to 256-bit evaluation
+ *  whenever that evaluation does not wrap. */
+arith_uint256 DgwTargetAvgStep(const arith_uint256& bnPastTargetAvg, unsigned int nCountBlocks, const arith_uint256& bnTarget);
 unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHeader *pblock, const Consensus::Params&,
                                     bool fProofOfStake, int nPoWType);
 unsigned int DGW_old(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake);
