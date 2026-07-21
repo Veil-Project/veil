@@ -167,14 +167,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblocktemplate->vTxFees.push_back(-1); // updated at end
     pblocktemplate->vTxSigOpsCost.push_back(-1); // updated at end
 
-    // Add dummy coinstake tx as second transaction for PoS blocks
-    // This reserves position 1 so addPackageTxs doesn't put mempool txs there
-    if (fProofOfStake) {
-        pblock->vtx.emplace_back();
-        pblocktemplate->vTxFees.push_back(-1);
-        pblocktemplate->vTxSigOpsCost.push_back(-1);
-    }
-
     CMutableTransaction txCoinStake;
     CBlockIndex* pindexPrev;
     //Do not pass in the chain tip, because it can change. Instead pass the blockindex directly from mapblockindex, which is const.
@@ -200,6 +192,17 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             return nullptr;
         }
 #endif
+    }
+
+    // Add dummy coinstake tx as second transaction for PoS blocks
+    // This reserves position 1 so addPackageTxs doesn't put mempool txs there.
+    // Note: must be added after the coinstake creation above — while vtx[1] holds
+    // a null placeholder, CBlock::IsProofOfStake()/PowType() dereference vtx[1]
+    // when vtx.size() > 1 (pblock->PowType() is called for GetNextWorkRequired).
+    if (fProofOfStake) {
+        pblock->vtx.emplace_back();
+        pblocktemplate->vTxFees.push_back(-1);
+        pblocktemplate->vTxSigOpsCost.push_back(-1);
     }
 
     LOCK(cs_main);
