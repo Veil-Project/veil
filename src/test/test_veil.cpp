@@ -89,6 +89,9 @@ TestingSetup::TestingSetup(const std::string& chainName) : BasicTestingSetup(cha
 
         mempool.setSanityCheck(1.0);
         pblocktree.reset(new CBlockTreeDB(1 << 20, true));
+        // ConnectBlock writes accumulator checksums through pzerocoinDB every
+        // 10 blocks, so any test that connects past height 10 needs it.
+        pzerocoinDB.reset(new CZerocoinDB(1 << 20, true));
         pcoinsdbview.reset(new CCoinsViewDB(1 << 23, true));
         pcoinsTip.reset(new CCoinsViewCache(pcoinsdbview.get()));
         if (!LoadGenesisBlock(chainparams)) {
@@ -119,6 +122,7 @@ TestingSetup::~TestingSetup()
         UnloadBlockIndex();
         pcoinsTip.reset();
         pcoinsdbview.reset();
+        pzerocoinDB.reset();
         pblocktree.reset();
 }
 
