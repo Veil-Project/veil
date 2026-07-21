@@ -574,7 +574,7 @@ jobs:
       # instrument). Expand as the remaining suites are fixed.
       run: >
         src/test/test_veil --catch_system_errors=no
-        --run_test=crypto_tests,random_tests,serialize_tests,streams_tests,prevector_tests,uint256_tests,allocator_tests,sanity_tests,scheduler_tests,bech32_tests,bip32_tests,net_tests,netbase_tests,addrman_tests,blockencodings_tests,denialofservice_tests,monthly_rewards_tests,pow_tests,progpow_tests,zerocoin_implementation_tests
+        --run_test=crypto_tests,random_tests,serialize_tests,streams_tests,prevector_tests,uint256_tests,allocator_tests,sanity_tests,scheduler_tests,bech32_tests,bip32_tests,net_tests,netbase_tests,addrman_tests,blockencodings_tests,denialofservice_tests,monthly_rewards_tests,pow_tests,progpow_tests,validation_block_tests,zerocoin_implementation_tests
       working-directory: ${{ env.SOURCE_ARTIFACT }}
   build-macos-arm64-native:
     name: Native Build + Tests (macOS arm64)
@@ -627,7 +627,7 @@ jobs:
       # Linux and runs no tests).
       run: >
         src/test/test_veil --catch_system_errors=no
-        --run_test=crypto_tests,random_tests,serialize_tests,streams_tests,prevector_tests,uint256_tests,allocator_tests,sanity_tests,scheduler_tests,bech32_tests,bip32_tests,net_tests,netbase_tests,addrman_tests,blockencodings_tests,denialofservice_tests,monthly_rewards_tests,pow_tests,progpow_tests,zerocoin_implementation_tests
+        --run_test=crypto_tests,random_tests,serialize_tests,streams_tests,prevector_tests,uint256_tests,allocator_tests,sanity_tests,scheduler_tests,bech32_tests,bip32_tests,net_tests,netbase_tests,addrman_tests,blockencodings_tests,denialofservice_tests,monthly_rewards_tests,pow_tests,progpow_tests,validation_block_tests,zerocoin_implementation_tests
     - name: Verify daemon binaries link without OpenSSL
       # Homebrew libs are all dynamic here, so otool -L is a complete check
       # that veild/veil-cli/veil-tx carry no libssl/libcrypto (removed with
