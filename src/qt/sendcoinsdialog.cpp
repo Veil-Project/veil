@@ -340,29 +340,18 @@ void SendCoinsDialog::PrepareTransactionFinished()
         QString recipientElement;
         //recipientElement = "<br />";
 
-        if (!rcp.paymentRequest.IsInitialized()) // normal payment
+        if(rcp.label.length() > 0) // label with address
         {
-            if(rcp.label.length() > 0) // label with address
-            {
-                recipientElement.append(tr("%1 to %2").arg(amount, GUIUtil::HtmlEscape(rcp.label)));
-                recipientElement.append(QString(" (%1)").arg(address));
-            }
-            else // just address
-            {
-                if(isOne){
-                    recipientElement.append(tr("%1").arg(address));
-                }else {
-                    recipientElement.append(tr("%1 </b> %2").arg(address, amount));
-                }
-            }
+            recipientElement.append(tr("%1 to %2").arg(amount, GUIUtil::HtmlEscape(rcp.label)));
+            recipientElement.append(QString(" (%1)").arg(address));
         }
-        else if(!rcp.authenticatedMerchant.isEmpty()) // authenticated payment request
+        else // just address
         {
-            recipientElement.append(tr("%1 to %2").arg(amount, GUIUtil::HtmlEscape(rcp.authenticatedMerchant)));
-        }
-        else // unauthenticated payment request
-        {
-            recipientElement.append(tr("%1 to %2").arg(amount, address));
+            if(isOne){
+                recipientElement.append(tr("%1").arg(address));
+            }else {
+                recipientElement.append(tr("%1 </b> %2").arg(address, amount));
+            }
         }
 
         formatted.append(recipientElement);
