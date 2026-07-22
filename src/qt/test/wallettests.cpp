@@ -6,17 +6,20 @@
 #include <qt/callback.h>
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
-#include <qt/qvalidatedlineedit.h>
 #include <qt/sendcoinsdialog.h>
-#include <qt/sendcoinsentry.h>
 #include <qt/transactiontablemodel.h>
 #include <qt/transactionview.h>
 #include <qt/walletmodel.h>
 #include <key_io.h>
 #include <test/test_veil.h>
 #include <validation.h>
+#include <veil/ringct/anonwallet.h>
+#include <veil/zerocoin/spendreceipt.h>
+#include <veil/zerocoin/zwallet.h>
+#include <wallet/coincontrol.h>
 #include <wallet/wallet.h>
 #include <qt/overviewpage.h>
+#include <qt/veil/balance.h>
 #include <qt/receivecoinsdialog.h>
 #include <qt/recentrequeststablemodel.h>
 #include <qt/receiverequestdialog.h>
@@ -26,10 +29,9 @@
 #include <QAbstractButton>
 #include <QAction>
 #include <QApplication>
-#include <QCheckBox>
+#include <QLineEdit>
 #include <QPushButton>
 #include <QTimer>
-#include <QVBoxLayout>
 #include <QTextEdit>
 #include <QListView>
 #include <QDialogButtonBox>
@@ -54,22 +56,38 @@ void ConfirmSend(QString* text = nullptr, bool cancel = false)
 }
 
 //! Send coins to address and return txid.
-uint256 SendCoins(CWallet& wallet, SendCoinsDialog& sendCoinsDialog, const CTxDestination& address, CAmount amount, bool rbf)
+//
+// Veil's SendCoinsDialog cannot be driven headless: on_sendButton_clicked
+// prepares the transaction on a QtConcurrent thread behind a modal message
+// box and parents its confirmation dialog to the BitcoinGUI main window,
+// which this harness does not construct. Drive WalletModel directly instead;
+// this still exercises the prepare/send path and the transaction table
+// notifications. The dialog also hardcodes m_signal_bip125_rbf to false, so
+// replaceable transactions cannot be created from the GUI at all.
+uint256 SendCoins(CWallet& wallet, WalletModel& walletModel, const CTxDestination& address, CAmount amount)
 {
-    QVBoxLayout* entries = sendCoinsDialog.findChild<QVBoxLayout*>("entries");
-    SendCoinsEntry* entry = qobject_cast<SendCoinsEntry*>(entries->itemAt(0)->widget());
-    entry->findChild<QValidatedLineEdit*>("payTo")->setText(QString::fromStdString(EncodeDestination(address)));
-    entry->findChild<BitcoinAmountField*>("payAmount")->setValue(amount);
-    sendCoinsDialog.findChild<QFrame*>("frameFee")
-        ->findChild<QFrame*>("frameFeeSelection")
-        ->findChild<QCheckBox*>("optInRBF")
-        ->setCheckState(rbf ? Qt::Checked : Qt::Unchecked);
+    SendCoinsRecipient rcp;
+    rcp.address = QString::fromStdString(EncodeDestination(address));
+    rcp.amount = amount;
+    WalletModelTransaction transaction({rcp});
+    WalletModelSpendType spendType;
+    CZerocoinSpendReceipt receipt;
+    std::vector<std::tuple<CWalletTx, std::vector<CDeterministicMint>, std::vector<CZerocoinMint>>> vCommitData;
     uint256 txid;
     boost::signals2::scoped_connection c(wallet.NotifyTransactionChanged.connect([&txid](CWallet*, const uint256& hash, ChangeType status) {
         if (status == CT_NEW) txid = hash;
     }));
-    ConfirmSend();
-    QMetaObject::invokeMethod(&sendCoinsDialog, "on_sendButton_clicked");
+    QMetaObject::Connection msgConn = QObject::connect(&walletModel, &WalletModel::message,
+        [](const QString&, const QString& msg, unsigned int) { qWarning() << "SendCoins: wallet message:" << msg; });
+    WalletModel::SendCoinsReturn prepared = walletModel.prepareTransaction(transaction, CCoinControl(), spendType, receipt, vCommitData, OUTPUT_STANDARD);
+    QObject::disconnect(msgConn);
+    if (prepared.status != WalletModel::OK) {
+        qWarning() << "SendCoins: prepareTransaction failed with status" << prepared.status;
+        return txid;
+    }
+    WalletModel::SendCoinsReturn sent = walletModel.sendCoins(transaction);
+    if (sent.status != WalletModel::OK)
+        qWarning() << "SendCoins: sendCoins failed with status" << sent.status << sent.reasonCommitFailed;
     return txid;
 }
 
@@ -128,14 +146,35 @@ void BumpFee(TransactionView& view, const uint256& txid, bool expectDisabled, st
 //     src/qt/test/test_veil-qt -platform cocoa    # macOS
 void TestGUI()
 {
-    // Set up wallet and chain with 105 blocks (5 mature blocks for spending).
+    // Set up wallet and chain with CoinbaseMaturity()+5 blocks (5 mature
+    // blocks for spending). TestChain100Setup mines CoinbaseMaturity()
+    // blocks, which on Veil regtest is 10, not 100.
     TestChain100Setup test;
     for (int i = 0; i < 5; ++i) {
         test.CreateAndProcessBlock({}, GetScriptForRawPubKey(test.coinbaseKey.GetPubKey()));
     }
+    const int numBlocks = Params().CoinbaseMaturity() + 5;
     std::shared_ptr<CWallet> wallet = std::make_shared<CWallet>("mock", WalletDatabase::CreateMock());
     bool firstRun;
     wallet->LoadWallet(firstRun);
+    // Normal wallet load wires up the zerocoin wallet/tracker and the anon
+    // wallet in CreateWalletFromFile; the harness must do the same or GUI
+    // wallet flows dereference a null zTracker/pAnonWalletMain. Both derive
+    // their master seeds from the wallet's HD chain, so seed it first.
+    wallet->SetHDSeed(wallet->GenerateNewSeed());
+    CzWallet zwallet(wallet.get());
+    wallet->setZWallet(&zwallet);
+    std::shared_ptr<WalletDatabase> anonDatabase = WalletDatabase::CreateMock();
+    {
+        // Batches only create the backing (in-memory) db file when opened
+        // with 'c' in the mode; AnonWallet's batches open "r+".
+        WalletBatch batch(*anonDatabase, "cr+");
+    }
+    AnonWallet anonwallet(wallet, "anonwallet", anonDatabase);
+    CExtKey extMasterAnon;
+    QVERIFY(wallet->GetAnonWalletSeed(extMasterAnon));
+    QVERIFY(anonwallet.Initialise(&extMasterAnon));
+    wallet->SetAnonWallet(&anonwallet);
     {
         LOCK(wallet->cs_wallet);
         wallet->SetAddressBook(GetDestinationForKey(test.coinbaseKey.GetPubKey(), wallet->m_default_address_type), "", "receive");
@@ -163,26 +202,38 @@ void TestGUI()
 
     // Send two transactions, and verify they are added to transaction list.
     TransactionTableModel* transactionTableModel = walletModel.getTransactionTableModel();
-    QCOMPARE(transactionTableModel->rowCount({}), 105);
-    uint256 txid1 = SendCoins(*wallet.get(), sendCoinsDialog, CKeyID(), 5 * COIN, false /* rbf */);
-    uint256 txid2 = SendCoins(*wallet.get(), sendCoinsDialog, CKeyID(), 10 * COIN, true /* rbf */);
-    QCOMPARE(transactionTableModel->rowCount({}), 107);
+    QCOMPARE(transactionTableModel->rowCount({}), numBlocks);
+    // Veil spends basecoin into CT outputs, which need the recipient's public
+    // key for ECDH, so the destination must be a stealth address rather than
+    // a bare CKeyID.
+    CStealthAddress stealthAddress;
+    QVERIFY(anonwallet.NewStealthKey(stealthAddress, 0, nullptr));
+    uint256 txid1 = SendCoins(*wallet.get(), walletModel, stealthAddress, 5 * COIN);
+    uint256 txid2 = SendCoins(*wallet.get(), walletModel, stealthAddress, 10 * COIN);
+    // The table model receives wallet notifications through queued
+    // invocations, which only run once the event loop spins.
+    qApp->processEvents();
+    QCOMPARE(transactionTableModel->rowCount({}), numBlocks + 2);
     QVERIFY(FindTx(*transactionTableModel, txid1).isValid());
     QVERIFY(FindTx(*transactionTableModel, txid2).isValid());
 
-    // Call bumpfee. Test disabled, canceled, enabled, then failing cases.
+    // Call bumpfee. GUI transactions never signal BIP 125 (see SendCoins
+    // above), so only the non-replaceable path can be exercised.
     BumpFee(transactionView, txid1, true /* expect disabled */, "not BIP 125 replaceable" /* expected error */, false /* cancel */);
-    BumpFee(transactionView, txid2, false /* expect disabled */, {} /* expected error */, true /* cancel */);
-    BumpFee(transactionView, txid2, false /* expect disabled */, {} /* expected error */, false /* cancel */);
-    BumpFee(transactionView, txid2, true /* expect disabled */, "already bumped" /* expected error */, false /* cancel */);
 
-    // Check current balance on OverviewPage
+    // Exercise the transaction list on OverviewPage
     OverviewPage overviewPage(platformStyle.get());
     overviewPage.setWalletModel(&walletModel);
-    QLabel* balanceLabel = overviewPage.findChild<QLabel*>("labelBalance");
+
+    // Check current balance in the Balance widget. Veil's GUI shows balances
+    // in the top-bar Balance widget; OverviewPage has no balance label.
+    Balance balanceWidget;
+    balanceWidget.setWalletModel(&walletModel);
+    QLabel* balanceLabel = balanceWidget.findChild<QLabel*>("labelBalance");
     QString balanceText = balanceLabel->text();
     int unit = walletModel.getOptionsModel()->getDisplayUnit();
-    CAmount balance = walletModel.wallet().getBalance();
+    interfaces::WalletBalances balances = walletModel.wallet().getBalances();
+    CAmount balance = balances.basecoin_balance + balances.ct_balance + balances.ring_ct_balance + balances.zerocoin_balance;
     QString balanceComparison = BitcoinUnits::formatWithUnit(unit, balance, false, BitcoinUnits::separatorAlways);
     QCOMPARE(balanceText, balanceComparison);
 

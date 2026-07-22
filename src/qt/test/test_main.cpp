@@ -11,6 +11,8 @@
 #include <util/system.h>
 #include <qt/test/uritests.h>
 #include <qt/test/compattests.h>
+#include <veil/ringct/blind.h>
+#include <veil/ringct/stealth.h>
 
 #ifdef ENABLE_WALLET
 #include <qt/test/addressbooktests.h>
@@ -45,6 +47,11 @@ int main(int argc, char *argv[])
     SetupNetworking();
     SelectParams(CBaseChainParams::MAIN);
     noui_connect();
+    // The stealth/blinding secp256k1 contexts are created by AppInitMain, not
+    // by the BasicTestingSetup the wallet tests use, but CT/RingCT wallet
+    // flows need them.
+    ECC_Start_Stealth();
+    ECC_Start_Blinding();
     ClearDatadirCache();
     fs::path pathTemp = fs::temp_directory_path() / strprintf("test_veil-qt_%lu_%i", (unsigned long)GetTime(), (int)GetRand(100000));
     fs::create_directories(pathTemp);
@@ -64,6 +71,10 @@ int main(int argc, char *argv[])
     // Don't remove this, it's needed to access
     // QApplication:: and QCoreApplication:: in the tests
     QApplication app(argc, argv);
+    // The platform-native style (qmacstyle) calls into the windowing system,
+    // which crashes under the offscreen "minimal" platform; use the
+    // cross-platform Fusion style instead.
+    QApplication::setStyle("fusion");
     app.setApplicationName("Veil-Qt-test");
 
     URITests test1;
@@ -92,6 +103,9 @@ int main(int argc, char *argv[])
 #endif
 
     fs::remove_all(pathTemp);
+
+    ECC_Stop_Stealth();
+    ECC_Stop_Blinding();
 
     return fInvalid;
 }
