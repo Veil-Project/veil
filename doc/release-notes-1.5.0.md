@@ -7,6 +7,11 @@ changes to consensus rules, wallet key storage, RingCT/Zerocoin validation,
 Dandelion, or stealth addresses**. Legacy peers, existing wallets, and
 `peers.dat` remain fully compatible.
 
+Two defensive correctness fixes touch consensus-adjacent code and are called
+out under "Correctness fixes" below: both are argued bit-identical (DGW
+arithmetic) or no-behavior-change (key-image binding) on mainnet and testnet,
+with the reasoning documented in their commit messages.
+
 Security
 --------
 
@@ -51,6 +56,32 @@ Toolchain & CI
 - New CI gates: a **Linux ASan + UBSan** unit-test job (UBSan is a hard gate,
   `halt_on_error=1`) and a **native macOS arm64** build+test job (the
   project's first automated sanitizer/unit coverage).
+- Every build now **asserts that `veild`/`veil-cli`/`veil-tx` link without
+  OpenSSL** (`ldd`+`nm` on Linux, `otool -L` on native arm64). `veil-qt` still
+  links OpenSSL via its Qt/BIP70 lineage; full removal is a follow-up.
+- The upstream **`validation_block_tests` suite is revived** for Veil consensus
+  rules (coinbase height/reward schedule, post-PoW-update header formats,
+  in-memory zerocoin DB) and runs in CI, alongside newly added `pow_tests` and
+  `netbase_tests`.
+
+Correctness fixes
+-----------------
+
+- **DGW difficulty average computed at 512-bit width.** The DarkGravityWave
+  running average of past targets could wrap 2^256 once a few near-pow-limit
+  targets accumulate. Only regtest targets reach that range (difficulty jumped
+  ~3x erratically there); mainnet and testnet targets sit far below it, and
+  the new arithmetic is bit-identical wherever the old one did not wrap, so
+  sync is unaffected. Locked by new `pow_tests` cases.
+- **Key-image stack binding moved inside the anon-input branch** in
+  `CheckTxInputs`. Non-anon inputs carry an empty stack, so the old
+  unconditional binding was undefined behavior (caught by UBSan once
+  `validation_block_tests` connected real blocks); the reference was only
+  ever used for anon inputs. No behavior change.
+- **Regtest chainparams initialize all version-bits deployments.** The
+  `POS_WEIGHT` and `ZC_LIMP` entries were never set on regtest and read
+  indeterminate values whenever the deployment set was iterated; both are now
+  always-active with their canonical bits, matching testnet/devnet.
 
 Notes
 -----
