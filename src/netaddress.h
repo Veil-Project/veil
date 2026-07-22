@@ -180,6 +180,15 @@ class CNetAddr
         // is rejected without reading its bytes first.
         template <typename Stream>
         inline void SerializeV2(Stream& s, CSerActionSerialize) const {
+            if (IsInternal()) {
+                // NET_INTERNAL has no BIP155 network id; embed its 16-byte
+                // prefixed form as IPv6 (as upstream does) so internal
+                // placeholder entries survive an addrv2 round-trip - the
+                // internal prefix classifies them back on read.
+                ::Serialize(s, static_cast<uint8_t>(BIP155_NET_IPV6));
+                ::Serialize(s, std::vector<uint8_t>(m_addr.begin(), m_addr.end()));
+                return;
+            }
             const uint8_t bip155_net = GetBIP155Network();
             ::Serialize(s, bip155_net);
             ::Serialize(s, GetAddrV2Bytes());
