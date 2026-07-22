@@ -14,11 +14,11 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v5.0.0
-    # Needs qt and protobuf to configure qt and include veil-qt.1 in distribution
+    # Needs qt to configure qt and include veil-qt.1 in distribution
     - name: Install Required Packages
       run: |
         sudo apt update
-        sudo apt install -y libboost-all-dev libdb-dev libdb++-dev libevent-dev libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools libprotobuf-dev protobuf-compiler
+        sudo apt install -y libboost-all-dev libdb-dev libdb++-dev libevent-dev libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools
     - name: Create Distribution Tarball
       run: |
         ./autogen.sh
@@ -71,10 +71,10 @@ jobs:
       # 1.5.0 removed OpenSSL from veild/veil-cli/veil-tx (the RNG was its
       # last user). Guard against it creeping back in: ldd catches dynamic
       # linkage, nm on the still-unstripped binaries catches statically
-      # linked-in libssl/libcrypto from depends. veil-qt is intentionally
-      # not checked - the GUI still links OpenSSL via its Qt/BIP70 lineage.
+      # linked-in libssl/libcrypto from depends; with BIP70 removed the GUI
+      # is checked too.
       run: |
-        for bin in src/veild src/veil-cli src/veil-tx; do
+        for bin in src/veild src/veil-cli src/veil-tx src/qt/veil-qt; do
           if ldd "$bin" | grep -Ei 'libssl|libcrypto'; then
             echo "::error::$bin dynamically links OpenSSL"; exit 1
           fi
@@ -602,7 +602,7 @@ jobs:
         brew untap aws/tap 2>/dev/null || true
         # librsvg (rsvg-convert) is needed by `make deploy` to render the
         # .dmg background image; it is not preinstalled on the macOS runner.
-        brew install autoconf automake libtool pkgconf berkeley-db@4 boost@1.85 gmp libevent zeromq miniupnpc qt@5 protobuf librsvg qrencode
+        brew install autoconf automake libtool pkgconf berkeley-db@4 boost@1.85 gmp libevent zeromq miniupnpc qt@5 librsvg qrencode
     - name: Autogen
       run: ./autogen.sh
     - name: Configure
@@ -616,7 +616,7 @@ jobs:
         BDB_CFLAGS="-I$(brew --prefix berkeley-db@4)/include"
         CPPFLAGS="-I$(brew --prefix gmp)/include -DBOOST_NO_CXX98_FUNCTION_BASE"
         LDFLAGS="-L$(brew --prefix gmp)/lib"
-        PKG_CONFIG_PATH="$(brew --prefix openssl@3)/lib/pkgconfig:$(brew --prefix libevent)/lib/pkgconfig:$(brew --prefix zeromq)/lib/pkgconfig:$(brew --prefix qt@5)/lib/pkgconfig"
+        PKG_CONFIG_PATH="$(brew --prefix libevent)/lib/pkgconfig:$(brew --prefix zeromq)/lib/pkgconfig:$(brew --prefix qt@5)/lib/pkgconfig"
         --with-qt-bindir="$(brew --prefix qt@5)/bin"
         --with-boost="$(brew --prefix boost@1.85)"
     - name: Build
@@ -630,11 +630,10 @@ jobs:
         --run_test=crypto_tests,random_tests,serialize_tests,streams_tests,prevector_tests,uint256_tests,allocator_tests,sanity_tests,scheduler_tests,bech32_tests,bip32_tests,net_tests,netbase_tests,addrman_tests,blockencodings_tests,denialofservice_tests,monthly_rewards_tests,pow_tests,progpow_tests,validation_block_tests,zerocoin_implementation_tests
     - name: Verify daemon binaries link without OpenSSL
       # Homebrew libs are all dynamic here, so otool -L is a complete check
-      # that veild/veil-cli/veil-tx carry no libssl/libcrypto (removed with
-      # the 1.5.0 RNG). veil-qt is intentionally not checked - the GUI still
-      # links OpenSSL via its Qt/BIP70 lineage.
+      # that no binary carries libssl/libcrypto: the daemon lost OpenSSL with
+      # the 1.5.0 RNG, and the GUI lost it with the BIP70 removal.
       run: |
-        for bin in src/veild src/veil-cli src/veil-tx; do
+        for bin in src/veild src/veil-cli src/veil-tx src/qt/veil-qt; do
           if otool -L "$bin" | grep -Ei 'libssl|libcrypto'; then
             echo "::error::$bin links OpenSSL"; exit 1
           fi

@@ -224,7 +224,7 @@ AC_ARG_WITH([system-univalue],
   [system_univalue=no])
 
 AC_ARG_WITH([zerocoin-bignum],
-  [AS_HELP_STRING([--with-zerocoin-bignum=gmp|openssl|auto],
+  [AS_HELP_STRING([--with-zerocoin-bignum=gmp|auto],
   [Specify Bignum Implementation. Default is auto])],
   [req_bignum=$withval],
   [req_bignum=auto])
@@ -527,11 +527,6 @@ case $host in
          dnl It's safe to add these paths even if the functionality is disabled by
          dnl the user (--without-wallet or --without-gui for example).
 
-         openssl_prefix=`$BREW --prefix openssl 2>/dev/null`
-         if test x$openssl_prefix != x; then
-           PKG_CONFIG_PATH="$openssl_prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
-           export PKG_CONFIG_PATH
-         fi
          if test "x$use_bdb" != xno && $BREW list --versions berkeley-db4 >/dev/null && test "x$BDB_CFLAGS" = "x" && test "x$BDB_LIBS" = "x"; then
            bdb_prefix=$($BREW --prefix berkeley-db4 2>/dev/null)
            dnl This must precede the call to BITCOIN_FIND_BDB48 below.
@@ -1032,9 +1027,9 @@ CPPFLAGS="$TEMP_CPPFLAGS"
 
 fi
 
-  PKG_CHECK_MODULES([SSL], [libssl],, [AC_MSG_ERROR(openssl not found.)])
-  PKG_CHECK_MODULES([CRYPTO], [libcrypto],,[AC_MSG_ERROR(libcrypto not found.)])
-  BITCOIN_QT_CHECK([PKG_CHECK_MODULES([PROTOBUF], [protobuf], [have_protobuf=yes], [BITCOIN_QT_FAIL(libprotobuf not found)])])
+  dnl OpenSSL and protobuf checks removed: the daemon RNG no longer uses
+  dnl OpenSSL and the GUI's only consumer (the BIP70 payment protocol) has
+  dnl been removed, following upstream.
 
 dnl libevent check
 
@@ -1050,13 +1045,6 @@ dnl QR Code encoding library check
 if test "x$use_qr" != xno; then
   BITCOIN_QT_CHECK([PKG_CHECK_MODULES([QR], [libqrencode], [have_qrencode=yes], [have_qrencode=no])])
 fi
-
-#save_CXXFLAGS="${CXXFLAGS}"
-#CXXFLAGS="${CXXFLAGS} ${CRYPTO_CFLAGS} ${SSL_CFLAGS}"
-#AC_CHECK_DECLS([EVP_MD_CTX_new],,,[AC_INCLUDES_DEFAULT
-##include <openssl/x509_vfy.h>
-#])
-#CXXFLAGS="${save_CXXFLAGS}"
 
 dnl ZMQ check
 
@@ -1077,20 +1065,7 @@ if test "x$use_zmq" = xyes; then
       ZMQ_CFLAGS="$ZMQ_CFLAGS -DZMQ_STATIC"
     ;;
   esac
-  dnl PROTOBUF_LIBS/PROTOBUF_CFLAGS are already set correctly by the
-  dnl PKG_CHECK_MODULES([PROTOBUF], [protobuf], ...) check above, including any
-  dnl transitive link deps a given protobuf build needs (e.g. abseil on newer
-  dnl protobuf releases). A bare `-lprotobuf` re-check here (unrelated to ZMQ)
-  dnl used to clobber that with a weaker check that fails to link against
-  dnl protobuf builds with such transitive deps.
 fi
-
-save_CXXFLAGS="${CXXFLAGS}"
-CXXFLAGS="${CXXFLAGS} ${CRYPTO_CFLAGS} ${SSL_CFLAGS}"
-AC_CHECK_DECLS([EVP_MD_CTX_new],,,[AC_INCLUDES_DEFAULT
-#include <openssl/x509_vfy.h>
-])
-CXXFLAGS="${save_CXXFLAGS}"
 
 dnl univalue check
 
@@ -1179,7 +1154,7 @@ gmp)
   fi
   ;;
 openssl)
-    AC_MSG_WARN([openssl bignum explicitly requested. This is DEPRECATED.])
+    AC_MSG_ERROR([the openssl bignum backend has been removed; use gmp])
   ;;
 *)
   AC_MSG_ERROR([invalid bignum implementation selection])
@@ -1269,9 +1244,6 @@ AM_CONDITIONAL([ENABLE_ZMQ], [test "x$use_zmq" = "xyes"])
 case $set_bignum in
 gmp)
   AC_DEFINE(USE_NUM_GMP, 1, [Define this symbol to use the gmp implementation])
-  ;;
-openssl)
-  AC_DEFINE(USE_NUM_OPENSSL, 1, [Define this symbol to use openssl implementation])
   ;;
 *)
   AC_MSG_ERROR([invalid bignum implementation])
@@ -1375,10 +1347,8 @@ AC_SUBST(SSL_LIBS)
 AC_SUBST(EVENT_LIBS)
 AC_SUBST(EVENT_PTHREADS_LIBS)
 AC_SUBST(ZMQ_LIBS)
-AC_SUBST(PROTOBUF_LIBS)
 AC_SUBST(QR_LIBS)
 AC_SUBST(USE_NUM_GMP)
-AC_SUBST(USE_NUM_OPENSSL)
 AC_CONFIG_FILES([Makefile src/Makefile doc/man/Makefile share/setup.nsi share/qt/Info.plist test/config.ini])
 AC_CONFIG_FILES([contrib/devtools/split-debug.sh],[chmod +x contrib/devtools/split-debug.sh])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([doc/Doxyfile])])
