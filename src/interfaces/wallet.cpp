@@ -527,7 +527,8 @@ public:
         }
 
         if (fFailed) {
-            fail_reason = "Failed to add inputs";
+            if (fail_reason.empty())
+                fail_reason = "Failed to add inputs";
             return {};
         }
 
