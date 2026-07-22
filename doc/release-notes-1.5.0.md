@@ -92,10 +92,12 @@ Notes
   earlier release holds a v2 (RSA1024) key that modern Tor daemons reject.
   Delete the file from the data directory and restart; a new `ED25519-V3`
   v3 onion service is created automatically.
-- Tor v3 peer addresses are not yet persisted across restarts (`peers.dat`
-  keeps its legacy format, which cannot represent them), so v3 peers are
-  re-discovered each run. A `peers.dat` format upgrade is planned as a
-  follow-up.
+- **Tor v3 peers now persist across restarts.** `peers.dat` moves to format 2
+  (addresses stored in the BIP155 encoding). Old files load unchanged;
+  downgrading to a previous release resets `peers.dat` (the old code cannot
+  read the new format and recreates it, losing no other state).
+- The RNG event hasher now receives entropy from P2P message and RPC request
+  arrival timing (the upstream 0.20 call sites for `RandAddEvent`).
 
 Verification status
 -------------------
