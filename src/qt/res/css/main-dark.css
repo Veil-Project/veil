@@ -296,7 +296,7 @@ QWidget#AddressBookPage QPushButton {
     color: #bababa;
     font-size: 14px;
     padding:8;
-    text-align:center !important;
+    text-align:center;
 }
 
 QWidget#AddressBookPage QPushButton:checked {
@@ -325,7 +325,7 @@ QWidget#AddressBookPage QPushButton {
     color: #bababa;
     font-size: 14px;
     padding:8;
-    text-align:center !important;
+    text-align:center;
 }
 
 QWidget#AddressBookPage QPushButton:checked {
@@ -354,7 +354,7 @@ QWidget#AddressBookPage QPushButton {
     color: #bababa;
     font-size: 14px;
     padding:8;
-    text-align:center !important;
+    text-align:center;
 }
 
 QWidget#AddressBookPage QPushButton:checked {
@@ -382,7 +382,7 @@ QWidget#AddressBookPage QPushButton {
     color: #bababa;
     font-size: 14px;
     padding:8;
-    text-align:center !important;
+    text-align:center;
 }
 
 QWidget#AddressBookPage QPushButton:checked {
@@ -1472,7 +1472,7 @@ QDialog#SendCoinsDialog QPushButton {
     color: #000000;
     font-size: 14px;
     padding:8;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SendCoinsDialog QPushButton:checked {
@@ -1501,7 +1501,7 @@ QDialog#SendCoinsDialog QPushButton#addButton {
     color: #000000;
     font-size: 14px;
     padding:8;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SendCoinsDialog QPushButton#addButton:checked {
@@ -1530,7 +1530,7 @@ QDialog#SendCoinsDialog QPushButton#pushButtonCoinControl {
     color: #000000;
     font-size: 14px;
     padding:8;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SendCoinsDialog QPushButton#pushButtonCoinControl:checked {
@@ -2887,7 +2887,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_01 {
     color: #bababa;
     font-size: 18px;
     padding:10px 30px 10px 30px;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SettingsFaq QRadioButton#radioButton_01:checked {
@@ -2917,7 +2917,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_03 {
     color: #bababa;
     font-size: 18px;
     padding:10 30 10 30;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SettingsFaq QRadioButton#radioButton_03:checked {
@@ -2946,7 +2946,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_04 {
     color: #bababa;
     font-size: 18px;
     padding:10 30 10 30;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SettingsFaq QRadioButton#radioButton_04:checked {
@@ -2975,7 +2975,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_05 {
     color: #bababa;
     font-size: 18px;
     padding:10 30 10 30;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SettingsFaq QRadioButton#radioButton_05:checked {
@@ -3004,7 +3004,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_06 {
     color: #bababa;
     font-size: 18px;
     padding:10 30 10 30;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SettingsFaq QRadioButton#radioButton_06:checked {
@@ -3033,7 +3033,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_07 {
     color: #bababa;
     font-size: 18px;
     padding:10 30 10 30;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SettingsFaq QRadioButton#radioButton_07:checked {
@@ -3062,7 +3062,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_08 {
     color: #bababa;
     font-size: 18px;;
     padding:10 30 10 30;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SettingsFaq QRadioButton#radioButton_08:checked {
@@ -3091,7 +3091,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_09 {
     color: #bababa;
     font-size: 18px;
     padding:10 30 10 30;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SettingsFaq QRadioButton#radioButton_09:checked {
@@ -3120,7 +3120,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_10 {
     color: #bababa;
     font-size: 18px;
     padding:10 30 10 30;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SettingsFaq QRadioButton#radioButton_10:checked {
@@ -3150,7 +3150,7 @@ QDialog#SettingsFaq QRadioButton#radioButton_12 {
     color: #bababa;
     font-size: 18px;
     padding:10px 30px 10px 30px;
-    text-align:center !important;
+    text-align:center;
 }
 
 QDialog#SettingsFaq QRadioButton#radioButton_12:checked {
@@ -4268,7 +4268,7 @@ QWidget#TutorialCreateWalletWidget QPushButton {
     color: #bababa;
     font-size: 14px;
     padding:10;
-    text-align:center !important;
+    text-align:center;
 }
 
 QWidget#TutorialCreateWalletWidget QPushButton:checked {
@@ -4298,7 +4298,7 @@ QWidget#TutorialCreateWalletWidget QPushButton {
     color: #bababa;
     font-size: 14px;
     padding:10;
-    text-align:center !important;
+    text-align:center;
 }
 
 QWidget#TutorialCreateWalletWidget QPushButton:checked {
@@ -4349,7 +4349,7 @@ QWidget#TutorialLanguagesWidget QPushButton#pushButton_en {
     color: #bababa;
     font-size: 14px;
     padding:10;
-    text-align:center !important;
+    text-align:center;
 }
 
 QWidget#TutorialLanguagesWidget QPushButton#pushButton_en:checked {
@@ -4378,7 +4378,7 @@ QWidget#TutorialLanguagesWidget QPushButton#pushButton_es {
     color: #bababa;
     font-size: 14px;
     padding:10;
-    text-align:center !important;
+    text-align:center;
 }
 
 QWidget#TutorialLanguagesWidget QPushButton#pushButton_es:checked {
@@ -4407,7 +4407,7 @@ QWidget#TutorialLanguagesWidget QPushButton#pushButton_port {
     color: #bababa;
     font-size: 14px;
     padding:10;
-    text-align:center !important;
+    text-align:center;
 }
 
 QWidget#TutorialLanguagesWidget QPushButton#pushButton_port:checked {
@@ -4436,7 +4436,7 @@ QWidget#TutorialLanguagesWidget QPushButton#pushButton_it {
     color: #bababa;
     font-size: 14px;
     padding:10;
-    text-align:center !important;
+    text-align:center;
 }
 
 QWidget#TutorialLanguagesWidget QPushButton#pushButton_it:checked {
@@ -4465,7 +4465,7 @@ QWidget#TutorialLanguagesWidget QPushButton#pushButton_fr {
     color: #bababa;
     font-size: 14px;
     padding:10;
-    text-align:center !important;
+    text-align:center;
 }
 
 QWidget#TutorialLanguagesWidget QPushButton#pushButton_fr:checked {
@@ -4983,4 +4983,29 @@ QWidget#SettingsFaq10 QLabel#label_2 {
 QWidget#SettingsFaq12 QLabel#label_2 {
     color: #bababa;
     background-color: transparent;
+}
+
+/* Address chooser buttons: pinned with ID selectors so no ancestor
+   rule (the dialog is parented into the Send screen) can override
+   them into invisibility */
+QWidget#AddressBookPage QPushButton#newAddress,
+QWidget#AddressBookPage QPushButton#copyAddress,
+QWidget#AddressBookPage QPushButton#deleteAddress,
+QWidget#AddressBookPage QPushButton#exportButton,
+QWidget#AddressBookPage QPushButton#closeButton {
+    background-color: #ffffff;
+    color: #105aef;
+    border: 1px solid #3890c8;
+    border-radius: 6px;
+    font-size: 14px;
+    padding: 6px 14px 6px 14px;
+}
+
+QWidget#AddressBookPage QPushButton#newAddress:hover,
+QWidget#AddressBookPage QPushButton#copyAddress:hover,
+QWidget#AddressBookPage QPushButton#deleteAddress:hover,
+QWidget#AddressBookPage QPushButton#exportButton:hover,
+QWidget#AddressBookPage QPushButton#closeButton:hover {
+    background-color: #3890c8;
+    color: #ffffff;
 }
