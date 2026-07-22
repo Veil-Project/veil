@@ -20,6 +20,7 @@
 #include <policy/policy.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
+#include <crypto/common.h>
 #include <random.h>
 #include <reverse_iterator.h>
 #include <scheduler.h>
@@ -3550,6 +3551,11 @@ bool PeerLogicValidation::ProcessMessages(CNode* pfrom, std::atomic<bool>& inter
            HexStr(hdr.pchChecksum, hdr.pchChecksum+CMessageHeader::CHECKSUM_SIZE));
         return fMoreWork;
     }
+
+    // Feed the low bits of the message hash into the RNG event hasher
+    // (upstream 0.20: RandAddEvent on every received message; the entropy is
+    // the arrival timing recorded by AddEvent, not the hash itself).
+    RandAddEvent(ReadLE32(hash.begin()));
 
     // Process message
     bool fRet = false;

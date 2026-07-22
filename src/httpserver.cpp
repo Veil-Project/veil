@@ -9,6 +9,7 @@
 #include <util/system.h>
 #include <util/strencodings.h>
 #include <netbase.h>
+#include <random.h>
 #include <rpc/protocol.h> // For HTTP status codes
 #include <sync.h>
 #include <ui_interface.h>
@@ -213,6 +214,9 @@ static std::string RequestMethodString(HTTPRequest::RequestMethod m)
 /** HTTP request callback */
 static void http_request_cb(struct evhttp_request* req, void* arg)
 {
+    // Feed request arrival timing into the RNG event hasher (upstream 0.20).
+    RandAddEvent(GetRand(std::numeric_limits<uint32_t>::max()));
+
     // Disable reading to work around a libevent bug, fixed in 2.2.0.
     if (event_get_version_number() >= 0x02010600 && event_get_version_number() < 0x02020001) {
         evhttp_connection* conn = evhttp_request_get_connection(req);
