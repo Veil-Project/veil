@@ -10,7 +10,6 @@
 #include <serialize.h>
 #include <script/standard.h>
 
-#include <qt/paymentrequestplus.h>
 #include <qt/walletmodeltransaction.h>
 
 #include <interfaces/wallet.h>
@@ -60,21 +59,11 @@ public:
     explicit SendCoinsRecipient(const QString &addr, const QString &_label, const CAmount& _amount, const QString &_message):
         address(addr), label(_label), amount(_amount), message(_message), fSubtractFeeFromAmount(false), nVersion(SendCoinsRecipient::CURRENT_VERSION) {}
 
-    // If from an unauthenticated payment request, this is used for storing
-    // the addresses, e.g. address-A<br />address-B<br />address-C.
-    // Info: As we don't need to process addresses in here when using
-    // payment requests, we can abuse it for displaying an address list.
-    // Todo: This is a hack, should be replaced with a cleaner solution!
     QString address;
     QString label;
     CAmount amount;
     // If from a payment request, this is used for storing the memo
     QString message;
-
-    // If from a payment request, paymentRequest.IsInitialized() will be true
-    PaymentRequestPlus paymentRequest;
-    // Empty if no authentication or invalid signature/cert/etc.
-    QString authenticatedMerchant;
 
     bool fSubtractFeeFromAmount; // memory only
 
@@ -88,10 +77,11 @@ public:
         std::string sAddress = address.toStdString();
         std::string sLabel = label.toStdString();
         std::string sMessage = message.toStdString();
+        // Keep the serialized layout of stored receive/send requests
+        // unchanged after the BIP70 removal: write the two former
+        // payment-request fields as empty strings and discard them on read.
         std::string sPaymentRequest;
-        if (!ser_action.ForRead() && paymentRequest.IsInitialized())
-            paymentRequest.SerializeToString(&sPaymentRequest);
-        std::string sAuthenticatedMerchant = authenticatedMerchant.toStdString();
+        std::string sAuthenticatedMerchant;
 
         READWRITE(this->nVersion);
         READWRITE(sAddress);
@@ -106,9 +96,6 @@ public:
             address = QString::fromStdString(sAddress);
             label = QString::fromStdString(sLabel);
             message = QString::fromStdString(sMessage);
-            if (!sPaymentRequest.empty())
-                paymentRequest.parse(QByteArray::fromRawData(sPaymentRequest.data(), sPaymentRequest.size()));
-            authenticatedMerchant = QString::fromStdString(sAuthenticatedMerchant);
         }
     }
 };
