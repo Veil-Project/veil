@@ -317,6 +317,24 @@ BOOST_AUTO_TEST_CASE(caddress_addrv2_roundtrip)
     BOOST_CHECK(back1.nServices == addr.nServices);
 }
 
+// Internal (DNS-seed placeholder) addresses have no BIP155 network id; they
+// are embedded as IPv6 in addrv2 streams (as upstream does) and classify back
+// via their prefix, so they survive a peers.dat v2 round-trip.
+BOOST_AUTO_TEST_CASE(bip155_internal_roundtrip)
+{
+    CNetAddr internal;
+    BOOST_CHECK(internal.SetInternal("dnsseed.example.com"));
+    BOOST_CHECK(internal.IsInternal());
+
+    CDataStream s(SER_NETWORK, PROTOCOL_VERSION | ADDRV2_FORMAT);
+    s << internal;
+    CNetAddr back;
+    s >> back;
+    BOOST_CHECK(back.IsInternal());
+    BOOST_CHECK(back == internal);
+    BOOST_CHECK_EQUAL(back.ToStringIP(), internal.ToStringIP());
+}
+
 // SHA3-256 known-answer (NIST): SHA3-256("") == a7ffc6f8...434a. Validates the
 // ported hash that the Tor v3 checksum relies on.
 BOOST_AUTO_TEST_CASE(sha3_256_empty)
