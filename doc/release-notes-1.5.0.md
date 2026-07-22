@@ -27,6 +27,11 @@ Security
   - A large `inv` now triggers a single `getheaders` instead of one per
     announced block, removing an amplification vector.
 - **UPnP is disabled by default.**
+- **OpenSSL is fully removed.** The BIP70 payment protocol - the GUI's last
+  OpenSSL and protobuf consumer, dead on the network and deleted upstream -
+  is removed; only plain BIP21 `veil:` URIs are handled. No Veil binary links
+  libssl/libcrypto or protobuf any more (enforced by CI on every build), and
+  both leave the depends tree (Qt now builds `-no-openssl`).
 
 Privacy: Tor v3 / BIP155 (addrv2)
 ---------------------------------
