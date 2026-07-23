@@ -4015,6 +4015,13 @@ bool CWallet::SelectStakeCoins(std::list<std::unique_ptr<ZerocoinStake> >& listI
             listInputs.emplace_back(std::move(input));
         }
     }
+    if(!listInputs.empty()){
+    	fHasStakableInputs = true;
+    }
+    else{
+    	fHasStakableInputs = false;
+    	mapHashedBlocks.clear();
+    }
 
     LogPrint(BCLog::STAKING, "%s: FOUND %d STAKABLE ZEROCOINS\n", __func__, listInputs.size());
 
@@ -4772,6 +4779,11 @@ void CWallet::ListLockedCoins(std::vector<COutPoint>& vOutpts) const
         COutPoint outpt = (*it);
         vOutpts.push_back(outpt);
     }
+}
+
+bool CWallet::IsStakingActive()
+{
+	return fHasStakableInputs && !mapHashedBlocks.empty();
 }
 
 /** @} */ // end of Actions
