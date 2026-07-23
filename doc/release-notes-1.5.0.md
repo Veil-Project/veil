@@ -61,9 +61,9 @@ Toolchain & CI
 - New CI gates: a **Linux ASan + UBSan** unit-test job (UBSan is a hard gate,
   `halt_on_error=1`) and a **native macOS arm64** build+test job (the
   project's first automated sanitizer/unit coverage).
-- Every build now **asserts that `veild`/`veil-cli`/`veil-tx` link without
-  OpenSSL** (`ldd`+`nm` on Linux, `otool -L` on native arm64). `veil-qt` still
-  links OpenSSL via its Qt/BIP70 lineage; full removal is a follow-up.
+- Every build now **asserts that no binary links OpenSSL** — `veild`,
+  `veil-cli`, `veil-tx`, and (with BIP70 gone) `veil-qt` too — via `ldd`+`nm`
+  on Linux and `otool -L` on native arm64.
 - The upstream **`validation_block_tests` suite is revived** for Veil consensus
   rules (coinbase height/reward schedule, post-PoW-update header formats,
   in-memory zerocoin DB) and runs in CI, alongside newly added `pow_tests` and
