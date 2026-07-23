@@ -29,6 +29,7 @@
 #include <QAbstractButton>
 #include <QAction>
 #include <QApplication>
+#include <QDebug>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QTimer>
