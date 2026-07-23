@@ -45,8 +45,7 @@ margin:0px;</string>
      <property name="styleSheet">
       <string notr="true">border:none;
 padding:0px;
-margin:0px;
-background-color:white;</string>
+margin:0px;</string>
      </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>

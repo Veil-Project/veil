@@ -2891,7 +2891,7 @@ and blockchain data.</source>
     </message>
     <message>
         <location line="+52"/>
-        <source>Receive veil</source>
+        <source>Receive Veil</source>
         <translation type="unfinished"></translation>
     </message>
     <message>

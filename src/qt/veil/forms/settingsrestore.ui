@@ -31,13 +31,6 @@
      <property name="autoFillBackground">
       <bool>false</bool>
      </property>
-     <property name="styleSheet">
-      <string notr="true">#frame{
-  background-color: white;
-  padding: 10px 10px 10px 10px;
-  border-radius:20px;
-}</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -75,9 +68,6 @@
         </item>
         <item>
          <widget class="QPushButton" name="btnSeed">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>Restore from seed</string>
           </property>
@@ -98,9 +88,6 @@
         </item>
         <item>
          <widget class="QPushButton" name="btnFile">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>Restore from file</string>
           </property>
@@ -179,9 +166,6 @@
         </item>
         <item>
          <widget class="QPushButton" name="btnEsc">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>CANCEL</string>
           </property>
@@ -202,9 +186,6 @@
         </item>
         <item>
          <widget class="QPushButton" name="btnSave">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>RESTORE</string>
           </property>

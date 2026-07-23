@@ -22,10 +22,6 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
-     <property name="styleSheet">
-      <string notr="true">background-color:#FFFFFF;
-border:1px solid #707070;</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -66,15 +62,6 @@ border:1px solid #707070;</string>
          <height>32</height>
         </size>
        </property>
-       <property name="styleSheet">
-        <string notr="true">#btnArrow {
-background-color:transparent;
-border:0;
-background-image: url(&quot;:/icons/ic-arrow-right&quot;) ;
-background-repeat:no-repeat;
-background-position:center;
-}</string>
-       </property>
        <property name="text">
         <string/>
        </property>
@@ -87,12 +74,6 @@ background-position:center;
          <width>16777215</width>
          <height>46</height>
         </size>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">border:1px solid #105aef;
-border-radius:0;
-background:white;
-color:#707070;</string>
        </property>
       </widget>
      </item>

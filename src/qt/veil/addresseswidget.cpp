@@ -74,13 +74,13 @@ public:
         if (option.state & QStyle::State_Selected) {
             QRect selectedRect = option.rect;
             selectedRect.setLeft(0);
-            painter->fillRect(selectedRect, QColor("#CEDDFB"));
-            foreground = QColor("#575756");
+            painter->fillRect(selectedRect, selectedBgColorCode);
+            foreground = selectedTextColorCode;
         }else if(option.state & QStyle::State_MouseOver){
             QRect selectedRect = option.rect;
             selectedRect.setLeft(0);
-            painter->fillRect(selectedRect, QColor("#F4F4F4"));
-            foreground = QColor("#575756");
+            painter->fillRect(selectedRect, mouseOverBgColorCode);
+            foreground = selectedTextColorCode;
             QIcon icon(":/icons/ic-menu-png");
             QRect mainRect2 = option.rect;
             QRect decorationRect(mainRect2.topRight(), QSize(42, 42));
@@ -282,6 +282,7 @@ void AddressesWidget::initAddressesView(){
 }
 
 void AddressesWidget::showEvent(QShowEvent *event){
+	/*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -290,10 +291,12 @@ void AddressesWidget::showEvent(QShowEvent *event){
     a->setEndValue(1);
     a->setEasingCurve(QEasingCurve::InBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
     reloadTab(isOnMyAddresses);
 }
 
 void AddressesWidget::hideEvent(QHideEvent *event){
+	/*
     QGraphicsOpacityEffect *eff = new QGraphicsOpacityEffect(this);
     this->setGraphicsEffect(eff);
     QPropertyAnimation *a = new QPropertyAnimation(eff,"opacity");
@@ -302,6 +305,7 @@ void AddressesWidget::hideEvent(QHideEvent *event){
     a->setEndValue(0);
     a->setEasingCurve(QEasingCurve::OutBack);
     a->start(QPropertyAnimation::DeleteWhenStopped);
+    */
 }
 
 // We override the virtual resizeEvent of the QWidget to adjust tables column

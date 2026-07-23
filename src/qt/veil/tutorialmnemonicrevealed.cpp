@@ -10,8 +10,8 @@
 #include <QAbstractItemView>
 #include <iostream>
 
-QString editLineCorrectCss = "QLineEdit{border-bottom:1px solid #707070;background-color:#fff;margin-right:6px;margin-left:6px;padding-left:1px;padding-right:1px;padding-top:7px;padding-bottom:7px;margin:8px;}";
-QString editLineInvalidCss = "QLineEdit{border-bottom:1px solid red;background-color:#fff;margin-right:6px;margin-left:6px;padding-left:1px;padding-right:1px;padding-top:7px;padding-bottom:7px;margin:8px;}";
+QString editLineCorrectCss = "QLineEdit{color:#575756;border-bottom:1px solid #707070;background-color:#fff;margin-right:6px;margin-left:6px;padding-left:1px;padding-right:1px;padding-top:7px;padding-bottom:7px;margin:8px;}";
+QString editLineInvalidCss = "QLineEdit{color:#99372f;border:1px solid red;background-color:#fff;margin-right:6px;margin-left:6px;padding-left:1px;padding-right:1px;padding-top:7px;padding-bottom:7px;margin:8px;}";
 
 
 
@@ -39,6 +39,7 @@ TutorialMnemonicRevealed::TutorialMnemonicRevealed(QStringList _wordList, QWidge
                                  "{"
                                      "border-style: none;"
                                      "background-color: #ffffff;"
+                                     "color: #575756;"
                                      "padding:0px;"
                                      "font-size:14px;"
                                      "border-radius:6px;"
@@ -48,6 +49,7 @@ TutorialMnemonicRevealed::TutorialMnemonicRevealed(QStringList _wordList, QWidge
                                  "{"
                                  "    border-style: none;"
                                  "    background-color: #ffffff;"
+                                 "    color: #575756;"
                                  "font-size:14px;"
                                  "    border-radius:3px;"
                                  "}"

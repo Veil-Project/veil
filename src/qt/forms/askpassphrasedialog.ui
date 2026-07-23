@@ -28,13 +28,6 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QFrame" name="frame">
-     <property name="styleSheet">
-      <string notr="true">#frame{
-	background-color:white;
- 	border-radius:20px;
-    padding:10px;
-}</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -60,10 +53,6 @@
           <height>40</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">color:#bababa;
-font-size:13px;</string>
-        </property>
         <property name="text">
          <string notr="true">Placeholder text</string>
         </property>
@@ -85,12 +74,6 @@ font-size:13px;</string>
         </property>
         <item>
          <widget class="QLabel" name="passLabel1">
-          <property name="styleSheet">
-           <string notr="true">padding:0px;
-margin:0px;
-margin-left:6px;
-color:#105AEF;</string>
-          </property>
           <property name="text">
            <string>Enter passphrase</string>
           </property>
@@ -112,12 +95,6 @@ color:#105AEF;</string>
         </property>
         <item>
          <widget class="QLabel" name="passLabel2">
-          <property name="styleSheet">
-           <string notr="true">padding:0px;
-margin:0px;
-margin-left:6px;
-color:#105AEF;</string>
-          </property>
           <property name="text">
            <string>New passphrase</string>
           </property>
@@ -139,12 +116,6 @@ color:#105AEF;</string>
         </property>
         <item>
          <widget class="QLabel" name="passLabel3">
-          <property name="styleSheet">
-           <string notr="true">padding:0px;
-margin:0px;
-margin-left:6px;
-color:#105AEF;</string>
-          </property>
           <property name="text">
            <string>Repeat new passphrase</string>
           </property>
@@ -163,12 +134,6 @@ color:#105AEF;</string>
        <widget class="QCheckBox" name="toggleShowPasswordButton">
         <property name="focusPolicy">
          <enum>Qt::NoFocus</enum>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">padding-top:5px;
-color:#bababa;
-font-size:13px;
-padding-left:12px;</string>
         </property>
         <property name="text">
          <string>Show password</string>
@@ -193,9 +158,6 @@ padding-left:12px;</string>
          <font>
           <pointsize>-1</pointsize>
          </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">font-size:13px;</string>
         </property>
         <property name="text">
          <string/>
@@ -225,9 +187,6 @@ padding-left:12px;</string>
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
           </property>
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>CANCEL</string>
           </property>
@@ -250,9 +209,6 @@ padding-left:12px;</string>
          <widget class="QPushButton" name="btnSave">
           <property name="focusPolicy">
            <enum>Qt::NoFocus</enum>
-          </property>
-          <property name="styleSheet">
-           <string notr="true"/>
           </property>
           <property name="text">
            <string>SAVE</string>

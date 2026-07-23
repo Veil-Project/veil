@@ -64,11 +64,6 @@
      </property>
      <item>
       <widget class="QFrame" name="txes_container">
-       <property name="styleSheet">
-        <string notr="true">#txes_container{
- background-color:white;
-}</string>
-       </property>
        <layout class="QVBoxLayout" name="verticalLayout_1">
         <property name="spacing">
          <number>0</number>
@@ -227,7 +222,7 @@
                <item>
                 <widget class="QLabel" name="label_3">
                  <property name="text">
-                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt; &quot;&gt;Let's get you up to speed quickly.&lt;br/&gt;&lt;/span&gt;&lt;span style=&quot; font-size:14pt; color:#707070;&quot;&gt;Visit &lt;a href=&quot;https://veil.tools&quot;&gt;&lt;span style=&quot; font-size:14pt; text-decoration: underline; color:#0000ff;&quot;&gt;https://veil.tools&lt;/span&gt;&lt;/a&gt;&lt;span style=&quot; font-size:14pt; color:#707070;&quot;&gt; to download the lastest snapshot.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt; &quot;&gt;Let's get you up to speed quickly.&lt;br/&gt;&lt;/span&gt;&lt;span style=&quot; font-size:14pt; color:#707070;&quot;&gt;Visit &lt;a href=&quot;https://veil.tools&quot;&gt;&lt;span style=&quot; font-size:14pt; text-decoration: underline;&quot;&gt;https://veil.tools&lt;/span&gt;&lt;/a&gt;&lt;span style=&quot; font-size:14pt; color:#707070;&quot;&gt; to download the lastest snapshot.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                  </property>
                 </widget>
                </item>

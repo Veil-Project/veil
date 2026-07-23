@@ -31,13 +31,6 @@
      <property name="autoFillBackground">
       <bool>false</bool>
      </property>
-     <property name="styleSheet">
-      <string notr="true">#frame{
-  background-color: white;
-  padding: 10px 10px 10px 10px;
-  border-radius:20px;
-}</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -52,9 +45,6 @@
           <width>16777215</width>
           <height>40</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true"/>
         </property>
         <property name="text">
          <string>Preferences</string>
@@ -91,11 +81,6 @@
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">border:0;
-padding:8;
-border-bottom:1px solid #bababa;</string>
-        </property>
        </widget>
       </item>
       <item>
@@ -127,10 +112,6 @@ border-bottom:1px solid #bababa;</string>
           <width>300</width>
           <height>16777215</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color:#707070;
-font-size:16px;</string>
         </property>
         <property name="text">
          <string>Launch Veil wallet on system startup</string>
@@ -167,10 +148,6 @@ font-size:16px;</string>
           <height>16777215</height>
          </size>
         </property>
-        <property name="styleSheet">
-         <string notr="true">color:#707070;
-font-size:16px;</string>
-        </property>
         <property name="text">
          <string>Minimize to tray instead of taskbar</string>
         </property>
@@ -205,10 +182,6 @@ font-size:16px;</string>
           <width>300</width>
           <height>16777215</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">color:#707070;
-font-size:16px;</string>
         </property>
         <property name="text">
          <string>Minimize with exit button</string>
@@ -245,9 +218,6 @@ font-size:16px;</string>
         </item>
         <item>
          <widget class="QPushButton" name="btnEsc">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>CANCEL</string>
           </property>
@@ -268,9 +238,6 @@ font-size:16px;</string>
         </item>
         <item>
          <widget class="QPushButton" name="btnSave">
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="text">
            <string>SAVE</string>
           </property>

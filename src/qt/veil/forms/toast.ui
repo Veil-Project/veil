@@ -31,11 +31,6 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <property name="styleSheet">
-   <string notr="true">background-color:transparent;
-margin:0px;
-border:none;</string>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <property name="topMargin">
     <number>0</number>
@@ -63,13 +58,6 @@ border:none;</string>
        <height>120</height>
       </size>
      </property>
-     <property name="styleSheet">
-      <string notr="true">#frame {
-background-color:#bababa;
-border-radius:20px;
-border:1px solid #bababa;
-}</string>
-     </property>
      <property name="frameShape">
       <enum>QFrame::StyledPanel</enum>
      </property>
@@ -96,13 +84,6 @@ border:1px solid #bababa;
           <width>280</width>
           <height>0</height>
          </size>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">font-size:16px;
-color:#ffffff;
-text-align:center;
-padding:6px;
-</string>
         </property>
         <property name="text">
          <string>None</string>
