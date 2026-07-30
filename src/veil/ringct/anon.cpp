@@ -396,6 +396,63 @@ bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint> >& vI
     return true;
 }
 
+std::vector<std::vector<RingCtInputMember>> GetTxRingCtInputMembers(const CTransactionRef ptx)
+{
+    std::vector<std::vector<RingCtInputMember>> vTxRingCtInputs;
+    for (const CTxIn& txin : ptx->vin) {
+        if (txin.IsAnonInput()) {
+            std::vector<RingCtInputMember> vMembers = GetRingCtInputMembers(txin);
+            vTxRingCtInputs.emplace_back(vMembers);
+        }
+    }
+    return vTxRingCtInputs;
+}
+
+std::vector<RingCtInputMember> GetRingCtInputMembers(const CTxIn& txin)
+{
+    std::vector<RingCtInputMember> vMembers;
+    uint32_t nInputs, nRingSize;
+    txin.GetAnonInfo(nInputs, nRingSize);
+
+    if (txin.scriptData.stack.size() != 1)
+        return vMembers;
+
+    if (txin.scriptWitness.stack.size() != 2)
+        return vMembers;
+
+    const std::vector<uint8_t>& vKeyImages = txin.scriptData.stack[0];
+    const std::vector<uint8_t>& vMI = txin.scriptWitness.stack[0];
+
+    if (vKeyImages.size() != nInputs * 33)
+        return vMembers;
+
+    size_t ofs = 0, nB = 0;
+    for (size_t k = 0; k < nInputs; ++k) {
+        for (size_t i = 0; i < nRingSize; ++i) {
+            int64_t nIndex = 0;
+
+            if (0 != GetVarInt(vMI, ofs, (uint64_t&) nIndex, nB))
+                return vMembers;
+            ofs += nB;
+
+            CAnonOutput ao;
+            if (!pblocktree->ReadRCTOutput(nIndex, ao)) {
+                continue;
+            }
+
+            RingCtInputMember member;
+            member.nInput = k;
+            member.nRingCtIndex = nIndex;
+            member.txhash = ao.outpoint.hash;
+            member.n = ao.outpoint.n;
+            member.vchPubkey.assign(ao.pubkey.begin(), ao.pubkey.end());
+            member.vchCommitment.assign(&ao.commitment.data[0], &ao.commitment.data[0] + 33);
+            vMembers.emplace_back(member);
+        }
+    }
+    return vMembers;
+}
+
 //bool RewindToCheckpoint(int nCheckPointHeight, int &nBlocks, std::string &sError)
 //{
 //    LogPrintf("%s: At height %d\n", __func__, nCheckPointHeight);

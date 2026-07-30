@@ -313,7 +313,7 @@ void ScriptPubKeyToUniv(const CScript& scriptPubKey,
     out.pushKV("addresses", a);
 }
 
-void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vector<std::vector<COutPoint>>& vTxRingCtInputs, UniValue& entry, bool include_hex, int serialize_flags)
+void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vector<std::vector<RingCtInputMember>>& vTxRingCtInputs, UniValue& entry, bool include_hex, int serialize_flags)
 {
     entry.pushKV("txid", tx.GetHash().GetHex());
     entry.pushKV("hash", tx.GetWitnessHash().GetHex());
@@ -338,27 +338,32 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
 
             //Add ring ct inputs
             if (vTxRingCtInputs.size() > i) {
-                std::vector<COutPoint> vRingCtInputs = vTxRingCtInputs[i];
+                const std::vector<RingCtInputMember>& vRingCtInputs = vTxRingCtInputs[i];
                 UniValue arrRing(UniValue::VARR);
-                for (const COutPoint& outpoint : vRingCtInputs) {
+                for (const RingCtInputMember& member : vRingCtInputs) {
                     UniValue obj(UniValue::VOBJ);
-                    obj.pushKV("txid", outpoint.hash.GetHex());
-                    obj.pushKV("vout.n", (uint64_t) outpoint.n);
+                    obj.pushKV("txid", member.txhash.GetHex());
+                    obj.pushKV("vout.n", (uint64_t) member.n);
+                    obj.pushKV("input", (int) member.nInput);
+                    obj.pushKV("ringctindex", member.nRingCtIndex);
+                    obj.pushKV("pubkey", HexStr(member.vchPubkey));
+                    obj.pushKV("commitment", HexStr(member.vchCommitment));
                     arrRing.push_back(obj);
                 }
                 in.pushKV("ringct_inputs", arrRing);
-                const std::vector<uint8_t> vKeyImages = txin.scriptData.stack[0];
-                uint32_t nInputs, nRingSize;
-                txin.GetAnonInfo(nInputs, nRingSize);
-
-                UniValue arrKeyImages(UniValue::VARR);
-                for (unsigned int k = 0; k < nSigInputs; k++) {
-                    const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
-                    UniValue objKeyImage(UniValue::VOBJ);
-                    objKeyImage.pushKV(std::to_string(k), HexStr(ki));
-                    arrKeyImages.push_back(objKeyImage);
+                if (txin.scriptData.stack.size() == 1) {
+                    const std::vector<uint8_t>& vKeyImages = txin.scriptData.stack[0];
+                    if (vKeyImages.size() == nSigInputs * 33) {
+                        UniValue arrKeyImages(UniValue::VARR);
+                        for (unsigned int k = 0; k < nSigInputs; k++) {
+                            const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
+                            UniValue objKeyImage(UniValue::VOBJ);
+                            objKeyImage.pushKV(std::to_string(k), HexStr(ki));
+                            arrKeyImages.push_back(objKeyImage);
+                        }
+                        in.pushKV("key_images", arrKeyImages);
+                    }
                 }
-                in.pushKV("key_images", arrKeyImages);
             }
         } else {
             in.pushKV("txid", txin.prevout.hash.GetHex());
