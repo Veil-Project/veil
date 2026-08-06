@@ -285,10 +285,6 @@ public:
         vSeeds.emplace_back("node09.veil-project.com");
         vSeeds.emplace_back("node10.veil-project.com"); // Codeofalltrades seeder
         vSeeds.emplace_back("node11.veil-project.com"); // CaveSpectre seeder
-        // single point DNS failure backups
-        vSeeds.emplace_back("veilseed.codeofalltrades.com");       // Codeofalltrades seeder
-        vSeeds.emplace_back("veilseed.veil-stats.com");            // Codeofalltrades seeder
-        vSeeds.emplace_back("veil-seed.pontificatingnobody.com");  // CaveSpectre seeder
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,70);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -484,9 +480,6 @@ public:
         vSeeds.emplace_back("testnode07.veil-project.com");
         vSeeds.emplace_back("testnode08.veil-project.com"); // Codeofalltrades seeder
         vSeeds.emplace_back("testnode09.veil-project.com"); // CaveSpectre seeder
-        // single point DNS failure backups
-        vSeeds.emplace_back("veilseedtestnet.codeofalltrades.com");     // Codeofalltrades seeder
-        vSeeds.emplace_back("veil-seed-test.pontificatingnobody.com");  // CaveSpectre seeder
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -649,16 +642,12 @@ public:
 
         vFixedSeeds.clear();
         vSeeds.clear();
-        vSeeds.emplace_back("veil-devnet-seed.asoftwaresolution.com");  // Blondfrogs seeder
         vSeeds.emplace_back("devnode01.veil-project.com");
         vSeeds.emplace_back("devnode02.veil-project.com");
         vSeeds.emplace_back("devnode03.veil-project.com");
         vSeeds.emplace_back("devnode04.veil-project.com"); 
         vSeeds.emplace_back("devnode05.veil-project.com"); // Codeofalltrades seeder
         vSeeds.emplace_back("devnode06.veil-project.com"); // CaveSpectre seeder
-        // single point DNS failure backups
-        vSeeds.emplace_back("veil-devnet-seed.codeofalltrades.com");     // Codeofalltrades seeder
-        vSeeds.emplace_back("veil-seed-dev.pontificatingnobody.com");  // CaveSpectre seeder
 
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
