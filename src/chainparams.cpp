@@ -285,6 +285,7 @@ public:
         vSeeds.emplace_back("node09.veil-project.com");
         vSeeds.emplace_back("node10.veil-project.com"); // Codeofalltrades seeder
         vSeeds.emplace_back("node11.veil-project.com"); // CaveSpectre seeder
+        vSeeds.emplace_back("seed.veil-info.org");      // crawler, Veil-DNS-Seeder
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,70);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
