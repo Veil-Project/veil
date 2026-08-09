@@ -734,7 +734,7 @@ static std::string SendHelp(std::shared_ptr<CWallet> pwallet, OutputTypes typeIn
                                                                                                                                "                            The narration is stored in the blockchain and is sent encrypted when destination is a stealth address and uncrypted otherwise.\n";
     if (typeIn == OUTPUT_RINGCT)
         rv +=
-                "7. ringsize        (int, optional, default=4).\n"
+                "7. ringsize        (int, optional, default=11).\n"
                 "8. inputs_per_sig  (int, optional, default=32).\n"
                 "9. inputs_per_tx   (int, optional, default=0, max=32). Allows sending in multiple transactions if necessary.\n"
                 "                            If 0, will attempt to accomplish in one transaction.\n"
@@ -858,7 +858,7 @@ UniValue sendtypeto(const JSONRPCRequest &request)
                 "5. \"comment_to\"      (string, optional) A comment to store the name of the person or organization \n"
                 "                            to which you're sending the transaction. This is not part of the \n"
                 "                            transaction, just kept in your wallet.\n"
-                "6. ringsize         (int, optional, default=4) Only applies when typein is ringct.\n"
+                "6. ringsize         (int, optional, default=11) Only applies when typein is ringct.\n"
                 "7. inputs_per_sig   (int, optional, default=32) Only applies when typein is ringct.\n"
                 "8. test_fee         (bool, optional, default=false) Only return the fee it would cost to send, txn is discarded.\n"
                 "9. coin_control     (json, optional) Coincontrol object.\n"
