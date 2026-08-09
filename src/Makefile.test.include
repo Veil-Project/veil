@@ -62,6 +62,8 @@ BITCOIN_TESTS =\
   test/multisig_tests.cpp \
   test/net_tests.cpp \
   test/netbase_tests.cpp \
+  test/pos_placeholder_tests.cpp \
+  test/watchonly_tests.cpp \
   test/pmt_tests.cpp \
   test/policyestimator_tests.cpp \
   test/pow_tests.cpp \

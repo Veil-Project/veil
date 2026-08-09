@@ -336,7 +336,10 @@ public:
     // two types of block: proof-of-work or proof-of-stake
     bool IsProofOfStake() const
     {
-        return (vtx.size() > 1 && vtx[1]->IsCoinStake());
+        // vtx[1] may be a null placeholder while a PoS block template is being
+        // assembled (see BlockAssembler::CreateNewBlock), so it must be checked
+        // before dereferencing.
+        return (vtx.size() > 1 && vtx[1] && vtx[1]->IsCoinStake());
     }
 
     bool IsProofOfWork() const

@@ -75,6 +75,11 @@ public:
     /** V2 Methods - Hash-based keys (CKeyID) */
     bool WriteWatchOnlyAddressV2(const CKeyID& keyID, const CWatchOnlyAddress& data);
     bool ReadWatchOnlyAddressV2(const CKeyID& keyID, CWatchOnlyAddress& data);
+    bool EraseWatchOnlyAddressV2(const CKeyID& keyID);
+
+    /** Erase all data for a watch-only address (address, transactions, count, checkpoint).
+     *  nTxesRemoved is set to the number of transaction records actually erased. */
+    bool EraseWatchOnlyAddressData(const CKeyID& keyID, const CKey& scan_secret, int& nTxesRemoved);
 
     /** Database version management */
     int GetDatabaseVersion();

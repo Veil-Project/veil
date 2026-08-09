@@ -295,7 +295,6 @@ void ScanWatchOnlyAddresses()
                         /// Scan through transactions for txes that are owned.
                     for (const auto& precomp : scanThese) {
                         ec_point pkExtracted;
-                        // Use pre-computed ecSpendPubKey instead of calling SetPublicKey
                         if (StealthSecret(precomp.address.scan_secret, vchEphemPK, precomp.ecSpendPubKey, sShared, pkExtracted) != 0) {
                             continue;
                         }
@@ -705,7 +704,11 @@ bool AddWatchOnlyAddress(const std::string& address, const CKey& scan_secret, co
             return false;
         }
     } else {
-        CWatchOnlyAddress newAddress(scan_secret, spend_pubkey, nStart, nImported, nStart);
+        // Initialize nCurrentScannedHeight to (nStart - 1) so the scan includes block nStart
+        // The scan condition is "blockHeight > nCurrentScannedHeight", so we need to start
+        // one block before to ensure nStart itself is scanned
+        int64_t nInitialScannedHeight = (nStart > 0) ? (nStart - 1) : 0;
+        CWatchOnlyAddress newAddress(scan_secret, spend_pubkey, nStart, nImported, nInitialScannedHeight);
 
         // Use V2 write method
         if (!pwatchonlyDB->WriteWatchOnlyAddressV2(keyID, newAddress)) {
@@ -720,38 +723,45 @@ bool AddWatchOnlyAddress(const std::string& address, const CKey& scan_secret, co
     return true;
 }
 
-bool RemoveWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey)
+bool RemoveWatchOnlyAddress(const std::string& address, const CKey& scan_secret, const CPubKey& spend_pubkey, int& nTxesRemoved)
 {
+    nTxesRemoved = 0;
+
     // Use CKeyID as the map key (V2)
     CKeyID keyID = scan_secret.GetPubKey().GetID();
 
-    // Check if address exists
-    if (!mapWatchOnlyAddresses.count(keyID)) {
-        return error("%s: Watch-only address not found (keyID: %s)", __func__, keyID.ToString());
-    }
-
-    // Verify scan key matches
-    auto& info = mapWatchOnlyAddresses.at(keyID);
-    if (!(info.scan_secret == scan_secret)) {
-        return error("%s: Scan secret mismatch", __func__);
-    }
-
-    // Verify spend pubkey matches
-    if (info.spend_pubkey != spend_pubkey) {
-        return error("%s: Spend public key mismatch", __func__);
-    }
-
     {
         LOCK(cs_watchonly);
-        // Remove from memory
+
+        // Check if address exists
+        if (!mapWatchOnlyAddresses.count(keyID)) {
+            return error("%s: Watch-only address not found (keyID: %s)", __func__, keyID.ToString());
+        }
+
+        // Verify scan key matches
+        auto& info = mapWatchOnlyAddresses.at(keyID);
+        if (!(info.scan_secret == scan_secret)) {
+            return error("%s: Scan secret mismatch", __func__);
+        }
+
+        // Verify spend pubkey matches
+        if (info.spend_pubkey != spend_pubkey) {
+            return error("%s: Spend public key mismatch", __func__);
+        }
+
+        // Remove from memory first to prevent scanning thread from using it
         mapWatchOnlyAddresses.erase(keyID);
     }
 
-    // Note: We don't remove transactions from database immediately
-    // This prevents accidental data loss and allows users to re-import if needed
-    // Transaction data can be cleaned up with a separate maintenance tool/RPC if desired
+    // Flush any pending cached transactions for this address before removal
+    watchonlyTxCache.Flush(scan_secret);
 
-    LogPrintf("Removed watch-only address: %s (keyID: %s)\n", address, keyID.ToString());
+    // Remove all data from database (address, transactions, count, checkpoint)
+    if (!pwatchonlyDB->EraseWatchOnlyAddressData(keyID, scan_secret, nTxesRemoved)) {
+        return error("%s: Failed to erase watch-only address data from database", __func__);
+    }
+
+    LogPrintf("Removed watch-only address and all associated data: %s (keyID: %s)\n", address, keyID.ToString());
     return true;
 }
 
@@ -817,9 +827,12 @@ bool AddWatchOnlyTransaction(const CKey& key, const CWatchOnlyTx& watchonlytx)
             // Key count exists
             return pwatchonlyDB->WriteWatchOnlyTx(key, current_count, watchonlytx);
         } else {
-            // Key count didn't exist.. do the same thing?
+            // Key count didn't exist: write the first transaction at index 1 so the
+            // non-cached path matches the 1-based indexing used by the cached path
+            // (WriteBulkWatchOnlyTx). Writing with -1 here stored the first tx at
+            // index 0 with the count also stored as 0, permanently under-counting.
             LogPrintf("%s: adding watchonly transaction to fresh count %d\n", __func__, current_count);
-            return pwatchonlyDB->WriteWatchOnlyTx(key, -1, watchonlytx);
+            return pwatchonlyDB->WriteWatchOnlyTx(key, 0, watchonlytx);
         }
     }
 }
