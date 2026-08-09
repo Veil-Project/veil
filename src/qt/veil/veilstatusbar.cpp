@@ -69,12 +69,25 @@ void VeilStatusBar::onBtnSyncClicked(){
 
 #ifdef ENABLE_WALLET
 bool fBlockNextStakeCheckSignal = false;
+
+// Confirmations remaining before staking can begin, or -1 when the wallet or its
+// zerocoin tracker is unavailable. -1 is what the tracker itself returns when the
+// wallet holds no zerocoin, so an unavailable tracker reads as not-ready rather
+// than ready.
+static CAmount StakingConfirmationsRemaining(const std::shared_ptr<CWallet>& pwallet)
+{
+    if (!pwallet)
+        return -1;
+    auto* zTracker = pwallet->GetZTrackerPointer();
+    return zTracker ? zTracker->GetConfirmationsRemainingForStaking() : -1;
+}
+
 void VeilStatusBar::setStakingText() {
 	stakingTextUpdateTimer->stop();
 
 	auto pwallet = GetMainWallet();
 
-	bool fStakingActive = pwallet->IsStakingActive();
+	bool fStakingActive = pwallet && pwallet->IsStakingActive();
 
     WalletModel::EncryptionStatus eStatus = this->walletModel->getEncryptionStatus();
 
@@ -89,7 +102,7 @@ void VeilStatusBar::setStakingText() {
 			ui->checkStaking->setText("Staking Enabled");
 			ui->checkStaking->setStyleSheet(toggleOnBlue);
 		}else{
-			CAmount confirmationsRemaining = pwallet->GetZTrackerPointer()->GetConfirmationsRemainingForStaking();
+			CAmount confirmationsRemaining = StakingConfirmationsRemaining(pwallet);
 			if (confirmationsRemaining >= 0) {
 				if (confirmationsRemaining == 0) {
 					stakingTextUpdateTimer->start(5000);
@@ -275,7 +288,7 @@ void VeilStatusBar::updateStakingCheckbox()
         setStakingText();
 
     auto pwallet = GetMainWallet();
-    CAmount confirmationsRemaining = pwallet->GetZTrackerPointer()->GetConfirmationsRemainingForStaking();
+    CAmount confirmationsRemaining = StakingConfirmationsRemaining(pwallet);
 
 	bool stakingStatus = !mapHashedBlocks.empty() && confirmationsRemaining == 0 && lockState != WalletModel::Locked && !syncFlag;
         if (ui->checkStaking->isChecked() != stakingStatus) {
