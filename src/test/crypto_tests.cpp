@@ -17,9 +17,6 @@
 #include <vector>
 
 #include <boost/test/unit_test.hpp>
-#include <openssl/aes.h>
-#include <openssl/evp.h>
-
 BOOST_FIXTURE_TEST_SUITE(crypto_tests, BasicTestingSetup)
 
 template<typename Hasher, typename In, typename Out>
@@ -196,7 +193,7 @@ static void TestChaCha20(const std::string &hexkey, uint64_t nonce, uint64_t see
     std::vector<unsigned char> out = ParseHex(hexout);
     std::vector<unsigned char> outres;
     outres.resize(out.size());
-    rng.Output(outres.data(), outres.size());
+    rng.Keystream(outres.data(), outres.size());
     BOOST_CHECK(out == outres);
 }
 

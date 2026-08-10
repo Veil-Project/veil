@@ -792,10 +792,15 @@ public:
             return 0;
 
         size_t size = (mpz_sizeinbase (range.bn, 2) + CHAR_BIT-1) / CHAR_BIT;
-        std::vector<unsigned char> buf(size);
 
-        RandAddSeed();
-        GetRandBytes(buf.data(), size);
+        // Upstream removed RandAddSeed() with the OpenSSL RNG, and the
+        // post-0.20 GetRandBytes/GetStrongRandBytes are capped at 32 bytes
+        // per call. Upstream's idiom for bulk randomness is a fresh
+        // FastRandomContext: seeded with 256 bits from the global CSPRNG,
+        // expanded by ChaCha20 — the same pool-expansion structure the old
+        // OpenSSL RAND_bytes had. Distribution is unchanged: uniform bytes.
+        FastRandomContext rng;
+        std::vector<unsigned char> buf = rng.randbytes(size);
 
         CBigNum ret(buf);
         if (ret < 0)
@@ -808,10 +813,8 @@ public:
     * @return
     */
     static CBigNum randKBitBignum(const uint32_t k){
-        std::vector<unsigned char> buf((k+7)/8);
-
-        RandAddSeed();
-        GetRandBytes(buf.data(), (k+7)/8);
+        FastRandomContext rng;
+        std::vector<unsigned char> buf = rng.randbytes((k+7)/8);
 
         CBigNum ret(buf);
         if (ret < 0)

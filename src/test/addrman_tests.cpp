@@ -9,6 +9,9 @@
 #include <hash.h>
 #include <netbase.h>
 #include <random.h>
+#include <clientversion.h>
+#include <streams.h>
+#include <version.h>
 
 class CAddrManTest : public CAddrMan
 {
@@ -686,5 +689,73 @@ BOOST_AUTO_TEST_CASE(addrman_evictionworks)
     BOOST_CHECK(addrman.SelectTriedCollision().ToString() == "[::]:0");
 }
 
+// Build a Tor v3 CAddress by decoding a raw BIP155 stream (SetSpecial would
+// require a valid SHA3 checksum for a made-up pubkey).
+static CAddress TorV3Address(uint8_t seed)
+{
+    CDataStream s(SER_NETWORK, PROTOCOL_VERSION | ADDRV2_FORMAT);
+    ser_writedata8(s, static_cast<uint8_t>(BIP155_NET_TORV3));
+    WriteCompactSize(s, ADDR_TORV3_SIZE);
+    std::vector<uint8_t> pubkey(ADDR_TORV3_SIZE, seed);
+    s.write(reinterpret_cast<const char*>(pubkey.data()), pubkey.size());
+    CNetAddr addr;
+    s >> addr;
+    return CAddress(CService(addr, 8333), NODE_NETWORK);
+}
+
+// peers.dat format 2: addresses serialize in the BIP155 encoding, so a Tor v3
+// peer survives the dump/load round-trip that used to flatten it to 16 zero
+// bytes.
+BOOST_AUTO_TEST_CASE(addrman_serialization_torv3)
+{
+    CAddrManTest addrman;
+    const CAddress addr_v3 = TorV3Address(0x33);
+    BOOST_CHECK(addr_v3.IsTor());
+    const CNetAddr source = ResolveIP("250.1.2.2");
+    BOOST_CHECK(addrman.Add(addr_v3, source));
+    const CAddress addr_ip = CAddress(ResolveService("250.1.2.1", 8333), NODE_NONE);
+    BOOST_CHECK(addrman.Add(addr_ip, source));
+
+    CDataStream ssPeers(SER_DISK, CLIENT_VERSION);
+    ssPeers << addrman;
+
+    CAddrManTest addrman2;
+    ssPeers >> addrman2;
+    BOOST_CHECK_EQUAL(addrman2.size(), 2U);
+    BOOST_CHECK(addrman2.Find(addr_v3) != nullptr);
+    BOOST_CHECK_EQUAL(addrman2.Find(addr_v3)->ToString(), addr_v3.ToString());
+    BOOST_CHECK(addrman2.Find(addr_ip) != nullptr);
+}
+
+// A hand-assembled version-1 (pre-BIP155) peers.dat image, exactly as previous
+// releases wrote it, still loads: the version byte selects the legacy 16-byte
+// address decoding.
+BOOST_AUTO_TEST_CASE(addrman_serialization_v1_compat)
+{
+    const CAddrInfo info(CAddress(ResolveService("250.1.2.1", 8333), NODE_NONE), ResolveIP("250.1.2.2"));
+
+    CDataStream ssPeers(SER_DISK, CLIENT_VERSION);
+    ssPeers << (unsigned char)1;   // nVersion: legacy format
+    ssPeers << (unsigned char)32;  // key size
+    ssPeers << uint256();          // nKey (null = the deterministic test key)
+    ssPeers << (int)1;             // nNew
+    ssPeers << (int)0;             // nTried
+    ssPeers << (int)(ADDRMAN_NEW_BUCKET_COUNT ^ (1 << 30));
+    ssPeers << info;               // legacy encoding: stream has no ADDRV2 bit
+    const int entry_bucket = info.GetNewBucket(uint256());
+    for (int bucket = 0; bucket < ADDRMAN_NEW_BUCKET_COUNT; ++bucket) {
+        if (bucket == entry_bucket) {
+            ssPeers << (int)1 << (int)0; // one entry: index 0
+        } else {
+            ssPeers << (int)0;           // empty bucket
+        }
+    }
+
+    CAddrManTest addrman;
+    ssPeers >> addrman;
+    BOOST_CHECK_EQUAL(addrman.size(), 1U);
+    BOOST_CHECK(addrman.Find(info) != nullptr);
+    BOOST_CHECK_EQUAL(addrman.Find(info)->ToString(), "250.1.2.1:8333");
+}
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -4,6 +4,7 @@
 
 #include <boost/test/unit_test.hpp>
 
+#include <arith_uint256.h>
 #include <chainparams.h>
 #include <consensus/merkle.h>
 #include <consensus/validation.h>
@@ -18,9 +19,39 @@
 #include <key_io.h>
 
 struct RegtestingSetup : public TestingSetup {
-    RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST) {}
+    RegtestingSetup() : TestingSetup(CBaseChainParams::REGTEST)
+    {
+        // Upstream regtest disables retargeting and this test's pre-built
+        // block tree assumes constant difficulty, but Veil regtest leaves
+        // DGW retargeting enabled. DarkGravityWave's result depends on the
+        // ancestor timestamps at each position (window fencepost and the
+        // overdue adjustment), so blocks assembled against the genesis tip
+        // cannot carry an nBits that matches every position of a 100-deep
+        // random tree. Mirror upstream regtest semantics for this suite;
+        // this test exercises ProcessNewBlock ordering, not retargeting.
+        const_cast<Consensus::Params&>(Params().GetConsensus()).fPowNoRetargeting = true;
+    }
+    ~RegtestingSetup()
+    {
+        const_cast<Consensus::Params&>(Params().GetConsensus()).fPowNoRetargeting = false;
+    }
 };
 
+// Veil: the block builders below diverge from upstream to satisfy Veil's
+// consensus rules, which this test's random block tree otherwise trips over:
+//  - Veil enforces the serialized height in the coinbase scriptSig and the
+//    per-height reward schedule on every block (there is no BIP34 gate), and
+//    the non-mainnet block-1 coinbase carries the 15M premine. A template
+//    assembled at the genesis tip is therefore only valid at height 1, so
+//    Block() rebuilds the coinbase for the block's actual tree position.
+//  - Regtest activates the new PoW algos 10 seconds after genesis, so the
+//    upstream genesis-time ladder would straddle the legacy/new header-format
+//    boundary. All blocks are built as post-update sha256d blocks: contextual
+//    checks require exactly one algo bit on post-update PoW blocks, and
+//    sha256d is the only algo whose header does not embed nHeight (tree
+//    positions would invalidate it) and whose validation involves no
+//    RandomX VM or ProgPow DAG machinery. Timestamps step by the sha256d
+//    target spacing so median-time-past stays monotonic along every branch.
 BOOST_FIXTURE_TEST_SUITE(validation_block_tests, RegtestingSetup)
 
 struct TestSubscriber : public CValidationInterface {
@@ -49,18 +80,28 @@ struct TestSubscriber : public CValidationInterface {
     }
 };
 
-std::shared_ptr<CBlock> Block(const uint256& prev_hash)
+std::shared_ptr<CBlock> Block(const uint256& prev_hash, int height)
 {
     static int i = 0;
-    static uint64_t time = Params().GenesisBlock().nTime;
+    static uint64_t time = Params().PowUpdateTimestamp();
 
     CScript pubKey;
     pubKey << i++ << OP_TRUE;
 
-    auto ptemplate = BlockAssembler(Params()).CreateNewBlock(pubKey, false);
+    auto ptemplate = BlockAssembler(Params()).CreateNewBlock(pubKey, true, false, false, CBlockHeader::SHA256D_BLOCK);
     auto pblock = std::make_shared<CBlock>(ptemplate->block);
     pblock->hashPrevBlock = prev_hash;
-    pblock->nTime = ++time;
+    time += Params().GetConsensus().nSha256DTargetSpacing;
+    pblock->nTime = time;
+
+    // The template was assembled at the genesis tip; rebuild the coinbase for
+    // the block's actual position in the tree.
+    CMutableTransaction txCoinbase(*pblock->vtx[0]);
+    txCoinbase.vin[0].scriptSig = CScript() << height << OP_0;
+    CAmount nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment;
+    veil::Budget().GetBlockRewards(height, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
+    txCoinbase.vpout[0]->SetValue(nBlockReward);
+    pblock->vtx[0] = MakeTransactionRef(std::move(txCoinbase));
 
     return pblock;
 }
@@ -68,24 +109,29 @@ std::shared_ptr<CBlock> Block(const uint256& prev_hash)
 std::shared_ptr<CBlock> FinalizeBlock(std::shared_ptr<CBlock> pblock)
 {
     pblock->hashMerkleRoot = BlockMerkleRoot(*pblock);
+    pblock->hashWitnessMerkleRoot = BlockWitnessMerkleRoot(*pblock);
 
-    while (!CheckProofOfWork(pblock->GetX16RTPoWHash(), pblock->nBits, Params().GetConsensus())) {
-        ++(pblock->nNonce);
+    // Regtest skips PoW verification in CheckBlockHeader, but grind the
+    // sha256d nonce anyway so the headers are honestly mined against nBits.
+    arith_uint256 bnTarget;
+    bnTarget.SetCompact(pblock->nBits);
+    while (UintToArith256(pblock->GetSha256DPoWHash()) > bnTarget) {
+        ++(pblock->nNonce64);
     }
 
     return pblock;
 }
 
 // construct a valid block
-const std::shared_ptr<const CBlock> GoodBlock(const uint256& prev_hash)
+const std::shared_ptr<const CBlock> GoodBlock(const uint256& prev_hash, int height)
 {
-    return FinalizeBlock(Block(prev_hash));
+    return FinalizeBlock(Block(prev_hash, height));
 }
 
 // construct an invalid block (but with a valid header)
-const std::shared_ptr<const CBlock> BadBlock(const uint256& prev_hash)
+const std::shared_ptr<const CBlock> BadBlock(const uint256& prev_hash, int height)
 {
-    auto pblock = Block(prev_hash);
+    auto pblock = Block(prev_hash, height);
 
     CMutableTransaction coinbase_spend;
     coinbase_spend.vin.push_back(CTxIn(COutPoint(pblock->vtx[0]->GetHash(), 0), CScript(), 0));
@@ -98,22 +144,22 @@ const std::shared_ptr<const CBlock> BadBlock(const uint256& prev_hash)
     return ret;
 }
 
-void BuildChain(const uint256& root, int height, const unsigned int invalid_rate, const unsigned int branch_rate, const unsigned int max_size, std::vector<std::shared_ptr<const CBlock>>& blocks)
+void BuildChain(const uint256& root, int height, int remaining, const unsigned int invalid_rate, const unsigned int branch_rate, const unsigned int max_size, std::vector<std::shared_ptr<const CBlock>>& blocks)
 {
-    if (height <= 0 || blocks.size() >= max_size) return;
+    if (remaining <= 0 || blocks.size() >= max_size) return;
 
     bool gen_invalid = InsecureRandRange(100) < invalid_rate;
     bool gen_fork = InsecureRandRange(100) < branch_rate;
 
-    const std::shared_ptr<const CBlock> pblock = gen_invalid ? BadBlock(root) : GoodBlock(root);
+    const std::shared_ptr<const CBlock> pblock = gen_invalid ? BadBlock(root, height) : GoodBlock(root, height);
     blocks.push_back(pblock);
     if (!gen_invalid) {
-        BuildChain(pblock->GetHash(), height - 1, invalid_rate, branch_rate, max_size, blocks);
+        BuildChain(pblock->GetHash(), height + 1, remaining - 1, invalid_rate, branch_rate, max_size, blocks);
     }
 
     if (gen_fork) {
-        blocks.push_back(GoodBlock(root));
-        BuildChain(blocks.back()->GetHash(), height - 1, invalid_rate, branch_rate, max_size, blocks);
+        blocks.push_back(GoodBlock(root, height));
+        BuildChain(blocks.back()->GetHash(), height + 1, remaining - 1, invalid_rate, branch_rate, max_size, blocks);
     }
 }
 
@@ -123,7 +169,7 @@ BOOST_AUTO_TEST_CASE(processnewblock_signals_ordering)
     std::vector<std::shared_ptr<const CBlock>> blocks;
     while (blocks.size() < 50) {
         blocks.clear();
-        BuildChain(Params().GenesisBlock().GetHash(), 100, 15, 10, 500, blocks);
+        BuildChain(Params().GenesisBlock().GetHash(), 1, 100, 15, 10, 500, blocks);
     }
 
     bool ignored;

@@ -43,8 +43,8 @@ BOOST_AUTO_TEST_CASE(progpow_hash_empty)
     auto& context = get_ethash_epoch_context_0();
 
     const auto result = progpow::hash(context, 0, {}, 0);
-    const auto mix_hex = "b1388e12e9898029a487f5534225c2ea8bd79c6ef6754db0405809f53d83c497";
-    const auto final_hex = "3d2f6484ee555362e9d8e2ca54fb99741e755e849f9900ef84ad65aa3c935bd1";
+    const auto mix_hex = "4b201dfe81d337a037b2533266a2e62d14f6f6f30242aa4d3c5186259ba1f667";
+    const auto final_hex = "10ebe85e03e26ffc49f3520fea29c39a3644cd8edb77c317be783d487a873ef5";
     BOOST_CHECK_EQUAL(to_hex(result.mix_hash), mix_hex);
     BOOST_CHECK_EQUAL(to_hex(result.final_hash), final_hex);
 }
@@ -59,8 +59,8 @@ BOOST_AUTO_TEST_CASE(progpow_hash_30000)
         auto context = ethash::create_epoch_context(ethash::get_epoch_number(block_number));
 
         const auto result = progpow::hash(*context, block_number, header, nonce);
-        const auto mix_hex = "aa15c8b7b34bfc7da13e6d734f63dd0517da65072f4b833c52d586cc3089a990";
-        const auto final_hex = "d8f9786659a08e0ae792bb39725d3dc1e2cc0fb36c228a0ec3101bf17a7cb44b";
+        const auto mix_hex = "d36a2bab20dafb5c129bf4aeadcf347667ab4bf051ef9c242c7017cc0c6601fc";
+        const auto final_hex = "20735b26774008bc93d96c20a08bcb65c192f2732f2df8eaf54a637edc275e8b";
         BOOST_CHECK_EQUAL(to_hex(result.mix_hash), mix_hex);
         BOOST_CHECK_EQUAL(to_hex(result.final_hash), final_hex);
 }
@@ -118,17 +118,19 @@ BOOST_AUTO_TEST_CASE(progpow_search)
     BOOST_CHECK(sr.nonce == srl.nonce);
 
     // Switch it to a different starting nonce and find another solution
-    sr = progpow::search(ctx, 0, {}, boundary, 0, 100);
-    srl = progpow::search_light(ctxl, 0, {}, boundary, 0, 100);
+    // Veil config: first solution under this boundary is nonce 265 (next: 1110),
+    // so [100,200) above has no solution and [200,300) finds one.
+    sr = progpow::search(ctx, 0, {}, boundary, 200, 100);
+    srl = progpow::search_light(ctxl, 0, {}, boundary, 200, 100);
 
     BOOST_CHECK(sr.mix_hash != ethash::hash256{});
     BOOST_CHECK(sr.final_hash != ethash::hash256{});
-    BOOST_CHECK(sr.nonce == 9);
+    BOOST_CHECK(sr.nonce == 265);
     BOOST_CHECK(sr.mix_hash == srl.mix_hash);
     BOOST_CHECK(sr.final_hash == srl.final_hash);
     BOOST_CHECK(sr.nonce == srl.nonce);
 
-    auto r = progpow::hash(ctx, 0, {}, 9);
+    auto r = progpow::hash(ctx, 0, {}, 265);
     BOOST_CHECK(sr.final_hash == r.final_hash);
     BOOST_CHECK(sr.mix_hash == r.mix_hash);
 }
@@ -143,7 +145,7 @@ BOOST_AUTO_TEST_CASE(progpow_veil_header)
     header.hashPrevBlock = uint256S("aabbcceeffaabbcceeffaabbcceeffaabbcceeffaabbcceeffaabbcceeffaabb");
     header.hashVeilData = uint256S("0011223344556677889900112233445566778899001122334455667788990011");
     header.nTime = 1571415021;
-    header.nNonce64 = 4745;
+    header.nNonce64 = 17207;
     header.nBits = 0x1e008eb5;
     header.nHeight = 25000;
 
@@ -157,11 +159,11 @@ BOOST_AUTO_TEST_CASE(progpow_veil_header)
     const auto header_hash = to_hash256(nHeaderHash.GetHex());
     const auto result = progpow::hash(ctx, header.nHeight, header_hash, header.nNonce64);
 
-    BOOST_CHECK(result.mix_hash == to_hash256("5c4388c54a7c703f451578f4111a5e5afa06df8fd974db4e06ef8d27e029ac8e"));
-    BOOST_CHECK(result.final_hash == to_hash256("0006b1d02a83eabb24be6388ed8d6bc05030f2bdc50bc34c4220dc7acbd8ec44"));
+    BOOST_CHECK(result.mix_hash == to_hash256("4086f8a6870bc0837ea5fd6657496b16668809a1b9501cb1ff3410cd3e2d3797"));
+    BOOST_CHECK(result.final_hash == to_hash256("0003ea5c65444b4ee40c69cb9bd56275af180833976ada30494af305f658d489"));
 
     auto boundary = to_hash256("000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-    auto sr = progpow::search(ctx, header.nHeight, header_hash, boundary, 4700, 100);
+    auto sr = progpow::search(ctx, header.nHeight, header_hash, boundary, 17200, 100);
 
     BOOST_CHECK(sr.solution_found);
 

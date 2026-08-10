@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(testRewardAfterSet)
     veil::Budget().GetBlockRewards(24 * nBlocksPerPeriod, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
     BOOST_CHECK(nBlockReward == 30 * COIN);
-    BOOST_CHECK(nFounderPayment == 6 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nFounderPayment == 0 /* founder payments ended: see budget.cpp era 3+ */);
     BOOST_CHECK(nFoundationPayment == 6 * nBlocksPerPeriod * COIN);
     BOOST_CHECK(nBudgetPayment == 18 * nBlocksPerPeriod * COIN);
 
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(testRewardAfterSet)
     veil::Budget().GetBlockRewards(36 * nBlocksPerPeriod, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
     BOOST_CHECK(nBlockReward == 20 * COIN);
-    BOOST_CHECK(nFounderPayment == 4 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nFounderPayment == 0 /* founder payments ended: see budget.cpp era 3+ */);
     BOOST_CHECK(nFoundationPayment == 4 * nBlocksPerPeriod * COIN);
     BOOST_CHECK(nBudgetPayment == 12 * nBlocksPerPeriod * COIN);
 
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(testRewardAfterSet)
     veil::Budget().GetBlockRewards(48 * nBlocksPerPeriod, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
     BOOST_CHECK(nBlockReward == 10 * COIN);
-    BOOST_CHECK(nFounderPayment == 2 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nFounderPayment == 0 /* founder payments ended: see budget.cpp era 3+ */);
     BOOST_CHECK(nFoundationPayment == 2 * nBlocksPerPeriod * COIN);
     BOOST_CHECK(nBudgetPayment == 6 * nBlocksPerPeriod * COIN);
 
@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(testRewardAfterSet_testnet)
     int nBlocksPerPeriod = 43200;
     veil::Budget().GetBlockRewards(1, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
-    BOOST_CHECK(nBlockReward == 50 * COIN);
+    BOOST_CHECK(nBlockReward == (15000000 + 50) * COIN /* non-mainnet block-1 premine */);
     BOOST_CHECK(nFounderPayment == 10 * nBlocksPerPeriod * COIN);
     BOOST_CHECK(nFoundationPayment == 10 * nBlocksPerPeriod * COIN);
     BOOST_CHECK(nBudgetPayment == 30 * nBlocksPerPeriod * COIN);
@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(testRewardAfterSet_testnet)
     veil::Budget().GetBlockRewards(12 * nBlocksPerPeriod + 20000, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
     BOOST_CHECK(nBlockReward == 40 * COIN);
-    BOOST_CHECK(nFounderPayment == 8 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nFounderPayment == 0 /* founder payments end after height 518401 */);
     BOOST_CHECK(nFoundationPayment == 8 * nBlocksPerPeriod * COIN);
     BOOST_CHECK(nBudgetPayment == 24 * nBlocksPerPeriod * COIN);
 
@@ -164,7 +164,7 @@ BOOST_AUTO_TEST_CASE(testRewardAfterSet_testnet)
     veil::Budget().GetBlockRewards(24 * nBlocksPerPeriod + 20000, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
     BOOST_CHECK(nBlockReward == 30 * COIN);
-    BOOST_CHECK(nFounderPayment == 6 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nFounderPayment == 0 /* founder payments ended */);
     BOOST_CHECK(nFoundationPayment == 6 * nBlocksPerPeriod * COIN);
     BOOST_CHECK(nBudgetPayment == 18 * nBlocksPerPeriod * COIN);
 
@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE(testRewardAfterSet_testnet)
     veil::Budget().GetBlockRewards(36 * nBlocksPerPeriod + 20000, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
     BOOST_CHECK(nBlockReward == 20 * COIN);
-    BOOST_CHECK(nFounderPayment == 4 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nFounderPayment == 0 /* founder payments ended */);
     BOOST_CHECK(nFoundationPayment == 4 * nBlocksPerPeriod * COIN);
     BOOST_CHECK(nBudgetPayment == 12 * nBlocksPerPeriod * COIN);
 
@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE(testRewardAfterSet_testnet)
     veil::Budget().GetBlockRewards(48 * nBlocksPerPeriod + 20000, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
     BOOST_CHECK(nBlockReward == 10 * COIN);
-    BOOST_CHECK(nFounderPayment == 2 * nBlocksPerPeriod * COIN);
+    BOOST_CHECK(nFounderPayment == 0 /* founder payments ended */);
     BOOST_CHECK(nFoundationPayment == 2 * nBlocksPerPeriod * COIN);
     BOOST_CHECK(nBudgetPayment == 6 * nBlocksPerPeriod * COIN);
 
