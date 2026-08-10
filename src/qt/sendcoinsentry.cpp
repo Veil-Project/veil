@@ -163,10 +163,6 @@ bool SendCoinsEntry::validate(interfaces::Node& node, std::string& error)
     // Check input validity
     bool retval = true;
 
-    // Skip checks for payment request
-    if (recipient.paymentRequest.IsInitialized())
-        return retval;
-
     // Only stealth addresses accepted.
     if(!model->isStealthAddress(ui->payTo->text())){
         validAmount(ui->payTo, false);
@@ -269,10 +265,6 @@ CAmount SendCoinsEntry::parseAmount(const QString &text, bool *valid_out) const
 
 SendCoinsRecipient SendCoinsEntry::getValue()
 {
-    // Payment request
-    if (recipient.paymentRequest.IsInitialized())
-        return recipient;
-
     // Normal payment
     recipient.address = ui->payTo->text();
     recipient.label = ui->addAsLabel->text();
@@ -300,42 +292,20 @@ void SendCoinsEntry::setValue(const SendCoinsRecipient &value)
 {
     recipient = value;
 
-    if (recipient.paymentRequest.IsInitialized()) // payment request
-    {
-        if (recipient.authenticatedMerchant.isEmpty()) // unauthenticated
-        {
-            ui->payTo_is->setText(recipient.address);
-            ui->memoTextLabel_is->setText(recipient.message);
-            ui->payAmount_is->setValue(recipient.amount);
-            ui->payAmount_is->setReadOnly(true);
-            setCurrentWidget(ui->SendCoins_UnauthenticatedPaymentRequest);
-        }
-        else // authenticated
-        {
-            ui->payTo_s->setText(recipient.authenticatedMerchant);
-            ui->memoTextLabel_s->setText(recipient.message);
-            ui->payAmount_s->setValue(recipient.amount);
-            ui->payAmount_s->setReadOnly(true);
-            setCurrentWidget(ui->SendCoins_AuthenticatedPaymentRequest);
-        }
-    }
-    else // normal payment
-    {
-        // message
-        //ui->messageTextLabel->setText(recipient.message);
-        //ui->messageTextLabel->setVisible(!recipient.message.isEmpty());
-        //ui->messageLabel->setVisible(!recipient.message.isEmpty());
+    // message
+    //ui->messageTextLabel->setText(recipient.message);
+    //ui->messageTextLabel->setVisible(!recipient.message.isEmpty());
+    //ui->messageLabel->setVisible(!recipient.message.isEmpty());
 
-        ui->addAsLabel->clear();
-        ui->payTo->setText(recipient.address); // this may set a label from addressbook
-        if (!recipient.label.isEmpty()) // if a label had been set from the addressbook, don't overwrite with an empty label
-            ui->addAsLabel->setText(recipient.label);
+    ui->addAsLabel->clear();
+    ui->payTo->setText(recipient.address); // this may set a label from addressbook
+    if (!recipient.label.isEmpty()) // if a label had been set from the addressbook, don't overwrite with an empty label
+        ui->addAsLabel->setText(recipient.label);
 
-        //ui->payAmount->setValue(recipient.amount);
-        // TODO: Add value here..
-        ui->payAmount->setText(BitcoinUnits::format(BitcoinUnits::VEIL, recipient.amount, false, BitcoinUnits::separatorAlways));
-        //ui->payAmount->setText(recipient.amount);
-    }
+    //ui->payAmount->setValue(recipient.amount);
+    // TODO: Add value here..
+    ui->payAmount->setText(BitcoinUnits::format(BitcoinUnits::VEIL, recipient.amount, false, BitcoinUnits::separatorAlways));
+    //ui->payAmount->setText(recipient.amount);
 }
 
 void SendCoinsEntry::setAddress(const QString &address)

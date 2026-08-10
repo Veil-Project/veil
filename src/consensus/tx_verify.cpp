@@ -469,9 +469,9 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
 
         uint32_t nInputs, nRingSize;
         tx.vin[i].GetAnonInfo(nInputs, nRingSize);
-        const std::vector<uint8_t> &vKeyImages = tx.vin[i].scriptData.stack[0];
 
         if (tx.vin[i].IsAnonInput()) {
+            const std::vector<uint8_t> &vKeyImages = tx.vin[i].scriptData.stack[0];
             for (size_t k = 0; k < nInputs; ++k) {
                 const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
 

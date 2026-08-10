@@ -771,6 +771,18 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
         consensus.vDeployments[Consensus::DEPLOYMENT_SEGWIT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
 
+        // POS_WEIGHT and ZC_LIMP were never initialized here, leaving their
+        // BIP9Deployment fields (raw PODs) reading indeterminate values on
+        // regtest whenever the deployment set is iterated (ComputeBlockVersion,
+        // getblockchaininfo). Always-active like the other test chains.
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].bit = 2;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_POS_WEIGHT].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].bit = 3;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nStartTime = Consensus::BIP9Deployment::ALWAYS_ACTIVE;
+        consensus.vDeployments[Consensus::DEPLOYMENT_ZC_LIMP].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
+
         // The best chain should have at least this much work.
         consensus.nMinimumChainWork = uint256S("0x0000000000000000000000000000000000000000000000000000000000000000");
 
@@ -838,10 +850,6 @@ public:
 
         bech32_hrp_stealth = "tps";
         bech32_hrp_base = "tv";
-
-        fDefaultConsistencyChecks = false;
-        fRequireStandard = false;
-        fMineBlocksOnDemand = false;
 
         /* enable fallback fee on regtest */
         m_fallback_fee_enabled = true;

@@ -20,6 +20,7 @@
 #include <policy/policy.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
+#include <crypto/common.h>
 #include <random.h>
 #include <reverse_iterator.h>
 #include <scheduler.h>
@@ -54,6 +55,11 @@ static constexpr int64_t HEADERS_DOWNLOAD_TIMEOUT_PER_HEADER = 1000; // 1ms/head
 static constexpr int32_t MAX_OUTBOUND_PEERS_TO_PROTECT_FROM_DISCONNECT = 4;
 /** Timeout for (unprotected) outbound peers to sync to our chainwork, in seconds */
 static constexpr int64_t CHAIN_SYNC_TIMEOUT = 20 * 60; // 20 minutes
+/** Maximum rate of address-relay processing per peer (addresses per second). */
+static constexpr double MAX_ADDR_RATE_PER_SECOND{0.1};
+/** Maximum burst of addresses processed at once, and the initial token bucket
+ *  size. Matches the 1000-address cap on a single addr message. */
+static constexpr size_t MAX_ADDR_PROCESSING_TOKEN_BUCKET{1000};
 /** How frequently to check for stale tips, in seconds */
 static constexpr int64_t STALE_CHECK_INTERVAL = 10 * 60; // 10 minutes
 /** How frequently to check for extra outbound peers and disconnect, in seconds */
@@ -2031,6 +2037,13 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         if (pfrom->fInbound)
             PushNodeVersion(pfrom, connman, GetAdjustedTime());
 
+        // Signal BIP155 (addrv2) support. BIP155 requires this to be sent
+        // before verack. Peers that predate BIP155 ignore the unknown message
+        // and keep receiving legacy addr; every peer that can connect under
+        // the current MIN_PEER_PROTO_VERSION speaks a protocol version high
+        // enough that no version gate is needed here.
+        connman->PushMessage(pfrom, CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::SENDADDRV2));
+
         connman->PushMessage(pfrom, CNetMsgMaker(INIT_PROTO_VERSION).Make(NetMsgType::VERACK));
 
         pfrom->nServices = nServices;
@@ -2092,6 +2105,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             {
                 connman->PushMessage(pfrom, CNetMsgMaker(nSendVersion).Make(NetMsgType::GETADDR));
                 pfrom->fGetAddr = true;
+                // We asked for a full address dump, so grant the peer the
+                // bucket to deliver it; unsolicited addr trickle otherwise
+                // stays limited to the refill rate from the initial 1 token.
+                pfrom->m_addr_token_bucket += MAX_ADDR_PROCESSING_TOKEN_BUCKET;
             }
             connman->MarkAddressGood(pfrom->addr);
         }
@@ -2199,10 +2216,19 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         return false;
     }
 
-    else if (strCommand == NetMsgType::ADDR)
+    else if (strCommand == NetMsgType::ADDR || strCommand == NetMsgType::ADDRV2)
     {
         std::vector<CAddress> vAddr;
-        vRecv >> vAddr;
+        if (strCommand == NetMsgType::ADDRV2) {
+            // Decode the address vector in the BIP155 format; processing below
+            // is identical to legacy addr.
+            int nOldVersion = vRecv.GetVersion();
+            vRecv.SetVersion(nOldVersion | ADDRV2_FORMAT);
+            vRecv >> vAddr;
+            vRecv.SetVersion(nOldVersion);
+        } else {
+            vRecv >> vAddr;
+        }
 
         // Don't want addr from older versions unless seeding
         if (pfrom->nVersion < CADDR_TIME_VERSION && connman->GetAddressCount() > 1000)
@@ -2214,6 +2240,25 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             return false;
         }
 
+        // Update the addr-processing token bucket for this peer, refilling it
+        // for the time elapsed since the last addr message.
+        const int64_t current_time_us = GetTimeMicros();
+        if (pfrom->m_addr_token_bucket < MAX_ADDR_PROCESSING_TOKEN_BUCKET) {
+            const int64_t time_diff_us = std::max<int64_t>(current_time_us - pfrom->m_addr_token_timestamp_us, 0);
+            const double increment = (time_diff_us / 1000000.0) * MAX_ADDR_RATE_PER_SECOND;
+            pfrom->m_addr_token_bucket = std::min<double>(pfrom->m_addr_token_bucket + increment, MAX_ADDR_PROCESSING_TOKEN_BUCKET);
+        }
+        pfrom->m_addr_token_timestamp_us = current_time_us;
+
+        // Whitelisted peers bypass addr-relay rate limiting.
+        const bool rate_limited = !pfrom->fWhitelisted;
+        uint64_t num_proc = 0;
+        uint64_t num_rate_limit = 0;
+
+        // Process addresses in random order so a flooding peer cannot control
+        // which addresses survive rate limiting.
+        Shuffle(vAddr.begin(), vAddr.end(), FastRandomContext());
+
         // Store the new addresses
         std::vector<CAddress> vAddrOk;
         int64_t nNow = GetAdjustedTime();
@@ -2222,6 +2267,18 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
         {
             if (interruptMsgProc)
                 return true;
+
+            // Apply rate limiting: drop addresses received beyond the token
+            // budget. This is purely on the addr-relay path and does not touch
+            // transaction relay (Dandelion uses NetMsgType::TX_DAND).
+            if (rate_limited) {
+                if (pfrom->m_addr_token_bucket < 1.0) {
+                    ++num_rate_limit;
+                    continue;
+                }
+                pfrom->m_addr_token_bucket -= 1.0;
+            }
+            ++num_proc;
 
             // We only bother storing full nodes, though this may include
             // things which we would not make an outbound connection to, in
@@ -2243,10 +2300,20 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                 vAddrOk.push_back(addr);
         }
         connman->AddNewAddresses(vAddrOk, pfrom->addr, 2 * 60 * 60);
+        pfrom->m_addr_processed += num_proc;
+        pfrom->m_addr_rate_limited += num_rate_limit;
+        LogPrint(BCLog::NET, "Received addr: %u addresses (%u processed, %u rate-limited) from peer=%d\n",
+                 vAddr.size(), num_proc, num_rate_limit, pfrom->GetId());
         if (vAddr.size() < 1000)
             pfrom->fGetAddr = false;
         if (pfrom->fOneShot)
             pfrom->fDisconnect = true;
+    }
+
+    else if (strCommand == NetMsgType::SENDADDRV2)
+    {
+        // The peer understands BIP155; relay addresses to it in addrv2 form.
+        pfrom->m_wants_addrv2 = true;
     }
 
     else if (strCommand == NetMsgType::SENDHEADERS)
@@ -2300,6 +2367,10 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
 
         uint32_t nFetchFlags = GetFetchFlags(pfrom);
 
+        // Track the highest block announced by inv so we can send a single
+        // getheaders after the loop, rather than one per block inv.
+        const uint256* best_block{nullptr};
+
         for (CInv &inv : vInv)
         {
             if (interruptMsgProc)
@@ -2315,18 +2386,14 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
             if (inv.type == MSG_BLOCK) {
                 UpdateBlockAvailability(pfrom->GetId(), inv.hash);
                 if (!fAlreadyHave && !fImporting && !fReindex && !mapBlocksInFlight.count(inv.hash)) {
-                    // We used to request the full block here, but since headers-announcements are now the
-                    // primary method of announcement on the network, and since, in the case that a node
-                    // fell back to inv we probably have a reorg which we should get the headers for first,
-                    // we now only provide a getheaders response here. When we receive the headers, we will
-                    // then ask for the blocks we need.
-                    connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexBestHeader), inv.hash));
-                    LogPrint(BCLog::NET, "getheaders (%d) %s to peer=%d\n", pindexBestHeader->nHeight, inv.hash.ToString(), pfrom->GetId());
-
-                    // Veil: we request the full block here because headers first syncing is not functional
-//                    LogPrint(BCLog::NET, "getinv (%d) %s to peer=%d\n", pindexBestHeader->nHeight, inv.hash.ToString(), pfrom->GetId());
-//                    MarkBlockAsInFlight(pfrom->GetId(), inv.hash);
-//                    pfrom->AskFor(inv);
+                    // Headers-announcements are the primary method of block
+                    // announcement. If a peer fell back to announcing by inv it
+                    // is probably a reorg; the final (highest) hash is enough to
+                    // request headers and then fetch the blocks we need. Record
+                    // it and send a single getheaders after the loop, so that a
+                    // large inv cannot make us emit one getheaders (each with an
+                    // expensive locator walk) per entry.
+                    best_block = &inv.hash;
                 }
             }
             else
@@ -2338,6 +2405,11 @@ bool static ProcessMessage(CNode* pfrom, const std::string& strCommand, CDataStr
                     pfrom->AskFor(inv);
                 }
             }
+        }
+
+        if (best_block != nullptr) {
+            connman->PushMessage(pfrom, msgMaker.Make(NetMsgType::GETHEADERS, chainActive.GetLocator(pindexBestHeader), *best_block));
+            LogPrint(BCLog::NET, "getheaders (%d) %s to peer=%d\n", pindexBestHeader->nHeight, best_block->ToString(), pfrom->GetId());
         }
     }
 
@@ -3480,6 +3552,11 @@ bool PeerLogicValidation::ProcessMessages(CNode* pfrom, std::atomic<bool>& inter
         return fMoreWork;
     }
 
+    // Feed the low bits of the message hash into the RNG event hasher
+    // (upstream 0.20: RandAddEvent on every received message; the entropy is
+    // the arrival timing recorded by AddEvent, not the hash itself).
+    RandAddEvent(ReadLE32(hash.begin()));
+
     // Process message
     bool fRet = false;
     try
@@ -3745,10 +3822,20 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
         //
         if (pto->nNextAddrSend < nNow) {
             pto->nNextAddrSend = PoissonNextSend(nNow, AVG_ADDRESS_BROADCAST_INTERVAL);
+            // Peers that negotiated BIP155 get the addrv2 message (which can
+            // carry Tor v3); everyone else keeps the legacy addr message. The
+            // ADDRV2_FORMAT bit drives the CAddress/CService encoding.
+            const bool fAddrV2 = pto->m_wants_addrv2;
+            const CNetMsgMaker addrMaker(pto->GetSendVersion() | (fAddrV2 ? ADDRV2_FORMAT : 0));
+            const char* addrMsgType = fAddrV2 ? NetMsgType::ADDRV2 : NetMsgType::ADDR;
             std::vector<CAddress> vAddr;
             vAddr.reserve(pto->vAddrToSend.size());
             for (const CAddress& addr : pto->vAddrToSend)
             {
+                // Never send an address a legacy peer cannot represent (e.g.
+                // Tor v3); it would serialize as 16 zero bytes.
+                if (!fAddrV2 && !addr.IsAddrV1Compatible())
+                    continue;
                 if (!pto->addrKnown.contains(addr.GetKey()))
                 {
                     pto->addrKnown.insert(addr.GetKey());
@@ -3756,14 +3843,14 @@ bool PeerLogicValidation::SendMessages(CNode* pto)
                     // receiver rejects addr messages larger than 1000
                     if (vAddr.size() >= 1000)
                     {
-                        connman->PushMessage(pto, msgMaker.Make(NetMsgType::ADDR, vAddr));
+                        connman->PushMessage(pto, addrMaker.Make(addrMsgType, vAddr));
                         vAddr.clear();
                     }
                 }
             }
             pto->vAddrToSend.clear();
             if (!vAddr.empty())
-                connman->PushMessage(pto, msgMaker.Make(NetMsgType::ADDR, vAddr));
+                connman->PushMessage(pto, addrMaker.Make(addrMsgType, vAddr));
             // we only send the big addr message once
             if (pto->vAddrToSend.capacity() > 40)
                 pto->vAddrToSend.shrink_to_fit();

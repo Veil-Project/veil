@@ -41,8 +41,12 @@
 //#include "int-util.h"
 //#include "warnings.h"
 
-extern int swap32be();
-extern int swap64be();
+/* Big-endian byte-swap helpers from the original cryptonight code. Only
+ * referenced by the unused place_length() below (this file's slow-hash path is
+ * a dead archive member in Veil, which uses crypto/randomx). Give them real
+ * prototypes so the calls parse under C23, where K&R "()" means "(void)". */
+extern uint32_t swap32be(uint32_t);
+extern uint64_t swap64be(uint64_t);
 
 static inline void *padd(void *p, size_t i) {
   return (char *) p + i;

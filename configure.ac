@@ -1,11 +1,11 @@
 dnl require autoconf 2.60 (AS_ECHO/AS_ECHO_N)
 AC_PREREQ([2.60])
 define(_CLIENT_VERSION_MAJOR, 1)
-define(_CLIENT_VERSION_MINOR, 4)
-define(_CLIENT_VERSION_REVISION, 3)
-define(_CLIENT_VERSION_BUILD, 99)
+define(_CLIENT_VERSION_MINOR, 5)
+define(_CLIENT_VERSION_REVISION, 0)
+define(_CLIENT_VERSION_BUILD, 0)
 define(_CLIENT_VERSION_IS_RELEASE, false)
-define(_COPYRIGHT_YEAR, 2022)
+define(_COPYRIGHT_YEAR, 2026)
 define(_COPYRIGHT_HOLDERS,[The %s developers])
 define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[Veil Core]])
 AC_INIT([Veil Core],[_CLIENT_VERSION_MAJOR._CLIENT_VERSION_MINOR._CLIENT_VERSION_REVISION._CLIENT_VERSION_BUILD],[https://github.com/Veil-Project/veil/issues],[veil],[https://veil-project.com/])
@@ -224,7 +224,7 @@ AC_ARG_WITH([system-univalue],
   [system_univalue=no])
 
 AC_ARG_WITH([zerocoin-bignum],
-  [AS_HELP_STRING([--with-zerocoin-bignum=gmp|openssl|auto],
+  [AS_HELP_STRING([--with-zerocoin-bignum=gmp|auto],
   [Specify Bignum Implementation. Default is auto])],
   [req_bignum=$withval],
   [req_bignum=auto])
@@ -235,7 +235,6 @@ AC_ARG_ENABLE([zmq],
   [use_zmq=$enableval],
   [use_zmq=yes])
 
-AC_ARG_WITH([protoc-bindir],[AS_HELP_STRING([--with-protoc-bindir=BIN_DIR],[specify protoc bin path])], [protoc_bin_path=$withval], [])
 
 AC_ARG_ENABLE(man,
     [AS_HELP_STRING([--disable-man],
@@ -500,6 +499,8 @@ case $host in
   *darwin*)
      TARGET_OS=darwin
      case $host in
+       arm64-*) ARM_64=yes ;;
+       aarch64-*) ARM_64=yes ;;
        x86_64-*) X86_64=yes ;;
      esac
      LEVELDB_TARGET_FLAGS="-DOS_MACOSX"
@@ -525,11 +526,6 @@ case $host in
          dnl It's safe to add these paths even if the functionality is disabled by
          dnl the user (--without-wallet or --without-gui for example).
 
-         openssl_prefix=`$BREW --prefix openssl 2>/dev/null`
-         if test x$openssl_prefix != x; then
-           PKG_CONFIG_PATH="$openssl_prefix/lib/pkgconfig:$PKG_CONFIG_PATH"
-           export PKG_CONFIG_PATH
-         fi
          if test "x$use_bdb" != xno && $BREW list --versions berkeley-db4 >/dev/null && test "x$BDB_CFLAGS" = "x" && test "x$BDB_LIBS" = "x"; then
            bdb_prefix=$($BREW --prefix berkeley-db4 2>/dev/null)
            dnl This must precede the call to BITCOIN_FIND_BDB48 below.
@@ -1030,9 +1026,9 @@ CPPFLAGS="$TEMP_CPPFLAGS"
 
 fi
 
-  PKG_CHECK_MODULES([SSL], [libssl],, [AC_MSG_ERROR(openssl not found.)])
-  PKG_CHECK_MODULES([CRYPTO], [libcrypto],,[AC_MSG_ERROR(libcrypto not found.)])
-  BITCOIN_QT_CHECK([PKG_CHECK_MODULES([PROTOBUF], [protobuf], [have_protobuf=yes], [BITCOIN_QT_FAIL(libprotobuf not found)])])
+  dnl OpenSSL and protobuf checks removed: the daemon RNG no longer uses
+  dnl OpenSSL and the GUI's only consumer (the BIP70 payment protocol) has
+  dnl been removed, following upstream.
 
 dnl libevent check
 
@@ -1048,13 +1044,6 @@ dnl QR Code encoding library check
 if test "x$use_qr" != xno; then
   BITCOIN_QT_CHECK([PKG_CHECK_MODULES([QR], [libqrencode], [have_qrencode=yes], [have_qrencode=no])])
 fi
-
-#save_CXXFLAGS="${CXXFLAGS}"
-#CXXFLAGS="${CXXFLAGS} ${CRYPTO_CFLAGS} ${SSL_CFLAGS}"
-#AC_CHECK_DECLS([EVP_MD_CTX_new],,,[AC_INCLUDES_DEFAULT
-##include <openssl/x509_vfy.h>
-#])
-#CXXFLAGS="${save_CXXFLAGS}"
 
 dnl ZMQ check
 
@@ -1075,15 +1064,7 @@ if test "x$use_zmq" = xyes; then
       ZMQ_CFLAGS="$ZMQ_CFLAGS -DZMQ_STATIC"
     ;;
   esac
-  BITCOIN_QT_CHECK(AC_CHECK_LIB([protobuf] ,[main],[PROTOBUF_LIBS=-lprotobuf], BITCOIN_QT_FAIL(libprotobuf not found)))
 fi
-
-save_CXXFLAGS="${CXXFLAGS}"
-CXXFLAGS="${CXXFLAGS} ${CRYPTO_CFLAGS} ${SSL_CFLAGS}"
-AC_CHECK_DECLS([EVP_MD_CTX_new],,,[AC_INCLUDES_DEFAULT
-#include <openssl/x509_vfy.h>
-])
-CXXFLAGS="${save_CXXFLAGS}"
 
 dnl univalue check
 
@@ -1114,7 +1095,6 @@ AM_CONDITIONAL([EMBEDDED_UNIVALUE],[test x$need_bundled_univalue = xyes])
 AC_SUBST(UNIVALUE_CFLAGS)
 AC_SUBST(UNIVALUE_LIBS)
 
-BITCOIN_QT_PATH_PROGS([PROTOC], [protoc],$protoc_bin_path)
 
 AC_MSG_CHECKING([whether to build veild])
 AM_CONDITIONAL([BUILD_BITCOIND], [test x$build_bitcoind = xyes])
@@ -1172,7 +1152,7 @@ gmp)
   fi
   ;;
 openssl)
-    AC_MSG_WARN([openssl bignum explicitly requested. This is DEPRECATED.])
+    AC_MSG_ERROR([the openssl bignum backend has been removed; use gmp])
   ;;
 *)
   AC_MSG_ERROR([invalid bignum implementation selection])
@@ -1262,9 +1242,6 @@ AM_CONDITIONAL([ENABLE_ZMQ], [test "x$use_zmq" = "xyes"])
 case $set_bignum in
 gmp)
   AC_DEFINE(USE_NUM_GMP, 1, [Define this symbol to use the gmp implementation])
-  ;;
-openssl)
-  AC_DEFINE(USE_NUM_OPENSSL, 1, [Define this symbol to use openssl implementation])
   ;;
 *)
   AC_MSG_ERROR([invalid bignum implementation])
@@ -1368,10 +1345,8 @@ AC_SUBST(SSL_LIBS)
 AC_SUBST(EVENT_LIBS)
 AC_SUBST(EVENT_PTHREADS_LIBS)
 AC_SUBST(ZMQ_LIBS)
-AC_SUBST(PROTOBUF_LIBS)
 AC_SUBST(QR_LIBS)
 AC_SUBST(USE_NUM_GMP)
-AC_SUBST(USE_NUM_OPENSSL)
 AC_CONFIG_FILES([Makefile src/Makefile doc/man/Makefile share/setup.nsi share/qt/Info.plist test/config.ini])
 AC_CONFIG_FILES([contrib/devtools/split-debug.sh],[chmod +x contrib/devtools/split-debug.sh])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([doc/Doxyfile])])
