@@ -2356,16 +2356,38 @@ static UniValue removewatchonlyaddress(const JSONRPCRequest &request)
         std::string sScanSecret = request.params[0].get_str();
         std::string sSpendPublic = request.params[1].get_str();
 
-        std::vector<uint8_t> vData = ParseHex(sScanSecret);
-        if (vData.size() != 32) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid scan secret - must be 32 bytes hex");
+        // Accept the same forms importlightwalletaddress does, otherwise an address
+        // imported with the WIF that viewscankeys hands out cannot be removed with it.
+        std::vector<uint8_t> vData;
+        CBitcoinSecret wifScanSecret;
+        if (IsHex(sScanSecret)) {
+            vData = ParseHex(sScanSecret);
+        } else
+        if (wifScanSecret.SetString(sScanSecret)) {
+            scan_secret = wifScanSecret.GetKey();
+        } else {
+            if (!DecodeBase58(sScanSecret, vData, MAX_STEALTH_RAW_SIZE)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode scan secret as WIF, hex or base58.");
+            }
         }
-        scan_secret.Set(vData.begin(), vData.end(), true);
+        if (vData.size() > 0) {
+            if (vData.size() != 32) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Scan secret is not 32 bytes.");
+            }
+            scan_secret.Set(vData.begin(), vData.end(), true);
+        }
         if (!scan_secret.IsValid()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid scan secret");
         }
 
-        std::vector<uint8_t> vPubKey = ParseHex(sSpendPublic);
+        std::vector<uint8_t> vPubKey;
+        if (IsHex(sSpendPublic)) {
+            vPubKey = ParseHex(sSpendPublic);
+        } else {
+            if (!DecodeBase58(sSpendPublic, vPubKey, MAX_STEALTH_RAW_SIZE)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode spend public as hex or base58.");
+            }
+        }
         spend_public.Set(vPubKey.begin(), vPubKey.end());
         if (!spend_public.IsValid()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid spend public key");

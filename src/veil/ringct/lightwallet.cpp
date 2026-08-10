@@ -1160,7 +1160,7 @@ bool GetAmountAndBlindForUnspentTx(std::vector<CWatchOnlyTx>& vTxes, const std::
 
 bool CheckAmounts(const CAmount& nValueOut, const std::vector<CWatchOnlyTx>& vSpendableTx)
 {
-    CAmount nSum;
+    CAmount nSum = 0;
     for (const auto& tx : vSpendableTx) {
         LogPrintf("Getting amounts from inputs: %d\n", tx.nAmount);
         nSum += tx.nAmount;
