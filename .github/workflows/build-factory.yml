@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 name: Github Actions CI for Veil
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 env:
   SOURCE_ARTIFACT: source
 jobs:
@@ -58,7 +58,7 @@ jobs:
     - name: Install Required Packages
       run: |
         sudo apt update
-        sudo apt install -y python3-zmq
+        sudo apt install -y python3-zmq dpkg-dev imagemagick
     - name: Build Dependencies
       run: make -C depends -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
@@ -72,6 +72,54 @@ jobs:
         mkdir -p $ARTIFACT_DIR
         strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
         mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
+    # Builds a .deb so Debian/Ubuntu/Mint users get a double click install and a
+    # Veil entry in the application menu instead of a folder of loose binaries.
+    - name: Build Debian Package
+      run: |
+        VERSION=$(ls $SOURCE_ARTIFACT/veil-*.tar.gz | sed 's|.*/veil-||; s|\.tar\.gz$||')
+        PKG=veil-deb
+        mkdir -p $PKG/DEBIAN $PKG/usr/bin $PKG/usr/share/applications \
+                 $PKG/usr/share/pixmaps $PKG/usr/share/doc/veil
+        cp $ARTIFACT_DIR/{veil-cli,veil-tx,veild,veil-qt} $PKG/usr/bin
+        cp $SOURCE_ARTIFACT/COPYING $PKG/usr/share/doc/veil/copyright
+        ICON=$SOURCE_ARTIFACT/src/qt/res/icons/bitcoin.png
+        for SIZE in 32 64 128 256; do
+          mkdir -p $PKG/usr/share/icons/hicolor/${SIZE}x${SIZE}/apps
+          convert $ICON -resize ${SIZE}x${SIZE} $PKG/usr/share/icons/hicolor/${SIZE}x${SIZE}/apps/veil.png
+        done
+        cp $PKG/usr/share/icons/hicolor/256x256/apps/veil.png $PKG/usr/share/pixmaps/veil.png
+        cat > $PKG/usr/share/applications/veil-qt.desktop <<'DESKTOP'
+        [Desktop Entry]
+        Type=Application
+        Name=Veil
+        GenericName=Veil Wallet
+        Comment=Send and receive Veil
+        Exec=veil-qt %u
+        Icon=veil
+        Terminal=false
+        Categories=Office;Finance;
+        MimeType=x-scheme-handler/veil;
+        DESKTOP
+        # Read the real shared library deps off the binary instead of guessing
+        mkdir -p debian
+        printf 'Source: veil\n\nPackage: veil\nArchitecture: amd64\n' > debian/control
+        DEPENDS=$(dpkg-shlibdeps --ignore-missing-info -O $PKG/usr/bin/veil-qt 2>/dev/null | sed 's/^shlibs:Depends=//') || true
+        [ -n "$DEPENDS" ] || DEPENDS='libc6, libstdc++6, libgcc-s1'
+        cat > $PKG/DEBIAN/control <<CONTROL
+        Package: veil
+        Version: $VERSION
+        Architecture: amd64
+        Section: utils
+        Priority: optional
+        Maintainer: Veil Project <https://github.com/Veil-Project/veil>
+        Homepage: https://veil-project.com/
+        Depends: $DEPENDS
+        Description: Veil privacy focused cryptocurrency wallet
+         Veil is a privacy focused cryptocurrency built on RingCT and zerocoin.
+         This package installs the Veil-Qt wallet along with the veild daemon
+         and the veil-cli and veil-tx command line tools.
+        CONTROL
+        dpkg-deb --build --root-owner-group $PKG $ARTIFACT_DIR/veil-$VERSION-amd64.deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v6.0.0
       with:
@@ -97,7 +145,7 @@ jobs:
     - name: Install Required Packages
       run: |
         sudo apt update
-        sudo apt install -y g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64
+        sudo apt install -y g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 nsis
     - name: Switch MinGW GCC and G++ to POSIX Threading
       run: |
         sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-posix
@@ -110,11 +158,18 @@ jobs:
         ./configure --disable-jni --prefix=$(realpath depends/x86_64-w64-mingw32)
         make -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
+    # Produces veil-<version>-win64-setup.exe from share/setup.nsi: start menu
+    # entries, the veil: URI handler and an uninstaller, same as any other
+    # Windows program. Has to run before the binaries are moved out of src/.
+    - name: Build Windows Installer
+      run: make deploy
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
     - name: Prepare Files for Artifact
       run: |
         mkdir -p $ARTIFACT_DIR
         strip $SOURCE_ARTIFACT/src/{veil-cli.exe,veil-tx.exe,veild.exe,qt/veil-qt.exe}
         mv $SOURCE_ARTIFACT/src/{veil-cli.exe,veil-tx.exe,veild.exe,qt/veil-qt.exe} $ARTIFACT_DIR
+        mv $SOURCE_ARTIFACT/veil-*-win64-setup.exe $ARTIFACT_DIR
     - name: Upload Artifact
       uses: actions/upload-artifact@v6.0.0
       with:
@@ -142,8 +197,12 @@ jobs:
     - name: Install Required Packages
       run: |
         sudo apt update
-        sudo apt install -y python3-setuptools libcap-dev zlib1g-dev cmake
+        sudo apt install -y python3-setuptools libcap-dev zlib1g-dev cmake \
+          genisoimage librsvg2-bin imagemagick libtiff-tools
         sudo -H pip install setuptools
+        # macdeployqtplus and custom_dsstore.py need these to lay out the .dmg,
+        # installed against the same python3 that configure will pick up
+        sudo -H python3 -m pip install ds_store mac_alias biplist
 
     - name: Work around missing libtinfo.so.5 for macOS cross-toolchain
       run: |
@@ -175,12 +234,20 @@ jobs:
         make -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
 
+    # Wraps Veil-Qt.app in the usual drag-to-Applications disk image. The .dmg
+    # is unsigned, so first launch is right click -> Open.
+    - name: Build Disk Image
+      run: make deploy
+      working-directory: ${{ env.SOURCE_ARTIFACT }}
+
     - name: Prepare Files for Artifact
       run: |
         mkdir -p $ARTIFACT_DIR
         # strip fails with "Unable to recognise the format of the input file"
         #strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
         mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
+        VERSION=$(ls $SOURCE_ARTIFACT/veil-*.tar.gz | sed 's|.*/veil-||; s|\.tar\.gz$||')
+        mv $SOURCE_ARTIFACT/*.dmg $ARTIFACT_DIR/veil-$VERSION-osx64.dmg
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v6.0.0
@@ -346,3 +413,30 @@ jobs:
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
+  attach-installers-to-release:
+    name: Attach Installers to Release
+    needs: [build-x86_64-linux, build-win64, build-osx64]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+    - name: Getting Installers
+      uses: actions/download-artifact@v7.0.0
+      with:
+        path: artifacts
+    - name: Attach to Release
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        mkdir -p installers
+        cp artifacts/win64-binaries/*-win64-setup.exe installers
+        cp artifacts/macosx-binaries/*.dmg installers
+        cp artifacts/x86_64-linux-binaries/*.deb installers
+        (cd installers && sha256sum * > SHA256SUMS.txt)
+        # A tag can be pushed before its release page exists, so open a draft
+        # when there is nothing to attach to yet
+        gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || \
+          gh release create "$GITHUB_REF_NAME" --draft --title "$GITHUB_REF_NAME" --notes "Installers built by CI."
+        gh release upload "$GITHUB_REF_NAME" installers/* --clobber
