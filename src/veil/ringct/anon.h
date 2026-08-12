@@ -4,6 +4,7 @@
 #ifndef VEIL_ANON_H
 #define VEIL_ANON_H
 
+#include <core_io.h>
 #include <inttypes.h>
 #include <primitives/transaction.h>
 
@@ -32,6 +33,8 @@ bool RewindToCheckpoint(int nCheckPointHeight, int &nBlocks, std::string &sError
 std::vector<COutPoint> GetRingCtInputs(const CTxIn& txin);
 bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint> >& vInputs);
 std::vector<std::vector<COutPoint>> GetTxRingCtInputs(const CTransactionRef ptx);
+std::vector<RingCtInputMember> GetRingCtInputMembers(const CTxIn& txin);
+std::vector<std::vector<RingCtInputMember>> GetTxRingCtInputMembers(const CTransactionRef ptx);
 
 
 #endif //VEIL_ANON_H

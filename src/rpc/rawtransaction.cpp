@@ -41,7 +41,7 @@
 #include <univalue.h>
 
 
-static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, const std::vector<std::vector<COutPoint>>& vTxRingCtInputs)
+static void TxToJSON(const CTransaction& tx, const uint256 hashBlock, UniValue& entry, const std::vector<std::vector<RingCtInputMember>>& vTxRingCtInputs)
 {
     // Call into TxToUniv() in bitcoin-common to decode the transaction hex.
     //
@@ -199,7 +199,7 @@ static UniValue getrawtransaction(const JSONRPCRequest& request)
     }
 
     //Get ringct inputs
-    std::vector<std::vector<COutPoint> > vTxRingCtInputs = GetTxRingCtInputs(tx);
+    std::vector<std::vector<RingCtInputMember>> vTxRingCtInputs = GetTxRingCtInputMembers(tx);
     UniValue result(UniValue::VOBJ);
     if (blockindex) result.pushKV("in_active_chain", in_active_chain);
     TxToJSON(*tx, hash_block, result, vTxRingCtInputs);
