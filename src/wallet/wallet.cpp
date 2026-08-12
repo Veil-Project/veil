@@ -5,6 +5,7 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <wallet/wallet.h>
+#include <veil/ringct/anon.h>
 #include <veil/ringct/anonwallet.h>
 #include <veil/budget.h>
 
@@ -4091,6 +4092,180 @@ bool CWallet::CommitTransaction(CTransactionRef tx, mapValue_t mapValue, std::ve
     return true;
 }
 
+// Tuning for -autoconvert.
+// Outputs need this many confirmations before they are converted, which keeps
+// conversions clear of short reorgs and decorrelates them from the block that
+// paid the wallet.
+static const int AUTOCONVERT_MIN_DEPTH = 12;
+// Cap the inputs per conversion so a sweep of a large wallet can never
+// approach the standard transaction size limits.
+static const size_t AUTOCONVERT_MAX_INPUTS = MAX_ANON_INPUTS;
+// Delay between conversion attempts: a minimum plus a random jitter so the
+// broadcasts do not fingerprint the wallet by trailing blocks or each other.
+static const int AUTOCONVERT_MIN_DELAY = 60;
+static const int AUTOCONVERT_JITTER = 9 * 60;
+// Exponential backoff applied after a failed conversion attempt.
+static const int64_t AUTOCONVERT_BACKOFF_BASE = 5 * 60;
+static const int64_t AUTOCONVERT_BACKOFF_MAX = 6 * 60 * 60;
+
+void CWallet::AutoConvertToRingCT()
+{
+    if (!pAnonWalletMain || !fBroadcastTransactions)
+        return;
+    if (IsInitialBlockDownload() || !HeadersAndBlocksSynced())
+        return;
+    // Requires a full unlock; AnonWallet::IsLocked also covers unlock-for-staking-only
+    if (pAnonWalletMain->IsLocked())
+        return;
+
+    int64_t nNow = GetTime();
+    if (m_autoconvert_not_before == 0) {
+        // First pass after startup: schedule with jitter instead of converting immediately
+        m_autoconvert_not_before = nNow + AUTOCONVERT_MIN_DELAY + GetRandInt(AUTOCONVERT_JITTER);
+        return;
+    }
+    if (nNow < m_autoconvert_not_before)
+        return;
+
+    // Lift matured CT outputs to RingCT first, then start new basecoin batches
+    AutoConvertResult result = AutoConvertBatch(/*fFromBasecoin*/false);
+    if (result == AutoConvertResult::NOTHING_TO_CONVERT)
+        result = AutoConvertBatch(/*fFromBasecoin*/true);
+
+    switch (result) {
+        case AutoConvertResult::NOTHING_TO_CONVERT:
+            // Randomize the next check so an output maturing past the depth
+            // floor is not converted at a predictable offset from its receipt
+            m_autoconvert_not_before = nNow + GetRandInt(AUTOCONVERT_JITTER);
+            break;
+        case AutoConvertResult::CONVERTED:
+            m_autoconvert_failures = 0;
+            m_autoconvert_not_before = nNow + AUTOCONVERT_MIN_DELAY + GetRandInt(AUTOCONVERT_JITTER);
+            break;
+        case AutoConvertResult::FAILED:
+            m_autoconvert_failures = std::min(m_autoconvert_failures + 1, 6);
+            m_autoconvert_not_before = nNow + std::min(AUTOCONVERT_BACKOFF_BASE << m_autoconvert_failures, AUTOCONVERT_BACKOFF_MAX);
+            LogPrintf("%s: %d consecutive failure(s), next attempt in %d seconds\n", __func__,
+                      m_autoconvert_failures, (int)(m_autoconvert_not_before - nNow));
+            break;
+    }
+}
+
+CWallet::AutoConvertResult CWallet::AutoConvertBatch(bool fFromBasecoin)
+{
+    CCoinControl coinControl;
+    coinControl.fAllowOtherInputs = false;
+
+    // Select up to AUTOCONVERT_MAX_INPUTS confirmed outputs, largest first, so
+    // the amount checked below is exactly the amount the transaction spends.
+    CAmount nTotal = 0;
+    {
+        LOCK2(cs_main, cs_wallet);
+        if (fFromBasecoin) {
+            std::vector<COutput> vCoins;
+            AvailableCoins(vCoins, true, nullptr, 1, MAX_MONEY, MAX_MONEY, 0, AUTOCONVERT_MIN_DEPTH);
+            std::sort(vCoins.begin(), vCoins.end(), [](const COutput& a, const COutput& b) {
+                return a.tx->tx->vpout[a.i]->GetValue() > b.tx->tx->vpout[b.i]->GetValue();
+            });
+            for (const COutput& out : vCoins) {
+                if (coinControl.setSelected.size() >= AUTOCONVERT_MAX_INPUTS)
+                    break;
+                if (!out.fSpendable)
+                    continue;
+                CAmount nValue = out.tx->tx->vpout[out.i]->GetValue();
+                coinControl.Select(COutPoint(out.tx->GetHash(), out.i), nValue);
+                nTotal += nValue;
+            }
+        } else {
+            std::vector<COutputR> vCoins;
+            pAnonWalletMain->AvailableBlindedCoins(vCoins, true, &coinControl, 1, MAX_MONEY, MAX_MONEY, 0, AUTOCONVERT_MIN_DEPTH);
+            auto recordValue = [](const COutputR& out) -> CAmount {
+                const COutputRecord* pout = out.rtx->second.GetOutput(out.i);
+                return pout ? pout->GetAmount() : 0;
+            };
+            std::sort(vCoins.begin(), vCoins.end(), [&recordValue](const COutputR& a, const COutputR& b) {
+                return recordValue(a) > recordValue(b);
+            });
+            for (const COutputR& out : vCoins) {
+                if (coinControl.setSelected.size() >= AUTOCONVERT_MAX_INPUTS)
+                    break;
+                if (!out.fSpendable)
+                    continue;
+                CAmount nValue = recordValue(out);
+                if (nValue <= 0)
+                    continue;
+                coinControl.Select(COutPoint(out.txhash, out.i), nValue);
+                nTotal += nValue;
+            }
+        }
+    }
+
+    if (coinControl.setSelected.empty() || nTotal < m_autoconvert_threshold)
+        return AutoConvertResult::NOTHING_TO_CONVERT;
+
+    std::vector<CTempRecipient> vecSend;
+    CTempRecipient r;
+    // Consensus only allows RingCT outputs when the inputs are CT or RingCT
+    // (bad-txns-ringct-output-no-anonin), so basecoin converts to CT here and
+    // a later cycle lifts the matured CT outputs to RingCT.
+    r.nType = fFromBasecoin ? OUTPUT_CT : OUTPUT_RINGCT;
+    r.SetAmount(nTotal);
+    r.fSubtractFeeFromAmount = true;
+    r.address = pAnonWalletMain->GetStealthChangeAddress();
+    vecSend.push_back(r);
+
+    CWalletTx wtx(this, nullptr);
+    CTransactionRecord rtx;
+    CAmount nFeeRet = 0;
+    std::string sError;
+    int nResult;
+    if (fFromBasecoin) {
+        nResult = pAnonWalletMain->AddStandardInputs(wtx, rtx, vecSend, true, nFeeRet, &coinControl, sError, false, 0);
+    } else {
+        nResult = pAnonWalletMain->AddBlindedInputs(wtx, rtx, vecSend, true, 0, nFeeRet, &coinControl, sError);
+    }
+    if (nResult != 0) {
+        // A failure after the transaction was fully built has already saved a
+        // record and marked its inputs as pending spend; undo that so the
+        // selected outputs remain spendable.
+        if (wtx.tx)
+            pAnonWalletMain->UnwindPendingTransaction(wtx.tx->GetHash());
+        LogPrintf("%s: %s conversion failed: %s\n", __func__, fFromBasecoin ? "basecoin->CT" : "CT->RingCT", sError);
+        return AutoConvertResult::FAILED;
+    }
+
+    const uint256 txid = wtx.tx->GetHash();
+
+    // Confirm the mempool would accept the transaction before committing it to
+    // the wallet, so a rejection cannot strand the inputs as spent.
+    {
+        LOCK(cs_main);
+        CValidationState state;
+        if (!AcceptToMemoryPool(mempool, state, wtx.tx, nullptr /* pfMissingInputs */, nullptr /* plTxnReplaced */,
+                                false /* bypass_limits */, maxTxFee, true /* test accept */)) {
+            pAnonWalletMain->UnwindPendingTransaction(txid);
+            LogPrintf("%s: %s conversion rejected by mempool: %s\n", __func__, fFromBasecoin ? "basecoin->CT" : "CT->RingCT",
+                      FormatStateMessage(state));
+            return AutoConvertResult::FAILED;
+        }
+    }
+
+    CValidationState state;
+    if (!CommitTransaction(wtx.tx, wtx.mapValue, wtx.vOrderForm, nullptr, g_connman.get(), state)) {
+        // CommitTransaction added the transaction to the wallet before the
+        // mempool rejected it; abandon it so its inputs become spendable again.
+        AbandonTransaction(txid);
+        pAnonWalletMain->UnwindPendingTransaction(txid);
+        LogPrintf("%s: %s conversion commit failed: %s\n", __func__, fFromBasecoin ? "basecoin->CT" : "CT->RingCT",
+                  FormatStateMessage(state));
+        return AutoConvertResult::FAILED;
+    }
+
+    LogPrintf("%s: %s: converted %d output(s) in tx %s, fee %s\n", __func__,
+              fFromBasecoin ? "basecoin->CT" : "CT->RingCT", (int)coinControl.setSelected.size(), txid.ToString(), FormatMoney(nFeeRet));
+    return AutoConvertResult::CONVERTED;
+}
+
 DBErrors CWallet::LoadWallet(bool& fFirstRunRet)
 {
     LOCK2(cs_main, cs_wallet);
@@ -5373,6 +5548,15 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
                         _("This is the minimum transaction fee you pay on every transaction."));
         }
         walletInstance->m_min_fee = CFeeRate(n);
+    }
+
+    if (gArgs.IsArgSet("-autoconvertthreshold")) {
+        CAmount n = 0;
+        if (!ParseMoney(gArgs.GetArg("-autoconvertthreshold", ""), n) || 0 == n) {
+            InitError(AmountErrMsg("autoconvertthreshold", gArgs.GetArg("-autoconvertthreshold", "")));
+            return nullptr;
+        }
+        walletInstance->m_autoconvert_threshold = n;
     }
 
     walletInstance->m_allow_fallback_fee = Params().IsFallbackFeeEnabled();

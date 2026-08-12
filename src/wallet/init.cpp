@@ -23,6 +23,8 @@
 void WalletInit::AddWalletOptions() const
 {
     gArgs.AddArg("-addresstype", strprintf("What type of addresses to use (\"legacy\", \"p2sh-segwit\", or \"bech32\", default: \"%s\")", FormatOutputType(DEFAULT_ADDRESS_TYPE)), false, OptionsCategory::WALLET);
+    gArgs.AddArg("-autoconvert", strprintf("Automatically convert confirmed basecoin and CT balances in all loaded wallets to RingCT (default: %u). Each conversion is a normal transaction that pays the standard fee. Requires the wallet to be fully unlocked", DEFAULT_AUTOCONVERT), false, OptionsCategory::WALLET);
+    gArgs.AddArg("-autoconvertthreshold=<amt>", strprintf("Minimum amount of eligible outputs required before an automatic conversion transaction is created (default: %s)", FormatMoney(DEFAULT_AUTOCONVERT_THRESHOLD)), false, OptionsCategory::WALLET);
     gArgs.AddArg("-avoidpartialspends", strprintf(_("Group outputs by address, selecting all or none, instead of selecting on a per-output basis. Privacy is improved as an address is only used once (unless someone sends to it after spending from it), but may result in slightly higher fees as suboptimal coin selection may result due to the added limitation (default: %u)"), DEFAULT_AVOIDPARTIALSPENDS), false, OptionsCategory::WALLET);
     gArgs.AddArg("-backupzerocoin", "Enable automatic backups of zerocoin", false, OptionsCategory::WALLET);
     gArgs.AddArg("-changetype", "What type of change to use (\"legacy\", \"p2sh-segwit\", or \"bech32\"). Default is same as -addresstype, except when -addresstype=p2sh-segwit a native segwit output is used when sending to a native segwit address)", false, OptionsCategory::WALLET);
@@ -247,6 +249,14 @@ void WalletInit::Start(CScheduler& scheduler) const
 
     // Run a thread to flush wallet periodically
     scheduler.scheduleEvery(MaybeCompactWalletDB, 500);
+
+    if (gArgs.GetBoolArg("-autoconvert", DEFAULT_AUTOCONVERT)) {
+        scheduler.scheduleEvery([]() {
+            for (const std::shared_ptr<CWallet>& pwallet : GetWallets()) {
+                pwallet->AutoConvertToRingCT();
+            }
+        }, AUTOCONVERT_TIMER_INTERVAL_MS);
+    }
 }
 
 void WalletInit::Flush() const
