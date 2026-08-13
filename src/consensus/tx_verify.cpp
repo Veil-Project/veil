@@ -563,7 +563,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
     } else {
         // Return stake reward in nTxFee
         txfee = nPlainValueOut - nValueIn;
-        if (nCt > 0 || nRingCT > 0) { // counters track both outputs and inputs
+        if (nCt > 0) { // counters track both outputs and inputs
             return state.DoS(100, error("ConnectBlock(): non-standard elements in coinstake"),
                              REJECT_INVALID, "bad-coinstake-outputs");
         }

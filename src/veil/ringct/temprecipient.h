@@ -61,9 +61,9 @@ public:
     // TODO: range proof parameters, try to keep similar for fee
     // Allow an overwrite of the parameters.
     bool fOverwriteRangeProofParams = false;
-    uint64_t min_value;
-    int ct_exponent;
-    int ct_bits;
+    uint64_t min_value = 0;
+    int ct_exponent = -1;
+    int ct_bits = -1;
 
     CKey sEphem;
     CPubKey pkTo;

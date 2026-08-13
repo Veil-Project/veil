@@ -29,7 +29,7 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
     size_t nStandard = 0, nCt = 0, nRingCT = 0;
     CAmount nPlainValueOut = tx.GetPlainValueOut(nStandard, nCt, nRingCT);
     CAmount nTxFee = 0;
-    if (!tx.GetCTFee(nTxFee))
+    if (!tx.GetCTFee(nTxFee) && !tx.IsCoinStake())
         return state.DoS(100, error("%s: bad-fee-output", __func__), REJECT_INVALID, "bad-fee-output");
 
     nPlainValueOut += nTxFee;
@@ -94,7 +94,8 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
             vpOutCommits.push_back(&vDL[(1 + (nInputs+1) * nRingSize) * 32]);
             vpInputSplitCommits.push_back(&vDL[(1 + (nInputs+1) * nRingSize) * 32]);
         } else {
-            vpOutCommits.push_back(plainCommitment.data);
+            if (nPlainValueOut > 0)
+                vpOutCommits.push_back(plainCommitment.data);
 
             secp256k1_pedersen_commitment *pc;
             for (const auto &txout : tx.vpout) {
@@ -157,7 +158,9 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
     // Verify commitment sums match
     if (fSplitCommitments) {
         std::vector<const uint8_t*> vpOutCommits;
-        vpOutCommits.push_back(plainCommitment.data);
+
+        if (nPlainValueOut > 0)
+            vpOutCommits.push_back(plainCommitment.data);
 
         secp256k1_pedersen_commitment *pc;
         for (const auto &txout : tx.vpout) {
@@ -171,6 +174,36 @@ bool VerifyMLSAG(const CTransaction &tx, CValidationState &state)
                 (const secp256k1_pedersen_commitment* const*)vpOutCommits.data(), vpOutCommits.size())))
             return state.DoS(100, error("%s: verify-commit-tally-failed %d", __func__, rv), REJECT_INVALID, "verify-commit-tally-failed");
     }
+
+    return true;
+}
+
+bool VerifyCoinbase(CAmount nExpStakeReward, const CTransaction &tx, CValidationState &state)
+{
+    std::vector<uint8_t> vBlindPlain(32);
+    secp256k1_pedersen_commitment plainCommitment;
+
+    std::vector<const uint8_t*> vpPlainCommits;
+    std::vector<const uint8_t*> vpOutCommits;
+
+    if (!secp256k1_pedersen_commit(secp256k1_ctx_blind, &plainCommitment, &vBlindPlain[0],
+                                    (uint64_t) nExpStakeReward, secp256k1_generator_h)) {
+        return state.DoS(100, error("%s: %s", __func__, "Pedersen Commit failed for plain out."), REJECT_INTERNAL, "plain-pedersen-commit-failed");
+    }
+
+    vpPlainCommits.push_back(plainCommitment.data);
+
+    secp256k1_pedersen_commitment *pc;
+    for (const auto &txout : tx.vpout) {
+        if ((pc = txout->GetPCommitment()))
+            vpOutCommits.push_back(pc->data);
+    }
+
+    int rv;
+    if (1 != (rv = secp256k1_pedersen_verify_tally(secp256k1_ctx_blind,
+            (const secp256k1_pedersen_commitment* const*)vpPlainCommits.data(), vpPlainCommits.size(),
+            (const secp256k1_pedersen_commitment* const*)vpOutCommits.data(), vpOutCommits.size())))
+        return state.DoS(100, error("%s: verify-commit-tally-failed %d", __func__, rv), REJECT_INVALID, "verify-commit-tally-failed");
 
     return true;
 }
