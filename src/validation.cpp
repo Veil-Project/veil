@@ -748,13 +748,17 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         for (const CTxIn& txin : tx.vin) {
             if (txin.IsAnonInput()) {
                 state.fHasAnonInput = true;
-                const std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
-
 
                 uint32_t nInputs, nRingSize;
                 txin.GetAnonInfo(nInputs, nRingSize);
-                if (vKeyImages.size() != nInputs * 33)
-                    return state.Invalid(false, REJECT_DUPLICATE, "anonin-badkeyimagesize");
+                // Validate the anon input structure before indexing scriptData.stack.
+                // nInputs is attacker-controlled (from prevout.hash) and stack can deserialize
+                // empty, so an unchecked stack[0]/stack[0][k*33] is a remote OOB read/crash.
+                if (txin.scriptData.stack.size() != 1 || nInputs < 1 || nInputs > MAX_ANON_INPUTS
+                        || txin.scriptData.stack[0].size() != nInputs * 33)
+                    return state.Invalid(false, REJECT_INVALID, "bad-anonin-scriptdata");
+
+                const std::vector<uint8_t> &vKeyImages = txin.scriptData.stack[0];
 
                 for (size_t k = 0; k < nInputs; ++k) {
                     const CCmpPubKey &ki = *((CCmpPubKey *) &vKeyImages[k * 33]);

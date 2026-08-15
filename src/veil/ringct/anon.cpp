@@ -314,6 +314,12 @@ std::vector<COutPoint> GetRingCtInputs(const CTxIn& txin)
     uint32_t nInputs, nRingSize;
     txin.GetAnonInfo(nInputs, nRingSize);
 
+    // Reject out-of-range ring dimensions before sizing the vM scratch buffer. nInputs/nRingSize
+    // come straight from the attacker-controlled prevout.hash and are otherwise only bounded later
+    // in VerifyMLSAG, so an uncapped nRingSize here would request hundreds of GB.
+    if (nInputs < 1 || nInputs > MAX_ANON_INPUTS || nRingSize < MIN_RINGSIZE || nRingSize > MAX_RINGSIZE)
+        return vInputs;
+
     size_t nCols = nRingSize;
     size_t nRows = nInputs + 1;
 
@@ -356,6 +362,12 @@ bool GetRingCtInputs(const CTxIn& txin, std::vector<std::vector<COutPoint> >& vI
     vInputs.clear();
     uint32_t nInputs, nRingSize;
     txin.GetAnonInfo(nInputs, nRingSize);
+
+    // Reject out-of-range ring dimensions before sizing the vM scratch buffer. nInputs/nRingSize
+    // come straight from the attacker-controlled prevout.hash and are otherwise only bounded later
+    // in VerifyMLSAG, so an uncapped nRingSize here would request hundreds of GB.
+    if (nInputs < 1 || nInputs > MAX_ANON_INPUTS || nRingSize < MIN_RINGSIZE || nRingSize > MAX_RINGSIZE)
+        return false;
 
     size_t nCols = nRingSize;
     size_t nRows = nInputs + 1;
