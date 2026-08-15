@@ -4,6 +4,7 @@
 
 #include <veil/mnemonic/generateseed.h>
 #include <key.h>
+#include <support/cleanse.h>
 #include <veil/mnemonic/mnemonic.h>
 
 namespace veil {
@@ -34,6 +35,12 @@ uint512 GenerateNewMnemonicSeed(std::string& mnemonic, const std::string& strLan
     auto blob_512 = decode_mnemonic(mnemonic_words);
     uint512 seed512;
     memcpy(seed512.begin(), blob_512.begin(), blob_512.size());
+
+    // Wipe the transient plaintext copies of the private key and the derived seed so they do not
+    // linger in swappable, un-cleansed memory. The caller receives the mnemonic phrase (and
+    // re-derives the seed from it); these intermediates are no longer needed.
+    memory_cleanse(keyData.data(), keyData.size());
+    memory_cleanse(blob_512.data(), blob_512.size());
 
     return seed512;
 }

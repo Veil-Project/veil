@@ -10,6 +10,7 @@
 #include <wallet/wallet.h>
 #include <wallet/walletutil.h>
 #include <veil/ringct/anonwallet.h>
+#include <support/cleanse.h>
 #include "mnemonic.h"
 #include "generateseed.h"
 
@@ -61,6 +62,7 @@ bool MnemonicWalletInit::Open() const
                 if (!DisplayWalletMnemonic(mnemonic))
                     return false;
                 strSeedPhraseArg = mnemonic;
+                memory_cleanse(&mnemonic[0], mnemonic.size());
                 initOption = MnemonicWalletInitFlags::IMPORT_MNEMONIC;
             }
 
@@ -69,11 +71,17 @@ bool MnemonicWalletInit::Open() const
                 // Convert the BIP39 mnemonic phrase into the final 512bit wallet seed
                 auto hashRet = decode_mnemonic(strSeedPhraseArg);
                 memcpy(hashMasterKey.begin(), hashRet.begin(), hashRet.size());
+                memory_cleanse(hashRet.data(), hashRet.size());
                 //LogPrintf("%s: Staging for loading seed %s\n", __func__, hashMasterKey.GetHex());
             }
+            // Wipe the plaintext mnemonic phrase now that the 512-bit seed has been derived from it.
+            memory_cleanse(&strSeedPhraseArg[0], strSeedPhraseArg.size());
+            memory_cleanse(&strMessage[0], strMessage.size());
         }
 
         std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(walletFile, walletPath, 0, fNewSeed ? &hashMasterKey : nullptr);
+        // The wallet has taken the seed; wipe our copy so the root seed does not linger in memory.
+        memory_cleanse(hashMasterKey.begin(), hashMasterKey.size());
         if (!pwallet) {
             return false;
         }
