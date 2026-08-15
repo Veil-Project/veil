@@ -13,6 +13,14 @@
 CCriticalSection cs_context_builder;
 ethash::epoch_context_ptr progpow_context{nullptr, nullptr};
 
+// Upper bound on the ProgPow ethash epoch when hashing a header. A header's nHeight is read from
+// the wire and, on the header-accept path, is validated only after the proof-of-work hash is
+// computed, so an out-of-range nHeight would otherwise drive an unbounded ethash light-cache
+// allocation (tens of GB) and crash the node. At epoch 4096 the light cache is ~528 MiB, which
+// legit heights do not reach for well over a century (post-DAG-reduction epoch length is 8175
+// blocks at 120s spacing), so this never rejects a valid block; an over-range header fails PoW.
+static const int MAX_PROGPOW_EPOCH = 4096;
+
 inline uint32_t ROTL32(uint32_t x, int8_t r)
 {
     return (x << r) | (x >> (32 - r));
@@ -270,12 +278,24 @@ uint256 ProgPowHash(const CBlockHeader& blockHeader)
 
 uint256 ProgPowHash(const CBlockHeader& blockHeader, uint256& mix_hash)
 {
-    {
-        LOCK(cs_context_builder);
-        // Get the context from the block height
-        const auto epoch_number = Params().GetProgPowEpochNumber(blockHeader.nHeight);
-        if (!progpow_context || progpow_context->epoch_number != epoch_number)
-            progpow_context = ethash::create_epoch_context(epoch_number);
+    LOCK(cs_context_builder);
+
+    // Get the context from the block height, bounding the epoch so an unvalidated / out-of-range
+    // nHeight cannot drive an unbounded ethash light-cache allocation (see MAX_PROGPOW_EPOCH).
+    int epoch_number = Params().GetProgPowEpochNumber(blockHeader.nHeight);
+    if (epoch_number < 0)
+        epoch_number = 0;
+    else if (epoch_number > MAX_PROGPOW_EPOCH)
+        epoch_number = MAX_PROGPOW_EPOCH;
+
+    if (!progpow_context || progpow_context->epoch_number != epoch_number)
+        progpow_context = ethash::create_epoch_context(epoch_number);
+
+    // Fail closed if the light cache could not be allocated, rather than dereferencing a null
+    // context: return a hash that cannot satisfy any target so the proof-of-work check rejects it.
+    if (!progpow_context) {
+        mix_hash.SetNull();
+        return uint256S("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
     }
 
     // Build the header_hash
