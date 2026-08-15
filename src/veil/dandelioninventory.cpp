@@ -5,6 +5,8 @@
 #include <timedata.h>
 #include "dandelioninventory.h"
 
+#include <algorithm>
+
 namespace veil {
 
 DandelionInventory dandelion;
@@ -12,7 +14,10 @@ DandelionInventory dandelion;
 void DandelionInventory::Add(const uint256& hashInventory, const int64_t& nTimeStemEnd, const int64_t& nNodeIDFrom)
 {
     Stem stem;
-    stem.nTimeStemEnd = nTimeStemEnd;
+    // Clamp the stem end time so a peer-supplied value cannot pin an entry in the stem phase
+    // indefinitely; the honest stem window is nDefaultStemTime.
+    int64_t nNow = GetAdjustedTime();
+    stem.nTimeStemEnd = std::max(nNow, std::min(nTimeStemEnd, nNow + nDefaultStemTime));
     stem.nNodeIDFrom = nNodeIDFrom;
     mapStemInventory.emplace(std::make_pair(hashInventory, stem));
 }
@@ -38,7 +43,9 @@ bool DandelionInventory::IsInStemPhase(const uint256& hash) const
     if (!mapStemInventory.count(hash))
         return false;
 
-    return mapStemInventory.at(hash).nTimeStemEnd < GetAdjustedTime();
+    // In the stem phase while the end time is still in the future (this was inverted, which made
+    // IsInStemPhase always false and silently disabled stem routing, fluffing every tx from its origin).
+    return GetAdjustedTime() < mapStemInventory.at(hash).nTimeStemEnd;
 }
 
 //Only send to a node that requests the tx if the inventory was broadcast to this node
@@ -109,14 +116,21 @@ void DandelionInventory::Process(const std::vector<CNode*>& vNodes)
             continue;
         mapStemInventory.at(hash).nTimeLastRoll = GetAdjustedTime();
 
-        //Set the index to send to
-        int64_t nNodeID;
-        do {
-            int nRand = GetRandInt(static_cast<int>(vNodes.size() - 1));
-            nNodeID = vNodes[nRand]->GetId();
+        //Set the index to send to: choose a random peer other than the one the tx came from.
+        //If no eligible peer exists (e.g. only the origin is connected, or the peer list is empty)
+        //skip this entry until the next round rather than looping forever or indexing out of range.
+        //The old code used GetRandInt(vNodes.size() - 1) with a do/while on the origin id, which
+        //never terminated with a single eligible peer and underflowed on an empty peer list.
+        std::vector<int64_t> vEligible;
+        vEligible.reserve(vNodes.size());
+        for (CNode* pnode : vNodes) {
+            if (pnode->GetId() != stem.nNodeIDFrom)
+                vEligible.push_back(pnode->GetId());
         }
-        while (nNodeID == stem.nNodeIDFrom);
-        mapNodeToSentTo.insert(std::make_pair<uint256&, int64_t& >(hash, nNodeID));
+        if (vEligible.empty())
+            continue;
+        int64_t nNodeID = vEligible[GetRandInt(static_cast<int>(vEligible.size()))];
+        mapNodeToSentTo.insert(std::make_pair(hash, nNodeID));
 
         // Randomly decide to send this if it is in stem phase
         auto n = GetRandInt(3);

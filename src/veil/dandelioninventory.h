@@ -13,10 +13,10 @@ namespace veil {
 
 struct Stem
 {
-    int64_t nTimeStemEnd;
-    int64_t nTimeLastRoll;
-    int64_t nNodeIDFrom;
-    int64_t nNodeIDSentTo;
+    int64_t nTimeStemEnd = 0;
+    int64_t nTimeLastRoll = 0;
+    int64_t nNodeIDFrom = 0;
+    int64_t nNodeIDSentTo = 0;
 };
 
 class DandelionInventory;
