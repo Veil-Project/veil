@@ -21,6 +21,20 @@ ethash::epoch_context_ptr progpow_context{nullptr, nullptr};
 // blocks at 120s spacing), so this never rejects a valid block; an over-range header fails PoW.
 static const int MAX_PROGPOW_EPOCH = 4096;
 
+// Clamp a raw ProgPow epoch into the range the node is willing to build a light cache for.
+// Extracted from ProgPowHash so the bound can be exercised directly, without allocating a cache.
+int ProgPowClampEpoch(int epoch)
+{
+    if (epoch < 0)
+        return 0;
+    if (epoch > MAX_PROGPOW_EPOCH)
+        return MAX_PROGPOW_EPOCH;
+    return epoch;
+}
+
+// Expose the epoch ceiling to callers (tests) without giving the constant external linkage.
+int ProgPowMaxEpoch() { return MAX_PROGPOW_EPOCH; }
+
 inline uint32_t ROTL32(uint32_t x, int8_t r)
 {
     return (x << r) | (x >> (32 - r));
@@ -282,11 +296,7 @@ uint256 ProgPowHash(const CBlockHeader& blockHeader, uint256& mix_hash)
 
     // Get the context from the block height, bounding the epoch so an unvalidated / out-of-range
     // nHeight cannot drive an unbounded ethash light-cache allocation (see MAX_PROGPOW_EPOCH).
-    int epoch_number = Params().GetProgPowEpochNumber(blockHeader.nHeight);
-    if (epoch_number < 0)
-        epoch_number = 0;
-    else if (epoch_number > MAX_PROGPOW_EPOCH)
-        epoch_number = MAX_PROGPOW_EPOCH;
+    int epoch_number = ProgPowClampEpoch(Params().GetProgPowEpochNumber(blockHeader.nHeight));
 
     if (!progpow_context || progpow_context->epoch_number != epoch_number)
         progpow_context = ethash::create_epoch_context(epoch_number);
