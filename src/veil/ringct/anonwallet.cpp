@@ -206,6 +206,17 @@ void AnonWallet::LoadToWallet(const uint256 &hash, const CTransactionRecord &rtx
     MapRecords_t::iterator mri = ret.first;
     rtxOrdered.insert(std::make_pair(rtx.GetTxTime(), mri));
 
+    // Outputs received while the wallet was locked are stored with ORF_LOCKED
+    // and a placeholder value until an unlock decrypts them. The unlock rescan
+    // only visits transactions tracked in mapLockedRecords, so rebuild that set
+    // from the stored flags or a restart strands these outputs at value zero
+    for (const auto &r : rtx.vout) {
+        if (r.nFlags & ORF_LOCKED) {
+            mapLockedRecords.insert(hash);
+            break;
+        }
+    }
+
     // TODO: Spend only owned inputs?
 
     return;
