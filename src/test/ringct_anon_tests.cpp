@@ -10,6 +10,7 @@
 #include <consensus/validation.h>
 #include <primitives/transaction.h>
 #include <uint256.h>
+#include <veil/ringct/anon.h>
 
 #include <cstring>
 #include <vector>
@@ -78,6 +79,41 @@ BOOST_AUTO_TEST_CASE(anon_input_huge_ninputs_rejected)
     std::string reason;
     BOOST_CHECK(CheckInputsRejects(mtx, reason));
     BOOST_CHECK_EQUAL(reason, "bad-anonin-scriptdata");
+}
+
+// Build a bare RingCT anon input with attacker-chosen ring dimensions. GetAnonInfo() reads
+// nInputs from the first four bytes of prevout.hash and nRingSize from the next four.
+static CTxIn MakeAnonRingTxIn(uint32_t nInputs, uint32_t nRingSize)
+{
+    uint256 hashPrevout; // zero initialised
+    memcpy(hashPrevout.begin(), &nInputs, sizeof(nInputs));
+    memcpy(hashPrevout.begin() + 4, &nRingSize, sizeof(nRingSize));
+
+    CTxIn in;
+    in.prevout = COutPoint(hashPrevout, COutPoint::ANON_MARKER);
+    return in;
+}
+
+// GetRingCtInputs sizes a vM(nCols*nRows*33) scratch buffer directly from nRingSize/nInputs.
+// With ring dimensions taken unbounded from prevout.hash an attacker can request a multi-terabyte
+// allocation (nRingSize 0xFFFFFFFF, nInputs 32 -> ~4.3 TB), so the dimensions must be range checked
+// and the call must return empty before that sizing. We assert the reject path for values above the
+// permitted maxima and below the permitted minima; we never drive the unbounded allocation itself.
+BOOST_AUTO_TEST_CASE(getringctinputs_vector_rejects_out_of_range_dimensions)
+{
+    BOOST_CHECK(GetRingCtInputs(MakeAnonRingTxIn(1, 0xFFFFFFFF)).empty());          // ring > MAX_RINGSIZE
+    BOOST_CHECK(GetRingCtInputs(MakeAnonRingTxIn(1, MIN_RINGSIZE - 1)).empty());    // ring < MIN_RINGSIZE
+    BOOST_CHECK(GetRingCtInputs(MakeAnonRingTxIn(MAX_ANON_INPUTS + 1, MIN_RINGSIZE)).empty()); // inputs > max
+    BOOST_CHECK(GetRingCtInputs(MakeAnonRingTxIn(0, MIN_RINGSIZE)).empty());        // inputs == 0
+}
+
+BOOST_AUTO_TEST_CASE(getringctinputs_bool_rejects_out_of_range_dimensions)
+{
+    std::vector<std::vector<COutPoint>> vInputs;
+    BOOST_CHECK(!GetRingCtInputs(MakeAnonRingTxIn(1, 0xFFFFFFFF), vInputs));
+    BOOST_CHECK(vInputs.empty());
+    BOOST_CHECK(!GetRingCtInputs(MakeAnonRingTxIn(MAX_ANON_INPUTS + 1, MIN_RINGSIZE), vInputs));
+    BOOST_CHECK(vInputs.empty());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
