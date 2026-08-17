@@ -22,6 +22,10 @@ struct Stem
 class DandelionInventory;
 extern DandelionInventory dandelion;
 
+// Choose a Dandelion next hop from the connected peer ids, excluding the origin the tx came from.
+// Returns false (skip this round) when no eligible peer exists; otherwise nNodeIDOut is the pick.
+bool SelectDandelionNextHop(const std::vector<int64_t>& vNodeIds, int64_t nNodeIDFrom, int64_t& nNodeIDOut);
+
 class DandelionInventory
 {
 private:

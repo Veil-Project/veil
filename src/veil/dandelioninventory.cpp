@@ -11,6 +11,23 @@ namespace veil {
 
 DandelionInventory dandelion;
 
+bool SelectDandelionNextHop(const std::vector<int64_t>& vNodeIds, int64_t nNodeIDFrom, int64_t& nNodeIDOut)
+{
+    // Choose a random peer other than the one the tx came from. Return false (skip this round)
+    // when no eligible peer exists, rather than looping forever on a single origin-only peer or
+    // indexing an empty list out of range.
+    std::vector<int64_t> vEligible;
+    vEligible.reserve(vNodeIds.size());
+    for (int64_t id : vNodeIds) {
+        if (id != nNodeIDFrom)
+            vEligible.push_back(id);
+    }
+    if (vEligible.empty())
+        return false;
+    nNodeIDOut = vEligible[GetRandInt(static_cast<int>(vEligible.size()))];
+    return true;
+}
+
 void DandelionInventory::Add(const uint256& hashInventory, const int64_t& nTimeStemEnd, const int64_t& nNodeIDFrom)
 {
     Stem stem;
@@ -121,15 +138,13 @@ void DandelionInventory::Process(const std::vector<CNode*>& vNodes)
         //skip this entry until the next round rather than looping forever or indexing out of range.
         //The old code used GetRandInt(vNodes.size() - 1) with a do/while on the origin id, which
         //never terminated with a single eligible peer and underflowed on an empty peer list.
-        std::vector<int64_t> vEligible;
-        vEligible.reserve(vNodes.size());
-        for (CNode* pnode : vNodes) {
-            if (pnode->GetId() != stem.nNodeIDFrom)
-                vEligible.push_back(pnode->GetId());
-        }
-        if (vEligible.empty())
+        std::vector<int64_t> vNodeIds;
+        vNodeIds.reserve(vNodes.size());
+        for (CNode* pnode : vNodes)
+            vNodeIds.push_back(pnode->GetId());
+        int64_t nNodeID;
+        if (!SelectDandelionNextHop(vNodeIds, stem.nNodeIDFrom, nNodeID))
             continue;
-        int64_t nNodeID = vEligible[GetRandInt(static_cast<int>(vEligible.size()))];
         mapNodeToSentTo.insert(std::make_pair(hash, nNodeID));
 
         // Randomly decide to send this if it is in stem phase
