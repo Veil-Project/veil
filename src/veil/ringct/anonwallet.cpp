@@ -5382,6 +5382,11 @@ void AnonWallet::RescanWallet()
         }
 
         if (transactionUpdated) {
+            // The parent wallet memoizes per transaction credit, and the amounts
+            // decrypted here change it, so force the cache to recompute
+            auto itWtx = pwalletParent->mapWallet.find(txid);
+            if (itWtx != pwalletParent->mapWallet.end())
+                itWtx->second.MarkDirty();
             pwalletParent->NotifyTransactionChanged(pwalletParent.get(), txid, CT_UPDATED_FULL);
         }
     };
