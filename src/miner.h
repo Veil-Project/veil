@@ -56,6 +56,9 @@ uint64_t GetSessionBlocksFound();
 int64_t GetSessionLastBlockTime();
 void SetBuildingMinerDataset(bool fBuilding);
 bool IsBuildingMinerDataset();
+void SetProgPowFullDataset(bool fUse);
+bool GetProgPowFullDataset();
+void FreeProgPowMiningContext();
 int GetMiningAlgorithm();
 bool SetMiningAlgorithm(const std::string& algo, bool fSet = true);
 

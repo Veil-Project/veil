@@ -37,6 +37,7 @@ private:
     int maxThreads;
     int nThreads;
     int currentMiningAlgo;
+    int64_t nLastStatsUpdate = 0;
 
     // Recommended number of threads
     const int RECMAX = GetNumCores() - 1;
@@ -58,6 +59,7 @@ private:
 private Q_SLOTS:
     void onUpdateAlgorithm();
     void onToggleMiningActive();
+    void onToggleProgPowDag(bool fChecked);
     void onUseMaxThreads();
     void onChangeNumberOfThreads(int newNumThr);
 };

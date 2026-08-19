@@ -45,6 +45,9 @@ MiningWidget::MiningWidget(QWidget *parent, WalletView* walletView) :
     ui->cmbAlgoSelect->addItems({"RandomX","ProgPow","SHA256D"});
     ui->cmbAlgoSelect->setCurrentIndex(GetMiningAlgorithm());
 
+    ui->chkProgPowDag->setChecked(GetProgPowFullDataset());
+    connect(ui->chkProgPowDag, SIGNAL(toggled(bool)), this, SLOT(onToggleProgPowDag(bool)));
+
     connect(ui->btnUpdateAlgo, SIGNAL(clicked()), this, SLOT(onUpdateAlgorithm()));
     connect(ui->btnAllThreads, SIGNAL(clicked()), this, SLOT(onUseMaxThreads()));
     connect(ui->btnActiveMine, SIGNAL(clicked()), this, SLOT(onToggleMiningActive()));
@@ -142,7 +145,7 @@ void MiningWidget::updateMiningFields() {
     setMineActiveTxt(mineOn);
 
     if (mineOn && IsBuildingMinerDataset()) {
-        ui->lblMineActive->setText("Preparing RandomX dataset...");
+        ui->lblMineActive->setText("Preparing mining dataset...");
         ui->lblMineActive->setStyleSheet("QLabel{color:#b8860b;}");
         ui->lblHashRate->setText("Please wait");
     } else {
@@ -152,13 +155,24 @@ void MiningWidget::updateMiningFields() {
 
     updateMiningStats();
 
+    // Keep the DAG checkbox in sync with the global the miner actually reads, so
+    // a second wallet view does not misrepresent what mining will do. Block
+    // signals so this programmatic update does not re-enter onToggleProgPowDag.
+    const bool fFullDag = GetProgPowFullDataset();
+    if (ui->chkProgPowDag->isChecked() != fFullDag) {
+        ui->chkProgPowDag->blockSignals(true);
+        ui->chkProgPowDag->setChecked(fFullDag);
+        ui->chkProgPowDag->blockSignals(false);
+    }
+
     setThreadSelectionValues(currentMiningAlgo);
 }
 
 void MiningWidget::updateMiningStats() {
     // Difficulty needs cs_main, so refresh these on a slower cadence and skip
     // the tick when the lock is busy rather than stalling the GUI thread.
-    static int64_t nLastStatsUpdate = 0;
+    // nLastStatsUpdate is a member: with two wallets open each MiningWidget must
+    // keep its own cadence, not share one static across every instance.
     const int64_t nNow = QDateTime::currentMSecsSinceEpoch();
     if (nNow - nLastStatsUpdate < 2000)
         return;
@@ -254,8 +268,17 @@ void MiningWidget::setThreadSelectionValues(int algo) {
     ui->lblMaxThreadsAvailable->setText(maxThreads == INT_MAX ? QString("No limit") : QString::number(maxThreads));
     ui->numThreads->setRange(minThreads, maxThreads);
     ui->lblCurrentAlgo->setText(QString::fromStdString(GetMiningType(algo, false, false)));
+    ui->chkProgPowDag->setVisible(MINE_PROGPOW == algo);
 
     onChangeNumberOfThreads(ui->numThreads->text().toInt());
+}
+
+void MiningWidget::onToggleProgPowDag(bool fChecked) {
+    SetProgPowFullDataset(fChecked);
+    if (fChecked && mineOn && currentMiningAlgo == MINE_PROGPOW)
+        openToastDialog("Building the DAG now, hashing pauses until it is ready", mainWindow->getGUI());
+    else if (!fChecked && mineOn && currentMiningAlgo == MINE_PROGPOW)
+        openToastDialog("Switching to light mining on the next round", mainWindow->getGUI());
 }
 
 void MiningWidget::onUseMaxThreads() {

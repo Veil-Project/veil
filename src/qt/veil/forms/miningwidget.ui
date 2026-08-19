@@ -57,9 +57,9 @@ margin:0px;</string>
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>70</y>
+        <y>60</y>
         <width>849</width>
-        <height>468</height>
+        <height>570</height>
        </rect>
       </property>
       <property name="styleSheet">
@@ -475,6 +475,17 @@ font-size:16px;</string>
               </spacer>
              </item>
             </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="chkProgPowDag">
+            <property name="styleSheet">
+             <string notr="true">color:#707070;
+font-size:14px;</string>
+            </property>
+            <property name="text">
+             <string>Build the full ProgPow DAG (needs several GB of memory, hashes much faster)</string>
+            </property>
            </widget>
           </item>
           <item>
