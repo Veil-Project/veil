@@ -52,6 +52,10 @@ static std::string GetMiningType(int nPoWType, bool fProofOfStake = false, bool 
 double GetHashSpeed();
 void ClearHashSpeed();
 double GetRecentHashSpeed();
+uint64_t GetSessionBlocksFound();
+int64_t GetSessionLastBlockTime();
+void SetBuildingMinerDataset(bool fBuilding);
+bool IsBuildingMinerDataset();
 int GetMiningAlgorithm();
 bool SetMiningAlgorithm(const std::string& algo, bool fSet = true);
 

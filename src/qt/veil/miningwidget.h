@@ -49,6 +49,11 @@ private:
 
     void setMineActiveTxt(bool mineActive);
     void setThreadSelectionValues(int algo);
+    void updateMiningStats();
+
+    static QString formatHashRate(double dRate);
+    static QString formatDifficulty(double dDiff);
+    static QString formatTimeSpan(double dSeconds);
 
 private Q_SLOTS:
     void onUpdateAlgorithm();

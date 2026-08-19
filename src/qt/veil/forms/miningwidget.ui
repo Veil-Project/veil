@@ -603,6 +603,110 @@ font-size:16px;</string>
          </layout>
         </widget>
        </item>
+       <item>
+        <widget class="QFrame" name="frameStats">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QGridLayout" name="gridStats">
+          <item row="0" column="0">
+           <widget class="QLabel" name="lblDifficultyCaption">
+             <property name="styleSheet">
+              <string notr="true">color:#707070;
+font-size:14px;</string>
+             </property>
+             <property name="text">
+              <string>Network Difficulty</string>
+             </property>
+            </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="lblDifficulty">
+             <property name="styleSheet">
+              <string notr="true">color:#105AEF;
+font-size:14px;
+font-weight:bold;</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="lblNetworkHashCaption">
+             <property name="styleSheet">
+              <string notr="true">color:#707070;
+font-size:14px;</string>
+             </property>
+             <property name="text">
+              <string>Est. Network Hashrate</string>
+             </property>
+            </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QLabel" name="lblNetworkHash">
+             <property name="styleSheet">
+              <string notr="true">color:#105AEF;
+font-size:14px;
+font-weight:bold;</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="lblBlocksFoundCaption">
+             <property name="styleSheet">
+              <string notr="true">color:#707070;
+font-size:14px;</string>
+             </property>
+             <property name="text">
+              <string>Blocks Found (session)</string>
+             </property>
+            </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLabel" name="lblBlocksFound">
+             <property name="styleSheet">
+              <string notr="true">color:#105AEF;
+font-size:14px;
+font-weight:bold;</string>
+             </property>
+             <property name="text">
+              <string>0</string>
+             </property>
+            </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QLabel" name="lblTimeToBlockCaption">
+             <property name="styleSheet">
+              <string notr="true">color:#707070;
+font-size:14px;</string>
+             </property>
+             <property name="text">
+              <string>Est. Time to Block</string>
+             </property>
+            </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QLabel" name="lblTimeToBlock">
+             <property name="styleSheet">
+              <string notr="true">color:#105AEF;
+font-size:14px;
+font-weight:bold;</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
       </layout>
      </widget>
      <widget class="QWidget" name="layoutWidget">

@@ -36,6 +36,8 @@
 #include <veil/zerocoin/zchain.h>
 
 #include <algorithm>
+#include <atomic>
+#include <deque>
 #include <queue>
 #include <utility>
 #include <vector>
@@ -873,6 +875,31 @@ class ThreadHashSpeed {
 CCriticalSection cs_hashspeeds;
 std::vector<ThreadHashSpeed> vHashSpeeds;
 
+// Live counters for user facing mining stats. The mining threads add their
+// attempts here as they go, so the recent rate below responds within seconds
+// instead of once per template round.
+static std::atomic<uint64_t> nLiveHashCounter{0};
+static std::atomic<uint64_t> nSessionBlocksFound{0};
+static std::atomic<int64_t> nLastBlockFoundTime{0};
+static std::atomic<bool> fBuildingMinerDataset{false};
+
+static void CountHashesMined(uint64_t n)
+{
+    nLiveHashCounter.fetch_add(n, std::memory_order_relaxed);
+}
+
+uint64_t GetSessionBlocksFound() { return nSessionBlocksFound.load(); }
+int64_t GetSessionLastBlockTime() { return nLastBlockFoundTime.load(); }
+void SetBuildingMinerDataset(bool fBuilding) { fBuildingMinerDataset = fBuilding; }
+bool IsBuildingMinerDataset() { return fBuildingMinerDataset.load(); }
+
+// Sliding window over the live hash counter. A sample is taken whenever a
+// caller asks for the rate (the GUI polls a few times a second), and the rate
+// is measured across roughly the last minute of samples.
+static CCriticalSection cs_hashrate_window;
+struct HashRateSample { int64_t nTimeMillis; uint64_t nHashes; };
+static std::deque<HashRateSample> vHashRateWindow;
+
 void ClearHashSpeed() {
     {
         LOCK(cs_nonce);
@@ -888,17 +915,35 @@ void ClearHashSpeed() {
             ths.nTimeDuration = 0;
         }
     }
+    {
+        LOCK(cs_hashrate_window);
+        vHashRateWindow.clear();
+    }
+    nLiveHashCounter = 0;
 }
 
 double GetRecentHashSpeed() {
-    LOCK(cs_hashspeeds);
-    double nTotalHashSpeed = 0.0;
-    for (auto& hs : vHashSpeeds) {
-        LOCK(hs.cs);
-        if (hs.nTimeDuration > 0)
-            nTotalHashSpeed += hs.nHashes.getdouble() / hs.nTimeDuration;
+    LOCK(cs_hashrate_window);
+    if (!GenerateActive()) {
+        // Not mining. Drop any stale samples so a later restart starts a
+        // fresh measurement window.
+        vHashRateWindow.clear();
+        return 0.0;
     }
-    return nTotalHashSpeed;
+
+    const int64_t nNow = GetTimeMillis();
+    const uint64_t nCount = nLiveHashCounter.load(std::memory_order_relaxed);
+
+    if (vHashRateWindow.empty() || nNow - vHashRateWindow.back().nTimeMillis >= 200)
+        vHashRateWindow.push_back({nNow, nCount});
+
+    while (vHashRateWindow.size() > 2 && nNow - vHashRateWindow.front().nTimeMillis > 60000)
+        vHashRateWindow.pop_front();
+
+    const HashRateSample& front = vHashRateWindow.front();
+    if (nCount <= front.nHashes || nNow <= front.nTimeMillis)
+        return 0.0;
+    return (nCount - front.nHashes) * 1000.0 / (nNow - front.nTimeMillis);
 }
 
 void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false, bool fProofOfFullNode = false, ThreadHashSpeed* pThreadHashSpeed = nullptr) {
@@ -1041,6 +1086,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     boost::this_thread::interruption_point();
                     ++nTries;
                     ++pblock->nNonce64;
+                    CountHashesMined(1);
                 }
                 pblock->mixHash = mix_hash;
                 success = nTries != nInnerLoopCount;
@@ -1056,6 +1102,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                         ++nTries;
                         ++pblock->nNonce64;
                     }
+                    CountHashesMined(nTries);
                     if (nTries != nInnerLoopCount) {
                         success = true;
                         break;
@@ -1069,6 +1116,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     boost::this_thread::interruption_point();
                     ++nTries;
                     ++pblock->nNonce;
+                    CountHashesMined(1);
                 }
                 success = nTries != nInnerLoopCount;
             } else {
@@ -1109,8 +1157,11 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         }
         LogPrint(BCLog::MINING, "%s: Found block\n", __func__);
 
-        if (!fProofOfStake)
+        if (!fProofOfStake) {
             coinbaseScript->KeepScript();
+            ++nSessionBlocksFound;
+            nLastBlockFoundTime = GetTime();
+        }
     }
 }
 
@@ -1190,6 +1241,7 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
                 uint256 nHeaderHash = pblock->GetRandomXHeaderHash();
 
                 randomx_calculate_hash(vecRandomXVM[vm_index], &nHeaderHash, sizeof uint256(), hash);
+                CountHashesMined(1);
 
                 uint256 nHash = RandomXHashToUint256(hash);
 
@@ -1247,6 +1299,8 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
         }
 
         coinbaseScript->KeepScript();
+        ++nSessionBlocksFound;
+        nLastBlockFoundTime = GetTime();
     }
 }
 
@@ -1353,6 +1407,8 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
         pthreadGroupRandomX->interrupt_all();
         pthreadGroupRandomX->join_all();
     }
+
+    SetBuildingMinerDataset(false);
 
     if (nThreads == 0 || !fGenerate)
         return;

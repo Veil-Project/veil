@@ -488,6 +488,7 @@ void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_p
         boost::this_thread::interruption_point();
         if (!fInitialized) {
             boost::this_thread::interruption_point();
+            SetBuildingMinerDataset(true);
             auto full_flags = RANDOMX_FLAG_FULL_MEM | randomx_get_flags();
             LogPrint(BCLog::BLOCKCREATION, "%s: RandomX flags set to %s\n", __func__, full_flags);
             myMiningCache = randomx_alloc_cache(full_flags);
@@ -513,6 +514,7 @@ void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_p
                 randomx_vm *vm = randomx_create_vm(full_flags, nullptr, myMiningDataset);
                 if (vm == nullptr) {
                     LogPrintf("%s: Cannot create VM\n", __func__);
+                    SetBuildingMinerDataset(false);
                     return;
                 }
                 vecRandomXVM.push_back(vm);
@@ -520,6 +522,7 @@ void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_p
             boost::this_thread::interruption_point();
             auto nTime3 = GetTimeMillis();
             LogPrintf("%s: Finished vm creation %.2fms\n", __func__, nTime3 - nTime2);
+            SetBuildingMinerDataset(false);
             boost::this_thread::interruption_point();
             uint32_t startNonce = 0;
             for (int i = 0; i < nThreads; i++) {
