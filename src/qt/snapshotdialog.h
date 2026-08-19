@@ -54,7 +54,7 @@ private Q_SLOTS:
     void onManifestReady(int height, qint64 compressedBytes, qint64 neededBytes, qint64 availableBytes);
     void onProgress(qint64 done, qint64 total, int partsDone, int partCount);
     void onDownloadFinished();
-    void onExtractProgress(qint64 bytesOut);
+    void onExtractProgress(qint64 bytesOut, qint64 totalBytes);
     void onExtractFinished();
     void onFailed(const QString& reason);
     void startDownload();

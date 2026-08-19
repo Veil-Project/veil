@@ -80,7 +80,8 @@ Q_SIGNALS:
     void manifestReady(int height, qint64 compressedBytes, qint64 neededBytes, qint64 availableBytes);
     void progress(qint64 doneBytes, qint64 totalBytes, int partsDone, int partCount);
     void downloadFinished();
-    void extractProgress(qint64 bytesOut);
+    //! totalBytes is 0 when the manifest predates uncompressed_bytes.
+    void extractProgress(qint64 bytesOut, qint64 totalBytes);
     void extractFinished();
     void failed(const QString& reason);
 
@@ -123,6 +124,7 @@ private:
     QVector<Part> m_parts;
     int m_height = 0;
     qint64 m_totalBytes = 0;
+    qint64 m_uncompressedBytes = 0; // 0 if the manifest does not say
     qint64 m_doneBytes = 0; // bytes of verified or in-flight progress
 
     QHash<QNetworkReply*, Active*> m_active;

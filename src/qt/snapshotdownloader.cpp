@@ -172,6 +172,8 @@ void SnapshotDownloader::onManifestReply()
 
     m_height = manifest.value("height").toInt();
     m_totalBytes = qint64(manifest.value("compressed_bytes").toDouble());
+    // added to manifests later, so older releases simply do not have it
+    m_uncompressedBytes = qint64(manifest.value("uncompressed_bytes").toDouble());
     m_parts.clear();
     for (const QJsonValue& v : manifest.value("parts").toArray()) {
         QJsonObject o = v.toObject();
@@ -436,7 +438,7 @@ void SnapshotDownloader::extract(const QString& destDir)
         parts, fs::path(destDir.toStdString()),
         {"blocks", "chainstate", "indexes", "zerocoin"}, error,
         [this](uint64_t bytesOut) {
-            Q_EMIT extractProgress(qint64(bytesOut));
+            Q_EMIT extractProgress(qint64(bytesOut), m_uncompressedBytes);
             return !m_cancelled.load();
         });
     if (!ok) {

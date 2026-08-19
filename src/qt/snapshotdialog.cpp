@@ -276,15 +276,26 @@ void SnapshotDialog::onDownloadFinished()
 {
     // everything verified on disk, unpack into the staging area
     m_cancel->setEnabled(true);
-    m_bar->setRange(0, 0); // busy: decompressed size is not known up front
+    m_bar->setRange(0, 0); // busy until the first extract progress arrives
     m_status->setText(tr("All parts verified. Unpacking..."));
     QMetaObject::invokeMethod(m_worker, "extract", Qt::QueuedConnection,
                               Q_ARG(QString, m_extractDir));
 }
 
-void SnapshotDialog::onExtractProgress(qint64 bytesOut)
+void SnapshotDialog::onExtractProgress(qint64 bytesOut, qint64 totalBytes)
 {
-    m_status->setText(tr("Unpacking... %1 GB written").arg(Gb(bytesOut)));
+    // deliberately not comparable to the download size: chain data unpacks
+    // to more than it downloads as, and a bare number under "Download size"
+    // reads like an overrun
+    if (totalBytes > 0) {
+        m_bar->setRange(0, 1000);
+        m_bar->setValue(int(qMin<qint64>(bytesOut, totalBytes) * 1000 / totalBytes));
+        m_status->setText(tr("Unpacking the blockchain: %1 of %2 GB")
+                              .arg(Gb(bytesOut), Gb(totalBytes)));
+    } else {
+        m_status->setText(tr("Unpacking the blockchain: %1 GB so far "
+                             "(it expands to more than it downloaded as)").arg(Gb(bytesOut)));
+    }
 }
 
 void SnapshotDialog::onExtractFinished()
