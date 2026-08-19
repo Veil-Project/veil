@@ -25,7 +25,7 @@ static const char* USER_AGENT = "VeilCore-SnapshotDownloader/1.0";
 //! How many parts download at once. This is where download managers get
 //! their speed: hosts commonly throttle per connection, so a few in
 //! parallel fill the pipe. Kept under Qt's six-per-host connection cap.
-static const int MAX_ACTIVE_PARTS = 4;
+static const int MAX_ACTIVE_PARTS = 6;
 
 namespace {
 
