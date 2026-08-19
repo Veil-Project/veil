@@ -206,21 +206,23 @@ color:#105AEF;</string>
               <widget class="QSpinBox" name="numThreads">
                <property name="minimumSize">
                 <size>
-                 <width>150</width>
-                 <height>50</height>
+                 <width>120</width>
+                 <height>36</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>140</width>
+                 <height>36</height>
                 </size>
                </property>
                <property name="font">
                 <font>
-                 <pointsize>14</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
-               <property name="styleSheet">
-                <string notr="true">QSpinBox::up-button { width: 24px; height: 24px;}
-QSpinBox::down-button { width: 24px; height: 24px;}</string>
-               </property>
                <property name="alignment">
-                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                <set>Qt::AlignHCenter|Qt::AlignVCenter</set>
                </property>
                <property name="buttonSymbols">
                 <enum>QAbstractSpinBox::PlusMinus</enum>

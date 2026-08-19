@@ -48,6 +48,8 @@ MiningWidget::MiningWidget(QWidget *parent, WalletView* walletView) :
     ui->chkProgPowDag->setChecked(GetProgPowFullDataset());
     connect(ui->chkProgPowDag, SIGNAL(toggled(bool)), this, SLOT(onToggleProgPowDag(bool)));
 
+    ui->frame_8->setVisible(false);
+
     connect(ui->btnUpdateAlgo, SIGNAL(clicked()), this, SLOT(onUpdateAlgorithm()));
     connect(ui->btnAllThreads, SIGNAL(clicked()), this, SLOT(onUseMaxThreads()));
     connect(ui->btnActiveMine, SIGNAL(clicked()), this, SLOT(onToggleMiningActive()));
@@ -81,7 +83,7 @@ void MiningWidget::onUpdateAlgorithm() {
 
         if (setAlgoResult) {
             openToastDialog(QString::fromStdString("Algorithm Switch Success!"), mainWindow->getGUI());
-            ui->lblCurrentAlgo->setText(QString::fromStdString(algoStr));
+            ui->lblCurrentAlgo->setText("Currently mining: " + ui->cmbAlgoSelect->itemText(currentMiningAlgo));
         } else {
             openToastDialog(QString::fromStdString("Algorithm Switch Failed!"), mainWindow->getGUI());
         }
@@ -256,18 +258,20 @@ QString MiningWidget::formatTimeSpan(double dSeconds) {
 }
 
 void MiningWidget::setThreadSelectionValues(int algo) {
-    minThreads = 1;
-    if (MINE_RANDOMX == algo)
-       minThreads = 4;
-    if (MINE_SHA256D == algo) {
-       maxThreads = (GetNumCores () - 1);
-    } else { 
-       maxThreads = INT_MAX; 
-    }
+    minThreads = (MINE_RANDOMX == algo) ? 4 : 1;
 
-    ui->lblMaxThreadsAvailable->setText(maxThreads == INT_MAX ? QString("No limit") : QString::number(maxThreads));
+    // Cap the thread count at the number of logical cores. More threads than
+    // cores only slows hashing, and the old "no limit" (INT_MAX) meant "Use Max
+    // Threads" jammed an absurd value into the spinbox that, if mining was then
+    // started, tried to spawn billions of threads.
+    int nCores = GetNumCores();
+    if (nCores < 1)
+        nCores = 1;
+    maxThreads = (nCores > minThreads) ? nCores : minThreads;
+
+    ui->lblMaxThreadsAvailable->setText(QString::number(maxThreads));
     ui->numThreads->setRange(minThreads, maxThreads);
-    ui->lblCurrentAlgo->setText(QString::fromStdString(GetMiningType(algo, false, false)));
+    ui->lblCurrentAlgo->setText("Currently mining: " + ui->cmbAlgoSelect->itemText(algo));
     ui->chkProgPowDag->setVisible(MINE_PROGPOW == algo);
 
     onChangeNumberOfThreads(ui->numThreads->text().toInt());
@@ -289,11 +293,11 @@ void MiningWidget::onChangeNumberOfThreads(int newNumThr) {
     if (RECMAX < ui->numThreads->value()) {
         if ((MINE_RANDOMX == currentMiningAlgo) && ((RECMAX + 1) == minThreads) && (RECMAX + 1 == ui->numThreads->value())) {
             // don't show the exceeding warning
-            ui->lblExceedThr->setVisible(false);
+            ui->frame_8->setVisible(false);
         } else {
-            ui->lblExceedThr->setVisible(true);
+            ui->frame_8->setVisible(true);
         }
     } else {
-        ui->lblExceedThr->setVisible(false);
+        ui->frame_8->setVisible(false);
     }
 }
