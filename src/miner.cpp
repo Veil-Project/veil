@@ -253,6 +253,18 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         addPackageTxs(nPackagesSelected, nDescendantsUpdated);
     }
 
+    // Sweep out anything selection found already confirmed. Nothing else will ever
+    // remove these: removeForBlock only fires for transactions in an arriving block,
+    // and one of these can never be in a future block. Done here, after the mempool
+    // lock above is released and selection has finished iterating, so no entry is
+    // erased while it is being walked.
+    for (const CTransactionRef& tx : vAlreadyInChain) {
+        mempool.removeRecursive(*tx, MemPoolRemovalReason::BLOCK);
+        LogPrintf("CreateNewBlock: removed already confirmed tx %s from the mempool\n",
+                  tx->GetHash().GetHex());
+    }
+    vAlreadyInChain.clear();
+
     int64_t nTime1 = GetTimeMicros();
 
     nLastBlockTx = nBlockTx;
@@ -610,6 +622,23 @@ bool BlockAssembler::TestPackageTransactions(const CTxMemPool::setEntries& packa
             return false;
         if (!fIncludeWitness && it->GetTx().HasWitness())
             return false;
+        // A transaction that is already in a block must never be selected again. Its
+        // outputs are in the UTXO set, so ConnectBlock's BIP30 check rejects the whole
+        // block ("tried to overwrite transaction") and TestBlockValidity fails, which
+        // means the node produces no block at all rather than one block missing one
+        // transaction. This is the same predicate ConnectBlock uses, so a template can
+        // no longer be poisoned by a single stale mempool entry. Seen on testnet: one
+        // confirmed zerocoin spend that stayed in the mempool cost the node every block
+        // it won for three and a half days.
+        const CTransaction& tx = it->GetTx();
+        for (size_t o = 0; o < tx.GetNumVOuts(); o++) {
+            if (pcoinsTip->HaveCoin(COutPoint(tx.GetHash(), o))) {
+                LogPrintf("%s: skipping %s, already confirmed but still in the mempool\n",
+                          __func__, tx.GetHash().GetHex());
+                vAlreadyInChain.push_back(it->GetSharedTx());
+                return false;
+            }
+        }
     }
     return true;
 }

@@ -191,6 +191,10 @@ private:
     uint64_t nBlockSigOpsCost;
     CAmount nFees;
     CTxMemPool::setEntries inBlock;
+    // Mempool entries that are already confirmed on chain. Including one costs us the
+    // whole block (ConnectBlock rejects it as bad-txns-BIP30), so they are skipped
+    // during selection and swept out of the mempool once selection is finished.
+    std::vector<CTransactionRef> vAlreadyInChain;
 
     // Chain context for the block
     int nHeight;

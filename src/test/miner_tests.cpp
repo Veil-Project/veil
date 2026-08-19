@@ -531,4 +531,59 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_validity)
 }
 */
 
+// A transaction that is already confirmed on chain must never be mineable again, and
+// must never be re-admitted to the mempool. If one ever lands in the mempool it is stuck
+// forever: ConnectBlock rejects any block containing it with bad-txns-BIP30, so the node
+// stops producing blocks entirely until the mempool is cleared. This happened on testnet
+// when a zerocoin spend was accepted into the mempool in the same instant its block
+// connected, and took the node's block production down for three and a half days.
+BOOST_AUTO_TEST_CASE(CreateNewBlock_skips_already_confirmed)
+{
+    const auto chainParams = CreateChainParams(CBaseChainParams::REGTEST);
+    const CChainParams& chainparams = *chainParams;
+    CScript scriptPubKey = CScript() << OP_TRUE;
+    TestMemPoolEntryHelper entry;
+
+    // Build a transaction, then pretend its output is already in the UTXO set. That is
+    // exactly the state a confirmed-but-still-in-mempool transaction leaves behind, and
+    // exactly what the BIP30 check in ConnectBlock keys on.
+    CMutableTransaction tx;
+    tx.vin.resize(1);
+    tx.vin[0].prevout = COutPoint(uint256S("0000000000000000000000000000000000000000000000000000000000000001"), 0);
+    tx.vin[0].scriptSig = CScript() << OP_11;
+    tx.vpout.resize(1);
+    tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
+    tx.vpout[0]->SetScriptPubKey(CScript() << OP_11 << OP_EQUAL);
+    tx.vpout[0]->SetValue(5000000000LL);
+    const uint256 txid = tx.GetHash();
+
+    {
+        LOCK(cs_main);
+        CTxOut out(5000000000LL, CScript() << OP_11 << OP_EQUAL);
+        pcoinsTip->AddCoin(COutPoint(txid, 0), Coin(std::move(out), 1, false), false);
+        BOOST_CHECK(pcoinsTip->HaveCoin(COutPoint(txid, 0)));
+    }
+
+    // Put it straight into the mempool, the way it got there in production: a tx accepted
+    // in the same instant its block connected, so removeForBlock had already run. This is
+    // the state the fix has to survive. addUnchecked bypasses acceptance so the coins-view
+    // state above is the only thing that matters.
+    {
+        LOCK(cs_main);
+        LOCK(mempool.cs);
+        mempool.addUnchecked(txid, entry.Fee(10000).FromTx(tx));
+        BOOST_CHECK(mempool.exists(txid));
+    }
+
+    // Before the fix, CreateNewBlock happily selected it and the resulting block was
+    // rejected by ConnectBlock as bad-txns-BIP30, so the node produced nothing. Now the
+    // assembler must skip it and sweep it out.
+    std::unique_ptr<CBlockTemplate> pblocktemplate;
+    BOOST_CHECK(pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(scriptPubKey));
+
+    for (const auto& btx : pblocktemplate->block.vtx)
+        BOOST_CHECK(btx->GetHash() != txid);   // not selected into the block
+    BOOST_CHECK(!mempool.exists(txid));         // and removed from the mempool
+}
+
 BOOST_AUTO_TEST_SUITE_END()
