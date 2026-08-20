@@ -84,6 +84,8 @@ void MiningWidget::onUpdateAlgorithm() {
         if (setAlgoResult) {
             openToastDialog(QString::fromStdString("Algorithm Switch Success!"), mainWindow->getGUI());
             ui->lblCurrentAlgo->setText("Currently mining: " + ui->cmbAlgoSelect->itemText(currentMiningAlgo));
+            // Restart the "blocks found this session" count for the new algorithm.
+            nSessionBlocksBaseline = GetSessionBlocksFound();
         } else {
             openToastDialog(QString::fromStdString("Algorithm Switch Failed!"), mainWindow->getGUI());
         }
@@ -206,7 +208,9 @@ void MiningWidget::updateMiningStats() {
     ui->lblDifficulty->setText(formatDifficulty(dDiff));
     ui->lblNetworkHash->setText(nSpacing > 0 ? formatHashRate(dExpectedHashes / nSpacing) : QString("..."));
 
-    const uint64_t nFound = GetSessionBlocksFound();
+    const uint64_t nTotalFound = GetSessionBlocksFound();
+    const uint64_t nFound = nTotalFound >= nSessionBlocksBaseline
+                                ? nTotalFound - nSessionBlocksBaseline : 0;
     QString sFound = QString::number(nFound);
     if (nFound > 0 && GetSessionLastBlockTime() > 0)
         sFound += QString(" (last %1)").arg(QDateTime::fromTime_t((uint)GetSessionLastBlockTime()).toString("hh:mm"));
@@ -260,14 +264,12 @@ QString MiningWidget::formatTimeSpan(double dSeconds) {
 void MiningWidget::setThreadSelectionValues(int algo) {
     minThreads = (MINE_RANDOMX == algo) ? 4 : 1;
 
-    // Cap the thread count at the number of logical cores. More threads than
-    // cores only slows hashing, and the old "no limit" (INT_MAX) meant "Use Max
-    // Threads" jammed an absurd value into the spinbox that, if mining was then
-    // started, tried to spawn billions of threads.
-    int nCores = GetNumCores();
-    if (nCores < 1)
-        nCores = 1;
-    maxThreads = (nCores > minThreads) ? nCores : minThreads;
+    // The offered maximum leaves one core free so the desktop stays responsive.
+    // Keeping it equal to the recommended ceiling (RECMAX) means "Use Max
+    // Threads" no longer lands one over and trips the warning. RandomX still
+    // needs its floor of 4. This also replaces the old INT_MAX "no limit", which
+    // let the button jam billions of threads into the spinbox.
+    maxThreads = (RECMAX > minThreads) ? RECMAX : minThreads;
 
     ui->lblMaxThreadsAvailable->setText(QString::number(maxThreads));
     ui->numThreads->setRange(minThreads, maxThreads);

@@ -4789,16 +4789,6 @@ QWidget#MiningWidget QSpinBox#numThreads {
     border-radius: 6px;
     padding: 2px 6px;
 }
-QWidget#MiningWidget QSpinBox#numThreads::up-button,
-QWidget#MiningWidget QSpinBox#numThreads::down-button {
-    width: 20px;
-    background-color: #0d124d;
-    border-left: 1px solid #3890c8;
-}
-QWidget#MiningWidget QSpinBox#numThreads::up-button:hover,
-QWidget#MiningWidget QSpinBox#numThreads::down-button:hover {
-    background-color: #3890c8;
-}
 
 QWidget#MiningWidget QComboBox#cmbAlgoSelect {
     color: #f7fbfe;

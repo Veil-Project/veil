@@ -38,6 +38,7 @@ private:
     int nThreads;
     int currentMiningAlgo;
     int64_t nLastStatsUpdate = 0;
+    uint64_t nSessionBlocksBaseline = 0;
 
     // Recommended number of threads
     const int RECMAX = GetNumCores() - 1;

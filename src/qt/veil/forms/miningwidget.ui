@@ -174,12 +174,6 @@ font-size:16px;</string>
                  <height>30</height>
                 </size>
                </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>20</height>
-                </size>
-               </property>
                <property name="font">
                 <font>
                  <pointsize>16</pointsize>
@@ -207,19 +201,23 @@ color:#105AEF;</string>
                <property name="minimumSize">
                 <size>
                  <width>120</width>
-                 <height>36</height>
+                 <height>42</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>140</width>
-                 <height>36</height>
+                 <height>42</height>
                 </size>
                </property>
                <property name="font">
                 <font>
                  <pointsize>13</pointsize>
                 </font>
+               </property>
+               <property name="styleSheet">
+                <string notr="true">QSpinBox::up-button { width: 26px; height: 18px; }
+QSpinBox::down-button { width: 26px; height: 18px; }</string>
                </property>
                <property name="alignment">
                 <set>Qt::AlignHCenter|Qt::AlignVCenter</set>
