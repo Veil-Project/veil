@@ -278,13 +278,6 @@ bool BuildLightWalletRingCTTransaction(const std::vector<std::string>& args, con
         return false;
     }
 
-    // Check inputspersig
-    if (nInputsPerSig < 1 || (size_t)nInputsPerSig > MAX_ANON_INPUTS) {
-        LogPrintf("Num inputs per signature out of range.");
-        errorMsg = "Num inputs per signature out of range.";
-        return false;
-    }
-
     // Build the recipient data
     if (!BuildRecipientData(vecSend, errorMsg)) {
         LogPrintf("Failed - %s\n", errorMsg);
