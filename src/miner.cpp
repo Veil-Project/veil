@@ -927,9 +927,11 @@ void ClearHashSpeed() {
 
 double GetRecentHashSpeed() {
     LOCK(cs_hashrate_window);
-    if (!GenerateActive()) {
-        // Not mining. Drop any stale samples so a later restart starts a
-        // fresh measurement window.
+    if (!GenerateActive() || IsBuildingMinerDataset()) {
+        // Not actually hashing: either stopped, or every thread is parked while
+        // one builds the ProgPow DAG. Drop samples so the measurement restarts
+        // fresh when hashing resumes, instead of averaging in the dead build
+        // interval and under-reporting the rate for a minute afterwards.
         vHashRateWindow.clear();
         return 0.0;
     }
