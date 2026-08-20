@@ -1410,7 +1410,10 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
             // throttling multi threaded RandomX. The network id never changes.
             const bool fRegtest = Params().NetworkIDString() == "regtest";
             const int nCheckInterval = 128;
-            int nSinceCheck = nCheckInterval;
+            // Start at 1 so the first pass through the loop checks. Starting at
+            // the interval would spend the first 128 hashes on a template
+            // without once asking whether the tip or the key block moved.
+            int nSinceCheck = 1;
 
             while (nTries < nInnerLoopCount) {
                 boost::this_thread::interruption_point();
