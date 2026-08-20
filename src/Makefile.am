@@ -225,6 +225,9 @@ BITCOIN_CORE_H = \
   veil/zerocoin/spendreceipt.h \
   veil/zerocoin/mintpool.h \
   veil/zerocoin/mintmeta.h \
+  veil/snapshot/snapshot_extract.h \
+  veil/snapshot/zstd.h \
+  veil/snapshot/zstd_errors.h \
   veil/mnemonic/arrayslice.h \
   veil/mnemonic/dictionary.h \
   veil/mnemonic/generateseed.h \
@@ -711,6 +714,8 @@ libbitcoin_util_a_SOURCES = \
   csv/strerror.hpp \
   fs.cpp \
   interfaces/handler.cpp \
+  veil/snapshot/snapshot_extract.cpp \
+  veil/snapshot/zstddeclib.c \
   interfaces/node.cpp \
   logging.cpp \
   random.cpp \
