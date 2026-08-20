@@ -72,9 +72,24 @@ jobs:
         mkdir -p $ARTIFACT_DIR
         strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
         mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
+    # Upload the binaries before packaging runs. Packaging is the newest and
+    # most fragile part of this job, and it should never be able to cost us the
+    # binaries that already built cleanly.
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v6.0.0
+      with:
+        name: ${{ env.ARTIFACT_DIR }}
+        path: ${{ env.ARTIFACT_DIR }}
     # Builds a .deb so Debian/Ubuntu/Mint users get a double click install and a
     # Veil entry in the application menu instead of a folder of loose binaries.
+    # Skipped for pull requests and branch pushes, where it only costs time.
+    # Master still runs it on every push, so a break shows up while it is cheap
+    # to fix rather than when a release tag is waiting on it.
     - name: Build Debian Package
+      if: >-
+        github.event_name == 'workflow_dispatch' ||
+        startsWith(github.ref, 'refs/tags/') ||
+        github.ref == 'refs/heads/master'
       run: |
         VERSION=$(ls $SOURCE_ARTIFACT/veil-*.tar.gz | sed 's|.*/veil-||; s|\.tar\.gz$||')
         PKG=veil-deb
@@ -115,7 +130,7 @@ jobs:
         Installed-Size: $INSTALLED_SIZE
         Section: utils
         Priority: optional
-        Maintainer: Veil Project <https://github.com/Veil-Project/veil>
+        Maintainer: Veil Project <support@veil-project.com>
         Homepage: https://veil-project.com/
         Depends: $DEPENDS
         Description: Veil privacy focused cryptocurrency wallet
@@ -123,12 +138,17 @@ jobs:
          This package installs the Veil-Qt wallet along with the veild daemon
          and the veil-cli and veil-tx command line tools.
         CONTROL
-        dpkg-deb --build --root-owner-group $PKG $ARTIFACT_DIR/veil-$VERSION-amd64.deb
-    - name: Upload Artifact
+        mkdir -p installers
+        dpkg-deb --build --root-owner-group $PKG installers/veil-$VERSION-amd64.deb
+    - name: Upload Installer
+      if: >-
+        github.event_name == 'workflow_dispatch' ||
+        startsWith(github.ref, 'refs/tags/') ||
+        github.ref == 'refs/heads/master'
       uses: actions/upload-artifact@v6.0.0
       with:
-        name: ${{ env.ARTIFACT_DIR }}
-        path: ${{ env.ARTIFACT_DIR }}
+        name: installers-x86_64-linux
+        path: installers
   build-win64:
     name: Build for Win64
     needs: create-source-distribution
@@ -162,23 +182,41 @@ jobs:
         ./configure --disable-jni --prefix=$(realpath depends/x86_64-w64-mingw32)
         make -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
-    # Produces veil-<version>-win64-setup.exe from share/setup.nsi: start menu
-    # entries, the veil: URI handler and an uninstaller, same as any other
-    # Windows program. Has to run before the binaries are moved out of src/.
-    - name: Build Windows Installer
-      run: make deploy
-      working-directory: ${{ env.SOURCE_ARTIFACT }}
+    # Copy rather than move: the installer is built from the binaries in src/,
+    # so they have to stay there, and getting them uploaded first means a
+    # packaging break cannot take the binaries down with it.
     - name: Prepare Files for Artifact
       run: |
         mkdir -p $ARTIFACT_DIR
         strip $SOURCE_ARTIFACT/src/{veil-cli.exe,veil-tx.exe,veild.exe,qt/veil-qt.exe}
-        mv $SOURCE_ARTIFACT/src/{veil-cli.exe,veil-tx.exe,veild.exe,qt/veil-qt.exe} $ARTIFACT_DIR
-        mv $SOURCE_ARTIFACT/veil-*-win64-setup.exe $ARTIFACT_DIR
+        cp $SOURCE_ARTIFACT/src/{veil-cli.exe,veil-tx.exe,veild.exe,qt/veil-qt.exe} $ARTIFACT_DIR
     - name: Upload Artifact
       uses: actions/upload-artifact@v6.0.0
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
+    # Produces veil-<version>-win64-setup.exe from share/setup.nsi: start menu
+    # entries, the veil: URI handler and an uninstaller, same as any other
+    # Windows program. Skipped for pull requests and branch pushes; master still
+    # builds it on every push so breakage surfaces before a tag needs it.
+    - name: Build Windows Installer
+      if: >-
+        github.event_name == 'workflow_dispatch' ||
+        startsWith(github.ref, 'refs/tags/') ||
+        github.ref == 'refs/heads/master'
+      run: |
+        (cd $SOURCE_ARTIFACT && make deploy)
+        mkdir -p installers
+        mv $SOURCE_ARTIFACT/veil-*-win64-setup.exe installers
+    - name: Upload Installer
+      if: >-
+        github.event_name == 'workflow_dispatch' ||
+        startsWith(github.ref, 'refs/tags/') ||
+        github.ref == 'refs/heads/master'
+      uses: actions/upload-artifact@v6.0.0
+      with:
+        name: installers-win64
+        path: installers
   build-osx64:
     name: Build for MacOSX
     needs: create-source-distribution
@@ -238,26 +276,49 @@ jobs:
         make -j$(nproc)
       working-directory: ${{ env.SOURCE_ARTIFACT }}
 
-    # Wraps Veil-Qt.app in the usual drag-to-Applications disk image. The .dmg
-    # is unsigned, so first launch is right click -> Open.
-    - name: Build Disk Image
-      run: make deploy
-      working-directory: ${{ env.SOURCE_ARTIFACT }}
-
+    # Copy rather than move: the disk image is built from the tree in src/, so
+    # the binaries have to stay put, and uploading them first means a packaging
+    # break cannot take them down with it.
     - name: Prepare Files for Artifact
       run: |
         mkdir -p $ARTIFACT_DIR
         # strip fails with "Unable to recognise the format of the input file"
         #strip $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt}
-        mv $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
-        VERSION=$(ls $SOURCE_ARTIFACT/veil-*.tar.gz | sed 's|.*/veil-||; s|\.tar\.gz$||')
-        mv $SOURCE_ARTIFACT/*.dmg $ARTIFACT_DIR/veil-$VERSION-osx64.dmg
+        cp $SOURCE_ARTIFACT/src/{veil-cli,veil-tx,veild,qt/veil-qt} $ARTIFACT_DIR
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v6.0.0
       with:
         name: ${{ env.ARTIFACT_DIR }}
         path: ${{ env.ARTIFACT_DIR }}
+
+    # Wraps Veil-Qt.app in the usual drag-to-Applications disk image. The .dmg
+    # is unsigned, so first launch is right click -> Open. Skipped for pull
+    # requests and branch pushes; master still builds it on every push so
+    # breakage surfaces before a tag needs it.
+    - name: Build Disk Image
+      if: >-
+        github.event_name == 'workflow_dispatch' ||
+        startsWith(github.ref, 'refs/tags/') ||
+        github.ref == 'refs/heads/master'
+      run: |
+        (cd $SOURCE_ARTIFACT && make deploy)
+        mkdir -p installers
+        VERSION=$(ls $SOURCE_ARTIFACT/veil-*.tar.gz | sed 's|.*/veil-||; s|\.tar\.gz$||')
+        # One dmg is expected; name it explicitly rather than globbing into a
+        # single destination, which would fail confusingly if that ever changed.
+        DMG=$(ls $SOURCE_ARTIFACT/*.dmg | head -n1)
+        mv "$DMG" installers/veil-$VERSION-osx64.dmg
+
+    - name: Upload Installer
+      if: >-
+        github.event_name == 'workflow_dispatch' ||
+        startsWith(github.ref, 'refs/tags/') ||
+        github.ref == 'refs/heads/master'
+      uses: actions/upload-artifact@v6.0.0
+      with:
+        name: installers-osx64
+        path: installers
   build-aarch64-linux:
     name: Build for ARM Linux 64bit
     needs: create-source-distribution
@@ -434,10 +495,12 @@ jobs:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}
       run: |
+        # The installers arrive in their own artifacts, separate from the loose
+        # binaries, so packaging can fail without costing us a binaries upload.
         mkdir -p installers
-        cp artifacts/win64-binaries/*-win64-setup.exe installers
-        cp artifacts/macosx-binaries/*.dmg installers
-        cp artifacts/x86_64-linux-binaries/*.deb installers
+        cp artifacts/installers-win64/*-win64-setup.exe installers
+        cp artifacts/installers-osx64/*.dmg installers
+        cp artifacts/installers-x86_64-linux/*.deb installers
         (cd installers && sha256sum * > SHA256SUMS.txt)
         # A tag can be pushed before its release page exists, so open a draft
         # when there is nothing to attach to yet
