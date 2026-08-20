@@ -13,6 +13,9 @@
 #include "crypto/ethash/helpers.hpp"
 #include "crypto/ethash/progpow_test_vectors.hpp"
 
+#include <arith_uint256.h>
+#include <uint256.h>
+
 #include <array>
 
 BOOST_FIXTURE_TEST_SUITE(progpow_tests, BasicTestingSetup)
@@ -173,5 +176,51 @@ BOOST_AUTO_TEST_CASE(progpow_veil_header)
 }
 
 
+
+
+// The wallet miner searches ProgPow with progpow::search_light against
+// boundary = to_hash256(ArithToUint256(target - 1).GetHex()). It needs target-1
+// because Veil's CheckProofOfWork accepts hash < target (strict), while the
+// ethash searcher accepts hash <= boundary. A found block is only accepted if
+// CheckProofOfWork passes on that nonce, so the searcher's accept set must equal
+// the validator's exactly, through the same uint256 <-> hash256 byte order the
+// miner uses. Verify that over a range of nonces with a real light context.
+BOOST_AUTO_TEST_CASE(progpow_search_boundary_matches_validator)
+{
+    auto& context = get_ethash_epoch_context_0();
+    const int block_number = 0;
+
+    // Loose target: about one hash in sixteen qualifies, so the searched range
+    // has both accepts and rejects and a solution is found quickly.
+    arith_uint256 bnTarget = UintToArith256(uint256S(
+        "1000000000000000000000000000000000000000000000000000000000000000"));
+    const auto boundary = to_hash256(ArithToUint256(bnTarget - 1).GetHex());
+
+    const ethash::hash256 header_hash =
+        to_hash256("00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff");
+
+    // The validator's accept test, exactly as ProgPowHash + CheckProofOfWork do it.
+    auto validatorAccepts = [&](uint64_t nonce) {
+        const auto r = progpow::hash(context, block_number, header_hash, nonce);
+        return UintToArith256(uint256S(to_hex(r.final_hash))) < bnTarget;
+    };
+
+    const uint64_t start = 0, count = 1024;
+    auto res = progpow::search_light(context, block_number, header_hash, boundary, start, count);
+
+    if (res.solution_found) {
+        // The found nonce must pass the validator...
+        BOOST_CHECK(validatorAccepts(res.nonce));
+        // ...and the search must not have skipped an earlier valid nonce.
+        for (uint64_t n = start; n < res.nonce; n++)
+            BOOST_CHECK(!validatorAccepts(n));
+    } else {
+        // Nothing found means no nonce in the range may pass the validator.
+        for (uint64_t n = start; n < start + count; n++)
+            BOOST_CHECK(!validatorAccepts(n));
+    }
+    // With this target a solution is expected within the range.
+    BOOST_CHECK(res.solution_found);
+}
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -7,7 +7,11 @@
 #include <pow.h>
 #include <random.h>
 #include <util/system.h>
+#include <util/strencodings.h>
+#include <crypto/randomx/randomx.h>
 #include <test/test_veil.h>
+
+#include <vector>
 
 #include <boost/test/unit_test.hpp>
 
@@ -84,6 +88,37 @@ BOOST_AUTO_TEST_CASE(GetBlockProofEquivalentTime_test)
 
         int64_t tdiff = GetBlockProofEquivalentTime(*p1, *p2, *p3, chainParams->GetConsensus());
         BOOST_CHECK_EQUAL(tdiff, p1->GetBlockTime() - p2->GetBlockTime());
+    }
+}
+
+
+// RandomXHashToUint256 was optimised from a hex-string round-trip to a direct
+// little-endian byte reversal. The same function is on the block validation
+// path (CheckRandomXProofOfWork), so any change in its output would fork the
+// chain. This locks the optimised result to the original for the full input
+// range, including the all-zero, all-ones and patterned edges.
+BOOST_AUTO_TEST_CASE(randomx_hash_to_uint256_byte_identical)
+{
+    // Reference implementation: exactly the pre-optimisation body.
+    auto reference = [](const char* p) {
+        std::vector<unsigned char> vec;
+        for (int i = 0; i < RANDOMX_HASH_SIZE; i++)
+            vec.push_back(p[i]);
+        return uint256S(HexStr(vec.begin(), vec.end()));
+    };
+
+    FastRandomContext rng(true);
+    char buf[RANDOMX_HASH_SIZE];
+    for (int t = 0; t < 8192; t++) {
+        for (int i = 0; i < RANDOMX_HASH_SIZE; i++) {
+            switch (t % 4) {
+                case 0:  buf[i] = char(0x00); break;
+                case 1:  buf[i] = char(0xff); break;
+                case 2:  buf[i] = char(i);    break;
+                default: buf[i] = char(rng.randbits(8)); break;
+            }
+        }
+        BOOST_CHECK(RandomXHashToUint256(buf) == reference(buf));
     }
 }
 

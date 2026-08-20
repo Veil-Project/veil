@@ -69,6 +69,50 @@ QWidget#MiningWidget QFrame#frame_5 {
     background-color:white;
 }
 
+/* Mining controls for the light theme so the spinbox, algorithm dropdown,
+   DAG checkbox and stat rows read as one styled page (dark theme overrides
+   these in main-dark.css). */
+QWidget#MiningWidget QSpinBox#numThreads {
+    color: #080b2e;
+    background-color: #eef2ff;
+    border: 1px solid #105aef;
+    border-radius: 6px;
+    padding: 2px 6px;
+}
+
+QWidget#MiningWidget QComboBox#cmbAlgoSelect {
+    color: #080b2e;
+    background-color: #eef2ff;
+    border: 1px solid #105aef;
+    border-radius: 6px;
+    padding: 4px 10px;
+    min-width: 130px;
+}
+QWidget#MiningWidget QComboBox#cmbAlgoSelect::drop-down {
+    subcontrol-origin: padding; subcontrol-position: center right;
+    border: none; width: 24px;
+}
+QWidget#MiningWidget QComboBox#cmbAlgoSelect::down-arrow {
+    image: url(":/icons/ic-arrow-down");
+    width: 12px; height: 12px; margin-right: 8px;
+}
+QWidget#MiningWidget QComboBox#cmbAlgoSelect QAbstractItemView {
+    background-color: #ffffff; color: #080b2e;
+    selection-background-color: #105aef; selection-color: #ffffff;
+    border: 1px solid #105aef;
+}
+
+QWidget#MiningWidget QCheckBox#chkProgPowDag { color: #707070; }
+QWidget#MiningWidget QLabel#lblCurrentAlgo,
+QWidget#MiningWidget QLabel#lblDifficultyCaption,
+QWidget#MiningWidget QLabel#lblNetworkHashCaption,
+QWidget#MiningWidget QLabel#lblBlocksFoundCaption,
+QWidget#MiningWidget QLabel#lblTimeToBlockCaption { color: #707070; }
+QWidget#MiningWidget QLabel#lblDifficulty,
+QWidget#MiningWidget QLabel#lblNetworkHash,
+QWidget#MiningWidget QLabel#lblBlocksFound,
+QWidget#MiningWidget QLabel#lblTimeToBlock { color: #105aef; font-weight: bold; }
+
 /** Toolbar  */
 
 #mainToolBar {
