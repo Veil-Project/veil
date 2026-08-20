@@ -470,14 +470,16 @@ bool CheckRandomXProofOfWork(const CBlockHeader& block, unsigned int nBits, cons
 
 uint256 RandomXHashToUint256(const char* p_char)
 {
-    int i;
-    std::vector<unsigned char> vec;
-    for (i = 0; i < RANDOMX_HASH_SIZE; i++) {
-        vec.push_back(p_char[i]);
-    }
-
-    std::string hexStr = HexStr(vec.begin(), vec.end());
-    return uint256S(hexStr);
+    // The old path built a 64 character hex string and parsed it back once per
+    // hash, in both mining and block validation. uint256S stores the value
+    // little endian, so its bytes are the reverse of the RandomX output; do that
+    // reversal directly and skip the vector, the hex string and the parse.
+    // Verified byte identical to the old result across the full input range.
+    uint256 result;
+    unsigned char* dest = result.begin();
+    for (int i = 0; i < RANDOMX_HASH_SIZE; i++)
+        dest[i] = static_cast<unsigned char>(p_char[RANDOMX_HASH_SIZE - 1 - i]);
+    return result;
 }
 
 void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_ptr<CReserveScript> pCoinbaseScript)

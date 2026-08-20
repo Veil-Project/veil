@@ -1400,35 +1400,45 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
 
             bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
 
+            // Hoist things that do not change while we grind this template. The
+            // key block only rotates every KEY_CHANGE blocks and a new tip lands
+            // only occasionally, so check both on an interval rather than taking
+            // cs_randomx_validator and walking the chain on every hash. That lock,
+            // taken once per hash by every mining thread, was the main thing
+            // throttling multi threaded RandomX. The network id never changes.
+            const bool fRegtest = Params().NetworkIDString() == "regtest";
+            const int nCheckInterval = 128;
+            int nSinceCheck = nCheckInterval;
+
             while (nTries < nInnerLoopCount) {
                 boost::this_thread::interruption_point();
 
-                if (fKeyBlockedChanged || CheckIfMiningKeyShouldChange(GetKeyBlock(pblock->nHeight))) {
-                    fKeyBlockedChanged = true;
-                    break;
-                }
-
-                if (pblock->nHeight <= chainActive.Height()) {
-                    fBlockFoundAlready = true;
-                    break;
+                if (--nSinceCheck <= 0) {
+                    nSinceCheck = nCheckInterval;
+                    if (fKeyBlockedChanged || CheckIfMiningKeyShouldChange(GetKeyBlock(pblock->nHeight))) {
+                        fKeyBlockedChanged = true;
+                        break;
+                    }
+                    if (pblock->nHeight <= chainActive.Height()) {
+                        fBlockFoundAlready = true;
+                        break;
+                    }
                 }
 
                 char hash[RANDOMX_HASH_SIZE];
-                // Build the header_hash
+                // Build the header_hash (covers the nonce, so it must be rebuilt each try)
                 uint256 nHeaderHash = pblock->GetRandomXHeaderHash();
 
                 randomx_calculate_hash(vecRandomXVM[vm_index], &nHeaderHash, sizeof uint256(), hash);
                 CountHashesMined(1);
 
-                uint256 nHash = RandomXHashToUint256(hash);
-
                 // Bypass regtest check, actually allows us to generate blocks in regtest mode instantly
-                if (Params().NetworkIDString() == "regtest") {
+                if (fRegtest) {
                     break;
                 }
 
                 // Check proof of work matches claimed amount
-                if (UintToArith256(nHash) < bnTarget) {
+                if (UintToArith256(RandomXHashToUint256(hash)) < bnTarget) {
                     break;
                 }
 
