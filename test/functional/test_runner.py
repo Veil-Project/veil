@@ -131,6 +131,7 @@ BASE_SCRIPTS = [
     'rpc_bind.py --ipv6',
     'rpc_bind.py --nonloopback',
     'mining_basic.py',
+    'mining_sha256d_rpc.py',
     'wallet_bumpfee.py',
     'rpc_named_arguments.py',
     'wallet_listsinceblock.py',
