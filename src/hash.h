@@ -544,5 +544,9 @@ inline uint256 HashX16R(const T1 pbegin, const T1 pend, const uint256 PrevBlockH
 uint256 ProgPowHash(const CBlockHeader& blockHeader);
 uint256 ProgPowHash(const CBlockHeader& blockHeader, uint256& mix_hash);
 
+// Bound a raw ProgPow epoch to the allocatable range, and report that ceiling. See hash.cpp.
+int ProgPowClampEpoch(int epoch);
+int ProgPowMaxEpoch();
+
 
 #endif // BITCOIN_HASH_H
