@@ -13,6 +13,8 @@
 #include <veil/ringct/blind.h>
 #include <wallet/coincontrol.h>
 #include <veil/ringct/anonwallet.h>
+#include <veil/ringct/anon.h>
+#include <chainparams.h>
 #include <policy/policy.h>
 #include <core_io.h>
 
@@ -211,9 +213,10 @@ bool BuildLightWalletRingCTTransaction(const std::vector<std::string>& args, con
         return false;
     }
 
-    // Default ringsize is 11
-    int nRingSize = 5;
-    int nInputsPerSig = nRingSize;
+    // Aim for the network default ring size. The caller supplies the decoys, so this
+    // gets capped further down to whatever the supplied set can actually cover.
+    int nRingSize = Params().DefaultRingSize();
+    int nInputsPerSig = MAX_ANON_INPUTS;
 
     // Get change address - this is the same address we are sending from
     CStealthAddress sxAddr;
@@ -269,16 +272,9 @@ bool BuildLightWalletRingCTTransaction(const std::vector<std::string>& args, con
     }
 
     // Check ringsize
-    if (nRingSize < 3 || nRingSize > 32) {
+    if ((size_t)nRingSize < MIN_RINGSIZE || (size_t)nRingSize > MAX_RINGSIZE) {
         LogPrintf("Ring size out of range.");
         errorMsg = "Ring size out of range.";
-        return false;
-    }
-
-    // Check inputspersig
-    if (nInputsPerSig < 1 || nInputsPerSig > 32) {
-        LogPrintf("Num inputs per signature out of range.");
-        errorMsg = "Num inputs per signature out of range.";
         return false;
     }
 
@@ -341,6 +337,26 @@ bool BuildLightWalletRingCTTransaction(const std::vector<std::string>& args, con
         return false;
     }
 
+    // The caller supplies the decoy set. Each input needs (nRingSize - 1) decoys, and
+    // consensus rejects a transaction that reuses a ring member anywhere in it, see
+    // VerifyMLSAG "bad-anonin-dup-i". Cap the ring at what the supplied set can cover so
+    // that older callers keep working and newer ones get a bigger ring for free.
+    const size_t nSelectedInputs = vSelectedTxes.size();
+    if (nSelectedInputs == 0) {
+        errorMsg = "No spendable inputs were selected";
+        return false;
+    }
+    const size_t nRingFromDummies = (vDummyOutputs.size() / nSelectedInputs) + 1;
+    if ((size_t)nRingSize > nRingFromDummies)
+        nRingSize = (int)nRingFromDummies;
+    if ((size_t)nRingSize > MAX_RINGSIZE)
+        nRingSize = (int)MAX_RINGSIZE;
+    if ((size_t)nRingSize < MIN_RINGSIZE) {
+        errorMsg = strprintf("Not enough decoy outputs supplied: got %u for %u inputs, need at least %u",
+                             vDummyOutputs.size(), nSelectedInputs, nSelectedInputs * (MIN_RINGSIZE - 1));
+        return false;
+    }
+
     int nRemainder = vSelectedTxes.size() % nInputsPerSig;
     int nTxRingSigs = vSelectedTxes.size() / nInputsPerSig + (nRemainder == 0 ? 0 : 1);
 
@@ -385,7 +401,10 @@ bool BuildLightWalletRingCTTransaction(const std::vector<std::string>& args, con
     }
 
     // Add in dummy outputs
-    LightWalletFillInDummyOutputs(txNew,vDummyOutputs,vSecretColumns,vMI);
+    if (!LightWalletFillInDummyOutputs(txNew, vDummyOutputs, vSecretColumns, vMI, errorMsg)) {
+        LogPrintf("Failed LightWalletFillInDummyOutputs - %s\n", errorMsg);
+        return false;
+    }
 
     // Get the amout of bytes
     nBytes = GetVirtualTransactionSize(txNew);
@@ -547,10 +566,6 @@ bool BuildLightWalletStealthTransaction(const std::vector<std::string>& args, co
         return false;
     }
 
-    // Default ringsize is 11
-    int nRingSize = 5;
-    int nInputsPerSig = nRingSize;
-
     // Get change address - this is the same address we are sending from
     CStealthAddress sxAddr;
     sxAddr.label = "";
@@ -602,20 +617,6 @@ bool BuildLightWalletStealthTransaction(const std::vector<std::string>& args, co
             errorMsg = "Transaction amounts must not be negative";
             return false;
         }
-    }
-
-    // Check ringsize
-    if (nRingSize < 3 || nRingSize > 32) {
-        LogPrintf("Ring size out of range.");
-        errorMsg = "Ring size out of range.";
-        return false;
-    }
-
-    // Check inputspersig
-    if (nInputsPerSig < 1 || nInputsPerSig > 32) {
-        LogPrintf("Num inputs per signature out of range.");
-        errorMsg = "Num inputs per signature out of range.";
-        return false;
     }
 
     // Build the recipient data
@@ -1152,7 +1153,7 @@ bool GetAmountAndBlindForUnspentTx(std::vector<CWatchOnlyTx>& vTxes, const std::
 
 bool CheckAmounts(const CAmount& nValueOut, const std::vector<CWatchOnlyTx>& vSpendableTx)
 {
-    CAmount nSum;
+    CAmount nSum = 0;
     for (const auto& tx : vSpendableTx) {
         LogPrintf("Getting amounts from inputs: %d\n", tx.nAmount);
         nSum += tx.nAmount;
@@ -1506,8 +1507,13 @@ bool LightWalletAddRealOutputs(CMutableTransaction& txNew, std::vector<CWatchOnl
 }
 
 
-void LightWalletFillInDummyOutputs(CMutableTransaction& txNew, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, std::vector<size_t>& vSecretColumns, std::vector<std::vector<std::vector<int64_t>>>& vMI)
+bool LightWalletFillInDummyOutputs(CMutableTransaction& txNew, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, std::vector<size_t>& vSecretColumns, std::vector<std::vector<std::vector<int64_t>>>& vMI, std::string& errorMsg)
 {
+    // Each decoy is consumed once for the whole transaction. Consensus rejects a
+    // transaction that lists the same ring member twice even across separate
+    // signatures, see VerifyMLSAG "bad-anonin-dup-i", so this must not restart per input.
+    size_t nCurrentLocation = 0;
+
     // Fill in dummy signatures for fee calculation.
     for (size_t l = 0; l < txNew.vin.size(); ++l) {
         auto &txin = txNew.vin[l];
@@ -1516,14 +1522,19 @@ void LightWalletFillInDummyOutputs(CMutableTransaction& txNew, const std::vector
 
         // Place Hiding Outputs
         {
-            int nCurrentLocation = 0;
             for (size_t k = 0; k < vMI[l].size(); ++k) {
                 for (size_t i = 0; i < nSigRingSize; ++i) {
                     if (i == vSecretColumns[l]) {
                         continue;
                     }
 
-                    LogPrintf("looking at vector index :%d, setting index for dummy: %d\n",nCurrentLocation, vDummyOutputs[nCurrentLocation].index);
+                    // The decoy set comes from the caller, so never index past it.
+                    if (nCurrentLocation >= vDummyOutputs.size()) {
+                        errorMsg = strprintf("Not enough decoy outputs supplied: only %u available",
+                                             vDummyOutputs.size());
+                        return false;
+                    }
+
                     vMI[l][k][i] = vDummyOutputs[nCurrentLocation].index;
                     nCurrentLocation++;
                 }
@@ -1548,6 +1559,8 @@ void LightWalletFillInDummyOutputs(CMutableTransaction& txNew, const std::vector
                                                          : 0)); // extra commitment for split value if multiple sigs
         txin.scriptWitness.stack.emplace_back(vDL);
     }
+
+    return true;
 }
 
 
