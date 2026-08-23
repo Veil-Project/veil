@@ -36,6 +36,10 @@
 #include <veil/zerocoin/zchain.h>
 
 #include <algorithm>
+#include <atomic>
+#include <deque>
+#include <mutex>
+#include <thread>
 #include <queue>
 #include <utility>
 #include <vector>
@@ -44,6 +48,7 @@
 
 // ProgPow
 #include <crypto/ethash/lib/ethash/endianness.hpp>
+#include <crypto/ethash/lib/ethash/ethash-internal.hpp>
 #include <crypto/ethash/include/ethash/progpow.hpp>
 #include <crypto/randomx/randomx.h>
 #include "crypto/ethash/helpers.hpp"
@@ -873,6 +878,31 @@ class ThreadHashSpeed {
 CCriticalSection cs_hashspeeds;
 std::vector<ThreadHashSpeed> vHashSpeeds;
 
+// Live counters for user facing mining stats. The mining threads add their
+// attempts here as they go, so the recent rate below responds within seconds
+// instead of once per template round.
+static std::atomic<uint64_t> nLiveHashCounter{0};
+static std::atomic<uint64_t> nSessionBlocksFound{0};
+static std::atomic<int64_t> nLastBlockFoundTime{0};
+static std::atomic<bool> fBuildingMinerDataset{false};
+
+static void CountHashesMined(uint64_t n)
+{
+    nLiveHashCounter.fetch_add(n, std::memory_order_relaxed);
+}
+
+uint64_t GetSessionBlocksFound() { return nSessionBlocksFound.load(); }
+int64_t GetSessionLastBlockTime() { return nLastBlockFoundTime.load(); }
+void SetBuildingMinerDataset(bool fBuilding) { fBuildingMinerDataset = fBuilding; }
+bool IsBuildingMinerDataset() { return fBuildingMinerDataset.load(); }
+
+// Sliding window over the live hash counter. A sample is taken whenever a
+// caller asks for the rate (the GUI polls a few times a second), and the rate
+// is measured across roughly the last minute of samples.
+static CCriticalSection cs_hashrate_window;
+struct HashRateSample { int64_t nTimeMillis; uint64_t nHashes; };
+static std::deque<HashRateSample> vHashRateWindow;
+
 void ClearHashSpeed() {
     {
         LOCK(cs_nonce);
@@ -888,17 +918,171 @@ void ClearHashSpeed() {
             ths.nTimeDuration = 0;
         }
     }
+    {
+        LOCK(cs_hashrate_window);
+        vHashRateWindow.clear();
+    }
+    nLiveHashCounter = 0;
 }
 
 double GetRecentHashSpeed() {
-    LOCK(cs_hashspeeds);
-    double nTotalHashSpeed = 0.0;
-    for (auto& hs : vHashSpeeds) {
-        LOCK(hs.cs);
-        if (hs.nTimeDuration > 0)
-            nTotalHashSpeed += hs.nHashes.getdouble() / hs.nTimeDuration;
+    LOCK(cs_hashrate_window);
+    if (!GenerateActive() || IsBuildingMinerDataset()) {
+        // Not actually hashing: either stopped, or every thread is parked while
+        // one builds the ProgPow DAG. Drop samples so the measurement restarts
+        // fresh when hashing resumes, instead of averaging in the dead build
+        // interval and under-reporting the rate for a minute afterwards.
+        vHashRateWindow.clear();
+        return 0.0;
     }
-    return nTotalHashSpeed;
+
+    const int64_t nNow = GetTimeMillis();
+    const uint64_t nCount = nLiveHashCounter.load(std::memory_order_relaxed);
+
+    if (vHashRateWindow.empty() || nNow - vHashRateWindow.back().nTimeMillis >= 200)
+        vHashRateWindow.push_back({nNow, nCount});
+
+    while (vHashRateWindow.size() > 2 && nNow - vHashRateWindow.front().nTimeMillis > 60000)
+        vHashRateWindow.pop_front();
+
+    const HashRateSample& front = vHashRateWindow.front();
+    if (nCount <= front.nHashes || nNow <= front.nTimeMillis)
+        return 0.0;
+    return (nCount - front.nHashes) * 1000.0 / (nNow - front.nTimeMillis);
+}
+
+/**
+ * Mining side ProgPow context handling. Validation keeps its own light context
+ * in hash.cpp; the miner never touches it, so hashing for blocks does not
+ * contend with block validation.
+ *
+ * By default the miner uses a light context. With -progpowdag (or the GUI
+ * checkbox) it builds the full DAG once per epoch, which makes CPU mining
+ * roughly two orders of magnitude faster at the cost of several GB of memory.
+ * The dataset is built eagerly and in parallel here because the library's lazy
+ * per item fill is not thread safe under concurrent miners.
+ */
+static CCriticalSection cs_progpow_mining;
+static std::shared_ptr<ethash::epoch_context_full> spProgPowContextFull;
+static std::shared_ptr<ethash::epoch_context> spProgPowContextLight;
+static int nProgPowMiningEpoch = -1;
+// These are read and written from the GUI thread as well as from miner threads,
+// so keep them atomic. In particular the GUI setter must never take
+// cs_progpow_mining: a miner thread can hold that lock for minutes while it
+// builds the DAG, and blocking the GUI thread on it would freeze the whole UI.
+static std::atomic<bool> fProgPowDagFailed{false};
+static std::atomic<bool> fProgPowUseFullDag{false};
+static std::once_flag progpow_dag_init;
+
+void SetProgPowFullDataset(bool fUse)
+{
+    // Mark as initialised so a later GetProgPowFullDataset does not clobber this
+    // explicit choice with the -progpowdag default.
+    std::call_once(progpow_dag_init, [](){});
+    fProgPowUseFullDag.store(fUse);
+    fProgPowDagFailed.store(false);
+}
+
+bool GetProgPowFullDataset()
+{
+    std::call_once(progpow_dag_init, [](){
+        fProgPowUseFullDag.store(gArgs.GetBoolArg("-progpowdag", false));
+    });
+    return fProgPowUseFullDag.load();
+}
+
+/** Fill the full DAG in parallel. Returns false if aborted by shutdown or the
+ * miner being switched off. Items the L1 prefill already wrote are skipped. */
+static bool BuildProgPowDataset(ethash::epoch_context_full* ctx, int nThreads)
+{
+    const uint32_t nItems2048 = static_cast<uint32_t>(ctx->full_dataset_num_items) / 2;
+    const uint32_t nFirst = progpow::l1_cache_size / sizeof(ethash::hash2048);
+    auto* pDataset = reinterpret_cast<ethash::hash2048*>(ctx->full_dataset);
+
+    if (nThreads < 1) nThreads = 1;
+    std::atomic<bool> fAborted{false};
+    std::vector<std::thread> vThreads;
+    const uint32_t nPerThread = (nItems2048 - nFirst) / nThreads;
+    for (int t = 0; t < nThreads; ++t) {
+        const uint32_t nStart = nFirst + t * nPerThread;
+        const uint32_t nEnd = (t == nThreads - 1) ? nItems2048 : nStart + nPerThread;
+        vThreads.emplace_back([ctx, pDataset, nStart, nEnd, &fAborted]() {
+            for (uint32_t i = nStart; i < nEnd; ++i) {
+                if ((i & 0xfff) == 0 && (ShutdownRequested() || !GenerateActive() || fAborted)) {
+                    fAborted = true;
+                    return;
+                }
+                pDataset[i] = ethash::calculate_dataset_item_2048(*ctx, i);
+            }
+        });
+    }
+    for (auto& t : vThreads)
+        t.join();
+    return !fAborted;
+}
+
+/** Get shared mining contexts for the epoch of nHeight. On success exactly one
+ * of the two out pointers is set. Both empty means the caller should give up
+ * this round (shutdown or mining switched off during a DAG build). */
+static void GetProgPowMiningContext(int nHeight,
+                                    std::shared_ptr<ethash::epoch_context_full>& ctxFull,
+                                    std::shared_ptr<ethash::epoch_context>& ctxLight)
+{
+    const int nEpoch = Params().GetProgPowEpochNumber(nHeight);
+    const bool fWantFull = GetProgPowFullDataset();
+    LOCK(cs_progpow_mining);
+    const bool fHaveRight = nEpoch == nProgPowMiningEpoch &&
+                            (spProgPowContextFull || spProgPowContextLight) &&
+                            ((fWantFull && !fProgPowDagFailed) == (spProgPowContextFull != nullptr));
+    if (!fHaveRight) {
+        spProgPowContextFull.reset();
+        spProgPowContextLight.reset();
+        nProgPowMiningEpoch = -1;
+        // Do not start a multi minute, multi GB build if mining is already on its
+        // way out. Without this liveness check, every miner thread queued on
+        // cs_progpow_mining would kick off its own fresh build after a stop, one
+        // after another, each one aborting only once its worker threads notice.
+        if (fWantFull && !fProgPowDagFailed && GenerateActive() && !ShutdownRequested()) {
+            const size_t nBytes = static_cast<size_t>(ethash_calculate_full_dataset_num_items(nEpoch)) * sizeof(ethash::hash1024);
+            LogPrintf("%s: Building ProgPow DAG for epoch %d (%d MB), this can take a few minutes\n",
+                      __func__, nEpoch, nBytes >> 20);
+            SetBuildingMinerDataset(true);
+            auto nTime1 = GetTimeMillis();
+            // Guard the null case explicitly: wrapping a null pointer in a
+            // shared_ptr with this deleter would call the destroy function on
+            // null when the temporary dies, which is undefined behaviour.
+            ethash::epoch_context_full* pRaw = ethash_create_epoch_context_full(nEpoch);
+            if (!pRaw) {
+                LogPrintf("%s: ProgPow DAG allocation failed, falling back to light mining\n", __func__);
+                fProgPowDagFailed = true;
+            } else {
+                std::shared_ptr<ethash::epoch_context_full> ctx(pRaw, ethash_destroy_epoch_context_full);
+                if (!BuildProgPowDataset(ctx.get(), GetNumCores())) {
+                    // Aborted part way. Drop it so a later start rebuilds from scratch.
+                    SetBuildingMinerDataset(false);
+                    return;
+                }
+                LogPrintf("%s: Finished ProgPow DAG %.2fms\n", __func__, (double)(GetTimeMillis() - nTime1));
+                spProgPowContextFull = ctx;
+            }
+            SetBuildingMinerDataset(false);
+        }
+        if (!spProgPowContextFull)
+            spProgPowContextLight = std::shared_ptr<ethash::epoch_context>(
+                ethash_create_epoch_context(nEpoch), ethash_destroy_epoch_context);
+        nProgPowMiningEpoch = nEpoch;
+    }
+    ctxFull = spProgPowContextFull;
+    ctxLight = spProgPowContextLight;
+}
+
+void FreeProgPowMiningContext()
+{
+    LOCK(cs_progpow_mining);
+    spProgPowContextFull.reset();
+    spProgPowContextLight.reset();
+    nProgPowMiningEpoch = -1;
+    fProgPowDagFailed = false;
 }
 
 void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfStake = false, bool fProofOfFullNode = false, ThreadHashSpeed* pThreadHashSpeed = nullptr) {
@@ -1034,16 +1218,57 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
             int nMidTries = 0;
             static const int nMidLoopCount = 0x1000;
             if (pblock->IsProgPow() && pblock->nTime >= Params().PowUpdateTimestamp()) {
-                uint256 mix_hash;
-                while (nTries < nInnerLoopCount &&
-                        !CheckProofOfWork(ProgPowHash(*pblock, mix_hash), pblock->nBits,
-                                          Params().GetConsensus(), CBlockHeader::PROGPOW_BLOCK)) {
-                    boost::this_thread::interruption_point();
-                    ++nTries;
-                    ++pblock->nNonce64;
+                // Check the target the same way CheckProofOfWork will
+                arith_uint256 bnTarget;
+                bool fNegative, fOverflow;
+                bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
+                if (fNegative || bnTarget == 0 || fOverflow ||
+                    bnTarget > UintToArith256(Params().GetConsensus().powLimit)) {
+                    LogPrint(BCLog::MINING, "%s: invalid ProgPow target in template\n", __func__);
+                    continue;
                 }
-                pblock->mixHash = mix_hash;
-                success = nTries != nInnerLoopCount;
+
+                std::shared_ptr<ethash::epoch_context_full> ctxFull;
+                std::shared_ptr<ethash::epoch_context> ctxLight;
+                GetProgPowMiningContext(pblock->nHeight, ctxFull, ctxLight);
+                if (!ctxFull && !ctxLight)
+                    continue;
+
+                // The ProgPow header hash does not cover the nonce, so hash it
+                // once per template instead of once per attempt.
+                const auto header_hash = to_hash256(pblock->GetProgPowHeaderHash().GetHex());
+                // CheckProofOfWork accepts hash < target while the searcher
+                // accepts hash <= boundary, so pass target minus one.
+                const auto boundary = to_hash256(ArithToUint256(bnTarget - 1).GetHex());
+
+                // Search in chunks so the thread stays interruptible, the live
+                // hash counter keeps moving and a stale template gets dropped.
+                const int nChunkSize = ctxFull ? 256 : 16;
+                while (nTries < nInnerLoopCount) {
+                    boost::this_thread::interruption_point();
+                    if (chainActive.Height() >= pblock->nHeight)
+                        break;
+                    const int nChunk = std::min(nChunkSize, nInnerLoopCount - nTries);
+                    progpow::search_result res;
+                    if (ctxFull)
+                        res = progpow::search(*ctxFull, pblock->nHeight, header_hash, boundary,
+                                              pblock->nNonce64, nChunk);
+                    else
+                        res = progpow::search_light(*ctxLight, pblock->nHeight, header_hash, boundary,
+                                                    pblock->nNonce64, nChunk);
+                    if (res.solution_found) {
+                        const int nUsed = static_cast<int>(res.nonce - pblock->nNonce64) + 1;
+                        CountHashesMined(nUsed);
+                        nTries += nUsed;
+                        pblock->nNonce64 = res.nonce;
+                        pblock->mixHash = uint256S(to_hex(res.mix_hash));
+                        success = true;
+                        break;
+                    }
+                    CountHashesMined(nChunk);
+                    nTries += nChunk;
+                    pblock->nNonce64 += nChunk;
+                }
             } else if (pblock->IsSha256D() && pblock->nTime >= Params().PowUpdateTimestamp()) {
                 uint256 midStateHash = pblock->GetSha256dMidstate();
                 // Exit loop when nMidLoopCount loops are done, or when a new block is found.
@@ -1056,6 +1281,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                         ++nTries;
                         ++pblock->nNonce64;
                     }
+                    CountHashesMined(nTries);
                     if (nTries != nInnerLoopCount) {
                         success = true;
                         break;
@@ -1069,6 +1295,7 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
                     boost::this_thread::interruption_point();
                     ++nTries;
                     ++pblock->nNonce;
+                    CountHashesMined(1);
                 }
                 success = nTries != nInnerLoopCount;
             } else {
@@ -1109,8 +1336,11 @@ void BitcoinMiner(std::shared_ptr<CReserveScript> coinbaseScript, bool fProofOfS
         }
         LogPrint(BCLog::MINING, "%s: Found block\n", __func__);
 
-        if (!fProofOfStake)
+        if (!fProofOfStake) {
             coinbaseScript->KeepScript();
+            ++nSessionBlocksFound;
+            nLastBlockFoundTime = GetTime();
+        }
     }
 }
 
@@ -1172,34 +1402,48 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
 
             bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
 
+            // Hoist things that do not change while we grind this template. The
+            // key block only rotates every KEY_CHANGE blocks and a new tip lands
+            // only occasionally, so check both on an interval rather than taking
+            // cs_randomx_validator and walking the chain on every hash. That lock,
+            // taken once per hash by every mining thread, was the main thing
+            // throttling multi threaded RandomX. The network id never changes.
+            const bool fRegtest = Params().NetworkIDString() == "regtest";
+            const int nCheckInterval = 128;
+            // Start at 1 so the first pass through the loop checks. Starting at
+            // the interval would spend the first 128 hashes on a template
+            // without once asking whether the tip or the key block moved.
+            int nSinceCheck = 1;
+
             while (nTries < nInnerLoopCount) {
                 boost::this_thread::interruption_point();
 
-                if (fKeyBlockedChanged || CheckIfMiningKeyShouldChange(GetKeyBlock(pblock->nHeight))) {
-                    fKeyBlockedChanged = true;
-                    break;
-                }
-
-                if (pblock->nHeight <= chainActive.Height()) {
-                    fBlockFoundAlready = true;
-                    break;
+                if (--nSinceCheck <= 0) {
+                    nSinceCheck = nCheckInterval;
+                    if (fKeyBlockedChanged || CheckIfMiningKeyShouldChange(GetKeyBlock(pblock->nHeight))) {
+                        fKeyBlockedChanged = true;
+                        break;
+                    }
+                    if (pblock->nHeight <= chainActive.Height()) {
+                        fBlockFoundAlready = true;
+                        break;
+                    }
                 }
 
                 char hash[RANDOMX_HASH_SIZE];
-                // Build the header_hash
+                // Build the header_hash (covers the nonce, so it must be rebuilt each try)
                 uint256 nHeaderHash = pblock->GetRandomXHeaderHash();
 
                 randomx_calculate_hash(vecRandomXVM[vm_index], &nHeaderHash, sizeof uint256(), hash);
-
-                uint256 nHash = RandomXHashToUint256(hash);
+                CountHashesMined(1);
 
                 // Bypass regtest check, actually allows us to generate blocks in regtest mode instantly
-                if (Params().NetworkIDString() == "regtest") {
+                if (fRegtest) {
                     break;
                 }
 
                 // Check proof of work matches claimed amount
-                if (UintToArith256(nHash) < bnTarget) {
+                if (UintToArith256(RandomXHashToUint256(hash)) < bnTarget) {
                     break;
                 }
 
@@ -1247,6 +1491,8 @@ void BitcoinRandomXMiner(std::shared_ptr<CReserveScript> coinbaseScript, int vm_
         }
 
         coinbaseScript->KeepScript();
+        ++nSessionBlocksFound;
+        nLastBlockFoundTime = GetTime();
     }
 }
 
@@ -1353,6 +1599,9 @@ void GenerateBitcoins(bool fGenerate, int nThreads, std::shared_ptr<CReserveScri
         pthreadGroupRandomX->interrupt_all();
         pthreadGroupRandomX->join_all();
     }
+
+    SetBuildingMinerDataset(false);
+    FreeProgPowMiningContext();
 
     if (nThreads == 0 || !fGenerate)
         return;

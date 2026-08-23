@@ -26,6 +26,11 @@
 #include <QPainter>
 #include <qt/veil/qtutils.h>
 #include <miner.h>
+#include <chainparams.h>
+#include <pow.h>
+#include <rpc/blockchain.h>
+#include <validation.h>
+#include <QDateTime>
 
 MiningWidget::MiningWidget(QWidget *parent, WalletView* walletView) :
     QWidget(parent),
@@ -39,6 +44,11 @@ MiningWidget::MiningWidget(QWidget *parent, WalletView* walletView) :
 
     ui->cmbAlgoSelect->addItems({"RandomX","ProgPow","SHA256D"});
     ui->cmbAlgoSelect->setCurrentIndex(GetMiningAlgorithm());
+
+    ui->chkProgPowDag->setChecked(GetProgPowFullDataset());
+    connect(ui->chkProgPowDag, SIGNAL(toggled(bool)), this, SLOT(onToggleProgPowDag(bool)));
+
+    ui->frame_8->setVisible(false);
 
     connect(ui->btnUpdateAlgo, SIGNAL(clicked()), this, SLOT(onUpdateAlgorithm()));
     connect(ui->btnAllThreads, SIGNAL(clicked()), this, SLOT(onUseMaxThreads()));
@@ -73,7 +83,9 @@ void MiningWidget::onUpdateAlgorithm() {
 
         if (setAlgoResult) {
             openToastDialog(QString::fromStdString("Algorithm Switch Success!"), mainWindow->getGUI());
-            ui->lblCurrentAlgo->setText(QString::fromStdString(algoStr));
+            ui->lblCurrentAlgo->setText("Currently mining: " + ui->cmbAlgoSelect->itemText(currentMiningAlgo));
+            // Restart the "blocks found this session" count for the new algorithm.
+            nSessionBlocksBaseline = GetSessionBlocksFound();
         } else {
             openToastDialog(QString::fromStdString("Algorithm Switch Failed!"), mainWindow->getGUI());
         }
@@ -100,7 +112,7 @@ void MiningWidget::onToggleMiningActive() {
     if (!mineOn) {
             
         if ((nAlgo == MINE_SHA256D) && (nThreads > maxThreads))
-            openToastDialog(QString::fromStdString("SHA256D limited to " + maxThreads), mainWindow->getGUI());
+            openToastDialog(QString("SHA256D limited to %1 threads").arg(maxThreads), mainWindow->getGUI());
 
         if ((nAlgo == MINE_RANDOMX) && (nThreads < 4)) {
             openToastDialog(QString::fromStdString("RandomX must be at least 4 threads"), mainWindow->getGUI());
@@ -136,26 +148,143 @@ void MiningWidget::updateMiningFields() {
 
     setMineActiveTxt(mineOn);
 
-    ui->lblHashRate->setText(QString("Mining at %1 H/s").arg(QString::number(GetRecentHashSpeed()))); 
+    if (mineOn && IsBuildingMinerDataset()) {
+        ui->lblMineActive->setText("Preparing mining dataset...");
+        ui->lblMineActive->setStyleSheet("QLabel{color:#b8860b;}");
+        ui->lblHashRate->setText("Please wait");
+    } else {
+        ui->lblHashRate->setText(mineOn ? QString("Mining at %1").arg(formatHashRate(GetRecentHashSpeed()))
+                                        : QString("Not mining"));
+    }
+
+    updateMiningStats();
+
+    // Keep the DAG checkbox in sync with the global the miner actually reads, so
+    // a second wallet view does not misrepresent what mining will do. Block
+    // signals so this programmatic update does not re-enter onToggleProgPowDag.
+    const bool fFullDag = GetProgPowFullDataset();
+    if (ui->chkProgPowDag->isChecked() != fFullDag) {
+        ui->chkProgPowDag->blockSignals(true);
+        ui->chkProgPowDag->setChecked(fFullDag);
+        ui->chkProgPowDag->blockSignals(false);
+    }
 
     setThreadSelectionValues(currentMiningAlgo);
 }
 
-void MiningWidget::setThreadSelectionValues(int algo) {
-    minThreads = 1;
-    if (MINE_RANDOMX == algo)
-       minThreads = 4;
-    if (MINE_SHA256D == algo) {
-       maxThreads = (GetNumCores () - 1);
-    } else { 
-       maxThreads = INT_MAX; 
+void MiningWidget::updateMiningStats() {
+    // Difficulty needs cs_main, so refresh these on a slower cadence and skip
+    // the tick when the lock is busy rather than stalling the GUI thread.
+    // nLastStatsUpdate is a member: with two wallets open each MiningWidget must
+    // keep its own cadence, not share one static across every instance.
+    const int64_t nNow = QDateTime::currentMSecsSinceEpoch();
+    if (nNow - nLastStatsUpdate < 2000)
+        return;
+
+    int nBlockType = CBlockHeader::RANDOMX_BLOCK;
+    int64_t nSpacing = Params().GetConsensus().nRandomXTargetSpacing;
+    if (currentMiningAlgo == MINE_PROGPOW) {
+        nBlockType = CBlockHeader::PROGPOW_BLOCK;
+        nSpacing = Params().GetConsensus().nProgPowTargetSpacing;
+    } else if (currentMiningAlgo == MINE_SHA256D) {
+        nBlockType = CBlockHeader::SHA256D_BLOCK;
+        nSpacing = Params().GetConsensus().nSha256DTargetSpacing;
     }
+
+    double dDiff = 0.0;
+    {
+        TRY_LOCK(cs_main, lockMain);
+        if (!lockMain || !chainActive.Tip())
+            return;
+        dDiff = GetDifficulty(GetNextWorkRequired(chainActive.Tip(), nullptr, Params().GetConsensus(),
+                                                  false, nBlockType));
+    }
+    nLastStatsUpdate = nNow;
+
+    // Standard difficulty to hashrate conversion: one unit of difficulty is
+    // 2^32 expected hashes.
+    const double dExpectedHashes = dDiff * 4294967296.0;
+
+    ui->lblDifficulty->setText(formatDifficulty(dDiff));
+    ui->lblNetworkHash->setText(nSpacing > 0 ? formatHashRate(dExpectedHashes / nSpacing) : QString("..."));
+
+    const uint64_t nTotalFound = GetSessionBlocksFound();
+    const uint64_t nFound = nTotalFound >= nSessionBlocksBaseline
+                                ? nTotalFound - nSessionBlocksBaseline : 0;
+    QString sFound = QString::number(nFound);
+    if (nFound > 0 && GetSessionLastBlockTime() > 0)
+        sFound += QString(" (last %1)").arg(QDateTime::fromTime_t((uint)GetSessionLastBlockTime()).toString("hh:mm"));
+    ui->lblBlocksFound->setText(sFound);
+
+    const double dMyRate = GetRecentHashSpeed();
+    if (mineOn && dMyRate > 0)
+        ui->lblTimeToBlock->setText(QString("~%1").arg(formatTimeSpan(dExpectedHashes / dMyRate)));
+    else
+        ui->lblTimeToBlock->setText("...");
+}
+
+QString MiningWidget::formatHashRate(double dRate) {
+    static const char* units[] = {"H/s", "kH/s", "MH/s", "GH/s", "TH/s", "PH/s"};
+    int i = 0;
+    while (dRate >= 1000.0 && i < 5) {
+        dRate /= 1000.0;
+        ++i;
+    }
+    const int prec = dRate < 10 ? 2 : (dRate < 100 ? 1 : 0);
+    return QString("%1 %2").arg(dRate, 0, 'f', prec).arg(units[i]);
+}
+
+QString MiningWidget::formatDifficulty(double dDiff) {
+    static const char* units[] = {"", "k", "M", "G", "T"};
+    int i = 0;
+    while (dDiff >= 1000.0 && i < 4) {
+        dDiff /= 1000.0;
+        ++i;
+    }
+    const int prec = dDiff < 10 ? 3 : (dDiff < 100 ? 2 : 1);
+    return QString("%1%2").arg(dDiff, 0, 'f', prec).arg(units[i]);
+}
+
+QString MiningWidget::formatTimeSpan(double dSeconds) {
+    if (dSeconds < 90)
+        return QString("%1 seconds").arg(qRound(dSeconds));
+    const double dMinutes = dSeconds / 60.0;
+    if (dMinutes < 90)
+        return QString("%1 minutes").arg(qRound(dMinutes));
+    const double dHours = dMinutes / 60.0;
+    if (dHours < 36)
+        return QString("%1 hours").arg(dHours, 0, 'f', 1);
+    const double dDays = dHours / 24.0;
+    if (dDays < 365)
+        return QString("%1 days").arg(dDays, 0, 'f', 1);
+    const double dYears = dDays / 365.25;
+    return QString("%1 years").arg(dYears, 0, 'f', 1);
+}
+
+void MiningWidget::setThreadSelectionValues(int algo) {
+    minThreads = (MINE_RANDOMX == algo) ? 4 : 1;
+
+    // The offered maximum leaves one core free so the desktop stays responsive.
+    // Keeping it equal to the recommended ceiling (RECMAX) means "Use Max
+    // Threads" no longer lands one over and trips the warning. RandomX still
+    // needs its floor of 4. This also replaces the old INT_MAX "no limit", which
+    // let the button jam billions of threads into the spinbox.
+    maxThreads = (RECMAX > minThreads) ? RECMAX : minThreads;
 
     ui->lblMaxThreadsAvailable->setText(QString::number(maxThreads));
     ui->numThreads->setRange(minThreads, maxThreads);
-    ui->lblCurrentAlgo->setText(QString::fromStdString(GetMiningType(algo, false, false)));
+    ui->lblCurrentAlgo->setText("Currently mining: " + ui->cmbAlgoSelect->itemText(algo));
+    ui->chkProgPowDag->setVisible(MINE_PROGPOW == algo);
 
     onChangeNumberOfThreads(ui->numThreads->text().toInt());
+}
+
+void MiningWidget::onToggleProgPowDag(bool fChecked) {
+    SetProgPowFullDataset(fChecked);
+    if (fChecked && mineOn && currentMiningAlgo == MINE_PROGPOW)
+        openToastDialog("Building the DAG now, hashing pauses until it is ready", mainWindow->getGUI());
+    else if (!fChecked && mineOn && currentMiningAlgo == MINE_PROGPOW)
+        openToastDialog("Switching to light mining on the next round", mainWindow->getGUI());
 }
 
 void MiningWidget::onUseMaxThreads() {
@@ -166,11 +295,11 @@ void MiningWidget::onChangeNumberOfThreads(int newNumThr) {
     if (RECMAX < ui->numThreads->value()) {
         if ((MINE_RANDOMX == currentMiningAlgo) && ((RECMAX + 1) == minThreads) && (RECMAX + 1 == ui->numThreads->value())) {
             // don't show the exceeding warning
-            ui->lblExceedThr->setVisible(false);
+            ui->frame_8->setVisible(false);
         } else {
-            ui->lblExceedThr->setVisible(true);
+            ui->frame_8->setVisible(true);
         }
     } else {
-        ui->lblExceedThr->setVisible(false);
+        ui->frame_8->setVisible(false);
     }
 }
