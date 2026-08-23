@@ -730,6 +730,24 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
     if (fHasBasecoinInputs && fHasZerocoinInputs)
         return state.Invalid(error("%s: tx mixes zerocoin and basecoin inputs", __func__, REJECT_INVALID, "txn-mixed-zerocoin-inputs"));
 
+    // A transaction that is already confirmed must never enter the mempool. The
+    // "txn-already-known" check further down only runs when an input is missing from the
+    // UTXO set, and both the RingCT and the zerocoin branches of that loop `continue`
+    // before they reach it, so for those two a duplicate was never detected at all. One
+    // that gets in is stuck forever: it can never be mined, because ConnectBlock rejects
+    // any block holding it as bad-txns-BIP30, and nothing evicts it, because
+    // removeForBlock only fires for transactions in an arriving block. It then takes the
+    // node's whole block production down with it.
+    //
+    // This asks the chain UTXO set directly rather than the mempool backed view above,
+    // and deliberately not the cache only helper, since a node with a cold coins cache
+    // would miss it. Same predicate ConnectBlock uses, so this can never reject a
+    // transaction that a block would have accepted.
+    for (size_t o = 0; o < tx.GetNumVOuts(); o++) {
+        if (pcoinsTip->HaveCoin(COutPoint(hash, o)))
+            return state.Invalid(false, REJECT_DUPLICATE, "txn-already-known");
+    }
+
     std::vector<libzerocoin::SerialNumberSoKProof> vProofs;
     {
         CCoinsView dummy;
