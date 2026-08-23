@@ -353,7 +353,7 @@ void TxToUniv(const CTransaction& tx, const uint256& hashBlock, const std::vecto
 
                 UniValue arrKeyImages(UniValue::VARR);
                 for (unsigned int k = 0; k < nSigInputs; k++) {
-                    const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*nSigInputs]);
+                    const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
                     UniValue objKeyImage(UniValue::VOBJ);
                     objKeyImage.pushKV(std::to_string(k), HexStr(ki));
                     arrKeyImages.push_back(objKeyImage);
