@@ -822,6 +822,7 @@ add_executable(veil
         src/veil/ringct/rpcanonwallet.h
         src/veil/ringct/stealth.cpp
         src/veil/ringct/stealth.h
+        src/veil/ringct/transactionsigcontext.h 
         src/veil/ringct/types.h
         src/veil/zerocoin/accumulatormap.cpp
         src/veil/zerocoin/accumulatormap.h
