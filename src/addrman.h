@@ -9,6 +9,7 @@
 #include <netaddress.h>
 #include <protocol.h>
 #include <random.h>
+#include <streams.h>
 #include <sync.h>
 #include <timedata.h>
 #include <util/system.h>
@@ -317,15 +318,21 @@ public:
     {
         LOCK(cs);
 
-        unsigned char nVersion = 1;
-        s << nVersion;
-        s << ((unsigned char)32);
-        s << nKey;
-        s << nNew;
-        s << nTried;
+        // Format version 2: addresses are serialized in the BIP155 (addrv2)
+        // encoding, so Tor v3 peers persist across restarts. Version 1 files
+        // written by previous releases still load (see Unserialize); previous
+        // releases reading a version-2 file fail the load and recreate an
+        // empty peers.dat, which is the standard downgrade behavior.
+        unsigned char nVersion = 2;
+        OverrideStream<Stream> os(&s, s.GetType(), s.GetVersion() | ADDRV2_FORMAT);
+        os << nVersion;
+        os << ((unsigned char)32);
+        os << nKey;
+        os << nNew;
+        os << nTried;
 
         int nUBuckets = ADDRMAN_NEW_BUCKET_COUNT ^ (1 << 30);
-        s << nUBuckets;
+        os << nUBuckets;
         std::map<int, int> mapUnkIds;
         int nIds = 0;
         for (const auto& entry : mapInfo) {
@@ -333,7 +340,7 @@ public:
             const CAddrInfo &info = entry.second;
             if (info.nRefCount) {
                 assert(nIds != nNew); // this means nNew was wrong, oh ow
-                s << info;
+                os << info;
                 nIds++;
             }
         }
@@ -342,7 +349,7 @@ public:
             const CAddrInfo &info = entry.second;
             if (info.fInTried) {
                 assert(nIds != nTried); // this means nTried was wrong, oh ow
-                s << info;
+                os << info;
                 nIds++;
             }
         }
@@ -352,11 +359,11 @@ public:
                 if (vvNew[bucket][i] != -1)
                     nSize++;
             }
-            s << nSize;
+            os << nSize;
             for (int i = 0; i < ADDRMAN_BUCKET_SIZE; i++) {
                 if (vvNew[bucket][i] != -1) {
                     int nIndex = mapUnkIds[vvNew[bucket][i]];
-                    s << nIndex;
+                    os << nIndex;
                 }
             }
         }
@@ -371,14 +378,20 @@ public:
 
         unsigned char nVersion;
         s >> nVersion;
+        if (nVersion > 2) {
+            throw std::ios_base::failure(strprintf("Unsupported version of addrman database: %u", nVersion));
+        }
+        // Version 2 files carry addresses in the BIP155 (addrv2) encoding;
+        // versions 0/1 use the legacy fixed 16-byte encoding.
+        OverrideStream<Stream> os(&s, s.GetType(), s.GetVersion() | (nVersion >= 2 ? ADDRV2_FORMAT : 0));
         unsigned char nKeySize;
-        s >> nKeySize;
+        os >> nKeySize;
         if (nKeySize != 32) throw std::ios_base::failure("Incorrect keysize in addrman deserialization");
-        s >> nKey;
-        s >> nNew;
-        s >> nTried;
+        os >> nKey;
+        os >> nNew;
+        os >> nTried;
         int nUBuckets = 0;
-        s >> nUBuckets;
+        os >> nUBuckets;
         if (nVersion != 0) {
             nUBuckets ^= (1 << 30);
         }
@@ -394,11 +407,11 @@ public:
         // Deserialize entries from the new table.
         for (int n = 0; n < nNew; n++) {
             CAddrInfo &info = mapInfo[n];
-            s >> info;
+            os >> info;
             mapAddr[info] = n;
             info.nRandomPos = vRandom.size();
             vRandom.push_back(n);
-            if (nVersion != 1 || nUBuckets != ADDRMAN_NEW_BUCKET_COUNT) {
+            if (nVersion < 1 || nUBuckets != ADDRMAN_NEW_BUCKET_COUNT) {
                 // In case the new table data cannot be used (nVersion unknown, or bucket count wrong),
                 // immediately try to give them a reference based on their primary source address.
                 int nUBucket = info.GetNewBucket(nKey);
@@ -415,7 +428,7 @@ public:
         int nLost = 0;
         for (int n = 0; n < nTried; n++) {
             CAddrInfo info;
-            s >> info;
+            os >> info;
             int nKBucket = info.GetTriedBucket(nKey);
             int nKBucketPos = info.GetBucketPosition(nKey, false, nKBucket);
             if (vvTried[nKBucket][nKBucketPos] == -1) {
@@ -435,14 +448,14 @@ public:
         // Deserialize positions in the new table (if possible).
         for (int bucket = 0; bucket < nUBuckets; bucket++) {
             int nSize = 0;
-            s >> nSize;
+            os >> nSize;
             for (int n = 0; n < nSize; n++) {
                 int nIndex = 0;
-                s >> nIndex;
+                os >> nIndex;
                 if (nIndex >= 0 && nIndex < nNew) {
                     CAddrInfo &info = mapInfo[nIndex];
                     int nUBucketPos = info.GetBucketPosition(nKey, true, bucket);
-                    if (nVersion == 1 && nUBuckets == ADDRMAN_NEW_BUCKET_COUNT && vvNew[bucket][nUBucketPos] == -1 && info.nRefCount < ADDRMAN_NEW_BUCKETS_PER_ADDRESS) {
+                    if (nVersion >= 1 && nUBuckets == ADDRMAN_NEW_BUCKET_COUNT && vvNew[bucket][nUBucketPos] == -1 && info.nRefCount < ADDRMAN_NEW_BUCKETS_PER_ADDRESS) {
                         info.nRefCount++;
                         vvNew[bucket][nUBucketPos] = nIndex;
                     }

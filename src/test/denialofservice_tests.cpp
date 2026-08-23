@@ -349,6 +349,7 @@ BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
         tx.vin[0].prevout.hash = InsecureRand256();
         tx.vin[0].scriptSig << OP_1;
         tx.vpout.resize(1);
+        tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         tx.vpout[0]->SetValue(1*CENT);
         tx.vpout[0]->SetScriptPubKey(GetScriptForDestination(key.GetPubKey().GetID()));
 
@@ -365,6 +366,7 @@ BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
         tx.vin[0].prevout.n = 0;
         tx.vin[0].prevout.hash = txPrev->GetHash();
         tx.vpout.resize(1);
+        tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         tx.vpout[0]->SetValue(1*CENT);
         tx.vpout[0]->SetScriptPubKey(GetScriptForDestination(key.GetPubKey().GetID()));
         SignSignature(keystore, *txPrev, tx, 0, SIGHASH_ALL);
@@ -379,6 +381,7 @@ BOOST_AUTO_TEST_CASE(DoS_mapOrphans)
 
         CMutableTransaction tx;
         tx.vpout.resize(1);
+        tx.vpout[0] = MAKE_OUTPUT<CTxOutStandard>();
         tx.vpout[0]->SetValue(1*CENT);
         tx.vpout[0]->SetScriptPubKey(GetScriptForDestination(key.GetPubKey().GetID()));;
         tx.vin.resize(2777);

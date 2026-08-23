@@ -1,11 +1,11 @@
 dnl require autoconf 2.60 (AS_ECHO/AS_ECHO_N)
 AC_PREREQ([2.60])
 define(_CLIENT_VERSION_MAJOR, 1)
-define(_CLIENT_VERSION_MINOR, 4)
-define(_CLIENT_VERSION_REVISION, 3)
-define(_CLIENT_VERSION_BUILD, 99)
+define(_CLIENT_VERSION_MINOR, 5)
+define(_CLIENT_VERSION_REVISION, 0)
+define(_CLIENT_VERSION_BUILD, 0)
 define(_CLIENT_VERSION_IS_RELEASE, false)
-define(_COPYRIGHT_YEAR, 2022)
+define(_COPYRIGHT_YEAR, 2026)
 define(_COPYRIGHT_HOLDERS,[The %s developers])
 define(_COPYRIGHT_HOLDERS_SUBSTITUTION,[[Veil Core]])
 AC_INIT([Veil Core],[_CLIENT_VERSION_MAJOR._CLIENT_VERSION_MINOR._CLIENT_VERSION_REVISION._CLIENT_VERSION_BUILD],[https://github.com/Veil-Project/veil/issues],[veil],[https://veil-project.com/])
@@ -500,6 +500,8 @@ case $host in
   *darwin*)
      TARGET_OS=darwin
      case $host in
+       arm64-*) ARM_64=yes ;;
+       aarch64-*) ARM_64=yes ;;
        x86_64-*) X86_64=yes ;;
      esac
      LEVELDB_TARGET_FLAGS="-DOS_MACOSX"
@@ -1075,7 +1077,12 @@ if test "x$use_zmq" = xyes; then
       ZMQ_CFLAGS="$ZMQ_CFLAGS -DZMQ_STATIC"
     ;;
   esac
-  BITCOIN_QT_CHECK(AC_CHECK_LIB([protobuf] ,[main],[PROTOBUF_LIBS=-lprotobuf], BITCOIN_QT_FAIL(libprotobuf not found)))
+  dnl PROTOBUF_LIBS/PROTOBUF_CFLAGS are already set correctly by the
+  dnl PKG_CHECK_MODULES([PROTOBUF], [protobuf], ...) check above, including any
+  dnl transitive link deps a given protobuf build needs (e.g. abseil on newer
+  dnl protobuf releases). A bare `-lprotobuf` re-check here (unrelated to ZMQ)
+  dnl used to clobber that with a weaker check that fails to link against
+  dnl protobuf builds with such transitive deps.
 fi
 
 save_CXXFLAGS="${CXXFLAGS}"

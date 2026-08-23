@@ -10,10 +10,12 @@
 #endif
 
 #include <compat.h>
+#include <prevector.h>
 #include <serialize.h>
 #include <span.h>
 
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -28,11 +30,54 @@ enum Network
     NET_MAX,
 };
 
+// --- BIP155 (addrv2) scaffolding ---------------------------------------------
+// Foundational declarations for Tor v3 / addrv2 support. Not yet wired into
+// CNetAddr's storage or serialization: the representation rewrite
+// (ip[16] -> prevector m_addr) and the ADDRV2_FORMAT-gated serialization land
+// in subsequent, independently-gated commits. Kept deliberately additive so
+// this commit changes no behavior (NET_MAX and existing paths are untouched).
+
+/** Sentinel bit in the serialize version, set only when (de)serializing an
+ *  address in the BIP155 (addrv2) format. Default streams keep the legacy
+ *  16-byte encoding, so peers.dat and v1 wire stay byte-identical. */
+static constexpr int ADDRV2_FORMAT = 0x20000000;
+
+/** BIP155 network ids as they appear on the wire in addrv2 messages.
+ *  Distinct from the internal `enum Network` above. */
+enum BIP155Network : uint8_t {
+    BIP155_NET_IPV4 = 1,
+    BIP155_NET_IPV6 = 2,
+    BIP155_NET_TORV2 = 3,
+    BIP155_NET_TORV3 = 4,
+    BIP155_NET_I2P = 5,
+    BIP155_NET_CJDNS = 6,
+};
+
+/** Size (in bytes) of the raw address for each supported network. */
+static constexpr size_t ADDR_IPV4_SIZE = 4;
+static constexpr size_t ADDR_IPV6_SIZE = 16;
+static constexpr size_t ADDR_TORV2_SIZE = 10;
+static constexpr size_t ADDR_TORV3_SIZE = 32;
+static constexpr size_t ADDR_I2P_SIZE = 32;
+static constexpr size_t ADDR_CJDNS_SIZE = 16;
+static constexpr size_t ADDR_INTERNAL_SIZE = 10;
+
+/** Upper bound on the raw address length accepted from a BIP155 (addrv2)
+ *  message, to bound memory when decoding untrusted input. */
+static constexpr size_t MAX_ADDRV2_SIZE = 512;
+
 /** IP address (IPv6, or IPv4 using mapped IPv6 range (::FFFF:0:0/96)) */
 class CNetAddr
 {
     protected:
-        unsigned char ip[16]; // in network byte order
+        // Raw representation of the network address. Held at ADDR_IPV6_SIZE (16)
+        // bytes for every address type supported today (IPv4/IPv6 use the
+        // IPv6-mapped form, Tor v2 uses onioncat, internal uses the veil
+        // prefix), so all classification, GetGroup and serialization behave
+        // exactly as the previous fixed `unsigned char ip[16]`. Storing it in a
+        // prevector is the prerequisite for holding longer addresses (Tor v3 =
+        // 32 bytes) additively, without disturbing the 16-byte paths.
+        prevector<16, uint8_t> m_addr{ADDR_IPV6_SIZE, 0x0};
         uint32_t scopeId; // for scoped/link-local ipv6 addresses
 
     public:
@@ -75,6 +120,9 @@ class CNetAddr
         bool IsRoutable() const;
         bool IsInternal() const;
         bool IsValid() const;
+        //! Whether this address fits the legacy (v1) 16-byte encoding. Longer
+        //! addresses (Tor v3) can only be relayed to addrv2-capable peers.
+        bool IsAddrV1Compatible() const { return m_addr.size() == ADDR_IPV6_SIZE; }
         enum Network GetNetwork() const;
         std::string ToString() const;
         std::string ToStringIP() const;
@@ -95,9 +143,73 @@ class CNetAddr
 
         template <typename Stream, typename Operation>
         inline void SerializationOp(Stream& s, Operation ser_action) {
-            READWRITE(ip);
+            if (s.GetVersion() & ADDRV2_FORMAT) SerializeV2(s, ser_action);
+            else SerializeV1(s, ser_action);
         }
 
+    protected:
+        // BIP155 (addrv2) codec helpers, defined in netaddress.cpp.
+        uint8_t GetBIP155Network() const;
+        std::vector<uint8_t> GetAddrV2Bytes() const;
+        bool SetFromBIP155(uint8_t bip155_net, const std::vector<uint8_t>& bytes);
+
+        // Legacy fixed 16-byte encoding, byte-identical to the previous
+        // `unsigned char ip[16]` for all 16-byte address types. Addresses that
+        // do not fit the v1 format (e.g. Tor v3, 32 bytes) are written as 16
+        // zero bytes; they are only meaningfully carried in the BIP155 form.
+        template <typename Stream, typename Operation>
+        inline void SerializeV1(Stream& s, Operation ser_action) {
+            unsigned char legacy_ip[ADDR_IPV6_SIZE];
+            if (!ser_action.ForRead()) {
+                if (m_addr.size() == ADDR_IPV6_SIZE) {
+                    memcpy(legacy_ip, m_addr.data(), ADDR_IPV6_SIZE);
+                } else {
+                    memset(legacy_ip, 0, ADDR_IPV6_SIZE);
+                }
+            }
+            READWRITE(legacy_ip);
+            if (ser_action.ForRead()) {
+                m_addr.assign(legacy_ip, legacy_ip + ADDR_IPV6_SIZE);
+            }
+        }
+
+        // BIP155 variable-length encoding: network id (1 byte) + CompactSize
+        // length + raw address bytes. Used only on ADDRV2_FORMAT streams.
+        // Split into per-action overloads so the read path can validate the
+        // declared length BEFORE buffering the payload; a hostile CompactSize
+        // is rejected without reading its bytes first.
+        template <typename Stream>
+        inline void SerializeV2(Stream& s, CSerActionSerialize) const {
+            if (IsInternal()) {
+                // NET_INTERNAL has no BIP155 network id; embed its 16-byte
+                // prefixed form as IPv6 (as upstream does) so internal
+                // placeholder entries survive an addrv2 round-trip - the
+                // internal prefix classifies them back on read.
+                ::Serialize(s, static_cast<uint8_t>(BIP155_NET_IPV6));
+                ::Serialize(s, std::vector<uint8_t>(m_addr.begin(), m_addr.end()));
+                return;
+            }
+            const uint8_t bip155_net = GetBIP155Network();
+            ::Serialize(s, bip155_net);
+            ::Serialize(s, GetAddrV2Bytes());
+        }
+
+        template <typename Stream>
+        inline void SerializeV2(Stream& s, CSerActionUnserialize) {
+            uint8_t bip155_net = 0;
+            ::Unserialize(s, bip155_net);
+            const uint64_t n = ReadCompactSize(s);
+            if (n > MAX_ADDRV2_SIZE) {
+                throw std::ios_base::failure("BIP155 address too long");
+            }
+            std::vector<uint8_t> bytes(n);
+            if (n > 0) {
+                s.read(reinterpret_cast<char*>(bytes.data()), n);
+            }
+            SetFromBIP155(bip155_net, bytes);
+        }
+
+    public:
         friend class CSubNet;
 };
 
@@ -167,7 +279,11 @@ class CService : public CNetAddr
 
         template <typename Stream, typename Operation>
         inline void SerializationOp(Stream& s, Operation ser_action) {
-            READWRITE(ip);
+            // Address in the stream's format (legacy 16-byte or BIP155),
+            // followed by the big-endian port. The address encoding is shared
+            // with CNetAddr so both stay in lock-step.
+            if (s.GetVersion() & ADDRV2_FORMAT) SerializeV2(s, ser_action);
+            else SerializeV1(s, ser_action);
             READWRITE(WrapBigEndian(port));
         }
 };

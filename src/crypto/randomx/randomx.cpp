@@ -43,7 +43,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 extern "C" {
 
 	randomx_flags randomx_get_flags() {
+#if defined(__APPLE__) && defined(__aarch64__)
+		// Apple Silicon enforces W^X on executable pages; this RandomX
+		// vintage does not use MAP_JIT/pthread_jit_write_protect_np, so
+		// the JIT SIGBUSes. Use the interpreter (identical hashes, slower).
+		randomx_flags flags = RANDOMX_FLAG_DEFAULT;
+#else
 		randomx_flags flags = RANDOMX_HAVE_COMPILER ? RANDOMX_FLAG_JIT : RANDOMX_FLAG_DEFAULT;
+#endif
 		randomx::Cpu cpu;
 #ifdef RANDOMX_FORCE_SECURE
         if (flags == RANDOMX_FLAG_JIT) {

@@ -47,8 +47,12 @@
 #define THREADV __thread
 #endif
 
-extern void mdebug();
-extern void mwarning();
+/* Logging stubs inherited from the Monero RandomX glue. This file is a dead
+ * archive member in Veil (RandomX runs through crypto/randomx via pow.cpp), so
+ * these are never linked; the prototypes just let the (category, message)
+ * calls parse under C23, where K&R "()" means "(void)". */
+extern void mdebug(const char *category, const char *fmt, ...);
+extern void mwarning(const char *category, const char *fmt, ...);
 
 typedef struct rx_state {
     CTHR_MUTEX_TYPE rs_mutex;
