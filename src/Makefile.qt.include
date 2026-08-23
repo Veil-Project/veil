@@ -81,6 +81,8 @@ QT_MOC_CPP = \
   qt/moc_addresstablemodel.cpp \
   qt/moc_askpassphrasedialog.cpp \
   qt/moc_bantablemodel.cpp \
+  qt/moc_snapshotdialog.cpp \
+  qt/moc_snapshotdownloader.cpp \
   qt/moc_bitcoinaddressvalidator.cpp \
   qt/moc_bitcoinamountfield.cpp \
   qt/moc_bitcoingui.cpp \
@@ -199,6 +201,8 @@ BITCOIN_QT_H = \
   qt/addresstablemodel.h \
   qt/askpassphrasedialog.h \
   qt/bantablemodel.h \
+  qt/snapshotdialog.h \
+  qt/snapshotdownloader.h \
   qt/bitcoinaddressvalidator.h \
   qt/bitcoinamountfield.h \
   qt/bitcoingui.h \
@@ -602,6 +606,8 @@ BITCOIN_QT_BASE_CPP = \
   qt/veil/toast.cpp \
   qt/veil/veilstatusbar.cpp \
   qt/bantablemodel.cpp \
+  qt/snapshotdialog.cpp \
+  qt/snapshotdownloader.cpp \
   qt/bitcoinaddressvalidator.cpp \
   qt/bitcoinamountfield.cpp \
   qt/bitcoingui.cpp \
