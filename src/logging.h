@@ -117,12 +117,14 @@ namespace BCLog {
 
 } // namespace BCLog
 
-extern BCLog::Logger* const g_logger;
+/** Return the current logger instance. Function-local static so it is
+ *  safe to use from any static initializer (upstream #15111). */
+BCLog::Logger& LogInstance();
 
 /** Return true if log accepts specified category */
 static inline bool LogAcceptCategory(BCLog::LogFlags category)
 {
-    return g_logger->WillLogCategory(category);
+    return LogInstance().WillLogCategory(category);
 }
 
 /** Returns a string with the log categories. */
@@ -153,7 +155,7 @@ template<typename T, typename... Args> static inline void MarkUsed(const T& t, c
 #define LogPrint(category, ...) do { MarkUsed(__VA_ARGS__); } while(0)
 #else
 #define LogPrintf(...) do { \
-    if (g_logger->Enabled()) { \
+    if (LogInstance().Enabled()) { \
         std::string _log_msg_; /* Unlikely name to avoid shadowing variables */ \
         try { \
             _log_msg_ = tfm::format(__VA_ARGS__); \
@@ -161,7 +163,7 @@ template<typename T, typename... Args> static inline void MarkUsed(const T& t, c
             /* Original format string will have newline so don't add one here */ \
             _log_msg_ = "Error \"" + std::string(fmterr.what()) + "\" while formatting log message: " + FormatStringFromLogArgs(__VA_ARGS__); \
         } \
-        g_logger->LogPrintStr(_log_msg_); \
+        LogInstance().LogPrintStr(_log_msg_); \
     } \
 } while(0)
 

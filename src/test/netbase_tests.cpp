@@ -3,8 +3,10 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <netbase.h>
+#include <streams.h>
 #include <test/test_veil.h>
 #include <util/strencodings.h>
+#include <version.h>
 
 #include <string>
 
@@ -30,6 +32,22 @@ static CNetAddr CreateInternal(const char* host)
 {
     CNetAddr addr;
     addr.SetInternal(host);
+    return addr;
+}
+
+// Build a Tor v3 CNetAddr with a chosen first pubkey byte by decoding a raw
+// BIP155 stream (SetSpecial would require a valid SHA3 checksum).
+static CNetAddr TorV3Addr(uint8_t first_byte, uint8_t last_byte = 0x11)
+{
+    CDataStream s(SER_NETWORK, PROTOCOL_VERSION | ADDRV2_FORMAT);
+    ser_writedata8(s, static_cast<uint8_t>(BIP155_NET_TORV3));
+    WriteCompactSize(s, ADDR_TORV3_SIZE);
+    std::vector<uint8_t> pubkey(ADDR_TORV3_SIZE, 0x11);
+    pubkey[0] = first_byte;
+    pubkey[ADDR_TORV3_SIZE - 1] = last_byte;
+    s.write(reinterpret_cast<const char*>(pubkey.data()), pubkey.size());
+    CNetAddr addr;
+    s >> addr;
     return addr;
 }
 
@@ -279,6 +297,22 @@ BOOST_AUTO_TEST_CASE(subnet_test)
     subnet = ResolveSubNet("1:2:3:4:5:6:7:8/ffff:ffff:ffff:fffe:ffff:ffff:ffff:ff0f");
     BOOST_CHECK_EQUAL(subnet.ToString(), "1:2:3:4:5:6:7:8/ffff:ffff:ffff:fffe:ffff:ffff:ffff:ff0f");
 
+    // Tor v3 (32-byte) addresses vs. subnets: an IP netmask must never match
+    // a v3 address (::/0 used to match every one), masked v3 subnets are not
+    // representable, and a single-address v3 subnet matches exactly itself.
+    const CNetAddr tor_v3 = TorV3Addr(0x79);
+    BOOST_CHECK(tor_v3.IsTor());
+    BOOST_CHECK(!ResolveSubNet("::/0").Match(tor_v3));
+    BOOST_CHECK(!ResolveSubNet("1.2.3.0/24").Match(tor_v3));
+    BOOST_CHECK(!CSubNet(tor_v3, 16).IsValid());
+    BOOST_CHECK(CSubNet(tor_v3).IsValid());
+    BOOST_CHECK(CSubNet(tor_v3).Match(tor_v3));
+    BOOST_CHECK(!CSubNet(tor_v3).Match(TorV3Addr(0x78)));
+    // Two v3 addresses identical in their first 16 bytes but differing past
+    // byte 15 must not match: exact-match must span all 32 pubkey bytes, not
+    // just the legacy 16-byte prefix.
+    BOOST_CHECK(!CSubNet(tor_v3).Match(TorV3Addr(0x79, 0x22)));
+    BOOST_CHECK(!CSubNet(tor_v3).Match(ResolveIP("1.2.3.4")));
 }
 
 BOOST_AUTO_TEST_CASE(netbase_getgroup)
@@ -294,6 +328,12 @@ BOOST_AUTO_TEST_CASE(netbase_getgroup)
     BOOST_CHECK(ResolveIP("2002:102:304:9999:9999:9999:9999:9999").GetGroup() == std::vector<unsigned char>({(unsigned char)NET_IPV4, 1, 2})); // RFC3964
     BOOST_CHECK(ResolveIP("2001:0:9999:9999:9999:9999:FEFD:FCFB").GetGroup() == std::vector<unsigned char>({(unsigned char)NET_IPV4, 1, 2})); // RFC4380
     BOOST_CHECK(ResolveIP("FD87:D87E:EB43:edb1:8e4:3588:e546:35ca").GetGroup() == std::vector<unsigned char>({(unsigned char)NET_ONION, 239})); // Tor
+    // Tor v3: all onions share 16 groups keyed by NET_ONION + the first 4
+    // bits of the pubkey; a freshly minted key must not mint a fresh group.
+    BOOST_CHECK(TorV3Addr(0x79).GetGroup() == std::vector<unsigned char>({(unsigned char)NET_ONION, 0x7F})); // Tor v3
+    BOOST_CHECK(TorV3Addr(0x71).GetGroup() == TorV3Addr(0x7E).GetGroup()); // same first nibble, same group
+    BOOST_CHECK(TorV3Addr(0x10).GetGroup() != TorV3Addr(0x20).GetGroup()); // different nibble, different group
+    BOOST_CHECK_EQUAL(TorV3Addr(0x79).GetGroup().size(), 2U); // never the full pubkey
     BOOST_CHECK(ResolveIP("2001:470:abcd:9999:9999:9999:9999:9999").GetGroup() == std::vector<unsigned char>({(unsigned char)NET_IPV6, 32, 1, 4, 112, 175})); //he.net
     BOOST_CHECK(ResolveIP("2001:2001:9999:9999:9999:9999:9999:9999").GetGroup() == std::vector<unsigned char>({(unsigned char)NET_IPV6, 32, 1, 32, 1})); //IPv6
 

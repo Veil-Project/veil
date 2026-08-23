@@ -59,12 +59,10 @@ static const int MAX_OUTBOUND_CONNECTIONS = 8;
 static const int MAX_ADDNODE_CONNECTIONS = 8;
 /** -listen default */
 static const bool DEFAULT_LISTEN = true;
-/** -upnp default */
-#ifdef USE_UPNP
-static const bool DEFAULT_UPNP = USE_UPNP;
-#else
+/** -upnp default. Off by default even when compiled with miniupnpc: UPnP
+ *  advertises the node on the local network and has a history of CVEs.
+ *  (Upstream disabled the default in 0.19.) */
 static const bool DEFAULT_UPNP = false;
-#endif
 /** The maximum number of entries in mapAskFor */
 static const size_t MAPASKFOR_MAX_SZ = MAX_INV_SZ;
 /** The maximum number of entries in setAskFor (larger due to getdata latency)*/
@@ -690,6 +688,19 @@ public:
     std::vector<CAddress> vAddrToSend;
     CRollingBloomFilter addrKnown;
     bool fGetAddr;
+    // Rate limiting of incoming addr-relay processing (token bucket).
+    // Bucket starts near-empty (1 token) so an unsolicited peer cannot dump
+    // a full 1000-address message on connect; it is topped up by
+    // MAX_ADDR_PROCESSING_TOKEN_BUCKET when we send that peer a getaddr, and
+    // otherwise refills at MAX_ADDR_RATE_PER_SECOND up to the same cap (both
+    // defined in net_processing.cpp), capping sustained addr processing.
+    double m_addr_token_bucket{1};
+    int64_t m_addr_token_timestamp_us{0};
+    std::atomic<uint64_t> m_addr_processed{0};
+    std::atomic<uint64_t> m_addr_rate_limited{0};
+    // Set when the peer sent a `sendaddrv2` message: it understands and prefers
+    // the BIP155 addrv2 address format. Until then we relay legacy `addr`.
+    std::atomic_bool m_wants_addrv2{false};
     std::set<uint256> setKnown;
     int64_t nNextAddrSend;
     int64_t nNextLocalAddrSend;

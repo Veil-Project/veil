@@ -13,6 +13,7 @@
 #include "libzerocoin/PubcoinSignature.h"
 //#include "accumulatorcheckpoints.h"
 #include "libzerocoin/bignum.h"
+#include <test/test_veil.h>
 #include <boost/test/unit_test.hpp>
 #include <iostream>
 #include <wallet/deterministicmint.h>
@@ -28,14 +29,16 @@ using namespace libzerocoin;
 
 //extern bool DecodeHexTx(CTransaction& tx, const std::string& strHexTx);
 
-BOOST_AUTO_TEST_SUITE(zerocoin_implementation_tests)
+// BasicTestingSetup is required: deterministic_tests exercises wallet key
+// derivation, which needs the secp256k1 context from ECC_Start().
+BOOST_FIXTURE_TEST_SUITE(zerocoin_implementation_tests, BasicTestingSetup)
 
 
 BOOST_AUTO_TEST_CASE(zcparams_test)
 {
     std::cout << "Running zcparams_test...\n";
-    RandomInit();
-    ECC_Start();
+    // RandomInit()/ECC_Start() come from the BasicTestingSetup fixture;
+    // calling ECC_Start() again would assert on the live context.
     bool fPassed = true;
     try{
         SelectParams(CBaseChainParams::MAIN);
@@ -441,6 +444,12 @@ BOOST_AUTO_TEST_CASE(deterministic_tests)
     std::string strWalletFile = "unittestwallet.dat";
 
     CWallet wallet("dummy", WalletDatabase::CreateDummy());
+    // The CzWallet constructor loads the zerocoin master seed from the
+    // wallet's HD chain (DeriveBIP32Path), so the wallet needs a seed.
+    // Determinism is unaffected: SetMasterSeed below repoints seedMasterID
+    // and mapMasterSeeds at the fixed test seed, which is all that
+    // GenerateDeterministicZerocoin uses.
+    wallet.SetHDSeed(wallet.GenerateNewSeed());
     CzWallet zWallet(&wallet);
     CKey keySeed;
     keySeed.Set(seedMaster.begin(), true);

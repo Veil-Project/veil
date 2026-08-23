@@ -18,6 +18,7 @@
 #endif
 
 #include <boost/thread.hpp>
+#include <boost/version.hpp>
 
 namespace {
 //! Make sure database has a unique fileid within the environment. If it
@@ -326,7 +327,7 @@ bool BerkeleyBatch::VerifyEnvironment(const fs::path& file_path, std::string& er
     LogPrintf("Using wallet %s\n", walletFile);
 
     // Wallet file must be a plain filename without a directory
-    if (walletFile != fs::basename(walletFile) + fs::extension(walletFile))
+    if (walletFile != fs::path(walletFile).filename().string())
     {
         errorStr = strprintf(_("Wallet %s resides outside wallet directory %s"), walletFile, walletDir.string());
         return false;
@@ -779,7 +780,15 @@ bool BerkeleyDatabase::Backup(const std::string& strDest)
                         return false;
                     }
 
+                    // Boost renamed copy_option -> copy_options (aligned with
+                    // std::filesystem) in 1.74 and removed the old spelling in
+                    // 1.85. Support both so the depends build (Boost 1.70) and
+                    // modern system Boost compile.
+#if BOOST_VERSION >= 107400
+                    fs::copy_file(pathSrc, pathDest, fs::copy_options::overwrite_existing);
+#else
                     fs::copy_file(pathSrc, pathDest, fs::copy_option::overwrite_if_exists);
+#endif
                     LogPrintf("copied %s to %s\n", strFile, pathDest.string());
                     return true;
                 } catch (const fs::filesystem_error& e) {

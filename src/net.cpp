@@ -1503,8 +1503,20 @@ static void ThreadMapPort()
     struct UPNPUrls urls;
     struct IGDdatas data;
     int r;
+    char wanaddr[64];
+    #ifndef MINIUPNPC_API_VERSION
+    #define MINIUPNPC_API_VERSION 0
+    #endif
+    // The 7-argument UPNP_GetValidIGD (with wanaddr) was introduced with
+    // miniupnpc 2.2.8 = API version 18. API 17 (2.2.2-2.2.7, shipped by
+    // Ubuntu 22.04/24.04 and Debian bookworm) still has the 5-arg signature.
+    #if MINIUPNPC_API_VERSION >= 18
+        r = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr), wanaddr, sizeof(wanaddr));
+    #else
+        r = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
+        (void)wanaddr;
+    #endif
 
-    r = UPNP_GetValidIGD(devlist, &urls, &data, lanaddr, sizeof(lanaddr));
     if (r == 1)
     {
         if (fDiscover) {

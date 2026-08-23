@@ -52,6 +52,17 @@ BOOST_AUTO_TEST_CASE(fastrandom_tests)
     }
 }
 
+BOOST_AUTO_TEST_CASE(getrand_zero_range)
+{
+    // GetRand(0) must return 0, not assert. Veil call sites depend on this
+    // (e.g. SelectRangeProofParameters passes a zero range for values with no
+    // trailing decimal zeros); upstream's randrange(0) asserts, so the
+    // CSPRNG-port kept an explicit nMax == 0 short-circuit in GetRand().
+    BOOST_CHECK_EQUAL(GetRand(0), 0U);
+    // And the smallest nonzero range only ever yields 0.
+    BOOST_CHECK_EQUAL(GetRand(1), 0U);
+}
+
 BOOST_AUTO_TEST_CASE(fastrandom_randbits)
 {
     FastRandomContext ctx1;

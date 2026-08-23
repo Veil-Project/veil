@@ -160,6 +160,33 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     return DarkGravityWave(pindexLast, params, fProofOfStake, nPoWType);
 }
 
+namespace {
+arith_uint512 Widen(const arith_uint256& a)
+{
+    uint512 wide;
+    const uint256 narrow = ArithToUint256(a);
+    memcpy(wide.begin(), narrow.begin(), narrow.size());
+    return UintToArith512(wide);
+}
+
+arith_uint256 Narrow(const arith_uint512& a)
+{
+    const uint512 wide = ArithToUint512(a);
+    uint256 narrow;
+    memcpy(narrow.begin(), wide.begin(), narrow.size());
+    return UintToArith256(narrow);
+}
+} // namespace
+
+arith_uint256 DgwTargetAvgStep(const arith_uint256& bnPastTargetAvg, unsigned int nCountBlocks, const arith_uint256& bnTarget)
+{
+    // The intermediate sum exceeds 256 bits once a few near-pow-limit targets
+    // (regtest) are accumulated, so evaluate at 512-bit width. The quotient
+    // never exceeds max(avg, target), so it always fits back into 256 bits.
+    const arith_uint512 bnSum = Widen(bnPastTargetAvg) * nCountBlocks + Widen(bnTarget);
+    return Narrow(bnSum / (nCountBlocks + 1));
+}
+
 unsigned int DGW_old(const CBlockIndex* pindexLast, const Consensus::Params& params, bool fProofOfStake) {
     /* current difficulty formula, veil - DarkGravity v3, written by Evan Duffield - evan@dash.org */
     const arith_uint256 bnPowLimit = UintToArith256(params.powLimit);
@@ -183,7 +210,7 @@ unsigned int DGW_old(const CBlockIndex* pindexLast, const Consensus::Params& par
         }
 
         arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
-        bnPastTargetAvg = (bnPastTargetAvg * nCountBlocks + bnTarget) / (nCountBlocks + 1);
+        bnPastTargetAvg = DgwTargetAvgStep(bnPastTargetAvg, nCountBlocks, bnTarget);
 
         if (++nCountBlocks != params.nDgwPastBlocks_old)
             pindex = pindex->pprev;
@@ -267,7 +294,7 @@ unsigned int DarkGravityWave(const CBlockIndex* pindexLast, const Consensus::Par
         }
 
         arith_uint256 bnTarget = arith_uint256().SetCompact(pindex->nBits);
-        bnPastTargetAvg = (bnPastTargetAvg * nCountBlocks + bnTarget) / (nCountBlocks + 1);
+        bnPastTargetAvg = DgwTargetAvgStep(bnPastTargetAvg, nCountBlocks, bnTarget);
 
         if (++nCountBlocks < nPastBlocks)
             pindex = pindex->pprev;
