@@ -36,6 +36,7 @@ public:
     std::string GetLanguageSelection() const;
     uint512 GetSeed() const { return seed; }
     std::string GetMnemonic() const {return mnemonic; }
+    bool IsRestoreSeed() const { return fRestoreSeed; }
 
 private Q_SLOTS:
     void on_next_triggered();
@@ -49,6 +50,7 @@ private:
     QStringList wordList;
 
     bool shutdown = true;
+    bool fRestoreSeed = false;
     MnemonicWalletInitFlags selection;
 
     TutorialMnemonicCode *tutorialMnemonicCode;

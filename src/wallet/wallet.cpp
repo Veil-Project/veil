@@ -5180,9 +5180,12 @@ bool CWallet::Verify(std::string wallet_file, bool salvage_wallet, std::string& 
     return WalletBatch::VerifyDatabaseFile(wallet_path, warning_string, error_string);
 }
 
-std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, const fs::path& path, uint64_t wallet_creation_flags, uint512* pseed)
+std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, const fs::path& path, uint64_t wallet_creation_flags, uint512* pseed, bool fRestoredSeed)
 {
     const std::string& walletFile = name;
+    // A seed the user typed back in may have handed out addresses and received
+    // coins in a previous life, so it needs key re-derivation and a full rescan
+    const bool fSeedRestore = fRestoredSeed && pseed != nullptr;
 
     // needed to restore wallet transaction meta data after -zapwallettxes
     std::vector<CWalletTx> vWtx;
@@ -5430,7 +5433,10 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
     LOCK(cs_main);
 
     CBlockIndex *pindexRescan = chainActive.Genesis();
-    if (!gArgs.GetBoolArg("-rescan", false))
+    // A restored seed always rescans from genesis: the best-block marker was
+    // stamped at the current tip when the fresh wallet file was created above,
+    // so trusting it would skip the seed's entire history
+    if (!gArgs.GetBoolArg("-rescan", false) && !fSeedRestore)
     {
         WalletBatch batch(*walletInstance->database);
         CBlockLocator locator;
@@ -5465,6 +5471,16 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
 
     walletInstance->SetAnonWallet(pAnonWallet);
 
+    if (fSeedRestore) {
+        // Each stealth address needs its keys derived before the rescan below can
+        // recognize deposits to it, and the wallet has no record of how many
+        // addresses the previous copy of this seed handed out. Derive a buffer up
+        // front, mirroring what the restoreaddresses RPC does manually.
+        uiInterface.InitMessage(_("Restoring stealth addresses..."));
+        if (!pAnonWallet->RestoreAddresses(DEFAULT_RESTORED_STEALTH_ADDRESSES))
+            InitWarning(_("Failed to restore stealth addresses. Run restoreaddresses then rescanringctwallet from the console."));
+    }
+
     if (chainActive.Tip() && chainActive.Tip() != pindexRescan)
     {
         //We can't rescan beyond non-pruned blocks, stop and throw an error
@@ -5486,8 +5502,10 @@ std::shared_ptr<CWallet> CWallet::CreateWalletFromFile(const std::string& name, 
         walletInstance->WalletLogPrintf("Rescanning last %i blocks (from block %i)...\n", chainActive.Height() - pindexRescan->nHeight, pindexRescan->nHeight);
 
         // No need to read and scan block if block was created before
-        // our wallet birthday (as adjusted for block time variability)
-        while (pindexRescan && walletInstance->nTimeFirstKey && (pindexRescan->GetBlockTime() < (walletInstance->nTimeFirstKey - TIMESTAMP_WINDOW))) {
+        // our wallet birthday (as adjusted for block time variability).
+        // Not valid for a restored seed: its keys were all derived just now, so
+        // the birthday would fast-forward past the history we are looking for
+        while (!fSeedRestore && pindexRescan && walletInstance->nTimeFirstKey && (pindexRescan->GetBlockTime() < (walletInstance->nTimeFirstKey - TIMESTAMP_WINDOW))) {
             pindexRescan = chainActive.Next(pindexRescan);
         }
 
