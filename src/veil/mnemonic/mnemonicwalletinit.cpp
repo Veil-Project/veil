@@ -30,6 +30,7 @@ bool MnemonicWalletInit::Open() const
 
     for (const std::string& walletFile : gArgs.GetArgs("-wallet")) {
         bool fNewSeed = false;
+        bool fRestoredSeed = false;
         uint512 hashMasterKey;
         fs::path walletPath = fs::absolute(walletFile, GetWalletDir());
         if ((walletFile == "" && !fs::exists(walletPath / "wallet.dat")) || !fs::exists(walletPath)) {
@@ -40,8 +41,10 @@ bool MnemonicWalletInit::Open() const
                 initOption = MnemonicWalletInitFlags::NEW_MNEMONIC;
 
             std::string strSeedPhraseArg = gArgs.GetArg("-importseed", "");
-            if (!strSeedPhraseArg.empty())
+            if (!strSeedPhraseArg.empty()) {
                 initOption = MnemonicWalletInitFlags::IMPORT_MNEMONIC;
+                fRestoredSeed = true;
+            }
 
             /**If no startup args, then launch prompt **/
             std::string strMessage = "english";
@@ -49,6 +52,9 @@ bool MnemonicWalletInit::Open() const
                 // Language only routes to GUI. It returns with the filled out mnemonic in strMessage
                 if (!GetWalletMnemonicLanguage(strMessage, initOption))
                     return false;
+                // The GUI reports IMPORT_MNEMONIC only when the user typed in an
+                // existing phrase, meaning the seed may have on-chain history
+                fRestoredSeed = (initOption == MnemonicWalletInitFlags::IMPORT_MNEMONIC);
                 // The mnemonic phrase now needs to be converted to the final wallet seed (note: different than the phrase seed)
                 strSeedPhraseArg = strMessage;
                 //LogPrintf("%s: mnemonic phrase: %s\n", __func__, strSeedPhraseArg);
@@ -79,7 +85,7 @@ bool MnemonicWalletInit::Open() const
             memory_cleanse(&strMessage[0], strMessage.size());
         }
 
-        std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(walletFile, walletPath, 0, fNewSeed ? &hashMasterKey : nullptr);
+        std::shared_ptr<CWallet> pwallet = CWallet::CreateWalletFromFile(walletFile, walletPath, 0, fNewSeed ? &hashMasterKey : nullptr, fNewSeed && fRestoredSeed);        
         // The wallet has taken the seed; wipe our copy so the root seed does not linger in memory.
         memory_cleanse(hashMasterKey.begin(), hashMasterKey.size());
         if (!pwallet) {

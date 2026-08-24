@@ -32,6 +32,10 @@ class CWatchOnlyTx;
 
 const uint16_t OR_PLACEHOLDER_N = 0xFFFF; // index of a fake output to contain reconstructed amounts for txns with undecodeable outputs
 
+//! How many stealth addresses to derive up front when a wallet is restored from
+//! seed, so deposits to addresses handed out by a previous copy are recognized
+const int DEFAULT_RESTORED_STEALTH_ADDRESSES = 100;
+
 class COutputR
 {
 public:

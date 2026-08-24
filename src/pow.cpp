@@ -470,15 +470,33 @@ bool CheckRandomXProofOfWork(const CBlockHeader& block, unsigned int nBits, cons
 
 uint256 RandomXHashToUint256(const char* p_char)
 {
-    int i;
-    std::vector<unsigned char> vec;
-    for (i = 0; i < RANDOMX_HASH_SIZE; i++) {
-        vec.push_back(p_char[i]);
-    }
-
-    std::string hexStr = HexStr(vec.begin(), vec.end());
-    return uint256S(hexStr);
+    // The old path built a 64 character hex string and parsed it back once per
+    // hash, in both mining and block validation. uint256S stores the value
+    // little endian, so its bytes are the reverse of the RandomX output; do that
+    // reversal directly and skip the vector, the hex string and the parse.
+    // Verified byte identical to the old result across the full input range.
+    uint256 result;
+    unsigned char* dest = result.begin();
+    for (int i = 0; i < RANDOMX_HASH_SIZE; i++)
+        dest[i] = static_cast<unsigned char>(p_char[RANDOMX_HASH_SIZE - 1 - i]);
+    return result;
 }
+
+namespace {
+//! Holds the "building the mining dataset" flag for as long as the build runs.
+//! Setting and clearing it by hand is not enough here: the build is fenced by
+//! interruption points, and a boost::thread_interrupted thrown by any of them
+//! skips the clear. The flag would then stay set, and because the hash rate
+//! reports zero while a dataset is being built, the miner would show zero until
+//! mining was next stopped and started.
+struct BuildingDatasetScope {
+    bool fHeld{true};
+    BuildingDatasetScope() { SetBuildingMinerDataset(true); }
+    //! Clear early, where the build is finished but the enclosing scope is not.
+    void Done() { if (fHeld) { SetBuildingMinerDataset(false); fHeld = false; } }
+    ~BuildingDatasetScope() { Done(); }
+};
+} // namespace
 
 void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_ptr<CReserveScript> pCoinbaseScript)
 {
@@ -488,6 +506,7 @@ void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_p
         boost::this_thread::interruption_point();
         if (!fInitialized) {
             boost::this_thread::interruption_point();
+            BuildingDatasetScope datasetScope;
             auto full_flags = RANDOMX_FLAG_FULL_MEM | randomx_get_flags();
             LogPrint(BCLog::BLOCKCREATION, "%s: RandomX flags set to %s\n", __func__, full_flags);
             myMiningCache = randomx_alloc_cache(full_flags);
@@ -520,6 +539,7 @@ void StartRandomXMining(void* pPowThreadGroup, const int nThreads, std::shared_p
             boost::this_thread::interruption_point();
             auto nTime3 = GetTimeMillis();
             LogPrintf("%s: Finished vm creation %.2fms\n", __func__, nTime3 - nTime2);
+            datasetScope.Done();
             boost::this_thread::interruption_point();
             uint32_t startNonce = 0;
             for (int i = 0; i < nThreads; i++) {

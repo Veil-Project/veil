@@ -141,6 +141,7 @@ void TutorialWidget::on_next_triggered(){
                             mnemonic += " " + q_word.toStdString();
                     }
 
+                    fRestoreSeed = true;
                     shutdown = false;
                     accept();
                 } else {

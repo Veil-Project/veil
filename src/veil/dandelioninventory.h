@@ -13,14 +13,18 @@ namespace veil {
 
 struct Stem
 {
-    int64_t nTimeStemEnd;
-    int64_t nTimeLastRoll;
-    int64_t nNodeIDFrom;
-    int64_t nNodeIDSentTo;
+    int64_t nTimeStemEnd = 0;
+    int64_t nTimeLastRoll = 0;
+    int64_t nNodeIDFrom = 0;
+    int64_t nNodeIDSentTo = 0;
 };
 
 class DandelionInventory;
 extern DandelionInventory dandelion;
+
+// Choose a Dandelion next hop from the connected peer ids, excluding the origin the tx came from.
+// Returns false (skip this round) when no eligible peer exists; otherwise nNodeIDOut is the pick.
+bool SelectDandelionNextHop(const std::vector<int64_t>& vNodeIds, int64_t nNodeIDFrom, int64_t& nNodeIDOut);
 
 class DandelionInventory
 {

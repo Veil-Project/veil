@@ -51,7 +51,7 @@ bool LightWalletAddCTData(CMutableTransaction& txNew, std::vector<CTempRecipient
 
 bool LightWalletAddRealOutputs(CMutableTransaction& txNew, std::vector<CWatchOnlyTx>& vSelectedTxes, std::vector<std::vector<uint8_t>>& vInputBlinds, std::vector<size_t>& vSecretColumns, std::vector<std::vector<std::vector<int64_t>>>& vMI, std::string& errorMsg);
 
-void LightWalletFillInDummyOutputs(CMutableTransaction& txNew, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, std::vector<size_t>& vSecretColumns, std::vector<std::vector<std::vector<int64_t>>>& vMI);
+bool LightWalletFillInDummyOutputs(CMutableTransaction& txNew, const std::vector<CLightWalletAnonOutputData>& vDummyOutputs, std::vector<size_t>& vSecretColumns, std::vector<std::vector<std::vector<int64_t>>>& vMI, std::string& errorMsg);
 
 bool LightWalletUpdateChangeOutputCommitment(CMutableTransaction& txNew, std::vector<CTempRecipient>& vecSend, int& nChangePositionOut, std::vector<const uint8_t *>& vpOutCommits, std::vector<const uint8_t *>& vpOutBlinds, std::string& errorMsg);
 

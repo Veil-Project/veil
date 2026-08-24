@@ -57,9 +57,9 @@ margin:0px;</string>
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>70</y>
+        <y>60</y>
         <width>849</width>
-        <height>468</height>
+        <height>570</height>
        </rect>
       </property>
       <property name="styleSheet">
@@ -174,12 +174,6 @@ font-size:16px;</string>
                  <height>30</height>
                 </size>
                </property>
-               <property name="maximumSize">
-                <size>
-                 <width>16777215</width>
-                 <height>20</height>
-                </size>
-               </property>
                <property name="font">
                 <font>
                  <pointsize>16</pointsize>
@@ -206,21 +200,27 @@ color:#105AEF;</string>
               <widget class="QSpinBox" name="numThreads">
                <property name="minimumSize">
                 <size>
-                 <width>150</width>
-                 <height>50</height>
+                 <width>120</width>
+                 <height>42</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>140</width>
+                 <height>42</height>
                 </size>
                </property>
                <property name="font">
                 <font>
-                 <pointsize>14</pointsize>
+                 <pointsize>13</pointsize>
                 </font>
                </property>
                <property name="styleSheet">
-                <string notr="true">QSpinBox::up-button { width: 24px; height: 24px;}
-QSpinBox::down-button { width: 24px; height: 24px;}</string>
+                <string notr="true">QSpinBox::up-button { width: 26px; height: 18px; }
+QSpinBox::down-button { width: 26px; height: 18px; }</string>
                </property>
                <property name="alignment">
-                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                <set>Qt::AlignHCenter|Qt::AlignVCenter</set>
                </property>
                <property name="buttonSymbols">
                 <enum>QAbstractSpinBox::PlusMinus</enum>
@@ -478,6 +478,17 @@ font-size:16px;</string>
            </widget>
           </item>
           <item>
+           <widget class="QCheckBox" name="chkProgPowDag">
+            <property name="styleSheet">
+             <string notr="true">color:#707070;
+font-size:14px;</string>
+            </property>
+            <property name="text">
+             <string>Build the full ProgPow DAG (needs several GB of memory, hashes much faster)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QFrame" name="frame_3">
             <property name="frameShape">
              <enum>QFrame::StyledPanel</enum>
@@ -599,6 +610,110 @@ font-size:16px;</string>
              <bool>true</bool>
             </property>
            </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="frameStats">
+         <property name="frameShape">
+          <enum>QFrame::StyledPanel</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Raised</enum>
+         </property>
+         <layout class="QGridLayout" name="gridStats">
+          <item row="0" column="0">
+           <widget class="QLabel" name="lblDifficultyCaption">
+             <property name="styleSheet">
+              <string notr="true">color:#707070;
+font-size:14px;</string>
+             </property>
+             <property name="text">
+              <string>Network Difficulty</string>
+             </property>
+            </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="lblDifficulty">
+             <property name="styleSheet">
+              <string notr="true">color:#105AEF;
+font-size:14px;
+font-weight:bold;</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="lblNetworkHashCaption">
+             <property name="styleSheet">
+              <string notr="true">color:#707070;
+font-size:14px;</string>
+             </property>
+             <property name="text">
+              <string>Est. Network Hashrate</string>
+             </property>
+            </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QLabel" name="lblNetworkHash">
+             <property name="styleSheet">
+              <string notr="true">color:#105AEF;
+font-size:14px;
+font-weight:bold;</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="lblBlocksFoundCaption">
+             <property name="styleSheet">
+              <string notr="true">color:#707070;
+font-size:14px;</string>
+             </property>
+             <property name="text">
+              <string>Blocks Found (session)</string>
+             </property>
+            </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLabel" name="lblBlocksFound">
+             <property name="styleSheet">
+              <string notr="true">color:#105AEF;
+font-size:14px;
+font-weight:bold;</string>
+             </property>
+             <property name="text">
+              <string>0</string>
+             </property>
+            </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QLabel" name="lblTimeToBlockCaption">
+             <property name="styleSheet">
+              <string notr="true">color:#707070;
+font-size:14px;</string>
+             </property>
+             <property name="text">
+              <string>Est. Time to Block</string>
+             </property>
+            </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QLabel" name="lblTimeToBlock">
+             <property name="styleSheet">
+              <string notr="true">color:#105AEF;
+font-size:14px;
+font-weight:bold;</string>
+             </property>
+             <property name="text">
+              <string>...</string>
+             </property>
+            </widget>
           </item>
          </layout>
         </widget>

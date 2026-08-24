@@ -52,6 +52,13 @@ static std::string GetMiningType(int nPoWType, bool fProofOfStake = false, bool 
 double GetHashSpeed();
 void ClearHashSpeed();
 double GetRecentHashSpeed();
+uint64_t GetSessionBlocksFound();
+int64_t GetSessionLastBlockTime();
+void SetBuildingMinerDataset(bool fBuilding);
+bool IsBuildingMinerDataset();
+void SetProgPowFullDataset(bool fUse);
+bool GetProgPowFullDataset();
+void FreeProgPowMiningContext();
 int GetMiningAlgorithm();
 bool SetMiningAlgorithm(const std::string& algo, bool fSet = true);
 
@@ -191,6 +198,10 @@ private:
     uint64_t nBlockSigOpsCost;
     CAmount nFees;
     CTxMemPool::setEntries inBlock;
+    // Mempool entries that are already confirmed on chain. Including one costs us the
+    // whole block (ConnectBlock rejects it as bad-txns-BIP30), so they are skipped
+    // during selection and swept out of the mempool once selection is finished.
+    std::vector<CTransactionRef> vAlreadyInChain;
 
     // Chain context for the block
     int nHeight;

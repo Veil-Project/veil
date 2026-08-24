@@ -21,6 +21,7 @@
 #include <script/standard.h>
 #include <key_io.h>
 #include <veil/ringct/blind.h>
+#include <veil/ringct/anon.h>
 #include <validation.h>
 #include <tinyformat.h>
 #include <libzerocoin/CoinSpend.h>
@@ -469,9 +470,17 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, CValidationState& state, c
 
         uint32_t nInputs, nRingSize;
         tx.vin[i].GetAnonInfo(nInputs, nRingSize);
-        const std::vector<uint8_t> &vKeyImages = tx.vin[i].scriptData.stack[0];
 
         if (tx.vin[i].IsAnonInput()) {
+            // Validate the anon input structure before indexing scriptData.stack. nInputs is
+            // attacker-controlled (from prevout.hash) and stack can deserialize empty; without
+            // this guard vKeyImages[k*33] reads out of bounds and crashes the node during
+            // block validation (ConnectBlock runs this before VerifyMLSAG bounds nInputs).
+            if (tx.vin[i].scriptData.stack.size() != 1 || nInputs < 1 || nInputs > MAX_ANON_INPUTS
+                    || tx.vin[i].scriptData.stack[0].size() != nInputs * 33)
+                return state.DoS(100, false, REJECT_INVALID, "bad-anonin-scriptdata");
+
+            const std::vector<uint8_t> &vKeyImages = tx.vin[i].scriptData.stack[0];
             for (size_t k = 0; k < nInputs; ++k) {
                 const CCmpPubKey &ki = *((CCmpPubKey*)&vKeyImages[k*33]);
 

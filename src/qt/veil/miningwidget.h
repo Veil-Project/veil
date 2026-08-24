@@ -37,6 +37,8 @@ private:
     int maxThreads;
     int nThreads;
     int currentMiningAlgo;
+    int64_t nLastStatsUpdate = 0;
+    uint64_t nSessionBlocksBaseline = 0;
 
     // Recommended number of threads
     const int RECMAX = GetNumCores() - 1;
@@ -49,10 +51,16 @@ private:
 
     void setMineActiveTxt(bool mineActive);
     void setThreadSelectionValues(int algo);
+    void updateMiningStats();
+
+    static QString formatHashRate(double dRate);
+    static QString formatDifficulty(double dDiff);
+    static QString formatTimeSpan(double dSeconds);
 
 private Q_SLOTS:
     void onUpdateAlgorithm();
     void onToggleMiningActive();
+    void onToggleProgPowDag(bool fChecked);
     void onUseMaxThreads();
     void onChangeNumberOfThreads(int newNumThr);
 };

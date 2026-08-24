@@ -734,7 +734,7 @@ static std::string SendHelp(std::shared_ptr<CWallet> pwallet, OutputTypes typeIn
                                                                                                                                "                            The narration is stored in the blockchain and is sent encrypted when destination is a stealth address and uncrypted otherwise.\n";
     if (typeIn == OUTPUT_RINGCT)
         rv +=
-                "7. ringsize        (int, optional, default=4).\n"
+                "7. ringsize        (int, optional, default=11).\n"
                 "8. inputs_per_sig  (int, optional, default=32).\n"
                 "9. inputs_per_tx   (int, optional, default=0, max=32). Allows sending in multiple transactions if necessary.\n"
                 "                            If 0, will attempt to accomplish in one transaction.\n"
@@ -858,7 +858,7 @@ UniValue sendtypeto(const JSONRPCRequest &request)
                 "5. \"comment_to\"      (string, optional) A comment to store the name of the person or organization \n"
                 "                            to which you're sending the transaction. This is not part of the \n"
                 "                            transaction, just kept in your wallet.\n"
-                "6. ringsize         (int, optional, default=4) Only applies when typein is ringct.\n"
+                "6. ringsize         (int, optional, default=11) Only applies when typein is ringct.\n"
                 "7. inputs_per_sig   (int, optional, default=32) Only applies when typein is ringct.\n"
                 "8. test_fee         (bool, optional, default=false) Only return the fee it would cost to send, txn is discarded.\n"
                 "9. coin_control     (json, optional) Coincontrol object.\n"
@@ -2356,16 +2356,38 @@ static UniValue removewatchonlyaddress(const JSONRPCRequest &request)
         std::string sScanSecret = request.params[0].get_str();
         std::string sSpendPublic = request.params[1].get_str();
 
-        std::vector<uint8_t> vData = ParseHex(sScanSecret);
-        if (vData.size() != 32) {
-            throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid scan secret - must be 32 bytes hex");
+        // Accept the same forms importlightwalletaddress does, otherwise an address
+        // imported with the WIF that viewscankeys hands out cannot be removed with it.
+        std::vector<uint8_t> vData;
+        CBitcoinSecret wifScanSecret;
+        if (IsHex(sScanSecret)) {
+            vData = ParseHex(sScanSecret);
+        } else
+        if (wifScanSecret.SetString(sScanSecret)) {
+            scan_secret = wifScanSecret.GetKey();
+        } else {
+            if (!DecodeBase58(sScanSecret, vData, MAX_STEALTH_RAW_SIZE)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode scan secret as WIF, hex or base58.");
+            }
         }
-        scan_secret.Set(vData.begin(), vData.end(), true);
+        if (vData.size() > 0) {
+            if (vData.size() != 32) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Scan secret is not 32 bytes.");
+            }
+            scan_secret.Set(vData.begin(), vData.end(), true);
+        }
         if (!scan_secret.IsValid()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid scan secret");
         }
 
-        std::vector<uint8_t> vPubKey = ParseHex(sSpendPublic);
+        std::vector<uint8_t> vPubKey;
+        if (IsHex(sSpendPublic)) {
+            vPubKey = ParseHex(sSpendPublic);
+        } else {
+            if (!DecodeBase58(sSpendPublic, vPubKey, MAX_STEALTH_RAW_SIZE)) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Could not decode spend public as hex or base58.");
+            }
+        }
         spend_public.Set(vPubKey.begin(), vPubKey.end());
         if (!spend_public.IsValid()) {
             throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid spend public key");

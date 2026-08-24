@@ -46,6 +46,7 @@ BITCOIN_TESTS =\
   test/compress_tests.cpp \
   test/crypto_tests.cpp \
   test/cuckoocache_tests.cpp \
+  test/dandelion_tests.cpp \
   test/denialofservice_tests.cpp \
   test/descriptor_tests.cpp \
   test/getarg_tests.cpp \
@@ -69,11 +70,13 @@ BITCOIN_TESTS =\
   test/pow_tests.cpp \
   test/prevector_tests.cpp \
   test/progpow_tests.cpp \
+  test/progpow_epoch_tests.cpp \
   test/proofofstaketests.cpp \
   test/raii_event_tests.cpp \
   test/random_tests.cpp \
   test/randomx_tests.cpp \
   test/reverselock_tests.cpp \
+  test/ringct_anon_tests.cpp \
   test/rpc_tests.cpp \
   test/sanity_tests.cpp \
   test/scheduler_tests.cpp \

@@ -18,6 +18,7 @@
 #include <qt/guiutil.h>
 #include <qt/intro.h>
 #include <qt/networkstyle.h>
+#include <qt/snapshotdialog.h>
 #include <qt/optionsmodel.h>
 #include <qt/platformstyle.h>
 #include <qt/utilitydialog.h>
@@ -802,6 +803,12 @@ int main(int argc, char *argv[])
 
     // Subscribe to global signals from core
     std::unique_ptr<interfaces::Handler> handler = node->handleInitMessage(InitMessage);
+
+    // Offer a verified blockchain snapshot while nothing has the datadir
+    // open yet: brand new installs and long-offline wallets get a download
+    // instead of days of syncing. Declining, failing or being offline all
+    // just fall through to a normal sync.
+    SnapshotDialog::MaybeOffer();
 
     if (gArgs.GetBoolArg("-splash", DEFAULT_SPLASHSCREEN) && !gArgs.GetBoolArg("-min", false))
         app.createSplashScreen(networkStyle.data());

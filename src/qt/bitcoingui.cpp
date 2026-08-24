@@ -1134,7 +1134,11 @@ void BitcoinGUI::initWalletMenu(std::string& mnemonic, unsigned int& flag, bool&
 
             ret = !tutorial->ShutdownRequested();
             mnemonic = tutorial->GetMnemonic();
-            flag = MnemonicWalletInitFlags::IMPORT_MNEMONIC;
+            // IMPORT_MNEMONIC means the words came from the user (a restore), so the
+            // wallet must re-derive used addresses and rescan for their history.
+            // A freshly generated seed has no history to find.
+            flag = tutorial->IsRestoreSeed() ? MnemonicWalletInitFlags::IMPORT_MNEMONIC
+                                             : MnemonicWalletInitFlags::NEW_MNEMONIC;
             delete tutorial;
 
             break;

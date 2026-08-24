@@ -4785,15 +4785,51 @@ QWidget#MiningWidget QLabel#title {
 QWidget#MiningWidget QSpinBox#numThreads {
     color: #f7fbfe;
     background-color: #0d124d;
-    border: 1px solid #bababa;
-    border-radius: 4px;
-    padding: 4px;
+    border: 1px solid #3890c8;
+    border-radius: 6px;
+    padding: 2px 6px;
 }
 
 QWidget#MiningWidget QComboBox#cmbAlgoSelect {
-    color: #bababa;
-    background-color: transparent;
+    color: #f7fbfe;
+    background-color: #0d124d;
+    border: 1px solid #3890c8;
+    border-radius: 6px;
+    padding: 4px 10px;
+    min-width: 130px;
 }
+QWidget#MiningWidget QComboBox#cmbAlgoSelect::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: center right;
+    border: none;
+    width: 24px;
+}
+QWidget#MiningWidget QComboBox#cmbAlgoSelect::down-arrow {
+    image: url(":/icons/ic-arrow-down");
+    width: 12px;
+    height: 12px;
+    margin-right: 8px;
+}
+QWidget#MiningWidget QComboBox#cmbAlgoSelect QAbstractItemView {
+    background-color: #0d124d;
+    color: #f7fbfe;
+    selection-background-color: #3890c8;
+    border: 1px solid #3890c8;
+}
+
+/* new-in-redesign labels: the DAG checkbox, current-algo line and the
+   session/network stat rows, so they match the page instead of the dim
+   inline greys they carry for the light theme */
+QWidget#MiningWidget QCheckBox#chkProgPowDag { color: #bababa; }
+QWidget#MiningWidget QLabel#lblCurrentAlgo,
+QWidget#MiningWidget QLabel#lblDifficultyCaption,
+QWidget#MiningWidget QLabel#lblNetworkHashCaption,
+QWidget#MiningWidget QLabel#lblBlocksFoundCaption,
+QWidget#MiningWidget QLabel#lblTimeToBlockCaption { color: #9fb4c9; }
+QWidget#MiningWidget QLabel#lblDifficulty,
+QWidget#MiningWidget QLabel#lblNetworkHash,
+QWidget#MiningWidget QLabel#lblBlocksFound,
+QWidget#MiningWidget QLabel#lblTimeToBlock { color: #3890c8; font-weight: bold; }
 
 QWidget#MiningWidget QPushButton#btnAllThreads,
 QWidget#MiningWidget QPushButton#btnUpdateAlgo,
