@@ -43,6 +43,7 @@
 
 std::map<std::string, CBlock> mapProgPowTemplates;
 std::map<std::string, CBlock> mapRandomXTemplates;
+std::map<std::string, CBlock> mapSha256dTemplates;
 
 unsigned int ParseConfirmTarget(const UniValue& value)
 {
@@ -625,6 +626,8 @@ static UniValue getblocktemplate_impl(const std::string &strMode, const UniValue
             mapProgPowTemplates.clear();
         if constexpr (nPoWType == CBlockHeader::RANDOMX_BLOCK)
             mapRandomXTemplates.clear();
+        if constexpr (nPoWType == CBlockHeader::SHA256D_BLOCK)
+            mapSha256dTemplates.clear();
 
         // Store the pindexBest used before CreateNewBlock, to avoid races
         nTransactionsUpdatedLast = mempool.GetTransactionsUpdated();
@@ -794,7 +797,10 @@ static UniValue getblocktemplate_impl(const std::string &strMode, const UniValue
     result.pushKV("target", hashTarget.GetHex());
     result.pushKV("mintime", (int64_t)pindexPrev->GetMedianTimePast()+1);
     result.pushKV("mutable", aMutable);
-    result.pushKV("noncerange", "00000000ffffffff");
+    if constexpr (nPoWType == CBlockHeader::SHA256D_BLOCK)
+        result.pushKV("noncerange", "0000000000000000ffffffffffffffff");
+    else
+        result.pushKV("noncerange", "00000000ffffffff");
     int64_t nSigOpLimit = MAX_BLOCK_SIGOPS_COST;
     int64_t nSizeLimit = MAX_BLOCK_SERIALIZED_SIZE;
     if (fPreSegWit) {
@@ -855,6 +861,26 @@ static UniValue getblocktemplate_impl(const std::string &strMode, const UniValue
             std::string blockHeaderHex = HexStr(ssBlockHeader);
             result.pushKV("rxrpcheader", blockHeaderHex);
             mapRandomXTemplates[blockHeaderHex] = *pblock;
+            lastheader = blockHeaderHex;
+        }
+    }
+    if constexpr (nPoWType == CBlockHeader::SHA256D_BLOCK) {      // if (pblock->IsSha256D()) {
+        std::string address = gArgs.GetArg("-miningaddress", "");
+        if (IsValidDestinationString(address)) {
+            static std::string lastheader = "";
+            if (mapSha256dTemplates.count(lastheader)) {
+                if (pblock->nTime - 60 < mapSha256dTemplates.at(lastheader).nTime) {
+                    result.pushKV("sharpcheader", lastheader);
+                    return result;
+                }
+            }
+
+            pblock->nNonce64 = 0;
+            CDataStream ssBlockHeader(SER_NETWORK, PROTOCOL_VERSION | RPCSerializationFlags());
+            ssBlockHeader << CSha256dInput(*pblock, pblock->GetSha256dMidstate());
+            std::string blockHeaderHex = HexStr(ssBlockHeader);
+            result.pushKV("sharpcheader", blockHeaderHex);
+            mapSha256dTemplates[blockHeaderHex] = *pblock;
             lastheader = blockHeaderHex;
         }
     }
@@ -927,7 +953,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             "     \"value\"                          (string) A way the block template may be changed, e.g. 'time', 'transactions', 'prevblock'\n"
             "     ,...\n"
             "  ],\n"
-            "  \"noncerange\" : \"00000000ffffffff\",(string) A range of valid nonces\n"
+            "  \"noncerange\" : \"00000000ffffffff\",(string) A range of valid nonces (sha256d templates return the 64 bit range 0000000000000000ffffffffffffffff)\n"
             "  \"sigoplimit\" : n,                 (numeric) limit of sigops in blocks\n"
             "  \"sizelimit\" : n,                  (numeric) limit of block size\n"
             "  \"weightlimit\" : n,                (numeric) limit of block weight\n"
@@ -938,6 +964,7 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
             "  \"pprpcepoch\" : n                  (numeric) The epoch of the progpow pprpcheader given to user to be used by the local GPU miner\n"
             "  \"rxrpcheader\" : \"xxxx\"            (string) The header that can be used by the local CPU miner to mine a randomx block (using -miningaddress) as the destination for the coinbase tx\n"
             "  \"rxrpcseed\" : \"xxxx\"              (string) The seed hash of the randomx rxrpcheader given to user to be used by the local CPU miner\n"
+            "  \"sharpcheader\" : \"xxxx\"           (string) The 80 byte header that can be used by a sha256d miner to mine a sha256d block (using -miningaddress) as the destination for the coinbase tx. The last 8 bytes are the little endian 64 bit nonce to grind; submit with sharpcsb\n"
             "}\n"
 
             "\nExamples:\n"
@@ -1040,8 +1067,10 @@ static UniValue getblocktemplate(const JSONRPCRequest& request)
       return getblocktemplate_impl<CBlockHeader::PROGPOW_BLOCK>(strMode, lpval, setClientRules, nMaxVersionPreVB);
     case MINE_SHA256D:
       return getblocktemplate_impl<CBlockHeader::SHA256D_BLOCK>(strMode, lpval, setClientRules, nMaxVersionPreVB);
-    default:
+    case MINE_RANDOMX:
       return getblocktemplate_impl<CBlockHeader::RANDOMX_BLOCK>(strMode, lpval, setClientRules, nMaxVersionPreVB);
+    default:
+      throw JSONRPCError(RPC_INVALID_PARAMETER, "Unknown mining algorithm");
     }
 }
 
@@ -1199,6 +1228,93 @@ static UniValue rxrpcsb(const JSONRPCRequest& request) {
     }
 
     if (!CheckRandomXProofOfWork(blockptr->GetBlockHeader(), blockptr->nBits, Params().GetConsensus())) {
+        throw JSONRPCError(RPC_INVALID_REQUEST, "Block does not solve the boundary");
+    }
+
+    uint256 hash = blockptr->GetHash();
+    const CBlockIndex* pindex = LookupBlockIndex(hash);
+    if (pindex) {
+        if (pindex->IsValid(BLOCK_VALID_SCRIPTS)) {
+            return "duplicate";
+        }
+        if (pindex->nStatus & BLOCK_FAILED_MASK) {
+            return "duplicate-invalid";
+        }
+    }
+
+    pindex = LookupBlockIndex(blockptr->hashPrevBlock);
+    if (pindex) {
+        UpdateUncommittedBlockStructures(*blockptr, pindex, Params().GetConsensus());
+    }
+
+    bool new_block;
+    submitblock_StateCatcher sc(blockptr->GetHash());
+    RegisterValidationInterface(&sc);
+    bool accepted = ProcessNewBlock(Params(), blockptr, /* fForceProcessing */ true, /* fNewBlock */ &new_block);
+    UnregisterValidationInterface(&sc);
+    if (!new_block) {
+        if (!accepted) {
+            // TODO Maybe pass down fNewBlock to AcceptBlockHeader, so it is properly set to true in this case?
+            return "invalid";
+        }
+        return "duplicate";
+    }
+    if (!sc.found) {
+        return "inconclusive";
+    }
+    UniValue ret = BIP22ValidationResult(sc.state);
+
+    // BIP22ValidationResult set the return to null when the state is valid
+    if (ret.isNull()) {
+        return true;
+    } else {
+        return ret;
+    }
+}
+
+static UniValue sharpcsb(const JSONRPCRequest& request) {
+    if (request.fHelp || request.params.size() != 3) {
+        throw std::runtime_error(
+                "sharpcsb \"header\" \"sha_hash\" \"nonce\"\n"
+                "\nAttempts to submit new block to network mined by sha256d miner via rpc.\n"
+
+                "\nArguments\n"
+                "1. \"header\"             (string, required) the sha256d header that was given to the miner from this rpc client\n"
+                "2. \"sha_hash\"           (string, required) the sha256d hash that was mined by the miner via rpc\n"
+                "3. \"nonce\"              (string, required) the 64 bit hex nonce of the block that hashed the valid block\n"
+                "\nResult:\n"
+                "\nExamples:\n"
+                + HelpExampleCli("sharpcsb", "\"header\" \"sha_hash\" 100000")
+                + HelpExampleRpc("sharpcsb", "\"header\" \"sha_hash\" 100000")
+        );
+    }
+
+    std::string header = request.params[0].get_str();
+    std::string str_sha_hash = request.params[1].get_str();
+    std::string str_nonce = request.params[2].get_str();
+
+    uint256 sha_hash = uint256S(str_sha_hash);
+    (void) sha_hash;    // Currently unused here but the parameter is left there
+                        // to keep the rpc method signature the same as pprpcsb
+
+    uint64_t nonce;
+    if (!ParseUInt64(str_nonce, &nonce, 16))
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Invalid hex nonce");
+
+    if (!mapSha256dTemplates.count(header))
+        throw JSONRPCError(RPC_INVALID_PARAMS, "Block header not found in block data");
+
+    std::shared_ptr<CBlock> blockptr = std::make_shared<CBlock>();
+    *blockptr = mapSha256dTemplates.at(header);
+
+    blockptr->nNonce64 = nonce;
+
+    if (blockptr->vtx.empty() || !blockptr->vtx[0]->IsCoinBase()) {
+        throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "Block does not start with a coinbase");
+    }
+
+    if (!CheckProofOfWork(blockptr->GetSha256DPoWHash(), blockptr->nBits, Params().GetConsensus(),
+        CBlockHeader::SHA256D_BLOCK)) {
         throw JSONRPCError(RPC_INVALID_REQUEST, "Block does not solve the boundary");
     }
 
@@ -1484,6 +1600,7 @@ static const CRPCCommand commands[] =
     { "mining",             "prioritisetransaction",  &prioritisetransaction,  {"txid","dummy","fee_delta"} },
     { "mining",             "pprpcsb",                &pprpcsb,                {"header_hash", "mix_hash", "nonce"} },
     { "mining",             "rxrpcsb",                &rxrpcsb,                {"header", "rx_hash", "nonce"} },
+    { "mining",             "sharpcsb",               &sharpcsb,               {"header", "sha_hash", "nonce"} },
     { "mining",             "setminingalgo",          &setminingalgo,          {"algo"} },
     { "mining",             "submitblock",            &submitblock,            {"hexdata","dummy"} },
 
