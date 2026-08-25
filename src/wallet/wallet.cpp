@@ -6367,7 +6367,9 @@ bool CWallet::CommitZerocoinSpend(CZerocoinSpendReceipt& receipt, std::vector<Co
 
 bool IsMintInChain(const uint256& hashPubcoin, uint256& txid, int& nHeight)
 {
-    return IsPubcoinInBlockchain(hashPubcoin, nHeight, txid, chainActive.Tip());
+    // No reference index: a reference excludes its own block, and this asks about the
+    // whole active chain, tip included.
+    return IsPubcoinInBlockchain(hashPubcoin, nHeight, txid, nullptr);
 }
 
 void CWallet::ReconsiderZerocoins(std::list<CZerocoinMint>& listMintsRestored, std::list<CDeterministicMint>& listDMintsRestored)
