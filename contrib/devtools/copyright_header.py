@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 # Copyright (c) 2016-2019 The Bitcoin Core developers
-# Copyright (c) 2019-2022 The Veil developers
+# Copyright (c) 2019-2026 The Veil developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+# While this updated a lot of files' copyright dates, be careful.
+# In a spot check with sorted git blame output I had to set the years backward on several files.
+# As an alternative I am adding a git blame sorting script to these devtools.
+# If this is used in the future, especially when rebasing to later Bitcoin code it may be necessary to identify newer Bitcoin Core developers for the expected developers list. Indeed, that list may be supposed to be replaced with Veil developers, and it may not filter out new external commits, therebby causing the Veil developers' copyright date to be incorrectly incremented.
 
 import re
 import fnmatch
@@ -68,11 +73,11 @@ def get_filenames_to_examine():
 ################################################################################
 
 
-COPYRIGHT_WITH_C = 'Copyright \(c\)'
+COPYRIGHT_WITH_C = 'Copyright \\(c\)'
 COPYRIGHT_WITHOUT_C = 'Copyright'
 ANY_COPYRIGHT_STYLE = '(%s|%s)' % (COPYRIGHT_WITH_C, COPYRIGHT_WITHOUT_C)
 
-YEAR = "20[0-9][0-9]"
+YEAR = "2[0-2][0-9][0-9]"
 YEAR_RANGE = '(%s)(-%s)?' % (YEAR, YEAR)
 YEAR_LIST = '(%s)(, %s)+' % (YEAR, YEAR)
 ANY_YEAR_STYLE = '(%s|%s)' % (YEAR_RANGE, YEAR_LIST)
@@ -91,20 +96,20 @@ EXPECTED_HOLDER_NAMES = [
     "Bitcoin Core Developers\n",
     "the Bitcoin Core developers\n",
     "The Bitcoin developers\n",
-    "The LevelDB Authors\. All rights reserved\.\n",
-    "BitPay Inc\.\n",
-    "BitPay, Inc\.\n",
-    "University of Illinois at Urbana-Champaign\.\n",
+    "The LevelDB Authors\. All rights reserved\\.\n",
+    "BitPay Inc\\.\n",
+    "BitPay, Inc\\.\n",
+    "University of Illinois at Urbana-Champaign\\.\n",
     "MarcoFalke\n",
     "Pieter Wuille\n",
-    "Pieter Wuille +\*\n",
-    "Pieter Wuille, Gregory Maxwell +\*\n",
-    "Pieter Wuille, Andrew Poelstra +\*\n",
-    "Andrew Poelstra +\*\n",
+    "Pieter Wuille +\\*\n",
+    "Pieter Wuille, Gregory Maxwell +\\*\n",
+    "Pieter Wuille, Andrew Poelstra +\\*\n",
+    "Andrew Poelstra +\\*\n",
     "Wladimir J. van der Laan\n",
     "Jeff Garzik\n",
-    "Diederik Huys, Pieter Wuille +\*\n",
-    "Thomas Daede, Cory Fields +\*\n",
+    "Diederik Huys, Pieter Wuille +\\*\n",
+    "Thomas Daede, Cory Fields +\\*\n",
     "Jan-Klaas Kollhof\n",
     "Sam Rushing\n",
     "ArtForz -- public domain half-a-node\n",
@@ -342,7 +347,7 @@ def write_file_lines(filename, file_lines):
 ################################################################################
 
 COPYRIGHT = 'Copyright \(c\)'
-YEAR = "20[0-9][0-9]"
+YEAR = "2[0-2][0-9][0-9]" # Change Y2100 bug to a Y2300 bug
 YEAR_RANGE = '(%s)(-%s)?' % (YEAR, YEAR)
 HOLDER = 'The Veil developers'
 UPDATEABLE_LINE_COMPILED = re.compile(' '.join([COPYRIGHT, YEAR_RANGE, HOLDER]))
@@ -471,7 +476,7 @@ def get_cpp_header_lines_to_insert(start_year, end_year):
     return reversed(get_header_lines(CPP_HEADER, start_year, end_year))
 
 PYTHON_HEADER = '''
-# Copyright (c) %s The Veil Core developers
+# Copyright (c) %s The Veil developers
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 '''
