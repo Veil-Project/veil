@@ -888,7 +888,10 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
 
             int nHeightTx;
             uint256 txid;
-            if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, chainActive.Tip())) {
+            // No reference index here: a reference excludes its own block, so passing the
+            // tip made a pubcoin accumulated in the tip block invisible and let a
+            // duplicate mint into the mempool, where it poisoned every block template.
+            if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, nullptr)) {
                 LogPrint(BCLog::NET, "%s: pubcoin already in blockchain. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
                 return false;
             }
@@ -903,7 +906,8 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
                 libzerocoin::PublicCoin pubcoin(Params().Zerocoin_Params());
                 if (!OutputToPublicCoin(pout.get(), pubcoin))
                     return state.Invalid(false, REJECT_INVALID, "zcmint-malformed");
-                if (!ContextualCheckZerocoinMint(tx, pubcoin, chainActive.Tip()))
+                // Same as above: no reference index, the whole active chain counts here.
+                if (!ContextualCheckZerocoinMint(tx, pubcoin, nullptr))
                     return state.Invalid(false, REJECT_INVALID, "zcmint-fail-context-check");
             }
         }
@@ -1346,6 +1350,14 @@ bool IsTransactionInChain(const uint256& txId, int& nHeightTx, CTransactionRef& 
     hashBlock.SetNull();
     if (!GetTransaction(txId, txRef, params, hashBlock, true, nullptr, log))
         return false;
+
+    // GetTransaction prefers the mempool and leaves hashBlock null on a hit there, but a
+    // transaction can be in the mempool and confirmed at the same time (accepted in the
+    // same moment its block connected, the state #1078 guards against). Being in the
+    // mempool says nothing about the chain, so ask the txindex before concluding the
+    // transaction is unconfirmed.
+    if (hashBlock.IsNull() && g_txindex)
+        g_txindex->FindTx(txId, hashBlock, txRef, log);
 
     return IsBlockHashInChain(hashBlock, nHeightTx, pindex);
 }

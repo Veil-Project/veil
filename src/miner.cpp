@@ -342,7 +342,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                 break;
             } else {
                 uint256 txid;
-                if (IsSerialInBlockchain(hashSerial, nHeight, txid)) {
+                // Out param must not be the nHeight member: a hit would overwrite the
+                // height of the block being assembled with the confirmed spend's height.
+                int nHeightTx = 0;
+                if (IsSerialInBlockchain(hashSerial, nHeightTx, txid)) {
                     setDuplicate.emplace(ptx->GetHash());
                     LogPrint(BCLog::BLOCKCREATION, "%s: removing serial that is already in chain, tx=%s\n", __func__, ptx->GetHash().GetHex());
                     fRemove = true;
@@ -364,7 +367,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             } else {
                 uint256 txid;
                 int nHeightTx = 0;
-                if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, chainActive.Tip())) {
+                // No reference index here: a reference excludes its own block, so passing
+                // the tip made a pubcoin accumulated in the tip block invisible. The
+                // template then carried the duplicate mint, TestBlockValidity failed on
+                // it, and a staker that was the only block producer could never advance
+                // the tip to clear it, bricking block production entirely.
+                if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, nullptr)) {
                     setDuplicate.emplace(ptx->GetHash());
                     LogPrint(BCLog::BLOCKCREATION, "%s: removing already in chain pubcoin : tx %s\n", __func__, ptx->GetHash().GetHex());
                     fRemove = true;

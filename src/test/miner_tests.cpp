@@ -18,6 +18,13 @@
 #include <util/system.h>
 #include <util/strencodings.h>
 #include <pow.h>
+#include <index/txindex.h>
+#include <libzerocoin/Coin.h>
+#include <primitives/zerocoin.h>
+#include <txdb.h>
+#include <util/memory.h>
+#include <util/time.h>
+#include <veil/zerocoin/zchain.h>
 
 #include <test/test_veil.h>
 
@@ -584,6 +591,150 @@ BOOST_AUTO_TEST_CASE(CreateNewBlock_skips_already_confirmed)
     for (const auto& btx : pblocktemplate->block.vtx)
         BOOST_CHECK(btx->GetHash() != txid);   // not selected into the block
     BOOST_CHECK(!mempool.exists(txid));         // and removed from the mempool
+}
+
+// The zerocoin sibling of the case above: the mempool transaction itself never
+// confirmed, but its pubcoin was already accumulated by a DIFFERENT transaction, the
+// state deterministic mints produce when two wallets derive from one seed. The dedup
+// pass in CreateNewBlock has always checked for this, but it asked "is the accumulating
+// tx in the chain" with the tip as the reference index, and a reference index excludes
+// its own block, so a pubcoin accumulated by the tip block was invisible. ConnectBlock
+// checks from the new block's index and does see it, so TestBlockValidity failed and no
+// block was produced. A staker that is the chain's only block producer can never
+// advance the tip past the accumulating block that way, and bricks permanently.
+BOOST_FIXTURE_TEST_CASE(CreateNewBlock_sweeps_mint_accumulated_in_tip, TestChain100Setup)
+{
+    const auto chainParams = CreateChainParams(CBaseChainParams::REGTEST);
+    const CChainParams& chainparams = *chainParams;
+    CScript scriptPubKey = CScript() << OP_TRUE;
+    TestMemPoolEntryHelper entry;
+
+    // TestingSetup does not create a zerocoin db; use an in-memory one.
+    pzerocoinDB.reset(new CZerocoinDB(1 << 23, true /* fMemory */));
+
+    // A real pubcoin, recorded as accumulated by the coinbase of the TIP block.
+    libzerocoin::PrivateCoin priv(Params().Zerocoin_Params(), libzerocoin::CoinDenomination::ZQ_TEN, true);
+    const libzerocoin::PublicCoin pub = priv.getPublicCoin();
+    const uint256 txidAccumulated = m_coinbase_txns.back()->GetHash();
+    {
+        std::map<libzerocoin::PublicCoin, uint256> mintInfo;
+        mintInfo.emplace(pub, txidAccumulated);
+        BOOST_CHECK(pzerocoinDB->WriteCoinMintBatch(mintInfo));
+    }
+
+    // The trap itself, spelled out: a reference index cannot see its own block, only
+    // the plain active-chain lookup can. This is why the mempool side must never pass
+    // the tip as a reference.
+    {
+        LOCK(cs_main);
+        int nHeightDummy = 0;
+        const uint256 hashTip = chainActive.Tip()->GetBlockHash();
+        BOOST_CHECK(!IsBlockHashInChain(hashTip, nHeightDummy, chainActive.Tip()));
+        BOOST_CHECK(IsBlockHashInChain(hashTip, nHeightDummy, nullptr));
+    }
+
+    // A different transaction minting the same pubcoin, stuck in the mempool. Real
+    // input coin so nothing else disqualifies it from selection.
+    CMutableTransaction tx;
+    tx.vin.resize(1);
+    tx.vin[0].prevout = COutPoint(uint256S("0000000000000000000000000000000000000000000000000000000000000002"), 0);
+    tx.vin[0].scriptSig = CScript() << OP_11;
+    CScript scriptMint = CScript() << OP_ZEROCOINMINT << pub.getValue().getvch().size() << pub.getValue().getvch();
+    tx.vpout.resize(1);
+    tx.vpout[0] = CTxOut(libzerocoin::ZerocoinDenominationToAmount(pub.getDenomination()), scriptMint).GetSharedPtr();
+    const uint256 txidZombie = tx.GetHash();
+
+    // The crafted mint output parses back to the exact pubcoin hash the db record was
+    // written under, so the dedup pass is looking at the right key.
+    {
+        const CTransaction ctx(tx);
+        std::set<uint256> setHashes;
+        BOOST_CHECK(TxToPubcoinHashSet(&ctx, setHashes));
+        BOOST_CHECK(setHashes.count(GetPubCoinHash(pub.getValue())));
+    }
+
+    {
+        LOCK(cs_main);
+        CTxOut in(libzerocoin::ZerocoinDenominationToAmount(pub.getDenomination()) + 100000, CScript() << OP_11 << OP_EQUAL);
+        pcoinsTip->AddCoin(tx.vin[0].prevout, Coin(std::move(in), 1, false), false);
+        BOOST_CHECK(pcoinsTip->HaveCoin(tx.vin[0].prevout));
+    }
+    {
+        LOCK(cs_main);
+        LOCK(mempool.cs);
+        mempool.addUnchecked(txidZombie, entry.Fee(10000).FromTx(tx));
+        BOOST_CHECK(mempool.exists(txidZombie));
+    }
+
+    // Before the fix the template carried the duplicate mint and TestBlockValidity
+    // failed on it, so this returned null on every attempt. Now the dedup pass sees
+    // the tip-block accumulation, skips the transaction and sweeps it out.
+    std::unique_ptr<CBlockTemplate> pblocktemplate;
+    BOOST_CHECK(pblocktemplate = AssemblerForTest(chainparams).CreateNewBlock(scriptPubKey));
+    if (pblocktemplate) {
+        for (const auto& btx : pblocktemplate->block.vtx)
+            BOOST_CHECK(btx->GetHash() != txidZombie);
+    }
+    BOOST_CHECK(!mempool.exists(txidZombie));
+
+    pzerocoinDB.reset();
+}
+
+// IsTransactionInChain answered "not in chain" for any transaction sitting in the
+// mempool, even one that was also confirmed: GetTransaction prefers the mempool and
+// returns a null block hash on a hit there. A confirmed transaction stuck in the
+// mempool is exactly the zombie state above, so the one moment the dedup pass most
+// needed the truth was the one moment the lookup lied. With a txindex available the
+// lookup must see through the mempool.
+BOOST_FIXTURE_TEST_CASE(transaction_in_chain_seen_through_mempool, TestChain100Setup)
+{
+    TestMemPoolEntryHelper entry;
+
+    // Put a long-confirmed transaction (block 1's coinbase) back into the mempool.
+    // addUnchecked bypasses acceptance on purpose, mirroring the race that creates
+    // the stuck state in production.
+    const CTransactionRef txConfirmed = m_coinbase_txns.front();
+    const uint256 txid = txConfirmed->GetHash();
+    {
+        LOCK(cs_main);
+        LOCK(mempool.cs);
+        mempool.addUnchecked(txid, entry.Fee(10000).FromTx(CMutableTransaction(*txConfirmed)));
+        BOOST_CHECK(mempool.exists(txid));
+    }
+
+    // Bring up the global txindex the fixed lookup consults when the mempool masks
+    // the answer.
+    g_txindex = MakeUnique<TxIndex>(1 << 20, true);
+    g_txindex->Start();
+    constexpr int64_t timeout_ms = 10 * 1000;
+    const int64_t time_start = GetTimeMillis();
+    while (!g_txindex->BlockUntilSyncedToCurrentChain()) {
+        BOOST_REQUIRE(time_start + timeout_ms > GetTimeMillis());
+        UninterruptibleSleep(std::chrono::milliseconds{100});
+    }
+
+    int nHeightTx = 0;
+    // In the chain and in the mempool at once: still in the chain.
+    BOOST_CHECK(IsTransactionInChain(txid, nHeightTx, Params().GetConsensus()));
+    BOOST_CHECK_EQUAL(nHeightTx, 1);
+
+    // A transaction that only exists in the mempool must still count as unconfirmed.
+    CMutableTransaction txLoose;
+    txLoose.vin.resize(1);
+    txLoose.vin[0].prevout = COutPoint(uint256S("0000000000000000000000000000000000000000000000000000000000000003"), 0);
+    txLoose.vin[0].scriptSig = CScript() << OP_11;
+    txLoose.vpout.resize(1);
+    txLoose.vpout[0] = CTxOut(1 * COIN, CScript() << OP_11 << OP_EQUAL).GetSharedPtr();
+    const uint256 txidLoose = txLoose.GetHash();
+    {
+        LOCK(cs_main);
+        LOCK(mempool.cs);
+        mempool.addUnchecked(txidLoose, entry.Fee(10000).FromTx(txLoose));
+    }
+    BOOST_CHECK(!IsTransactionInChain(txidLoose, nHeightTx, Params().GetConsensus()));
+
+    g_txindex->Stop(); // Stop thread before calling destructor
+    g_txindex.reset();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
