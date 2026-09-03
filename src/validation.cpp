@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2019 The Bitcoin Core developers
 // Copyright (c) 2015-2019 The PIVX developers
-// Copyright (c) 2019-2022 The Veil developers
+// Copyright (c) 2019-2026 The Veil developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -2453,6 +2453,7 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     std::vector<int> prevheights;
     CAmount nFees = 0;
+    CAmount nStakeReward = 0; // coinstake pseudo-fee (the minted reward); tracked so it can never widen the creation limit
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
 
@@ -2615,6 +2616,11 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
             if (!Consensus::CheckTxInputs(tx, state, view, pindex->nHeight, txfee, nTxValueIn, nTxValueOut))
                 return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), FormatStateMessage(state));
             nFees += txfee;
+            // For a coinstake, CheckTxInputs returns the entire minted stake reward in txfee. Remember it
+            // so it is excluded from any fee-based widening of the creation limit below (else a staker could
+            // mint an unbounded reward and have it authorise its own creation).
+            if (tx.IsCoinStake())
+                nStakeReward = txfee;
             if (!MoneyRange(nFees)) {
                 return state.DoS(100, error("%s: accumulated fee in the block out of range.", __func__),
                                  REJECT_INVALID, "bad-txns-accumulated-fee-outofrange");
@@ -2855,8 +2861,12 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
 
     // Full nodes are rewarded with the transaction fees in the block
     CAmount nCreationLimit = networkReward + nBlockReward + nFounderPayment + nBudgetPayment + nFoundationPayment;
-    if (block.fProofOfFullNode || pindex->nHeight >= Params().HeightSupplyCreationStop())
-        nCreationLimit += nFees;
+    // NOTE: block.fProofOfFullNode is a serialized, non-hash-committed block field that no honest block
+    // ever sets (the staker computes hashPoFN but leaves the flag false). Honoring it here let any staker
+    // set the flag, fold their coinstake reward (carried in nFees) into their own creation limit, and mint
+    // unbounded VEIL. Widen the limit only at the scheduled supply tail, and never by the coinstake reward.
+    if (pindex->nHeight >= Params().HeightSupplyCreationStop())
+        nCreationLimit += nFees - nStakeReward;
 
     // Check that the block's miner did not create more coins than allowed
     CAmount nCreated = nBlockValueOut - nBlockValueIn;

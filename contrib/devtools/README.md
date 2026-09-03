@@ -18,7 +18,10 @@ copyright\_header.py
 ====================
 
 Provides utilities for managing copyright headers of `The Bitcoin Core
-developers` in repository source files. It has three subcommands:
+developers` in repository source files. 
+This script has been modified and used to update copyright headers for the Veil developers, but is not trustworthy in its current state to be correct, especially if external updates or other third party commits are merged.
+
+It has three subcommands:
 
 ```
 $ ./copyright_header.py report <base_directory> [verbose]
@@ -72,6 +75,17 @@ year rather than two hyphenated years.
 
 If the file already has a copyright for `The Bitcoin Core developers`, the
 script will exit.
+
+git-blame-chrono.sh
+===================
+
+A small script to sort `git blame` chronologically enabling accurate copyright year updating.
+It must be run from the root of this or any github repository.
+
+Example:
+```bash
+contrib/devtools/git-blame-chrono.sh src/wallet/wallet.cpp
+```
 
 gen-manpages.sh
 ===============
