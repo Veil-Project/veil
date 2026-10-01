@@ -28,7 +28,7 @@ static CTransactionRef MakeCoinbase()
     tx.vin.resize(1);
     tx.vin[0].prevout.SetNull();
     tx.vin[0].scriptSig = CScript() << 1 << OP_0;
-    tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>());
+    tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(0, CScript()));
     return MakeTransactionRef(std::move(tx));
 }
 
@@ -38,7 +38,7 @@ static CTransactionRef MakeCoinstakeShape()
     CMutableTransaction tx;
     tx.vin.resize(1);
     tx.vin[0].scriptSig = CScript() << OP_ZEROCOINSPEND;
-    tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>());
+    tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(0, CScript()));
     tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(1 * COIN, CScript() << OP_TRUE));
     return MakeTransactionRef(std::move(tx));
 }

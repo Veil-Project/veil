@@ -30,7 +30,7 @@ static CTransactionRef MakeCoinbase()
     tx.vin.resize(1);
     tx.vin[0].prevout.SetNull();
     tx.vin[0].scriptSig = CScript() << 1 << OP_0;
-    tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>());
+    tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(0, CScript()));
     return MakeTransactionRef(std::move(tx));
 }
 
@@ -40,8 +40,18 @@ static CTransactionRef MakeCoinstakeShape()
     CMutableTransaction tx;
     tx.vin.resize(1);
     tx.vin[0].scriptSig = CScript() << OP_ZEROCOINSPEND;
-    tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>());
+    tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(0, CScript()));
     tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(1 * COIN, CScript() << OP_TRUE));
+    return MakeTransactionRef(std::move(tx));
+}
+
+static CTransactionRef MakeBlindedCoinstakeShape()
+{
+    CMutableTransaction tx;
+    tx.vin.resize(1);
+    tx.vin[0].scriptSig = CScript() << OP_ZEROCOINSPEND;
+    tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(0, CScript()));
+    tx.vpout.push_back(MAKE_OUTPUT<CTxOutCT>());
     return MakeTransactionRef(std::move(tx));
 }
 
@@ -129,6 +139,7 @@ BOOST_AUTO_TEST_CASE(header_conflict_is_a_possible_corruption)
 {
     CBlock block = MakeStakeBlock();
     block.vtx.pop_back();
+    block.nVersion |= CBlockHeader::PROGPOW_BLOCK;
     block.fProofOfStake = 0;
     block.fProofOfFullNode = 1;
 
@@ -204,8 +215,7 @@ BOOST_AUTO_TEST_SUITE_END()
 BOOST_FIXTURE_TEST_SUITE(pofn_commitment_chain_tests, TestChain100Setup)
 
 // On a real chain the honest proof recomputes and passes, one garbled byte is refused as a possible
-// corruption, and stripping the proof from the same block leaves a block with no claim, which passes
-// here and simply earns no full node fee share later.
+// corruption, and stripping a proof is allowed only when the committed coinstake has no blinded payout.
 BOOST_AUTO_TEST_CASE(garbled_proof_on_a_real_chain_is_a_possible_corruption)
 {
     LOCK(cs_main);
@@ -239,6 +249,29 @@ BOOST_AUTO_TEST_CASE(garbled_proof_on_a_real_chain_is_a_possible_corruption)
     CValidationState stateStripped;
     BOOST_CHECK(CheckProofOfFullNode(stripped, stateStripped, pindexTip));
     BOOST_CHECK(stripped.GetHash() == block.GetHash());
+
+    CBlock blinded = block;
+    blinded.vtx[1] = MakeBlindedCoinstakeShape();
+    blinded.hashMerkleRoot = BlockMerkleRoot(blinded);
+    blinded.hashPoFN = veil::GetFullNodeHash(blinded, pindexTip);
+    BOOST_REQUIRE(blinded.hashPoFN != uint256());
+
+    CValidationState stateBlinded;
+    BOOST_CHECK(CheckProofOfFullNode(blinded, stateBlinded, pindexTip));
+
+    CBlock strippedBlinded = blinded;
+    strippedBlinded.fProofOfFullNode = 0;
+    strippedBlinded.hashPoFN = uint256();
+    CValidationState stateStrippedBlinded;
+    BOOST_CHECK(!CheckProofOfFullNode(strippedBlinded, stateStrippedBlinded, pindexTip));
+    BOOST_CHECK_EQUAL(stateStrippedBlinded.GetRejectReason(), "bad-fullnode-hash");
+    BOOST_CHECK(stateStrippedBlinded.CorruptionPossible());
+    BOOST_CHECK_EQUAL(DoSScore(stateStrippedBlinded), 100);
+    BOOST_CHECK(strippedBlinded.GetHash() == blinded.GetHash());
+
+    CValidationState stateHonestAfter;
+    BOOST_CHECK(CheckProofOfFullNode(blinded, stateHonestAfter, pindexTip));
+    BOOST_CHECK(stateHonestAfter.IsValid());
 }
 
 // AcceptBlock returns early for a hash it already has data for, before any body check. A second copy

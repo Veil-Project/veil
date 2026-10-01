@@ -6,16 +6,22 @@
 
 #include <chain.h>
 #include <chainparams.h>
+#include <clientversion.h>
+#include <consensus/merkle.h>
 #include <consensus/validation.h>
+#include <hash.h>
 #include <miner.h>
 #include <primitives/block.h>
 #include <primitives/transaction.h>
+#include <protocol.h>
 #include <script/script.h>
 #include <streams.h>
 #include <validation.h>
 #include <version.h>
 
 #include <boost/test/unit_test.hpp>
+
+#include <cstdio>
 
 // The fProofOfStake byte in the block header is not part of the block hash. These tests pin down
 // that consensus routes on the hashed nVersion algo bits and on the block content instead, so a
@@ -47,9 +53,30 @@ static CTransactionRef MakeCoinstakeShape()
     CMutableTransaction tx;
     tx.vin.resize(1);
     tx.vin[0].scriptSig = CScript() << OP_ZEROCOINSPEND;
-    tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>());
+    tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(0, CScript()));
     tx.vpout.push_back(MAKE_OUTPUT<CTxOutStandard>(1 * COIN, CScript() << OP_TRUE));
     return MakeTransactionRef(std::move(tx));
+}
+
+static FILE* MakeBlockFile(const CBlock& block)
+{
+    CDataStream blockData(SER_DISK, CLIENT_VERSION);
+    blockData << block;
+
+    CDataStream fileData(SER_DISK, CLIENT_VERSION);
+    fileData.write(reinterpret_cast<const char*>(Params().MessageStart()), CMessageHeader::MESSAGE_START_SIZE);
+    fileData << static_cast<uint32_t>(blockData.size());
+    fileData.write(blockData.data(), blockData.size());
+
+    FILE* file = std::tmpfile();
+    if (!file)
+        return nullptr;
+    if (std::fwrite(fileData.data(), 1, fileData.size(), file) != fileData.size()) {
+        std::fclose(file);
+        return nullptr;
+    }
+    std::rewind(file);
+    return file;
 }
 
 BOOST_FIXTURE_TEST_SUITE(pos_header_type_tests, BasicTestingSetup)
@@ -106,7 +133,7 @@ BOOST_AUTO_TEST_CASE(check_block_rejects_work_content_under_a_stake_version)
     BOOST_CHECK(!block.IsProofOfStake());
 
     CValidationState state;
-    BOOST_CHECK(!CheckBlock(block, state, Params().GetConsensus(), /*fSkipComputation=*/true, /*fCheckPOW=*/false, /*fCheckMerkleRoot=*/false));
+    BOOST_CHECK(!CheckBlock(block, state, Params().GetConsensus(), /*fSkipComputation=*/true, /*fCheckPOW=*/true, /*fCheckMerkleRoot=*/false));
     BOOST_CHECK_EQUAL(state.GetRejectReason(), "bad-pos-version");
     BOOST_CHECK(!state.CorruptionPossible());
 }
@@ -179,6 +206,44 @@ BOOST_AUTO_TEST_CASE(index_flag_follows_the_hashed_header_not_the_byte)
     BOOST_CHECK(pindexWork->IsProofOfWork());
     BOOST_CHECK(pindexWork->IsProgProofOfWork());
     BOOST_CHECK(!pindexWork->IsProofOfStake());
+}
+
+// The import path calls AcceptBlock directly. A body mutation must be classified as possible
+// corruption before the permanent header/body type check, or the shared header hash is poisoned.
+BOOST_AUTO_TEST_CASE(imported_body_mutations_do_not_mark_the_header_failed)
+{
+    const CBlockIndex* pindexGenesis = chainActive.Genesis();
+    BOOST_REQUIRE(pindexGenesis);
+
+    for (const bool mutateMerkle : {true, false}) {
+        CBlock mutated(MakePostUpdateHeader(0, 0));
+        mutated.hashPrevBlock = pindexGenesis->GetBlockHash();
+        mutated.nTime = std::max<uint32_t>(nPowTimeStampActive, pindexGenesis->nTime) + 60;
+        mutated.nNonce = mutateMerkle ? 3 : 4;
+        mutated.vtx.push_back(MakeCoinbase());
+        mutated.hashMerkleRoot = BlockMerkleRoot(mutated);
+        mutated.hashAccumulators = SerializeHash(mutated.mapAccumulatorHashes);
+        if (mutateMerkle)
+            *mutated.hashMerkleRoot.begin() ^= 0x01;
+        else
+            *mutated.hashAccumulators.begin() ^= 0x01;
+
+        CValidationState state;
+        BOOST_CHECK(!CheckBlock(mutated, state, Params().GetConsensus(), true, true, true));
+        BOOST_CHECK_EQUAL(state.GetRejectReason(), mutateMerkle ? "bad-txnmrklroot" : "bad-accumulators-mutated");
+        BOOST_CHECK(state.CorruptionPossible());
+
+        const uint256 hash = mutated.GetHash();
+        FILE* file = MakeBlockFile(mutated);
+        BOOST_REQUIRE(file);
+        BOOST_CHECK(!LoadExternalBlockFile(Params(), file));
+
+        LOCK(cs_main);
+        const CBlockIndex* pindex = LookupBlockIndex(hash);
+        BOOST_REQUIRE(pindex);
+        BOOST_CHECK(!(pindex->nStatus & BLOCK_HAVE_DATA));
+        BOOST_CHECK(!(pindex->nStatus & BLOCK_FAILED_MASK));
+    }
 }
 
 // Work templates from the block assembler always carry an algo bit, so re timing one across the

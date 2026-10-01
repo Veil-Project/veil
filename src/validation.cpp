@@ -4373,21 +4373,15 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
     if (block.fChecked)
         return true;
 
-    // Check that the header is valid (particularly PoW).  This is mostly
-    // redundant with the call in AcceptBlockHeader except for checking the RandomX Proof of Work
-    if (!CheckBlockHeader(block, state, consensusParams, (fCheckPOW && block.IsProofOfWork()), block.fProofOfFullNode)) {
+    // Check that the header is valid (particularly PoW). After the PoW update the hashed
+    // version bits, not the unauthenticated body shape, decide whether PoW must be checked.
+    // This is mostly redundant with the call in AcceptBlockHeader except for checking RandomX.
+    const bool fHeaderProofOfWork = block.nTime >= nPowTimeStampActive
+        ? !block.IsProofOfStakeHeader()
+        : block.IsProofOfWork();
+    if (!CheckBlockHeader(block, state, consensusParams, (fCheckPOW && fHeaderProofOfWork), block.fProofOfFullNode)) {
         return false;
     }
-
-    // After the PoW update the header version and the block content both commit to the block
-    // type, so they have to agree: a stake block carries no algo bit and a work block carries
-    // one. Both sides are covered by the block hash, so a mismatch is a permanently bad block.
-    if (block.nTime >= nPowTimeStampActive && block.IsProofOfStake() != block.IsProofOfStakeHeader())
-        return state.DoS(100, false, REJECT_INVALID, "bad-pos-version", false, "header version and block content disagree on proof of stake");
-
-    // Check the block signature if it is a proof of stake block
-    if (block.IsProofOfStake() && !veil::ValidateBlockSignature(block))
-        return state.DoS(100, false, REJECT_INVALID, "bad-block-sig", true, "PoS block signature not valid");
 
     // Check the merkle root.
     if (fCheckMerkleRoot) {
@@ -4412,6 +4406,16 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         if (!CheckAccumulatorBodyCommitment(block, state))
             return false;
     }
+
+    // After the PoW update the header version and the block content both commit to the block
+    // type, so they have to agree: a stake block carries no algo bit and a work block carries
+    // one. Check the body commitments first so a mutated copy cannot permanently fail the hash.
+    if (block.nTime >= nPowTimeStampActive && block.IsProofOfStake() != block.IsProofOfStakeHeader())
+        return state.DoS(100, false, REJECT_INVALID, "bad-pos-version", false, "header version and block content disagree on proof of stake");
+
+    // Check the block signature only after the committed body and its type agree with the header.
+    if (block.IsProofOfStake() && !veil::ValidateBlockSignature(block))
+        return state.DoS(100, false, REJECT_INVALID, "bad-block-sig", true, "PoS block signature not valid");
 
     // All potential-corruption validation must be done before we do any
     // transaction validation, as otherwise we may mark the header as invalid
@@ -4841,9 +4845,16 @@ bool CheckConsecutivePoW(const CBlock& block, const CBlockIndex* pindexPrev) {
 
 bool CheckProofOfFullNode(const CBlock& block, CValidationState& state, const CBlockIndex* pindexPrev)
 {
-    // No claim, nothing to check. A stake block without a proof simply gets no full node fee share.
-    if (!block.fProofOfFullNode && block.hashPoFN.IsNull())
+    // Blinded coinstake values require proof of full node. The proof fields are not committed by
+    // the block hash, so a missing proof is treated as a mutated copy rather than a bad hash.
+    if (!block.fProofOfFullNode && block.hashPoFN.IsNull()) {
+        if (block.IsProofOfStake() && block.vtx[1]->HasBlindedValues())
+            return state.DoS(100, error("%s: coinstake with blinded values is missing proof of full node", __func__),
+                             REJECT_INVALID, "bad-fullnode-hash", /*corruptionIn=*/true);
+
+        // No claim and no proof-dependent payout, nothing to check.
         return true;
+    }
 
     // Neither the fProofOfFullNode byte nor hashPoFN is covered by the block hash, so a relaying peer can
     // plant, strip or garble them on any block without changing the hash. A failure here says nothing
