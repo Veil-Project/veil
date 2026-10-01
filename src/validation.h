@@ -457,11 +457,25 @@ bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const CBlockIndex* pindex
 
 bool CheckConsecutivePoW(const CBlock& block, const CBlockIndex* pindexPrev);
 
+/** Check that a pre PoW update stake block's body reproduces the hashVeilData its header commits to.
+ *  Fails as a possible corruption. Work blocks of that era are not checked: the reference miner never
+ *  recomputed hashVeilData after the extranonce, so none of them would pass. */
+bool CheckVeilDataCommitment(const CBlock& block, CValidationState& state);
+
 /** Context-independent validity checks */
 bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fSkipComputation = false, bool fCheckPOW = true, bool fCheckMerkleRoot = true);
 
+/** Reject a block whose accumulator body does not match the hashAccumulators its header commits to. Flagged as a
+ *  possible mutation so the shared header hash is never permanently marked failed. No-op before the PoW update. */
+bool CheckAccumulatorBodyCommitment(const CBlock& block, CValidationState& state);
+
 /** Check a block is completely valid from start to finish (only works on top of our current best block) */
 bool TestBlockValidity(CValidationState& state, const CChainParams& chainparams, const CBlock& block, CBlockIndex* pindexPrev, bool fCheckPOW = true, bool fCheckMerkleRoot = true) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
+/** Check a block's proof of full node claim against a recomputation over pindexPrev. Runs before the
+ *  block is stored, and fails as a possible corruption because neither the fProofOfFullNode byte nor
+ *  hashPoFN is covered by the block hash. */
+bool CheckProofOfFullNode(const CBlock& block, CValidationState& state, const CBlockIndex* pindexPrev);
 
 /** Check whether witness commitments are required for block. */
 bool IsWitnessEnabled(const CBlockIndex* pindexPrev, const Consensus::Params& params);

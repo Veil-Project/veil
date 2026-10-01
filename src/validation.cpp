@@ -192,7 +192,7 @@ public:
      * that it doesn't descend from an invalid block, and then add it to mapBlockIndex.
      */
     bool AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams,
-            CBlockIndex** ppindex, bool fProofOfStake, bool fProofOfFullNode, int nMaxHeightNoPoWScore) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+            CBlockIndex** ppindex, bool fProofOfFullNode, int nMaxHeightNoPoWScore) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CValidationState& state, const CChainParams& chainparams, CBlockIndex** ppindex, bool fRequested, const CDiskBlockPos* dbp, bool* fNewBlock) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
     bool ContextualCheckZerocoinStake(CBlockIndex* pindex, CStakeInput* stake);
 
@@ -2848,12 +2848,17 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
     CAmount nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment = 0;
     veil::Budget().GetBlockRewards(pindex->nHeight, nBlockReward, nFounderPayment, nFoundationPayment, nBudgetPayment);
 
-    //Check proof of full node
+    //Check proof of full node. Copies that arrive over the network are checked before storage by
+    // CheckProofOfFullNode, so on a stored block this can only fail for a genuine reason.
     if (!fSkipComputation && (block.fProofOfFullNode || block.hashPoFN != uint256())) {
         if (!block.IsProofOfStake())
             return state.DoS(100, error("%s: block marked as proof of full node that is not proof of stake", __func__));
 
-        uint256 hashRequired = veil::GetFullNodeHash(block, pindex->pprev);
+        // A stored block has all of its ancestors, so a recompute that cannot run is a local disk
+        // problem and is reported as one instead of being held against the block.
+        uint256 hashRequired;
+        if (!veil::GenerateProofOfFullNodeVector(block.hashMerkleRoot, block.hashPrevBlock, pindex->pprev, hashRequired))
+            return state.Error(strprintf("%s: cannot recompute proof of full node for block %s", __func__, block.GetHash().GetHex()));
         if (block.hashPoFN != hashRequired)
             return state.DoS(100, error("%s: block's Proof of Full node hash is invalid. Block=%s Required=%s",
                     __func__, block.hashPoFN.GetHex(), hashRequired.GetHex()), REJECT_INVALID, "bad-fullnode-hash");
@@ -2979,16 +2984,15 @@ bool CChainState::ConnectBlock(const CBlock& block, CValidationState& state, CBl
         blockCalc.hashWitnessMerkleRoot = BlockWitnessMerkleRoot(block);
         blockCalc.mapAccumulatorHashes = block.mapAccumulatorHashes; //This acc map already validated above in validateaccumulatorcheckpoint
         blockCalc.hashPoFN = block.hashPoFN;
+        // Same class as the check below: a body that does not reproduce the committed hashVeilData is a
+        // mutated copy, so it must not permanently mark the shared header hash failed.
         if (blockCalc.GetVeilDataHash() != block.GetVeilDataHash())
             return state.DoS(100, error("%s: VeilDataHash comparison  failed: %s", __func__,
                                         blockCalc.DataHashElementsToString()), REJECT_INVALID,
-                             "block-validation-failed");
+                             "bad-veildata-mutated", /*corruptionIn=*/true);
     } else {
-        if (SerializeHash(block.mapAccumulatorHashes) != block.hashAccumulators) {
-            return state.DoS(100, error("%s: VeilDataHash comparison v2 failed: %s", __func__,
-                                        block.DataHashElementsToString()), REJECT_INVALID,
-                             "block-validation-failed");
-        }
+        if (!CheckAccumulatorBodyCommitment(block, state))
+            return false;
     }
 
     int64_t nTime5 = GetTimeMicros(); nTimeComputeVeilHash += nTime5 - nTime4;
@@ -4272,6 +4276,34 @@ static bool FindUndoPos(CValidationState &state, int nFile, CDiskBlockPos &pos, 
     return true;
 }
 
+bool CheckVeilDataCommitment(const CBlock& block, CValidationState& state)
+{
+    // After the PoW update the header commits to the body through hashMerkleRoot, hashWitnessMerkleRoot
+    // and hashAccumulators, and hashVeilData is no longer part of the header.
+    if (block.nTime >= nPowTimeStampActive)
+        return true;
+
+    // Before the update hashVeilData was the only header field covering the body (merkle roots, the
+    // accumulator map and hashPoFN), and nothing ever checked it. It can only be enforced for stake
+    // blocks: the reference miner never recomputed it after the extranonce changed the coinbase, so
+    // every mined work block on mainnet carries the stale template value, while the staker had no such
+    // step and every stake block reproduces it.
+    if (!block.IsProofOfStake())
+        return true;
+
+    // A stake block body that does not reproduce the committed hashVeilData is a mutated copy of the
+    // block, not proof that the block behind the hash is bad. It is flagged as a possible corruption so
+    // the hash is never marked failed and a clean copy of the same block is still accepted, the same
+    // handling a merkle root mismatch gets.
+    const uint256 hashBody = block.GetVeilDataHash();
+    if (block.hashVeilData != hashBody)
+        return state.DoS(100, error("%s: body does not match the committed hashVeilData. Committed=%s Body=%s", __func__,
+                                    block.hashVeilData.GetHex(), hashBody.GetHex()),
+                         REJECT_INVALID, "bad-veildata-mutated", /*corruptionIn=*/true);
+
+    return true;
+}
+
 static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true, bool fCheckProofOfFullNode = false)
 {
 
@@ -4279,9 +4311,12 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     if (Params().NetworkIDString() == "regtest")
         return true;
 
-    //Prevent Proof of full node and proof of work existing together
+    //Prevent Proof of full node and proof of work existing together. The fProofOfFullNode byte is not
+    // part of the block hash, so this can be a relayed mutation and must not mark the hash failed.
+    // A possible corruption out of CheckBlock inside ConnectBlock aborts the node as a disk failure;
+    // that stays unreachable because the same CheckBlock refuses such a copy before it is stored.
     if (fCheckPOW && fCheckProofOfFullNode)
-        return state.DoS(50, false, REJECT_INVALID, "PoW and PoFN conflict", false, "Block attempted to use both PoW and PoFN");
+        return state.DoS(50, false, REJECT_INVALID, "PoW and PoFN conflict", true, "Block attempted to use both PoW and PoFN");
 
     // Check to make sure only one PoW bit is set
     if ((block.IsProgPow() && block.IsSha256D()) || (block.IsProgPow() && block.IsRandomX()) || (block.IsRandomX() && block.IsSha256D()))
@@ -4314,6 +4349,24 @@ static bool CheckBlockHeader(const CBlockHeader& block, CValidationState& state,
     return true;
 }
 
+bool CheckAccumulatorBodyCommitment(const CBlock& block, CValidationState& state)
+{
+    // Before the PoW update the body is committed through hashVeilData and checked in ConnectBlock.
+    if (block.nTime < nPowTimeStampActive)
+        return true;
+
+    // The body does not reproduce the hashAccumulators the header commits to. That is a corrupt or mutated
+    // copy of the block, not proof the canonical block is invalid, so it is flagged as a possible corruption:
+    // InvalidBlockFound then leaves the shared header hash unmarked and a valid copy of the same hash can
+    // still be accepted (the same handling a merkle root mismatch gets).
+    if (SerializeHash(block.mapAccumulatorHashes) != block.hashAccumulators)
+        return state.DoS(100, error("%s: accumulator body does not match committed hashAccumulators: %s", __func__,
+                                    block.DataHashElementsToString()), REJECT_INVALID,
+                         "bad-accumulators-mutated", /*corruptionIn=*/true);
+
+    return true;
+}
+
 bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::Params& consensusParams, bool fSkipComputation, bool fCheckPOW, bool fCheckMerkleRoot)
 {
     // These are checks that are independent of context.
@@ -4326,12 +4379,23 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         return false;
     }
 
+    // After the PoW update the header version and the block content both commit to the block
+    // type, so they have to agree: a stake block carries no algo bit and a work block carries
+    // one. Both sides are covered by the block hash, so a mismatch is a permanently bad block.
+    if (block.nTime >= nPowTimeStampActive && block.IsProofOfStake() != block.IsProofOfStakeHeader())
+        return state.DoS(100, false, REJECT_INVALID, "bad-pos-version", false, "header version and block content disagree on proof of stake");
+
     // Check the block signature if it is a proof of stake block
     if (block.IsProofOfStake() && !veil::ValidateBlockSignature(block))
         return state.DoS(100, false, REJECT_INVALID, "bad-block-sig", true, "PoS block signature not valid");
 
     // Check the merkle root.
     if (fCheckMerkleRoot) {
+        // Before the PoW update the body fields themselves sit outside the header hash and are only
+        // covered through hashVeilData, so that commitment is checked here, before the block is stored.
+        if (!CheckVeilDataCommitment(block, state))
+            return false;
+
         bool mutated;
         uint256 hashMerkleRoot2 = BlockMerkleRoot(block, &mutated);
         if (block.hashMerkleRoot != hashMerkleRoot2)
@@ -4342,6 +4406,11 @@ bool CheckBlock(const CBlock& block, CValidationState& state, const Consensus::P
         // while still invalidating it.
         if (mutated)
             return state.DoS(100, false, REJECT_INVALID, "bad-txns-duplicate", true, "duplicate transaction");
+
+        // The accumulator body is committed by the header the same way the transactions are. A copy whose
+        // body does not match is a mutation and is rejected here, before it can become a tip candidate.
+        if (!CheckAccumulatorBodyCommitment(block, state))
+            return false;
     }
 
     // All potential-corruption validation must be done before we do any
@@ -4742,7 +4811,7 @@ static bool ContextualCheckBlockHeader(const CBlockHeader& block, CValidationSta
             return state.Invalid(false, REJECT_OBSOLETE, strprintf("bad-version(0x%08x)", block.nVersion),
                                  strprintf("rejected nVersion=0x%08x block", block.nVersion));
 
-    if (!block.fProofOfStake && block.nTime >= Params().PowUpdateTimestamp()) {
+    if (!block.IsProofOfStakeHeader() && block.nTime >= Params().PowUpdateTimestamp()) {
         if (!block.IsSha256D() && !block.IsRandomX() && !block.IsProgPow())
             return state.DoS(33, error("%s - bad-pow-algo-use-updated-algos", __func__), REJECT_OBSOLETE,
                                  "unexpected hash, please ensure its progpow, randomx, or sha256d");
@@ -4768,6 +4837,46 @@ bool CheckConsecutivePoW(const CBlock& block, const CBlockIndex* pindexPrev) {
     }
 
     return false;
+}
+
+bool CheckProofOfFullNode(const CBlock& block, CValidationState& state, const CBlockIndex* pindexPrev)
+{
+    // No claim, nothing to check. A stake block without a proof simply gets no full node fee share.
+    if (!block.fProofOfFullNode && block.hashPoFN.IsNull())
+        return true;
+
+    // Neither the fProofOfFullNode byte nor hashPoFN is covered by the block hash, so a relaying peer can
+    // plant, strip or garble them on any block without changing the hash. A failure here says nothing
+    // about the block behind that hash, so it is flagged as a possible corruption: the hash stays
+    // unmarked and a clean copy of the same block is still accepted, the same handling a merkle root
+    // mismatch gets. Anything that permanently fails a hash must key off committed data only.
+    if (!block.IsProofOfStake())
+        return state.DoS(100, error("%s: proof of full node on a block that is not proof of stake", __func__),
+                         REJECT_INVALID, "bad-fullnode-type", /*corruptionIn=*/true);
+
+    // A claim has to carry its proof. An empty proof compared against a recompute that could not run
+    // would pass, so it is refused before anything is recomputed.
+    if (block.hashPoFN.IsNull())
+        return state.DoS(100, error("%s: proof of full node claimed without a proof hash", __func__),
+                         REJECT_INVALID, "bad-fullnode-hash", /*corruptionIn=*/true);
+
+    // The recompute samples ancestor bodies from disk. Not having them (a parent fetched for a reorg
+    // before its own data, a pruned or damaged datadir) is a fact about this node, not about the block,
+    // so the block is refused without a score and without being stored, and is fetched again later.
+    // nChainTx is only set once every ancestor has its data, which makes it the cheap first test.
+    uint256 hashRequired;
+    if (!pindexPrev || pindexPrev->nChainTx == 0 ||
+        !veil::GenerateProofOfFullNodeVector(block.hashMerkleRoot, block.hashPrevBlock, pindexPrev, hashRequired))
+        return state.DoS(0, error("%s: cannot recompute proof of full node on top of %s", __func__,
+                                  pindexPrev ? pindexPrev->GetBlockHash().GetHex() : "null"),
+                         REJECT_INVALID, "bad-fullnode-unverifiable", /*corruptionIn=*/true);
+
+    if (block.hashPoFN != hashRequired)
+        return state.DoS(100, error("%s: proof of full node hash is invalid. Block=%s Required=%s", __func__,
+                                    block.hashPoFN.GetHex(), hashRequired.GetHex()),
+                         REJECT_INVALID, "bad-fullnode-hash", /*corruptionIn=*/true);
+
+    return true;
 }
 
 /** NOTE: This function is not currently invoked by ConnectBlock(), so we
@@ -4800,6 +4909,13 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
 			return state.DoS(100, false, REJECT_INVALID, "bad-pow", false, strprintf("too many consecutive pow blocks"));
 		}
     }
+
+    // Proof of full node rides on data the block hash does not commit to, so it has to be checked here,
+    // before the block is stored, and a mismatch refused as a possible corruption. ConnectBlock repeats
+    // the check on the stored copy, where it can only fail for a genuine reason. Blocks under the last
+    // checkpoint are skipped the same way ConnectBlock skips them.
+    if (nHeight >= Checkpoints::GetLastCheckpointHeight(Params().Checkpoints()) && !CheckProofOfFullNode(block, state, pindexPrev))
+        return false;
 
     // Start enforcing BIP113 (Median Time Past) using versionbits logic.
     int nLockTimeFlags = 0;
@@ -4879,12 +4995,16 @@ static bool ContextualCheckBlock(const CBlock& block, CValidationState& state, c
 }
 
 bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState& state, const CChainParams& chainparams,
-        CBlockIndex** ppindex, bool fProofOfStake, bool fProofOfFullNode, int nMaxHeightNoPoWScore)
+        CBlockIndex** ppindex, bool fProofOfFullNode, int nMaxHeightNoPoWScore)
 {
     AssertLockHeld(cs_main);
     // Check for duplicate
     uint256 hash = block.GetHash();
     CBlockIndex *pindex = nullptr;
+    // The block type has to come from data the hash commits to. The fProofOfStake byte is not
+    // hashed, so a peer could flip it to skip the proof of work check and still deliver a
+    // header with the same hash.
+    const bool fProofOfStake = block.IsProofOfStakeHeader();
     if (hash != chainparams.GetConsensus().hashGenesisBlock) {
         pindex = LookupBlockIndex(hash);
         if (pindex != nullptr) {
@@ -4896,7 +5016,7 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
             return true;
         }
 
-        bool fCheckPoW = !block.fProofOfStake;
+        bool fCheckPoW = !fProofOfStake;
 
         // Don't check RandomX as we might not have the KeyBlock yet
         if (!block.IsRandomX() && !CheckBlockHeader(block, state, chainparams.GetConsensus(), fCheckPoW, fProofOfFullNode)) {
@@ -4932,7 +5052,7 @@ bool CChainState::AcceptBlockHeader(const CBlockHeader& block, CValidationState&
         }
         // Don't save this header if it is too high to process without adding more PoW work
         if (pindexPrev->nHeight + 1 >= nMaxHeightNoPoWScore) {
-            if (!block.fProofOfStake && chainActive.Tip()->nChainPoW >= pindexPrev->GetChainPoW())
+            if (!fProofOfStake && chainActive.Tip()->nChainPoW >= pindexPrev->GetChainPoW())
                 return true;
         }
     }
@@ -4959,9 +5079,8 @@ bool ProcessNewBlockHeaders(const std::vector<CBlockHeader>& headers, CValidatio
 
         for (const CBlockHeader& header : headers) {
             CBlockIndex *pindex = nullptr; // Use a temp pindex instead of ppindex to avoid a const_cast
-            bool fProofOfStake = header.fProofOfStake;
             bool fProofOfFullNode = header.fProofOfFullNode;
-            if (!g_chainstate.AcceptBlockHeader(header, state, chainparams, &pindex, fProofOfStake, fProofOfFullNode, nHeightMaxNonPoW)) {
+            if (!g_chainstate.AcceptBlockHeader(header, state, chainparams, &pindex, fProofOfFullNode, nHeightMaxNonPoW)) {
                 if (first_invalid) *first_invalid = header;
                 return false;
             }
@@ -5047,14 +5166,13 @@ bool CChainState::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, CVali
     CBlockIndex *pindexDummy = nullptr;
     CBlockIndex *&pindex = ppindex ? *ppindex : pindexDummy;
 
-    if (!AcceptBlockHeader(block, state, chainparams, &pindex, block.fProofOfStake, block.fProofOfFullNode, chainActive.Height() + Params().MaxHeaderRequestWithoutPoW()))
+    if (!AcceptBlockHeader(block, state, chainparams, &pindex, block.fProofOfFullNode, chainActive.Height() + Params().MaxHeaderRequestWithoutPoW()))
         return error("%s: AcceptBlockHeader failed for block %s", __func__, block.GetHash().GetHex());
 
-    //! Validate Proof of Stake (skip if a reindex is in progress)
-    if (!fReindex && block.fProofOfStake) {
-        if (!block.IsProofOfStake())
-            return state.DoS(100, error("%s: Blockheader marked as PoS but block is not PoS", __func__));
-        
+    //! Validate Proof of Stake (skip if a reindex is in progress). The block content decides
+    //! whether this is a stake block. The unhashed fProofOfStake byte must not, or a peer could
+    //! clear it on a block whose header is already indexed and skip the kernel check entirely.
+    if (!fReindex && block.IsProofOfStake()) {
         uint256 hashProofOfStake = uint256();
         std::unique_ptr<CStakeInput> stake;
 
@@ -5163,6 +5281,7 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
 {
     AssertLockNotHeld(cs_main);
 
+    bool fStoredNow = false;
     {
         CBlockIndex *pindex = nullptr;
         if (fNewBlock) *fNewBlock = false;
@@ -5173,8 +5292,9 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
         LOCK(cs_main);
         if (ret) {
             // Store to disk
-            ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, fNewBlock);
+            ret = g_chainstate.AcceptBlock(pblock, state, chainparams, &pindex, fForceProcessing, nullptr, &fStoredNow);
         }
+        if (fNewBlock) *fNewBlock = fStoredNow;
         if (!ret) {
             if (state.IsStaged())
                 return error("%s: Block %s cannot be checked without known PoW added on chain tip", __func__, pblock->GetHash().GetHex());
@@ -5185,8 +5305,13 @@ bool ProcessNewBlock(const CChainParams& chainparams, const std::shared_ptr<cons
 
     NotifyHeaderTip();
 
+    // Only hand ActivateBestChain the copy this call checked and stored. AcceptBlock returns early
+    // for a hash it already has data for, before any body check, so a second copy of a known block
+    // has not been validated here. Parts of the body sit outside the block hash, and connecting an
+    // unchecked in memory copy would let a mutated one fail ConnectBlock in place of the stored one.
+    // Without the copy, ConnectTip reads the stored block, which did pass every check.
     CValidationState state; // Only used to report errors, not invalidity - ignore it
-    if (!g_chainstate.ActivateBestChain(state, chainparams, pblock))
+    if (!g_chainstate.ActivateBestChain(state, chainparams, fStoredNow ? pblock : std::shared_ptr<const CBlock>()))
         return error("%s: ActivateBestChain failed (%s)", __func__, FormatStateMessage(state));
 
     return true;
