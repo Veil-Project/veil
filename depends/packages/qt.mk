@@ -1,6 +1,6 @@
 PACKAGE=qt
 $(package)_version=5.9.8
-$(package)_download_path=https://mirror-eu1.veil.tools/packages/qt
+$(package)_download_path=https://download.qt.io/archive/qt/5.9/5.9.8/submodules
 $(package)_suffix=opensource-src-$($(package)_version).tar.xz
 $(package)_file_name=qtbase-$($(package)_suffix)
 $(package)_sha256_hash=9b9dec1f67df1f94bce2955c5604de992d529dde72050239154c56352da0907d

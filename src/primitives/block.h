@@ -216,6 +216,18 @@ public:
         return nVersion & SHA256D_BLOCK && nTime >= nPowTimeStampActive;
     }
 
+    // Whether the hashed part of the header says this is a proof of stake block.
+    // fProofOfStake is left out of the block hash, so a relaying peer can flip it without
+    // changing the hash and consensus must never route on it. After the PoW update every
+    // proof of work header carries exactly one algo bit in nVersion, so no algo bit means
+    // proof of stake. Before the update the type was only ever carried by the byte, so the
+    // byte stays the source for that era, which is fully behind checkpoints.
+    bool IsProofOfStakeHeader() const {
+        if (nTime < nPowTimeStampActive)
+            return fProofOfStake;
+        return (nVersion & (PROGPOW_BLOCK | RANDOMX_BLOCK | SHA256D_BLOCK)) == 0;
+    }
+
     int64_t GetBlockTime() const
     {
         return (int64_t)nTime;

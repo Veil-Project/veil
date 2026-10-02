@@ -34,6 +34,11 @@ uint256 GetFullNodeHash(const CBlock& block, const CBlockIndex* pindexPrev)
 bool GenerateProofOfFullNodeVector(const uint256& hashUniqueToOwner, const uint256& hashUniqueToBlock,
         const CBlockIndex* pindexPrev, uint256& hashProofOfFullNode)
 {
+    // The block after genesis has no ancestors to prove, and the modulo below would be undefined
+    // behaviour (a trap on x86, a silent zero on arm64).
+    if (!pindexPrev || pindexPrev->nHeight <= 0)
+        return error("%s: no ancestors to prove on top of height %d", __func__, pindexPrev ? pindexPrev->nHeight : -1);
+
     //Commit the owner to the previous block of the chain
     uint256 hashCommitToChain = Hash(hashUniqueToOwner.begin(), hashUniqueToOwner.end(), hashUniqueToBlock.begin(), hashUniqueToBlock.end());
     uint32_t nCommitNumber = UintToArith256(hashCommitToChain).GetLow32();

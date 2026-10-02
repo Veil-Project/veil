@@ -29,6 +29,7 @@ BITCOIN_TEST_SUITE = \
 BITCOIN_TESTS =\
   test/arith_uint256_tests.cpp \
   test/scriptnum10.h \
+  test/accumulator_mutation_tests.cpp \
   test/addrman_tests.cpp \
   test/amount_tests.cpp \
   test/allocator_tests.cpp \
@@ -66,7 +67,9 @@ BITCOIN_TESTS =\
   test/pos_placeholder_tests.cpp \
   test/watchonly_tests.cpp \
   test/pmt_tests.cpp \
+  test/pofn_commitment_tests.cpp \
   test/policyestimator_tests.cpp \
+  test/pos_header_type_tests.cpp \
   test/pow_tests.cpp \
   test/prevector_tests.cpp \
   test/progpow_tests.cpp \
@@ -98,6 +101,7 @@ BITCOIN_TESTS =\
   test/uint256_tests.cpp \
   test/util_tests.cpp \
   test/validation_block_tests.cpp \
+  test/veildata_commitment_tests.cpp \
   test/versionbits_tests.cpp \
   test/monthly_rewards_tests.cpp \
   test/libzerocoin_tests.cpp \
