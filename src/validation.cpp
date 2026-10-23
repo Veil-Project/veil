@@ -3307,7 +3307,7 @@ void static UpdateTip(const CBlockIndex *pindexNew, const CChainParams& chainPar
             else if (pindex->IsRandomXProofOfWork())
                 nExpectedVersion |= CBlockHeader::RANDOMX_BLOCK;
 
-            if (pindex->nVersion > VERSIONBITS_LAST_OLD_BLOCK_VERSION && (pindex->nVersion & ~nExpectedVersion) != 0)
+            if (pindex->nVersion > VERSIONBITS_LAST_OLD_BLOCK_VERSION && (pindex->nVersion & ~nExpectedVersion & ~VERSIONBITS_ROLLED_MASK) != 0)
                 ++nUpgraded;
             pindex = pindex->pprev;
         }
