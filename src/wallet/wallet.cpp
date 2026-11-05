@@ -5229,24 +5229,31 @@ void CWallet::AutoZeromint()
 
     if (nMintAmount > 0){
 
+        // Every mint costs a fee on top of its denomination, and the balance
+        // has to cover both. Sizing against the denomination alone left no room
+        // for the fee, so a balance that was an exact multiple of the
+        // denomination was spent in full by the scaling below and the mint was
+        // then refused.
+        const CAmount nPerMint = nMintAmount * COIN + Params().Zerocoin_MintFee();
+
         if (inputtype == OUTPUT_STANDARD) {
-            if (nSelectedCoinBalance < nMintAmount * COIN) {
-                LogPrintf("%s : Can't auto mint, mintable basecoin value (%lu) is less than the selected denomination: (%ld)\n", __func__, nSelectedCoinBalance, nMintAmount);
+            if (nSelectedCoinBalance < nPerMint) {
+                LogPrintf("%s : Can't auto mint, mintable basecoin value (%lu) is less than the selected denomination plus its fee: (%ld)\n", __func__, nSelectedCoinBalance, nPerMint);
                 return;
             }
         } else if (inputtype == OUTPUT_RINGCT || inputtype == OUTPUT_CT) {
-            if (nSelectedCoinBalance < nMintAmount * COIN) {
+            if (nSelectedCoinBalance < nPerMint) {
                 std::string strType = "ringct";
                 if (inputtype == OUTPUT_CT)
                     strType = "ct";
 
-                LogPrintf("%s : Can't auto mint, mintable %s value (%lu) is less than the selected denomination: (%ld)\n", __func__, strType, nSelectedCoinBalance, nMintAmount);
+                LogPrintf("%s : Can't auto mint, mintable %s value (%lu) is less than the selected denomination plus its fee: (%ld)\n", __func__, strType, nSelectedCoinBalance, nPerMint);
                 return;
             }
         }
 
         // Instead of making one mint at a time, try to make up to 9 at a time if the balance supports it
-        int div = nSelectedCoinBalance / (nMintAmount * COIN);
+        int div = nSelectedCoinBalance / nPerMint;
         if (div < 1)
             div = 1;
         if (div > 9)
@@ -5261,6 +5268,10 @@ void CWallet::AutoZeromint()
         // Return if something went wrong during minting
         if (strError != ""){
             LogPrintf("%s: auto minting failed with error: %s\n", __func__, strError);
+            // Wait out the delay before trying again. The delay was only ever
+            // reset after a mint succeeded, so a failure that does not clear
+            // on its own was retried on every block connect.
+            nAutoMintStartupTime = GetAdjustedTime();
             return;
         }
         nZerocoinBalance = GetZerocoinBalance(false);
