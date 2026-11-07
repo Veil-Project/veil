@@ -553,6 +553,11 @@ void CzWallet::UpdateCount()
     nCountLastUsed++;
     WalletBatch walletdb(*walletDatabase);
     walletdb.WriteZCount(nCountLastUsed);
+
+    // Keep the lookahead ahead. GenerateMintPool covers nCountLastUsed + 1 to
+    // + 20 and skips counts the pool already holds, so this adds the one count
+    // that moving the counter uncovered.
+    GenerateMintPool();
 }
 
 void CzWallet::GenerateDeterministicZerocoin(CoinDenomination denom, PrivateCoin& coin, CDeterministicMint& dMint, bool fGenerateOnly)
