@@ -17,6 +17,8 @@ static const int32_t VERSIONBITS_OLD_POW_VERSION = 0x20000000UL;
 static const int32_t VERSIONBITS_NEW_POW_VERSION = 0x30000000UL;
 /** What bitmask determines whether versionbits is in use */
 static const int32_t VERSIONBITS_TOP_MASK = 0xFF000000UL;
+/** Bits miners roll for work, under the algorithm flags, as in BIP 320 */
+static const int32_t VERSIONBITS_ROLLED_MASK = 0x00FFE000UL;
 /** Total bits available for versionbits */
 static const int32_t VERSIONBITS_NUM_BITS = 24;
 
