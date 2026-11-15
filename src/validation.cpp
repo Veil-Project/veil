@@ -883,7 +883,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
         for (const uint256& hashPubcoin : setPubcoins) {
             if (pool.HasPublicCoin(hashPubcoin)) {
                 LogPrint(BCLog::NET, "%s: pubcoin already in mempool. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
-                return false;
+                return state.Invalid(false, REJECT_DUPLICATE, "pubcoin-already-in-mempool");
             }
 
             int nHeightTx;
@@ -893,7 +893,7 @@ static bool AcceptToMemoryPoolWorker(const CChainParams& chainparams, CTxMemPool
             // duplicate mint into the mempool, where it poisoned every block template.
             if (IsPubcoinInBlockchain(hashPubcoin, nHeightTx, txid, nullptr)) {
                 LogPrint(BCLog::NET, "%s: pubcoin already in blockchain. Reject tx %s.\n", __func__, tx.GetHash().GetHex());
-                return false;
+                return state.Invalid(false, REJECT_DUPLICATE, "pubcoin-already-known");
             }
 
             if (blacklist::ContainsPubcoinHash(hashPubcoin))
