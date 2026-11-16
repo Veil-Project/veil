@@ -2919,7 +2919,6 @@ UniValue listtransactions(const JSONRPCRequest& request)
     if (nFrom < 0)
         throw JSONRPCError(RPC_INVALID_PARAMETER, "Negative from");
 
-    UniValue ret(UniValue::VARR);
     UniValue retReversed(UniValue::VARR);
 
     {
@@ -2938,11 +2937,11 @@ UniValue listtransactions(const JSONRPCRequest& request)
         }
     }
 
-    // ret is newest to oldest
+    // retReversed is newest to oldest
 
-    if (nFrom > (int)ret.size())
+    if (nFrom > (int)retReversed.size())
         nFrom = retReversed.size();
-    if ((nFrom + nCount) > (int)ret.size())
+    if ((nFrom + nCount) > (int)retReversed.size())
         nCount = retReversed.size() - nFrom;
 
     std::vector<UniValue> arrTmp = retReversed.getValues();
